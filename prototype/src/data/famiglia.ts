@@ -1,4 +1,6 @@
+import { format } from '@formkit/tempo'
 import { fineMese, giorniTra, spostaGiorni } from '../logic/formato'
+import { stipendiPassati } from '../logic/stipendio'
 import type { Documento, Famiglia, Scadenza, Scheda } from './tipi'
 
 /**
@@ -24,8 +26,8 @@ export function creaFamiglia(oggi: Date): Famiglia {
     { id: 'sport', area: 'salute', titolo: 'Certificato sportivo di Giulia', sottotitolo: 'Per la danza', manca: [] },
     { id: 'dentista', area: 'salute', titolo: 'Dentista di Laura', sottotitolo: 'Studio Ferri', manca: [] },
     { id: 'danza', area: 'scuola', titolo: 'Danza Giulia', sottotitolo: 'Scuola Passo a Due · 2026/27', manca: [] },
-    { id: 'lavoro-marco', area: 'lavoro', titolo: 'Marco - Studio Rinaldi', sottotitolo: 'Impiegato', manca: [] },
-    { id: 'lavoro-laura', area: 'lavoro', titolo: 'Laura - Comune di Bologna', sottotitolo: 'Insegnante', manca: [] },
+    { id: 'lavoro-marco', area: 'lavoro', titolo: 'Marco - Studio Rinaldi', sottotitolo: 'Impiegato', manca: [], stipendio: { netto: 1850, giorno: 27 } },
+    { id: 'lavoro-laura', area: 'lavoro', titolo: 'Laura - Comune di Bologna', sottotitolo: 'Insegnante', manca: [], stipendio: { netto: 1720, giorno: 23 } },
     { id: 'internet', area: 'abbonamenti', titolo: 'Internet - Fastweb', sottotitolo: 'Ogni mese', manca: [] },
     { id: 'netflix', area: 'abbonamenti', titolo: 'Netflix', sottotitolo: 'Ogni mese', manca: [] },
   ]
@@ -68,7 +70,18 @@ export function creaFamiglia(oggi: Date): Famiglia {
     documento('d-gas-settembre', 'Bolletta gas di settembre', 'gas', null, g(-1), gas),
     documento('d-fastweb-contratto', 'Contratto Fastweb', 'internet', null, g(-500)),
     documento('d-fastweb-ottobre', 'Fattura Fastweb', 'internet', null, g(-1)),
+    documento('d-cu-marco', 'Certificazione Unica 2026', 'lavoro-marco', 'marco', g(-220)),
+    documento('d-cu-laura', 'Certificazione Unica 2026', 'lavoro-laura', 'laura', g(-220)),
   ]
+  // Le ultime tre buste paga, arrivate con lo stipendio
+  for (const s of schede) {
+    if (!s.stipendio) continue
+    const personaId = s.id.replace('lavoro-', '')
+    for (const data of stipendiPassati(s.stipendio.giorno, oggi, 3)) {
+      const mese = format(data, 'MMMM', 'it')
+      documenti.push(documento(`d-busta-${personaId}-${format(data, 'YYYY-MM', 'it')}`, `Busta paga di ${mese}`, s.id, personaId, data))
+    }
+  }
 
   return {
     nome: 'Bianchi',

@@ -60,7 +60,16 @@ describe('le pagine si aprono', () => {
     ['/scheda/panda', ['Fiat Panda', 'Rata RC auto', 'Libretto di circolazione', 'Caricalo']],
     ['/documenti', ["Carta d'identità", 'Scade il']],
     ['/account', ['Famiglia Bianchi']],
+    ['/scheda/lavoro-marco', ['Stipendio', '1.850,00 €', 'il 27 di ogni mese', 'Busta paga di', 'Certificazione Unica']],
+    ['/schede/lavoro', ['Stipendio ·', '1.850,00 €']],
   ]
+  it('la scheda del lavoro non parla di pagamenti', async () => {
+    completaPrimoAvvio()
+    const app = await apri('/scheda/lavoro-marco')
+    expect(app.text()).not.toContain('Quanto paghi')
+    app.unmount()
+  })
+
   it.each(pagine)('%s', async (percorso, testi) => {
     completaPrimoAvvio()
     const app = await apri(percorso)

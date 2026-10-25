@@ -39,3 +39,23 @@ describe.each(giorni)('creaFamiglia(%s)', (oggi) => {
     expect(f.primoAvvioFatto).toBe(false)
   })
 })
+
+describe('le schede del lavoro', () => {
+  const f = creaFamiglia(new Date(2026, 9, 25))
+  const lavoro = f.schede.filter((s) => s.area === 'lavoro')
+
+  it('hanno lo stipendio', () => {
+    expect(lavoro.length).toBe(2)
+    for (const s of lavoro) {
+      expect(s.stipendio?.netto).toBeGreaterThan(0)
+      expect(s.stipendio?.giorno).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('hanno le ultime tre buste paga, del mese in cui sono arrivate', () => {
+    const buste = (id: string) => f.documenti.filter((d) => d.schedaId === id && d.titolo.startsWith('Busta paga')).map((d) => d.titolo)
+    // Marco lo riceve il 27, Laura il 23: il 25 ottobre quella di ottobre è arrivata solo a Laura
+    expect(buste('lavoro-marco')).toEqual(['Busta paga di settembre', 'Busta paga di agosto', 'Busta paga di luglio'])
+    expect(buste('lavoro-laura')).toEqual(['Busta paga di ottobre', 'Busta paga di settembre', 'Busta paga di agosto'])
+  })
+})

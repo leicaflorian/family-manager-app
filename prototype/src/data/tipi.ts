@@ -25,6 +25,15 @@ export interface Scheda {
   manca: string[]
   /** Schede le cui scadenze compaiono anche in questa (la polizza nella scheda dell'auto) */
   collegate?: string[]
+  /** Solo per le schede del lavoro */
+  stipendio?: Stipendio
+}
+
+export interface Stipendio {
+  /** Netto al mese, in euro */
+  netto: number
+  /** Il giorno del mese in cui arriva */
+  giorno: number
 }
 
 export interface Pagamento {

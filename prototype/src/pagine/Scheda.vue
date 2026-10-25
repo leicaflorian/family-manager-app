@@ -4,6 +4,7 @@ import { coloreAreaScuro } from '../colori'
 import Icona from '../components/Icona.vue'
 import { formatData, formatEuro, quando } from '../logic/formato'
 import { nomeArea, prossimaDiScheda, quantoPaghi, scadenzeDiScheda } from '../logic/aree'
+import { prossimoStipendio } from '../logic/stipendio'
 import { oggi, useFamiglia } from '../stato'
 
 const props = defineProps<{ id: string }>()
@@ -44,7 +45,21 @@ const documenti = computed(() =>
         <span class="text-sm text-[#4A5565]">{{ formatData(prossima.data) }} · {{ quando(prossima.data, oggi()) }}</span>
       </RouterLink>
 
-      <div class="grid grid-cols-2 gap-3 rounded-2xl bg-white p-4">
+      <!-- Nelle schede del lavoro i soldi arrivano invece di uscire -->
+      <div v-if="scheda.stipendio" class="grid grid-cols-2 gap-3 rounded-2xl bg-white p-4">
+        <span class="flex flex-col gap-1">
+          <span class="text-[13px] font-semibold text-secondario">Stipendio</span>
+          <span class="text-xl font-extrabold text-pagato">{{ formatEuro(scheda.stipendio.netto) }}</span>
+          <span class="text-[13px] text-secondario">netto, il {{ scheda.stipendio.giorno }} di ogni mese</span>
+        </span>
+        <span class="flex flex-col gap-1">
+          <span class="text-[13px] font-semibold text-secondario">Il prossimo</span>
+          <span class="text-xl font-extrabold">{{ formatData(prossimoStipendio(scheda.stipendio.giorno, oggi())) }}</span>
+          <span class="text-[13px] text-secondario">{{ quando(prossimoStipendio(scheda.stipendio.giorno, oggi()), oggi()) }}</span>
+        </span>
+      </div>
+
+      <div v-else class="grid grid-cols-2 gap-3 rounded-2xl bg-white p-4">
         <span class="flex flex-col gap-1">
           <span class="text-[13px] font-semibold text-secondario">Quanto paghi</span>
           <span class="text-xl font-extrabold">{{ formatEuro(quantoPaghi(famiglia, scheda.id, oggi())) }}</span>
@@ -70,7 +85,7 @@ const documenti = computed(() =>
       </div>
 
       <section class="flex flex-col gap-2">
-        <h2 class="m-0 text-[17px] font-bold">Documenti</h2>
+        <h2 class="m-0 text-[17px] font-bold">{{ scheda.stipendio ? 'Buste paga e documenti' : 'Documenti' }}</h2>
         <div v-if="documenti.length" v-auto-animate class="flex flex-col divide-y divide-riga rounded-2xl bg-white">
           <RouterLink
             v-for="d in documenti"
