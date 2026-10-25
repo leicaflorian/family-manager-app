@@ -40,3 +40,13 @@ export function spostaGiorni(data: Date, giorni: number): Date {
 export function fineMese(data: Date): Date {
   return dayStart(monthEnd(data))
 }
+
+/** Il valore di un `<input type="date">`: aaaa-mm-gg */
+export function perCampoData(data: Date): string {
+  return format(data, 'YYYY-MM-DD', 'it')
+}
+
+export function daCampoData(valore: string): Date {
+  const [anno, mese, giorno] = valore.split('-').map(Number)
+  return new Date(anno, mese - 1, giorno)
+}

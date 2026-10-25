@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fineMese, formatData, formatEuro, giorniTra, quando, spostaGiorni } from './formato'
+import { daCampoData, fineMese, formatData, formatEuro, giorniTra, perCampoData, quando, spostaGiorni } from './formato'
 
 describe('formatEuro', () => {
   it('scrive gli importi all\'italiana', () => {
@@ -38,5 +38,12 @@ describe('spostaGiorni e fineMese', () => {
   it('attraversano il mese', () => {
     expect(spostaGiorni(new Date(2026, 9, 31), 1)).toEqual(new Date(2026, 10, 1))
     expect(fineMese(new Date(2026, 1, 10))).toEqual(new Date(2026, 1, 28))
+  })
+})
+
+describe('campo data', () => {
+  it('va e torna dal formato del campo date', () => {
+    expect(perCampoData(new Date(2026, 10, 5))).toBe('2026-11-05')
+    expect(daCampoData('2026-11-05')).toEqual(new Date(2026, 10, 5))
   })
 })
