@@ -2,10 +2,12 @@
 
 Cinque genitori che non conoscono Family Manager, uno alla volta, dal vivo, 20-30 minuti ciascuno. Almeno due poco pratici di tecnologia.
 
+Se la prova dal vivo non si può fare, c'è il sondaggio di `SONDAGGIO.md`, con gli stessi compiti, da creare in Google Forms.
+
 ## Prima della prova
 
 - Aprire il prototipo sul telefono e **ricaricare la pagina**: si riparte dal *Benvenuto* con i dati di partenza.
-- Avere pronta la bolletta finta stampata (`public/bolletta-finta.svg`, una pagina A4).
+- Avere pronta la bolletta finta stampata (`public/bolletta-finta.svg`, una pagina A4; `public/bolletta-finta.png` è la stessa in immagine).
 - Dire alla persona: «Proviamo l'app, non te. Se qualcosa non si capisce è colpa dell'app.»
 - Chiederle di pensare ad alta voce: cosa cerca, cosa si aspetta, cosa la sorprende.
 - **Non aiutare.** Se chiede «Dove tocco?», rispondere «Dove toccheresti tu?». Si aiuta solo se è bloccata da più di 2 minuti, e lo si segna.
