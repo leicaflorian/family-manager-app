@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, system-ui, sans-serif;
+
+  --color-brand: #3399FF;
+  --color-azione: #1E6FD9;
+  --color-azione-scuro: #1557B0;
+  --color-sfondo: #F4F6FA;
+  --color-testo: #18212F;
+  --color-secondario: #5A6575;
+  --color-bordo: #CDD5E0;
+  --color-riga: #EEF1F5;
+  --color-scaduto: #C4283F;
+  --color-attenzione: #9A4308;
+  --color-attenzione-sfondo: #FFF1E7;
+  --color-pagato: #1B7F5F;
+
+  /* Colore di ogni area: chiaro per pallini e icone, scuro per testo */
+  --color-casa: #F76B15;
+  --color-casa-scuro: #B4500F;
+  --color-veicoli: #0797B9;
+  --color-veicoli-scuro: #067891;
+  --color-assicurazioni: #8E4EC6;
+  --color-assicurazioni-scuro: #7A44AE;
+  --color-banche: #3E63DD;
+  --color-banche-scuro: #3550B5;
+  --color-salute: #C13FB8;
+  --color-salute-scuro: #9E2F96;
+  --color-scuola: #E5A50A;
+  --color-scuola-scuro: #8A6206;
+  --color-lavoro: #6E9F18;
+  --color-lavoro-scuro: #4F7311;
+  --color-abbonamenti: #5B5BD6;
+  --color-abbonamenti-scuro: #4747B8;
+  --color-pratiche: #A0714F;
+  --color-pratiche-scuro: #7D5537;
+  --color-uscite: #E35169;
+  --color-entrate: #2ECDA7;
+  --color-trasversali: #80838D;
+  --color-trasversali-scuro: #5D6069;
+}
+
+body {
+  margin: 0;
+  background: var(--color-sfondo);
+  color: var(--color-testo);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
