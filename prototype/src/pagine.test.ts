@@ -24,6 +24,31 @@ describe('le pagine si aprono', () => {
     app.unmount()
   })
 
+  it('il benvenuto mostra un passo alla volta', async () => {
+    const app = await apri('/benvenuto')
+    const titoliVisibili = () => app.findAll('h1').filter((h) => h.isVisible()).map((h) => h.text())
+    expect(titoliVisibili()).toEqual(['Family Manager'])
+    for (const titolo of ['Chi siete?', 'La vostra casa', 'Le bollette di casa']) {
+      await app.findAll('button').find((b) => ['Cominciamo', 'Avanti'].includes(b.text()))!.trigger('click')
+      await flushPromises()
+      expect(titoliVisibili()).toEqual([titolo])
+    }
+    app.unmount()
+  })
+
+  it('il benvenuto chiede un nome con parole semplici', async () => {
+    const app = await apri('/benvenuto')
+    await app.findAll('button').find((b) => b.text() === 'Cominciamo')!.trigger('click')
+    await app.find('input[name="persona0"]').setValue('')
+    // FormKit prende il valore scritto dopo 20 ms
+    await new Promise((r) => setTimeout(r, 30))
+    await app.findAll('button').find((b) => b.text() === 'Avanti')!.trigger('click')
+    await flushPromises()
+    expect(app.text()).toContain('Scrivi un nome')
+    expect(app.text()).toContain('Chi siete?')
+    app.unmount()
+  })
+
   const pagine: [string, string[]][] = [
     ['/', ['Da pagare entro fine mese', 'Bolletta luce', 'Arrivato per posta', 'Account']],
     ['/carica', ['Scatta una foto', 'Scegli un file']],
@@ -60,6 +85,17 @@ describe('i flussi', () => {
     expect(app.text()).toContain('Pagata il')
     expect(app.text()).toContain('con Conto BPER')
     expect(app.findAll('button').some((b) => b.text() === "L'ho pagata")).toBe(false)
+    app.unmount()
+  })
+
+  it('il tasto Conferma ha il suo colore, non quello dei campi', async () => {
+    completaPrimoAvvio()
+    const app = await apri('/scadenza/s-luce')
+    await app.findAll('button').find((b) => b.text() === "L'ho pagata")!.trigger('click')
+    const conferma = app.find('button[type="submit"]')
+    expect(conferma.classes()).toContain('bg-azione')
+    expect(conferma.classes()).not.toContain('bg-transparent')
+    expect(conferma.classes()).not.toContain('text-testo')
     app.unmount()
   })
 

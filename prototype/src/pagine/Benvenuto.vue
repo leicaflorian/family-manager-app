@@ -66,8 +66,9 @@ function fatto() {
       </div>
 
       <!-- 2. Chi siete -->
-      <FormKit v-show="passo === 2" type="group" name="persone" @node="(n: FormKitNode) => (gruppi[2] = n)">
-        <div class="flex grow flex-col">
+      <FormKit type="group" name="persone" @node="(n: FormKitNode) => (gruppi[2] = n)">
+        <!-- Il gruppo non ha un elemento suo: il passo si nasconde dal div -->
+        <div v-show="passo === 2" class="flex grow flex-col">
           <h1 class="m-0 mb-2 text-[28px] font-extrabold">{{ titolo }}</h1>
           <p class="m-0 mb-5 text-base text-[#4A5565]">Le persone della famiglia: ognuna avrà i suoi documenti e le sue scadenze.</p>
           <div v-auto-animate>
@@ -79,6 +80,7 @@ function fatto() {
               :name="`persona${i}`"
               :label="i === 0 ? 'Tu' : `Persona ${i + 1}`"
               validation="required"
+              :validation-messages="{ required: 'Scrivi un nome' }"
             />
           </div>
           <button type="button" class="h-11 self-start border-0 bg-transparent p-0 text-base font-semibold text-azione" @click="persone.push('')">
@@ -88,11 +90,11 @@ function fatto() {
       </FormKit>
 
       <!-- 3. La casa -->
-      <FormKit v-show="passo === 3" type="group" name="casa" @node="(n: FormKitNode) => (gruppi[3] = n)">
-        <div class="flex grow flex-col">
+      <FormKit type="group" name="casa" @node="(n: FormKitNode) => (gruppi[3] = n)">
+        <div v-show="passo === 3" class="flex grow flex-col">
           <h1 class="m-0 mb-2 text-[28px] font-extrabold">{{ titolo }}</h1>
           <p class="m-0 mb-5 text-base text-[#4A5565]">Serve per le bollette e le spese di casa.</p>
-          <FormKit v-model="casa.indirizzo" type="text" name="indirizzo" label="Indirizzo" validation="required" />
+          <FormKit v-model="casa.indirizzo" type="text" name="indirizzo" label="Indirizzo" validation="required" :validation-messages="{ required: 'Scrivi l\'indirizzo' }" />
           <FormKit v-model="casa.proprieta" type="radio" name="proprieta" label="La casa è" :options="['Di proprietà', 'In affitto']" />
         </div>
       </FormKit>

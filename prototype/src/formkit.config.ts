@@ -20,15 +20,16 @@ export default defaultConfig({
         messages: 'mt-1 list-none p-0',
         message: 'text-sm font-medium text-scaduto',
       },
+      // $reset toglie le classi di global, che altrimenti vincono (bg-transparent copriva bg-azione)
       submit: {
         outer: 'mt-2 mb-0',
-        inner: 'h-auto border-0 p-0 bg-transparent focus-within:ring-0',
-        input: 'h-14 w-full rounded-2xl bg-azione text-[17px] font-bold text-white active:bg-azione-scuro',
+        inner: '$reset',
+        input: '$reset h-14 w-full rounded-2xl bg-azione text-[17px] font-bold text-white active:bg-azione-scuro',
       },
       'family:box': {
-        inner: 'h-auto border-0 p-0 bg-transparent focus-within:ring-0',
+        inner: '$reset flex',
         wrapper: 'flex items-center gap-3 min-h-12 rounded-xl border border-bordo bg-white px-3.5 has-[:checked]:border-2 has-[:checked]:border-azione has-[:checked]:bg-[#F3F8FF]',
-        input: 'size-5 accent-azione',
+        input: '$reset size-5 shrink-0 accent-azione',
         label: 'mb-0 text-base font-normal text-testo',
         options: 'flex flex-col gap-2 list-none p-0 m-0',
         legend: 'mb-1.5 text-sm font-semibold text-secondario',
