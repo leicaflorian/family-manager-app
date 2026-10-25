@@ -76,6 +76,8 @@ describe('i flussi', () => {
     await app.find('form').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/')
+    // Con replace, il tasto indietro non riapre Carica vuota
+    expect(window.history.state.replaced).toBe(true)
     expect(app.text()).toContain('Bolletta luce di ottobre')
     app.unmount()
   })

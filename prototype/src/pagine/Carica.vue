@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import Icona from '../components/Icona.vue'
 import Intestazione from '../components/Intestazione.vue'
 import { daCampoData, perCampoData, spostaGiorni } from '../logic/formato'
+import { leggiImporto } from '../logic/importo'
 import { mostraMessaggio } from '../messaggio'
 import { aggiungiDocumento, oggi, useFamiglia } from '../stato'
 
@@ -19,7 +20,7 @@ let timer: ReturnType<typeof setTimeout> | undefined
 const valori = ref({
   titolo: 'Bolletta luce di ottobre',
   schedaId: 'luce',
-  importo: 62.4,
+  importo: '62,40',
   scadenza: perCampoData(spostaGiorni(oggi(), 11)),
 })
 const schede = famiglia.schede.map((s) => ({ value: s.id, label: s.titolo }))
@@ -37,11 +38,11 @@ function salva(dati: typeof valori.value) {
   aggiungiDocumento({
     titolo: dati.titolo,
     schedaId: dati.schedaId,
-    importo: Number(dati.importo),
+    importo: leggiImporto(dati.importo) ?? 0,
     scadenza: daCampoData(dati.scadenza),
   })
   mostraMessaggio('Bolletta salvata: la trovi nelle scadenze')
-  router.push('/')
+  router.replace('/')
 }
 
 onBeforeUnmount(() => {
@@ -100,7 +101,15 @@ onBeforeUnmount(() => {
         <FormKit type="text" name="titolo" label="Che cos'è" validation="required" />
         <FormKit type="select" name="schedaId" label="Di chi è" :options="schede" validation="required" />
         <div class="grid grid-cols-2 gap-3">
-          <FormKit type="number" name="importo" label="Importo (€)" number="float" step="0.01" min="0" validation="required|min:0" />
+          <FormKit
+            type="text"
+            name="importo"
+            label="Importo (€)"
+            inputmode="decimal"
+            validation="required|importo"
+            :validation-rules="{ importo: (n: { value: unknown }) => leggiImporto(String(n.value ?? '')) !== null }"
+            :validation-messages="{ importo: 'Scrivi un importo, per esempio 62,40' }"
+          />
           <FormKit type="date" name="scadenza" label="Scade il" validation="required" />
         </div>
         <p class="mb-3 flex items-start gap-2.5 rounded-xl bg-sfondo px-3.5 py-3 text-sm text-[#4A5565]">
@@ -108,7 +117,7 @@ onBeforeUnmount(() => {
           Ti ricorderò di pagarla 3 giorni prima della scadenza.
         </p>
       </FormKit>
-      <RouterLink to="/" class="flex h-11 items-center justify-center text-base font-semibold text-azione no-underline">Annulla</RouterLink>
+      <RouterLink to="/" replace class="flex h-11 items-center justify-center text-base font-semibold text-azione no-underline">Annulla</RouterLink>
     </template>
   </div>
 </template>

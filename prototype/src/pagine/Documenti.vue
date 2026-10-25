@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { coloreAreaScuro } from '../colori'
 import Icona from '../components/Icona.vue'
@@ -29,11 +29,6 @@ const risultati = computed(() =>
   }),
 )
 
-onMounted(async () => {
-  if (!evidenziato.value) return
-  await nextTick()
-  document.getElementById(`doc-${evidenziato.value}`)?.scrollIntoView({ block: 'center' })
-})
 </script>
 
 <template>

@@ -1,5 +1,15 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, type RouteLocationNormalized, type RouterScrollBehavior } from 'vue-router'
 import { useFamiglia } from './stato'
+
+/** Il documento evidenziato, la posizione di prima tornando indietro, altrimenti l'inizio */
+export function scorrimento(
+  to: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
+  salvata: { left: number; top: number } | null,
+): ReturnType<RouterScrollBehavior> {
+  if (typeof to.query.evidenzia === 'string') return { el: `#doc-${to.query.evidenzia}`, block: 'center' } as never
+  return salvata ?? { top: 0 }
+}
 
 export const router = createRouter({
   // Con l'hash il sito statico funziona senza configurare il server
@@ -16,10 +26,12 @@ export const router = createRouter({
     { path: '/benvenuto', component: () => import('./pagine/Benvenuto.vue'), meta: { senzaBarra: true } },
     { path: '/:altro(.*)', redirect: '/' },
   ],
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: (to, from, salvata) => scorrimento(to, from, salvata),
 })
 
-// Finché la famiglia non ha fatto il primo avvio, si parte dal benvenuto
+// Finché la famiglia non ha fatto il primo avvio si parte dal benvenuto, e dopo non si riapre
 router.beforeEach((to) => {
-  if (!useFamiglia().primoAvvioFatto && to.path !== '/benvenuto') return '/benvenuto'
+  const fatto = useFamiglia().primoAvvioFatto
+  if (!fatto && to.path !== '/benvenuto') return '/benvenuto'
+  if (fatto && to.path === '/benvenuto') return '/'
 })

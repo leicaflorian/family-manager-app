@@ -38,7 +38,7 @@ function fatto() {
   // Invio da tastiera prima dell'ultimo passo: si va solo avanti
   if (passo.value < PASSI) return avanti()
   completaPrimoAvvio()
-  router.push('/')
+  router.replace('/')
 }
 </script>
 
