@@ -13,3 +13,9 @@ Repository della nuova app di Family Manager. Oggi c'è solo il prototipo della 
 - Form con FormKit, elenchi animati con `v-auto-animate`, date con Tempo.
 - Le classi di un campo FormKit (`:classes`, o `submit` e `family:box` in `formkit.config.ts`) si aggiungono a quelle di `global`, non le sostituiscono. Quando due classi si contraddicono vince quella che viene dopo nel CSS: per questo `mb-0` non toglieva `mb-3.5`, e `bg-azione` restava sotto `bg-transparent`. Per cambiare una classe di `global` si comincia con `$reset`, che le toglie tutte, e si riscrivono quelle che servono.
 - npm 10.8 si ferma con `Cannot read properties of null (reading 'edgesOut')` installando queste dipendenze: si usa `npx npm@11 install`.
+
+## Pubblicazione
+
+- Il prototipo è su Coolify, applicazione `family-manager-prototipo` (progetto *Family Manager*), all'indirizzo http://7ev8yxs2hxbu1hvxptweltp2.164.90.206.43.sslip.io. Si costruisce con Nixpacks dalla cartella `prototype` e si pubblica `dist`.
+- Serve Node 22: Vite 8 non parte con Node 18, quello di partenza di Nixpacks. Per questo c'è `engines.node` in `package.json`.
+- Un push su `main` non ripubblica da solo: il deploy si rilancia da Coolify, o con la sua API (`deploy?uuid=7ev8yxs2hxbu1hvxptweltp2`). Il token in `~/.config/family-manager/coolify-token` basta per rilanciarlo. Per creare o cambiare un'applicazione serve un token con `write`. Un token non si stampa mai: si passa a `curl` in un file di intestazioni.
