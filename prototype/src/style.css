@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-@theme {
+/* static: i colori delle aree si usano da var() negli stili inline, che Tailwind non vede */
+@theme static {
   --font-sans: Inter, system-ui, sans-serif;
 
   --color-brand: #3399FF;
