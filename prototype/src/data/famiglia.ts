@@ -12,11 +12,11 @@ export function creaFamiglia(oggi: Date): Famiglia {
   const gas = g(Math.min(4, giorniTra(oggi, fine)))
 
   const schede: Scheda[] = [
-    { id: 'casa', area: 'casa', titolo: 'Casa di via Roma', sottotitolo: 'Bologna · di proprietà', manca: [] },
+    { id: 'casa', area: 'casa', titolo: 'Casa di via Roma', sottotitolo: 'Bologna · di proprietà', manca: [], collegate: ['luce', 'gas', 'acqua', 'mutuo'] },
     { id: 'luce', area: 'casa', titolo: 'Luce - Edison', sottotitolo: 'Casa di via Roma', manca: [] },
     { id: 'gas', area: 'casa', titolo: 'Gas - Enel', sottotitolo: 'Casa di via Roma', manca: [] },
     { id: 'acqua', area: 'casa', titolo: 'Acqua - Hera', sottotitolo: 'Casa di via Roma', manca: [] },
-    { id: 'panda', area: 'veicoli', titolo: 'Fiat Panda', sottotitolo: 'Targa GH 482 TK · di Marco', manca: ['Libretto di circolazione'] },
+    { id: 'panda', area: 'veicoli', titolo: 'Fiat Panda', sottotitolo: 'Targa GH 482 TK · di Marco', manca: ['Libretto di circolazione'], collegate: ['rc-auto'] },
     { id: 'rc-auto', area: 'assicurazioni', titolo: 'RC auto Panda - UnipolSai', sottotitolo: 'Fiat Panda', manca: [] },
     { id: 'mutuo', area: 'banche', titolo: 'Mutuo casa', sottotitolo: 'BPER · fino al 2041', manca: [] },
     { id: 'conto', area: 'banche', titolo: 'Conto BPER', sottotitolo: 'Marco e Laura', manca: [] },

@@ -23,6 +23,8 @@ export interface Scheda {
   sottotitolo: string
   /** Documenti che la scheda dovrebbe avere e non ha */
   manca: string[]
+  /** Schede le cui scadenze compaiono anche in questa (la polizza nella scheda dell'auto) */
+  collegate?: string[]
 }
 
 export interface Pagamento {
