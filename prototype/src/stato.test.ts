@@ -31,16 +31,16 @@ describe('stato', () => {
   })
 
   it('aggiunge la bolletta caricata alle prossime scadenze', () => {
-    aggiungiDocumento({ titolo: 'Bolletta luce di ottobre', schedaId: 'luce', importo: 62.4, scadenza: spostaGiorni(oggi(), 11) })
+    aggiungiDocumento({ titolo: 'Bolletta luce di ottobre', schedaId: 'luce', categoria: 'Bollette e fatture', ente: 'Edison', importo: 62.4, scadenza: spostaGiorni(oggi(), 11) })
     const f = useFamiglia()
     expect(prossime(f.scadenze, oggi(), 30).some((s) => s.titolo === 'Bolletta luce di ottobre' && s.importo === 62.4)).toBe(true)
-    expect(f.documenti.some((d) => d.titolo === 'Bolletta luce di ottobre' && d.schedaId === 'luce')).toBe(true)
+    expect(f.documenti.some((d) => d.titolo === 'Bolletta luce di ottobre' && d.schedaId === 'luce' && d.categoria === 'Bollette e fatture' && d.ente === 'Edison')).toBe(true)
   })
 
   it('ricomincia riporta tutto come all\'inizio', () => {
     segnaPagata('s-gas', pagamento())
     completaPrimoAvvio()
-    aggiungiDocumento({ titolo: 'X', schedaId: 'luce', importo: 1, scadenza: oggi() })
+    aggiungiDocumento({ titolo: 'X', schedaId: 'luce', categoria: 'Bollette e fatture', ente: null, importo: 1, scadenza: oggi() })
     ricomincia()
     const f = useFamiglia()
     expect(f.primoAvvioFatto).toBe(false)

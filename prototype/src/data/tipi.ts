@@ -52,11 +52,29 @@ export interface Scadenza {
   pagata: Pagamento | null
 }
 
+/** Le categorie dei documenti, nell'ordine in cui si propongono */
+export const CATEGORIE = [
+  'Bollette e fatture',
+  "Documenti d'identità",
+  'Lavoro e redditi',
+  'Contratti',
+  'Polizze',
+  'Salute',
+  'Scuola e attività',
+  'Veicoli',
+  'Tasse',
+  'Ricevute',
+] as const
+export type Categoria = (typeof CATEGORIE)[number]
+
 export interface Documento {
   id: string
   titolo: string
   schedaId: string | null
   personaId: string | null
+  categoria: Categoria
+  /** Chi l'ha mandato o emesso, uno degli enti della famiglia */
+  ente: string | null
   data: Date
   scadenza: Date | null
 }

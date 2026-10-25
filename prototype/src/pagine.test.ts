@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App.vue'
 import formkitConfig from './formkit.config'
 import { router } from './router'
+import { formatEuro } from './logic/formato'
 import { completaPrimoAvvio, ricomincia } from './stato'
 
 async function apri(percorso: string) {
@@ -50,7 +51,7 @@ describe('le pagine si aprono', () => {
   })
 
   const pagine: [string, string[]][] = [
-    ['/', ['Da pagare entro fine mese', 'Bolletta luce', 'Arrivato per posta', 'Account']],
+    ['/', ['Da pagare nei prossimi 30 giorni', 'Bolletta luce', 'Arrivato per posta', 'Account']],
     ['/carica', ['Scatta una foto', 'Scegli un file']],
     ['/scadenza/s-rc', ['Rata RC auto', '418,00 €', "L'ho pagata"]],
     ['/scadenza/nessuna', ["Questa scadenza non c'è più"]],
@@ -105,6 +106,36 @@ describe('i flussi', () => {
     expect(conferma.classes()).toContain('bg-azione')
     expect(conferma.classes()).not.toContain('bg-transparent')
     expect(conferma.classes()).not.toContain('text-testo')
+    app.unmount()
+  })
+
+  it('i filtri dei documenti scelgono e si tolgono', async () => {
+    completaPrimoAvvio()
+    const app = await apri('/documenti')
+    const titoli = () => app.findAll('article').map((a) => a.find('.font-semibold').text())
+    const tutti = titoli().length
+    await app.find('button[aria-label^="Filtri"]').trigger('click')
+    await app.find('select[name="categoria"]').setValue('Salute')
+    await new Promise((r) => setTimeout(r, 30))
+    await flushPromises()
+    expect(titoli()).toEqual(['Certificato medico sportivo'])
+    expect(app.text()).toContain('Mostra 1 documento')
+    await app.findAll('button').find((b) => b.text() === 'Mostra 1 documento')!.trigger('click')
+    // Il filtro scelto resta visibile sopra l'elenco, e si toglie da lì
+    const etichetta = app.find('button[aria-label="Togli il filtro Salute"]')
+    expect(etichetta.exists()).toBe(true)
+    await etichetta.trigger('click')
+    expect(titoli().length).toBe(tutti)
+    app.unmount()
+  })
+
+  it('il totale della home è la somma delle voci in elenco', async () => {
+    completaPrimoAvvio()
+    const app = await apri('/')
+    const importi = app.findAll('section a span.whitespace-nowrap').map((e) => e.text())
+    const somma = importi.reduce((t, i) => t + Number(i.replace(/[^\d,]/g, '').replace(',', '.')), 0)
+    expect(importi.length).toBeGreaterThan(3)
+    expect(app.text()).toContain(`Da pagare nei prossimi 30 giorni${formatEuro(somma)}`)
     app.unmount()
   })
 

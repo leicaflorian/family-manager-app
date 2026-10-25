@@ -13,6 +13,7 @@ const tracciati: Record<string, string> = {
   persona: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   indietro: '<path d="m15 18-6-6 6-6"/>',
   chiudi: '<path d="M6 6l12 12M18 6 6 18"/>',
+  filtro: '<path d="M4 6h16M7 12h10M10 18h4"/>',
   posta: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
   cerca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>',

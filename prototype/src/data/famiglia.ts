@@ -1,7 +1,9 @@
 import { format } from '@formkit/tempo'
 import { fineMese, giorniTra, spostaGiorni } from '../logic/formato'
 import { stipendiPassati } from '../logic/stipendio'
-import type { Documento, Famiglia, Scadenza, Scheda } from './tipi'
+import type { Categoria, Documento, Famiglia, Scadenza, Scheda } from './tipi'
+
+export { CATEGORIE } from './tipi'
 
 /**
  * La famiglia Bianchi, inventata. Le date sono calcolate da `oggi`, così il
@@ -56,30 +58,36 @@ export function creaFamiglia(oggi: Date): Famiglia {
     titolo: string,
     schedaId: string | null,
     personaId: string | null,
+    categoria: Categoria,
+    ente: string | null,
     data: Date,
     scadenza: Date | null = null,
-  ): Documento => ({ id, titolo, schedaId, personaId, data, scadenza })
+  ): Documento => ({ id, titolo, schedaId, personaId, categoria, ente, data, scadenza })
   const documenti: Documento[] = [
-    documento('d-ci-giulia', "Carta d'identità", null, 'giulia', g(-3440), g(210)),
-    documento('d-patente-marco', 'Patente', null, 'marco', g(-2700), g(900)),
-    documento('d-certificato', 'Certificato medico sportivo', 'sport', 'giulia', g(-319), g(46)),
-    documento('d-danza', 'Iscrizione danza 2026/27', 'danza', 'giulia', g(-43)),
-    documento('d-polizza', 'Polizza RC auto 2026', 'rc-auto', 'marco', g(-340)),
-    documento('d-revisione', 'Ultima revisione', 'panda', null, g(-290)),
-    documento('d-bollo', 'Bollo 2026', 'panda', null, g(-267)),
-    documento('d-gas-settembre', 'Bolletta gas di settembre', 'gas', null, g(-1), gas),
-    documento('d-fastweb-contratto', 'Contratto Fastweb', 'internet', null, g(-500)),
-    documento('d-fastweb-ottobre', 'Fattura Fastweb', 'internet', null, g(-1)),
-    documento('d-cu-marco', 'Certificazione Unica 2026', 'lavoro-marco', 'marco', g(-220)),
-    documento('d-cu-laura', 'Certificazione Unica 2026', 'lavoro-laura', 'laura', g(-220)),
+    documento('d-ci-giulia', "Carta d'identità", null, 'giulia', "Documenti d'identità", 'Comune di Bologna', g(-3440), g(210)),
+    documento('d-patente-marco', 'Patente', null, 'marco', "Documenti d'identità", null, g(-2700), g(900)),
+    documento('d-certificato', 'Certificato medico sportivo', 'sport', 'giulia', 'Salute', 'Dott.ssa Neri', g(-319), g(46)),
+    documento('d-danza', 'Iscrizione danza 2026/27', 'danza', 'giulia', 'Scuola e attività', 'Scuola Passo a Due', g(-43)),
+    documento('d-polizza', 'Polizza RC auto 2026', 'rc-auto', 'marco', 'Polizze', 'UnipolSai', g(-340)),
+    documento('d-revisione', 'Ultima revisione', 'panda', null, 'Veicoli', null, g(-290)),
+    documento('d-bollo', 'Bollo 2026', 'panda', null, 'Tasse', null, g(-267)),
+    documento('d-gas-settembre', 'Bolletta gas di settembre', 'gas', null, 'Bollette e fatture', 'Enel', g(-1), gas),
+    documento('d-fastweb-contratto', 'Contratto Fastweb', 'internet', null, 'Contratti', 'Fastweb', g(-500)),
+    documento('d-fastweb-ottobre', 'Fattura Fastweb', 'internet', null, 'Bollette e fatture', 'Fastweb', g(-1)),
+    documento('d-cu-marco', 'Certificazione Unica 2026', 'lavoro-marco', 'marco', 'Lavoro e redditi', 'Studio Rinaldi', g(-220)),
+    documento('d-cu-laura', 'Certificazione Unica 2026', 'lavoro-laura', 'laura', 'Lavoro e redditi', 'Comune di Bologna', g(-220)),
   ]
   // Le ultime tre buste paga, arrivate con lo stipendio
   for (const s of schede) {
     if (!s.stipendio) continue
     const personaId = s.id.replace('lavoro-', '')
+    // Il titolo è «Persona - Datore di lavoro»
+    const datore = s.titolo.split(' - ')[1] ?? null
     for (const data of stipendiPassati(s.stipendio.giorno, oggi, 3)) {
       const mese = format(data, 'MMMM', 'it')
-      documenti.push(documento(`d-busta-${personaId}-${format(data, 'YYYY-MM', 'it')}`, `Busta paga di ${mese}`, s.id, personaId, data))
+      documenti.push(
+        documento(`d-busta-${personaId}-${format(data, 'YYYY-MM', 'it')}`, `Busta paga di ${mese}`, s.id, personaId, 'Lavoro e redditi', datore, data),
+      )
     }
   }
 

@@ -1,11 +1,13 @@
 import { dayStart } from '@formkit/tempo'
 import { reactive } from 'vue'
 import { creaFamiglia } from './data/famiglia'
-import type { Famiglia, Pagamento } from './data/tipi'
+import type { Categoria, Famiglia, Pagamento } from './data/tipi'
 
 export interface PropostaDocumento {
   titolo: string
   schedaId: string
+  categoria: Categoria
+  ente: string | null
   importo: number
   scadenza: Date
 }
@@ -37,6 +39,8 @@ export function aggiungiDocumento(proposta: PropostaDocumento): void {
     titolo: proposta.titolo,
     schedaId: proposta.schedaId,
     personaId: null,
+    categoria: proposta.categoria,
+    ente: proposta.ente,
     data: oggi(),
     scadenza: proposta.scadenza,
   })

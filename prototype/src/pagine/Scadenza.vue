@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { coloreAreaScuro } from '../colori'
 import Icona from '../components/Icona.vue'
 import Intestazione from '../components/Intestazione.vue'
+import Pannello from '../components/Pannello.vue'
 import { daCampoData, formatData, formatEuro, perCampoData, quando } from '../logic/formato'
 import { mostraMessaggio } from '../messaggio'
 import { oggi, segnaPagata, useFamiglia } from '../stato'
@@ -83,33 +84,16 @@ function conferma(dati: typeof valori.value) {
       </div>
     </section>
 
-    <Transition name="pannello">
-      <div v-if="pannelloAperto" class="fixed inset-0 z-30 mx-auto flex max-w-md flex-col justify-end bg-testo/45" @click.self="pannelloAperto = false">
-        <div role="dialog" aria-modal="true" aria-labelledby="titolo-pannello" class="flex flex-col gap-4 rounded-t-3xl bg-white px-5 pt-3 pb-7">
-          <span class="h-1.25 w-10 self-center rounded-full bg-[#D5DBE3]" />
-          <h2 id="titolo-pannello" class="m-0 text-[22px] font-extrabold">L'ho pagata</h2>
-          <FormKit v-model="valori" type="form" submit-label="Conferma" @submit="conferma">
-            <FormKit type="date" name="data" label="Quando" validation="required" />
-            <FormKit type="radio" name="conto" label="Con cosa" :options="famiglia.conti" />
-            <label class="mb-3.5 flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#9AA6B6] text-[15px] font-semibold text-azione">
-              <Icona nome="graffetta" :dimensione="18" />
-              {{ ricevuta ?? 'Aggiungi la ricevuta (facoltativo)' }}
-              <input type="file" accept="image/*,application/pdf" class="sr-only" @change="sceltaRicevuta" />
-            </label>
-          </FormKit>
-        </div>
-      </div>
-    </Transition>
+    <Pannello v-model="pannelloAperto" titolo="L'ho pagata">
+      <FormKit v-model="valori" type="form" submit-label="Conferma" @submit="conferma">
+        <FormKit type="date" name="data" label="Quando" validation="required" />
+        <FormKit type="radio" name="conto" label="Con cosa" :options="famiglia.conti" />
+        <label class="mb-3.5 flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#9AA6B6] text-[15px] font-semibold text-azione">
+          <Icona nome="graffetta" :dimensione="18" />
+          {{ ricevuta ?? 'Aggiungi la ricevuta (facoltativo)' }}
+          <input type="file" accept="image/*,application/pdf" class="sr-only" @change="sceltaRicevuta" />
+        </label>
+      </FormKit>
+    </Pannello>
   </div>
 </template>
-
-<style scoped>
-.pannello-enter-active,
-.pannello-leave-active {
-  transition: opacity 0.2s ease;
-}
-.pannello-enter-from,
-.pannello-leave-to {
-  opacity: 0;
-}
-</style>

@@ -4,22 +4,24 @@ import { computed } from 'vue'
 import { maiuscola } from '../colori'
 import Icona from '../components/Icona.vue'
 import RigaScadenza from '../components/RigaScadenza.vue'
-import { fineMese, formatEuro, giorniTra } from '../logic/formato'
-import { daPagareEntro, prossime, totale } from '../logic/scadenze'
+import { formatEuro, giorniTra } from '../logic/formato'
+import { prossime, totale } from '../logic/scadenze'
 import { oggi, useFamiglia } from '../stato'
 
 const famiglia = useFamiglia()
 const data = maiuscola(format(oggi(), 'dddd D MMMM', 'it'))
 
-const entroFineMese = computed(() => daPagareEntro(famiglia.scadenze, oggi(), fineMese(oggi())))
-const scadute = computed(() => entroFineMese.value.filter((s) => s.data < oggi()).length)
+/** Il totale somma le voci dell'elenco: stessi giorni, stesse scadenze */
+const GIORNI = 30
+const prossimi = computed(() => prossime(famiglia.scadenze, oggi(), GIORNI))
+const daPagare = computed(() => prossimi.value.filter((s) => s.importo !== null))
+const scadute = computed(() => daPagare.value.filter((s) => s.data < oggi()).length)
 const sottotitolo = computed(() => {
-  const n = entroFineMese.value.length
+  const n = daPagare.value.length
   const pagamenti = n === 1 ? '1 pagamento' : `${n} pagamenti`
   if (!scadute.value) return pagamenti
   return `${pagamenti}, ${scadute.value === 1 ? 'uno già scaduto' : `${scadute.value} già scaduti`}`
 })
-const prossimi = computed(() => prossime(famiglia.scadenze, oggi(), 30))
 
 const posta = computed(() =>
   famiglia.posta.map((p) => {
@@ -42,17 +44,17 @@ const posta = computed(() =>
     </header>
 
     <section class="flex flex-col gap-1.5 rounded-[20px] bg-azione p-5 text-white">
-      <span class="text-[15px] font-medium">Da pagare entro fine mese</span>
-      <span class="text-[40px] font-extrabold tracking-tight">{{ formatEuro(totale(entroFineMese)) }}</span>
-      <span class="text-[15px]">{{ entroFineMese.length ? sottotitolo : 'Niente da pagare, per ora' }}</span>
+      <span class="text-[15px] font-medium">Da pagare nei prossimi {{ GIORNI }} giorni</span>
+      <span class="text-[40px] font-extrabold tracking-tight">{{ formatEuro(totale(daPagare)) }}</span>
+      <span class="text-[15px]">{{ daPagare.length ? sottotitolo : 'Niente da pagare, per ora' }}</span>
     </section>
 
     <section class="flex flex-col gap-2.5">
-      <h2 class="m-0 text-[17px] font-bold">Prossimi 30 giorni</h2>
+      <h2 class="m-0 text-[17px] font-bold">Le scadenze</h2>
       <div v-if="prossimi.length" v-auto-animate class="flex flex-col divide-y divide-riga rounded-2xl bg-white">
         <RigaScadenza v-for="s in prossimi" :key="s.id" :scadenza="s" />
       </div>
-      <p v-else class="m-0 rounded-2xl bg-white p-4 text-secondario">Niente in scadenza nei prossimi 30 giorni</p>
+      <p v-else class="m-0 rounded-2xl bg-white p-4 text-secondario">Niente in scadenza nei prossimi {{ GIORNI }} giorni</p>
     </section>
 
     <section v-if="posta.length" class="flex flex-col gap-2.5">

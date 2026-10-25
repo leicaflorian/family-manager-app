@@ -3,6 +3,7 @@ import { onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Icona from '../components/Icona.vue'
 import Intestazione from '../components/Intestazione.vue'
+import { CATEGORIE, type Categoria } from '../data/tipi'
 import { daCampoData, perCampoData, spostaGiorni } from '../logic/formato'
 import { leggiImporto } from '../logic/importo'
 import { mostraMessaggio } from '../messaggio'
@@ -20,6 +21,8 @@ let timer: ReturnType<typeof setTimeout> | undefined
 const valori = ref({
   titolo: 'Bolletta luce di ottobre',
   schedaId: 'luce',
+  categoria: 'Bollette e fatture' as Categoria,
+  ente: 'Edison',
   importo: '62,40',
   scadenza: perCampoData(spostaGiorni(oggi(), 11)),
 })
@@ -38,6 +41,8 @@ function salva(dati: typeof valori.value) {
   aggiungiDocumento({
     titolo: dati.titolo,
     schedaId: dati.schedaId,
+    categoria: dati.categoria,
+    ente: dati.ente,
     importo: leggiImporto(dati.importo) ?? 0,
     scadenza: daCampoData(dati.scadenza),
   })
@@ -100,6 +105,10 @@ onBeforeUnmount(() => {
       <FormKit v-model="valori" type="form" submit-label="Va bene, salva" @submit="salva">
         <FormKit type="text" name="titolo" label="Che cos'è" validation="required" />
         <FormKit type="select" name="schedaId" label="Di chi è" :options="schede" validation="required" />
+        <div class="grid grid-cols-2 gap-3">
+          <FormKit type="select" name="categoria" label="Che tipo è" :options="[...CATEGORIE]" />
+          <FormKit type="select" name="ente" label="Da chi arriva" :options="famiglia.enti" />
+        </div>
         <div class="grid grid-cols-2 gap-3">
           <FormKit
             type="text"

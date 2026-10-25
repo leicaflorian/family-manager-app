@@ -17,12 +17,13 @@ Nell'ordine. La famiglia dell'app è inventata: Marco e Laura Bianchi, con la fi
 | # | Compito da leggere ad alta voce | Riuscito quando |
 | --- | --- | --- |
 | 1 | «Apri l'app e preparala per la tua famiglia.» | Arriva a *Questo mese* dopo i 4 passi |
-| 2 | «Quanto devi pagare entro fine mese?» | Legge il totale nel riquadro blu |
+| 2 | «Quanto devi pagare nel prossimo mese?» | Legge il totale nel riquadro blu |
 | 3 | «C'è qualcosa che hai dimenticato di pagare?» | Trova la bolletta della luce scaduta |
 | 4 | «È arrivata questa bolletta: caricala.» (dare la bolletta stampata) | Fotografa, conferma la proposta, la ritrova tra le scadenze |
 | 5 | «Hai pagato l'assicurazione dell'auto: segnalo.» | Apre la rata RC auto e conferma *L'ho pagata* |
 | 6 | «Cosa manca nei documenti della Panda?» | Arriva alla scheda *Fiat Panda* e legge «Libretto di circolazione» |
 | 7 | «Quando scade la carta d'identità di Giulia?» | Trova la carta d'identità e legge la data |
+| 8 | «Trova le buste paga di Laura.» | In *Documenti* usa i filtri (tipo *Lavoro e redditi*, persona Laura) o la ricerca, e vede le tre buste paga |
 
 ## Scheda dei risultati (una per persona)
 
@@ -37,6 +38,7 @@ Persona: ____________  Età: ____  Pratica con il telefono: poco / abbastanza / 
 | 5 | ☐ | ☐ | ☐ | | |
 | 6 | ☐ | ☐ | ☐ | | |
 | 7 | ☐ | ☐ | ☐ | | |
+| 8 | ☐ | ☐ | ☐ | | |
 
 ## In fondo, tre domande
 

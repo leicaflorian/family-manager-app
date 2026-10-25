@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fineMese } from '../logic/formato'
-import { creaFamiglia } from './famiglia'
+import { CATEGORIE, creaFamiglia } from './famiglia'
 
 const giorni = [new Date(2026, 10, 15), new Date(2026, 9, 31), new Date(2026, 9, 25)]
 
@@ -11,6 +11,13 @@ describe.each(giorni)('creaFamiglia(%s)', (oggi) => {
     const fine = fineMese(oggi)
     const nelMese = f.scadenze.filter((s) => !s.pagata && s.importo !== null && s.data >= oggi && s.data <= fine)
     expect(nelMese.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('dà a ogni documento una categoria, e solo enti che esistono', () => {
+    for (const d of f.documenti) {
+      expect(CATEGORIE).toContain(d.categoria)
+      if (d.ente) expect(f.enti).toContain(d.ente)
+    }
   })
 
   it('ha id unici', () => {
