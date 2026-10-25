@@ -1,0 +1,94 @@
+import { fineMese, giorniTra, spostaGiorni } from '../logic/formato'
+import type { Documento, Famiglia, Scadenza, Scheda } from './tipi'
+
+/**
+ * La famiglia Bianchi, inventata. Le date sono calcolate da `oggi`, così il
+ * prototipo resta credibile qualunque giorno si faccia la prova.
+ */
+export function creaFamiglia(oggi: Date): Famiglia {
+  const g = (giorni: number) => spostaGiorni(oggi, giorni)
+  const fine = fineMese(oggi)
+  // Due bollette cadono sempre entro fine mese, anche se la prova è l'ultimo giorno
+  const gas = g(Math.min(4, giorniTra(oggi, fine)))
+
+  const schede: Scheda[] = [
+    { id: 'casa', area: 'casa', titolo: 'Casa di via Roma', sottotitolo: 'Bologna · di proprietà', manca: [] },
+    { id: 'luce', area: 'casa', titolo: 'Luce - Edison', sottotitolo: 'Casa di via Roma', manca: [] },
+    { id: 'gas', area: 'casa', titolo: 'Gas - Enel', sottotitolo: 'Casa di via Roma', manca: [] },
+    { id: 'acqua', area: 'casa', titolo: 'Acqua - Hera', sottotitolo: 'Casa di via Roma', manca: [] },
+    { id: 'panda', area: 'veicoli', titolo: 'Fiat Panda', sottotitolo: 'Targa GH 482 TK · di Marco', manca: ['Libretto di circolazione'] },
+    { id: 'rc-auto', area: 'assicurazioni', titolo: 'RC auto Panda - UnipolSai', sottotitolo: 'Fiat Panda', manca: [] },
+    { id: 'mutuo', area: 'banche', titolo: 'Mutuo casa', sottotitolo: 'BPER · fino al 2041', manca: [] },
+    { id: 'conto', area: 'banche', titolo: 'Conto BPER', sottotitolo: 'Marco e Laura', manca: [] },
+    { id: 'pediatra', area: 'salute', titolo: 'Visite di Giulia', sottotitolo: 'Dott.ssa Neri, pediatra', manca: [] },
+    { id: 'sport', area: 'salute', titolo: 'Certificato sportivo di Giulia', sottotitolo: 'Per la danza', manca: [] },
+    { id: 'dentista', area: 'salute', titolo: 'Dentista di Laura', sottotitolo: 'Studio Ferri', manca: [] },
+    { id: 'danza', area: 'scuola', titolo: 'Danza Giulia', sottotitolo: 'Scuola Passo a Due · 2026/27', manca: [] },
+    { id: 'lavoro-marco', area: 'lavoro', titolo: 'Marco - Studio Rinaldi', sottotitolo: 'Impiegato', manca: [] },
+    { id: 'lavoro-laura', area: 'lavoro', titolo: 'Laura - Comune di Bologna', sottotitolo: 'Insegnante', manca: [] },
+    { id: 'internet', area: 'abbonamenti', titolo: 'Internet - Fastweb', sottotitolo: 'Ogni mese', manca: [] },
+    { id: 'netflix', area: 'abbonamenti', titolo: 'Netflix', sottotitolo: 'Ogni mese', manca: [] },
+  ]
+
+  const scadenza = (id: string, schedaId: string, titolo: string, importo: number | null, data: Date): Scadenza => ({
+    id,
+    schedaId,
+    titolo,
+    importo,
+    data,
+    pagata: null,
+  })
+  const scadenze: Scadenza[] = [
+    scadenza('s-luce', 'luce', 'Bolletta luce', 71.3, g(-3)),
+    scadenza('s-gas', 'gas', 'Bolletta gas', 84.2, gas),
+    scadenza('s-acqua', 'acqua', 'Bolletta acqua', 37.9, fine),
+    scadenza('s-netflix', 'netflix', 'Netflix', 13.99, g(9)),
+    scadenza('s-mutuo', 'mutuo', 'Rata mutuo', 612, g(20)),
+    scadenza('s-rc', 'rc-auto', 'Rata RC auto', 418, g(26)),
+    scadenza('s-danza', 'danza', 'Retta danza', 45, g(40)),
+    scadenza('s-revisione', 'panda', 'Revisione Panda', null, g(75)),
+  ]
+
+  const documento = (
+    id: string,
+    titolo: string,
+    schedaId: string | null,
+    personaId: string | null,
+    data: Date,
+    scadenza: Date | null = null,
+  ): Documento => ({ id, titolo, schedaId, personaId, data, scadenza })
+  const documenti: Documento[] = [
+    documento('d-ci-giulia', "Carta d'identità", null, 'giulia', g(-3440), g(210)),
+    documento('d-patente-marco', 'Patente', null, 'marco', g(-2700), g(900)),
+    documento('d-certificato', 'Certificato medico sportivo', 'sport', 'giulia', g(-319), g(46)),
+    documento('d-danza', 'Iscrizione danza 2026/27', 'danza', 'giulia', g(-43)),
+    documento('d-polizza', 'Polizza RC auto 2026', 'rc-auto', 'marco', g(-340)),
+    documento('d-revisione', 'Ultima revisione', 'panda', null, g(-290)),
+    documento('d-bollo', 'Bollo 2026', 'panda', null, g(-267)),
+    documento('d-gas-settembre', 'Bolletta gas di settembre', 'gas', null, g(-1), gas),
+    documento('d-fastweb-contratto', 'Contratto Fastweb', 'internet', null, g(-500)),
+    documento('d-fastweb-ottobre', 'Fattura Fastweb', 'internet', null, g(-1)),
+  ]
+
+  return {
+    nome: 'Bianchi',
+    persone: [
+      { id: 'marco', nome: 'Marco', ruolo: 'genitore' },
+      { id: 'laura', nome: 'Laura', ruolo: 'genitore' },
+      { id: 'giulia', nome: 'Giulia', ruolo: 'figlio' },
+    ],
+    enti: [
+      'Edison', 'Enel', 'Hera', 'Fastweb', 'UnipolSai', 'BPER', 'Netflix',
+      'Scuola Passo a Due', 'Studio Rinaldi', 'Comune di Bologna', 'Dott.ssa Neri', 'Studio Ferri',
+    ],
+    schede,
+    scadenze,
+    documenti,
+    posta: [
+      { id: 'p-enel', mittente: 'Enel Energia', oggetto: 'La tua bolletta', arrivata: g(-1), documentoId: 'd-gas-settembre' },
+      { id: 'p-fastweb', mittente: 'Fastweb', oggetto: 'Fattura disponibile', arrivata: g(-1), documentoId: 'd-fastweb-ottobre' },
+    ],
+    conti: ['Conto BPER', 'Carta Laura'],
+    primoAvvioFatto: false,
+  }
+}
