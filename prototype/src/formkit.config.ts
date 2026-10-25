@@ -6,6 +6,9 @@ import { defaultConfig } from '@formkit/vue'
 export default defaultConfig({
   locales: { it },
   locale: 'it',
+  // Niente icone scaricate da internet: il menu a tendina usa la freccia del telefono
+  iconLoader: () => undefined,
+  iconLoaderUrl: () => '',
   config: {
     classes: generateClasses({
       global: {
