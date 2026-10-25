@@ -67,7 +67,7 @@ const quanti = computed(() => (risultati.value.length === 1 ? '1 documento' : `$
         type="search"
         placeholder="Cerca un documento, una persona, un ente"
         aria-label="Cerca un documento, una persona, un ente"
-        :classes="{ outer: 'mb-0 grow' }"
+        :classes="{ outer: '$reset min-w-0 grow' }"
       />
       <button
         type="button"

@@ -11,4 +11,5 @@ Repository della nuova app di Family Manager. Oggi c'è solo il prototipo della 
 - Nessun dato vero, nessuna chiamata di rete per i dati, nessuna lettura AI. La famiglia inventata è in `src/data/famiglia.ts`.
 - La logica pura sta in file `.ts` con i test Vitest accanto (test prima del codice); le pagine Vue la usano soltanto.
 - Form con FormKit, elenchi animati con `v-auto-animate`, date con Tempo.
+- Le classi di un campo FormKit (`:classes`, o `submit` e `family:box` in `formkit.config.ts`) si aggiungono a quelle di `global`, non le sostituiscono. Quando due classi si contraddicono vince quella che viene dopo nel CSS: per questo `mb-0` non toglieva `mb-3.5`, e `bg-azione` restava sotto `bg-transparent`. Per cambiare una classe di `global` si comincia con `$reset`, che le toglie tutte, e si riscrivono quelle che servono.
 - npm 10.8 si ferma con `Cannot read properties of null (reading 'edgesOut')` installando queste dipendenze: si usa `npx npm@11 install`.

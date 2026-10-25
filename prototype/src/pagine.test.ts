@@ -139,6 +139,15 @@ describe('i flussi', () => {
     app.unmount()
   })
 
+  it.each(['/documenti', '/schede'])('la ricerca di %s non ha il margine dei campi', async (percorso) => {
+    // Con il margine sotto, il campo sta più in alto del tasto accanto
+    completaPrimoAvvio()
+    const app = await apri(percorso)
+    const outer = app.find('[data-type="search"]')
+    expect(outer.classes()).not.toContain('mb-3.5')
+    app.unmount()
+  })
+
   it('il caricamento finisce tra le scadenze', async () => {
     const app = await apri('/carica')
     const input = app.find('input[type="file"]')

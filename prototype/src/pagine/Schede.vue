@@ -36,7 +36,7 @@ const trovate = computed(() => {
       type="search"
       placeholder="Cerca in tutte le schede"
       aria-label="Cerca in tutte le schede"
-      :classes="{ outer: 'mb-0' }"
+      :classes="{ outer: '$reset' }"
     />
 
     <div v-if="cerca.trim()" v-auto-animate class="flex flex-col divide-y divide-riga rounded-2xl bg-white">
