@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\RuoloPersona;
-use App\Models\Concerns\BelongsToFamily;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Una persona della famiglia (`people` di Directus), con o senza un account.
@@ -32,7 +32,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read Collection<int, Document> $documents
+ * @property-read int|null $documents_count
  * @property-read Family $family
+ * @property-read File|null $photo
  * @property-read User|null $user
  *
  * @method static PersonFactory factory($count = null, $state = [])
@@ -43,10 +46,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @mixin \Eloquent
  */
 #[Fillable(['first_name', 'last_name', 'initials', 'role', 'birth_date', 'tax_code', 'photo_id', 'user_id', 'notes'])]
-final class Person extends Model
+final class Person extends DatoDellaFamiglia
 {
-    use BelongsToFamily;
-
     /** @use HasFactory<PersonFactory> */
     use HasFactory;
 
@@ -58,6 +59,26 @@ final class Person extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * I documenti della persona (`documents.person_id`).
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    /**
+     * La foto della persona.
+     *
+     * @return BelongsTo<File, $this>
+     */
+    public function photo(): BelongsTo
+    {
+        return $this->belongsTo(File::class);
     }
 
     /**

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Support\CurrentFamily;
+use App\Support\Schede;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -36,6 +39,9 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+
+        // Nei collegamenti polimorfici si scrive il tipo (`utility`), mai il nome della classe
+        Relation::enforceMorphMap([...Schede::TIPI, 'user' => User::class]);
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

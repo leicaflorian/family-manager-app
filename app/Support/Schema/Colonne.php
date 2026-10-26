@@ -31,4 +31,28 @@ final class Colonne
         $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
         $table->timestamps();
     }
+
+    /**
+     * Un collegamento facoltativo a un'altra tabella: se il dato collegato
+     * viene eliminato, il collegamento resta vuoto (come in Directus).
+     *
+     * @param  string  $colonna  per esempio `organization_id`
+     * @param  string  $tabella  per esempio `organizations`
+     */
+    public static function facoltativo(Blueprint $table, string $colonna, string $tabella): void
+    {
+        $table->foreignId($colonna)->nullable()->constrained($tabella)->nullOnDelete();
+    }
+
+    /**
+     * Un collegamento obbligatorio a un'altra tabella: il dato vive solo con
+     * quello a cui appartiene (il lavoro con la sua persona), e se ne va con lui.
+     *
+     * @param  string  $colonna  per esempio `person_id`
+     * @param  string  $tabella  per esempio `people`
+     */
+    public static function obbligatorio(Blueprint $table, string $colonna, string $tabella): void
+    {
+        $table->foreignId($colonna)->constrained($tabella)->cascadeOnDelete();
+    }
 }
