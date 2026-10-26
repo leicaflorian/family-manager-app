@@ -1,21 +1,75 @@
 # Family Manager - app per le famiglie
 
-Repository della nuova app di Family Manager. Oggi c'è solo il prototipo della tappa 1, in `prototype/`. Analisi, piano e decisioni stanno nel vault Obsidian, voce del ToDo *Nuova app per le famiglie in Laravel* (`MyVault/Projects/Family Manager/ToDo/_Opened/`): si leggono prima di lavorare qui.
+Repository della nuova app di Family Manager, in Laravel + Inertia + Vue. Analisi, piano e decisioni stanno nel vault Obsidian, voci del ToDo *Nuova app per le famiglie in Laravel* e *Nuova app - base dell'app* (`MyVault/Projects/Family Manager/ToDo/_Opened/`): si leggono prima di lavorare qui. Le regole di `family-manager-cms` (GitNexus, `./fm`, migrazioni di Directus) non valgono qui. È un repository solo di questo progetto: `git add -A` va bene.
 
-## Regole del prototipo
+La [tela di Claude Design](https://claude.ai/artifact/XwCgtJdtBEgWrGDbLAmRrr) è il riferimento delle pagine: dove il codice dice cose diverse dalla tavola vale la tavola, e la differenza si scrive nelle *Decisioni prese* del piano.
 
-- Tutti i testi in italiano semplice, al tu, senza parole tecniche ("record", "collection", "relazione", "campo").
-- Pensato per il telefono: colonna `max-w-md` centrata, bersagli tattili alti almeno 44 px.
-- Grafica come le schermate approvate su Claude Design; colori e scelte sono nel `Piano.md` della voce, sezione *Scelte di grafica*, e nei token di `prototype/src/style.css`.
-- Importi come `84,20 €`, date come `15/10/2026` (funzioni di `src/logic/formato.ts`).
-- Nessun dato vero, nessuna chiamata di rete per i dati, nessuna lettura AI. La famiglia inventata è in `src/data/famiglia.ts`.
-- La logica pura sta in file `.ts` con i test Vitest accanto (test prima del codice); le pagine Vue la usano soltanto.
-- Form con FormKit, elenchi animati con `v-auto-animate`, date con Tempo.
-- Le classi di un campo FormKit (`:classes`, o `submit` e `family:box` in `formkit.config.ts`) si aggiungono a quelle di `global`, non le sostituiscono. Quando due classi si contraddicono vince quella che viene dopo nel CSS: per questo `mb-0` non toglieva `mb-3.5`, e `bg-azione` restava sotto `bg-transparent`. Per cambiare una classe di `global` si comincia con `$reset`, che le toglie tutte, e si riscrivono quelle che servono.
-- npm 10.8 si ferma con `Cannot read properties of null (reading 'edgesOut')` installando queste dipendenze: si usa `npx npm@11 install`.
+## Regole del progetto
 
-## Pubblicazione
+- Testi in italiano semplice, al tu, senza parole tecniche ("record", "collection", "relazione", "campo"). Importi come `84,20 €`, date come `15/10/2026`: `useFormato` nelle pagine, Carbon nel server. Fuso orario `Europe/Rome`, lingua `it`.
+- Ogni tabella con dati di una famiglia ha `family_id` (obbligatorio, collegato a `families`, indice) e un modello con il tratto `BelongsToFamily`. Nessuna query sui dati di una famiglia passa fuori dal tratto, tranne il comando di copia da Directus, che imposta la famiglia a mano.
+- **Ogni modello nuovo della famiglia entra nel test di separazione** (`tests/Feature/Schema/SeparazioneTuttiIModelliTest.php`): creato nella famiglia A, non si trova entrando dalla famiglia B.
+- Un id di un'altra famiglia risponde 404, mai 403 né i dati.
+- Nomi delle tabelle e dei campi come in Directus, con `_id` sui molti-a-uno, i campi di sistema di Laravel (`created_at`, `updated_at`, `created_by`, `updated_by`), `files` al posto di `directus_files`, `documentables` e `remindables` al posto delle tabelle ponte. I tipi polimorfici hanno il nome al singolare della tabella (`Relation::enforceMorphMap`).
+- Due livelli di account: `admin` (*Tutto, come te*) e `member` (*Vede tutto e carica i documenti*). Un `member` vede tutto, carica e modifica documenti; non elimina niente e non modifica persone, enti, categorie, impostazioni e inviti. I controlli sono nelle *policy*, non solo nelle pagine.
+- Form con FormKit, elenchi con `v-auto-animate`, icone di Lucide (`@lucide/vue`), componenti di `resources/js/components/fm/`.
+- Account di prova (solo in locale e online di prova): quelli del seeder dei Bianchi, scritti nel `README.md`. Mai dati veri online.
 
-- Il prototipo è su Coolify, applicazione `family-manager-prototipo` (progetto *Family Manager*), all'indirizzo http://7ev8yxs2hxbu1hvxptweltp2.164.90.206.43.sslip.io. Si costruisce con Nixpacks dalla cartella `prototype` e si pubblica `dist`.
-- Serve Node 22: Vite 8 non parte con Node 18, quello di partenza di Nixpacks. Per questo c'è `engines.node` in `package.json`.
-- Un push su `main` non ripubblica da solo: il deploy si rilancia da Coolify, o con la sua API (`deploy?uuid=7ev8yxs2hxbu1hvxptweltp2`). Il token in `~/.config/family-manager/coolify-token` basta per rilanciarlo. Per creare o cambiare un'applicazione serve un token con `write`. Un token non si stampa mai: si passa a `curl` in un file di intestazioni.
+## Come si scrive il codice
+
+Regole del proprietario del 26/10/2026. Valgono per ogni riga, in PHP e in Vue.
+
+**Test prima del codice (TDD), sempre.** Per ogni classe, azione, query, regola, componente Vue e composable: si scrive il test, lo si vede fallire per il motivo giusto, si scrive il codice minimo che lo fa passare, si ripulisce. Un test non controlla mai un *mock* al posto del comportamento vero.
+
+**PHP e Laravel moderni.**
+- PHP 8.4 o più nuovo, `declare(strict_types=1);` in ogni file.
+- Proprietà `readonly` e promozione nel costruttore; `match` invece di catene di `if`; `final` sulle classi che non si estendono.
+- `enum` con valori stringa per le scelte fisse (`App\Enums\…`), usati nei `casts()` dei modelli.
+- `casts()` come metodo, *form request* per la validazione, *policy* per i permessi, azioni (`app/Actions/`) e service (`app/Services/`) per la logica, controller sottili. L'utente nei controller arriva con `#[CurrentUser] User $user`.
+- Le pagine ricevono i dati da classi dedicate (`App\Data\…`, con `spatie/laravel-data`), che generano i tipi TypeScript: `sail artisan typescript:transform` scrive `resources/js/generated/generated.d.ts` (tipi globali come `App.Data.DocumentoData`). Si rilancia dopo ogni modifica di una classe dati o di un enum, e il file si committa.
+- Rector (`driftingly/rector-laravel`) tiene il codice aggiornato: `sail php vendor/bin/rector --dry-run` non propone modifiche.
+
+**Tipi e PHPStan.**
+- Larastan al livello 9 (`phpstan.neon`): il livello non si abbassa, niente *baseline* e niente `@phpstan-ignore` per il codice nuovo.
+- Ogni parametro, proprietà e ritorno ha il suo tipo; gli array hanno la forma nel PHPDoc (`@param array{titolo: string, data: ?string} $dati`, `@return Collection<int, Document>`).
+- I metodi e le proprietà magici si dichiarano nel PHPDoc della classe: `@property` e `@property-read` dei modelli (colonne e relazioni), `@method` degli scope. Per i modelli li scrive `sail artisan ide-helper:models --write --reset`, da rilanciare dopo ogni migrazione.
+
+**Commenti.**
+- Ogni classe e ogni metodo, pubblico o privato, ha il PHPDoc: cosa fa, parametri, ritorno, eccezioni (`@throws`).
+- Dentro il codice un commento spiega il perché di una logica che non si capisce leggendo, non ripete il cosa.
+- I commenti sono in italiano, come i testi.
+
+**Niente codice clonato.** Se una cosa serve due volte o più va in un posto solo: in PHP un service, un'azione, un tratto o una utility in `app/Support/`; in Vue un componente, un composable (`resources/js/composables/`) o una utility (`resources/js/lib/`).
+
+**Librerie.** Una libreria PHP o JS che ottimizza o velocizza è benvenuta: si annota nelle *Decisioni prese* del piano con il motivo.
+
+**Vue e TypeScript.**
+- Solo TypeScript (`<script setup lang="ts">`), con `strict` in `tsconfig.json`. Niente `any`: la regola `typescript/no-explicit-any` di Oxlint è un errore.
+- Props, emit e slot tipizzati (`defineProps<…>()`, `defineEmits<…>()`), ritorni delle funzioni dichiarati.
+- TSDoc su ogni componente (in cima allo `<script>`: cosa mostra e quando si usa), su ogni prop ed emit, su ogni funzione e composable.
+- TDD anche qui, con Vitest (quello di Vite+: `import { … } from 'vite-plus/test'`), Testing Library e `jsdom`: ogni componente in `components/fm/` ha il suo `*.test.ts` accanto, scritto prima; ogni composable e utility ha i suoi test; le pagine hanno un test di quello che fanno. Si controlla quello che vede e fa la persona (testi, ruoli, tasti), non i dettagli interni.
+- Le classi di un campo FormKit si aggiungono a quelle di `global` in `formkit.config.ts`, non le sostituiscono: per cambiarne una si comincia con `$reset`.
+
+## Comandi
+
+Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
+
+| Comando | Cosa fa |
+| --- | --- |
+| `./vendor/bin/sail up -d` | Avvia app, MySQL e Mailpit |
+| `./vendor/bin/sail artisan …` | Artisan |
+| `./vendor/bin/sail test` | Test PHP (Pest) |
+| `./vendor/bin/sail npm run test` | Test del frontend (Vitest) |
+| `./vendor/bin/sail php vendor/bin/phpstan analyse` | PHPStan al livello 9 |
+| `./vendor/bin/sail php vendor/bin/rector --dry-run` | Rector, senza scrivere |
+| `./vendor/bin/sail pint` | Formattazione PHP |
+| `./vendor/bin/sail npm run build` | Build del frontend |
+| `./vendor/bin/sail npm run types` | Controllo dei tipi (vue-tsc) |
+| `./vendor/bin/sail npm run lint` | Oxlint |
+| `./vendor/bin/sail npx vp check --fix` | Formattazione e lint del frontend |
+
+Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori, Rector senza modifiche proposte, build, tipi e lint senza errori, Pint pulito.
+
+- Lo starter kit usa Vite+ (`vp`): build, lint (Oxlint), formattazione (Oxfmt) e test (Vitest) sono suoi, configurati in `vite.config.ts`.
+- npm: nel container di Sail c'è npm 11. npm 10.8 si fermava installando FormKit (`Cannot read properties of null (reading 'edgesOut')`): se serve npm fuori da Sail si usa `npx npm@11 install`.
+- In locale l'app è su http://localhost:8090 e MySQL su `localhost:3308`, perché la 80 e la 3306 del Mac sono già occupate da altri progetti (`APP_PORT` e `FORWARD_DB_PORT` nel `.env`). Mailpit è su http://localhost:8025.

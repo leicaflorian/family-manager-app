@@ -3,7 +3,7 @@ import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
+import { google } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
@@ -12,8 +12,8 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                google('Inter', {
+                    weights: [400, 500, 600, 700, 800],
                 }),
             ],
         }),
@@ -53,11 +53,21 @@ export default defineConfig({
             'resources/js/components/ui/*',
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
+            'resources/js/generated/**',
         ],
         options: {
             denyWarnings: true,
             typeAware: true,
         },
+        rules: {
+            // Regola del progetto: niente any, i tipi si scrivono sempre
+            'typescript/no-explicit-any': 'error',
+        },
+    },
+    test: {
+        environment: 'jsdom',
+        include: ['resources/js/**/*.test.ts'],
+        setupFiles: ['resources/js/test/setup.ts'],
     },
     fmt: {
         printWidth: 80,
@@ -69,6 +79,9 @@ export default defineConfig({
         ignorePatterns: [
             '.github/**',
             'composer.json',
+            'lang/**',
+            '**/*.md',
+            'resources/js/generated/**',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
         ],

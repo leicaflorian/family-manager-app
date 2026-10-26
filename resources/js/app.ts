@@ -1,11 +1,13 @@
+import { autoAnimatePlugin } from '@formkit/auto-animate/vue';
+import { plugin as formkit } from '@formkit/vue';
 import { createInertiaApp } from '@inertiajs/vue3';
-import { initializeTheme } from '@/composables/useAppearance';
+import formkitConfig from '@/formkit.config';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -22,6 +24,8 @@ void createInertiaApp({
         }
     },
     withApp: (app) => {
+        app.use(formkit, formkitConfig).use(autoAnimatePlugin);
+
         app.directive('focus', {
             mounted: (el: HTMLElement, shouldFocus) => {
                 if (shouldFocus.value !== false) {
@@ -31,12 +35,9 @@ void createInertiaApp({
         });
     },
     progress: {
-        color: '#4B5563',
+        color: '#1E6FD9',
     },
 });
-
-// This will set light / dark mode on page load...
-initializeTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();

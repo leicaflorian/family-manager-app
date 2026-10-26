@@ -7,11 +7,54 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Colori della tela di Claude Design (voce madre, *Scelte di grafica*).
+ * static: i colori delle aree si usano anche da var() negli stili inline,
+ * che Tailwind non vede.
+ */
+@theme static {
+    --color-brand: #3399ff;
+    --color-azione: #1e6fd9;
+    --color-azione-scuro: #1557b0;
+    --color-sfondo: #f4f6fa;
+    --color-testo: #18212f;
+    --color-secondario: #5a6575;
+    --color-bordo: #cdd5e0;
+    --color-riga: #eef1f5;
+    --color-scaduto: #c4283f;
+    --color-attenzione: #9a4308;
+    --color-attenzione-sfondo: #fff1e7;
+    --color-pagato: #1b7f5f;
+
+    /* Colore di ogni area: chiaro per pallini e icone, scuro per testo */
+    --color-casa: #f76b15;
+    --color-casa-scuro: #b4500f;
+    --color-veicoli: #0797b9;
+    --color-veicoli-scuro: #067891;
+    --color-assicurazioni: #8e4ec6;
+    --color-assicurazioni-scuro: #7a44ae;
+    --color-banche: #3e63dd;
+    --color-banche-scuro: #3550b5;
+    --color-salute: #c13fb8;
+    --color-salute-scuro: #9e2f96;
+    --color-scuola: #e5a50a;
+    --color-scuola-scuro: #8a6206;
+    --color-lavoro: #6e9f18;
+    --color-lavoro-scuro: #4f7311;
+    --color-abbonamenti: #5b5bd6;
+    --color-abbonamenti-scuro: #4747b8;
+    --color-pratiche: #a0714f;
+    --color-pratiche-scuro: #7d5537;
+    --color-uscite: #e35169;
+    --color-entrate: #2ecda7;
+    --color-trasversali: #80838d;
+    --color-trasversali-scuro: #5d6069;
+}
+
 @theme inline {
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -168,5 +211,13 @@
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer base {
+    body {
+        background: var(--color-sfondo);
+        color: var(--color-testo);
+        -webkit-tap-highlight-color: transparent;
     }
 }
