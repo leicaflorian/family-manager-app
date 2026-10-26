@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\DatoDellaFamiglia;
+use App\Models\Document;
 use App\Models\User;
+use App\Policies\DocumentPolicy;
+use App\Policies\PolicyDellaFamiglia;
 use App\Support\CurrentFamily;
 use App\Support\Schede;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -31,6 +36,20 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configurePolicies();
+    }
+
+    /**
+     * Tutti i dati della famiglia hanno gli stessi permessi (PolicyDellaFamiglia),
+     * tranne i documenti, che anche un `member` carica e modifica.
+     */
+    protected function configurePolicies(): void
+    {
+        Gate::guessPolicyNamesUsing(fn (string $classe): array => match (true) {
+            $classe === Document::class => [DocumentPolicy::class],
+            is_subclass_of($classe, DatoDellaFamiglia::class) => [PolicyDellaFamiglia::class],
+            default => [],
+        });
     }
 
     /**

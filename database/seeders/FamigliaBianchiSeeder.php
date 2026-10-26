@@ -106,6 +106,9 @@ final class FamigliaBianchiSeeder extends Seeder
                 $this->creaSchede();
                 $this->creaDocumenti();
             });
+
+            // I Bianchi hanno già fatto il Benvenuto: si entra dritti nella Home.
+            $marco->family->update(['welcomed_at' => now()]);
         });
     }
 

@@ -29,4 +29,28 @@ enum Ruolo: string
             self::Member => 'Vede tutto e carica i documenti',
         };
     }
+
+    /**
+     * Cosa vuol dire il livello, la frase sotto la scelta in *Invita un familiare*.
+     */
+    public function spiegazione(): string
+    {
+        return match ($this) {
+            self::Admin => 'Anche le impostazioni, gli inviti e l\'abbonamento',
+            self::Member => 'Paga, registra e carica, ma non cambia le impostazioni',
+        };
+    }
+
+    /**
+     * Le opzioni per la scelta del livello, ognuna con la sua spiegazione.
+     *
+     * @return list<array{value: string, label: string, help: string}>
+     */
+    public static function opzioni(): array
+    {
+        return array_map(
+            static fn (self $caso): array => ['value' => $caso->value, 'label' => $caso->etichetta(), 'help' => $caso->spiegazione()],
+            self::cases(),
+        );
+    }
 }

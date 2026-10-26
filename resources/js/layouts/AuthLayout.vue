@@ -8,6 +8,7 @@
 import { Link } from '@inertiajs/vue3';
 import { CircleCheck } from '@lucide/vue';
 import FmIcona from '@/components/fm/FmIcona.vue';
+import FmIntestazione from '@/components/fm/FmIntestazione.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
 
 /** Cosa dice il pannello azzurro del computer. */
@@ -39,7 +40,7 @@ const {
     },
     altraStrada,
 } = defineProps<{
-    /** Il titolo della pagina. */
+    /** Il titolo della pagina. Senza, la pagina scrive il suo (per esempio con un nome). */
     titolo?: string;
     /** La frase sotto il titolo. */
     sottotitolo?: string;
@@ -100,17 +101,11 @@ defineSlots<{
                         >Family Manager</span
                     >
                 </div>
-                <div class="flex flex-col gap-2">
-                    <h1 class="m-0 text-[28px] font-extrabold lg:text-[30px]">
-                        {{ titolo }}
-                    </h1>
-                    <p
-                        v-if="sottotitolo"
-                        class="m-0 text-base leading-[1.45] text-[#4A5565]"
-                    >
-                        {{ sottotitolo }}
-                    </p>
-                </div>
+                <FmIntestazione
+                    v-if="titolo"
+                    :titolo="titolo"
+                    :sottotitolo="sottotitolo"
+                />
                 <div class="flex grow flex-col">
                     <slot />
                 </div>

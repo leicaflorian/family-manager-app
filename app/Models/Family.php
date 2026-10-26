@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $id
  * @property string $name
+ * @property CarbonImmutable|null $welcomed_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Collection<int, Person> $people
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['name'])]
+#[Fillable(['name', 'welcomed_at'])]
 final class Family extends Model
 {
     /** @use HasFactory<FamilyFactory> */
@@ -57,5 +58,23 @@ final class Family extends Model
     public function people(): HasMany
     {
         return $this->hasMany(Person::class);
+    }
+
+    /**
+     * La famiglia ha finito il *Benvenuto*.
+     */
+    public function accolta(): bool
+    {
+        return $this->welcomed_at !== null;
+    }
+
+    /**
+     * I tipi delle colonne.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return ['welcomed_at' => 'datetime'];
     }
 }

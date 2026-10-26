@@ -3,6 +3,30 @@ namespace Data {
 export type FamigliaData = {
 readonly name: string,
 };
+export type InvitoData = {
+readonly nome: string,
+readonly famiglia: string,
+readonly chiInvita: string,
+readonly email: string,
+readonly scade: string,
+readonly persone: App.Data.PersonaBreveData[],
+};
+export type InvitoMandatoData = {
+readonly email: string,
+readonly link: string,
+readonly scade: string,
+};
+export type OpzioneData = {
+readonly value: string,
+readonly label: string,
+readonly help: string | null,
+};
+export type PersonaBreveData = {
+readonly id: number,
+readonly first_name: string,
+readonly last_name: string,
+readonly initials: string,
+};
 }
 namespace Enums {
 export type Ruolo = 'admin' | 'member';

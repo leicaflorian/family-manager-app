@@ -21,6 +21,15 @@ final class FamilyFactory extends Factory
     {
         return [
             'name' => fake()->lastName(),
+            'welcomed_at' => now(),
         ];
+    }
+
+    /**
+     * Una famiglia appena iscritta, che non ha ancora fatto il *Benvenuto*.
+     */
+    public function daAccogliere(): self
+    {
+        return $this->state(['welcomed_at' => null]);
     }
 }

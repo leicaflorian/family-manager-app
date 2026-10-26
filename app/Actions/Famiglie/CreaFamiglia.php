@@ -14,8 +14,8 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\CategoriePredefinite;
 use App\Support\CurrentFamily;
+use App\Support\Iniziali;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Iscrive una famiglia nuova: la famiglia, il suo primo account e quello che le serve per partire.
@@ -50,7 +50,7 @@ final class CreaFamiglia
                 Person::query()->create([
                     'first_name' => $nome,
                     'last_name' => $cognome,
-                    'initials' => $this->iniziali($nome, $cognome),
+                    'initials' => Iniziali::di($nome, $cognome),
                     'role' => RuoloPersona::Parent,
                     'user_id' => $account->id,
                 ]);
@@ -62,18 +62,6 @@ final class CreaFamiglia
                 return $account;
             });
         });
-    }
-
-    /**
-     * Le due lettere che si vedono nel cerchio della persona.
-     *
-     * @param  string  $nome  il nome
-     * @param  string  $cognome  il cognome
-     * @return string le iniziali in maiuscolo, per esempio `MB`
-     */
-    private function iniziali(string $nome, string $cognome): string
-    {
-        return Str::upper(Str::substr($nome, 0, 1).Str::substr($cognome, 0, 1));
     }
 
     /**

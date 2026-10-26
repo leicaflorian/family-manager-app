@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * La base di ogni modello con i dati di una famiglia: si legge solo la
  * famiglia corrente e si registra chi crea e chi modifica.
+ *
+ * @property int $family_id
  */
 abstract class DatoDellaFamiglia extends Model
 {

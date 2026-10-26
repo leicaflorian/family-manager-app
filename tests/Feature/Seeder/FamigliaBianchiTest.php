@@ -42,7 +42,8 @@ test('il seeder crea la famiglia Bianchi come sulla tela', function (): void {
             ->and($documento->category?->name)->toBe('Luce')
             ->and($documento->organization?->name)->toBe('Edison')
             ->and($documento->date?->format('d/m/Y'))->toBe('26/10/2026')
-            ->and($documento->linkables()->count())->toBe(1);
+            ->and($documento->linkables()->count())->toBe(1)
+            ->and(Family::query()->sole()->accolta())->toBeTrue();
         Storage::disk('local')->assertExists($documento->file->path);
     });
 });

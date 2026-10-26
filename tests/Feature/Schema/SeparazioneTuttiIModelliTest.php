@@ -18,6 +18,7 @@ use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\Income;
 use App\Models\InsurancePolicy;
+use App\Models\Invitation;
 use App\Models\Loan;
 use App\Models\MaintenanceRecord;
 use App\Models\Organization;
@@ -46,7 +47,7 @@ dataset('modelli della famiglia', [
     MaintenanceRecord::class, ExpenseCategory::class, PlannedExpense::class,
     PlannedExpenseException::class, Expense::class, PlannedIncome::class,
     PlannedIncomeException::class, Income::class, Document::class,
-    ReminderGroup::class, Reminder::class, FamilySetting::class,
+    ReminderGroup::class, Reminder::class, FamilySetting::class, Invitation::class,
 ]);
 
 test('un dato della famiglia A non si trova dalla famiglia B', function (string $classe): void {
