@@ -48,6 +48,32 @@ final class CurrentFamily
     }
 
     /**
+     * Esegue un lavoro con la famiglia impostata a mano, poi rimette quella di prima.
+     *
+     * Serve a chi scrive i dati di una famiglia senza esserci entrato: l'iscrizione,
+     * il seeder, la copia da Directus. Quella di prima torna anche se il lavoro si
+     * ferma con un'eccezione.
+     *
+     * @template T
+     *
+     * @param  int  $id  l'id della famiglia
+     * @param  callable(): T  $lavoro  il lavoro da fare
+     * @return T quello che restituisce il lavoro
+     */
+    public static function per(int $id, callable $lavoro): mixed
+    {
+        $corrente = self::istanza();
+        $prima = $corrente->impostata;
+        $corrente->impostata = $id;
+
+        try {
+            return $lavoro();
+        } finally {
+            $corrente->impostata = $prima;
+        }
+    }
+
+    /**
      * Toglie la famiglia impostata a mano.
      */
     public static function clear(): void

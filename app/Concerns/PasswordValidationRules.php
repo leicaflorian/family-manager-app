@@ -16,7 +16,17 @@ trait PasswordValidationRules
      */
     protected function passwordRules(): array
     {
-        return ['required', 'string', Password::default(), 'confirmed'];
+        return [...$this->passwordRulesWithoutConfirmation(), 'confirmed'];
+    }
+
+    /**
+     * Le regole di una password nuova scritta una volta sola, come nel modulo *Iscriviti*.
+     *
+     * @return array<int, Password|ValidationRule|array<mixed>|string>
+     */
+    protected function passwordRulesWithoutConfirmation(): array
+    {
+        return ['required', 'string', Password::default()];
     }
 
     /**
