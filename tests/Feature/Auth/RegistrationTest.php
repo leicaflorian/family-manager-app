@@ -32,7 +32,7 @@ class RegistrationTest extends TestCase
             'nome' => 'Marco',
             'cognome' => 'Bianchi',
             'email' => 'test@example.com',
-            'password' => 'password',
+            'password' => 'una-password-lunga',
             'condizioni' => '1',
         ]);
 

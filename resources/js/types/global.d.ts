@@ -19,7 +19,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
-            sidebarOpen: boolean;
+            famiglia: App.Data.FamigliaData | null;
             [key: string]: unknown;
         };
     }

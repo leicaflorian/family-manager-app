@@ -1,90 +1,77 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
-import InputError from '@/components/InputError.vue';
-import PasswordInput from '@/components/PasswordInput.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+/**
+ * Pagina *Nuova password*: si arriva dal link dell'email e si sceglie la password nuova.
+ */
+import { Head, useForm } from '@inertiajs/vue3';
+import FmCampoPassword from '@/components/fm/FmCampoPassword.vue';
+import FmPulsante from '@/components/fm/FmPulsante.vue';
+import { errori } from '@/lib/errori';
 import { update } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Reset password',
-        description: 'Please enter your new password below',
+        titolo: 'Scegli la password nuova',
+        sottotitolo: 'Dopo entri con questa.',
+        pannello: {
+            titolo: 'Succede a tutti.',
+            testo: 'La password nuova la scegli tu, e i dati della famiglia restano come sono.',
+        },
     },
 });
 
 const props = defineProps<{
+    /** Il codice del link dell'email. */
     token: string;
+    /** L'email dell'account. */
     email: string;
+    /** Le regole della password, per il suggerimento del browser. */
     passwordRules: string;
 }>();
 
-const inputEmail = ref(props.email);
+const form = useForm({
+    token: props.token,
+    email: props.email,
+    password: '',
+    password_confirmation: '',
+});
+
+/**
+ * Salva la password nuova. Il modulo la chiede una volta sola: la conferma che
+ * vuole Fortify è la stessa.
+ */
+function salva(): void {
+    form.transform((dati) => ({
+        ...dati,
+        password_confirmation: dati.password,
+    })).submit(update(), {
+        onFinish: () => form.reset('password'),
+    });
+}
 </script>
 
 <template>
-    <Head title="Reset password" />
+    <Head title="Nuova password" />
 
-    <Form
-        v-bind="update.form()"
-        :transform="(data) => ({ ...data, token, email })"
-        :reset-on-success="['password', 'password_confirmation']"
-        v-slot="{ errors, processing }"
-    >
-        <div class="grid gap-6">
-            <div class="grid gap-2">
-                <Label for="email">Email</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    name="email"
-                    autocomplete="email"
-                    v-model="inputEmail"
-                    class="mt-1 block w-full"
-                    readonly
-                />
-                <InputError :message="errors.email" class="mt-2" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="password">Password</Label>
-                <PasswordInput
-                    id="password"
-                    name="password"
-                    autocomplete="new-password"
-                    class="mt-1 block w-full"
-                    autofocus
-                    placeholder="Password"
-                    :passwordrules="passwordRules"
-                />
-                <InputError :message="errors.password" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="password_confirmation"> Confirm password </Label>
-                <PasswordInput
-                    id="password_confirmation"
-                    name="password_confirmation"
-                    autocomplete="new-password"
-                    class="mt-1 block w-full"
-                    placeholder="Confirm password"
-                    :passwordrules="passwordRules"
-                />
-                <InputError :message="errors.password_confirmation" />
-            </div>
-
-            <Button
-                type="submit"
-                class="mt-4 w-full"
-                :disabled="processing"
-                data-test="reset-password-button"
-            >
-                <Spinner v-if="processing" />
-                Reset password
-            </Button>
-        </div>
-    </Form>
+    <form class="flex grow flex-col gap-3" novalidate @submit.prevent="salva">
+        <FormKit
+            v-model="form.email"
+            type="email"
+            label="Email"
+            name="email"
+            readonly
+            :errors="errori(form.errors.email)"
+        />
+        <FmCampoPassword
+            v-model="form.password"
+            label="Scegli una password nuova"
+            name="password"
+            help="Almeno 10 caratteri"
+            autocomplete="new-password"
+            :errors="errori(form.errors.password)"
+        />
+        <span class="min-h-6 grow lg:hidden" />
+        <FmPulsante tipo="submit" largo :disabled="form.processing"
+            >Salva la password</FmPulsante
+        >
+    </form>
 </template>

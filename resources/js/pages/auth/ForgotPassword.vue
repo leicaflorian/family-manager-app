@@ -1,66 +1,75 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+/**
+ * Pagina *Password dimenticata*: si scrive l'email e arriva un link per sceglierne
+ * una nuova. Dopo l'invio dice dove guardare e offre di rimandarlo.
+ */
+import { Head, useForm } from '@inertiajs/vue3';
+import FmAvviso from '@/components/fm/FmAvviso.vue';
+import FmPulsante from '@/components/fm/FmPulsante.vue';
+import { errori } from '@/lib/errori';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Forgot password',
-        description: 'Enter your email to receive a password reset link',
+        titolo: 'Password dimenticata',
+        sottotitolo:
+            'Scrivi la tua email: ti mandiamo un link per sceglierne una nuova.',
+        pannello: {
+            titolo: 'Succede a tutti.',
+            testo: 'Ti mandiamo un link: la password nuova la scegli tu, e i dati della famiglia restano come sono.',
+        },
+        altraStrada: {
+            testo: 'Te la sei ricordata?',
+            link: 'Accedi',
+            href: login().url,
+        },
     },
 });
 
-defineProps<{
+const { status } = defineProps<{
+    /** C'è quando il link è partito. */
     status?: string;
 }>();
+
+const form = useForm({ email: '' });
+
+/**
+ * Chiede il link per l'email scritta.
+ */
+function mandaLink(): void {
+    form.submit(email());
+}
 </script>
 
 <template>
-    <Head title="Forgot password" />
+    <Head title="Password dimenticata" />
 
-    <div
-        v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
+    <form
+        class="flex grow flex-col gap-3"
+        novalidate
+        @submit.prevent="mandaLink"
     >
-        {{ status }}
-    </div>
-
-    <div class="space-y-6">
-        <Form v-bind="email.form()" v-slot="{ errors, processing }">
-            <div class="grid gap-2">
-                <Label for="email">Email address</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    name="email"
-                    autocomplete="off"
-                    v-focus
-                    placeholder="email@example.com"
-                />
-                <InputError :message="errors.email" />
-            </div>
-
-            <div class="my-6 flex items-center justify-start">
-                <Button
-                    class="w-full"
-                    :disabled="processing"
-                    data-test="email-password-reset-link-button"
-                >
-                    <Spinner v-if="processing" />
-                    Email password reset link
-                </Button>
-            </div>
-        </Form>
-
-        <div class="space-x-1 text-center text-sm text-muted-foreground">
-            <span>Or, return to</span>
-            <TextLink :href="login()">log in</TextLink>
-        </div>
-    </div>
+        <FormKit
+            v-model="form.email"
+            type="email"
+            label="Email"
+            name="email"
+            autocomplete="email"
+            :errors="errori(form.errors.email)"
+        />
+        <FmAvviso v-if="status" tono="ok">
+            <strong
+                >Ti abbiamo scritto{{
+                    form.email ? ` a ${form.email}` : ''
+                }}.</strong
+            >
+            Il link vale un'ora. Se non lo trovi, guarda nella posta
+            indesiderata.
+        </FmAvviso>
+        <span class="min-h-6 grow lg:hidden" />
+        <FmPulsante tipo="submit" largo :disabled="form.processing">
+            {{ status ? 'Mandami di nuovo il link' : 'Mandami il link' }}
+        </FmPulsante>
+    </form>
 </template>

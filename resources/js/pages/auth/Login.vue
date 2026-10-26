@@ -1,107 +1,88 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import InputError from '@/components/InputError.vue';
-import PasswordInput from '@/components/PasswordInput.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+/**
+ * Pagina *Accedi*: email, password e *Resta collegato* (il `remember` di Fortify),
+ * con i link a *Password dimenticata* e a *Iscriviti*.
+ */
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import FmAvviso from '@/components/fm/FmAvviso.vue';
+import FmCampoPassword from '@/components/fm/FmCampoPassword.vue';
+import FmPulsante from '@/components/fm/FmPulsante.vue';
+import { errori } from '@/lib/errori';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        titolo: 'Bentornato',
+        sottotitolo: 'Entra nella tua famiglia.',
+        pannello: {
+            titolo: 'Tutto ciò che riguarda la famiglia, in un posto solo.',
+            testo: 'Le scadenze, le bollette e i documenti di tutti, con chi vive con te.',
+        },
+        altraStrada: {
+            testo: 'Non hai ancora Family Manager?',
+            link: 'Iscrivi la tua famiglia',
+            href: register().url,
+        },
     },
 });
 
-defineProps<{
+const { canResetPassword, status } = defineProps<{
+    /** Messaggio del server, per esempio dopo il cambio della password. */
     status?: string;
+    /** Si può chiedere il link per una password nuova. */
     canResetPassword: boolean;
 }>();
+
+const form = useForm({ email: '', password: '', remember: true });
+
+/**
+ * Manda email e password; la password si svuota comunque vada.
+ */
+function accedi(): void {
+    form.submit(store(), { onFinish: () => form.reset('password') });
+}
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head title="Accedi" />
 
-    <div
-        v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
-    >
-        {{ status }}
-    </div>
-
-    <Form
-        v-bind="store.form()"
-        :reset-on-success="['password']"
-        v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
-    >
-        <div class="grid gap-6">
-            <div class="grid gap-2">
-                <Label for="email">Email address</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    name="email"
-                    required
-                    v-focus
-                    :tabindex="1"
-                    autocomplete="email"
-                    placeholder="email@example.com"
-                />
-                <InputError :message="errors.email" />
-            </div>
-
-            <div class="grid gap-2">
-                <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
-                    <TextLink
-                        v-if="canResetPassword"
-                        :href="request()"
-                        class="text-sm"
-                        :tabindex="5"
-                    >
-                        Forgot your password?
-                    </TextLink>
-                </div>
-                <PasswordInput
-                    id="password"
-                    name="password"
-                    required
-                    :tabindex="2"
-                    autocomplete="current-password"
-                    placeholder="Password"
-                />
-                <InputError :message="errors.password" />
-            </div>
-
-            <div class="flex items-center justify-between">
-                <Label for="remember" class="flex items-center space-x-3">
-                    <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
-                </Label>
-            </div>
-
-            <Button
-                type="submit"
-                class="mt-4 w-full"
-                :tabindex="4"
-                :disabled="processing"
-                data-test="login-button"
+    <form class="flex grow flex-col gap-3" novalidate @submit.prevent="accedi">
+        <FmAvviso v-if="status" tono="ok">{{ status }}</FmAvviso>
+        <FormKit
+            v-model="form.email"
+            type="email"
+            label="Email"
+            name="email"
+            autocomplete="email"
+            :errors="errori(form.errors.email)"
+        />
+        <FmCampoPassword
+            v-model="form.password"
+            label="Password"
+            name="password"
+            :errors="errori(form.errors.password)"
+        />
+        <div class="flex items-center justify-between gap-2.5">
+            <FormKit
+                v-model="form.remember"
+                type="checkbox"
+                label="Resta collegato"
+                name="remember"
+                :classes="{ outer: 'mb-0' }"
+            />
+            <Link
+                v-if="canResetPassword"
+                :href="request()"
+                class="text-[15px] font-semibold text-azione"
             >
-                <Spinner v-if="processing" />
-                Log in
-            </Button>
+                Password dimenticata?
+            </Link>
         </div>
-
-        <div class="text-center text-sm text-muted-foreground">
-            Don't have an account?
-            <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
-        </div>
-    </Form>
+        <span class="min-h-6 grow lg:hidden" />
+        <FmPulsante tipo="submit" largo :disabled="form.processing"
+            >Accedi</FmPulsante
+        >
+    </form>
 </template>

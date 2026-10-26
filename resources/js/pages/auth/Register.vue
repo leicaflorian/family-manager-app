@@ -1,117 +1,109 @@
 <script setup lang="ts">
 /**
  * Pagina *Iscriviti*: chi si iscrive crea la sua famiglia ed è il primo account,
- * con il livello *Tutto, come te*. L'aspetto della tela arriva con le pagine di accesso.
+ * con il livello *Tutto, come te*. Il cognome è anche il nome della famiglia.
  */
-import { Form, Head } from '@inertiajs/vue3';
-import InputError from '@/components/InputError.vue';
-import PasswordInput from '@/components/PasswordInput.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+import { Head, useForm } from '@inertiajs/vue3';
+import FmCampoPassword from '@/components/fm/FmCampoPassword.vue';
+import FmPulsante from '@/components/fm/FmPulsante.vue';
+import { errori } from '@/lib/errori';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
+
+defineOptions({
+    layout: {
+        titolo: 'Iscrivi la tua famiglia',
+        sottotitolo: 'Quattro domande e siete pronti.',
+        pannello: {
+            titolo: 'Tutto ciò che riguarda la famiglia, in un posto solo.',
+            testo: 'Comincia da te: poi inviti chi vive con te.',
+            punti: [
+                'Le scadenze di tutta la famiglia, in un posto solo',
+                'Le bollette lette da sole, anche per email',
+                'I documenti di tutti, sempre a portata',
+            ],
+        },
+        altraStrada: {
+            testo: 'Hai già un account?',
+            link: 'Accedi',
+            href: login().url,
+        },
+    },
+});
 
 defineProps<{
     /** Le regole della password, per il suggerimento del browser. */
     passwordRules: string;
 }>();
 
-defineOptions({
-    layout: {
-        title: 'Iscrivi la tua famiglia',
-        description:
-            'Crea lo spazio della tua famiglia: poi potrai invitare gli altri',
-    },
+const form = useForm({
+    nome: '',
+    cognome: '',
+    email: '',
+    password: '',
+    condizioni: false,
 });
+
+/**
+ * Manda il modulo; la password si svuota comunque vada.
+ */
+function iscriviti(): void {
+    form.submit(store(), { onFinish: () => form.reset('password') });
+}
 </script>
 
 <template>
     <Head title="Iscriviti" />
 
-    <Form
-        v-bind="store.form()"
-        :reset-on-success="['password']"
-        v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+    <form
+        class="flex grow flex-col gap-3"
+        novalidate
+        @submit.prevent="iscriviti"
     >
-        <div class="grid gap-6">
-            <div class="grid gap-2">
-                <Label for="nome">Il tuo nome</Label>
-                <Input
-                    id="nome"
-                    type="text"
-                    required
-                    v-focus
-                    autocomplete="given-name"
-                    name="nome"
-                />
-                <InputError :message="errors.nome" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="cognome">Cognome della famiglia</Label>
-                <Input
-                    id="cognome"
-                    type="text"
-                    required
-                    autocomplete="family-name"
-                    name="cognome"
-                />
-                <InputError :message="errors.cognome" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="email">Email</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    required
-                    autocomplete="email"
-                    name="email"
-                />
-                <InputError :message="errors.email" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="password">Password</Label>
-                <PasswordInput
-                    id="password"
-                    required
-                    autocomplete="new-password"
-                    name="password"
-                    :passwordrules="passwordRules"
-                />
-                <InputError :message="errors.password" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="condizioni" class="flex items-center gap-3">
-                    <Checkbox id="condizioni" name="condizioni" value="1" />
-                    <span>Accetto le condizioni d'uso</span>
-                </Label>
-                <InputError :message="errors.condizioni" />
-            </div>
-
-            <Button
-                type="submit"
-                class="mt-2 w-full"
-                :disabled="processing"
-                data-test="register-user-button"
-            >
-                <Spinner v-if="processing" />
-                Iscriviti
-            </Button>
+        <div class="grid grid-cols-2 gap-3">
+            <FormKit
+                v-model="form.nome"
+                type="text"
+                label="Il tuo nome"
+                name="nome"
+                autocomplete="given-name"
+                :errors="errori(form.errors.nome)"
+            />
+            <FormKit
+                v-model="form.cognome"
+                type="text"
+                label="Cognome della famiglia"
+                name="cognome"
+                autocomplete="family-name"
+                :errors="errori(form.errors.cognome)"
+            />
         </div>
-
-        <div class="text-center text-sm text-muted-foreground">
-            Hai già un account?
-            <TextLink :href="login()" class="underline underline-offset-4"
-                >Accedi</TextLink
-            >
-        </div>
-    </Form>
+        <FormKit
+            v-model="form.email"
+            type="email"
+            label="Email"
+            name="email"
+            autocomplete="email"
+            :errors="errori(form.errors.email)"
+        />
+        <FmCampoPassword
+            v-model="form.password"
+            label="Scegli una password"
+            name="password"
+            help="Almeno 10 caratteri"
+            autocomplete="new-password"
+            :errors="errori(form.errors.password)"
+        />
+        <FormKit
+            v-model="form.condizioni"
+            type="checkbox"
+            label="Ho letto e accetto le condizioni e l'informativa sulla privacy"
+            name="condizioni"
+            :errors="errori(form.errors.condizioni)"
+        />
+        <span class="min-h-6 grow lg:hidden" />
+        <FmPulsante tipo="submit" largo :disabled="form.processing"
+            >Comincia</FmPulsante
+        >
+    </form>
 </template>

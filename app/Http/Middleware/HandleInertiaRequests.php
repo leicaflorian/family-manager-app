@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Data\FamigliaData;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,7 +45,19 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'famiglia' => fn (): ?FamigliaData => $this->famiglia($request),
         ];
+    }
+
+    /**
+     * La famiglia di chi è entrato, o null per chi non è entrato.
+     *
+     * @param  Request  $request  la richiesta
+     */
+    private function famiglia(Request $request): ?FamigliaData
+    {
+        $utente = $request->user();
+
+        return $utente instanceof User ? FamigliaData::daFamiglia($utente->family) : null;
     }
 }

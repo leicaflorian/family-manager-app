@@ -72,3 +72,10 @@ test('senza accettare le condizioni non ci si iscrive', function (): void {
     $this->assertGuest();
     expect(Family::query()->count())->toBe(0);
 });
+
+test('la password ha almeno 10 caratteri, come dice il modulo', function (): void {
+    $this->post(route('register.store'), [...iscrizione(), 'password' => 'nove-car9'])
+        ->assertSessionHasErrors('password');
+
+    $this->assertGuest();
+});

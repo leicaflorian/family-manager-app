@@ -47,14 +47,12 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
+        // Almeno 10 caratteri, come dicono i moduli. Niente maiuscole e simboli
+        // obbligatori: l'app è per genitori, e una frase lunga è già sicura.
+        // Online si scartano anche le password già finite in una fuga di dati.
+        Password::defaults(fn (): Password => app()->isProduction()
+            ? Password::min(10)->uncompromised()
+            : Password::min(10),
         );
     }
 }
