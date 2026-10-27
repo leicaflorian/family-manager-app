@@ -49,6 +49,11 @@ L'elenco completo dei comandi, con le regole del codice, è in `AGENTS.md`. I pi
 | `./vendor/bin/sail npm run test` | Test del frontend |
 | `./vendor/bin/sail npm run build` | Build del frontend |
 | `./vendor/bin/sail artisan migrate:fresh --seed` | Rifà il database con la famiglia Bianchi |
+| `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copia una famiglia da Directus |
+
+## Copia da Directus
+
+`directus:copy --family="<nome>"` copia nell'app la famiglia che sta in Directus: persone, enti, schede, documenti con i loro file e collegamenti, promemoria e gli account delle persone (con l'email di Directus e una password nuova, da scegliere con *Password dimenticata*). Directus si legge in sola lettura: la connessione `directus` prende le variabili `DIRECTUS_DB_*` del `.env`, e la cartella dei file di Directus si monta in sola lettura da `DIRECTUS_UPLOADS_SOURCE` (di default `../family-manager-cms/uploads`). Se la famiglia c'è già si ferma; `--replace` la elimina con i suoi file e la rifà, `--without-files` non copia il contenuto dei file. Cosa copia e cosa no è nella nota *Copia da Directus* del vault (`02 - Documentazione tecnica/App Laravel/`).
 
 ## Documentazione
 
