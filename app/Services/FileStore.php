@@ -27,11 +27,12 @@ final class FileStore
      * Saves a file in the folder of the current family and creates its row.
      *
      * @param  UploadedFile  $file  the uploaded file
+     * @param  bool  $toSort  true for a file of *Upload*, which waits for its document
      * @return File the row of the saved file
      *
      * @throws RuntimeException if the family is missing or the disk does not write
      */
-    public function store(UploadedFile $file): File
+    public function store(UploadedFile $file, bool $toSort = false): File
     {
         $family = CurrentFamily::id() ?? throw new RuntimeException('No family to save the file for.');
         $extension = Str::lower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? 'bin'));
@@ -45,6 +46,7 @@ final class FileStore
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
             'size' => $file->getSize() ?: 0,
+            'to_sort' => $toSort,
         ]);
     }
 

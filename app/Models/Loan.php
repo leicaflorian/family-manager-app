@@ -63,7 +63,7 @@ final class Loan extends FamilyModel
     use HasFactory;
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -113,5 +113,13 @@ final class Loan extends FamilyModel
             'start_date' => 'date',
             'end_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the name.
+     */
+    public function label(): string
+    {
+        return $this->name;
     }
 }

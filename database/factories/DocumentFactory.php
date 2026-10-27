@@ -27,7 +27,7 @@ final class DocumentFactory extends Factory
             'title' => fake()->randomElement(['Bolletta luce', 'Busta paga', 'Polizza RC auto', 'Scontrino']),
             'status' => DocumentStatus::Active,
             'date' => fake()->dateTimeBetween('-1 year'),
-            'file_id' => fn (array $attributi) => File::factory()->state(['family_id' => $attributi['family_id']]),
+            'file_id' => fn (array $attributes) => File::factory()->state(['family_id' => $attributes['family_id']]),
         ];
     }
 }

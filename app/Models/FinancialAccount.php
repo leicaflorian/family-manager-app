@@ -54,7 +54,7 @@ final class FinancialAccount extends FamilyModel
     use HasFactory;
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -85,5 +85,13 @@ final class FinancialAccount extends FamilyModel
             'status' => FinancialAccountStatus::class,
             'is_default' => 'boolean',
         ];
+    }
+
+    /**
+     * The name among a document's links: the name.
+     */
+    public function label(): string
+    {
+        return $this->name;
     }
 }

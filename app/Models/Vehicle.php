@@ -92,4 +92,12 @@ final class Vehicle extends FamilyModel
             'inspection_due_date' => 'date',
         ];
     }
+
+    /**
+     * The name among a document's links: the name.
+     */
+    public function label(): string
+    {
+        return $this->name;
+    }
 }

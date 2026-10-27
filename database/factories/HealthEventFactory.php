@@ -26,7 +26,7 @@ final class HealthEventFactory extends Factory
             'family_id' => Family::factory(),
             'title' => fake()->randomElement(['Visita pediatrica', 'Visita oculistica', 'Visita dentistica']),
             'type' => HealthEventType::Visit,
-            'person_id' => fn (array $attributi) => Person::factory()->state(['family_id' => $attributi['family_id']]),
+            'person_id' => fn (array $attributes) => Person::factory()->state(['family_id' => $attributes['family_id']]),
             'date' => fake()->dateTimeBetween('-1 year'),
         ];
     }

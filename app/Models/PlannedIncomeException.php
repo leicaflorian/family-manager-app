@@ -45,7 +45,7 @@ final class PlannedIncomeException extends FamilyModel
     use HasFactory;
 
     /**
-     * L'entrata prevista a cui appartiene.
+     * The planned income it belongs to.
      *
      * @return BelongsTo<PlannedIncome, $this>
      */

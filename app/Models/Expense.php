@@ -77,7 +77,7 @@ final class Expense extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -118,5 +118,13 @@ final class Expense extends FamilyModel
             'date' => 'date',
             'fee_amount' => 'decimal:2',
         ];
+    }
+
+    /**
+     * The name among a document's links: the title.
+     */
+    public function label(): string
+    {
+        return $this->title;
     }
 }

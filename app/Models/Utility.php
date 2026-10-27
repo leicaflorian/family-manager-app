@@ -56,7 +56,7 @@ final class Utility extends FamilyModel
     use HasFactory;
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -97,5 +97,23 @@ final class Utility extends FamilyModel
             'status' => UtilityStatus::class,
             'activation_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the type and the home, for example «Electricity - Via Roma 12».
+     */
+    public function label(): string
+    {
+        return self::joinLabel($this->type->label(), $this->home?->name);
+    }
+
+    /**
+     * The relations the name reads.
+     *
+     * @return list<string>
+     */
+    public static function labelRelations(): array
+    {
+        return ['home'];
     }
 }

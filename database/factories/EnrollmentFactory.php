@@ -25,7 +25,7 @@ final class EnrollmentFactory extends Factory
     {
         return [
             'family_id' => Family::factory(),
-            'person_id' => fn (array $attributi) => Person::factory()->state(['family_id' => $attributi['family_id']]),
+            'person_id' => fn (array $attributes) => Person::factory()->state(['family_id' => $attributes['family_id']]),
             'type' => EnrollmentType::Sport,
             'status' => EnrollmentStatus::Active,
             'school_year' => '2026/27',

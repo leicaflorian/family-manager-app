@@ -25,6 +25,8 @@ return new class extends Migration
             $table->string('original_name');
             $table->string('mime_type');
             $table->unsignedBigInteger('size');
+            // Uploaded and waiting for its document: the files of *Upload* still to sort.
+            $table->boolean('to_sort')->default(false);
             Columns::system($table);
         });
 

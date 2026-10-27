@@ -65,7 +65,7 @@ final class Belonging extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -87,5 +87,13 @@ final class Belonging extends FamilyModel
             'purchase_price' => 'decimal:2',
             'warranty_expiry_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the name.
+     */
+    public function label(): string
+    {
+        return $this->name;
     }
 }

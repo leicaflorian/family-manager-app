@@ -57,7 +57,7 @@ final class MaintenanceRecord extends FamilyModel
     use HasFactory;
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -117,5 +117,13 @@ final class MaintenanceRecord extends FamilyModel
             'type' => MaintenanceType::class,
             'date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the title.
+     */
+    public function label(): string
+    {
+        return $this->title;
     }
 }

@@ -65,7 +65,7 @@ final class Filing extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -88,5 +88,13 @@ final class Filing extends FamilyModel
             'submission_date' => 'date',
             'due_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the title.
+     */
+    public function label(): string
+    {
+        return $this->title;
     }
 }

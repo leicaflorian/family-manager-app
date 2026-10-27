@@ -21,14 +21,14 @@ final class PersonFactory extends Factory
      */
     public function definition(): array
     {
-        $nome = fake()->firstName();
-        $cognome = fake()->lastName();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
 
         return [
             'family_id' => Family::factory(),
-            'first_name' => $nome,
-            'last_name' => $cognome,
-            'initials' => mb_strtoupper(mb_substr($nome, 0, 1).mb_substr($cognome, 0, 1)),
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'initials' => mb_strtoupper(mb_substr($firstName, 0, 1).mb_substr($lastName, 0, 1)),
             'role' => PersonRole::Parent,
         ];
     }

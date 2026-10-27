@@ -31,10 +31,23 @@ readonly email: string,
 readonly expires_on: string,
 readonly people: App.Data.PersonSummaryData[],
 };
+export type LinkGroupData = {
+readonly type: string,
+readonly label: string,
+readonly options: App.Data.OptionData[],
+};
 export type OptionData = {
 readonly value: string,
 readonly label: string,
 readonly help: string | null,
+};
+export type PendingFileData = {
+readonly id: number,
+readonly name: string,
+readonly mime_type: string,
+readonly size: number,
+readonly url: string,
+readonly title: string,
 };
 export type PersonSummaryData = {
 readonly id: number,

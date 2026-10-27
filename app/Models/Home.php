@@ -85,4 +85,12 @@ final class Home extends FamilyModel
             'is_owned' => 'boolean',
         ];
     }
+
+    /**
+     * The name among a document's links: the name.
+     */
+    public function label(): string
+    {
+        return $this->name;
+    }
 }

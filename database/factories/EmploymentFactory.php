@@ -24,7 +24,7 @@ final class EmploymentFactory extends Factory
     {
         return [
             'family_id' => Family::factory(),
-            'person_id' => fn (array $attributi) => Person::factory()->state(['family_id' => $attributi['family_id']]),
+            'person_id' => fn (array $attributes) => Person::factory()->state(['family_id' => $attributes['family_id']]),
             'job_title' => fake()->jobTitle(),
             'status' => EmploymentStatus::Active,
         ];

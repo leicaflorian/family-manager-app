@@ -85,7 +85,7 @@ final class PlannedExpense extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -115,7 +115,7 @@ final class PlannedExpense extends FamilyModel
     }
 
     /**
-     * L'utenza collegata.
+     * The linked utility.
      *
      * @return BelongsTo<Utility, $this>
      */
@@ -145,7 +145,7 @@ final class PlannedExpense extends FamilyModel
     }
 
     /**
-     * L'iscrizione collegata.
+     * The linked enrollment.
      *
      * @return BelongsTo<Enrollment, $this>
      */
@@ -175,7 +175,7 @@ final class PlannedExpense extends FamilyModel
     }
 
     /**
-     * L'abbonamento collegato.
+     * The linked subscription.
      *
      * @return BelongsTo<Subscription, $this>
      */

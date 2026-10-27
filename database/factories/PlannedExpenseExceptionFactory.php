@@ -24,7 +24,7 @@ final class PlannedExpenseExceptionFactory extends Factory
     {
         return [
             'family_id' => Family::factory(),
-            'planned_expense_id' => fn (array $attributi) => PlannedExpense::factory()->state(['family_id' => $attributi['family_id']]),
+            'planned_expense_id' => fn (array $attributes) => PlannedExpense::factory()->state(['family_id' => $attributes['family_id']]),
             'type' => ExceptionType::Skip,
             'occurrence_date' => fake()->dateTimeBetween('now', '+6 months'),
         ];

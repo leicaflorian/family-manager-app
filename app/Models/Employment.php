@@ -62,7 +62,7 @@ final class Employment extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -83,5 +83,23 @@ final class Employment extends FamilyModel
             'start_date' => 'date',
             'end_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the person and the employer, for example «Laura - Comune di Bologna».
+     */
+    public function label(): string
+    {
+        return self::joinLabel($this->person->first_name, $this->organization?->name);
+    }
+
+    /**
+     * The relations the name reads.
+     *
+     * @return list<string>
+     */
+    public static function labelRelations(): array
+    {
+        return ['person', 'organization'];
     }
 }

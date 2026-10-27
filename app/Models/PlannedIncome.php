@@ -62,7 +62,7 @@ final class PlannedIncome extends FamilyModel
     use HasFactory;
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */

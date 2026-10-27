@@ -65,7 +65,7 @@ final class HealthEvent extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -96,5 +96,13 @@ final class HealthEvent extends FamilyModel
             'date' => 'date',
             'next_checkup_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the title.
+     */
+    public function label(): string
+    {
+        return $this->title;
     }
 }

@@ -61,7 +61,7 @@ final class Organization extends FamilyModel
     }
 
     /**
-     * I documenti dell'ente (`documents.organization_id`).
+     * The documents of the organization (`documents.organization_id`).
      *
      * @return HasMany<Document, $this>
      */

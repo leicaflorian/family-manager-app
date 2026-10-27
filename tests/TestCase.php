@@ -8,13 +8,13 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Laravel\Fortify\Features;
 
 /**
- * La base di tutti i test.
+ * The base of every test.
  */
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Prepara l'app per un test: le pagine non cercano i file della build di Vite,
-     * così i test non dipendono da `npm run build`.
+     * Prepares the app for a test: the pages do not look for the Vite build,
+     * so the tests do not depend on `npm run build`.
      */
     protected function setUp(): void
     {
@@ -24,10 +24,10 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Salta il test se Fortify non ha la funzione indicata.
+     * Skips the test if Fortify does not have the given feature.
      *
-     * @param  string  $feature  la funzione di Fortify
-     * @param  string|null  $message  il motivo da mostrare
+     * @param  string  $feature  the Fortify feature
+     * @param  string|null  $message  the reason to show
      */
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void
     {

@@ -5,9 +5,11 @@
 import { X } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';
 
-const { label } = defineProps<{
+const { label, removeLabel } = defineProps<{
     /** The filter, for example «Laura» or «Work and income». */
     label: string;
+    /** What the × says to a screen reader, when it does not remove a filter. */
+    removeLabel?: string;
 }>();
 
 defineEmits<{
@@ -19,7 +21,7 @@ defineEmits<{
 <template>
     <button
         type="button"
-        :aria-label="$t('Remove the filter :label', { label })"
+        :aria-label="removeLabel ?? $t('Remove the filter :label', { label })"
         class="inline-flex h-9 items-center gap-1.5 rounded-full bg-action-soft py-0 pr-2.5 pl-3.5 text-sm font-semibold text-action-dark"
         @click="$emit('remove')"
     >

@@ -24,7 +24,7 @@ final class PlannedIncomeExceptionFactory extends Factory
     {
         return [
             'family_id' => Family::factory(),
-            'planned_income_id' => fn (array $attributi) => PlannedIncome::factory()->state(['family_id' => $attributi['family_id']]),
+            'planned_income_id' => fn (array $attributes) => PlannedIncome::factory()->state(['family_id' => $attributes['family_id']]),
             'type' => ExceptionType::AmountOverride,
             'occurrence_date' => fake()->dateTimeBetween('now', '+6 months'),
             'amount_override' => fake()->randomFloat(2, 100, 500),

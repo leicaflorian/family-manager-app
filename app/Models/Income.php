@@ -58,7 +58,7 @@ final class Income extends FamilyModel
     use HasFactory;
 
     /**
-     * L'entrata prevista a cui appartiene.
+     * The planned income it belongs to.
      *
      * @return BelongsTo<PlannedIncome, $this>
      */
@@ -68,7 +68,7 @@ final class Income extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -119,5 +119,23 @@ final class Income extends FamilyModel
             'date' => 'date',
             'type' => IncomeType::class,
         ];
+    }
+
+    /**
+     * The name among a document's links: the title, or the type and who pays.
+     */
+    public function label(): string
+    {
+        return $this->title ?? self::joinLabel($this->type->label(), $this->organization?->name);
+    }
+
+    /**
+     * The relations the name reads.
+     *
+     * @return list<string>
+     */
+    public static function labelRelations(): array
+    {
+        return ['organization'];
     }
 }

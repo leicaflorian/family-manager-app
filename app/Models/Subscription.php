@@ -60,7 +60,7 @@ final class Subscription extends FamilyModel
     use HasFactory;
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -104,5 +104,13 @@ final class Subscription extends FamilyModel
             'is_auto_renew' => 'boolean',
             'trial_end_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the name.
+     */
+    public function label(): string
+    {
+        return $this->name;
     }
 }

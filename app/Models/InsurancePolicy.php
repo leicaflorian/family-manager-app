@@ -61,7 +61,7 @@ final class InsurancePolicy extends FamilyModel
     use HasFactory;
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -123,5 +123,23 @@ final class InsurancePolicy extends FamilyModel
             'start_date' => 'date',
             'expiry_date' => 'date',
         ];
+    }
+
+    /**
+     * The name among a document's links: the title, or the type and the company.
+     */
+    public function label(): string
+    {
+        return $this->title ?? self::joinLabel($this->type->label(), $this->organization?->name);
+    }
+
+    /**
+     * The relations the name reads.
+     *
+     * @return list<string>
+     */
+    public static function labelRelations(): array
+    {
+        return ['organization'];
     }
 }

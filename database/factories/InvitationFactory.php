@@ -27,7 +27,7 @@ final class InvitationFactory extends Factory
             'family_id' => Family::factory(),
             'email' => fake()->unique()->safeEmail(),
             'role' => Role::Member,
-            'person_id' => fn (array $attributi) => Person::factory()->state(['family_id' => $attributi['family_id']]),
+            'person_id' => fn (array $attributes) => Person::factory()->state(['family_id' => $attributes['family_id']]),
             'token' => Str::random(64),
             'expires_at' => now()->addDays(Invitation::DAYS),
         ];

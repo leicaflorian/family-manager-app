@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\File;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
 use Illuminate\Http\UploadedFile;
@@ -30,4 +31,15 @@ test('signed in as a Rossi the file of the Bianchis answers 404', function (): v
 
 test('without signing in the file leads to Sign in', function (): void {
     $this->get(route('files.show', $this->file))->assertRedirect(route('login'));
+});
+
+test('a .pdf that is not a PDF is rejected by its real type', function (): void {
+    $this->actingAs($this->marco);
+    $path = tempnam(sys_get_temp_dir(), 'fake');
+    file_put_contents($path, "#!/bin/sh\necho 'not a pdf'\n");
+
+    $this->post(route('upload.store'), ['files' => [new UploadedFile($path, 'fake.pdf', 'application/pdf', null, true)]])
+        ->assertSessionHasErrors('files.0');
+
+    expect(File::query()->count())->toBe(1);
 });

@@ -27,3 +27,13 @@ export function renderPage(
         },
     });
 }
+
+/**
+ * Waits for FormKit to hand a typed or chosen value to the `v-model`: it does
+ * so after a short delay (20 ms), not at the event.
+ *
+ * @returns a promise resolved once the value is in the model
+ */
+export function settle(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 30));
+}

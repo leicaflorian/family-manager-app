@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\RedirectToWelcome;
 use Illuminate\Support\Facades\Route;
@@ -46,9 +48,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('files/{file}', [FileController::class, 'show'])->name('files.show');
         Route::get('files/{file}/download', [FileController::class, 'download'])->name('files.download');
 
+        Route::get('upload', [UploadController::class, 'index'])->name('upload');
+        Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
+        Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
+        Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
+
         // The pages coming with the next tasks: the menu entries already lead here.
         Route::inertia('documents', 'ComingSoon', ['title' => 'Documents'])->name('documents.index');
         Route::inertia('family', 'ComingSoon', ['title' => 'Family'])->name('family');
-        Route::inertia('upload', 'ComingSoon', ['title' => 'Upload'])->name('upload');
     });
 });

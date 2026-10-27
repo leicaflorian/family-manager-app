@@ -63,7 +63,7 @@ final class Enrollment extends FamilyModel
     }
 
     /**
-     * L'ente collegato.
+     * The linked organization.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -83,5 +83,23 @@ final class Enrollment extends FamilyModel
             'type' => EnrollmentType::class,
             'status' => EnrollmentStatus::class,
         ];
+    }
+
+    /**
+     * The name among a document's links: the person, the type and the school, for example «Sofia - Dance - ASD Danza».
+     */
+    public function label(): string
+    {
+        return self::joinLabel($this->person->first_name, $this->type->label(), $this->organization?->name);
+    }
+
+    /**
+     * The relations the name reads.
+     *
+     * @return list<string>
+     */
+    public static function labelRelations(): array
+    {
+        return ['person', 'organization'];
     }
 }
