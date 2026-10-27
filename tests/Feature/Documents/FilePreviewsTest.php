@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\File;
 use App\Services\FilePreviews;
 use App\Services\FileStore;
+use Carbon\CarbonInterval;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -125,4 +126,23 @@ test('a file with a HEIC mime type reports a preview, a failed one does not', fu
 
     $png = resolve(FileStore::class)->store(UploadedFile::fake()->image('a.png'));
     expect($png->hasPreview())->toBeFalse();
+});
+
+test('a conversion that takes too long marks the file as failed and leaves nothing', function (): void {
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    expect(new FilePreviews(CarbonInterval::milliseconds(1))->path($file))->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeTrue()
+        ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
+});
+
+test('deleting a stale copy of the file still deletes the preview', function (): void {
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+    $stale = File::query()->findOrFail($file->id);
+    $path = (string) resolve(FilePreviews::class)->path($file);
+    Storage::disk('local')->assertExists($path);
+
+    resolve(FileStore::class)->delete($stale);
+
+    Storage::disk('local')->assertMissing($path);
 });

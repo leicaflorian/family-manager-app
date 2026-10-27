@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\File;
+use Carbon\CarbonInterval;
 use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\Process\Exception\ProcessTimedOutException;
 
 /**
  * The preview of a file: a JPEG of the first page of a PDF, or of a HEIC photo.
@@ -19,7 +20,7 @@ use Symfony\Component\Process\Exception\ProcessTimedOutException;
  * and kept next to the file in `families/<family_id>/previews/`. A file that
  * cannot be converted is marked, so the tools do not run on it again.
  */
-final class FilePreviews
+final readonly class FilePreviews
 {
     /** The mime types a preview can be made for. */
     public const array TYPES = ['application/pdf', 'image/heic', 'image/heif'];
@@ -30,14 +31,29 @@ final class FilePreviews
     /** The quality of the JPEG, from 0 to 100. */
     private const int QUALITY = 80;
 
-    /** The seconds a conversion may take. */
-    private const int TIMEOUT = 20;
+    /** The seconds a conversion may take, unless the constructor says otherwise. */
+    public const int TIMEOUT = 20;
 
     /** The seconds the lock of a file is kept, at most. */
     private const int LOCK_SECONDS = 20;
 
     /** The seconds a request waits for the lock of a file. */
     private const int LOCK_WAIT = 15;
+
+    /**
+     * @param  CarbonInterval|int  $timeout  how long a conversion may take; a number is in seconds
+     */
+    public function __construct(private CarbonInterval|int $timeout = self::TIMEOUT) {}
+
+    /**
+     * The path of the preview of a file on its disk, where it is made and where it is deleted.
+     *
+     * @param  File  $file  the file
+     */
+    public function previewPathOf(File $file): string
+    {
+        return "families/{$file->family_id}/previews/".pathinfo($file->path, PATHINFO_FILENAME).'.jpg';
+    }
 
     /**
      * The path of the preview on the disk of the file, made if it is missing.
@@ -100,7 +116,7 @@ final class FilePreviews
         }
 
         $disk = Storage::disk($file->disk);
-        $relative = "families/{$file->family_id}/previews/".pathinfo($file->path, PATHINFO_FILENAME).'.jpg';
+        $relative = $this->previewPathOf($file);
         $output = $disk->path($relative);
         $disk->makeDirectory(dirname($relative));
 
@@ -136,7 +152,7 @@ final class FilePreviews
      */
     private function fromPdf(string $source, string $output): bool
     {
-        return Process::timeout(self::TIMEOUT)->run([
+        return Process::timeout($this->timeout)->run([
             'pdftoppm', '-f', '1', '-l', '1', '-singlefile', '-jpeg', '-jpegopt', 'quality='.self::QUALITY,
             '-scale-to-x', (string) self::WIDTH, '-scale-to-y', '-1', $source, substr($output, 0, -4),
         ])->successful();
@@ -153,7 +169,7 @@ final class FilePreviews
      */
     private function fromHeic(string $source, string $output): bool
     {
-        if (! Process::timeout(self::TIMEOUT)->run(['heif-convert', '-q', (string) self::QUALITY, $source, $output])->successful()) {
+        if (! Process::timeout($this->timeout)->run(['heif-convert', '-q', (string) self::QUALITY, $source, $output])->successful()) {
             return false;
         }
 
