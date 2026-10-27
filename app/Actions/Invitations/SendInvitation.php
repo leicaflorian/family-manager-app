@@ -37,7 +37,7 @@ final class SendInvitation
             'expires_at' => now()->addDays(Invitation::DAYS),
         ]);
 
-        Mail::to($invitation->email)->locale(app()->getLocale())->queue(new InvitationMail($invitation));
+        Mail::to($invitation->email)->locale(app()->getLocale())->send(new InvitationMail($invitation));
 
         return $invitation;
     }

@@ -54,7 +54,8 @@ final class Invitation extends FamilyModel
 
     /**
      * The invitation with this token, if it can still be accepted: unused, not
-     * expired, and for an email that has no account yet.
+     * expired, for an email that has no account yet, and for a person who is
+     * still there without an account (or for a new person, with a name).
      *
      * It is the only read of invitations outside the current family: whoever
      * opens the link has not signed in yet, and the 64-character token is the key.
@@ -69,6 +70,9 @@ final class Invitation extends FamilyModel
             ->whereNull('accepted_at')
             ->where('expires_at', '>', now())
             ->whereNotExists(fn ($q) => $q->from('users')->whereColumn('users.email', 'invitations.email'))
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->whereNull('person_id')->whereNotNull('first_name'))
+                ->orWhereExists(fn ($q) => $q->from('people')->whereColumn('people.id', 'invitations.person_id')->whereNull('people.user_id')))
             ->first();
     }
 

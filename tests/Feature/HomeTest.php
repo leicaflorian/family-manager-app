@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Enums\DocumentStatus;
+use App\Models\Document;
+use App\Models\Person;
 use App\Models\User;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
@@ -53,4 +56,19 @@ test('without documents the Home invites to upload the first', function (): void
         ->where('hasDocuments', false)
         ->has('expiring', 0)
         ->has('recent', 0));
+});
+
+test('an archived document is not among the expiring ones, on the Home and on the page of its person', function (): void {
+    Date::setTestNow('2026-10-26 18:30:00');
+    $this->seed(BianchiFamilySeeder::class);
+    $marco = User::query()->where('email', 'marco.bianchi@example.com')->sole();
+    $giulia = insideBianchi(fn (): Person => Person::query()->where('first_name', 'Giulia')->sole());
+    insideBianchi(fn (): Document => Document::factory()->create([
+        'family_id' => $giulia->family_id, 'title' => 'Passaporto vecchio', 'person_id' => $giulia->id, 'status' => DocumentStatus::Archived, 'expiry_date' => '2025-10-26',
+    ]));
+    $this->actingAs($marco);
+
+    $titles = fn ($documents): bool => ! collect($documents)->pluck('title')->contains('Passaporto vecchio');
+    $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('expiring', $titles));
+    $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('expiring', $titles));
 });

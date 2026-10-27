@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Queries;
 
+use App\Enums\DocumentStatus;
 use App\Models\Document;
 use App\Services\CategoryTree;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,7 +27,8 @@ final readonly class FilterDocuments
      * - `category`: the category and all those below it;
      * - `person`, `organization`: the id;
      * - `status`: `active`, `archived` or `expired`;
-     * - `expiring`: the expiry is within 60 days, or has passed;
+     * - `expiring`: the expiry is within 60 days, or has passed, and the
+     *   document is not archived;
      * - `linked`: linked to at least one record or, with `false`, to none
      *   (the personal documents of *A person*);
      * - `search`: in the title and in the notes, ignoring capitals and accents
@@ -61,7 +63,8 @@ final readonly class FilterDocuments
         }
 
         if (($filters['expiring'] ?? false) === true) {
-            $query->whereNotNull('expiry_date')->whereDate('expiry_date', '<=', today()->addDays(self::EXPIRING_DAYS));
+            $query->whereNotNull('expiry_date')->whereDate('expiry_date', '<=', today()->addDays(self::EXPIRING_DAYS))
+                ->where('status', '!=', DocumentStatus::Archived);
         }
 
         if (is_bool($filters['linked'] ?? null)) {

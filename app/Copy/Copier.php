@@ -68,7 +68,7 @@ final class Copier
      * @param  bool  $replace  true deletes the family of that name, with its files, and makes it again
      * @param  bool  $withFiles  false writes the rows of the files without copying their content
      *
-     * @throws CopyRefused if the family is already there without `$replace`, or an email has an account in another family
+     * @throws CopyRefused if the family is already there without `$replace`, a family of that name was not copied, or an email has an account in another family
      */
     public function copy(string $family, bool $replace, bool $withFiles): CopyReport
     {
@@ -76,12 +76,7 @@ final class Copier
         $this->ids = $this->copied = $this->deferred = $this->rows = $this->ignored = $this->leftOut = [];
         $this->missing = $this->withoutAccount = [];
         $source = DB::connection(self::SOURCE);
-        $existing = DB::table('families')->where('name', $family)->value('id');
-        $existing = is_int($existing) ? $existing : null;
-
-        if ($existing !== null && ! $replace) {
-            throw new CopyRefused("The family {$family} is already in the app: add --replace to make it again.");
-        }
+        $existing = $this->familyToReplace($family, $replace);
 
         $accounts = $this->accounts($source);
         $taken = DB::table('users')->whereIn('email', array_column($accounts, 'email'))
@@ -97,7 +92,7 @@ final class Copier
                 DB::table('families')->where('id', $existing)->delete();
             }
 
-            $familyId = DB::table('families')->insertGetId(['name' => $family, 'welcomed_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+            $familyId = DB::table('families')->insertGetId(['name' => $family, 'welcomed_at' => now(), 'copied_from_directus_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
 
             try {
                 foreach (DirectusMap::order() as $table) {
@@ -118,6 +113,37 @@ final class Copier
         }
 
         return new CopyReport($this->rows, $this->ignored, $this->missing, $this->leftOut, $this->withoutAccount, (hrtime(true) - $started) / 1e9);
+    }
+
+    /**
+     * The family the copy makes again, or null if there is none with that name.
+     * Only a family copied from Directus is replaced: names are not unique,
+     * and a family that registered itself is never touched.
+     *
+     * @param  string  $family  the name of the family in the app
+     * @param  bool  $replace  whether the copy may make the family again
+     *
+     * @throws CopyRefused if a family of that name is there and cannot be replaced
+     */
+    private function familyToReplace(string $family, bool $replace): ?int
+    {
+        $families = DB::table('families')->where('name', $family)->get(['id', 'copied_from_directus_at']);
+
+        if ($families->isEmpty()) {
+            return null;
+        }
+
+        if ($families->contains(fn (object $row): bool => ($row->copied_from_directus_at ?? null) === null)) {
+            throw new CopyRefused("A family called {$family} that was not copied from Directus is already in the app: choose another name with --family.");
+        }
+
+        if (! $replace) {
+            throw new CopyRefused("The family {$family} is already in the app: add --replace to make it again.");
+        }
+
+        $id = $families->sole()->id ?? null;
+
+        return is_int($id) ? $id : throw new CopyRefused("The family {$family} has no id.");
     }
 
     /**

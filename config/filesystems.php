@@ -35,7 +35,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // The files of the families open only through FileController, which checks the family and the account.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

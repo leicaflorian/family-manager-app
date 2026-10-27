@@ -6,6 +6,7 @@ use App\Models\File;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -35,6 +36,13 @@ test('a file whose content is missing on the disk answers 404', function (): voi
 
     $this->get(route('files.show', $this->file))->assertNotFound();
     $this->get(route('files.download', $this->file))->assertNotFound();
+});
+
+test('the private disk is not served outside the file routes, not even with a signed link', function (): void {
+    $this->actingAs($this->marco);
+
+    expect(Route::has('storage.local'))->toBeFalse();
+    $this->get('/storage/'.$this->file->path)->assertNotFound();
 });
 
 test('without signing in the file leads to Sign in', function (): void {

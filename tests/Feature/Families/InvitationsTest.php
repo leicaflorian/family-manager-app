@@ -41,7 +41,7 @@ test('Marco invites Laura, who is already there as a person, and she gets the em
 
     expect($invitation->token)->toHaveLength(64)
         ->and($invitation->expires_at->toDateString())->toBe(now()->addDays(7)->toDateString());
-    Mail::assertQueued(InvitationMail::class, fn (InvitationMail $mail): bool => $mail->hasTo('laura.bianchi@example.com'));
+    Mail::assertSent(InvitationMail::class, fn (InvitationMail $mail): bool => $mail->hasTo('laura.bianchi@example.com'));
 });
 
 test('the page after sending shows the link to copy', function (): void {
@@ -124,6 +124,36 @@ test('an expired invitation and one with an email that already has an account cr
     $this->assertGuest();
 })->with(['expired', 'email already used']);
 
+test('a second invitation for a person who already accepted one is no longer valid', function (): void {
+    $first = invite(['email' => 'laura.bianchi@example.com', 'person_id' => $this->laura->id, 'role' => 'member']);
+    $this->actingAs($this->marco);
+    $second = invite(['email' => 'laura@work.example.com', 'person_id' => $this->laura->id, 'role' => 'member']);
+    $this->post(route('invitation.store', $first->token), ['password' => 'a-long-password'])->assertRedirect(route('dashboard'));
+    auth()->logout();
+    $accounts = User::query()->count();
+
+    $this->get(route('invitation.show', $second->token))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('auth/InvalidInvitation'));
+    $this->post(route('invitation.store', $second->token), ['password' => 'a-long-password'])->assertNotFound();
+
+    expect(User::query()->count())->toBe($accounts)
+        ->and($this->laura->fresh()->user_id)->toBe(User::query()->where('email', 'laura.bianchi@example.com')->value('id'));
+});
+
+test('an invitation for a person who was deleted is no longer valid, and creates nobody', function (): void {
+    $invitation = invite(['email' => 'laura.bianchi@example.com', 'person_id' => $this->laura->id, 'role' => 'member']);
+    $this->actingAs($this->marco)->delete(route('people.destroy', $this->laura))->assertRedirect(route('people.index'));
+    auth()->logout();
+    $people = CurrentFamily::using($this->family->id, fn (): int => Person::query()->count());
+
+    $this->get(route('invitation.show', $invitation->token))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('auth/InvalidInvitation'));
+    $this->post(route('invitation.store', $invitation->token), ['password' => 'a-long-password'])->assertNotFound();
+
+    expect(User::query()->where('email', 'laura.bianchi@example.com')->exists())->toBeFalse()
+        ->and(CurrentFamily::using($this->family->id, fn (): int => Person::query()->count()))->toBe($people);
+});
+
 test('a made-up link says the invitation is not valid', function (): void {
     auth()->logout();
 
@@ -155,5 +185,5 @@ test('the invitation email goes out in the language of whoever sends it', functi
     $this->withHeader('Accept-Language', 'it')
         ->post(route('family.invitations.store'), ['email' => 'laura.bianchi@example.com', 'person_id' => $this->laura->id, 'role' => 'member']);
 
-    Mail::assertQueued(InvitationMail::class, fn (InvitationMail $mail): bool => $mail->locale === 'it');
+    Mail::assertSent(InvitationMail::class, fn (InvitationMail $mail): bool => $mail->locale === 'it');
 });

@@ -136,7 +136,7 @@ test('a file missing in the uploads is listed, with its storage when it is not l
 test('a second copy without --replace stops and duplicates nothing', function (): void {
     $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
 
-    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertFailed()->run();
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->expectsOutputToContain('already in the app')->assertFailed()->run();
 
     expect(DB::table('families')->where('name', 'Verdi')->count())->toBe(1)
         ->and(verdiCounts())->toBe(VERDI_COUNTS);
@@ -152,6 +152,19 @@ test('with --replace the family is made again, with the same numbers and without
         ->and(DB::table('families')->where('id', $old)->exists())->toBeFalse()
         ->and(Storage::disk('local')->directories('families'))->toHaveCount(1)
         ->and(verdiCounts())->toBe(VERDI_COUNTS);
+});
+
+test('a family of the same name that registered itself is never replaced', function (): void {
+    $anna = registerFamily('Verdi', 'anna@example.com');
+
+    $this->artisan('directus:copy', ['--family' => 'Verdi', '--replace' => true])
+        ->expectsOutputToContain('was not copied from Directus')
+        ->assertFailed()
+        ->run();
+
+    expect(DB::table('families')->where('id', $anna->family_id)->exists())->toBeTrue()
+        ->and($anna->fresh())->not->toBeNull()
+        ->and(DB::table('families')->where('name', 'Verdi')->count())->toBe(1);
 });
 
 test('with --without-files the rows of the files are there, without content', function (): void {
