@@ -77,3 +77,14 @@ Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori,
 - Lo starter kit usa Vite+ (`vp`): build, lint (Oxlint), formattazione (Oxfmt) e test (Vitest) sono suoi, configurati in `vite.config.ts`.
 - npm: nel container di Sail c'è npm 11. npm 10.8 si fermava installando FormKit (`Cannot read properties of null (reading 'edgesOut')`): se serve npm fuori da Sail si usa `npx npm@11 install`.
 - In locale l'app è su http://localhost:8090 e MySQL su `localhost:3308`, perché la 80 e la 3306 del Mac sono già occupate da altri progetti (`APP_PORT` e `FORWARD_DB_PORT` nel `.env`). Mailpit è su http://localhost:8025.
+
+## Pubblicazione
+
+- Il branch `base-dell-app` è su GitHub (`leicaflorian/family-manager-app`, pubblico). L'applicazione su Coolify non c'è ancora: crearla l'agente non ha potuto (permesso negato). Va fatta nel progetto *Family Manager*, ambiente `production`, server `localhost`:
+  - un MySQL 8 `family-manager-app-db`, separato da `family_manager_mysql` di Directus;
+  - un'applicazione `family-manager-app` dal repository pubblico, branch `base-dell-app` (poi `main`), con Nixpacks, porta 80;
+  - un volume persistente montato su `/app/storage/app/private`, dove stanno i file delle famiglie;
+  - le variabili `APP_ENV=staging`, `APP_DEBUG=false`, `APP_KEY` nuova, `APP_URL` con l'indirizzo dato da Coolify, `DB_CONNECTION=mysql` e `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` del MySQL nuovo, `MAIL_MAILER=log`, nessuna `DIRECTUS_*`;
+  - come comando dopo il deploy `php artisan migrate --force`; al primo deploy anche `php artisan db:seed --force`, che crea i Bianchi di prova, poi lo si toglie (il seeder non si rilancia due volte).
+- La build vuole Node 22: Vite 8 non parte con il Node 18 di Nixpacks, per questo c'è `engines.node` in `package.json`. Le rotte di Wayfinder (`resources/js/wayfinder`) non sono versionate: le genera il plugin di Vite durante la build, che per questo ha bisogno di PHP e di `vendor`.
+- I token di Coolify stanno in `~/.config/family-manager/`: `coolify-token` basta per rilanciare un deploy, per creare o cambiare un'applicazione serve `coolify-token-write`. Un token non si stampa mai: si passa a `curl` in un file di intestazioni.
