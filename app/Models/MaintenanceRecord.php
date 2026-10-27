@@ -32,20 +32,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Belonging|null $belonging
- * @property-read Collection<int, Document> $documents
+ * @property-read \App\Models\Belonging|null $belonging
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Expense|null $expense
- * @property-read Family $family
- * @property-read Home|null $home
- * @property-read Organization|null $organization
- * @property-read Vehicle|null $vehicle
- *
- * @method static MaintenanceRecordFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Expense|null $expense
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\Home|null $home
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Vehicle|null $vehicle
+ * @method static \Database\Factories\MaintenanceRecordFactory factory($count = null, $state = [])
  * @method static Builder<static>|MaintenanceRecord newModelQuery()
  * @method static Builder<static>|MaintenanceRecord newQuery()
  * @method static Builder<static>|MaintenanceRecord query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'date', 'type', 'organization_id', 'home_id', 'belonging_id', 'vehicle_id', 'expense_id', 'notes'])]

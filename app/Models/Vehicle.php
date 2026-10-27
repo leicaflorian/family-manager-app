@@ -35,18 +35,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Document> $documents
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Family $family
- * @property-read Collection<int, InsurancePolicy> $insurancePolicies
+ * @property-read \App\Models\Family $family
+ * @property-read Collection<int, \App\Models\InsurancePolicy> $insurancePolicies
  * @property-read int|null $insurance_policies_count
- * @property-read Person|null $person
- *
- * @method static VehicleFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Person|null $person
+ * @method static \Database\Factories\VehicleFactory factory($count = null, $state = [])
  * @method static Builder<static>|Vehicle newModelQuery()
  * @method static Builder<static>|Vehicle newQuery()
  * @method static Builder<static>|Vehicle query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'brand', 'model', 'plate_number', 'registration_year', 'is_owned', 'person_id', 'road_tax_due_date', 'inspection_due_date', 'notes'])]

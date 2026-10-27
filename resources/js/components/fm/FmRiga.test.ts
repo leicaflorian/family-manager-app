@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/vue';
+import { fireEvent, render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import FmRiga from './FmRiga.vue';
 
@@ -18,6 +18,16 @@ describe('FmRiga', () => {
         expect(link).toHaveTextContent('Bolletta luce');
         expect(link).toHaveTextContent('Luce - Edison · tra 3 giorni');
         expect(link).toHaveTextContent('71,30 €');
+    });
+
+    it('con pulsante è un bottone che manda click', async () => {
+        const risultato = render(FmRiga, {
+            props: { titolo: 'Luce', pulsante: true },
+        });
+
+        await fireEvent.click(screen.getByRole('button', { name: /Luce/ }));
+
+        expect(risultato.emitted('click')).toHaveLength(1);
     });
 
     it('senza href non è un link', () => {

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Actions\Famiglie\CreaFamiglia;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,3 +22,16 @@ pest()->extend(TestCase::class)
  */
 pest()->extend(TestCase::class)
     ->in('Unit');
+
+/**
+ * Iscrive una famiglia come fa l'app (con le categorie di partenza), già accolta
+ * dal *Benvenuto*, e ne restituisce l'admin, con l'email confermata.
+ */
+function iscriviFamiglia(string $cognome = 'Bianchi', string $email = 'marco@example.com'): User
+{
+    $admin = resolve(CreaFamiglia::class)->handle($cognome, 'Marco', $cognome, $email, 'una-password-lunga');
+    $admin->forceFill(['email_verified_at' => now()])->save();
+    $admin->family->update(['welcomed_at' => now()]);
+
+    return $admin;
+}

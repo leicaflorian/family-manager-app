@@ -30,19 +30,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Belonging> $belongings
+ * @property-read Collection<int, \App\Models\Belonging> $belongings
  * @property-read int|null $belongings_count
- * @property-read Collection<int, Document> $documents
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Family $family
- * @property-read Collection<int, Utility> $utilities
+ * @property-read \App\Models\Family $family
+ * @property-read Collection<int, \App\Models\Utility> $utilities
  * @property-read int|null $utilities_count
- *
- * @method static HomeFactory factory($count = null, $state = [])
+ * @method static \Database\Factories\HomeFactory factory($count = null, $state = [])
  * @method static Builder<static>|Home newModelQuery()
  * @method static Builder<static>|Home newQuery()
  * @method static Builder<static>|Home query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'address', 'city', 'country', 'is_owned', 'notes'])]

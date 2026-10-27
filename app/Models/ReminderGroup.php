@@ -25,15 +25,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Family $family
- * @property-read Collection<int, Reminder> $reminders
+ * @property-read \App\Models\Family $family
+ * @property-read Collection<int, \App\Models\Reminder> $reminders
  * @property-read int|null $reminders_count
- *
- * @method static ReminderGroupFactory factory($count = null, $state = [])
+ * @method static \Database\Factories\ReminderGroupFactory factory($count = null, $state = [])
  * @method static Builder<static>|ReminderGroup newModelQuery()
  * @method static Builder<static>|ReminderGroup newQuery()
  * @method static Builder<static>|ReminderGroup query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'is_default', 'deadline_types', 'notifications'])]

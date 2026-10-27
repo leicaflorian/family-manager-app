@@ -34,6 +34,29 @@ final class CategoriePredefinite
     }
 
     /**
+     * L'icona (un nome di Lucide) e il colore (un'area) delle categorie principali
+     * dei documenti, come nella tavola *Categorie dei documenti*. Le sottocategorie
+     * prendono il colore della principale.
+     *
+     * @return array<string, array{icon: string, color: string}>
+     */
+    public static function aspettoDocumenti(): array
+    {
+        return [
+            'Anagrafica e pratiche' => ['icon' => 'clipboard-list', 'color' => 'pratiche'],
+            'Casa e utenze' => ['icon' => 'house', 'color' => 'casa'],
+            'Veicoli' => ['icon' => 'car', 'color' => 'veicoli'],
+            'Acquisti, garanzie e abbonamenti' => ['icon' => 'shopping-bag', 'color' => 'abbonamenti'],
+            'Assicurazioni e fondi' => ['icon' => 'shield', 'color' => 'assicurazioni'],
+            'Banche e finanziamenti' => ['icon' => 'landmark', 'color' => 'banche'],
+            'Fisco e previdenza' => ['icon' => 'receipt', 'color' => 'trasversali'],
+            'Lavoro' => ['icon' => 'briefcase', 'color' => 'lavoro'],
+            'Salute' => ['icon' => 'heart-pulse', 'color' => 'salute'],
+            'Scuola e attività' => ['icon' => 'graduation-cap', 'color' => 'scuola'],
+        ];
+    }
+
+    /**
      * Le categorie delle spese, quelle di Family Manager su Directus.
      *
      * @return array<string, list<string>>

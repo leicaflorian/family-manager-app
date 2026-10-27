@@ -32,17 +32,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Document> $documents
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Family $family
- * @property-read File|null $photo
- * @property-read User|null $user
- *
- * @method static PersonFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\File|null $photo
+ * @property-read \App\Models\User|null $user
+ * @method static \Database\Factories\PersonFactory factory($count = null, $state = [])
  * @method static Builder<static>|Person newModelQuery()
  * @method static Builder<static>|Person newQuery()
  * @method static Builder<static>|Person query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['first_name', 'last_name', 'initials', 'role', 'birth_date', 'tax_code', 'photo_id', 'user_id', 'notes'])]

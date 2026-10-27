@@ -37,18 +37,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Document> $documents
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Family $family
- * @property-read FinancialAccount|null $financialAccount
- * @property-read Organization|null $organization
- * @property-read Person|null $person
- *
- * @method static SubscriptionFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\FinancialAccount|null $financialAccount
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Person|null $person
+ * @method static \Database\Factories\SubscriptionFactory factory($count = null, $state = [])
  * @method static Builder<static>|Subscription newModelQuery()
  * @method static Builder<static>|Subscription newQuery()
  * @method static Builder<static>|Subscription query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'type', 'status', 'organization_id', 'account', 'financial_account_id', 'activation_date', 'renewal_date', 'is_auto_renew', 'trial_end_date', 'manage_url', 'notes', 'person_id'])]

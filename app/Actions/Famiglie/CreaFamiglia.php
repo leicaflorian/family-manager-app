@@ -55,7 +55,7 @@ final class CreaFamiglia
                     'user_id' => $account->id,
                 ]);
 
-                $this->creaAlbero(DocumentCategory::class, CategoriePredefinite::documenti());
+                $this->creaAlbero(DocumentCategory::class, CategoriePredefinite::documenti(), CategoriePredefinite::aspettoDocumenti());
                 $this->creaAlbero(ExpenseCategory::class, CategoriePredefinite::spese());
                 FamilySetting::query()->create([]);
 
@@ -69,13 +69,14 @@ final class CreaFamiglia
      *
      * @param  class-string<DocumentCategory|ExpenseCategory>  $modello  il modello delle categorie
      * @param  array<string, list<string>>  $albero  principale => sottocategorie
+     * @param  array<string, array{icon: string, color: string}>  $aspetto  icona e colore delle principali
      */
-    private function creaAlbero(string $modello, array $albero): void
+    private function creaAlbero(string $modello, array $albero, array $aspetto = []): void
     {
         $ordine = 0;
 
         foreach ($albero as $principale => $sottocategorie) {
-            $padre = $modello::query()->create(['name' => $principale, 'sort' => ++$ordine]);
+            $padre = $modello::query()->create(['name' => $principale, 'sort' => ++$ordine, ...$aspetto[$principale] ?? []]);
 
             foreach ($sottocategorie as $posizione => $nome) {
                 $modello::query()->create(['name' => $nome, 'parent_id' => $padre->id, 'sort' => $posizione + 1]);

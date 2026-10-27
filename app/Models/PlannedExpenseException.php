@@ -28,14 +28,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Family $family
- * @property-read PlannedExpense $plannedExpense
- *
- * @method static PlannedExpenseExceptionFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\PlannedExpense $plannedExpense
+ * @method static \Database\Factories\PlannedExpenseExceptionFactory factory($count = null, $state = [])
  * @method static Builder<static>|PlannedExpenseException newModelQuery()
  * @method static Builder<static>|PlannedExpenseException newQuery()
  * @method static Builder<static>|PlannedExpenseException query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['planned_expense_id', 'type', 'occurrence_date', 'amount_override', 'date_override', 'sort', 'notes'])]

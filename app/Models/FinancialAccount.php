@@ -32,17 +32,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Document> $documents
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Family $family
- * @property-read Organization|null $organization
- * @property-read Person|null $person
- *
- * @method static FinancialAccountFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Person|null $person
+ * @method static \Database\Factories\FinancialAccountFactory factory($count = null, $state = [])
  * @method static Builder<static>|FinancialAccount newModelQuery()
  * @method static Builder<static>|FinancialAccount newQuery()
  * @method static Builder<static>|FinancialAccount query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'type', 'status', 'organization_id', 'person_id', 'last_four_digits', 'is_default', 'notes'])]

@@ -2,7 +2,8 @@
 /**
  * Una riga d'elenco della tela: davanti il pallino dell'area o un'icona, poi il
  * titolo e il sottotitolo, a destra un importo o una data. Con `href` tutta la
- * riga è un link, e senza niente a destra mostra la freccia.
+ * riga è un link, e senza niente a destra mostra la freccia. Con `pulsante` è
+ * un bottone, per le righe che aprono un pannello.
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
@@ -19,6 +20,7 @@ const {
     href,
     area,
     tono = 'normale',
+    pulsante = false,
 } = defineProps<{
     /** Il testo principale. */
     titolo: string;
@@ -30,6 +32,13 @@ const {
     area?: Area;
     /** Il colore del sottotitolo. */
     tono?: TonoRiga;
+    /** La riga è un bottone: manda `click`. */
+    pulsante?: boolean;
+}>();
+
+defineEmits<{
+    /** Toccata la riga, quando è un bottone. */
+    click: [];
 }>();
 
 defineSlots<{
@@ -49,14 +58,16 @@ const coloreTono: Record<TonoRiga, string> = {
 
 <template>
     <component
-        :is="href ? Link : 'div'"
+        :is="href ? Link : pulsante ? 'button' : 'div'"
         :href="href"
-        class="flex items-center gap-3 px-4 py-3.5 text-inherit no-underline"
+        :type="pulsante ? 'button' : undefined"
+        class="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-3.5 text-left text-inherit no-underline"
         :class="
-            href
-                ? 'hover:bg-sfondo focus-visible:bg-sfondo focus-visible:outline-none'
+            href || pulsante
+                ? 'cursor-pointer hover:bg-sfondo focus-visible:bg-sfondo focus-visible:outline-none'
                 : ''
         "
+        @click="pulsante && $emit('click')"
     >
         <slot name="prima">
             <span
@@ -82,7 +93,7 @@ const coloreTono: Record<TonoRiga, string> = {
             <slot name="destra" />
         </span>
         <FmIcona
-            v-else-if="href"
+            v-else-if="href || pulsante"
             :icona="ChevronRight"
             :dimensione="20"
             class="text-[#9AA6B6]"

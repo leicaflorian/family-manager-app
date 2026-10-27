@@ -30,16 +30,14 @@ use Illuminate\Notifications\Notifiable;
  * @property string|null $remember_token
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Family $family
+ * @property-read \App\Models\Family $family
  * @property-read DatabaseNotificationCollection<int, DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
- * @property-read Person|null $person
- *
- * @method static UserFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Person|null $person
+ * @method static \Database\Factories\UserFactory factory($count = null, $state = [])
  * @method static Builder<static>|User newModelQuery()
  * @method static Builder<static>|User newQuery()
  * @method static Builder<static>|User query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'email', 'password', 'family_id', 'role'])]
@@ -76,6 +74,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isAdmin(): bool
     {
         return $this->role === Ruolo::Admin;
+    }
+
+    /**
+     * Se è l'unico `admin` della sua famiglia: allora non può eliminarsi.
+     */
+    public function ultimoAdmin(): bool
+    {
+        return $this->isAdmin()
+            && ! self::query()->where('family_id', $this->family_id)->where('role', Ruolo::Admin)->whereKeyNot($this->id)->exists();
     }
 
     /**

@@ -24,13 +24,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Family $family
- *
- * @method static FileFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @method static \Database\Factories\FileFactory factory($count = null, $state = [])
  * @method static Builder<static>|File newModelQuery()
  * @method static Builder<static>|File newQuery()
  * @method static Builder<static>|File query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size'])]

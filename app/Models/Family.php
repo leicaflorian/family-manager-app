@@ -21,16 +21,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $welcomed_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Person> $people
+ * @property-read Collection<int, \App\Models\Person> $people
  * @property-read int|null $people_count
- * @property-read Collection<int, User> $users
+ * @property-read Collection<int, \App\Models\User> $users
  * @property-read int|null $users_count
- *
- * @method static FamilyFactory factory($count = null, $state = [])
+ * @method static \Database\Factories\FamilyFactory factory($count = null, $state = [])
  * @method static Builder<static>|Family newModelQuery()
  * @method static Builder<static>|Family newQuery()
  * @method static Builder<static>|Family query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'welcomed_at'])]

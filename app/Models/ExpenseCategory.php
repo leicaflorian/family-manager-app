@@ -29,14 +29,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  * @property-read Collection<int, ExpenseCategory> $children
  * @property-read int|null $children_count
- * @property-read Family $family
+ * @property-read \App\Models\Family $family
  * @property-read ExpenseCategory|null $parent
- *
- * @method static ExpenseCategoryFactory factory($count = null, $state = [])
+ * @method static \Database\Factories\ExpenseCategoryFactory factory($count = null, $state = [])
  * @method static Builder<static>|ExpenseCategory newModelQuery()
  * @method static Builder<static>|ExpenseCategory newQuery()
  * @method static Builder<static>|ExpenseCategory query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'parent_id', 'icon', 'color', 'sort'])]

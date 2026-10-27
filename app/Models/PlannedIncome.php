@@ -38,21 +38,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Employment|null $employment
- * @property-read Collection<int, PlannedIncomeException> $exceptions
+ * @property-read \App\Models\Employment|null $employment
+ * @property-read Collection<int, \App\Models\PlannedIncomeException> $exceptions
  * @property-read int|null $exceptions_count
- * @property-read Family $family
- * @property-read FinancialAccount|null $financialAccount
- * @property-read Collection<int, Income> $incomes
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\FinancialAccount|null $financialAccount
+ * @property-read Collection<int, \App\Models\Income> $incomes
  * @property-read int|null $incomes_count
- * @property-read Organization|null $organization
- * @property-read Person|null $person
- *
- * @method static PlannedIncomeFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Person|null $person
+ * @method static \Database\Factories\PlannedIncomeFactory factory($count = null, $state = [])
  * @method static Builder<static>|PlannedIncome newModelQuery()
  * @method static Builder<static>|PlannedIncome newQuery()
  * @method static Builder<static>|PlannedIncome query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'type', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'organization_id', 'person_id', 'financial_account_id', 'employment_id', 'notes'])]

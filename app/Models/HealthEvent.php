@@ -32,18 +32,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Document> $documents
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Expense|null $expense
- * @property-read Family $family
- * @property-read Organization|null $organization
- * @property-read Person $person
- *
- * @method static HealthEventFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Expense|null $expense
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Person $person
+ * @method static \Database\Factories\HealthEventFactory factory($count = null, $state = [])
  * @method static Builder<static>|HealthEvent newModelQuery()
  * @method static Builder<static>|HealthEvent newQuery()
  * @method static Builder<static>|HealthEvent query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'type', 'person_id', 'organization_id', 'date', 'next_checkup_date', 'expense_id', 'outcome', 'notes'])]

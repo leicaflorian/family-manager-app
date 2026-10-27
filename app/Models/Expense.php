@@ -32,20 +32,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read ExpenseCategory|null $category
- * @property-read Collection<int, Document> $documents
+ * @property-read \App\Models\ExpenseCategory|null $category
+ * @property-read Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Family $family
- * @property-read FinancialAccount|null $financialAccount
- * @property-read Organization|null $organization
- * @property-read Person|null $person
- * @property-read PlannedExpense|null $plannedExpense
- *
- * @method static ExpenseFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\FinancialAccount|null $financialAccount
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Person|null $person
+ * @property-read \App\Models\PlannedExpense|null $plannedExpense
+ * @method static \Database\Factories\ExpenseFactory factory($count = null, $state = [])
  * @method static Builder<static>|Expense newModelQuery()
  * @method static Builder<static>|Expense newQuery()
  * @method static Builder<static>|Expense query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'date', 'planned_expense_id', 'category_id', 'organization_id', 'financial_account_id', 'person_id', 'fee_amount', 'notes'])]

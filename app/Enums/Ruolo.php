@@ -31,6 +31,17 @@ enum Ruolo: string
     }
 
     /**
+     * Il nome del livello accanto al nome di una persona («Marco Bianchi · Amministratore»).
+     */
+    public function nome(): string
+    {
+        return match ($this) {
+            self::Admin => 'Amministratore',
+            self::Member => 'Familiare',
+        };
+    }
+
+    /**
      * Cosa vuol dire il livello, la frase sotto la scelta in *Invita un familiare*.
      */
     public function spiegazione(): string

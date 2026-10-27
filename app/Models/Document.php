@@ -36,48 +36,46 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, Belonging> $belongings
+ * @property-read Collection<int, \App\Models\Belonging> $belongings
  * @property-read int|null $belongings_count
- * @property-read DocumentCategory|null $category
- * @property-read Collection<int, Employment> $employments
+ * @property-read \App\Models\DocumentCategory|null $category
+ * @property-read Collection<int, \App\Models\Employment> $employments
  * @property-read int|null $employments_count
- * @property-read Collection<int, Enrollment> $enrollments
+ * @property-read Collection<int, \App\Models\Enrollment> $enrollments
  * @property-read int|null $enrollments_count
- * @property-read Collection<int, Expense> $expenses
+ * @property-read Collection<int, \App\Models\Expense> $expenses
  * @property-read int|null $expenses_count
- * @property-read Family $family
- * @property-read File $file
- * @property-read Collection<int, Filing> $filings
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\File $file
+ * @property-read Collection<int, \App\Models\Filing> $filings
  * @property-read int|null $filings_count
- * @property-read Collection<int, FinancialAccount> $financialAccounts
+ * @property-read Collection<int, \App\Models\FinancialAccount> $financialAccounts
  * @property-read int|null $financial_accounts_count
- * @property-read Collection<int, HealthEvent> $healthEvents
+ * @property-read Collection<int, \App\Models\HealthEvent> $healthEvents
  * @property-read int|null $health_events_count
- * @property-read Collection<int, Home> $homes
+ * @property-read Collection<int, \App\Models\Home> $homes
  * @property-read int|null $homes_count
- * @property-read Collection<int, Income> $incomes
+ * @property-read Collection<int, \App\Models\Income> $incomes
  * @property-read int|null $incomes_count
- * @property-read Collection<int, InsurancePolicy> $insurancePolicies
+ * @property-read Collection<int, \App\Models\InsurancePolicy> $insurancePolicies
  * @property-read int|null $insurance_policies_count
- * @property-read Collection<int, Loan> $loans
+ * @property-read Collection<int, \App\Models\Loan> $loans
  * @property-read int|null $loans_count
- * @property-read Collection<int, MaintenanceRecord> $maintenanceRecords
+ * @property-read Collection<int, \App\Models\MaintenanceRecord> $maintenanceRecords
  * @property-read int|null $maintenance_records_count
- * @property-read Organization|null $organization
- * @property-read Person|null $person
- * @property-read PlannedExpense|null $plannedExpense
- * @property-read Collection<int, Subscription> $subscriptions
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Person|null $person
+ * @property-read \App\Models\PlannedExpense|null $plannedExpense
+ * @property-read Collection<int, \App\Models\Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
- * @property-read Collection<int, Utility> $utilities
+ * @property-read Collection<int, \App\Models\Utility> $utilities
  * @property-read int|null $utilities_count
- * @property-read Collection<int, Vehicle> $vehicles
+ * @property-read Collection<int, \App\Models\Vehicle> $vehicles
  * @property-read int|null $vehicles_count
- *
- * @method static DocumentFactory factory($count = null, $state = [])
+ * @method static \Database\Factories\DocumentFactory factory($count = null, $state = [])
  * @method static Builder<static>|Document newModelQuery()
  * @method static Builder<static>|Document newQuery()
  * @method static Builder<static>|Document query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'file_id', 'category_id', 'status', 'person_id', 'organization_id', 'planned_expense_id', 'date', 'expiry_date', 'tags', 'notes'])]

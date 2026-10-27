@@ -44,28 +44,26 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read ExpenseCategory|null $category
- * @property-read Enrollment|null $enrollment
- * @property-read Collection<int, PlannedExpenseException> $exceptions
+ * @property-read \App\Models\ExpenseCategory|null $category
+ * @property-read \App\Models\Enrollment|null $enrollment
+ * @property-read Collection<int, \App\Models\PlannedExpenseException> $exceptions
  * @property-read int|null $exceptions_count
- * @property-read Collection<int, Expense> $expenses
+ * @property-read Collection<int, \App\Models\Expense> $expenses
  * @property-read int|null $expenses_count
- * @property-read Family $family
- * @property-read FinancialAccount|null $financialAccount
- * @property-read Home|null $home
- * @property-read InsurancePolicy|null $insurancePolicy
- * @property-read Loan|null $loan
- * @property-read Organization|null $organization
- * @property-read Person|null $person
- * @property-read Subscription|null $subscription
- * @property-read Utility|null $utility
- * @property-read Vehicle|null $vehicle
- *
- * @method static PlannedExpenseFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\FinancialAccount|null $financialAccount
+ * @property-read \App\Models\Home|null $home
+ * @property-read \App\Models\InsurancePolicy|null $insurancePolicy
+ * @property-read \App\Models\Loan|null $loan
+ * @property-read \App\Models\Organization|null $organization
+ * @property-read \App\Models\Person|null $person
+ * @property-read \App\Models\Subscription|null $subscription
+ * @property-read \App\Models\Utility|null $utility
+ * @property-read \App\Models\Vehicle|null $vehicle
+ * @method static \Database\Factories\PlannedExpenseFactory factory($count = null, $state = [])
  * @method static Builder<static>|PlannedExpense newModelQuery()
  * @method static Builder<static>|PlannedExpense newQuery()
  * @method static Builder<static>|PlannedExpense query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'utility_id', 'insurance_policy_id', 'loan_id', 'enrollment_id', 'home_id', 'vehicle_id', 'subscription_id', 'notes'])]

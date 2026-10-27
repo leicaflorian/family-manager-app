@@ -21,13 +21,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Family $family
- *
- * @method static FamilySettingFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @method static \Database\Factories\FamilySettingFactory factory($count = null, $state = [])
  * @method static Builder<static>|FamilySetting newModelQuery()
  * @method static Builder<static>|FamilySetting newQuery()
  * @method static Builder<static>|FamilySetting query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['mail_inbox_recipient', 'mail_inbox_notify'])]

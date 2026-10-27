@@ -22,7 +22,7 @@ use Illuminate\Support\Collection;
  * @property int $family_id
  * @property string $name
  * @property string|null $icon
- * @property Collection<int, TipoEnte>|null $types
+ * @property \Illuminate\Support\Collection<int, TipoEnte>|null $types
  * @property string|null $email
  * @property string|null $phone
  * @property string|null $website
@@ -32,16 +32,14 @@ use Illuminate\Support\Collection;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, Document> $documents
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Document> $documents
  * @property-read int|null $documents_count
- * @property-read Family $family
- * @property-read File|null $logo
- *
- * @method static OrganizationFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\File|null $logo
+ * @method static \Database\Factories\OrganizationFactory factory($count = null, $state = [])
  * @method static Builder<static>|Organization newModelQuery()
  * @method static Builder<static>|Organization newQuery()
  * @method static Builder<static>|Organization query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'icon', 'types', 'email', 'phone', 'website', 'logo_id', 'notes'])]

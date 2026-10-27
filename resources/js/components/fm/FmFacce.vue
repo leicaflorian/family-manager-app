@@ -5,6 +5,7 @@
  */
 import { computed } from 'vue';
 import { elencoNomi } from '@/lib/nomi';
+import FmAvatar from './FmAvatar.vue';
 
 const { persone, dimensione = 48 } = defineProps<{
     /** Le persone da mostrare. */
@@ -25,15 +26,13 @@ const nomi = computed(() => elencoNomi(persone.map((p) => p.first_name)));
             v-for="(persona, i) in persone"
             :key="persona.id"
             aria-hidden="true"
-            class="flex items-center justify-center rounded-full font-bold text-white shadow-[0_0_0_3px_#fff] not-first:-ml-2.5"
-            :class="colori[i % colori.length]"
-            :style="{
-                width: `${dimensione}px`,
-                height: `${dimensione}px`,
-                fontSize: `${Math.round(dimensione * 0.36)}px`,
-            }"
+            class="flex rounded-full shadow-[0_0_0_3px_#fff] not-first:-ml-2.5"
         >
-            {{ persona.initials }}
+            <FmAvatar
+                :iniziali="persona.initials"
+                :dimensione="dimensione"
+                :colore="colori[i % colori.length]"
+            />
         </li>
     </ul>
 </template>

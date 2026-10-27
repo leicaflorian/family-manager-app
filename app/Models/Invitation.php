@@ -32,15 +32,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read User|null $creator
- * @property-read Family $family
- * @property-read Person|null $person
- *
- * @method static InvitationFactory factory($count = null, $state = [])
+ * @property-read \App\Models\User|null $creator
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\Person|null $person
+ * @method static \Database\Factories\InvitationFactory factory($count = null, $state = [])
  * @method static Builder<static>|Invitation newModelQuery()
  * @method static Builder<static>|Invitation newQuery()
  * @method static Builder<static>|Invitation query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['email', 'role', 'person_id', 'first_name', 'last_name', 'person_role', 'token', 'expires_at', 'accepted_at'])]

@@ -1,5 +1,25 @@
 declare namespace App {
 namespace Data {
+export type AccountData = {
+readonly nome: string,
+readonly cognome: string,
+readonly email: string,
+readonly ruolo: string,
+readonly admin: boolean,
+readonly iniziali: string,
+readonly foto: string | null,
+readonly ultimoAdmin: boolean,
+readonly famiglia: string,
+};
+export type CategoriaData = {
+readonly id: number,
+readonly name: string,
+readonly parent_id: number | null,
+readonly icon: string | null,
+readonly color: string | null,
+readonly documenti: number,
+readonly figlie: App.Data.CategoriaData[],
+};
 export type FamigliaData = {
 readonly name: string,
 };

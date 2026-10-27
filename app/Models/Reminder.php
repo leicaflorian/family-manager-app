@@ -30,15 +30,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Family $family
- * @property-read Person|null $person
- * @property-read ReminderGroup|null $reminderGroup
- *
- * @method static ReminderFactory factory($count = null, $state = [])
+ * @property-read \App\Models\Family $family
+ * @property-read \App\Models\Person|null $person
+ * @property-read \App\Models\ReminderGroup|null $reminderGroup
+ * @method static \Database\Factories\ReminderFactory factory($count = null, $state = [])
  * @method static Builder<static>|Reminder newModelQuery()
  * @method static Builder<static>|Reminder newQuery()
  * @method static Builder<static>|Reminder query()
- *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'due_date', 'status', 'person_id', 'is_automatic', 'source_field', 'reminder_group_id', 'notifications_sent', 'notes'])]
