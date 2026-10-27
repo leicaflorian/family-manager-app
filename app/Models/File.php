@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\FilePreviews;
 use Carbon\CarbonImmutable;
 use Database\Factories\FileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -54,6 +55,14 @@ final class File extends FamilyModel
     public function document(): HasOne
     {
         return $this->hasOne(Document::class);
+    }
+
+    /**
+     * Whether a preview can be made for the file: its type has one and it did not fail before.
+     */
+    public function hasPreview(): bool
+    {
+        return in_array($this->mime_type, FilePreviews::TYPES, true) && ! $this->preview_failed;
     }
 
     /**
