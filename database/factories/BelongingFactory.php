@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoBene;
+use App\Enums\BelongingStatus;
 use App\Models\Belonging;
 use App\Models\Family;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class BelongingFactory extends Factory
 {
     /**
-     * Un bene comprato, con la garanzia.
+     * A purchased belonging, with its warranty.
      *
      * @return array<string, mixed>
      */
@@ -24,7 +24,7 @@ final class BelongingFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'name' => fake()->randomElement(['TV Samsung', 'Lavatrice Bosch', 'Divano']),
-            'status' => StatoBene::InUse,
+            'status' => BelongingStatus::InUse,
             'purchase_date' => fake()->dateTimeBetween('-3 years'),
             'purchase_price' => fake()->randomFloat(2, 100, 1500),
         ];

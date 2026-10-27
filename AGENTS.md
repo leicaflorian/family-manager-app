@@ -6,10 +6,13 @@ La [tela di Claude Design](https://claude.ai/artifact/XwCgtJdtBEgWrGDbLAmRrr) è
 
 ## Regole del progetto
 
-- Testi in italiano semplice, al tu, senza parole tecniche ("record", "collection", "relazione", "campo"). Importi come `84,20 €`, date come `15/10/2026`: `useFormato` nelle pagine, Carbon nel server. Fuso orario `Europe/Rome`, lingua `it`.
-- Ogni tabella con dati di una famiglia ha `family_id` (obbligatorio, collegato a `families`, indice) e un modello con il tratto `BelongsToFamily`. Nessuna query sui dati di una famiglia passa fuori dal tratto, con due eccezioni: il comando di copia da Directus, che imposta la famiglia a mano, e `Invitation::valido()`, che cerca un invito dal link quando chi lo apre non è ancora entrato (poi si lavora con `CurrentFamily::per()` nella famiglia dell'invito).
-- I permessi passano dalle *policy*: `PolicyDellaFamiglia` vale per tutti i modelli della famiglia (vedere tutti, il resto solo `admin`), `DocumentPolicy` lascia caricare e modificare anche a un `member`. Le assegna `Gate::guessPolicyNamesUsing` in `AppServiceProvider`: un modello che ha bisogno di regole sue prende una *policy* `<Modello>Policy`.
-- **Ogni modello nuovo della famiglia entra nel test di separazione** (`tests/Feature/Schema/SeparazioneTuttiIModelliTest.php`): creato nella famiglia A, non si trova entrando dalla famiglia B.
+- **Tutto in inglese, con la traduzione italiana** (regola del proprietario, 27/10/2026). Nomi di classi, metodi, variabili, props, campi dei dati, commenti, PHPDoc/TSDoc e nomi dei test sono in inglese; le rotte (indirizzi e nomi) solo in inglese.
+- I testi che vede la persona si scrivono in inglese nel codice e si traducono: `__('…')` in PHP e Blade, `$t('…')`, `$tChoice('…')`, `trans()` e `transChoice()` (da `laravel-vue-i18n`) in Vue e TypeScript. La chiave è il testo inglese; l'italiano sta in `lang/it.json`, che leggono sia Laravel sia le pagine (`resources/js/lib/i18n.ts`); l'inglese non ha file. Le etichette degli enum stanno in `lang/en/enums.php` e `lang/it/enums.php` (il tratto `HasLabel`, chiave `enums.<enum>.<valore>`), perché in italiano cambiano con il genere. `tests/Feature/TranslationsTest.php` fallisce se un testo non ha la traduzione italiana o se un valore di un enum non ha l'etichetta in tutte e due le lingue.
+- La lingua la sceglie il middleware `SetLocale` da `Accept-Language` del browser, tra `en` e `it`, altrimenti `APP_LOCALE` (`it` nel `.env`, `en` nei test). Il server la scrive in `<html lang>` e la passa alle pagine come prop condivisa `locale`; le email partono nella lingua di chi le manda (`Mail::to(…)->locale(…)`). Un testo con un nome o un numero dentro usa i segnaposto (`:name`, `:count`), non si compone a pezzi; i plurali con `$tChoice` (`{1} …|[2,*] …`). In `defineOptions` dei layout si usa `trans()`: `app.ts` prepara le traduzioni prima di caricare le pagine.
+- Testi semplici, al tu, senza parole tecniche ("record", "collection", "relazione", "campo"). Importi come `84,20 €`, date come `15/10/2026` in tutte e due le lingue: `useFormat` nelle pagine, Carbon nel server. I dati mandano le date come `aaaa-mm-gg` (`expires_on`), le pagine le scrivono. Fuso orario `Europe/Rome`.
+- Ogni tabella con dati di una famiglia ha `family_id` (obbligatorio, collegato a `families`, indice) e un modello con il tratto `BelongsToFamily`. Nessuna query sui dati di una famiglia passa fuori dal tratto, con due eccezioni: il comando di copia da Directus, che imposta la famiglia a mano, e `Invitation::findValid()`, che cerca un invito dal link quando chi lo apre non è ancora entrato (poi si lavora con `CurrentFamily::using()` nella famiglia dell'invito).
+- I permessi passano dalle *policy*: `FamilyPolicy` vale per tutti i modelli della famiglia (vedere tutti, il resto solo `admin`), `DocumentPolicy` lascia caricare e modificare anche a un `member`. Le assegna `Gate::guessPolicyNamesUsing` in `AppServiceProvider`: un modello che ha bisogno di regole sue prende una *policy* `<Modello>Policy`.
+- **Ogni modello nuovo della famiglia entra nel test di separazione** (`tests/Feature/Schema/AllModelsIsolationTest.php`): creato nella famiglia A, non si trova entrando dalla famiglia B.
 - Un id di un'altra famiglia risponde 404, mai 403 né i dati.
 - Nomi delle tabelle e dei campi come in Directus, con `_id` sui molti-a-uno, i campi di sistema di Laravel (`created_at`, `updated_at`, `created_by`, `updated_by`), `files` al posto di `directus_files`, `documentables` e `remindables` al posto delle tabelle ponte. I tipi polimorfici hanno il nome al singolare della tabella (`Relation::enforceMorphMap`).
 - Due livelli di account: `admin` (*Tutto, come te*) e `member` (*Vede tutto e carica i documenti*). Un `member` vede tutto, carica e modifica documenti; non elimina niente e non modifica persone, enti, categorie, impostazioni e inviti. I controlli sono nelle *policy*, non solo nelle pagine.
@@ -27,18 +30,18 @@ Regole del proprietario del 26/10/2026. Valgono per ogni riga, in PHP e in Vue.
 - Proprietà `readonly` e promozione nel costruttore; `match` invece di catene di `if`; `final` sulle classi che non si estendono.
 - `enum` con valori stringa per le scelte fisse (`App\Enums\…`), usati nei `casts()` dei modelli.
 - `casts()` come metodo, *form request* per la validazione, *policy* per i permessi, azioni (`app/Actions/`) e service (`app/Services/`) per la logica, controller sottili. L'utente nei controller arriva con `#[CurrentUser] User $user`.
-- Le pagine ricevono i dati da classi dedicate (`App\Data\…`, con `spatie/laravel-data`), che generano i tipi TypeScript: `sail artisan typescript:transform` scrive `resources/js/generated/generated.d.ts` (tipi globali come `App.Data.DocumentoData`). Si rilancia dopo ogni modifica di una classe dati o di un enum, e il file si committa.
+- Le pagine ricevono i dati da classi dedicate (`App\Data\…`, con `spatie/laravel-data`), che generano i tipi TypeScript: `sail artisan typescript:transform` scrive `resources/js/generated/generated.d.ts` (tipi globali come `App.Data.CategoryData`). Si rilancia dopo ogni modifica di una classe dati o di un enum, e il file si committa.
 - Rector (`driftingly/rector-laravel`) tiene il codice aggiornato: `sail php vendor/bin/rector --dry-run` non propone modifiche.
 
 **Tipi e PHPStan.**
 - Larastan al livello 9 (`phpstan.neon`): il livello non si abbassa, niente *baseline* e niente `@phpstan-ignore` per il codice nuovo.
-- Ogni parametro, proprietà e ritorno ha il suo tipo; gli array hanno la forma nel PHPDoc (`@param array{titolo: string, data: ?string} $dati`, `@return Collection<int, Document>`).
+- Ogni parametro, proprietà e ritorno ha il suo tipo; gli array hanno la forma nel PHPDoc (`@param array{title: string, date: ?string} $data`, `@return Collection<int, Document>`).
 - I metodi e le proprietà magici si dichiarano nel PHPDoc della classe: `@property` e `@property-read` dei modelli (colonne e relazioni), `@method` degli scope. Per i modelli li scrive `sail artisan ide-helper:models --write --reset`, da rilanciare dopo ogni migrazione.
 
 **Commenti.**
 - Ogni classe e ogni metodo, pubblico o privato, ha il PHPDoc: cosa fa, parametri, ritorno, eccezioni (`@throws`).
 - Dentro il codice un commento spiega il perché di una logica che non si capisce leggendo, non ripete il cosa.
-- I commenti sono in italiano, come i testi.
+- I commenti sono in inglese, come il codice.
 
 **Niente codice clonato.** Se una cosa serve due volte o più va in un posto solo: in PHP un service, un'azione, un tratto o una utility in `app/Support/`; in Vue un componente, un composable (`resources/js/composables/`) o una utility (`resources/js/lib/`).
 

@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class FamilySettingFactory extends Factory
 {
     /**
-     * Le impostazioni di una famiglia.
+     * The settings of a family.
      *
      * @return array<string, mixed>
      */

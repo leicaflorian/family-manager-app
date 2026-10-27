@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\Ruolo;
-use App\Enums\RuoloPersona;
+use App\Enums\PersonRole;
+use App\Enums\Role;
 use App\Models\Scopes\FamilyScope;
 use Carbon\CarbonImmutable;
 use Database\Factories\InvitationFactory;
@@ -15,16 +15,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un invito a entrare nella famiglia (`invitations`): vale 7 giorni e una volta sola.
+ * An invitation to join the family (`invitations`): valid for 7 days and only once.
  *
  * @property int $id
  * @property int $family_id
  * @property string $email
- * @property Ruolo $role
+ * @property Role $role
  * @property int|null $person_id
  * @property string|null $first_name
  * @property string|null $last_name
- * @property RuoloPersona|null $person_role
+ * @property PersonRole|null $person_role
  * @property string $token
  * @property CarbonImmutable $expires_at
  * @property CarbonImmutable|null $accepted_at
@@ -32,34 +32,36 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\User|null $creator
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Person|null $person
- * @method static \Database\Factories\InvitationFactory factory($count = null, $state = [])
+ * @property-read User|null $creator
+ * @property-read Family $family
+ * @property-read Person|null $person
+ *
+ * @method static InvitationFactory factory($count = null, $state = [])
  * @method static Builder<static>|Invitation newModelQuery()
  * @method static Builder<static>|Invitation newQuery()
  * @method static Builder<static>|Invitation query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['email', 'role', 'person_id', 'first_name', 'last_name', 'person_role', 'token', 'expires_at', 'accepted_at'])]
-final class Invitation extends DatoDellaFamiglia
+final class Invitation extends FamilyModel
 {
     /** @use HasFactory<InvitationFactory> */
     use HasFactory;
 
-    /** Per quanti giorni vale un invito. */
-    public const int GIORNI = 7;
+    /** For how many days an invitation is valid. */
+    public const int DAYS = 7;
 
     /**
-     * L'invito con questo codice, se si può ancora accettare: non usato, non
-     * scaduto, e con un'email che non ha già un account.
+     * The invitation with this token, if it can still be accepted: unused, not
+     * expired, and for an email that has no account yet.
      *
-     * È l'unica lettura degli inviti fuori dalla famiglia corrente: chi apre il
-     * link non è ancora entrato, e il codice di 64 caratteri fa da chiave.
+     * It is the only read of invitations outside the current family: whoever
+     * opens the link has not signed in yet, and the 64-character token is the key.
      *
-     * @param  string  $token  il codice del link
+     * @param  string  $token  the token of the link
      */
-    public static function valido(string $token): ?self
+    public static function findValid(string $token): ?self
     {
         return self::query()
             ->withoutGlobalScope(FamilyScope::class)
@@ -71,7 +73,7 @@ final class Invitation extends DatoDellaFamiglia
     }
 
     /**
-     * La persona che c'è già, se l'invito è per lei.
+     * The existing person, if the invitation is for them.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -81,7 +83,7 @@ final class Invitation extends DatoDellaFamiglia
     }
 
     /**
-     * L'account che ha mandato l'invito.
+     * The account that sent the invitation.
      *
      * @return BelongsTo<User, $this>
      */
@@ -91,15 +93,15 @@ final class Invitation extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'role' => Ruolo::class,
-            'person_role' => RuoloPersona::class,
+            'role' => Role::class,
+            'person_role' => PersonRole::class,
             'expires_at' => 'datetime',
             'accepted_at' => 'datetime',
         ];

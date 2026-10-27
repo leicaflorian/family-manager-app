@@ -1,18 +1,18 @@
 import { screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { renderPagina } from '@/test/pagina';
+import { renderPage } from '@/test/page';
 import ConfirmPassword from './ConfirmPassword.vue';
 
-describe('Conferma la password', () => {
-    it('chiede la password prima di andare avanti', () => {
-        renderPagina(ConfirmPassword);
+describe('Confirm the password', () => {
+    it('asks for the password before going on', () => {
+        renderPage(ConfirmPassword);
 
         expect(screen.getByLabelText('Password')).toHaveAttribute(
             'type',
             'password',
         );
         expect(
-            screen.getByRole('button', { name: 'Conferma' }),
+            screen.getByRole('button', { name: 'Confirm' }),
         ).toBeInTheDocument();
     });
 });

@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-use App\Enums\Ruolo;
+use App\Enums\Role;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Ogni account appartiene a una famiglia, con il suo livello.
+ * Every account belongs to a family, with its level.
  */
 return new class extends Migration
 {
     /**
-     * Aggiunge famiglia e livello.
+     * Adds family and level.
      */
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {
             $table->foreignId('family_id')->after('id')->constrained()->cascadeOnDelete();
-            $table->string('role')->after('family_id')->default(Ruolo::Member->value);
+            $table->string('role')->after('family_id')->default(Role::Member->value);
         });
     }
 
     /**
-     * Toglie famiglia e livello.
+     * Removes family and level.
      */
     public function down(): void
     {

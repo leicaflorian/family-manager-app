@@ -158,4 +158,11 @@ return [
     'uppercase' => ':Attribute deve contenere solo caratteri maiuscoli.',
     'url' => 'Il formato del campo :attribute non è valido.',
     'uuid' => ':Attribute deve essere un UUID valido.',
+
+    // The names of the fields of the forms that have no attributes() of their own (Fortify's).
+    'attributes' => [
+        'first_name' => 'nome',
+        'last_name' => 'cognome',
+        'terms' => 'condizioni',
+    ],
 ];

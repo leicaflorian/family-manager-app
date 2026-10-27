@@ -2,38 +2,38 @@
 
 declare(strict_types=1);
 
-use App\Support\Schema\Colonne;
+use App\Support\Schema\Columns;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * I documenti e i loro collegamenti alle schede. `documentables` prende il
- * posto delle 15 tabelle ponte di Directus (`homes_documents`, …).
+ * The documents and their links to the records. `documentables` takes the
+ * place of the 15 junction tables of Directus (`homes_documents`, …).
  */
 return new class extends Migration
 {
     /**
-     * Crea le tabelle.
+     * Creates the tables.
      */
     public function up(): void
     {
         Schema::create('documents', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
+            Columns::family($table);
             $table->string('title');
-            // Un documento è il suo file: senza il file non resta niente da vedere
-            Colonne::obbligatorio($table, 'file_id', 'files');
-            Colonne::facoltativo($table, 'category_id', 'document_categories');
+            // A document is its file: without the file there is nothing left to see
+            Columns::required($table, 'file_id', 'files');
+            Columns::optional($table, 'category_id', 'document_categories');
             $table->string('status')->default('active');
-            Colonne::facoltativo($table, 'person_id', 'people');
-            Colonne::facoltativo($table, 'organization_id', 'organizations');
-            Colonne::facoltativo($table, 'planned_expense_id', 'planned_expenses');
+            Columns::optional($table, 'person_id', 'people');
+            Columns::optional($table, 'organization_id', 'organizations');
+            Columns::optional($table, 'planned_expense_id', 'planned_expenses');
             $table->date('date')->nullable()->index();
             $table->date('expiry_date')->nullable()->index();
             $table->json('tags')->nullable();
             $table->text('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         Schema::create('documentables', function (Blueprint $table): void {
@@ -45,7 +45,7 @@ return new class extends Migration
     }
 
     /**
-     * Elimina le tabelle.
+     * Drops the tables.
      */
     public function down(): void
     {

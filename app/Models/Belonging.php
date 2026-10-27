@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoBene;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\BelongingStatus;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\BelongingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,12 +15,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un bene comprato: elettrodomestico, mobile, elettronica (`belongings`).
+ * A purchased belonging: appliance, furniture, electronics (`belongings`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $name
- * @property StatoBene $status
+ * @property BelongingStatus $status
  * @property string|null $brand
  * @property string|null $model
  * @property int|null $home_id
@@ -33,27 +33,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Home|null $home
- * @property-read \App\Models\Organization|null $organization
- * @method static \Database\Factories\BelongingFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read Home|null $home
+ * @property-read Organization|null $organization
+ *
+ * @method static BelongingFactory factory($count = null, $state = [])
  * @method static Builder<static>|Belonging newModelQuery()
  * @method static Builder<static>|Belonging newQuery()
  * @method static Builder<static>|Belonging query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'brand', 'model', 'home_id', 'organization_id', 'purchase_date', 'purchase_price', 'warranty_expiry_date', 'notes'])]
-final class Belonging extends DatoDellaFamiglia
+final class Belonging extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<BelongingFactory> */
     use HasFactory;
 
     /**
-     * La casa collegata.
+     * The linked home.
      *
      * @return BelongsTo<Home, $this>
      */
@@ -73,14 +75,14 @@ final class Belonging extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'status' => StatoBene::class,
+            'status' => BelongingStatus::class,
             'purchase_date' => 'date',
             'purchase_price' => 'decimal:2',
             'warranty_expiry_date' => 'date',

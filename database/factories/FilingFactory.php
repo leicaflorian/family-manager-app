@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoPratica;
-use App\Enums\TipoPratica;
+use App\Enums\FilingStatus;
+use App\Enums\FilingType;
 use App\Models\Family;
 use App\Models\Filing;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class FilingFactory extends Factory
 {
     /**
-     * Una pratica.
+     * A filing.
      *
      * @return array<string, mixed>
      */
@@ -25,8 +25,8 @@ final class FilingFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'title' => 'ISEE '.fake()->year(),
-            'type' => TipoPratica::Isee,
-            'status' => StatoPratica::Draft,
+            'type' => FilingType::Isee,
+            'status' => FilingStatus::Draft,
             'reference_year' => fake()->numberBetween(2020, 2027),
         ];
     }

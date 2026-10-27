@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoPromemoria;
+use App\Enums\ReminderStatus;
 use App\Models\Family;
 use App\Models\Reminder;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class ReminderFactory extends Factory
 {
     /**
-     * Un promemoria aperto.
+     * An open reminder.
      *
      * @return array<string, mixed>
      */
@@ -25,7 +25,7 @@ final class ReminderFactory extends Factory
             'family_id' => Family::factory(),
             'title' => 'Rinnovare '.fake()->word(),
             'due_date' => fake()->dateTimeBetween('now', '+3 months'),
-            'status' => StatoPromemoria::Open,
+            'status' => ReminderStatus::Open,
         ];
     }
 }

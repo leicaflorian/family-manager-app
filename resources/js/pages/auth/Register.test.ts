@@ -1,27 +1,25 @@
 import { screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { renderPagina } from '@/test/pagina';
+import { renderPage } from '@/test/page';
 import Register from './Register.vue';
 
-describe('Iscriviti', () => {
-    it('chiede le quattro cose della tavola e le condizioni', () => {
-        renderPagina(Register, { passwordRules: 'minlength: 10;' });
+describe('Sign up', () => {
+    it('asks for the four things of the board and the terms', () => {
+        renderPage(Register, { passwordRules: 'minlength: 10;' });
 
-        expect(screen.getByLabelText('Il tuo nome')).toBeInTheDocument();
-        expect(
-            screen.getByLabelText('Cognome della famiglia'),
-        ).toBeInTheDocument();
+        expect(screen.getByLabelText('Your first name')).toBeInTheDocument();
+        expect(screen.getByLabelText('Family surname')).toBeInTheDocument();
         expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
-        expect(screen.getByLabelText('Scegli una password')).toHaveAttribute(
+        expect(screen.getByLabelText('Choose a password')).toHaveAttribute(
             'type',
             'password',
         );
-        expect(screen.getByText('Almeno 10 caratteri')).toBeInTheDocument();
+        expect(screen.getByText('At least 10 characters')).toBeInTheDocument();
         expect(
-            screen.getByRole('checkbox', { name: /accetto le condizioni/ }),
+            screen.getByRole('checkbox', { name: /accept the terms/ }),
         ).not.toBeChecked();
         expect(
-            screen.getByRole('button', { name: 'Comincia' }),
+            screen.getByRole('button', { name: 'Get started' }),
         ).toHaveAttribute('type', 'submit');
     });
 });

@@ -14,21 +14,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Una famiglia: ogni dato dell'app appartiene a una di loro.
+ * A family: every piece of data in the app belongs to one.
  *
  * @property int $id
  * @property string $name
  * @property CarbonImmutable|null $welcomed_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Person> $people
+ * @property-read Collection<int, Person> $people
  * @property-read int|null $people_count
- * @property-read Collection<int, \App\Models\User> $users
+ * @property-read Collection<int, User> $users
  * @property-read int|null $users_count
- * @method static \Database\Factories\FamilyFactory factory($count = null, $state = [])
+ *
+ * @method static FamilyFactory factory($count = null, $state = [])
  * @method static Builder<static>|Family newModelQuery()
  * @method static Builder<static>|Family newQuery()
  * @method static Builder<static>|Family query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'welcomed_at'])]
@@ -38,7 +40,7 @@ final class Family extends Model
     use HasFactory;
 
     /**
-     * Gli account della famiglia.
+     * The accounts of the family.
      *
      * @return HasMany<User, $this>
      */
@@ -48,8 +50,8 @@ final class Family extends Model
     }
 
     /**
-     * Le persone della famiglia, con o senza account. Passa dallo scope della
-     * famiglia corrente, come ogni lettura delle persone.
+     * The people of the family, with or without an account. It goes through the
+     * current family scope, like every read of people.
      *
      * @return HasMany<Person, $this>
      */
@@ -59,15 +61,15 @@ final class Family extends Model
     }
 
     /**
-     * La famiglia ha finito il *Benvenuto*.
+     * Whether the family has finished the *Welcome*.
      */
-    public function accolta(): bool
+    public function isWelcomed(): bool
     {
         return $this->welcomed_at !== null;
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */

@@ -11,8 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Per ogni modello con i dati di una famiglia: lo scope che legge solo la
- * famiglia corrente, `family_id` compilato da solo e la relazione `family()`.
+ * For every model holding a family's data: the scope that reads only the
+ * current family, `family_id` filled in automatically and the `family()` relation.
  *
  * @property int $family_id
  * @property-read Family $family
@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 trait BelongsToFamily
 {
     /**
-     * Collega lo scope e compila `family_id` quando il modello nasce.
+     * Adds the scope and fills in `family_id` when the model is created.
      */
     public static function bootBelongsToFamily(): void
     {
@@ -34,7 +34,7 @@ trait BelongsToFamily
     }
 
     /**
-     * La famiglia a cui appartiene il dato.
+     * The family the row belongs to.
      *
      * @return BelongsTo<Family, $this>
      */

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\TipoManutenzione;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\MaintenanceType;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\MaintenanceRecordFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,13 +15,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Una manutenzione di una casa, un bene o un veicolo (`maintenance_records`).
+ * A maintenance record of a home, a belonging or a vehicle (`maintenance_records`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $title
  * @property CarbonImmutable $date
- * @property TipoManutenzione|null $type
+ * @property MaintenanceType|null $type
  * @property int|null $organization_id
  * @property int|null $home_id
  * @property int|null $belonging_id
@@ -32,24 +32,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\Belonging|null $belonging
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Belonging|null $belonging
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Expense|null $expense
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Home|null $home
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Vehicle|null $vehicle
- * @method static \Database\Factories\MaintenanceRecordFactory factory($count = null, $state = [])
+ * @property-read Expense|null $expense
+ * @property-read Family $family
+ * @property-read Home|null $home
+ * @property-read Organization|null $organization
+ * @property-read Vehicle|null $vehicle
+ *
+ * @method static MaintenanceRecordFactory factory($count = null, $state = [])
  * @method static Builder<static>|MaintenanceRecord newModelQuery()
  * @method static Builder<static>|MaintenanceRecord newQuery()
  * @method static Builder<static>|MaintenanceRecord query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'date', 'type', 'organization_id', 'home_id', 'belonging_id', 'vehicle_id', 'expense_id', 'notes'])]
-final class MaintenanceRecord extends DatoDellaFamiglia
+final class MaintenanceRecord extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<MaintenanceRecordFactory> */
     use HasFactory;
@@ -65,7 +67,7 @@ final class MaintenanceRecord extends DatoDellaFamiglia
     }
 
     /**
-     * La casa collegata.
+     * The linked home.
      *
      * @return BelongsTo<Home, $this>
      */
@@ -75,7 +77,7 @@ final class MaintenanceRecord extends DatoDellaFamiglia
     }
 
     /**
-     * Il bene collegato.
+     * The linked belonging.
      *
      * @return BelongsTo<Belonging, $this>
      */
@@ -85,7 +87,7 @@ final class MaintenanceRecord extends DatoDellaFamiglia
     }
 
     /**
-     * Il veicolo collegato.
+     * The linked vehicle.
      *
      * @return BelongsTo<Vehicle, $this>
      */
@@ -95,7 +97,7 @@ final class MaintenanceRecord extends DatoDellaFamiglia
     }
 
     /**
-     * La spesa pagata collegata.
+     * The linked paid expense.
      *
      * @return BelongsTo<Expense, $this>
      */
@@ -105,14 +107,14 @@ final class MaintenanceRecord extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'type' => TipoManutenzione::class,
+            'type' => MaintenanceType::class,
             'date' => 'date',
         ];
     }

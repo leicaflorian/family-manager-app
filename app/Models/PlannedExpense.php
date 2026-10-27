@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\UnitaIntervallo;
+use App\Enums\IntervalUnit;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlannedExpenseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Una spesa prevista, una volta o ricorrente (`planned_expenses`).
+ * A planned expense, one-off or recurring (`planned_expenses`).
  *
  * @property int $id
  * @property int $family_id
@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $category_id
  * @property bool $is_recurring
  * @property int $interval
- * @property UnitaIntervallo $interval_unit
+ * @property IntervalUnit $interval_unit
  * @property CarbonImmutable|null $start_date
  * @property CarbonImmutable|null $end_date
  * @property bool $is_estimated
@@ -44,36 +44,38 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\ExpenseCategory|null $category
- * @property-read \App\Models\Enrollment|null $enrollment
- * @property-read Collection<int, \App\Models\PlannedExpenseException> $exceptions
+ * @property-read ExpenseCategory|null $category
+ * @property-read Enrollment|null $enrollment
+ * @property-read Collection<int, PlannedExpenseException> $exceptions
  * @property-read int|null $exceptions_count
- * @property-read Collection<int, \App\Models\Expense> $expenses
+ * @property-read Collection<int, Expense> $expenses
  * @property-read int|null $expenses_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\FinancialAccount|null $financialAccount
- * @property-read \App\Models\Home|null $home
- * @property-read \App\Models\InsurancePolicy|null $insurancePolicy
- * @property-read \App\Models\Loan|null $loan
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @property-read \App\Models\Subscription|null $subscription
- * @property-read \App\Models\Utility|null $utility
- * @property-read \App\Models\Vehicle|null $vehicle
- * @method static \Database\Factories\PlannedExpenseFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read FinancialAccount|null $financialAccount
+ * @property-read Home|null $home
+ * @property-read InsurancePolicy|null $insurancePolicy
+ * @property-read Loan|null $loan
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ * @property-read Subscription|null $subscription
+ * @property-read Utility|null $utility
+ * @property-read Vehicle|null $vehicle
+ *
+ * @method static PlannedExpenseFactory factory($count = null, $state = [])
  * @method static Builder<static>|PlannedExpense newModelQuery()
  * @method static Builder<static>|PlannedExpense newQuery()
  * @method static Builder<static>|PlannedExpense query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'utility_id', 'insurance_policy_id', 'loan_id', 'enrollment_id', 'home_id', 'vehicle_id', 'subscription_id', 'notes'])]
-final class PlannedExpense extends DatoDellaFamiglia
+final class PlannedExpense extends FamilyModel
 {
     /** @use HasFactory<PlannedExpenseFactory> */
     use HasFactory;
 
     /**
-     * La categoria.
+     * The category.
      *
      * @return BelongsTo<ExpenseCategory, $this>
      */
@@ -93,7 +95,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * Il conto collegato.
+     * The linked financial account.
      *
      * @return BelongsTo<FinancialAccount, $this>
      */
@@ -103,7 +105,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -123,7 +125,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * La polizza collegata.
+     * The linked insurance policy.
      *
      * @return BelongsTo<InsurancePolicy, $this>
      */
@@ -133,7 +135,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * Il finanziamento collegato.
+     * The linked loan.
      *
      * @return BelongsTo<Loan, $this>
      */
@@ -153,7 +155,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * La casa collegata.
+     * The linked home.
      *
      * @return BelongsTo<Home, $this>
      */
@@ -163,7 +165,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * Il veicolo collegato.
+     * The linked vehicle.
      *
      * @return BelongsTo<Vehicle, $this>
      */
@@ -183,7 +185,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * Le eccezioni delle singole scadenze.
+     * The exceptions of single due dates.
      *
      * @return HasMany<PlannedExpenseException, $this>
      */
@@ -193,7 +195,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * Le spese pagate per questa spesa prevista.
+     * The expenses paid for this planned expense.
      *
      * @return HasMany<Expense, $this>
      */
@@ -203,7 +205,7 @@ final class PlannedExpense extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
@@ -213,7 +215,7 @@ final class PlannedExpense extends DatoDellaFamiglia
             'amount' => 'decimal:2',
             'is_recurring' => 'boolean',
             'interval' => 'integer',
-            'interval_unit' => UnitaIntervallo::class,
+            'interval_unit' => IntervalUnit::class,
             'start_date' => 'date',
             'end_date' => 'date',
             'is_estimated' => 'boolean',

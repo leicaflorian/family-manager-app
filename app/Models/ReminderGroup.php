@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Un gruppo di avvisi dei promemoria (`reminder_groups`).
+ * An alert group of reminders (`reminder_groups`).
  *
  * @property int $id
  * @property int $family_id
@@ -25,23 +25,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\Family $family
- * @property-read Collection<int, \App\Models\Reminder> $reminders
+ * @property-read Family $family
+ * @property-read Collection<int, Reminder> $reminders
  * @property-read int|null $reminders_count
- * @method static \Database\Factories\ReminderGroupFactory factory($count = null, $state = [])
+ *
+ * @method static ReminderGroupFactory factory($count = null, $state = [])
  * @method static Builder<static>|ReminderGroup newModelQuery()
  * @method static Builder<static>|ReminderGroup newQuery()
  * @method static Builder<static>|ReminderGroup query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'is_default', 'deadline_types', 'notifications'])]
-final class ReminderGroup extends DatoDellaFamiglia
+final class ReminderGroup extends FamilyModel
 {
     /** @use HasFactory<ReminderGroupFactory> */
     use HasFactory;
 
     /**
-     * I promemoria del gruppo.
+     * The reminders of the group.
      *
      * @return HasMany<Reminder, $this>
      */
@@ -51,7 +53,7 @@ final class ReminderGroup extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */

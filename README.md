@@ -4,6 +4,8 @@ La nuova app di Family Manager, pensata per genitori che non sono tecnici. Prend
 
 È fatta in Laravel 13 dallo starter kit per Vue (Inertia, Vue 3, TypeScript, Tailwind 4, Fortify per l'accesso, Wayfinder per le rotte), e gira in Docker con Laravel Sail. Il prototipo della tappa 1 non c'è più: si recupera dalla storia di git, commit `54a6702` (`git show 54a6702:prototype/…`).
 
+Il codice è in inglese e l'app parla inglese e italiano: prende la lingua del browser, e senza una delle due usa `APP_LOCALE` (`it`). Le traduzioni italiane sono in `lang/it.json` e `lang/it/`; come si aggiunge un testo è in `AGENTS.md`.
+
 ## Avviare l'app
 
 Serve Docker. La prima volta:

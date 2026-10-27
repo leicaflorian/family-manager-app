@@ -1,89 +1,90 @@
 <script setup lang="ts">
 /**
- * Il layout delle pagine di accesso (Accedi, Iscriviti, Password dimenticata…).
- * Sul telefono la pagina è bianca, con il logo in alto e il pulsante in fondo.
- * Sul computer a sinistra c'è il pannello azzurro e a destra il modulo in una
- * carta, come nella tavola *Accedi*.
+ * The layout of the sign-in pages (Log in, Sign up, Forgot password…).
+ * On the phone the page is white, with the logo at the top and the button at the
+ * bottom. On the computer the blue panel is on the left and the form on the right
+ * in a card, as in the *Log in* board.
  */
 import { Link } from '@inertiajs/vue3';
 import { CircleCheck } from '@lucide/vue';
-import FmIcona from '@/components/fm/FmIcona.vue';
-import FmIntestazione from '@/components/fm/FmIntestazione.vue';
+import { trans } from 'laravel-vue-i18n';
+import FmHeader from '@/components/fm/FmHeader.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
 
-/** Cosa dice il pannello azzurro del computer. */
-export type PannelloAccesso = {
-    /** La frase grande. */
-    titolo: string;
-    /** Il testo sotto. */
-    testo: string;
-    /** I punti in fondo al pannello, con la spunta. */
-    punti?: string[];
+/** What the blue panel of the computer says, already translated. */
+export type AuthPanel = {
+    /** The big sentence. */
+    title: string;
+    /** The text below. */
+    text: string;
+    /** The points at the bottom of the panel, with the tick. */
+    points?: string[];
 };
 
-/** La riga in fondo che porta all'altra pagina («Hai già un account? Accedi»). */
-export type AltraStrada = {
-    /** La domanda. */
-    testo: string;
-    /** Il testo del link. */
+/** The line at the bottom that leads to the other page («Already have an account? Log in»). */
+export type OtherWay = {
+    /** The question. */
+    text: string;
+    /** The text of the link. */
     link: string;
-    /** Dove porta. */
+    /** Where it leads. */
     href: string;
 };
 
 const {
-    titolo = '',
-    sottotitolo,
-    pannello = {
-        titolo: 'Tutto ciò che riguarda la famiglia, in un posto solo.',
-        testo: '',
+    title = '',
+    subtitle,
+    panel = {
+        title: trans('Everything about the family, in one place.'),
+        text: '',
     },
-    altraStrada,
+    otherWay,
 } = defineProps<{
-    /** Il titolo della pagina. Senza, la pagina scrive il suo (per esempio con un nome). */
-    titolo?: string;
-    /** La frase sotto il titolo. */
-    sottotitolo?: string;
-    /** Il pannello azzurro del computer. */
-    pannello?: PannelloAccesso;
-    /** La riga in fondo. */
-    altraStrada?: AltraStrada;
+    /** The title of the page. Without it, the page writes its own (for example with a name). */
+    title?: string;
+    /** The sentence below the title. */
+    subtitle?: string;
+    /** The blue panel of the computer. */
+    panel?: AuthPanel;
+    /** The line at the bottom. */
+    otherWay?: OtherWay;
 }>();
 
 defineSlots<{
-    /** Il modulo della pagina, con il suo pulsante. */
+    /** The form of the page, with its button. */
     default: () => unknown;
 }>();
 </script>
 
 <template>
-    <div class="flex min-h-dvh bg-white text-testo lg:bg-sfondo">
+    <div class="flex min-h-dvh bg-white text-ink lg:bg-canvas">
         <aside
             class="hidden w-[42%] max-w-[600px] flex-col justify-between gap-5 bg-brand p-12 text-[#0B2540] lg:flex"
         >
             <div class="flex items-center gap-3 text-white">
-                <FmLogo bianco :dimensione="44" />
+                <FmLogo white :size="44" />
                 <span class="text-[22px] font-extrabold">Family Manager</span>
             </div>
             <div class="flex max-w-[420px] flex-col gap-3.5">
                 <p class="m-0 text-[34px] leading-[1.15] font-extrabold">
-                    {{ pannello.titolo }}
+                    {{ panel.title }}
                 </p>
-                <p v-if="pannello.testo" class="m-0 text-[17px] leading-normal">
-                    {{ pannello.testo }}
+                <p v-if="panel.text" class="m-0 text-[17px] leading-normal">
+                    {{ panel.text }}
                 </p>
             </div>
             <ul
-                v-if="pannello.punti?.length"
+                v-if="panel.points?.length"
                 class="m-0 flex list-none flex-col gap-2.5 p-0 text-base"
             >
                 <li
-                    v-for="punto in pannello.punti"
-                    :key="punto"
+                    v-for="point in panel.points"
+                    :key="point"
                     class="flex items-center gap-2.5"
                 >
-                    <FmIcona :icona="CircleCheck" :dimensione="22" />
-                    {{ punto }}
+                    <FmIcon :icon="CircleCheck" :size="22" />
+                    {{ point }}
                 </li>
             </ul>
             <span v-else />
@@ -96,28 +97,24 @@ defineSlots<{
                 class="flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-3xl lg:bg-white lg:p-9"
             >
                 <div class="flex items-center gap-2.5 lg:hidden">
-                    <FmLogo :dimensione="36" />
+                    <FmLogo :size="36" />
                     <span class="text-[17px] font-extrabold"
                         >Family Manager</span
                     >
                 </div>
-                <FmIntestazione
-                    v-if="titolo"
-                    :titolo="titolo"
-                    :sottotitolo="sottotitolo"
-                />
+                <FmHeader v-if="title" :title="title" :subtitle="subtitle" />
                 <div class="flex grow flex-col">
                     <slot />
                 </div>
                 <p
-                    v-if="altraStrada"
+                    v-if="otherWay"
                     class="m-0 text-center text-[15px] text-[#4A5565]"
                 >
-                    {{ altraStrada.testo }}
+                    {{ otherWay.text }}
                     <Link
-                        :href="altraStrada.href"
-                        class="font-semibold text-azione hover:text-azione-scuro"
-                        >{{ altraStrada.link }}</Link
+                        :href="otherWay.href"
+                        class="font-semibold text-action hover:text-action-dark"
+                        >{{ otherWay.link }}</Link
                     >
                 </p>
             </div>

@@ -3,21 +3,21 @@ import { describe, expect, it } from 'vite-plus/test';
 import FmLogo from './FmLogo.vue';
 
 describe('FmLogo', () => {
-    it('è il tetto con la famiglia sul quadrato azzurro', () => {
-        const risultato = render(FmLogo, { props: { dimensione: 36 } });
-        const svg = risultato.container.querySelector('svg');
+    it('is the roof with the family on the light blue square', () => {
+        const result = render(FmLogo, { props: { size: 36 } });
+        const svg = result.container.querySelector('svg');
 
         expect(svg).toHaveAttribute('aria-hidden', 'true');
         expect(svg).toHaveAttribute('width', '36');
-        expect(risultato.container.querySelector('rect')).toHaveAttribute(
+        expect(result.container.querySelector('rect')).toHaveAttribute(
             'fill',
             '#3399FF',
         );
     });
 
-    it('bianco, sul pannello azzurro, non ha il quadrato', () => {
-        const risultato = render(FmLogo, { props: { bianco: true } });
+    it('has no square in white, on the blue panel', () => {
+        const result = render(FmLogo, { props: { white: true } });
 
-        expect(risultato.container.querySelector('rect')).toBeNull();
+        expect(result.container.querySelector('rect')).toBeNull();
     });
 });

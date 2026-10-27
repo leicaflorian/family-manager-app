@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Una categoria delle spese, con le sue sottocategorie (`expense_categories`).
+ * An expense category, with its subcategories (`expense_categories`).
  *
  * @property int $id
  * @property int $family_id
@@ -29,22 +29,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  * @property-read Collection<int, ExpenseCategory> $children
  * @property-read int|null $children_count
- * @property-read \App\Models\Family $family
+ * @property-read Family $family
  * @property-read ExpenseCategory|null $parent
- * @method static \Database\Factories\ExpenseCategoryFactory factory($count = null, $state = [])
+ *
+ * @method static ExpenseCategoryFactory factory($count = null, $state = [])
  * @method static Builder<static>|ExpenseCategory newModelQuery()
  * @method static Builder<static>|ExpenseCategory newQuery()
  * @method static Builder<static>|ExpenseCategory query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'parent_id', 'icon', 'color', 'sort'])]
-final class ExpenseCategory extends DatoDellaFamiglia
+final class ExpenseCategory extends FamilyModel
 {
     /** @use HasFactory<ExpenseCategoryFactory> */
     use HasFactory;
 
     /**
-     * La categoria madre, se questa è una sottocategoria.
+     * The parent category, if this is a subcategory.
      *
      * @return BelongsTo<ExpenseCategory, $this>
      */
@@ -54,7 +56,7 @@ final class ExpenseCategory extends DatoDellaFamiglia
     }
 
     /**
-     * Le sottocategorie.
+     * The subcategories.
      *
      * @return HasMany<ExpenseCategory, $this>
      */
@@ -64,7 +66,7 @@ final class ExpenseCategory extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */

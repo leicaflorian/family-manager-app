@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\TipoEventoSalute;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\HealthEventType;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\HealthEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,12 +15,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Una visita, un esame, un vaccino, una ricetta (`health_events`).
+ * A visit, a test, a vaccine, a prescription (`health_events`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $title
- * @property TipoEventoSalute $type
+ * @property HealthEventType $type
  * @property int $person_id
  * @property int|null $organization_id
  * @property CarbonImmutable $date
@@ -32,28 +32,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Expense|null $expense
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person $person
- * @method static \Database\Factories\HealthEventFactory factory($count = null, $state = [])
+ * @property-read Expense|null $expense
+ * @property-read Family $family
+ * @property-read Organization|null $organization
+ * @property-read Person $person
+ *
+ * @method static HealthEventFactory factory($count = null, $state = [])
  * @method static Builder<static>|HealthEvent newModelQuery()
  * @method static Builder<static>|HealthEvent newQuery()
  * @method static Builder<static>|HealthEvent query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'type', 'person_id', 'organization_id', 'date', 'next_checkup_date', 'expense_id', 'outcome', 'notes'])]
-final class HealthEvent extends DatoDellaFamiglia
+final class HealthEvent extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<HealthEventFactory> */
     use HasFactory;
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -73,7 +75,7 @@ final class HealthEvent extends DatoDellaFamiglia
     }
 
     /**
-     * La spesa pagata collegata.
+     * The linked paid expense.
      *
      * @return BelongsTo<Expense, $this>
      */
@@ -83,14 +85,14 @@ final class HealthEvent extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'type' => TipoEventoSalute::class,
+            'type' => HealthEventType::class,
             'date' => 'date',
             'next_checkup_date' => 'date',
         ];

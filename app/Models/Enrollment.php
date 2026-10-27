@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoIscrizione;
-use App\Enums\TipoIscrizione;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\EnrollmentStatus;
+use App\Enums\EnrollmentType;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\EnrollmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,14 +16,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un'iscrizione a scuola, sport o corsi (`enrollments`).
+ * An enrollment at school, sport or courses (`enrollments`).
  *
  * @property int $id
  * @property int $family_id
  * @property int $person_id
  * @property int|null $organization_id
- * @property TipoIscrizione $type
- * @property StatoIscrizione $status
+ * @property EnrollmentType $type
+ * @property EnrollmentStatus $status
  * @property string|null $school_year
  * @property string|null $class_name
  * @property string|null $notes
@@ -31,27 +31,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person $person
- * @method static \Database\Factories\EnrollmentFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read Organization|null $organization
+ * @property-read Person $person
+ *
+ * @method static EnrollmentFactory factory($count = null, $state = [])
  * @method static Builder<static>|Enrollment newModelQuery()
  * @method static Builder<static>|Enrollment newQuery()
  * @method static Builder<static>|Enrollment query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['person_id', 'organization_id', 'type', 'status', 'school_year', 'class_name', 'notes'])]
-final class Enrollment extends DatoDellaFamiglia
+final class Enrollment extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<EnrollmentFactory> */
     use HasFactory;
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -71,15 +73,15 @@ final class Enrollment extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'type' => TipoIscrizione::class,
-            'status' => StatoIscrizione::class,
+            'type' => EnrollmentType::class,
+            'status' => EnrollmentStatus::class,
         ];
     }
 }

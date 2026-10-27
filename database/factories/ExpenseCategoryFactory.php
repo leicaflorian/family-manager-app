@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class ExpenseCategoryFactory extends Factory
 {
     /**
-     * Una categoria delle spese.
+     * An expense category.
      *
      * @return array<string, mixed>
      */

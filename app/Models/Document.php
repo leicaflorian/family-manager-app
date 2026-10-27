@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoDocumento;
-use App\Support\Schede;
+use App\Enums\DocumentStatus;
+use App\Support\Linkables;
 use Carbon\CarbonImmutable;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -17,14 +17,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
- * Un documento con il suo file, collegato alle schede da `documentables`.
+ * A document with its file, linked to the records through `documentables`.
  *
  * @property int $id
  * @property int $family_id
  * @property string $title
  * @property int $file_id
  * @property int|null $category_id
- * @property StatoDocumento $status
+ * @property DocumentStatus $status
  * @property int|null $person_id
  * @property int|null $organization_id
  * @property int|null $planned_expense_id
@@ -36,56 +36,58 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Belonging> $belongings
+ * @property-read Collection<int, Belonging> $belongings
  * @property-read int|null $belongings_count
- * @property-read \App\Models\DocumentCategory|null $category
- * @property-read Collection<int, \App\Models\Employment> $employments
+ * @property-read DocumentCategory|null $category
+ * @property-read Collection<int, Employment> $employments
  * @property-read int|null $employments_count
- * @property-read Collection<int, \App\Models\Enrollment> $enrollments
+ * @property-read Collection<int, Enrollment> $enrollments
  * @property-read int|null $enrollments_count
- * @property-read Collection<int, \App\Models\Expense> $expenses
+ * @property-read Collection<int, Expense> $expenses
  * @property-read int|null $expenses_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\File $file
- * @property-read Collection<int, \App\Models\Filing> $filings
+ * @property-read Family $family
+ * @property-read File $file
+ * @property-read Collection<int, Filing> $filings
  * @property-read int|null $filings_count
- * @property-read Collection<int, \App\Models\FinancialAccount> $financialAccounts
+ * @property-read Collection<int, FinancialAccount> $financialAccounts
  * @property-read int|null $financial_accounts_count
- * @property-read Collection<int, \App\Models\HealthEvent> $healthEvents
+ * @property-read Collection<int, HealthEvent> $healthEvents
  * @property-read int|null $health_events_count
- * @property-read Collection<int, \App\Models\Home> $homes
+ * @property-read Collection<int, Home> $homes
  * @property-read int|null $homes_count
- * @property-read Collection<int, \App\Models\Income> $incomes
+ * @property-read Collection<int, Income> $incomes
  * @property-read int|null $incomes_count
- * @property-read Collection<int, \App\Models\InsurancePolicy> $insurancePolicies
+ * @property-read Collection<int, InsurancePolicy> $insurancePolicies
  * @property-read int|null $insurance_policies_count
- * @property-read Collection<int, \App\Models\Loan> $loans
+ * @property-read Collection<int, Loan> $loans
  * @property-read int|null $loans_count
- * @property-read Collection<int, \App\Models\MaintenanceRecord> $maintenanceRecords
+ * @property-read Collection<int, MaintenanceRecord> $maintenanceRecords
  * @property-read int|null $maintenance_records_count
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @property-read \App\Models\PlannedExpense|null $plannedExpense
- * @property-read Collection<int, \App\Models\Subscription> $subscriptions
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ * @property-read PlannedExpense|null $plannedExpense
+ * @property-read Collection<int, Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
- * @property-read Collection<int, \App\Models\Utility> $utilities
+ * @property-read Collection<int, Utility> $utilities
  * @property-read int|null $utilities_count
- * @property-read Collection<int, \App\Models\Vehicle> $vehicles
+ * @property-read Collection<int, Vehicle> $vehicles
  * @property-read int|null $vehicles_count
- * @method static \Database\Factories\DocumentFactory factory($count = null, $state = [])
+ *
+ * @method static DocumentFactory factory($count = null, $state = [])
  * @method static Builder<static>|Document newModelQuery()
  * @method static Builder<static>|Document newQuery()
  * @method static Builder<static>|Document query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'file_id', 'category_id', 'status', 'person_id', 'organization_id', 'planned_expense_id', 'date', 'expiry_date', 'tags', 'notes'])]
-final class Document extends DatoDellaFamiglia
+final class Document extends FamilyModel
 {
     /** @use HasFactory<DocumentFactory> */
     use HasFactory;
 
     /**
-     * Il file del documento.
+     * The file of the document.
      *
      * @return BelongsTo<File, $this>
      */
@@ -95,7 +97,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * La categoria del documento.
+     * The category of the document.
      *
      * @return BelongsTo<DocumentCategory, $this>
      */
@@ -105,7 +107,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -115,7 +117,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * L'ente che lo ha mandato o a cui si riferisce.
+     * The organization that sent it or that it refers to.
      *
      * @return BelongsTo<Organization, $this>
      */
@@ -125,7 +127,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * La spesa prevista a cui si riferisce (una bolletta da pagare).
+     * The planned expense it refers to (a bill to pay).
      *
      * @return BelongsTo<PlannedExpense, $this>
      */
@@ -135,7 +137,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le case collegate.
+     * The linked homes.
      *
      * @return MorphToMany<Home, $this>
      */
@@ -145,7 +147,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le utenze collegate.
+     * The linked utilities.
      *
      * @return MorphToMany<Utility, $this>
      */
@@ -155,7 +157,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * I beni collegati.
+     * The linked belongings.
      *
      * @return MorphToMany<Belonging, $this>
      */
@@ -165,7 +167,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le manutenzioni collegate.
+     * The linked maintenance records.
      *
      * @return MorphToMany<MaintenanceRecord, $this>
      */
@@ -175,7 +177,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * I veicoli collegati.
+     * The linked vehicles.
      *
      * @return MorphToMany<Vehicle, $this>
      */
@@ -185,7 +187,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le polizze collegate.
+     * The linked insurance policies.
      *
      * @return MorphToMany<InsurancePolicy, $this>
      */
@@ -195,7 +197,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * I conti collegati.
+     * The linked financial accounts.
      *
      * @return MorphToMany<FinancialAccount, $this>
      */
@@ -205,7 +207,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * I finanziamenti collegati.
+     * The linked loans.
      *
      * @return MorphToMany<Loan, $this>
      */
@@ -215,7 +217,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le pratiche collegate.
+     * The linked filings.
      *
      * @return MorphToMany<Filing, $this>
      */
@@ -225,7 +227,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * I lavori collegati.
+     * The linked employments.
      *
      * @return MorphToMany<Employment, $this>
      */
@@ -235,7 +237,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Gli eventi di salute collegati.
+     * The linked health events.
      *
      * @return MorphToMany<HealthEvent, $this>
      */
@@ -245,7 +247,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le iscrizioni collegate.
+     * The linked enrollments.
      *
      * @return MorphToMany<Enrollment, $this>
      */
@@ -255,7 +257,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Gli abbonamenti collegati.
+     * The linked subscriptions.
      *
      * @return MorphToMany<Subscription, $this>
      */
@@ -265,7 +267,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le spese pagate collegate.
+     * The linked paid expenses.
      *
      * @return MorphToMany<Expense, $this>
      */
@@ -275,7 +277,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Le entrate collegate.
+     * The linked incomes.
      *
      * @return MorphToMany<Income, $this>
      */
@@ -285,7 +287,7 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * Tutte le schede collegate, di ogni tipo, in un elenco solo.
+     * All the linked records, of every type, in a single list.
      *
      * @return Collection<int, Model>
      */
@@ -293,7 +295,7 @@ final class Document extends DatoDellaFamiglia
     {
         $schede = new Collection;
 
-        foreach (Schede::CON_DOCUMENTI as $relazione) {
+        foreach (Linkables::WITH_DOCUMENTS as $relazione) {
             /** @var Collection<int, Model> $collegate */
             $collegate = $this->getRelationValue($relazione);
             $schede = $schede->concat($collegate);
@@ -303,14 +305,14 @@ final class Document extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'status' => StatoDocumento::class,
+            'status' => DocumentStatus::class,
             'date' => 'date',
             'expiry_date' => 'date',
             'tags' => 'array',

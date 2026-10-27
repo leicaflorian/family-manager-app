@@ -9,53 +9,53 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Il mio account, come lo mostrano *Impostazioni* e *Il mio account*.
+ * My account, as *Settings* and *My account* show it.
  */
 #[TypeScript]
 final class AccountData extends Data
 {
     /**
-     * @param  string  $nome  il nome, dalla persona dell'account
-     * @param  string  $cognome  il cognome
-     * @param  string  $email  l'email per entrare
-     * @param  string  $ruolo  il livello, «Amministratore» o «Familiare»
-     * @param  bool  $admin  se può cambiare le impostazioni della famiglia
-     * @param  string  $iniziali  le iniziali del cerchio, quando manca la foto
-     * @param  string|null  $foto  l'indirizzo della foto
-     * @param  bool  $ultimoAdmin  se è l'unico admin, che non può eliminarsi
-     * @param  string  $famiglia  il nome della famiglia
+     * @param  string  $first_name  the first name, from the person of the account
+     * @param  string  $last_name  the last name
+     * @param  string  $email  the email to sign in with
+     * @param  string  $role  the level, "Administrator" or "Family member"
+     * @param  bool  $is_admin  whether it can change the family settings
+     * @param  string  $initials  the initials of the circle, when there is no photo
+     * @param  string|null  $photo  the address of the photo
+     * @param  bool  $is_last_admin  whether it is the only admin, who cannot delete themself
+     * @param  string  $family  the name of the family
      */
     public function __construct(
-        public readonly string $nome,
-        public readonly string $cognome,
+        public readonly string $first_name,
+        public readonly string $last_name,
         public readonly string $email,
-        public readonly string $ruolo,
-        public readonly bool $admin,
-        public readonly string $iniziali,
-        public readonly ?string $foto,
-        public readonly bool $ultimoAdmin,
-        public readonly string $famiglia,
+        public readonly string $role,
+        public readonly bool $is_admin,
+        public readonly string $initials,
+        public readonly ?string $photo,
+        public readonly bool $is_last_admin,
+        public readonly string $family,
     ) {}
 
     /**
-     * I dati di un account. Senza persona, il nome si prende da `users.name`.
+     * The data of an account. Without a person, the name comes from `users.name`.
      *
-     * @param  User  $utente  l'account
+     * @param  User  $user  the account
      */
-    public static function daUtente(User $utente): self
+    public static function fromUser(User $user): self
     {
-        $persona = $utente->person;
+        $person = $user->person;
 
         return new self(
-            nome: $persona->first_name ?? $utente->name,
-            cognome: $persona->last_name ?? '',
-            email: $utente->email,
-            ruolo: $utente->role->nome(),
-            admin: $utente->isAdmin(),
-            iniziali: $persona->initials ?? mb_strtoupper(mb_substr($utente->name, 0, 1)),
-            foto: $persona?->photo_id !== null ? route('file.show', $persona->photo_id) : null,
-            ultimoAdmin: $utente->ultimoAdmin(),
-            famiglia: $utente->family->name,
+            first_name: $person->first_name ?? $user->name,
+            last_name: $person->last_name ?? '',
+            email: $user->email,
+            role: $user->role->title(),
+            is_admin: $user->isAdmin(),
+            initials: $person->initials ?? mb_strtoupper(mb_substr($user->name, 0, 1)),
+            photo: $person?->photo_id !== null ? route('files.show', $person->photo_id) : null,
+            is_last_admin: $user->isLastAdmin(),
+            family: $user->family->name,
         );
     }
 }

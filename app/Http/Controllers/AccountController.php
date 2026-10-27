@@ -4,90 +4,93 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\Account\AggiornaAccount;
-use App\Actions\Account\CambiaFoto;
+use App\Actions\Account\ChangePhoto;
+use App\Actions\Account\UpdateAccount;
 use App\Data\AccountData;
-use App\Http\Requests\Impostazioni\AggiornaAccountRequest;
-use App\Http\Requests\Impostazioni\CambiaPasswordRequest;
-use App\Http\Requests\Impostazioni\CaricaFotoRequest;
-use App\Http\Requests\Impostazioni\EliminaAccountRequest;
+use App\Http\Requests\Settings\ChangePasswordRequest;
+use App\Http\Requests\Settings\DeleteAccountRequest;
+use App\Http\Requests\Settings\UpdateAccountRequest;
+use App\Http\Requests\Settings\UploadPhotoRequest;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * *Il mio account*: i dati, la password, la foto, l'eliminazione. Vale solo per chi
- * è entrato, non per la famiglia.
+ * *My account*: the data, the password, the photo, the deletion. It concerns only
+ * whoever signed in, not the family.
  */
 final class AccountController extends Controller
 {
     /**
-     * La pagina.
+     * The page.
      */
-    public function edit(#[CurrentUser] User $utente): Response
+    public function edit(#[CurrentUser] User $user): Response
     {
-        return Inertia::render('impostazioni/Account', ['account' => AccountData::daUtente($utente)]);
+        return Inertia::render('settings/Account', ['account' => AccountData::fromUser($user)]);
     }
 
     /**
-     * Salva nome, cognome ed email.
+     * Saves first name, last name and email.
      */
-    public function update(AggiornaAccountRequest $request, #[CurrentUser] User $utente, AggiornaAccount $aggiorna): RedirectResponse
+    public function update(UpdateAccountRequest $request, #[CurrentUser] User $user, UpdateAccount $updateAccount): RedirectResponse
     {
-        $aggiorna->handle(
-            $utente,
-            $request->string('nome')->toString(),
-            $request->string('cognome')->toString(),
+        $updateAccount->handle(
+            $user,
+            $request->string('first_name')->toString(),
+            $request->string('last_name')->toString(),
             $request->string('email')->toString(),
         );
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Salvato.']);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved.')]);
 
         return to_route('account.edit');
     }
 
     /**
-     * Cambia la password.
+     * Changes the password.
      */
-    public function password(CambiaPasswordRequest $request, #[CurrentUser] User $utente): RedirectResponse
+    public function password(ChangePasswordRequest $request, #[CurrentUser] User $user): RedirectResponse
     {
-        $utente->update(['password' => $request->string('password')->toString()]);
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Password cambiata.']);
+        $user->update(['password' => $request->string('password')->toString()]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Password changed.')]);
 
         return to_route('account.edit');
     }
 
     /**
-     * Mette la foto nuova.
+     * Puts the new photo.
      */
-    public function foto(CaricaFotoRequest $request, #[CurrentUser] User $utente, CambiaFoto $cambia): RedirectResponse
+    public function photo(UploadPhotoRequest $request, #[CurrentUser] User $user, ChangePhoto $changePhoto): RedirectResponse
     {
-        $foto = $request->file('foto');
+        $photo = $request->file('photo');
 
-        if ($foto instanceof \Illuminate\Http\UploadedFile) {
-            $cambia->handle($utente, $foto);
+        if ($photo instanceof UploadedFile) {
+            $changePhoto->handle($user, $photo);
         }
 
         return to_route('account.edit');
     }
 
     /**
-     * Elimina l'account e porta ad Accedi. La persona resta nella famiglia,
-     * senza account. L'ultimo `admin` non si elimina.
+     * Deletes the account and goes to *Sign in*. The person stays in the family,
+     * without an account. The last `admin` cannot be deleted.
      *
-     * @throws ValidationException se è l'ultimo admin della famiglia
+     * @throws ValidationException if it is the last admin of the family
      */
-    public function destroy(EliminaAccountRequest $request, #[CurrentUser] User $utente): RedirectResponse
+    public function destroy(DeleteAccountRequest $request, #[CurrentUser] User $user): RedirectResponse
     {
-        if ($utente->ultimoAdmin()) {
-            throw ValidationException::withMessages(['password' => 'Sei l\'unico amministratore della famiglia: prima dai il livello «Tutto, come te» a un\'altra persona.']);
+        if ($user->isLastAdmin()) {
+            throw ValidationException::withMessages(['password' => __('You are the only administrator of the family: first give the level "Everything, like you" to another person.')]);
         }
 
         Auth::logout();
-        $utente->delete();
+        $user->delete();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

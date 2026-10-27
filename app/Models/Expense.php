@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Models\Concerns\HaDocumenti;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\ExpenseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Una spesa pagata (`expenses`).
+ * A paid expense (`expenses`).
  *
  * @property int $id
  * @property int $family_id
@@ -32,30 +32,32 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\ExpenseCategory|null $category
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read ExpenseCategory|null $category
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\FinancialAccount|null $financialAccount
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @property-read \App\Models\PlannedExpense|null $plannedExpense
- * @method static \Database\Factories\ExpenseFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read FinancialAccount|null $financialAccount
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ * @property-read PlannedExpense|null $plannedExpense
+ *
+ * @method static ExpenseFactory factory($count = null, $state = [])
  * @method static Builder<static>|Expense newModelQuery()
  * @method static Builder<static>|Expense newQuery()
  * @method static Builder<static>|Expense query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'date', 'planned_expense_id', 'category_id', 'organization_id', 'financial_account_id', 'person_id', 'fee_amount', 'notes'])]
-final class Expense extends DatoDellaFamiglia
+final class Expense extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<ExpenseFactory> */
     use HasFactory;
 
     /**
-     * La spesa prevista a cui appartiene.
+     * The planned expense it belongs to.
      *
      * @return BelongsTo<PlannedExpense, $this>
      */
@@ -65,7 +67,7 @@ final class Expense extends DatoDellaFamiglia
     }
 
     /**
-     * La categoria.
+     * The category.
      *
      * @return BelongsTo<ExpenseCategory, $this>
      */
@@ -85,7 +87,7 @@ final class Expense extends DatoDellaFamiglia
     }
 
     /**
-     * Il conto collegato.
+     * The linked financial account.
      *
      * @return BelongsTo<FinancialAccount, $this>
      */
@@ -95,7 +97,7 @@ final class Expense extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -105,7 +107,7 @@ final class Expense extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */

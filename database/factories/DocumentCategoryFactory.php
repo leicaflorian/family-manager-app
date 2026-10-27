@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class DocumentCategoryFactory extends Factory
 {
     /**
-     * Una categoria dei documenti.
+     * A document category.
      *
      * @return array<string, mixed>
      */
@@ -22,7 +22,7 @@ final class DocumentCategoryFactory extends Factory
     {
         return [
             'family_id' => Family::factory(),
-            'name' => fake()->randomElement(['Casa e utenze', 'Veicoli', 'Salute', 'Lavoro', 'Scuola e attività']),
+            'name' => fake()->randomElement(['Home and utilities', 'Vehicles', 'Health', 'Work', 'School and activities']),
         ];
     }
 }

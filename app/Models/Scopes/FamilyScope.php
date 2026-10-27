@@ -10,29 +10,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
 
 /**
- * Limita ogni query di un modello della famiglia alla famiglia corrente.
+ * Limits every query of a family model to the current family.
  *
  * @implements Scope<Model>
  */
 final class FamilyScope implements Scope
 {
     /**
-     * Aggiunge il filtro sulla famiglia.
+     * Adds the filter on the family.
      *
      * @param  Builder<covariant Model>  $builder
      */
     public function apply(Builder $builder, Model $model): void
     {
-        $famiglia = CurrentFamily::id();
+        $family = CurrentFamily::id();
 
-        // Senza una famiglia non si legge niente: una condizione sempre falsa,
-        // mai nessun filtro, che darebbe i dati di tutte le famiglie.
-        if ($famiglia === null) {
+        // Without a family nothing is read: an always-false condition, never no
+        // filter at all, which would return the data of every family.
+        if ($family === null) {
             $builder->whereRaw('1 = 0');
 
             return;
         }
 
-        $builder->where($model->qualifyColumn('family_id'), $famiglia);
+        $builder->where($model->qualifyColumn('family_id'), $family);
     }
 }

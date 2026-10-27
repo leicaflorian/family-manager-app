@@ -3,53 +3,52 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
-use App\Http\Controllers\BenvenutoController;
-use App\Http\Controllers\CategorieController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FileController;
-use App\Http\Controllers\ImpostazioniController;
-use App\Http\Controllers\InvitiController;
-use App\Http\Controllers\InvitoController;
-use App\Http\Middleware\PortaAlBenvenuto;
+use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\InvitationLinkController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\WelcomeController;
+use App\Http\Middleware\RedirectToWelcome;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
 
-// Il link dell'invito: lo apre chi non ha ancora un account.
+// The invitation link: opened by whoever has no account yet.
 Route::middleware('guest')->group(function (): void {
-    Route::get('invito/{token}', [InvitoController::class, 'show'])->name('invito.show');
-    Route::post('invito/{token}', [InvitoController::class, 'store'])->name('invito.store');
+    Route::get('invitation/{token}', [InvitationLinkController::class, 'show'])->name('invitation.show');
+    Route::post('invitation/{token}', [InvitationLinkController::class, 'store'])->name('invitation.store');
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    Route::get('benvenuto', [BenvenutoController::class, 'show'])->name('benvenuto');
-    Route::post('benvenuto', [BenvenutoController::class, 'store'])->name('benvenuto.store');
+    Route::get('welcome', [WelcomeController::class, 'show'])->name('welcome');
+    Route::post('welcome', [WelcomeController::class, 'store'])->name('welcome.store');
 
-    Route::middleware(PortaAlBenvenuto::class)->group(function (): void {
+    Route::middleware(RedirectToWelcome::class)->group(function (): void {
         Route::inertia('dashboard', 'Dashboard')->name('dashboard');
-        Route::inertia('aree', 'Aree')->name('aree');
+        Route::inertia('areas', 'Areas')->name('areas');
 
-        Route::get('famiglia/invita', [InvitiController::class, 'create'])->name('famiglia.invita');
-        Route::post('famiglia/inviti', [InvitiController::class, 'store'])->name('famiglia.inviti.store');
-        Route::get('famiglia/inviti/{invitation}', [InvitiController::class, 'show'])->name('famiglia.inviti.show');
+        Route::get('family/invite', [InvitationController::class, 'create'])->name('family.invitations.create');
+        Route::post('family/invitations', [InvitationController::class, 'store'])->name('family.invitations.store');
+        Route::get('family/invitations/{invitation}', [InvitationController::class, 'show'])->name('family.invitations.show');
 
-        Route::get('impostazioni', ImpostazioniController::class)->name('impostazioni');
-        Route::get('impostazioni/account', [AccountController::class, 'edit'])->name('account.edit');
-        Route::patch('impostazioni/account', [AccountController::class, 'update'])->name('account.update');
-        Route::put('impostazioni/account/password', [AccountController::class, 'password'])->middleware('throttle:6,1')->name('account.password');
-        Route::post('impostazioni/account/foto', [AccountController::class, 'foto'])->name('account.foto');
-        Route::delete('impostazioni/account', [AccountController::class, 'destroy'])->name('account.destroy');
-        Route::resource('impostazioni/categorie', CategorieController::class)
+        Route::get('settings', SettingsController::class)->name('settings');
+        Route::get('settings/account', [AccountController::class, 'edit'])->name('account.edit');
+        Route::patch('settings/account', [AccountController::class, 'update'])->name('account.update');
+        Route::put('settings/account/password', [AccountController::class, 'password'])->middleware('throttle:6,1')->name('account.password');
+        Route::post('settings/account/photo', [AccountController::class, 'photo'])->name('account.photo');
+        Route::delete('settings/account', [AccountController::class, 'destroy'])->name('account.destroy');
+        Route::resource('settings/categories', CategoryController::class)
             ->only(['index', 'store', 'update', 'destroy'])
-            ->parameters(['categorie' => 'categoria'])
-            ->names('categorie');
+            ->parameters(['categories' => 'category'])
+            ->names('categories');
 
-        Route::get('file/{file}', [FileController::class, 'show'])->name('file.show');
-        Route::get('file/{file}/scarica', [FileController::class, 'scarica'])->name('file.scarica');
+        Route::get('files/{file}', [FileController::class, 'show'])->name('files.show');
+        Route::get('files/{file}/download', [FileController::class, 'download'])->name('files.download');
 
-        // Le pagine che arrivano con i prossimi task: le voci del menu portano già qui.
-        Route::inertia('documenti', 'InArrivo', ['titolo' => 'Documenti'])->name('documenti.index');
-        Route::inertia('famiglia', 'InArrivo', ['titolo' => 'Famiglia'])->name('famiglia');
-        Route::inertia('carica', 'InArrivo', ['titolo' => 'Carica'])->name('carica');
+        // The pages coming with the next tasks: the menu entries already lead here.
+        Route::inertia('documents', 'ComingSoon', ['title' => 'Documents'])->name('documents.index');
+        Route::inertia('family', 'ComingSoon', ['title' => 'Family'])->name('family');
+        Route::inertia('upload', 'ComingSoon', ['title' => 'Upload'])->name('upload');
     });
 });
-

@@ -1,75 +1,82 @@
 <script setup lang="ts">
 /**
- * Pagina *Password dimenticata*: si scrive l'email e arriva un link per sceglierne
- * una nuova. Dopo l'invio dice dove guardare e offre di rimandarlo.
+ * *Forgot password* page: the email is written and a link arrives to choose a
+ * new one. After sending it says where to look and offers to send it again.
  */
 import { Head, useForm } from '@inertiajs/vue3';
-import FmAvviso from '@/components/fm/FmAvviso.vue';
-import FmPulsante from '@/components/fm/FmPulsante.vue';
-import { errori } from '@/lib/errori';
+import { trans } from 'laravel-vue-i18n';
+import FmButton from '@/components/fm/FmButton.vue';
+import FmNotice from '@/components/fm/FmNotice.vue';
+import { errors } from '@/lib/errors';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
 defineOptions({
     layout: {
-        titolo: 'Password dimenticata',
-        sottotitolo:
-            'Scrivi la tua email: ti mandiamo un link per sceglierne una nuova.',
-        pannello: {
-            titolo: 'Succede a tutti.',
-            testo: 'Ti mandiamo un link: la password nuova la scegli tu, e i dati della famiglia restano come sono.',
+        title: trans('Forgot password'),
+        subtitle: trans(
+            'Write your email: we will send you a link to choose a new one.',
+        ),
+        panel: {
+            title: trans('It happens to everyone.'),
+            text: trans(
+                'We will send you a link: you choose the new password, and the family data stay as they are.',
+            ),
         },
-        altraStrada: {
-            testo: 'Te la sei ricordata?',
-            link: 'Accedi',
+        otherWay: {
+            text: trans('Remembered it?'),
+            link: trans('Log in'),
             href: login().url,
         },
     },
 });
 
 const { status } = defineProps<{
-    /** C'è quando il link è partito. */
+    /** It is there when the link was sent. */
     status?: string;
 }>();
 
 const form = useForm({ email: '' });
 
 /**
- * Chiede il link per l'email scritta.
+ * Asks for the link for the email written.
  */
-function mandaLink(): void {
+function sendLink(): void {
     form.submit(email());
 }
 </script>
 
 <template>
-    <Head title="Password dimenticata" />
+    <Head :title="$t('Forgot password')" />
 
     <form
         class="flex grow flex-col gap-3"
         novalidate
-        @submit.prevent="mandaLink"
+        @submit.prevent="sendLink"
     >
         <FormKit
             v-model="form.email"
             type="email"
-            label="Email"
+            :label="$t('Email')"
             name="email"
             autocomplete="email"
-            :errors="errori(form.errors.email)"
+            :errors="errors(form.errors.email)"
         />
-        <FmAvviso v-if="status" tono="ok">
-            <strong
-                >Ti abbiamo scritto{{
-                    form.email ? ` a ${form.email}` : ''
-                }}.</strong
-            >
-            Il link vale un'ora. Se non lo trovi, guarda nella posta
-            indesiderata.
-        </FmAvviso>
+        <FmNotice v-if="status" tone="ok">
+            <strong>{{
+                form.email
+                    ? $t('We wrote to :email.', { email: form.email })
+                    : $t('We wrote to you.')
+            }}</strong>
+            {{
+                $t(
+                    'The link is valid for one hour. If you cannot find it, look in the spam folder.',
+                )
+            }}
+        </FmNotice>
         <span class="min-h-6 grow lg:hidden" />
-        <FmPulsante tipo="submit" largo :disabled="form.processing">
-            {{ status ? 'Mandami di nuovo il link' : 'Mandami il link' }}
-        </FmPulsante>
+        <FmButton type="submit" wide :disabled="form.processing">
+            {{ status ? $t('Send me the link again') : $t('Send me the link') }}
+        </FmButton>
     </form>
 </template>

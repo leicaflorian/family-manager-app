@@ -7,12 +7,12 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Le famiglie: ogni dato dell'app appartiene a una di loro.
+ * The families: every piece of data in the app belongs to one.
  */
 return new class extends Migration
 {
     /**
-     * Crea la tabella.
+     * Creates the table.
      */
     public function up(): void
     {
@@ -24,7 +24,7 @@ return new class extends Migration
     }
 
     /**
-     * Elimina la tabella.
+     * Drops the table.
      */
     public function down(): void
     {

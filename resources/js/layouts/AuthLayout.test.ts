@@ -3,57 +3,61 @@ import { describe, expect, it } from 'vite-plus/test';
 import AuthLayout from './AuthLayout.vue';
 
 describe('AuthLayout', () => {
-    it("mostra il titolo della pagina, il pannello azzurro e l'altra strada", () => {
+    it('shows the title of the page, the blue panel and the other way', () => {
         render(AuthLayout, {
             props: {
-                titolo: 'Bentornato',
-                sottotitolo: 'Entra nella tua famiglia.',
-                pannello: {
-                    titolo: 'Tutto ciò che riguarda la famiglia, in un posto solo.',
-                    testo: 'Le scadenze di tutti.',
+                title: 'Welcome back',
+                subtitle: 'Enter your family.',
+                panel: {
+                    title: 'Everything about the family, in one place.',
+                    text: 'Everyone’s deadlines.',
                 },
-                altraStrada: {
-                    testo: 'Non hai ancora Family Manager?',
-                    link: 'Iscrivi la tua famiglia',
+                otherWay: {
+                    text: 'No Family Manager yet?',
+                    link: 'Sign up your family',
                     href: '/register',
                 },
             },
-            slots: { default: '<form aria-label="Accedi"></form>' },
+            slots: { default: '<form aria-label="Log in"></form>' },
         });
 
         expect(
-            screen.getByRole('heading', { level: 1, name: 'Bentornato' }),
+            screen.getByRole('heading', { level: 1, name: 'Welcome back' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Enter your family.')).toBeInTheDocument();
+        expect(
+            screen.getByText('Everything about the family, in one place.'),
         ).toBeInTheDocument();
         expect(
-            screen.getByText('Entra nella tua famiglia.'),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByText(
-                'Tutto ciò che riguarda la famiglia, in un posto solo.',
-            ),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByRole('link', { name: 'Iscrivi la tua famiglia' }),
+            screen.getByRole('link', { name: 'Sign up your family' }),
         ).toHaveAttribute('href', '/register');
         expect(
-            screen.getByRole('form', { name: 'Accedi' }),
+            screen.getByRole('form', { name: 'Log in' }),
         ).toBeInTheDocument();
     });
 
-    it('i punti del pannello sono un elenco', () => {
+    it('lists the points of the panel', () => {
         render(AuthLayout, {
             props: {
-                titolo: 'Iscrivi la tua famiglia',
-                pannello: {
-                    titolo: 'Comincia oggi.',
-                    testo: 'Non serve la carta.',
-                    punti: ['Le scadenze', 'I documenti'],
+                title: 'Sign up your family',
+                panel: {
+                    title: 'Start today.',
+                    text: 'No card needed.',
+                    points: ['The deadlines', 'The documents'],
                 },
             },
         });
 
         expect(
             screen.getAllByRole('listitem').map((li) => li.textContent?.trim()),
-        ).toEqual(['Le scadenze', 'I documenti']);
+        ).toEqual(['The deadlines', 'The documents']);
+    });
+
+    it('shows the default sentence of the panel without one', () => {
+        render(AuthLayout, { props: { title: 'Log in' } });
+
+        expect(
+            screen.getByText('Everything about the family, in one place.'),
+        ).toBeInTheDocument();
     });
 });

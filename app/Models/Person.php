@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\RuoloPersona;
+use App\Enums\PersonRole;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,14 +15,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Una persona della famiglia (`people` di Directus), con o senza un account.
+ * A person of the family (`people` in Directus), with or without an account.
  *
  * @property int $id
  * @property int $family_id
  * @property string $first_name
  * @property string $last_name
  * @property string $initials
- * @property RuoloPersona $role
+ * @property PersonRole $role
  * @property CarbonImmutable|null $birth_date
  * @property string|null $tax_code
  * @property int|null $photo_id
@@ -32,25 +32,27 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\File|null $photo
- * @property-read \App\Models\User|null $user
- * @method static \Database\Factories\PersonFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read File|null $photo
+ * @property-read User|null $user
+ *
+ * @method static PersonFactory factory($count = null, $state = [])
  * @method static Builder<static>|Person newModelQuery()
  * @method static Builder<static>|Person newQuery()
  * @method static Builder<static>|Person query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['first_name', 'last_name', 'initials', 'role', 'birth_date', 'tax_code', 'photo_id', 'user_id', 'notes'])]
-final class Person extends DatoDellaFamiglia
+final class Person extends FamilyModel
 {
     /** @use HasFactory<PersonFactory> */
     use HasFactory;
 
     /**
-     * L'account della persona, se ne ha uno.
+     * The account of the person, if they have one.
      *
      * @return BelongsTo<User, $this>
      */
@@ -60,7 +62,7 @@ final class Person extends DatoDellaFamiglia
     }
 
     /**
-     * I documenti della persona (`documents.person_id`).
+     * The documents of the person (`documents.person_id`).
      *
      * @return HasMany<Document, $this>
      */
@@ -70,7 +72,7 @@ final class Person extends DatoDellaFamiglia
     }
 
     /**
-     * La foto della persona.
+     * The photo of the person.
      *
      * @return BelongsTo<File, $this>
      */
@@ -80,14 +82,14 @@ final class Person extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'role' => RuoloPersona::class,
+            'role' => PersonRole::class,
             'birth_date' => 'date',
         ];
     }

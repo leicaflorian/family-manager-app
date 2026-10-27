@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\Ruolo;
+use App\Enums\Role;
 use App\Models\Family;
 use App\Models\Invitation;
 use App\Models\Person;
@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 final class InvitationFactory extends Factory
 {
     /**
-     * Un invito per una persona che c'è già, che vale 7 giorni.
+     * An invitation for an existing person, valid for 7 days.
      *
      * @return array<string, mixed>
      */
@@ -26,10 +26,10 @@ final class InvitationFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'email' => fake()->unique()->safeEmail(),
-            'role' => Ruolo::Member,
+            'role' => Role::Member,
             'person_id' => fn (array $attributi) => Person::factory()->state(['family_id' => $attributi['family_id']]),
             'token' => Str::random(64),
-            'expires_at' => now()->addDays(Invitation::GIORNI),
+            'expires_at' => now()->addDays(Invitation::DAYS),
         ];
     }
 }

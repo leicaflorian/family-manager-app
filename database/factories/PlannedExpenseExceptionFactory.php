@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\TipoEccezione;
+use App\Enums\ExceptionType;
 use App\Models\Family;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class PlannedExpenseExceptionFactory extends Factory
 {
     /**
-     * Un'eccezione che salta una scadenza.
+     * An exception that skips a due date.
      *
      * @return array<string, mixed>
      */
@@ -25,7 +25,7 @@ final class PlannedExpenseExceptionFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'planned_expense_id' => fn (array $attributi) => PlannedExpense::factory()->state(['family_id' => $attributi['family_id']]),
-            'type' => TipoEccezione::Skip,
+            'type' => ExceptionType::Skip,
             'occurrence_date' => fake()->dateTimeBetween('now', '+6 months'),
         ];
     }

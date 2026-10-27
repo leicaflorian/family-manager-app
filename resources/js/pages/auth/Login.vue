@@ -1,88 +1,91 @@
 <script setup lang="ts">
 /**
- * Pagina *Accedi*: email, password e *Resta collegato* (il `remember` di Fortify),
- * con i link a *Password dimenticata* e a *Iscriviti*.
+ * *Log in* page: email, password and *Stay signed in* (the `remember` of
+ * Fortify), with the links to *Forgot password* and to *Sign up*.
  */
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import FmAvviso from '@/components/fm/FmAvviso.vue';
-import FmCampoPassword from '@/components/fm/FmCampoPassword.vue';
-import FmPulsante from '@/components/fm/FmPulsante.vue';
-import { errori } from '@/lib/errori';
+import { trans } from 'laravel-vue-i18n';
+import FmButton from '@/components/fm/FmButton.vue';
+import FmNotice from '@/components/fm/FmNotice.vue';
+import FmPasswordField from '@/components/fm/FmPasswordField.vue';
+import { errors } from '@/lib/errors';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        titolo: 'Bentornato',
-        sottotitolo: 'Entra nella tua famiglia.',
-        pannello: {
-            titolo: 'Tutto ciò che riguarda la famiglia, in un posto solo.',
-            testo: 'Le scadenze, le bollette e i documenti di tutti, con chi vive con te.',
+        title: trans('Welcome back'),
+        subtitle: trans('Enter your family.'),
+        panel: {
+            title: trans('Everything about the family, in one place.'),
+            text: trans(
+                "Everyone's deadlines, bills and documents, with the people you live with.",
+            ),
         },
-        altraStrada: {
-            testo: 'Non hai ancora Family Manager?',
-            link: 'Iscrivi la tua famiglia',
+        otherWay: {
+            text: trans('No Family Manager yet?'),
+            link: trans('Sign up your family'),
             href: register().url,
         },
     },
 });
 
 const { canResetPassword, status } = defineProps<{
-    /** Messaggio del server, per esempio dopo il cambio della password. */
+    /** Message of the server, for example after the password was changed. */
     status?: string;
-    /** Si può chiedere il link per una password nuova. */
+    /** The link for a new password can be asked for. */
     canResetPassword: boolean;
 }>();
 
 const form = useForm({ email: '', password: '', remember: true });
 
 /**
- * Manda email e password; la password si svuota comunque vada.
+ * Sends email and password; the password is emptied however it goes.
  */
-function accedi(): void {
+function logIn(): void {
     form.submit(store(), { onFinish: () => form.reset('password') });
 }
 </script>
 
 <template>
-    <Head title="Accedi" />
+    <Head :title="$t('Log in')" />
 
-    <form class="flex grow flex-col gap-3" novalidate @submit.prevent="accedi">
-        <FmAvviso v-if="status" tono="ok">{{ status }}</FmAvviso>
+    <form class="flex grow flex-col gap-3" novalidate @submit.prevent="logIn">
+        <FmNotice v-if="status" tone="ok">{{ status }}</FmNotice>
         <FormKit
             v-model="form.email"
             type="email"
-            label="Email"
+            :label="$t('Email')"
             name="email"
             autocomplete="email"
-            :errors="errori(form.errors.email)"
+            :errors="errors(form.errors.email)"
         />
-        <FmCampoPassword
+        <FmPasswordField
             v-model="form.password"
-            label="Password"
+            :label="$t('Password')"
             name="password"
-            :errors="errori(form.errors.password)"
+            :errors="errors(form.errors.password)"
         />
         <div class="flex items-center justify-between gap-2.5">
             <FormKit
                 v-model="form.remember"
                 type="checkbox"
-                label="Resta collegato"
+                :label="$t('Stay signed in')"
                 name="remember"
                 :classes="{ outer: 'mb-0' }"
             />
             <Link
                 v-if="canResetPassword"
                 :href="request()"
-                class="text-[15px] font-semibold text-azione"
+                class="text-[15px] font-semibold text-action"
             >
-                Password dimenticata?
+                {{ $t('Forgot your password?') }}
             </Link>
         </div>
         <span class="min-h-6 grow lg:hidden" />
-        <FmPulsante tipo="submit" largo :disabled="form.processing"
-            >Accedi</FmPulsante
-        >
+        <FmButton type="submit" wide :disabled="form.processing">{{
+            $t('Log in')
+        }}</FmButton>
     </form>
 </template>

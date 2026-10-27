@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\TipoEntrata;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\IncomeType;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\IncomeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,14 +15,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un'entrata incassata (`incomes`).
+ * A received income (`incomes`).
  *
  * @property int $id
  * @property int $family_id
  * @property string|null $title
  * @property numeric|null $amount
  * @property CarbonImmutable $date
- * @property TipoEntrata $type
+ * @property IncomeType $type
  * @property int|null $planned_income_id
  * @property int|null $organization_id
  * @property int|null $person_id
@@ -33,24 +33,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Employment|null $employment
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\FinancialAccount|null $financialAccount
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @property-read \App\Models\PlannedIncome|null $plannedIncome
- * @method static \Database\Factories\IncomeFactory factory($count = null, $state = [])
+ * @property-read Employment|null $employment
+ * @property-read Family $family
+ * @property-read FinancialAccount|null $financialAccount
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ * @property-read PlannedIncome|null $plannedIncome
+ *
+ * @method static IncomeFactory factory($count = null, $state = [])
  * @method static Builder<static>|Income newModelQuery()
  * @method static Builder<static>|Income newQuery()
  * @method static Builder<static>|Income query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'date', 'type', 'planned_income_id', 'organization_id', 'person_id', 'financial_account_id', 'employment_id', 'notes'])]
-final class Income extends DatoDellaFamiglia
+final class Income extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<IncomeFactory> */
     use HasFactory;
@@ -76,7 +78,7 @@ final class Income extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -86,7 +88,7 @@ final class Income extends DatoDellaFamiglia
     }
 
     /**
-     * Il conto collegato.
+     * The linked financial account.
      *
      * @return BelongsTo<FinancialAccount, $this>
      */
@@ -96,7 +98,7 @@ final class Income extends DatoDellaFamiglia
     }
 
     /**
-     * Il lavoro collegato.
+     * The linked employment.
      *
      * @return BelongsTo<Employment, $this>
      */
@@ -106,7 +108,7 @@ final class Income extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
@@ -115,7 +117,7 @@ final class Income extends DatoDellaFamiglia
         return [
             'amount' => 'decimal:2',
             'date' => 'date',
-            'type' => TipoEntrata::class,
+            'type' => IncomeType::class,
         ];
     }
 }

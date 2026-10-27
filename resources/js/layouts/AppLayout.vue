@@ -1,40 +1,40 @@
 <script setup lang="ts">
 /**
- * Il layout delle pagine dell'app per chi è entrato: sotto i 1024 px la barra in
- * basso del telefono, dai 1024 px la barra laterale. La sezione segnata viene
- * dall'indirizzo della pagina.
+ * The layout of the pages of the app for who is signed in: below 1024 px the
+ * bottom bar of the phone, from 1024 px the sidebar. The marked section comes
+ * from the address of the page.
  */
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import FmBarraLaterale from '@/components/fm/FmBarraLaterale.vue';
-import FmBarraSotto from '@/components/fm/FmBarraSotto.vue';
-import type { Sezione } from '@/components/fm/navigazione';
-import { sezioneDi, vociDellaBarra } from '@/components/fm/navigazione';
+import FmBottomBar from '@/components/fm/FmBottomBar.vue';
+import FmSidebar from '@/components/fm/FmSidebar.vue';
+import type { Section } from '@/components/fm/navigation';
+import { navigationItems, sectionOf } from '@/components/fm/navigation';
 import { Toaster } from '@/components/ui/sonner';
 
 defineSlots<{
-    /** La pagina. */
+    /** The page. */
     default: () => unknown;
 }>();
 
-const pagina = usePage();
-const voci = vociDellaBarra();
+const page = usePage();
+const items = navigationItems();
 
-const attiva = computed((): Sezione =>
-    sezioneDi(pagina.url.split('?')[0] ?? '/', voci),
+const active = computed((): Section =>
+    sectionOf(page.url.split('?')[0] ?? '/', items),
 );
-const utente = computed((): string => pagina.props.auth?.user?.name ?? '');
-const famiglia = computed((): string => pagina.props.famiglia?.name ?? '');
+const user = computed((): string => page.props.auth?.user?.name ?? '');
+const family = computed((): string => page.props.family?.name ?? '');
 </script>
 
 <template>
-    <div class="flex min-h-dvh bg-sfondo text-testo">
-        <FmBarraLaterale
+    <div class="flex min-h-dvh bg-canvas text-ink">
+        <FmSidebar
             class="sticky top-0 hidden h-dvh lg:flex"
-            :attiva="attiva"
-            :voci="voci"
-            :famiglia="famiglia"
-            :utente="utente"
+            :active="active"
+            :items="items"
+            :family="family"
+            :user="user"
         />
         <div class="flex min-w-0 grow flex-col">
             <main class="grow px-5 pt-4 pb-6 lg:px-10 lg:pt-8 lg:pb-12">
@@ -45,7 +45,7 @@ const famiglia = computed((): string => pagina.props.famiglia?.name ?? '');
                 </div>
             </main>
             <div class="sticky bottom-0 z-30 lg:hidden">
-                <FmBarraSotto :attiva="attiva" :voci="voci" />
+                <FmBottomBar :active="active" :items="items" />
             </div>
         </div>
         <Toaster />

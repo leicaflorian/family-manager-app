@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\Ruolo;
+use App\Enums\Role;
 use App\Models\Family;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -30,7 +30,7 @@ class UserFactory extends Factory
     {
         return [
             'family_id' => Family::factory(),
-            'role' => Ruolo::Member,
+            'role' => Role::Member,
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
@@ -40,12 +40,12 @@ class UserFactory extends Factory
     }
 
     /**
-     * Un account che può tutto nella sua famiglia.
+     * An account that can do everything in its family.
      */
     public function admin(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'role' => Ruolo::Admin,
+            'role' => Role::Admin,
         ]);
     }
 

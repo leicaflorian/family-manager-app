@@ -7,15 +7,15 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 
 /**
- * I dati di prova dell'app: la famiglia Bianchi della tela.
+ * The test data of the app: the Bianchi family of the canvas.
  */
 final class DatabaseSeeder extends Seeder
 {
     /**
-     * Riempie il database con i dati di prova.
+     * Fills the database with the test data.
      */
     public function run(): void
     {
-        $this->call(FamigliaBianchiSeeder::class);
+        $this->call(BianchiFamilySeeder::class);
     }
 }

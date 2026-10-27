@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoUtenza;
-use App\Enums\TipoUtenza;
+use App\Enums\UtilityStatus;
+use App\Enums\UtilityType;
 use App\Models\Family;
 use App\Models\Utility;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class UtilityFactory extends Factory
 {
     /**
-     * Un'utenza della luce.
+     * An electricity utility.
      *
      * @return array<string, mixed>
      */
@@ -24,8 +24,8 @@ final class UtilityFactory extends Factory
     {
         return [
             'family_id' => Family::factory(),
-            'type' => TipoUtenza::Electricity,
-            'status' => StatoUtenza::Active,
+            'type' => UtilityType::Electricity,
+            'status' => UtilityStatus::Active,
             'customer_code' => fake()->numerify('########'),
         ];
     }

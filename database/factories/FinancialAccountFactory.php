@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoConto;
-use App\Enums\TipoConto;
+use App\Enums\FinancialAccountStatus;
+use App\Enums\FinancialAccountType;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class FinancialAccountFactory extends Factory
 {
     /**
-     * Un conto corrente.
+     * A current account.
      *
      * @return array<string, mixed>
      */
@@ -25,8 +25,8 @@ final class FinancialAccountFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'name' => fake()->randomElement(['Conto BPER', 'Conto Intesa', 'Conto Fineco']),
-            'type' => TipoConto::CheckingAccount,
-            'status' => StatoConto::Active,
+            'type' => FinancialAccountType::CheckingAccount,
+            'status' => FinancialAccountStatus::Active,
             'last_four_digits' => fake()->numerify('####'),
         ];
     }

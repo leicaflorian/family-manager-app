@@ -2,40 +2,40 @@
 
 declare(strict_types=1);
 
-use App\Support\Schema\Colonne;
+use App\Support\Schema\Columns;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Il bilancio: categorie delle spese, spese e entrate previste con le loro
- * eccezioni, spese e entrate (cartella `budget` di Directus). In fondo collega
- * `expense_id` delle visite e delle manutenzioni.
+ * The budget: expense categories, planned expenses and incomes with their
+ * exceptions, expenses and incomes (folder `budget` in Directus). At the end it
+ * links `expense_id` of the health events and of the maintenance records.
  */
 return new class extends Migration
 {
     /**
-     * Crea le tabelle.
+     * Creates the tables.
      */
     public function up(): void
     {
         Schema::create('expense_categories', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
+            Columns::family($table);
             $table->string('name');
             $table->foreignId('parent_id')->nullable()->constrained('expense_categories')->nullOnDelete();
             $table->string('icon')->nullable();
             $table->string('color')->nullable();
             $table->integer('sort')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         Schema::create('planned_expenses', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
+            Columns::family($table);
             $table->string('title');
             $table->decimal('amount', 10, 2);
-            Colonne::facoltativo($table, 'category_id', 'expense_categories');
+            Columns::optional($table, 'category_id', 'expense_categories');
             $table->boolean('is_recurring')->default(true);
             $table->integer('interval')->default(1);
             $table->string('interval_unit')->default('month');
@@ -43,52 +43,52 @@ return new class extends Migration
             $table->date('end_date')->nullable();
             $table->boolean('is_estimated')->default(false);
             $table->boolean('is_auto_created')->default(false);
-            Colonne::facoltativo($table, 'organization_id', 'organizations');
-            Colonne::facoltativo($table, 'financial_account_id', 'financial_accounts');
-            Colonne::facoltativo($table, 'person_id', 'people');
-            Colonne::facoltativo($table, 'utility_id', 'utilities');
-            Colonne::facoltativo($table, 'insurance_policy_id', 'insurance_policies');
-            Colonne::facoltativo($table, 'loan_id', 'loans');
-            Colonne::facoltativo($table, 'enrollment_id', 'enrollments');
-            Colonne::facoltativo($table, 'home_id', 'homes');
-            Colonne::facoltativo($table, 'vehicle_id', 'vehicles');
-            Colonne::facoltativo($table, 'subscription_id', 'subscriptions');
+            Columns::optional($table, 'organization_id', 'organizations');
+            Columns::optional($table, 'financial_account_id', 'financial_accounts');
+            Columns::optional($table, 'person_id', 'people');
+            Columns::optional($table, 'utility_id', 'utilities');
+            Columns::optional($table, 'insurance_policy_id', 'insurance_policies');
+            Columns::optional($table, 'loan_id', 'loans');
+            Columns::optional($table, 'enrollment_id', 'enrollments');
+            Columns::optional($table, 'home_id', 'homes');
+            Columns::optional($table, 'vehicle_id', 'vehicles');
+            Columns::optional($table, 'subscription_id', 'subscriptions');
             $table->text('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         Schema::create('planned_expense_exceptions', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
-            Colonne::obbligatorio($table, 'planned_expense_id', 'planned_expenses');
+            Columns::family($table);
+            Columns::required($table, 'planned_expense_id', 'planned_expenses');
             $table->string('type')->default('skip');
             $table->date('occurrence_date')->nullable();
             $table->decimal('amount_override', 10, 2)->nullable();
             $table->date('date_override')->nullable();
             $table->integer('sort')->nullable();
             $table->string('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         Schema::create('expenses', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
+            Columns::family($table);
             $table->string('title');
             $table->decimal('amount', 10, 2);
             $table->date('date')->nullable();
-            Colonne::facoltativo($table, 'planned_expense_id', 'planned_expenses');
-            Colonne::facoltativo($table, 'category_id', 'expense_categories');
-            Colonne::facoltativo($table, 'organization_id', 'organizations');
-            Colonne::facoltativo($table, 'financial_account_id', 'financial_accounts');
-            Colonne::facoltativo($table, 'person_id', 'people');
+            Columns::optional($table, 'planned_expense_id', 'planned_expenses');
+            Columns::optional($table, 'category_id', 'expense_categories');
+            Columns::optional($table, 'organization_id', 'organizations');
+            Columns::optional($table, 'financial_account_id', 'financial_accounts');
+            Columns::optional($table, 'person_id', 'people');
             $table->decimal('fee_amount', 10, 2)->nullable();
             $table->text('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         Schema::create('planned_incomes', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
+            Columns::family($table);
             $table->string('title')->nullable();
             $table->decimal('amount', 10, 2)->nullable();
             $table->string('type');
@@ -98,41 +98,41 @@ return new class extends Migration
             $table->date('start_date');
             $table->date('end_date')->nullable();
             $table->boolean('is_estimated')->default(false);
-            Colonne::facoltativo($table, 'organization_id', 'organizations');
-            Colonne::facoltativo($table, 'person_id', 'people');
-            Colonne::facoltativo($table, 'financial_account_id', 'financial_accounts');
-            Colonne::facoltativo($table, 'employment_id', 'employments');
+            Columns::optional($table, 'organization_id', 'organizations');
+            Columns::optional($table, 'person_id', 'people');
+            Columns::optional($table, 'financial_account_id', 'financial_accounts');
+            Columns::optional($table, 'employment_id', 'employments');
             $table->text('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         Schema::create('planned_income_exceptions', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
-            Colonne::obbligatorio($table, 'planned_income_id', 'planned_incomes');
+            Columns::family($table);
+            Columns::required($table, 'planned_income_id', 'planned_incomes');
             $table->string('type')->default('skip');
             $table->date('occurrence_date');
             $table->decimal('amount_override', 10, 2)->nullable();
             $table->date('date_override')->nullable();
             $table->integer('sort')->nullable();
             $table->string('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         Schema::create('incomes', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
+            Columns::family($table);
             $table->string('title')->nullable();
             $table->decimal('amount', 10, 2)->nullable();
             $table->date('date');
             $table->string('type');
-            Colonne::facoltativo($table, 'planned_income_id', 'planned_incomes');
-            Colonne::facoltativo($table, 'organization_id', 'organizations');
-            Colonne::facoltativo($table, 'person_id', 'people');
-            Colonne::facoltativo($table, 'financial_account_id', 'financial_accounts');
-            Colonne::facoltativo($table, 'employment_id', 'employments');
+            Columns::optional($table, 'planned_income_id', 'planned_incomes');
+            Columns::optional($table, 'organization_id', 'organizations');
+            Columns::optional($table, 'person_id', 'people');
+            Columns::optional($table, 'financial_account_id', 'financial_accounts');
+            Columns::optional($table, 'employment_id', 'employments');
             $table->text('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
 
         foreach (['health_events', 'maintenance_records'] as $tabella) {
@@ -143,7 +143,7 @@ return new class extends Migration
     }
 
     /**
-     * Elimina le tabelle, al contrario.
+     * Drops the tables, in reverse order.
      */
     public function down(): void
     {

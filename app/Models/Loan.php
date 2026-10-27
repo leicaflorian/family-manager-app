@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoFinanziamento;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\LoanStatus;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\LoanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,12 +15,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un finanziamento o un mutuo (`loans`).
+ * A loan or a mortgage (`loans`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $name
- * @property StatoFinanziamento $status
+ * @property LoanStatus $status
  * @property int|null $organization_id
  * @property int|null $person_id
  * @property int|null $financial_account_id
@@ -40,22 +40,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\FinancialAccount|null $financialAccount
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @method static \Database\Factories\LoanFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read FinancialAccount|null $financialAccount
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ *
+ * @method static LoanFactory factory($count = null, $state = [])
  * @method static Builder<static>|Loan newModelQuery()
  * @method static Builder<static>|Loan newQuery()
  * @method static Builder<static>|Loan query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'organization_id', 'person_id', 'financial_account_id', 'total_amount', 'installments_count', 'installment_amount', 'final_installment_amount', 'total_to_pay', 'cost', 'installments_paid', 'installments_left', 'residual_amount', 'start_date', 'end_date', 'notes'])]
-final class Loan extends DatoDellaFamiglia
+final class Loan extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<LoanFactory> */
     use HasFactory;
@@ -71,7 +73,7 @@ final class Loan extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -81,7 +83,7 @@ final class Loan extends DatoDellaFamiglia
     }
 
     /**
-     * Il conto collegato.
+     * The linked financial account.
      *
      * @return BelongsTo<FinancialAccount, $this>
      */
@@ -91,14 +93,14 @@ final class Loan extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'status' => StatoFinanziamento::class,
+            'status' => LoanStatus::class,
             'total_amount' => 'decimal:2',
             'installments_count' => 'integer',
             'installment_amount' => 'decimal:2',

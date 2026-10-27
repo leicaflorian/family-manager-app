@@ -12,16 +12,16 @@ use Spatie\TypeScriptTransformer\TypeScriptTransformerConfigFactory;
 use Spatie\TypeScriptTransformer\Writers\GlobalNamespaceWriter;
 
 /**
- * Genera i tipi TypeScript delle classi dati (`App\Data\…`) e degli enum.
+ * Generates the TypeScript types of the data classes (`App\Data\…`) and of the enums.
  *
- * Il tipo di un documento si scrive una volta sola, in PHP: le pagine Vue lo
- * leggono da `resources/js/generated/generated.d.ts` (`App.Data.DocumentoData`),
- * che si rifà con `sail artisan typescript:transform`.
+ * The type of a document is written once, in PHP: the Vue pages read it from
+ * `resources/js/generated/generated.d.ts` (`App.Data.DocumentData`), which is
+ * regenerated with `sail artisan typescript:transform`.
  */
 final class TypeScriptTransformerServiceProvider extends BaseTypeScriptTransformerServiceProvider
 {
     /**
-     * Sceglie cosa trasformare e dove scriverlo.
+     * Chooses what to transform and where to write it.
      */
     protected function configure(TypeScriptTransformerConfigFactory $config): void
     {

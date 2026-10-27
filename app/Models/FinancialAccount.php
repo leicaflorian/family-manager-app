@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoConto;
-use App\Enums\TipoConto;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\FinancialAccountStatus;
+use App\Enums\FinancialAccountType;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\FinancialAccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,13 +16,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un conto, una carta o un deposito (`financial_accounts`). Mai IBAN completi, numeri di carta, PIN o password.
+ * An account, a card or a deposit (`financial_accounts`). Never full IBANs, card numbers, PINs or passwords.
  *
  * @property int $id
  * @property int $family_id
  * @property string $name
- * @property TipoConto $type
- * @property StatoConto $status
+ * @property FinancialAccountType $type
+ * @property FinancialAccountStatus $status
  * @property int|null $organization_id
  * @property int|null $person_id
  * @property string|null $last_four_digits
@@ -32,21 +32,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @method static \Database\Factories\FinancialAccountFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ *
+ * @method static FinancialAccountFactory factory($count = null, $state = [])
  * @method static Builder<static>|FinancialAccount newModelQuery()
  * @method static Builder<static>|FinancialAccount newQuery()
  * @method static Builder<static>|FinancialAccount query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'type', 'status', 'organization_id', 'person_id', 'last_four_digits', 'is_default', 'notes'])]
-final class FinancialAccount extends DatoDellaFamiglia
+final class FinancialAccount extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<FinancialAccountFactory> */
     use HasFactory;
@@ -62,7 +64,7 @@ final class FinancialAccount extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -72,15 +74,15 @@ final class FinancialAccount extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'type' => TipoConto::class,
-            'status' => StatoConto::class,
+            'type' => FinancialAccountType::class,
+            'status' => FinancialAccountStatus::class,
             'is_default' => 'boolean',
         ];
     }

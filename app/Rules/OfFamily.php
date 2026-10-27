@@ -11,31 +11,31 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Translation\PotentiallyTranslatedString;
 
 /**
- * Come la regola `exists`, ma solo tra i dati della famiglia corrente: un id
- * di un'altra famiglia (un ente dei Rossi in un documento dei Bianchi) non
- * passa, anche se esiste.
+ * Like the `exists` rule, but only among the data of the current family: an id
+ * of another family (an organization of the Rossis in a document of the
+ * Bianchis) does not pass, even if it exists.
  */
 final readonly class OfFamily implements ValidationRule
 {
     /**
-     * @param  string  $table  la tabella in cui cercare l'id, per esempio `organizations`
+     * @param  string  $table  the table to look for the id in, for example `organizations`
      */
     public function __construct(private string $table) {}
 
     /**
-     * Controlla che l'id esista nella tabella e sia della famiglia corrente.
+     * Checks that the id exists in the table and belongs to the current family.
      *
      * @param  Closure(string, ?string=):PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $famiglia = CurrentFamily::id();
+        $family = CurrentFamily::id();
 
-        $esiste = $famiglia !== null
+        $exists = $family !== null
             && (is_int($value) || (is_string($value) && ctype_digit($value)))
-            && DB::table($this->table)->where('id', $value)->where('family_id', $famiglia)->exists();
+            && DB::table($this->table)->where('id', $value)->where('family_id', $family)->exists();
 
-        if (! $esiste) {
+        if (! $exists) {
             $fail('validation.exists')->translate();
         }
     }

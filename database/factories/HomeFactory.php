@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoCasa;
+use App\Enums\HomeStatus;
 use App\Models\Family;
 use App\Models\Home;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class HomeFactory extends Factory
 {
     /**
-     * Una casa con un indirizzo italiano.
+     * A home with an Italian address.
      *
      * @return array<string, mixed>
      */
@@ -24,7 +24,7 @@ final class HomeFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'name' => 'Casa di '.fake()->streetName(),
-            'status' => StatoCasa::Active,
+            'status' => HomeStatus::Active,
             'address' => fake()->streetAddress(),
             'city' => fake()->city(),
             'country' => 'Italia',

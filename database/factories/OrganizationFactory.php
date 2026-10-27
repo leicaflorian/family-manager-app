@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\TipoEnte;
+use App\Enums\OrganizationType;
 use App\Models\Family;
 use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class OrganizationFactory extends Factory
 {
     /**
-     * Un ente con un nome e un tipo verosimili.
+     * An organization with a plausible name and type.
      *
      * @return array<string, mixed>
      */
@@ -24,7 +24,7 @@ final class OrganizationFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'name' => fake()->randomElement(['Enel Energia', 'Hera', 'Fastweb', 'UnipolSai', 'Comune di Bologna', 'BPER Banca', 'Studio Ferri']),
-            'types' => [TipoEnte::Other],
+            'types' => [OrganizationType::Other],
             'email' => fake()->companyEmail(),
             'phone' => fake()->phoneNumber(),
         ];

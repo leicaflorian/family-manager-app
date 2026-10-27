@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoAbbonamento;
-use App\Enums\TipoAbbonamento;
+use App\Enums\SubscriptionStatus;
+use App\Enums\SubscriptionType;
 use App\Models\Family;
 use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class SubscriptionFactory extends Factory
 {
     /**
-     * Un abbonamento in streaming.
+     * A streaming subscription.
      *
      * @return array<string, mixed>
      */
@@ -25,8 +25,8 @@ final class SubscriptionFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'name' => fake()->randomElement(['Netflix', 'Spotify', 'iCloud']),
-            'type' => TipoAbbonamento::Streaming,
-            'status' => StatoAbbonamento::Active,
+            'type' => SubscriptionType::Streaming,
+            'status' => SubscriptionStatus::Active,
             'is_auto_renew' => true,
         ];
     }

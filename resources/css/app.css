@@ -8,55 +8,55 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Gli stati di un campo FormKit, che li scrive come attributi sul suo contenitore:
- * formkit-errori per gli errori che arrivano dal server o dai controlli.
+ * The states of a FormKit field, which writes them as attributes on its wrapper:
+ * formkit-errors for the errors that come from the server or from the checks.
  */
-@custom-variant formkit-errori (&:where([data-errors] *, [data-invalid] *));
-@custom-variant formkit-disattivato (&:where([data-disabled], [data-disabled] *));
+@custom-variant formkit-errors (&:where([data-errors] *, [data-invalid] *));
+@custom-variant formkit-disabled (&:where([data-disabled], [data-disabled] *));
 
 /*
- * Colori della tela di Claude Design (pagine *Componenti*).
- * static: i colori delle aree si usano anche da var() negli stili inline,
- * che Tailwind non vede.
+ * Colours of the Claude Design canvas (*Components* pages).
+ * static: the colours of the areas are also used from var() in inline styles,
+ * which Tailwind does not see.
  */
 @theme static {
     --color-brand: #3399ff;
-    --color-azione: #0070e0;
-    --color-azione-scuro: #0059b3;
-    --color-azione-tenue: #eaf4ff;
-    --color-sfondo: #f4f6fa;
-    --color-testo: #18212f;
-    --color-secondario: #5a6575;
-    --color-bordo: #cdd5e0;
-    --color-riga: #eef1f5;
-    --color-scaduto: #c4283f;
-    --color-attenzione: #9a4308;
-    --color-attenzione-sfondo: #fff1e7;
-    --color-pagato: #1b7f5f;
+    --color-action: #0070e0;
+    --color-action-dark: #0059b3;
+    --color-action-soft: #eaf4ff;
+    --color-canvas: #f4f6fa;
+    --color-ink: #18212f;
+    --color-ink-soft: #5a6575;
+    --color-edge: #cdd5e0;
+    --color-divider: #eef1f5;
+    --color-overdue: #c4283f;
+    --color-warning: #9a4308;
+    --color-warning-soft: #fff1e7;
+    --color-paid: #1b7f5f;
 
-    /* Colore di ogni area: chiaro per pallini e icone, scuro per testo */
-    --color-casa: #f76b15;
-    --color-casa-scuro: #b4500f;
-    --color-veicoli: #0797b9;
-    --color-veicoli-scuro: #067891;
-    --color-assicurazioni: #8e4ec6;
-    --color-assicurazioni-scuro: #7a44ae;
-    --color-banche: #3e63dd;
-    --color-banche-scuro: #3550b5;
-    --color-salute: #c13fb8;
-    --color-salute-scuro: #9e2f96;
-    --color-scuola: #e5a50a;
-    --color-scuola-scuro: #8a6206;
-    --color-lavoro: #6e9f18;
-    --color-lavoro-scuro: #4f7311;
-    --color-abbonamenti: #5b5bd6;
-    --color-abbonamenti-scuro: #4747b8;
-    --color-pratiche: #a0714f;
-    --color-pratiche-scuro: #7d5537;
-    --color-uscite: #e35169;
-    --color-entrate: #2ecda7;
-    --color-trasversali: #80838d;
-    --color-trasversali-scuro: #5d6069;
+    /* Colour of each area: light for dots and icons, dark for text */
+    --color-home: #f76b15;
+    --color-home-dark: #b4500f;
+    --color-vehicles: #0797b9;
+    --color-vehicles-dark: #067891;
+    --color-insurance: #8e4ec6;
+    --color-insurance-dark: #7a44ae;
+    --color-banks: #3e63dd;
+    --color-banks-dark: #3550b5;
+    --color-health: #c13fb8;
+    --color-health-dark: #9e2f96;
+    --color-school: #e5a50a;
+    --color-school-dark: #8a6206;
+    --color-work: #6e9f18;
+    --color-work-dark: #4f7311;
+    --color-subscriptions: #5b5bd6;
+    --color-subscriptions-dark: #4747b8;
+    --color-paperwork: #a0714f;
+    --color-paperwork-dark: #7d5537;
+    --color-expenses: #e35169;
+    --color-income: #2ecda7;
+    --color-general: #80838d;
+    --color-general-dark: #5d6069;
 }
 
 @theme inline {
@@ -214,8 +214,8 @@
 
 @layer base {
     body {
-        background: var(--color-sfondo);
-        color: var(--color-testo);
+        background: var(--color-canvas);
+        color: var(--color-ink);
         -webkit-tap-highlight-color: transparent;
     }
 }

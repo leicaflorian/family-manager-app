@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
- * Un file caricato (`files`, al posto di `directus_files`). Il file vero sta sul disco privato.
+ * An uploaded file (`files`, instead of `directus_files`). The actual file sits on the private disk.
  *
  * @property int $id
  * @property int $family_id
@@ -24,21 +24,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\Family $family
- * @method static \Database\Factories\FileFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ *
+ * @method static FileFactory factory($count = null, $state = [])
  * @method static Builder<static>|File newModelQuery()
  * @method static Builder<static>|File newQuery()
  * @method static Builder<static>|File query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size'])]
-final class File extends DatoDellaFamiglia
+final class File extends FamilyModel
 {
     /** @use HasFactory<FileFactory> */
     use HasFactory;
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */

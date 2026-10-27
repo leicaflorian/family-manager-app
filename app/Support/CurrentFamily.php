@@ -8,83 +8,83 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * La famiglia di cui si stanno leggendo e scrivendo i dati.
+ * The family whose data is being read and written.
  *
- * In una richiesta è la famiglia di chi è entrato. Fuori da una richiesta
- * (comandi, seeder, test) si imposta a mano con `set()` e si toglie con
- * `clear()`. Lo stato vive nel container di Laravel come istanza *scoped*:
- * riparte vuoto a ogni richiesta e a ogni test, così una famiglia impostata a
- * mano non resta attaccata a quella dopo.
+ * In a request it is the family of whoever signed in. Outside a request
+ * (commands, seeders, tests) it is set by hand with `set()` and removed with
+ * `clear()`. The state lives in Laravel's container as a *scoped* instance: it
+ * starts empty on every request and every test, so a family set by hand does
+ * not stick to the next one.
  */
 final class CurrentFamily
 {
-    /** La famiglia impostata a mano, che vale più di quella di chi è entrato. */
-    private ?int $impostata = null;
+    /** The family set by hand, which wins over the signed-in user's. */
+    private ?int $override = null;
 
     /**
-     * L'id della famiglia corrente, o null se non c'è.
+     * The id of the current family, or null if there is none.
      */
     public static function id(): ?int
     {
-        $corrente = self::istanza();
+        $current = self::instance();
 
-        if ($corrente->impostata !== null) {
-            return $corrente->impostata;
+        if ($current->override !== null) {
+            return $current->override;
         }
 
-        $utente = Auth::user();
+        $user = Auth::user();
 
-        return $utente instanceof User ? $utente->family_id : null;
+        return $user instanceof User ? $user->family_id : null;
     }
 
     /**
-     * Imposta a mano la famiglia, per lavorare fuori da una richiesta.
+     * Sets the family by hand, to work outside a request.
      *
-     * @param  int  $id  l'id della famiglia
+     * @param  int  $id  the family id
      */
     public static function set(int $id): void
     {
-        self::istanza()->impostata = $id;
+        self::instance()->override = $id;
     }
 
     /**
-     * Esegue un lavoro con la famiglia impostata a mano, poi rimette quella di prima.
+     * Runs some work with the family set by hand, then puts back the previous one.
      *
-     * Serve a chi scrive i dati di una famiglia senza esserci entrato: l'iscrizione,
-     * il seeder, la copia da Directus. Quella di prima torna anche se il lavoro si
-     * ferma con un'eccezione.
+     * For whoever writes a family's data without being signed in to it:
+     * registration, the seeder, the copy from Directus. The previous family comes
+     * back even if the work stops with an exception.
      *
      * @template T
      *
-     * @param  int  $id  l'id della famiglia
-     * @param  callable(): T  $lavoro  il lavoro da fare
-     * @return T quello che restituisce il lavoro
+     * @param  int  $id  the family id
+     * @param  callable(): T  $work  the work to run
+     * @return T whatever the work returns
      */
-    public static function per(int $id, callable $lavoro): mixed
+    public static function using(int $id, callable $work): mixed
     {
-        $corrente = self::istanza();
-        $prima = $corrente->impostata;
-        $corrente->impostata = $id;
+        $current = self::instance();
+        $previous = $current->override;
+        $current->override = $id;
 
         try {
-            return $lavoro();
+            return $work();
         } finally {
-            $corrente->impostata = $prima;
+            $current->override = $previous;
         }
     }
 
     /**
-     * Toglie la famiglia impostata a mano.
+     * Removes the family set by hand.
      */
     public static function clear(): void
     {
-        self::istanza()->impostata = null;
+        self::instance()->override = null;
     }
 
     /**
-     * L'istanza del container che tiene la famiglia impostata.
+     * The container instance that holds the family set by hand.
      */
-    private static function istanza(): self
+    private static function instance(): self
     {
         return resolve(self::class);
     }

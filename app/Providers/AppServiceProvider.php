@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Models\DatoDellaFamiglia;
 use App\Models\Document;
+use App\Models\FamilyModel;
 use App\Models\User;
 use App\Policies\DocumentPolicy;
-use App\Policies\PolicyDellaFamiglia;
+use App\Policies\FamilyPolicy;
 use App\Support\CurrentFamily;
-use App\Support\Schede;
+use App\Support\Linkables;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
@@ -26,7 +26,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Una per richiesta (e per test): la famiglia impostata a mano non passa alla successiva
+        // One per request (and per test): a family set by hand does not carry over to the next one
         $this->app->scoped(CurrentFamily::class);
     }
 
@@ -40,14 +40,14 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Tutti i dati della famiglia hanno gli stessi permessi (PolicyDellaFamiglia),
-     * tranne i documenti, che anche un `member` carica e modifica.
+     * All the data of the family has the same permissions (FamilyPolicy),
+     * except documents, which a `member` uploads and edits too.
      */
     protected function configurePolicies(): void
     {
-        Gate::guessPolicyNamesUsing(fn (string $classe): array => match (true) {
-            $classe === Document::class => [DocumentPolicy::class],
-            is_subclass_of($classe, DatoDellaFamiglia::class) => [PolicyDellaFamiglia::class],
+        Gate::guessPolicyNamesUsing(fn (string $class): array => match (true) {
+            $class === Document::class => [DocumentPolicy::class],
+            is_subclass_of($class, FamilyModel::class) => [FamilyPolicy::class],
             default => [],
         });
     }
@@ -59,16 +59,16 @@ class AppServiceProvider extends ServiceProvider
     {
         Date::use(CarbonImmutable::class);
 
-        // Nei collegamenti polimorfici si scrive il tipo (`utility`), mai il nome della classe
-        Relation::enforceMorphMap([...Schede::TIPI, 'user' => User::class]);
+        // Polymorphic links store the type (`utility`), never the class name
+        Relation::enforceMorphMap([...Linkables::TYPES, 'user' => User::class]);
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),
         );
 
-        // Almeno 10 caratteri, come dicono i moduli. Niente maiuscole e simboli
-        // obbligatori: l'app è per genitori, e una frase lunga è già sicura.
-        // Online si scartano anche le password già finite in una fuga di dati.
+        // At least 10 characters, as the forms say. No mandatory capitals or
+        // symbols: the app is for parents, and a long sentence is already safe.
+        // Online, passwords already exposed in a data breach are rejected too.
         Password::defaults(fn (): Password => app()->isProduction()
             ? Password::min(10)->uncompromised()
             : Password::min(10),

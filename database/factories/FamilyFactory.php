@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class FamilyFactory extends Factory
 {
     /**
-     * Una famiglia con un cognome italiano.
+     * A family with an Italian last name.
      *
      * @return array<string, mixed>
      */
@@ -26,7 +26,7 @@ final class FamilyFactory extends Factory
     }
 
     /**
-     * Una famiglia appena iscritta, che non ha ancora fatto il *Benvenuto*.
+     * A family just registered, which has not done the *Welcome* yet.
      */
     public function daAccogliere(): self
     {

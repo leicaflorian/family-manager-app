@@ -1,25 +1,25 @@
 <script setup lang="ts">
 /**
- * Il logo di Family Manager: il tetto e la famiglia, bianchi sul quadrato azzurro.
- * La versione bianca, senza quadrato, va sul pannello azzurro delle pagine di accesso.
+ * The Family Manager logo: the roof and the family, white on the light blue square.
+ * The white version, without the square, goes on the blue panel of the sign-in pages.
  */
-const { dimensione = 36, bianco = false } = defineProps<{
-    /** Il lato in pixel. */
-    dimensione?: number;
-    /** Solo il disegno bianco, senza il quadrato. */
-    bianco?: boolean;
+const { size = 36, white = false } = defineProps<{
+    /** The side in pixels. */
+    size?: number;
+    /** Only the white drawing, without the square. */
+    white?: boolean;
 }>();
 </script>
 
 <template>
     <svg
         aria-hidden="true"
-        :width="dimensione"
-        :height="dimensione"
+        :width="size"
+        :height="size"
         viewBox="0 0 500 500"
         class="shrink-0"
     >
-        <rect v-if="!bianco" width="500" height="500" fill="#3399FF" rx="80" />
+        <rect v-if="!white" width="500" height="500" fill="#3399FF" rx="80" />
         <path
             d="M 60,300 L 250,110 L 440,300"
             stroke="#FFFFFF"

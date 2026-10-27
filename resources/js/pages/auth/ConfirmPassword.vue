@@ -1,22 +1,24 @@
 <script setup lang="ts">
 /**
- * Pagina *Conferma la password*: prima di una cosa delicata (per esempio
- * cambiare la password) si riscrive quella di adesso.
+ * *Confirm the password* page: before something delicate (for example changing
+ * the password) the current one is written again.
  */
 import { Head, useForm } from '@inertiajs/vue3';
-import FmCampoPassword from '@/components/fm/FmCampoPassword.vue';
-import FmPulsante from '@/components/fm/FmPulsante.vue';
-import { errori } from '@/lib/errori';
+import { trans } from 'laravel-vue-i18n';
+import FmButton from '@/components/fm/FmButton.vue';
+import FmPasswordField from '@/components/fm/FmPasswordField.vue';
+import { errors } from '@/lib/errors';
 import { store } from '@/routes/password/confirm';
 
 defineOptions({
     layout: {
-        titolo: 'Conferma la password',
-        sottotitolo:
-            'Per sicurezza, prima di andare avanti riscrivi la tua password.',
-        pannello: {
-            titolo: 'Solo un controllo.',
-            testo: 'Lo chiediamo prima delle cose delicate.',
+        title: trans('Confirm the password'),
+        subtitle: trans(
+            'For safety, write your password again before going on.',
+        ),
+        panel: {
+            title: trans('Just a check.'),
+            text: trans('We ask for it before the delicate things.'),
         },
     },
 });
@@ -24,30 +26,26 @@ defineOptions({
 const form = useForm({ password: '' });
 
 /**
- * Manda la password; si svuota comunque vada.
+ * Sends the password; it is emptied however it goes.
  */
-function conferma(): void {
+function confirm(): void {
     form.submit(store(), { onFinish: () => form.reset('password') });
 }
 </script>
 
 <template>
-    <Head title="Conferma la password" />
+    <Head :title="$t('Confirm the password')" />
 
-    <form
-        class="flex grow flex-col gap-3"
-        novalidate
-        @submit.prevent="conferma"
-    >
-        <FmCampoPassword
+    <form class="flex grow flex-col gap-3" novalidate @submit.prevent="confirm">
+        <FmPasswordField
             v-model="form.password"
-            label="Password"
+            :label="$t('Password')"
             name="password"
-            :errors="errori(form.errors.password)"
+            :errors="errors(form.errors.password)"
         />
         <span class="min-h-6 grow lg:hidden" />
-        <FmPulsante tipo="submit" largo :disabled="form.processing"
-            >Conferma</FmPulsante
-        >
+        <FmButton type="submit" wide :disabled="form.processing">{{
+            $t('Confirm')
+        }}</FmButton>
     </form>
 </template>

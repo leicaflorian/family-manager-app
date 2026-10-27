@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoVeicolo;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\VehicleStatus;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\VehicleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,12 +16,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Un veicolo della famiglia (`vehicles`).
+ * A vehicle of the family (`vehicles`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $name
- * @property StatoVeicolo $status
+ * @property VehicleStatus $status
  * @property string|null $brand
  * @property string|null $model
  * @property string|null $plate_number
@@ -35,28 +35,30 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read Collection<int, \App\Models\InsurancePolicy> $insurancePolicies
+ * @property-read Family $family
+ * @property-read Collection<int, InsurancePolicy> $insurancePolicies
  * @property-read int|null $insurance_policies_count
- * @property-read \App\Models\Person|null $person
- * @method static \Database\Factories\VehicleFactory factory($count = null, $state = [])
+ * @property-read Person|null $person
+ *
+ * @method static VehicleFactory factory($count = null, $state = [])
  * @method static Builder<static>|Vehicle newModelQuery()
  * @method static Builder<static>|Vehicle newQuery()
  * @method static Builder<static>|Vehicle query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'brand', 'model', 'plate_number', 'registration_year', 'is_owned', 'person_id', 'road_tax_due_date', 'inspection_due_date', 'notes'])]
-final class Vehicle extends DatoDellaFamiglia
+final class Vehicle extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<VehicleFactory> */
     use HasFactory;
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -66,7 +68,7 @@ final class Vehicle extends DatoDellaFamiglia
     }
 
     /**
-     * Le polizze del veicolo.
+     * The insurance policies of the vehicle.
      *
      * @return HasMany<InsurancePolicy, $this>
      */
@@ -76,14 +78,14 @@ final class Vehicle extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'status' => StatoVeicolo::class,
+            'status' => VehicleStatus::class,
             'is_owned' => 'boolean',
             'registration_year' => 'integer',
             'road_tax_due_date' => 'date',

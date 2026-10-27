@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoLavoro;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\EmploymentStatus;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\EmploymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,14 +15,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un lavoro di una persona (`employments`).
+ * A person's employment (`employments`).
  *
  * @property int $id
  * @property int $family_id
  * @property int $person_id
  * @property int|null $organization_id
  * @property string|null $job_title
- * @property StatoLavoro $status
+ * @property EmploymentStatus $status
  * @property CarbonImmutable|null $start_date
  * @property CarbonImmutable|null $end_date
  * @property string|null $notes
@@ -30,27 +30,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person $person
- * @method static \Database\Factories\EmploymentFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read Organization|null $organization
+ * @property-read Person $person
+ *
+ * @method static EmploymentFactory factory($count = null, $state = [])
  * @method static Builder<static>|Employment newModelQuery()
  * @method static Builder<static>|Employment newQuery()
  * @method static Builder<static>|Employment query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['person_id', 'organization_id', 'job_title', 'status', 'start_date', 'end_date', 'notes'])]
-final class Employment extends DatoDellaFamiglia
+final class Employment extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<EmploymentFactory> */
     use HasFactory;
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -70,14 +72,14 @@ final class Employment extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'status' => StatoLavoro::class,
+            'status' => EmploymentStatus::class,
             'start_date' => 'date',
             'end_date' => 'date',
         ];

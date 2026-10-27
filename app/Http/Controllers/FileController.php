@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * I file della famiglia, letti dal disco privato. Un file di un'altra famiglia
- * non si trova (404), perché passa dallo scope della famiglia.
+ * The files of the family, read from the private disk. A file of another
+ * family is not found (404), because it goes through the family scope.
  */
 final class FileController extends Controller
 {
     /**
-     * Apre il file nel browser, con il suo tipo.
+     * Opens the file in the browser, with its type.
      */
     public function show(File $file): StreamedResponse
     {
@@ -26,9 +26,9 @@ final class FileController extends Controller
     }
 
     /**
-     * Scarica il file con il nome che aveva.
+     * Downloads the file with the name it had.
      */
-    public function scarica(File $file): StreamedResponse
+    public function download(File $file): StreamedResponse
     {
         Gate::authorize('view', $file);
 

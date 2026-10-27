@@ -4,33 +4,33 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Models\DatoDellaFamiglia;
+use App\Models\FamilyModel;
 use App\Models\User;
 
 /**
- * I permessi sui documenti: anche un `member` li carica e li modifica.
- * Eliminarli resta di un `admin`.
+ * The permissions on documents: a `member` uploads and edits them too.
+ * Deleting them stays with an `admin`.
  */
-final class DocumentPolicy extends PolicyDellaFamiglia
+final class DocumentPolicy extends FamilyPolicy
 {
     /**
-     * Caricare un documento: tutti.
+     * Uploading a document: everyone.
      *
-     * @param  User  $utente  chi è entrato
+     * @param  User  $user  whoever signed in
      */
-    public function create(User $utente): bool
+    public function create(User $user): bool
     {
         return true;
     }
 
     /**
-     * Modificare un documento: tutti quelli della sua famiglia.
+     * Editing a document: everyone of its family.
      *
-     * @param  User  $utente  chi è entrato
-     * @param  DatoDellaFamiglia  $dato  il documento
+     * @param  User  $user  whoever signed in
+     * @param  FamilyModel  $model  the document
      */
-    public function update(User $utente, DatoDellaFamiglia $dato): bool
+    public function update(User $user, FamilyModel $model): bool
     {
-        return $this->dellaFamiglia($utente, $dato);
+        return $this->ofFamily($user, $model);
     }
 }

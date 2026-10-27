@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\TipoEccezione;
+use App\Enums\ExceptionType;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlannedIncomeExceptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,12 +13,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un'eccezione di un'entrata prevista (`planned_income_exceptions`).
+ * An exception of a planned income (`planned_income_exceptions`).
  *
  * @property int $id
  * @property int $family_id
  * @property int $planned_income_id
- * @property TipoEccezione $type
+ * @property ExceptionType $type
  * @property CarbonImmutable $occurrence_date
  * @property numeric|null $amount_override
  * @property CarbonImmutable|null $date_override
@@ -28,16 +28,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\PlannedIncome $plannedIncome
- * @method static \Database\Factories\PlannedIncomeExceptionFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read PlannedIncome $plannedIncome
+ *
+ * @method static PlannedIncomeExceptionFactory factory($count = null, $state = [])
  * @method static Builder<static>|PlannedIncomeException newModelQuery()
  * @method static Builder<static>|PlannedIncomeException newQuery()
  * @method static Builder<static>|PlannedIncomeException query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['planned_income_id', 'type', 'occurrence_date', 'amount_override', 'date_override', 'sort', 'notes'])]
-final class PlannedIncomeException extends DatoDellaFamiglia
+final class PlannedIncomeException extends FamilyModel
 {
     /** @use HasFactory<PlannedIncomeExceptionFactory> */
     use HasFactory;
@@ -53,14 +55,14 @@ final class PlannedIncomeException extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'type' => TipoEccezione::class,
+            'type' => ExceptionType::class,
             'occurrence_date' => 'date',
             'amount_override' => 'decimal:2',
             'date_override' => 'date',

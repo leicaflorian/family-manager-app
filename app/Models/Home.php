@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoCasa;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\HomeStatus;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\HomeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,12 +15,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Una casa della famiglia (`homes`).
+ * A home of the family (`homes`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $name
- * @property StatoCasa $status
+ * @property HomeStatus $status
  * @property string|null $address
  * @property string|null $city
  * @property string|null $country
@@ -30,29 +30,31 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Belonging> $belongings
+ * @property-read Collection<int, Belonging> $belongings
  * @property-read int|null $belongings_count
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read Collection<int, \App\Models\Utility> $utilities
+ * @property-read Family $family
+ * @property-read Collection<int, Utility> $utilities
  * @property-read int|null $utilities_count
- * @method static \Database\Factories\HomeFactory factory($count = null, $state = [])
+ *
+ * @method static HomeFactory factory($count = null, $state = [])
  * @method static Builder<static>|Home newModelQuery()
  * @method static Builder<static>|Home newQuery()
  * @method static Builder<static>|Home query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'address', 'city', 'country', 'is_owned', 'notes'])]
-final class Home extends DatoDellaFamiglia
+final class Home extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<HomeFactory> */
     use HasFactory;
 
     /**
-     * Le utenze della casa.
+     * The utilities of the home.
      *
      * @return HasMany<Utility, $this>
      */
@@ -62,7 +64,7 @@ final class Home extends DatoDellaFamiglia
     }
 
     /**
-     * I beni della casa.
+     * The belongings of the home.
      *
      * @return HasMany<Belonging, $this>
      */
@@ -72,14 +74,14 @@ final class Home extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'status' => StatoCasa::class,
+            'status' => HomeStatus::class,
             'is_owned' => 'boolean',
         ];
     }

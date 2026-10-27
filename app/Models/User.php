@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\Ruolo;
+use App\Enums\Role;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -22,7 +22,7 @@ use Illuminate\Notifications\Notifiable;
 /**
  * @property int $id
  * @property int $family_id
- * @property Ruolo $role
+ * @property Role $role
  * @property string $name
  * @property string $email
  * @property CarbonImmutable|null $email_verified_at
@@ -30,14 +30,16 @@ use Illuminate\Notifications\Notifiable;
  * @property string|null $remember_token
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\Family $family
+ * @property-read Family $family
  * @property-read DatabaseNotificationCollection<int, DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
- * @property-read \App\Models\Person|null $person
- * @method static \Database\Factories\UserFactory factory($count = null, $state = [])
+ * @property-read Person|null $person
+ *
+ * @method static UserFactory factory($count = null, $state = [])
  * @method static Builder<static>|User newModelQuery()
  * @method static Builder<static>|User newQuery()
  * @method static Builder<static>|User query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'email', 'password', 'family_id', 'role'])]
@@ -48,8 +50,8 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasFactory, Notifiable;
 
     /**
-     * La famiglia dell'account. Gli account non hanno lo scope della famiglia:
-     * l'accesso deve trovarli tutti.
+     * The family of the account. Accounts have no family scope: signing in
+     * must find all of them.
      *
      * @return BelongsTo<Family, $this>
      */
@@ -59,7 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * La persona della famiglia legata all'account.
+     * The person of the family tied to the account.
      *
      * @return HasOne<Person, $this>
      */
@@ -69,20 +71,20 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Se l'account può tutto nella sua famiglia.
+     * Whether the account can do everything in its family.
      */
     public function isAdmin(): bool
     {
-        return $this->role === Ruolo::Admin;
+        return $this->role === Role::Admin;
     }
 
     /**
-     * Se è l'unico `admin` della sua famiglia: allora non può eliminarsi.
+     * Whether it is the only `admin` of its family: then it cannot delete itself.
      */
-    public function ultimoAdmin(): bool
+    public function isLastAdmin(): bool
     {
         return $this->isAdmin()
-            && ! self::query()->where('family_id', $this->family_id)->where('role', Ruolo::Admin)->whereKeyNot($this->id)->exists();
+            && ! self::query()->where('family_id', $this->family_id)->where('role', Role::Admin)->whereKeyNot($this->id)->exists();
     }
 
     /**
@@ -95,7 +97,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => Ruolo::class,
+            'role' => Role::class,
         ];
     }
 }

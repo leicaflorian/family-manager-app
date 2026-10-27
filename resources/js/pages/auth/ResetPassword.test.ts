@@ -1,11 +1,11 @@
 import { screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { renderPagina } from '@/test/pagina';
+import { renderPage } from '@/test/page';
 import ResetPassword from './ResetPassword.vue';
 
-describe('Nuova password', () => {
-    it("mostra l'email e chiede la password nuova", () => {
-        renderPagina(ResetPassword, {
+describe('New password', () => {
+    it('shows the email and asks for the new password', () => {
+        renderPage(ResetPassword, {
             token: 'abc',
             email: 'marco.bianchi@example.com',
             passwordRules: '',
@@ -15,11 +15,12 @@ describe('Nuova password', () => {
             'marco.bianchi@example.com',
         );
         expect(screen.getByLabelText('Email')).toHaveAttribute('readonly');
+        expect(screen.getByLabelText('Choose a new password')).toHaveAttribute(
+            'type',
+            'password',
+        );
         expect(
-            screen.getByLabelText('Scegli una password nuova'),
-        ).toHaveAttribute('type', 'password');
-        expect(
-            screen.getByRole('button', { name: 'Salva la password' }),
+            screen.getByRole('button', { name: 'Save the password' }),
         ).toBeInTheDocument();
     });
 });

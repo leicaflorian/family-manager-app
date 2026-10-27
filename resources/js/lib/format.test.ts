@@ -1,0 +1,24 @@
+import { describe, expect, it } from 'vite-plus/test';
+import { formatDate, formatEuro } from './format';
+
+describe('formatEuro', () => {
+    it('writes amounts the Italian way', () => {
+        expect(formatEuro(84.2)).toBe('84,20 €');
+        expect(formatEuro(1234.5)).toBe('1.234,50 €');
+        expect(formatEuro(0)).toBe('0,00 €');
+    });
+});
+
+describe('formatDate', () => {
+    it('writes dd/mm/yyyy from a date of the server', () => {
+        expect(formatDate('2026-10-15')).toBe('15/10/2026');
+    });
+
+    it('accepts a date with a time too, without changing day', () => {
+        expect(formatDate('2026-10-15T23:30:00+02:00')).toBe('15/10/2026');
+    });
+
+    it('accepts a Date', () => {
+        expect(formatDate(new Date(2026, 9, 5))).toBe('05/10/2026');
+    });
+});

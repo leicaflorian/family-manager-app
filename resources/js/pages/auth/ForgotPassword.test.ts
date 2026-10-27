@@ -1,27 +1,29 @@
 import { screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { renderPagina } from '@/test/pagina';
+import { renderPage } from '@/test/page';
 import ForgotPassword from './ForgotPassword.vue';
 
-describe('Password dimenticata', () => {
-    it("chiede l'email per mandare il link", () => {
-        renderPagina(ForgotPassword);
+describe('Forgot password', () => {
+    it('asks for the email to send the link', () => {
+        renderPage(ForgotPassword);
 
         expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
         expect(
-            screen.getByRole('button', { name: 'Mandami il link' }),
+            screen.getByRole('button', { name: 'Send me the link' }),
         ).toBeInTheDocument();
         expect(screen.queryByRole('status')).toBeNull();
     });
 
-    it("dopo l'invio dice dove guardare e offre di rimandarlo", () => {
-        renderPagina(ForgotPassword, { status: 'Ti abbiamo inviato il link.' });
+    it('says where to look after sending and offers to send it again', () => {
+        renderPage(ForgotPassword, {
+            status: 'We have emailed your password reset link.',
+        });
 
         expect(screen.getByRole('status')).toHaveTextContent(
-            "Il link vale un'ora",
+            'The link is valid for one hour',
         );
         expect(
-            screen.getByRole('button', { name: 'Mandami di nuovo il link' }),
+            screen.getByRole('button', { name: 'Send me the link again' }),
         ).toBeInTheDocument();
     });
 });

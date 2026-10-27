@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\TipoEntrata;
+use App\Enums\IncomeType;
 use App\Models\Family;
 use App\Models\Income;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class IncomeFactory extends Factory
 {
     /**
-     * Un'entrata incassata.
+     * A received income.
      *
      * @return array<string, mixed>
      */
@@ -26,7 +26,7 @@ final class IncomeFactory extends Factory
             'title' => 'Stipendio',
             'amount' => fake()->randomFloat(2, 1200, 2500),
             'date' => fake()->dateTimeBetween('-6 months'),
-            'type' => TipoEntrata::Salary,
+            'type' => IncomeType::Salary,
         ];
     }
 }

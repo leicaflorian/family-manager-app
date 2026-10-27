@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Fortify;
 
-use App\Actions\Famiglie\CreaFamiglia;
+use App\Actions\Families\CreateFamily;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
@@ -13,39 +13,39 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 /**
- * Il modulo *Iscriviti*: controlla i dati e iscrive una famiglia nuova.
+ * The *Sign up* form: checks the data and registers a new family.
  */
 final readonly class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules, ProfileValidationRules;
 
     /**
-     * @param  CreaFamiglia  $creaFamiglia  l'azione che crea la famiglia
+     * @param  CreateFamily  $createFamily  the action that creates the family
      */
-    public function __construct(private CreaFamiglia $creaFamiglia) {}
+    public function __construct(private CreateFamily $createFamily) {}
 
     /**
-     * Controlla i dati del modulo e crea la famiglia con il suo primo account.
+     * Checks the data of the form and creates the family with its first account.
      *
-     * Il cognome è anche il nome della famiglia: chi si iscrive è il primo
-     * della famiglia, e la famiglia si chiama come lui.
+     * The last name is also the name of the family: whoever registers is the
+     * first of the family, and the family takes their name.
      *
-     * @param  array<string, string>  $input  i campi del modulo
-     * @return User l'account `admin` della famiglia nuova
+     * @param  array<string, string>  $input  the fields of the form
+     * @return User the `admin` account of the new family
      *
-     * @throws ValidationException se un campo non va
+     * @throws ValidationException if a field is wrong
      */
     public function create(array $input): User
     {
-        /** @var array{nome: string, cognome: string, email: string, password: string} $dati */
-        $dati = Validator::make($input, [
-            'nome' => $this->nameRules(),
-            'cognome' => $this->nameRules(),
+        /** @var array{first_name: string, last_name: string, email: string, password: string} $data */
+        $data = Validator::make($input, [
+            'first_name' => $this->nameRules(),
+            'last_name' => $this->nameRules(),
             'email' => $this->emailRules(),
             'password' => $this->passwordRulesWithoutConfirmation(),
-            'condizioni' => ['accepted'],
+            'terms' => ['accepted'],
         ])->validate();
 
-        return $this->creaFamiglia->handle($dati['cognome'], $dati['nome'], $dati['cognome'], $dati['email'], $dati['password']);
+        return $this->createFamily->handle($data['last_name'], $data['first_name'], $data['last_name'], $data['email'], $data['password']);
     }
 }

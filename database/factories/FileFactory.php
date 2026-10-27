@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class FileFactory extends Factory
 {
     /**
-     * Un PDF finto nel disco privato.
+     * A fake PDF on the private disk.
      *
      * @return array<string, mixed>
      */

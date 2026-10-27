@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-use App\Support\Schema\Colonne;
+use App\Support\Schema\Columns;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Le impostazioni di una famiglia: una riga per famiglia. Il nome sta in
- * `families.name`; chiavi dell'AI, cron e modelli sono dell'installazione e
- * non stanno qui.
+ * The settings of a family: one row per family. The name sits in
+ * `families.name`; AI keys, cron jobs and models belong to the installation and
+ * are not here.
  */
 return new class extends Migration
 {
     /**
-     * Crea la tabella.
+     * Creates the table.
      */
     public function up(): void
     {
@@ -24,12 +24,12 @@ return new class extends Migration
             $table->foreignId('family_id')->unique()->constrained()->cascadeOnDelete();
             $table->string('mail_inbox_recipient')->nullable();
             $table->json('mail_inbox_notify')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
     }
 
     /**
-     * Elimina la tabella.
+     * Drops the table.
      */
     public function down(): void
     {

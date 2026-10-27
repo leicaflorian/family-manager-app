@@ -1,44 +1,44 @@
 <script setup lang="ts">
 /**
- * Il cerchio di una persona: la sua foto o, senza, le iniziali su un colore.
+ * The circle of a person: their photo or, without one, the initials on a colour.
  */
 const {
-    iniziali,
-    foto = null,
-    nome = '',
-    dimensione = 48,
-    colore = 'bg-azione',
+    initials,
+    photo = null,
+    name = '',
+    size = 48,
+    color = 'bg-action',
 } = defineProps<{
-    /** Le iniziali, quando manca la foto. */
-    iniziali: string;
-    /** L'indirizzo della foto. */
-    foto?: string | null;
-    /** Il nome, per chi non vede la foto. */
-    nome?: string;
-    /** Il lato del cerchio, in pixel. */
-    dimensione?: number;
-    /** La classe del colore di sfondo delle iniziali. */
-    colore?: string;
+    /** The initials, when the photo is missing. */
+    initials: string;
+    /** The address of the photo. */
+    photo?: string | null;
+    /** The name, for those who cannot see the photo. */
+    name?: string;
+    /** The side of the circle, in pixels. */
+    size?: number;
+    /** The class of the background colour of the initials. */
+    color?: string;
 }>();
 </script>
 
 <template>
     <img
-        v-if="foto"
-        :src="foto"
-        :alt="nome"
+        v-if="photo"
+        :src="photo"
+        :alt="name"
         class="shrink-0 rounded-full object-cover"
-        :style="{ width: `${dimensione}px`, height: `${dimensione}px` }"
+        :style="{ width: `${size}px`, height: `${size}px` }"
     />
     <span
         v-else
         class="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
-        :class="colore"
+        :class="color"
         :style="{
-            width: `${dimensione}px`,
-            height: `${dimensione}px`,
-            fontSize: `${Math.round(dimensione * 0.36)}px`,
+            width: `${size}px`,
+            height: `${size}px`,
+            fontSize: `${Math.round(size * 0.36)}px`,
         }"
-        >{{ iniziali }}</span
+        >{{ initials }}</span
     >
 </template>

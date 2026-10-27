@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class ExpenseFactory extends Factory
 {
     /**
-     * Una spesa pagata.
+     * A paid expense.
      *
      * @return array<string, mixed>
      */

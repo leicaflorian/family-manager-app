@@ -1,22 +1,23 @@
 <script setup lang="ts">
 /**
- * La Home, per ora vuota: le scadenze e gli ultimi documenti arrivano con la Home vera.
+ * The Home, empty for now: the deadlines and the latest documents come with the
+ * real Home.
  */
 import { Head, usePage } from '@inertiajs/vue3';
 import { LayoutDashboard } from '@lucide/vue';
 import { computed } from 'vue';
-import FmTitolo from '@/components/fm/FmTitolo.vue';
-import FmVuoto from '@/components/fm/FmVuoto.vue';
+import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 
-const pagina = usePage();
-const nome = computed(
-    (): string => pagina.props.auth?.user?.name.split(' ')[0] ?? '',
+const page = usePage();
+const firstName = computed(
+    (): string => page.props.auth?.user?.name.split(' ')[0] ?? '',
 );
 </script>
 
 <template>
-    <Head title="Home" />
+    <Head :title="$t('Home')" />
 
-    <FmTitolo :titolo="`Ciao, ${nome}`" />
-    <FmVuoto :icona="LayoutDashboard" titolo="La Home arriva presto" />
+    <FmTitle :title="$t('Hi, :name', { name: firstName })" />
+    <FmEmpty :icon="LayoutDashboard" :title="$t('The Home is coming soon')" />
 </template>

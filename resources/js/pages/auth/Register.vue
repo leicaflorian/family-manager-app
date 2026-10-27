@@ -1,109 +1,111 @@
 <script setup lang="ts">
 /**
- * Pagina *Iscriviti*: chi si iscrive crea la sua famiglia ed è il primo account,
- * con il livello *Tutto, come te*. Il cognome è anche il nome della famiglia.
+ * *Sign up* page: who signs up creates their family and is the first account,
+ * with the level *Everything, like you*. The surname is also the name of the
+ * family.
  */
 import { Head, useForm } from '@inertiajs/vue3';
-import FmCampoPassword from '@/components/fm/FmCampoPassword.vue';
-import FmPulsante from '@/components/fm/FmPulsante.vue';
-import { errori } from '@/lib/errori';
+import { trans } from 'laravel-vue-i18n';
+import FmButton from '@/components/fm/FmButton.vue';
+import FmPasswordField from '@/components/fm/FmPasswordField.vue';
+import { errors } from '@/lib/errors';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
 defineOptions({
     layout: {
-        titolo: 'Iscrivi la tua famiglia',
-        sottotitolo: 'Quattro domande e siete pronti.',
-        pannello: {
-            titolo: 'Tutto ciò che riguarda la famiglia, in un posto solo.',
-            testo: 'Comincia da te: poi inviti chi vive con te.',
-            punti: [
-                'Le scadenze di tutta la famiglia, in un posto solo',
-                'Le bollette lette da sole, anche per email',
-                'I documenti di tutti, sempre a portata',
+        title: trans('Sign up your family'),
+        subtitle: trans('Four questions and you are ready.'),
+        panel: {
+            title: trans('Everything about the family, in one place.'),
+            text: trans(
+                'Start with yourself: then invite the people you live with.',
+            ),
+            points: [
+                trans('The deadlines of the whole family, in one place'),
+                trans('Bills read on their own, by email too'),
+                trans("Everyone's documents, always at hand"),
             ],
         },
-        altraStrada: {
-            testo: 'Hai già un account?',
-            link: 'Accedi',
+        otherWay: {
+            text: trans('Already have an account?'),
+            link: trans('Log in'),
             href: login().url,
         },
     },
 });
 
 defineProps<{
-    /** Le regole della password, per il suggerimento del browser. */
+    /** The password rules, for the hint of the browser. */
     passwordRules: string;
 }>();
 
 const form = useForm({
-    nome: '',
-    cognome: '',
+    first_name: '',
+    last_name: '',
     email: '',
     password: '',
-    condizioni: false,
+    terms: false,
 });
 
 /**
- * Manda il modulo; la password si svuota comunque vada.
+ * Sends the form; the password is emptied however it goes.
  */
-function iscriviti(): void {
+function signUp(): void {
     form.submit(store(), { onFinish: () => form.reset('password') });
 }
 </script>
 
 <template>
-    <Head title="Iscriviti" />
+    <Head :title="$t('Sign up')" />
 
-    <form
-        class="flex grow flex-col gap-3"
-        novalidate
-        @submit.prevent="iscriviti"
-    >
+    <form class="flex grow flex-col gap-3" novalidate @submit.prevent="signUp">
         <div class="grid grid-cols-2 gap-3">
             <FormKit
-                v-model="form.nome"
+                v-model="form.first_name"
                 type="text"
-                label="Il tuo nome"
-                name="nome"
+                :label="$t('Your first name')"
+                name="first_name"
                 autocomplete="given-name"
-                :errors="errori(form.errors.nome)"
+                :errors="errors(form.errors.first_name)"
             />
             <FormKit
-                v-model="form.cognome"
+                v-model="form.last_name"
                 type="text"
-                label="Cognome della famiglia"
-                name="cognome"
+                :label="$t('Family surname')"
+                name="last_name"
                 autocomplete="family-name"
-                :errors="errori(form.errors.cognome)"
+                :errors="errors(form.errors.last_name)"
             />
         </div>
         <FormKit
             v-model="form.email"
             type="email"
-            label="Email"
+            :label="$t('Email')"
             name="email"
             autocomplete="email"
-            :errors="errori(form.errors.email)"
+            :errors="errors(form.errors.email)"
         />
-        <FmCampoPassword
+        <FmPasswordField
             v-model="form.password"
-            label="Scegli una password"
+            :label="$t('Choose a password')"
             name="password"
-            help="Almeno 10 caratteri"
+            :help="$t('At least 10 characters')"
             autocomplete="new-password"
-            :errors="errori(form.errors.password)"
+            :errors="errors(form.errors.password)"
         />
         <FormKit
-            v-model="form.condizioni"
+            v-model="form.terms"
             type="checkbox"
-            label="Ho letto e accetto le condizioni e l'informativa sulla privacy"
-            name="condizioni"
-            :errors="errori(form.errors.condizioni)"
+            :label="
+                $t('I have read and accept the terms and the privacy policy')
+            "
+            name="terms"
+            :errors="errors(form.errors.terms)"
         />
         <span class="min-h-6 grow lg:hidden" />
-        <FmPulsante tipo="submit" largo :disabled="form.processing"
-            >Comincia</FmPulsante
-        >
+        <FmButton type="submit" wide :disabled="form.processing">{{
+            $t('Get started')
+        }}</FmButton>
     </form>
 </template>

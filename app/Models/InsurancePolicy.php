@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoPolizza;
-use App\Enums\TipoPolizza;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\InsurancePolicyStatus;
+use App\Enums\InsurancePolicyType;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\InsurancePolicyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,13 +16,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Una polizza o un fondo (`insurance_policies`).
+ * An insurance policy or a fund (`insurance_policies`).
  *
  * @property int $id
  * @property int $family_id
  * @property string|null $title
- * @property TipoPolizza $type
- * @property StatoPolizza $status
+ * @property InsurancePolicyType $type
+ * @property InsurancePolicyStatus $status
  * @property string|null $policy_number
  * @property int|null $organization_id
  * @property int|null $person_id
@@ -36,24 +36,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Employment|null $employment
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Home|null $home
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @property-read \App\Models\Vehicle|null $vehicle
- * @method static \Database\Factories\InsurancePolicyFactory factory($count = null, $state = [])
+ * @property-read Employment|null $employment
+ * @property-read Family $family
+ * @property-read Home|null $home
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ * @property-read Vehicle|null $vehicle
+ *
+ * @method static InsurancePolicyFactory factory($count = null, $state = [])
  * @method static Builder<static>|InsurancePolicy newModelQuery()
  * @method static Builder<static>|InsurancePolicy newQuery()
  * @method static Builder<static>|InsurancePolicy query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'type', 'status', 'policy_number', 'organization_id', 'person_id', 'vehicle_id', 'employment_id', 'home_id', 'start_date', 'expiry_date', 'notes'])]
-final class InsurancePolicy extends DatoDellaFamiglia
+final class InsurancePolicy extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<InsurancePolicyFactory> */
     use HasFactory;
@@ -69,7 +71,7 @@ final class InsurancePolicy extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -79,7 +81,7 @@ final class InsurancePolicy extends DatoDellaFamiglia
     }
 
     /**
-     * Il veicolo collegato.
+     * The linked vehicle.
      *
      * @return BelongsTo<Vehicle, $this>
      */
@@ -89,7 +91,7 @@ final class InsurancePolicy extends DatoDellaFamiglia
     }
 
     /**
-     * Il lavoro collegato.
+     * The linked employment.
      *
      * @return BelongsTo<Employment, $this>
      */
@@ -99,7 +101,7 @@ final class InsurancePolicy extends DatoDellaFamiglia
     }
 
     /**
-     * La casa collegata.
+     * The linked home.
      *
      * @return BelongsTo<Home, $this>
      */
@@ -109,15 +111,15 @@ final class InsurancePolicy extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'type' => TipoPolizza::class,
-            'status' => StatoPolizza::class,
+            'type' => InsurancePolicyType::class,
+            'status' => InsurancePolicyStatus::class,
             'start_date' => 'date',
             'expiry_date' => 'date',
         ];

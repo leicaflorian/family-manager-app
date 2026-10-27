@@ -20,7 +20,7 @@ trait PasswordValidationRules
     }
 
     /**
-     * Le regole di una password nuova scritta una volta sola, come nel modulo *Iscriviti*.
+     * The rules of a new password typed only once, as in the *Sign up* form.
      *
      * @return array<int, Password|ValidationRule|array<mixed>|string>
      */

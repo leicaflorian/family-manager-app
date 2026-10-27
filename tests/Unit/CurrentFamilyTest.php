@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 use App\Support\CurrentFamily;
 
-test('per() imposta la famiglia solo mentre lavora e poi rimette quella di prima', function (): void {
+test('using() sets the family only while working and then puts back the previous one', function (): void {
     CurrentFamily::set(3);
 
-    $dentro = CurrentFamily::per(7, fn (): ?int => CurrentFamily::id());
+    $inside = CurrentFamily::using(7, fn (): ?int => CurrentFamily::id());
 
-    expect($dentro)->toBe(7)
+    expect($inside)->toBe(7)
         ->and(CurrentFamily::id())->toBe(3);
 });
 
-test('per() rimette la famiglia di prima anche se il lavoro si ferma con un errore', function (): void {
-    expect(fn (): mixed => CurrentFamily::per(7, fn () => throw new RuntimeException('fermo')))
+test('using() puts back the previous family even if the work stops with an error', function (): void {
+    expect(fn (): mixed => CurrentFamily::using(7, fn () => throw new RuntimeException('stopped')))
         ->toThrow(RuntimeException::class)
         ->and(CurrentFamily::id())->toBeNull();
 });

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoAbbonamento;
-use App\Enums\TipoAbbonamento;
-use App\Models\Concerns\HaDocumenti;
+use App\Enums\SubscriptionStatus;
+use App\Enums\SubscriptionType;
+use App\Models\Concerns\HasDocuments;
 use Carbon\CarbonImmutable;
 use Database\Factories\SubscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,13 +16,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un abbonamento: streaming, software, cloud (`subscriptions`).
+ * A subscription: streaming, software, cloud (`subscriptions`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $name
- * @property TipoAbbonamento $type
- * @property StatoAbbonamento $status
+ * @property SubscriptionType $type
+ * @property SubscriptionStatus $status
  * @property int|null $organization_id
  * @property string|null $account
  * @property int|null $financial_account_id
@@ -37,22 +37,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read Collection<int, \App\Models\Document> $documents
+ * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\FinancialAccount|null $financialAccount
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @method static \Database\Factories\SubscriptionFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read FinancialAccount|null $financialAccount
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ *
+ * @method static SubscriptionFactory factory($count = null, $state = [])
  * @method static Builder<static>|Subscription newModelQuery()
  * @method static Builder<static>|Subscription newQuery()
  * @method static Builder<static>|Subscription query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'type', 'status', 'organization_id', 'account', 'financial_account_id', 'activation_date', 'renewal_date', 'is_auto_renew', 'trial_end_date', 'manage_url', 'notes', 'person_id'])]
-final class Subscription extends DatoDellaFamiglia
+final class Subscription extends FamilyModel
 {
-    use HaDocumenti;
+    use HasDocuments;
 
     /** @use HasFactory<SubscriptionFactory> */
     use HasFactory;
@@ -68,7 +70,7 @@ final class Subscription extends DatoDellaFamiglia
     }
 
     /**
-     * Il conto collegato.
+     * The linked financial account.
      *
      * @return BelongsTo<FinancialAccount, $this>
      */
@@ -78,7 +80,7 @@ final class Subscription extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -88,15 +90,15 @@ final class Subscription extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'type' => TipoAbbonamento::class,
-            'status' => StatoAbbonamento::class,
+            'type' => SubscriptionType::class,
+            'status' => SubscriptionStatus::class,
             'activation_date' => 'date',
             'renewal_date' => 'date',
             'is_auto_renew' => 'boolean',

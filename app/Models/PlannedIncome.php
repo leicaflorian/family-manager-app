@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\TipoEntrata;
-use App\Enums\UnitaIntervallo;
+use App\Enums\IncomeType;
+use App\Enums\IntervalUnit;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlannedIncomeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,16 +16,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Un'entrata prevista, una volta o ricorrente (`planned_incomes`).
+ * A planned income, one-off or recurring (`planned_incomes`).
  *
  * @property int $id
  * @property int $family_id
  * @property string|null $title
  * @property numeric|null $amount
- * @property TipoEntrata $type
+ * @property IncomeType $type
  * @property bool $is_recurring
  * @property int|null $interval
- * @property UnitaIntervallo $interval_unit
+ * @property IntervalUnit $interval_unit
  * @property CarbonImmutable $start_date
  * @property CarbonImmutable|null $end_date
  * @property bool $is_estimated
@@ -38,23 +38,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\Employment|null $employment
- * @property-read Collection<int, \App\Models\PlannedIncomeException> $exceptions
+ * @property-read Employment|null $employment
+ * @property-read Collection<int, PlannedIncomeException> $exceptions
  * @property-read int|null $exceptions_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\FinancialAccount|null $financialAccount
- * @property-read Collection<int, \App\Models\Income> $incomes
+ * @property-read Family $family
+ * @property-read FinancialAccount|null $financialAccount
+ * @property-read Collection<int, Income> $incomes
  * @property-read int|null $incomes_count
- * @property-read \App\Models\Organization|null $organization
- * @property-read \App\Models\Person|null $person
- * @method static \Database\Factories\PlannedIncomeFactory factory($count = null, $state = [])
+ * @property-read Organization|null $organization
+ * @property-read Person|null $person
+ *
+ * @method static PlannedIncomeFactory factory($count = null, $state = [])
  * @method static Builder<static>|PlannedIncome newModelQuery()
  * @method static Builder<static>|PlannedIncome newQuery()
  * @method static Builder<static>|PlannedIncome query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'type', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'organization_id', 'person_id', 'financial_account_id', 'employment_id', 'notes'])]
-final class PlannedIncome extends DatoDellaFamiglia
+final class PlannedIncome extends FamilyModel
 {
     /** @use HasFactory<PlannedIncomeFactory> */
     use HasFactory;
@@ -70,7 +72,7 @@ final class PlannedIncome extends DatoDellaFamiglia
     }
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -80,7 +82,7 @@ final class PlannedIncome extends DatoDellaFamiglia
     }
 
     /**
-     * Il conto collegato.
+     * The linked financial account.
      *
      * @return BelongsTo<FinancialAccount, $this>
      */
@@ -90,7 +92,7 @@ final class PlannedIncome extends DatoDellaFamiglia
     }
 
     /**
-     * Il lavoro collegato.
+     * The linked employment.
      *
      * @return BelongsTo<Employment, $this>
      */
@@ -100,7 +102,7 @@ final class PlannedIncome extends DatoDellaFamiglia
     }
 
     /**
-     * Le eccezioni delle singole scadenze.
+     * The exceptions of single due dates.
      *
      * @return HasMany<PlannedIncomeException, $this>
      */
@@ -110,7 +112,7 @@ final class PlannedIncome extends DatoDellaFamiglia
     }
 
     /**
-     * Le entrate incassate per questa entrata prevista.
+     * The incomes received for this planned income.
      *
      * @return HasMany<Income, $this>
      */
@@ -120,7 +122,7 @@ final class PlannedIncome extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
@@ -128,10 +130,10 @@ final class PlannedIncome extends DatoDellaFamiglia
     {
         return [
             'amount' => 'decimal:2',
-            'type' => TipoEntrata::class,
+            'type' => IncomeType::class,
             'is_recurring' => 'boolean',
             'interval' => 'integer',
-            'interval_unit' => UnitaIntervallo::class,
+            'interval_unit' => IntervalUnit::class,
             'start_date' => 'date',
             'end_date' => 'date',
             'is_estimated' => 'boolean',

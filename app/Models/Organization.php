@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\TipoEnte;
+use App\Enums\OrganizationType;
 use Carbon\CarbonImmutable;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,13 +16,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
 /**
- * Un ente: fornitore, banca, scuola, medico, ufficio (`organizations`).
+ * An organization: provider, bank, school, doctor, office (`organizations`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $name
  * @property string|null $icon
- * @property \Illuminate\Support\Collection<int, TipoEnte>|null $types
+ * @property Collection<int, OrganizationType>|null $types
  * @property string|null $email
  * @property string|null $phone
  * @property string|null $website
@@ -32,24 +32,26 @@ use Illuminate\Support\Collection;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Document> $documents
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Document> $documents
  * @property-read int|null $documents_count
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\File|null $logo
- * @method static \Database\Factories\OrganizationFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read File|null $logo
+ *
+ * @method static OrganizationFactory factory($count = null, $state = [])
  * @method static Builder<static>|Organization newModelQuery()
  * @method static Builder<static>|Organization newQuery()
  * @method static Builder<static>|Organization query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'icon', 'types', 'email', 'phone', 'website', 'logo_id', 'notes'])]
-final class Organization extends DatoDellaFamiglia
+final class Organization extends FamilyModel
 {
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory;
 
     /**
-     * Il logo dell'ente.
+     * The logo of the organization.
      *
      * @return BelongsTo<File, $this>
      */
@@ -69,14 +71,14 @@ final class Organization extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'types' => AsEnumCollection::of(TipoEnte::class),
+            'types' => AsEnumCollection::of(OrganizationType::class),
         ];
     }
 }

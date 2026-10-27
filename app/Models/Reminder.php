@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StatoPromemoria;
+use App\Enums\ReminderStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReminderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,13 +13,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Un promemoria, con le schede a cui si riferisce (`reminders`).
+ * A reminder, with the records it refers to (`reminders`).
  *
  * @property int $id
  * @property int $family_id
  * @property string $title
  * @property CarbonImmutable $due_date
- * @property StatoPromemoria $status
+ * @property ReminderStatus $status
  * @property int|null $person_id
  * @property bool $is_automatic
  * @property string|null $source_field
@@ -30,23 +30,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read \App\Models\Family $family
- * @property-read \App\Models\Person|null $person
- * @property-read \App\Models\ReminderGroup|null $reminderGroup
- * @method static \Database\Factories\ReminderFactory factory($count = null, $state = [])
+ * @property-read Family $family
+ * @property-read Person|null $person
+ * @property-read ReminderGroup|null $reminderGroup
+ *
+ * @method static ReminderFactory factory($count = null, $state = [])
  * @method static Builder<static>|Reminder newModelQuery()
  * @method static Builder<static>|Reminder newQuery()
  * @method static Builder<static>|Reminder query()
+ *
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'due_date', 'status', 'person_id', 'is_automatic', 'source_field', 'reminder_group_id', 'notifications_sent', 'notes'])]
-final class Reminder extends DatoDellaFamiglia
+final class Reminder extends FamilyModel
 {
     /** @use HasFactory<ReminderFactory> */
     use HasFactory;
 
     /**
-     * La persona a cui si riferisce.
+     * The person it refers to.
      *
      * @return BelongsTo<Person, $this>
      */
@@ -56,7 +58,7 @@ final class Reminder extends DatoDellaFamiglia
     }
 
     /**
-     * Il gruppo di avvisi del promemoria.
+     * The alert group of the reminder.
      *
      * @return BelongsTo<ReminderGroup, $this>
      */
@@ -66,7 +68,7 @@ final class Reminder extends DatoDellaFamiglia
     }
 
     /**
-     * I tipi delle colonne.
+     * The types of the columns.
      *
      * @return array<string, string>
      */
@@ -74,7 +76,7 @@ final class Reminder extends DatoDellaFamiglia
     {
         return [
             'due_date' => 'date',
-            'status' => StatoPromemoria::class,
+            'status' => ReminderStatus::class,
             'is_automatic' => 'boolean',
             'notifications_sent' => 'array',
         ];

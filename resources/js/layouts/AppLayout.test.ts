@@ -2,31 +2,31 @@ import { render, screen, within } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import AppLayout from './AppLayout.vue';
 
-vi.mock('@inertiajs/vue3', async (originale) => ({
-    ...(await originale<typeof import('@inertiajs/vue3')>()),
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
     usePage: () => ({
-        url: '/documenti?persona=3',
+        url: '/documents?person=3',
         props: {
             auth: { user: { name: 'Marco Bianchi' } },
-            famiglia: { name: 'Bianchi' },
+            family: { name: 'Bianchi' },
         },
     }),
 }));
 
 describe('AppLayout', () => {
-    it('ha la barra laterale per il computer e quella in basso per il telefono, con la sezione della pagina', () => {
-        render(AppLayout, { slots: { default: '<h1>Documenti</h1>' } });
+    it('has the sidebar for the computer and the bottom bar for the phone, with the section of the page', () => {
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
 
-        const [laterale, sotto] = screen.getAllByRole('navigation', {
-            name: 'Sezioni',
+        const [sidebar, bottom] = screen.getAllByRole('navigation', {
+            name: 'Sections',
         });
         expect(
-            within(laterale).getByRole('link', { name: 'Documenti' }),
+            within(sidebar).getByRole('link', { name: 'Documents' }),
         ).toHaveAttribute('aria-current', 'page');
         expect(
-            within(sotto).getByRole('link', { name: 'Documenti' }),
+            within(bottom).getByRole('link', { name: 'Documents' }),
         ).toHaveAttribute('aria-current', 'page');
-        expect(screen.getByText('Famiglia Bianchi')).toBeInTheDocument();
-        expect(screen.getByRole('main')).toHaveTextContent('Documenti');
+        expect(screen.getByText('Bianchi family')).toBeInTheDocument();
+        expect(screen.getByRole('main')).toHaveTextContent('Documents');
     });
 });

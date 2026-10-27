@@ -10,7 +10,6 @@ declare module 'vite/client' {
 
     interface ImportMeta {
         readonly env: ImportMetaEnv;
-        readonly glob: <T>(pattern: string) => Record<string, () => Promise<T>>;
     }
 }
 
@@ -19,7 +18,8 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
-            famiglia: App.Data.FamigliaData | null;
+            family: App.Data.FamilyData | null;
+            locale: string;
             [key: string]: unknown;
         };
     }

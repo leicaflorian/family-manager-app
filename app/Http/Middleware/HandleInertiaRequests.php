@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Data\FamigliaData;
+use App\Data\FamilyData;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -45,19 +45,20 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'famiglia' => fn (): ?FamigliaData => $this->famiglia($request),
+            'family' => fn (): ?FamilyData => $this->family($request),
+            'locale' => app()->getLocale(),
         ];
     }
 
     /**
-     * La famiglia di chi è entrato, o null per chi non è entrato.
+     * The family of whoever signed in, or null for a guest.
      *
-     * @param  Request  $request  la richiesta
+     * @param  Request  $request  the request
      */
-    private function famiglia(Request $request): ?FamigliaData
+    private function family(Request $request): ?FamilyData
     {
-        $utente = $request->user();
+        $user = $request->user();
 
-        return $utente instanceof User ? FamigliaData::daFamiglia($utente->family) : null;
+        return $user instanceof User ? FamilyData::fromFamily($user->family) : null;
     }
 }

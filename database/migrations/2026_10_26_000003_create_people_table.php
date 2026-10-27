@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-use App\Support\Schema\Colonne;
+use App\Support\Schema\Columns;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Le persone della famiglia, con o senza un account.
+ * The people of the family, with or without an account.
  */
 return new class extends Migration
 {
     /**
-     * Crea la tabella. `photo_id` si collega a `files` nella migrazione dei file.
+     * Creates the table. `photo_id` is linked to `files` in the files migration.
      */
     public function up(): void
     {
         Schema::create('people', function (Blueprint $table): void {
             $table->id();
-            Colonne::famiglia($table);
+            Columns::family($table);
             $table->string('first_name');
             $table->string('last_name');
             $table->string('initials');
@@ -29,12 +29,12 @@ return new class extends Migration
             $table->unsignedBigInteger('photo_id')->nullable();
             $table->foreignId('user_id')->nullable()->unique()->constrained()->nullOnDelete();
             $table->text('notes')->nullable();
-            Colonne::sistema($table);
+            Columns::system($table);
         });
     }
 
     /**
-     * Elimina la tabella.
+     * Drops the table.
      */
     public function down(): void
     {

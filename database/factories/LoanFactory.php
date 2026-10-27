@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StatoFinanziamento;
+use App\Enums\LoanStatus;
 use App\Models\Family;
 use App\Models\Loan;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class LoanFactory extends Factory
 {
     /**
-     * Un finanziamento.
+     * A loan.
      *
      * @return array<string, mixed>
      */
@@ -24,7 +24,7 @@ final class LoanFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'name' => 'Finanziamento '.fake()->word(),
-            'status' => StatoFinanziamento::Active,
+            'status' => LoanStatus::Active,
             'total_amount' => fake()->randomFloat(2, 1000, 20000),
             'installments_count' => fake()->numberBetween(12, 60),
         ];

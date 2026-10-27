@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class ReminderGroupFactory extends Factory
 {
     /**
-     * Un gruppo di avvisi.
+     * An alert group.
      *
      * @return array<string, mixed>
      */
