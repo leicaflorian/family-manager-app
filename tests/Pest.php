@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Actions\Families\CreateFamily;
+use App\Models\Family;
 use App\Models\User;
+use App\Support\CurrentFamily;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,4 +39,17 @@ function registerFamily(string $lastName = 'Bianchi', string $email = 'marco@exa
     $admin->family->update(['welcomed_at' => now()]);
 
     return $admin;
+}
+
+/**
+ * Runs some work inside the Bianchi family.
+ *
+ * @template T
+ *
+ * @param  callable(): T  $work
+ * @return T
+ */
+function insideBianchi(callable $work): mixed
+{
+    return CurrentFamily::using(Family::query()->where('name', 'Bianchi')->sole()->id, $work);
 }

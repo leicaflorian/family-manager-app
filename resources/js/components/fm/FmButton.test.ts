@@ -52,4 +52,15 @@ describe('FmButton', () => {
             '/upload',
         );
     });
+
+    it('with download is a plain link that downloads the file', () => {
+        render(FmButton, {
+            props: { href: '/files/1/download', download: true },
+            slots: { default: 'Download' },
+        });
+
+        expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
+            'download',
+        );
+    });
 });

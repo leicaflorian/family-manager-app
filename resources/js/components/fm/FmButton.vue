@@ -18,6 +18,7 @@ const {
     disabled = false,
     icon,
     wide = false,
+    download = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red). */
     variant?: ButtonVariant;
@@ -31,6 +32,8 @@ const {
     icon?: LucideIcon;
     /** Full width, like the main button on the phone. */
     wide?: boolean;
+    /** With `href`: a plain link that downloads the file, not an Inertia visit. */
+    download?: boolean;
 }>();
 
 defineEmits<{
@@ -57,7 +60,11 @@ const classes = computed((): string[] => [
 </script>
 
 <template>
-    <Link v-if="href" :href="href" :class="classes">
+    <a v-if="href && download" :href="href" download :class="classes">
+        <FmIcon v-if="icon" :icon="icon" :size="20" />
+        <slot />
+    </a>
+    <Link v-else-if="href" :href="href" :class="classes">
         <FmIcon v-if="icon" :icon="icon" :size="20" />
         <slot />
     </Link>

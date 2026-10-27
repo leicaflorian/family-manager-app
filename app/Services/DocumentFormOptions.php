@@ -13,7 +13,8 @@ use App\Models\Person;
 
 /**
  * The choices of the document form, the same in *Upload* and in *Edit a
- * document*: categories, people, organizations, links and statuses.
+ * document*: categories, people, organizations, links and statuses. The
+ * filters of *Documents* use the same, without the links.
  */
 final readonly class DocumentFormOptions
 {
@@ -26,6 +27,16 @@ final readonly class DocumentFormOptions
      */
     public function all(): array
     {
+        return [...$this->filters(), 'links' => $this->links->groups()];
+    }
+
+    /**
+     * The choices of the filters of *Documents*.
+     *
+     * @return array{categories: list<CategoryData>, people: list<OptionData>, organizations: list<OptionData>, statuses: list<OptionData>}
+     */
+    public function filters(): array
+    {
         return [
             'categories' => $this->categories->tree(),
             'people' => array_values(Person::query()->orderBy('first_name')->orderBy('last_name')->get()
@@ -34,7 +45,6 @@ final readonly class DocumentFormOptions
             'organizations' => array_values(Organization::query()->orderBy('name')->get()
                 ->map(static fn (Organization $organization): OptionData => new OptionData((string) $organization->id, $organization->name))
                 ->all()),
-            'links' => $this->links->groups(),
             'statuses' => OptionData::list(DocumentStatus::options()),
         ];
     }

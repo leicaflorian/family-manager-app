@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Data\DocumentLinkData;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
 use App\Models\Document;
@@ -47,6 +48,35 @@ final class DocumentLinks
         }
 
         return $groups;
+    }
+
+    /**
+     * The records a document links to, in the order of the types and then by name.
+     *
+     * @param  Document  $document  the document
+     * @return list<DocumentLinkData>
+     */
+    public function of(Document $document): array
+    {
+        $links = [];
+
+        foreach (Linkables::WITH_DOCUMENTS as $type => $relation) {
+            $class = Linkables::TYPES[$type];
+            $records = [];
+
+            foreach ($this->relation($document, $relation)->with($class::labelRelations())->get() as $record) {
+                $id = $record->getKey();
+
+                if (is_int($id) && method_exists($record, 'label')) {
+                    $records[] = new DocumentLinkData($type, $id, self::typeLabel($type), $record->label());
+                }
+            }
+
+            usort($records, static fn (DocumentLinkData $a, DocumentLinkData $b): int => strnatcasecmp($a->label, $b->label));
+            array_push($links, ...$records);
+        }
+
+        return $links;
     }
 
     /**

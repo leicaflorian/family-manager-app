@@ -19,7 +19,7 @@ use Illuminate\Validation\Rule;
 final class SaveDocumentRequest extends FormRequest
 {
     /** The columns of the document the form fills. */
-    private const array FIELDS = ['title', 'category_id', 'person_id', 'organization_id', 'date', 'expiry_date', 'status', 'notes'];
+    private const array FIELDS = ['title', 'category_id', 'person_id', 'organization_id', 'date', 'expiry_date', 'status', 'tags', 'notes'];
 
     /**
      * A new document whoever adds documents, a change whoever may change it.
@@ -49,6 +49,8 @@ final class SaveDocumentRequest extends FormRequest
             'date' => ['nullable', 'date'],
             'expiry_date' => ['nullable', 'date'],
             'status' => ['required', Rule::enum(DocumentStatus::class)],
+            'tags' => ['nullable', 'array', 'max:20'],
+            'tags.*' => ['required', 'string', 'max:50', 'distinct'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'links' => ['nullable', 'array', 'max:50'],
             'links.*' => ['required', 'array:type,id'],
@@ -79,6 +81,7 @@ final class SaveDocumentRequest extends FormRequest
             'date' => __('date'),
             'expiry_date' => __('expiry date'),
             'status' => __('status'),
+            'tags.*' => __('tag'),
             'links.*.type' => __('link'),
             'links.*.id' => __('link'),
         ];

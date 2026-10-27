@@ -51,10 +51,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
-        Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
+        Route::resource('documents', DocumentController::class)->except('create');
 
         // The pages coming with the next tasks: the menu entries already lead here.
-        Route::inertia('documents', 'ComingSoon', ['title' => 'Documents'])->name('documents.index');
         Route::inertia('family', 'ComingSoon', ['title' => 'Family'])->name('family');
     });
 });

@@ -14,19 +14,6 @@ use Illuminate\Support\Facades\Storage;
 
 beforeEach(fn () => Storage::fake('local'));
 
-/**
- * Runs some work inside the Bianchi family.
- *
- * @template T
- *
- * @param  callable(): T  $work
- * @return T
- */
-function insideBianchi(callable $work): mixed
-{
-    return CurrentFamily::using(Family::query()->where('name', 'Bianchi')->sole()->id, $work);
-}
-
 test('the seeder creates the Bianchi family as on the canvas, in Italian', function (): void {
     $this->seed(BianchiFamilySeeder::class);
 

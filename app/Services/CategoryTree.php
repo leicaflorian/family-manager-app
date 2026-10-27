@@ -29,6 +29,32 @@ final class CategoryTree
     }
 
     /**
+     * The path of every category, from its main category: «Work › Payslips»
+     * is `['Work', 'Payslips']`.
+     *
+     * @return array<int, list<string>> the names, by id of the category
+     */
+    public function paths(): array
+    {
+        $categories = DocumentCategory::query()->get(['id', 'parent_id', 'name'])->keyBy('id');
+        $paths = [];
+
+        foreach ($categories as $category) {
+            $names = [];
+
+            // Up to the main category; the visited ids stop a loop, should the data have one.
+            for ($current = $category, $seen = []; $current !== null && ! isset($seen[$current->id]); $current = $categories->get($current->parent_id ?? 0)) {
+                $seen[$current->id] = true;
+                array_unshift($names, $current->name);
+            }
+
+            $paths[$category->id] = $names;
+        }
+
+        return $paths;
+    }
+
+    /**
      * The ids of a category and of all those below it, at every level.
      *
      * @param  int  $id  the category to start from

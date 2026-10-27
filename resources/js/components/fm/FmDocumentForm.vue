@@ -14,7 +14,7 @@ import type {
     DocumentLink,
 } from '@/lib/documents';
 import { linkKey, parseLinkKey, toPayload } from '@/lib/documents';
-import { errors } from '@/lib/errors';
+import { errors, listErrors } from '@/lib/errors';
 import type { RouteDefinition } from '@/wayfinder';
 import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
@@ -115,13 +115,11 @@ watch(linkChoice, (key) => {
     }
 });
 
-/** The errors of the links (`links.0.id`, …), all under the menu. */
-const linkErrors = computed(() =>
-    Object.entries(form.errors)
-        .filter(([field]) => field.startsWith('links'))
-        .map(([, message]) => message)
-        .filter((message): message is string => typeof message === 'string'),
-);
+/** The errors of the links, all under the menu. */
+const linkErrors = computed(() => listErrors(form.errors, 'links'));
+
+/** The errors of the tags (`tags.0`, …), all under the field. */
+const tagErrors = computed(() => listErrors(form.errors, 'tags'));
 
 /**
  * Removes a record from the links.
@@ -235,6 +233,14 @@ function save(): void {
             name="status"
             :options="options.statuses"
             :errors="errors(form.errors.status)"
+        />
+        <FormKit
+            v-model="form.tags"
+            type="text"
+            :label="$t('Tags')"
+            name="tags"
+            :help="$t('Separated by commas, for example: salary, 2026')"
+            :errors="tagErrors"
         />
         <FormKit
             v-model="form.notes"

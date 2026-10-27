@@ -15,6 +15,7 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import type { DocumentFormOptions } from '@/lib/documents';
 import { newDocument } from '@/lib/documents';
+import { listErrors } from '@/lib/errors';
 import { dashboard } from '@/routes';
 import { store as storeDocument } from '@/routes/documents';
 import { destroy, store } from '@/routes/upload';
@@ -44,12 +45,7 @@ const current = computed(() => props.pending[0]);
 const upload = useForm<{ files: File[] }>({ files: [] });
 
 /** The messages of the files refused (`files.0`, …), all in one notice. */
-const uploadErrors = computed(() =>
-    Object.entries(upload.errors)
-        .filter(([field]) => field.startsWith('files'))
-        .map(([, message]) => message)
-        .filter((message): message is string => typeof message === 'string'),
-);
+const uploadErrors = computed(() => listErrors(upload.errors, 'files'));
 
 /** A file is being dragged over the zone. */
 const dragging = ref(false);

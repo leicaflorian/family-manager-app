@@ -84,6 +84,7 @@ describe('FmDocumentForm', () => {
             'type',
             'date',
         );
+        expect(screen.getByLabelText('Tags')).toBeInTheDocument();
     });
 
     it('adds a chosen record to the links, and removes it with the ×', async () => {

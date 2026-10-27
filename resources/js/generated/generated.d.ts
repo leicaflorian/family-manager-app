@@ -20,8 +20,53 @@ readonly color: string | null,
 readonly documents_count: number,
 readonly children: App.Data.CategoryData[],
 };
+export type DocumentData = {
+readonly id: number,
+readonly title: string,
+readonly category: string | null,
+readonly person: string | null,
+readonly organization: string | null,
+readonly date: string | null,
+readonly expiry_date: string | null,
+readonly status: string,
+readonly mime_type: string,
+};
+export type DocumentDetailData = {
+readonly id: number,
+readonly title: string,
+readonly category_id: number | null,
+readonly category: string | null,
+readonly person_id: number | null,
+readonly person: string | null,
+readonly person_initials: string | null,
+readonly organization_id: number | null,
+readonly organization: string | null,
+readonly date: string | null,
+readonly expiry_date: string | null,
+readonly status: string,
+readonly status_label: string,
+readonly tags: string[],
+readonly notes: string | null,
+readonly file: App.Data.FileData,
+readonly links: App.Data.DocumentLinkData[],
+readonly can_edit: boolean,
+readonly can_delete: boolean,
+};
+export type DocumentLinkData = {
+readonly type: string,
+readonly id: number,
+readonly type_label: string,
+readonly label: string,
+};
 export type FamilyData = {
 readonly name: string,
+};
+export type FileData = {
+readonly name: string,
+readonly mime_type: string,
+readonly size: number,
+readonly url: string,
+readonly download_url: string,
 };
 export type InvitationData = {
 readonly first_name: string,
