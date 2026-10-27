@@ -66,6 +66,28 @@ return [
             ]) : [],
         ],
 
+        /*
+         * The database of Directus, read by `directus:copy`: every session is
+         * read only, so the copy cannot change it.
+         */
+        'directus' => [
+            'driver' => 'mysql',
+            'host' => env('DIRECTUS_DB_HOST', '127.0.0.1'),
+            'port' => env('DIRECTUS_DB_PORT', '3306'),
+            'database' => env('DIRECTUS_DB_DATABASE'),
+            'username' => env('DIRECTUS_DB_USERNAME'),
+            'password' => env('DIRECTUS_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? [
+                Mysql::ATTR_INIT_COMMAND => 'SET SESSION TRANSACTION READ ONLY',
+            ] : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

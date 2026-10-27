@@ -29,6 +29,14 @@ test('signed in as a Rossi the file of the Bianchis answers 404', function (): v
     $this->get(route('files.download', $this->file))->assertNotFound();
 });
 
+test('a file whose content is missing on the disk answers 404', function (): void {
+    $this->actingAs($this->marco);
+    Storage::disk('local')->delete($this->file->path);
+
+    $this->get(route('files.show', $this->file))->assertNotFound();
+    $this->get(route('files.download', $this->file))->assertNotFound();
+});
+
 test('without signing in the file leads to Sign in', function (): void {
     $this->get(route('files.show', $this->file))->assertRedirect(route('login'));
 });

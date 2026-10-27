@@ -21,7 +21,7 @@ use RuntimeException;
 final class FileStore
 {
     /** The disk of the files: private, read only through the app. */
-    private const string DISK = 'local';
+    public const string DISK = 'local';
 
     /**
      * Saves a file in the folder of the current family and creates its row.
@@ -35,9 +35,8 @@ final class FileStore
     public function store(UploadedFile $file, bool $toSort = false): File
     {
         $family = CurrentFamily::id() ?? throw new RuntimeException('No family to save the file for.');
-        $extension = Str::lower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? 'bin'));
 
-        $path = $file->storeAs("families/{$family}", Str::uuid()->toString().'.'.$extension, self::DISK)
+        $path = $file->storeAs($this->folder($family), $this->newName($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? '')), self::DISK)
             ?: throw new RuntimeException('The file was not saved.');
 
         return File::query()->create([
@@ -51,6 +50,44 @@ final class FileStore
     }
 
     /**
+     * Copies a file from outside the app into the folder of a family, for the
+     * copy from Directus. The row is written by whoever copies.
+     *
+     * @param  int  $family  the family the file belongs to
+     * @param  string|null  $source  the file to copy; null leaves the path without content
+     * @param  string  $originalName  the name it had, for its extension
+     * @return string the path of the file on the disk
+     *
+     * @throws RuntimeException if the source does not open or the disk does not write
+     */
+    public function import(int $family, ?string $source, string $originalName): string
+    {
+        $path = $this->folder($family).'/'.$this->newName(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        if ($source !== null) {
+            $stream = fopen($source, 'rb') ?: throw new RuntimeException("The file {$source} does not open.");
+
+            try {
+                Storage::disk(self::DISK)->writeStream($path, $stream) ?: throw new RuntimeException('The file was not saved.');
+            } finally {
+                fclose($stream);
+            }
+        }
+
+        return $path;
+    }
+
+    /**
+     * Deletes the folder of a family, with all its files.
+     *
+     * @param  int  $family  the family whose files go
+     */
+    public function deleteFamily(int $family): void
+    {
+        Storage::disk(self::DISK)->deleteDirectory($this->folder($family));
+    }
+
+    /**
      * Deletes a file: the row and the file on the disk.
      *
      * @param  File  $file  the file to delete
@@ -61,5 +98,25 @@ final class FileStore
             $file->delete();
             Storage::disk($file->disk)->delete($file->path);
         });
+    }
+
+    /**
+     * The folder of a family on the disk.
+     *
+     * @param  int  $family  the family
+     */
+    private function folder(int $family): string
+    {
+        return "families/{$family}";
+    }
+
+    /**
+     * A new name for a file, with the extension of the original.
+     *
+     * @param  string  $extension  the extension, empty if unknown
+     */
+    private function newName(string $extension): string
+    {
+        return Str::uuid()->toString().'.'.(Str::lower($extension) ?: 'bin');
     }
 }
