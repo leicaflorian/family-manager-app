@@ -82,6 +82,15 @@ final class Person extends FamilyModel
     }
 
     /**
+     * The title of the account's level, «Administrator» or «Family member», or
+     * null for a person without an account.
+     */
+    public function accountLabel(): ?string
+    {
+        return $this->user?->role->title();
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>

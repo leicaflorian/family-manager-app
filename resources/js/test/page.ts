@@ -4,7 +4,7 @@
  * the tests.
  */
 import { plugin as formkit } from '@formkit/vue';
-import { render } from '@testing-library/vue';
+import { fireEvent, render, screen } from '@testing-library/vue';
 import type { RenderResult } from '@testing-library/vue';
 import type { Component } from 'vue';
 import formkitConfig from '@/formkit.config';
@@ -36,4 +36,17 @@ export function renderPage(
  */
 export function settle(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 30));
+}
+
+/**
+ * Chooses a value in a menu, as the person does, and waits for FormKit.
+ *
+ * @param label - the label of the menu
+ * @param value - the value of the option
+ */
+export async function choose(label: string, value: string): Promise<void> {
+    const select = screen.getByLabelText(label) as HTMLSelectElement;
+    select.value = value;
+    await fireEvent.input(select);
+    await settle();
 }

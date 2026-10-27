@@ -55,3 +55,13 @@ export function toDate(date: string | Date): Date {
 export function formatDate(date: string | Date): string {
     return format(toDate(date), 'DD/MM/YYYY', 'it');
 }
+
+/**
+ * Writes the day of a date as the server does, in local time.
+ *
+ * @param date - the date, today if missing
+ * @returns for example `2026-10-27`
+ */
+export function isoDate(date: Date = new Date()): string {
+    return format(date, 'YYYY-MM-DD');
+}

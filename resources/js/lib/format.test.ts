@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { formatDate, formatEuro } from './format';
+import { formatDate, formatEuro, isoDate } from './format';
 
 describe('formatEuro', () => {
     it('writes amounts the Italian way', () => {
@@ -20,5 +20,12 @@ describe('formatDate', () => {
 
     it('accepts a Date', () => {
         expect(formatDate(new Date(2026, 9, 5))).toBe('05/10/2026');
+    });
+});
+
+describe('isoDate', () => {
+    it('writes the day of a date as the server does, in local time', () => {
+        expect(isoDate(new Date(2026, 9, 27, 23, 30))).toBe('2026-10-27');
+        expect(isoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
     });
 });

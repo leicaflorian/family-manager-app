@@ -16,14 +16,13 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentDetail from '@/components/fm/FmDocumentDetail.vue';
 import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
+import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
-import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useFormat } from '@/composables/useFormat';
 import { categoryOptions } from '@/lib/categories';
 import type { DocumentFilterOptions, DocumentFilters } from '@/lib/documents';
-import { documentSubtitle, filterQuery } from '@/lib/documents';
+import { filterQuery } from '@/lib/documents';
 import { upload } from '@/routes';
 import { index, show } from '@/routes/documents';
 
@@ -46,7 +45,6 @@ const props = defineProps<{
     selected: App.Data.DocumentDetailData | null;
 }>();
 
-const { date } = useFormat();
 const desktop = useMediaQuery('(min-width: 1024px)');
 
 /** The panel of the filters, on the phone. */
@@ -251,37 +249,12 @@ function rowHref(document: App.Data.DocumentData): string {
                 <template v-if="documents.length > 0">
                     <span class="mx-1 text-sm text-ink-soft">{{ count }}</span>
                     <FmCard list>
-                        <FmRow
+                        <FmDocumentRow
                             v-for="document in documents"
                             :key="document.id"
-                            :title="document.title"
-                            :subtitle="documentSubtitle(document) || undefined"
+                            :document="document"
                             :href="rowHref(document)"
-                        >
-                            <template #before>
-                                <span
-                                    class="flex h-[46px] w-[38px] shrink-0 items-center justify-center rounded-lg border border-edge bg-canvas text-ink-soft"
-                                >
-                                    <FmIcon :icon="FileText" :size="20" />
-                                </span>
-                            </template>
-                            <template #after>
-                                <span
-                                    class="text-[13px] font-normal text-ink-soft"
-                                >
-                                    {{
-                                        date(document.date) ||
-                                        (document.expiry_date
-                                            ? $t('expires :date', {
-                                                  date: date(
-                                                      document.expiry_date,
-                                                  ),
-                                              })
-                                            : '')
-                                    }}
-                                </span>
-                            </template>
-                        </FmRow>
+                        />
                     </FmCard>
                     <nav
                         v-if="nextPage || previousPage"

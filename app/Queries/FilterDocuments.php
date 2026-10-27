@@ -7,6 +7,7 @@ namespace App\Queries;
 use App\Models\Document;
 use App\Services\CategoryTree;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * The filters of *Documents*, and the order of the list: the most recent date
@@ -26,6 +27,8 @@ final readonly class FilterDocuments
      * - `person`, `organization`: the id;
      * - `status`: `active`, `archived` or `expired`;
      * - `expiring`: the expiry is within 60 days, or has passed;
+     * - `linked`: linked to at least one record or, with `false`, to none
+     *   (the personal documents of *A person*);
      * - `search`: in the title and in the notes, ignoring capitals and accents
      *   (the collation of the database does it).
      *
@@ -59,6 +62,11 @@ final readonly class FilterDocuments
 
         if (($filters['expiring'] ?? false) === true) {
             $query->whereNotNull('expiry_date')->whereDate('expiry_date', '<=', today()->addDays(self::EXPIRING_DAYS));
+        }
+
+        if (is_bool($filters['linked'] ?? null)) {
+            $links = static fn (QueryBuilder $links): QueryBuilder => $links->from('documentables')->whereColumn('documentables.document_id', 'documents.id');
+            $filters['linked'] ? $query->whereExists($links) : $query->whereNotExists($links);
         }
 
         if ($search !== '') {

@@ -61,6 +61,11 @@ readonly label: string,
 export type FamilyData = {
 readonly name: string,
 };
+export type FamilySummaryData = {
+readonly name: string,
+readonly people: number,
+readonly organizations: number,
+};
 export type FileData = {
 readonly name: string,
 readonly mime_type: string,
@@ -86,6 +91,25 @@ readonly value: string,
 readonly label: string,
 readonly help: string | null,
 };
+export type OrganizationData = {
+readonly id: number,
+readonly name: string,
+readonly types: string[],
+readonly type_labels: string[],
+readonly records: string[],
+};
+export type OrganizationDetailData = {
+readonly id: number,
+readonly name: string,
+readonly types: string[],
+readonly type_labels: string[],
+readonly email: string | null,
+readonly phone: string | null,
+readonly website: string | null,
+readonly notes: string | null,
+readonly can_edit: boolean,
+readonly can_delete: boolean,
+};
 export type PendingFileData = {
 readonly id: number,
 readonly name: string,
@@ -93,6 +117,34 @@ readonly mime_type: string,
 readonly size: number,
 readonly url: string,
 readonly title: string,
+};
+export type PersonData = {
+readonly id: number,
+readonly first_name: string,
+readonly last_name: string,
+readonly initials: string,
+readonly role_label: string,
+readonly age: number | null,
+readonly account_label: string | null,
+readonly is_me: boolean,
+readonly documents_count: number,
+readonly records_count: number,
+};
+export type PersonDetailData = {
+readonly id: number,
+readonly first_name: string,
+readonly last_name: string,
+readonly initials: string,
+readonly role: string,
+readonly role_label: string,
+readonly birth_date: string | null,
+readonly age: number | null,
+readonly tax_code: string | null,
+readonly notes: string | null,
+readonly account_label: string | null,
+readonly is_me: boolean,
+readonly can_edit: boolean,
+readonly can_delete: boolean,
 };
 export type PersonSummaryData = {
 readonly id: number,

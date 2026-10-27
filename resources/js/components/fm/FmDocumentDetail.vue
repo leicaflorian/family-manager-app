@@ -2,18 +2,16 @@
 /**
  * A document as the board *Un documento* shows it: the preview of the file,
  * its data, the linked records and the notes, with *Download*, *Share*,
- * *Edit* and, for an `admin`, *Delete* (asked again in the panel from below).
+ * *Edit* and, for an `admin`, *Delete*.
  * Used by *A document* and, on the computer, on the right of *Documents*.
  */
-import { router } from '@inertiajs/vue3';
-import { Download, Pencil, Share2, Trash2 } from '@lucide/vue';
-import { ref } from 'vue';
+import { Download, Pencil, Share2 } from '@lucide/vue';
 import { useFormat } from '@/composables/useFormat';
 import { useShare } from '@/composables/useShare';
 import { destroy, edit } from '@/routes/documents';
-import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
 import FmCard from './FmCard.vue';
+import FmDeleteButton from './FmDeleteButton.vue';
 import FmFilePreview from './FmFilePreview.vue';
 
 const { document } = defineProps<{
@@ -23,16 +21,6 @@ const { document } = defineProps<{
 
 const { date } = useFormat();
 const { canShare, shareFile } = useShare();
-
-/** The panel that asks before deleting. */
-const confirming = ref(false);
-
-/** Deletes the document, once confirmed. */
-function remove(): void {
-    router.delete(destroy.url(document.id), {
-        onFinish: () => (confirming.value = false),
-    });
-}
 </script>
 
 <template>
@@ -62,14 +50,13 @@ function remove(): void {
             >
                 {{ $t('Edit') }}
             </FmButton>
-            <FmButton
+            <FmDeleteButton
                 v-if="document.can_delete"
-                variant="danger"
-                :icon="Trash2"
-                @click="confirming = true"
-            >
-                {{ $t('Delete') }}
-            </FmButton>
+                :url="destroy.url(document.id)"
+                :question="$t('Delete this document?')"
+                :text="$t('The file goes too, and it cannot be recovered.')"
+                :confirm-label="$t('Delete the document')"
+            />
         </div>
 
         <div
@@ -141,22 +128,5 @@ function remove(): void {
                 {{ document.notes }}
             </p>
         </FmCard>
-
-        <FmBottomSheet
-            v-model:open="confirming"
-            :title="$t('Delete this document?')"
-        >
-            <p class="m-0 text-base leading-normal text-ink-soft">
-                {{ $t('The file goes too, and it cannot be recovered.') }}
-            </p>
-            <div class="flex flex-wrap justify-end gap-2.5">
-                <FmButton variant="text" @click="confirming = false">{{
-                    $t('Cancel')
-                }}</FmButton>
-                <FmButton variant="danger" @click="remove">{{
-                    $t('Delete the document')
-                }}</FmButton>
-            </div>
-        </FmBottomSheet>
     </div>
 </template>

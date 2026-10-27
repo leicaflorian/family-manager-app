@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { newDocument } from '@/lib/documents';
-import { renderPage, settle } from '@/test/page';
+import { choose, renderPage, settle } from '@/test/page';
 import FmDocumentForm from './FmDocumentForm.vue';
 
 const options = {
@@ -51,14 +51,6 @@ const props = {
     options,
     submitLabel: 'Save',
 };
-
-/** Chooses a value in a menu, as the person does. */
-async function choose(label: string, value: string): Promise<void> {
-    const select = screen.getByLabelText(label) as HTMLSelectElement;
-    select.value = value;
-    await fireEvent.input(select);
-    await settle();
-}
 
 afterEach(() => {
     vi.restoreAllMocks();

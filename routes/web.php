@@ -8,6 +8,8 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
+use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\PersonController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
@@ -53,7 +55,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
         Route::resource('documents', DocumentController::class)->except('create');
 
-        // The pages coming with the next tasks: the menu entries already lead here.
-        Route::inertia('family', 'ComingSoon', ['title' => 'Family'])->name('family');
+        Route::redirect('family', '/family/people')->name('family');
+        Route::resource('family/people', PersonController::class)->parameters(['people' => 'person'])->names('people');
+        Route::resource('family/organizations', OrganizationController::class)->names('organizations');
     });
 });

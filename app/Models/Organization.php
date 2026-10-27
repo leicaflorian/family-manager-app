@@ -71,6 +71,26 @@ final class Organization extends FamilyModel
     }
 
     /**
+     * The values of the types, in the order they were chosen.
+     *
+     * @return list<string>
+     */
+    public function typeValues(): array
+    {
+        return array_values(($this->types ?? collect())->map(static fn (OrganizationType $type): string => $type->value)->all());
+    }
+
+    /**
+     * The labels of the types, in the language of the page.
+     *
+     * @return list<string>
+     */
+    public function typeLabels(): array
+    {
+        return array_values(($this->types ?? collect())->map(static fn (OrganizationType $type): string => $type->label())->all());
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>

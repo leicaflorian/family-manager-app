@@ -293,15 +293,15 @@ final class Document extends FamilyModel
      */
     public function linkables(): Collection
     {
-        $schede = new Collection;
+        $records = new Collection;
 
-        foreach (Linkables::WITH_DOCUMENTS as $relazione) {
-            /** @var Collection<int, Model> $collegate */
-            $collegate = $this->getRelationValue($relazione);
-            $schede = $schede->concat($collegate);
+        foreach (Linkables::WITH_DOCUMENTS as $relation) {
+            /** @var Collection<int, Model> $linked */
+            $linked = $this->getRelationValue($relation);
+            $records = $records->concat($linked);
         }
 
-        return $schede->values();
+        return $records->values();
     }
 
     /**

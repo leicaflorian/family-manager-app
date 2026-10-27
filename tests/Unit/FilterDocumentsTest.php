@@ -87,3 +87,10 @@ test('the status keeps only the documents in that status', function (): void {
 test('the list starts from the most recent date, then the last added', function (): void {
     expect(array_slice(filtered([]), 0, 3))->toBe(['Bolletta luce di ottobre', 'Fattura Fastweb', 'Bolletta gas di settembre']);
 });
+
+test('linked keeps the documents linked to a record, or with false those linked to none', function (): void {
+    $giulia = insideBianchi(fn (): int => Person::query()->where('first_name', 'Giulia')->sole()->id);
+
+    expect(filtered(['person' => $giulia, 'linked' => false]))->toEqualCanonicalizing(["Carta d'identità", 'Tessera sanitaria'])
+        ->and(filtered(['person' => $giulia, 'linked' => true]))->toEqualCanonicalizing(['Certificato medico sportivo', 'Iscrizione danza 2026/27']);
+});
