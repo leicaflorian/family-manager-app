@@ -49,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             ->names('categories');
 
         Route::get('files/{file}', [FileController::class, 'show'])->name('files.show');
+        Route::get('files/{file}/preview', [FileController::class, 'preview'])->name('files.preview');
         Route::get('files/{file}/download', [FileController::class, 'download'])->name('files.download');
 
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
