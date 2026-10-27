@@ -6,6 +6,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
 use App\Http\Controllers\OrganizationController;
@@ -29,7 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('welcome', [WelcomeController::class, 'store'])->name('welcome.store');
 
     Route::middleware(RedirectToWelcome::class)->group(function (): void {
-        Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+        Route::get('dashboard', HomeController::class)->name('dashboard');
         Route::inertia('areas', 'Areas')->name('areas');
 
         Route::get('family/invite', [InvitationController::class, 'create'])->name('family.invitations.create');

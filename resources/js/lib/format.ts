@@ -65,3 +65,16 @@ export function formatDate(date: string | Date): string {
 export function isoDate(date: Date = new Date()): string {
     return format(date, 'YYYY-MM-DD');
 }
+
+/**
+ * Writes a date with the name of the day, as at the top of the *Home*.
+ *
+ * @param date - a date of the server or a `Date`
+ * @param locale - the language of the page, `it` or `en`
+ * @returns for example «Lunedì 26 ottobre 2026»
+ */
+export function formatLongDate(date: string | Date, locale: string): string {
+    const text = format(toDate(date), 'dddd D MMMM YYYY', locale);
+
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}

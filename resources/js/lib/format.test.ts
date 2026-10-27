@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { formatDate, formatEuro, isoDate } from './format';
+import { formatDate, formatEuro, formatLongDate, isoDate } from './format';
 
 describe('formatEuro', () => {
     it('writes amounts the Italian way', () => {
@@ -27,5 +27,16 @@ describe('isoDate', () => {
     it('writes the day of a date as the server does, in local time', () => {
         expect(isoDate(new Date(2026, 9, 27, 23, 30))).toBe('2026-10-27');
         expect(isoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+    });
+});
+
+describe('formatLongDate', () => {
+    it('writes the day with its name, in the language of the page', () => {
+        expect(formatLongDate('2026-10-26', 'it')).toBe(
+            'Lunedì 26 ottobre 2026',
+        );
+        expect(formatLongDate('2026-10-26', 'en')).toBe(
+            'Monday 26 October 2026',
+        );
     });
 });
