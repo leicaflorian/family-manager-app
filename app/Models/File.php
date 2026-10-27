@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $mime_type
  * @property int $size
  * @property bool $to_sort
+ * @property string|null $preview_path The JPEG of the preview, made the first time it is asked
+ * @property bool $preview_failed The preview could not be made: it is not tried again
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -75,6 +77,7 @@ final class File extends FamilyModel
         return [
             'size' => 'integer',
             'to_sort' => 'boolean',
+            'preview_failed' => 'boolean',
         ];
     }
 }
