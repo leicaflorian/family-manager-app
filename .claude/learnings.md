@@ -5,6 +5,7 @@ Cose da ricordare lavorando su questo progetto, scritte dall'agente man mano che
 ## Come si lavora
 
 - **Superpowers per ogni azione** (regola del proprietario, 27/10/2026): ogni volta che il proprietario chiede di fare qualcosa, prima di cominciare si invoca la skill di superpowers adatta e si lascia a lei il modo di eseguire la richiesta, seguendone i passi. Qualche esempio: `superpowers:brainstorming` per una funzione nuova o un cambio di comportamento, `superpowers:systematic-debugging` per un errore, `superpowers:writing-plans` ed `executing-plans` / `subagent-driven-development` per un piano, `superpowers:test-driven-development` per scrivere codice, `superpowers:verification-before-completion` prima di dire che una cosa è fatta, `superpowers:finishing-a-development-branch` a lavoro finito. Le regole di `AGENTS.md` e del proprietario valgono comunque più delle skill.
+- **Il piano dopo un'analisi si scrive con `superpowers:writing-plans`** (regola del proprietario, 27/10/2026): quando il proprietario chiede di fare o scrivere il piano di una voce già analizzata, si invoca `superpowers:writing-plans` prima di cominciare e il piano lo si scrive seguendo la skill. Il risultato va nella nota `Piano` della voce del ToDo.
 
 ## Documentazione e ToDo
 
