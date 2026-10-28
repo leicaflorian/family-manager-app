@@ -17,7 +17,7 @@ const text = defineModel<string>({ required: true });
 
 <template>
     <label
-        class="flex h-11.5 items-center gap-2.5 rounded-[10px] border border-edge bg-white px-3.5 text-ink-soft"
+        class="flex h-11.5 shrink-0 items-center gap-2.5 rounded-[10px] border border-edge bg-white px-3.5 text-ink-soft"
     >
         <FmIcon :icon="Search" :size="20" />
         <input
