@@ -51,18 +51,43 @@ export const documentDetail: App.Data.DocumentDetailData = {
     can_delete: true,
 };
 
+/**
+ * A category of the tree, with what the menus read.
+ *
+ * @param id - its id
+ * @param name - its name
+ * @param parentId - the id of its main category, null for a main one
+ * @param children - its subcategories
+ * @returns the category
+ */
+function category(
+    id: number,
+    name: string,
+    parentId: number | null,
+    children: App.Data.CategoryData[] = [],
+): App.Data.CategoryData {
+    return {
+        id,
+        name,
+        parent_id: parentId,
+        icon: null,
+        color: null,
+        documents_count: 0,
+        children,
+    };
+}
+
 /** The choices of the filters of *Documents*. */
 export const documentFilterOptions = {
     categories: [
-        {
-            id: 3,
-            name: 'Lavoro',
-            parent_id: null,
-            icon: 'briefcase',
-            color: 'work',
-            documents_count: 0,
-            children: [],
-        },
+        category(1, 'Casa e utenze', null, [
+            category(2, 'Luce', 1),
+            category(5, 'Altro', 1),
+        ]),
+        category(3, 'Lavoro', null, [
+            category(4, 'Buste paga', 3),
+            category(6, 'Altro', 3),
+        ]),
     ],
     people: [{ value: '7', label: 'Laura Bianchi', help: null }],
     organizations: [{ value: '9', label: 'Comune di Bologna', help: null }],

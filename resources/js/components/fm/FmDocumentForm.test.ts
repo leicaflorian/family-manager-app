@@ -3,7 +3,15 @@ import { fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { newDocument } from '@/lib/documents';
-import { choose, pressSave, renderPage, settle } from '@/test/page';
+import {
+    choose,
+    openMenu,
+    pressSave,
+    renderPage,
+    search,
+    settle,
+    shown,
+} from '@/test/page';
 import FmDocumentForm from './FmDocumentForm.vue';
 
 const options = {
@@ -69,6 +77,41 @@ describe('FmDocumentForm', () => {
         await choose('Whose it is', 'Laura Bianchi');
         await choose('Who it is from', 'Comune di Bologna');
         expect(screen.getByLabelText('Tags')).toBeInTheDocument();
+    });
+
+    it('lists «None» first, then the categories indented under their main one', async () => {
+        renderPage(FmDocumentForm, props);
+
+        expect(shown(await openMenu('What kind it is'))).toEqual([
+            'None',
+            'Work',
+            'Payslips',
+        ]);
+    });
+
+    it('shows the path of the chosen category in the field', async () => {
+        renderPage(FmDocumentForm, props);
+
+        await choose('What kind it is', 'Work › Payslips');
+
+        expect(
+            screen.getByRole('combobox', { name: 'What kind it is' }),
+        ).toHaveValue('Work › Payslips');
+    });
+
+    it('searches the categories by their path, the people and the organizations', async () => {
+        renderPage(FmDocumentForm, props);
+
+        expect(shown(await search('What kind it is', 'work'))).toEqual([
+            'Work',
+            'Payslips',
+        ]);
+        expect(shown(await search('Whose it is', 'laura'))).toEqual([
+            'Laura Bianchi',
+        ]);
+        expect(shown(await search('Who it is from', 'bologna'))).toEqual([
+            'Comune di Bologna',
+        ]);
     });
 
     it('shows the dates the Italian way and sends them as the server reads them', async () => {

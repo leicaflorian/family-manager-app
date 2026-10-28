@@ -4,6 +4,7 @@
  * what it is, what kind and whose, who it is from, the dates, the status, the
  * tags, the notes and the records it links to. The same in
  * *Upload* and in *Edit a document*: the page gives the route and the values.
+ * The category, the person and the organization are found by typing.
  */
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -20,6 +21,7 @@ import { errors, listErrors } from '@/lib/errors';
 import type { RouteDefinition } from '@/wayfinder';
 import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
+import FmCategoryOption from './FmCategoryOption.vue';
 import FmConfirm from './FmConfirm.vue';
 
 const {
@@ -222,23 +224,30 @@ useSaveShortcut(save, () => !form.processing);
         <div class="grid grid-cols-2 gap-3">
             <FormKit
                 v-model="form.category_id"
-                type="dropdown"
+                type="autocomplete"
                 :label="$t('What kind it is')"
                 name="category_id"
                 :options="categories"
+                open-on-click
                 :errors="errors(form.errors.category_id)"
-            />
+            >
+                <template #option="{ option }">
+                    <FmCategoryOption :option="option" />
+                </template>
+            </FormKit>
             <FormKit
                 v-model="form.person_id"
-                type="dropdown"
+                type="autocomplete"
                 :label="$t('Whose it is')"
                 name="person_id"
                 :options="people"
+                open-on-click
                 :errors="errors(form.errors.person_id)"
             />
             <FormKit
                 v-model="form.organization_id"
-                type="dropdown"
+                type="autocomplete"
+                open-on-click
                 :label="$t('Who it is from')"
                 name="organization_id"
                 :options="organizations"
