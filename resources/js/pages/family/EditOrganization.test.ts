@@ -17,7 +17,9 @@ describe('Edit an organization', () => {
             screen.getByRole('heading', { name: 'New organization', level: 1 }),
         ).toBeInTheDocument();
         await fireEvent.update(screen.getByLabelText('Name'), 'Coop Alleanza');
-        await fireEvent.click(screen.getByLabelText('Shop or service'));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Shop or service' }),
+        );
         await settle();
         await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -38,7 +40,12 @@ describe('Edit an organization', () => {
         expect(
             screen.getByRole('heading', { name: 'Edit Edison', level: 1 }),
         ).toBeInTheDocument();
-        expect(screen.getByLabelText('Utility provider')).toBeChecked();
+        expect(
+            screen.getByRole('button', { name: 'Utility provider' }),
+        ).toHaveAttribute('aria-pressed', 'true');
+        expect(
+            screen.getByRole('button', { name: 'Bank or lender' }),
+        ).toHaveAttribute('aria-pressed', 'false');
         expect(screen.getByLabelText('Phone')).toHaveValue('800 123 456');
         await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
