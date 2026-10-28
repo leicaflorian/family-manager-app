@@ -46,4 +46,21 @@ describe('FmFilePreview', () => {
             screen.getByRole('link', { name: 'Open the file' }),
         ).toHaveAttribute('href', '/files/3');
     });
+
+    it('with fill takes the height of the box around it, not a fixed one', () => {
+        const { container } = render(FmFilePreview, {
+            props: {
+                url: '/files/12',
+                mimeType: 'application/pdf',
+                name: 'Busta paga.pdf',
+                fill: true,
+            },
+        });
+
+        expect(container.firstElementChild).not.toHaveClass('min-h-[420px]');
+        expect(screen.getByTitle('Busta paga.pdf')).toHaveClass('h-full');
+        expect(screen.getByTitle('Busta paga.pdf')).not.toHaveClass(
+            'h-[560px]',
+        );
+    });
 });

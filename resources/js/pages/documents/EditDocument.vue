@@ -1,16 +1,20 @@
 <script setup lang="ts">
 /**
- * *Edit a document*: every field and the links, with the file it belongs to.
- * *Cancel* goes back to the document.
+ * *Edit a document*, as the board *Modifica documento*: the file on grey and,
+ * beside it, the form in a white card, with *Delete the document* at the
+ * bottom for an `admin`. *Cancel* goes back to the document.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
-import { FileText, X } from '@lucide/vue';
+import { Head, router } from '@inertiajs/vue3';
+import { Trash2 } from '@lucide/vue';
+import { ref } from 'vue';
+import FmButton from '@/components/fm/FmButton.vue';
+import FmConfirmDelete from '@/components/fm/FmConfirmDelete.vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
+import FmFilePanel from '@/components/fm/FmFilePanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import type { DocumentFormOptions } from '@/lib/documents';
 import { documentValues } from '@/lib/documents';
-import { show, update } from '@/routes/documents';
+import { destroy, show, update } from '@/routes/documents';
 
 const { document, options } = defineProps<{
     /** The document as it is. */
@@ -18,43 +22,52 @@ const { document, options } = defineProps<{
     /** The choices of the form. */
     options: DocumentFormOptions;
 }>();
+
+/** The panel that asks before deleting. */
+const confirmingDelete = ref(false);
 </script>
 
 <template>
     <Head :title="$t('Edit the document')" />
 
-    <div class="flex max-w-[640px] flex-col gap-4">
-        <FmTitle :title="$t('Edit the document')">
-            <template #actions>
-                <Link
-                    :href="show.url(document.id)"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
-        <a
-            :href="document.file.url"
-            target="_blank"
-            rel="noopener"
-            class="flex items-center gap-3 rounded-[14px] bg-white px-3 py-2.5 text-inherit no-underline"
+    <div class="flex max-w-[1120px] flex-col gap-6">
+        <FmTitle
+            :title="$t('Edit the document')"
+            :back="show.url(document.id)"
+            :back-label="document.title"
+        />
+        <div
+            class="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start"
         >
-            <FmIcon :icon="FileText" :size="22" class="text-ink-soft" />
-            <span class="min-w-0 grow text-[15px] font-semibold break-all">{{
-                document.file.name
-            }}</span>
-        </a>
-        <section class="rounded-3xl bg-white p-5 lg:p-7">
-            <FmDocumentForm
-                :action="update(document.id)"
-                :initial="documentValues(document)"
-                :options="options"
-                :submit-label="$t('Save')"
-                :cancel-label="$t('Cancel')"
-                @cancel="router.visit(show.url(document.id))"
-            />
-        </section>
+            <FmFilePanel :file="document.file" />
+            <section class="rounded-3xl bg-white p-5 lg:p-7">
+                <FmDocumentForm
+                    :action="update(document.id)"
+                    :initial="documentValues(document)"
+                    :options="options"
+                    :submit-label="$t('Save')"
+                    :cancel-label="$t('Cancel')"
+                    @cancel="router.visit(show.url(document.id))"
+                >
+                    <template v-if="document.can_delete" #start>
+                        <FmButton
+                            variant="danger"
+                            :icon="Trash2"
+                            @click="confirmingDelete = true"
+                        >
+                            {{ $t('Delete the document') }}
+                        </FmButton>
+                    </template>
+                </FmDocumentForm>
+            </section>
+        </div>
+        <FmConfirmDelete
+            v-if="document.can_delete"
+            v-model:open="confirmingDelete"
+            :url="destroy.url(document.id)"
+            :question="$t('Delete this document?')"
+            :text="$t('The file goes too, and it cannot be recovered.')"
+            :confirm-label="$t('Delete the document')"
+        />
     </div>
 </template>

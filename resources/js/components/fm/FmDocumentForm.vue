@@ -1,12 +1,14 @@
 <script setup lang="ts">
 /**
- * The form of a document, as the board *Proposta*: what it is, what kind,
- * who it is from and whose, the dates and the records it links to. The same in
+ * The form of a document, as the boards *Proposta* and *Modifica documento*:
+ * what it is, what kind and whose, who it is from, the dates, the status, the
+ * tags, the notes and the records it links to. The same in
  * *Upload* and in *Edit a document*: the page gives the route and the values.
  */
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { categoryOptions } from '@/lib/categories';
 import type {
     DocumentFormOptions,
@@ -18,6 +20,7 @@ import { errors, listErrors } from '@/lib/errors';
 import type { RouteDefinition } from '@/wayfinder';
 import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
+import FmConfirm from './FmConfirm.vue';
 
 const {
     action,
@@ -44,6 +47,11 @@ const {
 defineEmits<{
     /** The person gave up. */
     cancel: [];
+}>();
+
+defineSlots<{
+    /** On the left of the buttons, for example *Delete the document*. */
+    start?: () => unknown;
 }>();
 
 const form = useForm<DocumentFormValues>({
@@ -118,8 +126,40 @@ watch(linkChoice, (key) => {
 /** The errors of the links, all under the menu. */
 const linkErrors = computed(() => listErrors(form.errors, 'links'));
 
+/** The tags already used in the family that the document does not have yet. */
+const tagChoices = computed(() =>
+    options.tags.filter((tag) => !form.tags.includes(tag)),
+);
+
 /** The errors of the tags (`tags.0`, …), all under the field. */
 const tagErrors = computed(() => listErrors(form.errors, 'tags'));
+
+/** The links the document had when the form opened. */
+const savedLinks = new Set(initial.links.map(linkKey));
+
+/** The saved link waiting for the person to confirm its removal. */
+const unlinking = ref<DocumentLink | null>(null);
+
+/** The panel that asks before removing a saved link, open while there is one. */
+const confirmingUnlink = computed({
+    get: (): boolean => unlinking.value !== null,
+    set: (open: boolean): void => {
+        if (!open) {
+            unlinking.value = null;
+        }
+    },
+});
+
+/**
+ * The name of a record that can be linked, or its key if it is not among the
+ * choices.
+ *
+ * @param link - the link
+ * @returns the name to show
+ */
+function linkLabel(link: DocumentLink): string {
+    return linkLabels.value.get(linkKey(link)) ?? linkKey(link);
+}
 
 /**
  * Removes a record from the links.
@@ -128,6 +168,28 @@ const tagErrors = computed(() => listErrors(form.errors, 'tags'));
  */
 function unlink(link: DocumentLink): void {
     form.links = form.links.filter((other) => linkKey(other) !== linkKey(link));
+}
+
+/**
+ * The × of a link: a link just added goes at once, a saved one only after
+ * asking, because taking a document away from a record by mistake is easy.
+ *
+ * @param link - the link whose × was pressed
+ */
+function askToUnlink(link: DocumentLink): void {
+    if (savedLinks.has(linkKey(link))) {
+        unlinking.value = link;
+    } else {
+        unlink(link);
+    }
+}
+
+/** Removes the saved link, once the person confirmed. */
+function confirmUnlink(): void {
+    if (unlinking.value) {
+        unlink(unlinking.value);
+    }
+    unlinking.value = null;
 }
 
 /** Sends the document, if it has its title. */
@@ -144,6 +206,8 @@ function save(): void {
         action,
     );
 }
+
+useSaveShortcut(save, () => !form.processing);
 </script>
 
 <template>
@@ -158,48 +222,101 @@ function save(): void {
         <div class="grid grid-cols-2 gap-3">
             <FormKit
                 v-model="form.category_id"
-                type="select"
+                type="dropdown"
                 :label="$t('What kind it is')"
                 name="category_id"
                 :options="categories"
                 :errors="errors(form.errors.category_id)"
             />
             <FormKit
+                v-model="form.person_id"
+                type="dropdown"
+                :label="$t('Whose it is')"
+                name="person_id"
+                :options="people"
+                :errors="errors(form.errors.person_id)"
+            />
+            <FormKit
                 v-model="form.organization_id"
-                type="select"
+                type="dropdown"
                 :label="$t('Who it is from')"
                 name="organization_id"
                 :options="organizations"
                 :errors="errors(form.errors.organization_id)"
             />
-        </div>
-        <FormKit
-            v-model="form.person_id"
-            type="select"
-            :label="$t('Whose it is')"
-            name="person_id"
-            :options="people"
-            :errors="errors(form.errors.person_id)"
-        />
-        <div class="grid grid-cols-2 gap-3">
             <FormKit
                 v-model="form.date"
-                type="date"
+                type="datepicker"
                 :label="$t('Date')"
                 name="date"
                 :errors="errors(form.errors.date)"
             />
             <FormKit
                 v-model="form.expiry_date"
-                type="date"
+                type="datepicker"
                 :label="$t('Expires on')"
                 name="expiry_date"
                 :errors="errors(form.errors.expiry_date)"
             />
+            <FormKit
+                v-model="form.status"
+                type="togglebuttons"
+                enforced
+                :label="$t('Status')"
+                name="status"
+                :options="options.statuses"
+                :errors="errors(form.errors.status)"
+            />
         </div>
         <FormKit
+            v-model="form.tags"
+            type="taglist"
+            :label="$t('Tags')"
+            name="tags"
+            :options="tagChoices"
+            show-empty-message
+            :empty-message="$t('Press Enter to add the tag')"
+            allow-new-values
+            :placeholder="$t('Add…')"
+            :help="$t('Write a tag and press Enter, for example: salary')"
+            :errors="tagErrors"
+        />
+        <FormKit
+            v-model="form.notes"
+            type="textarea"
+            :label="$t('Notes')"
+            name="notes"
+            :errors="errors(form.errors.notes)"
+        />
+        <div v-if="form.links.length > 0" class="flex flex-wrap gap-2">
+            <FmActiveFilter
+                v-for="link in form.links"
+                :key="linkKey(link)"
+                :label="linkLabel(link)"
+                :remove-label="
+                    $t('Remove the link :label', { label: linkLabel(link) })
+                "
+                @remove="askToUnlink(link)"
+            />
+        </div>
+        <FmConfirm
+            v-model:open="confirmingUnlink"
+            :question="
+                $t('Remove the link to :label?', {
+                    label: unlinking ? linkLabel(unlinking) : '',
+                })
+            "
+            :text="
+                $t(
+                    'The document will no longer be linked to it, once you save.',
+                )
+            "
+            :confirm-label="$t('Remove the link')"
+            @confirm="confirmUnlink"
+        />
+        <FormKit
             v-model="linkChoice"
-            type="select"
+            type="dropdown"
             :label="$t('Link it to')"
             name="link"
             :options="linkChoices"
@@ -213,53 +330,20 @@ function save(): void {
             :disabled="options.links.length === 0"
             :errors="linkErrors"
         />
-        <div v-if="form.links.length > 0" class="flex flex-wrap gap-2">
-            <FmActiveFilter
-                v-for="link in form.links"
-                :key="linkKey(link)"
-                :label="linkLabels.get(linkKey(link)) ?? linkKey(link)"
-                :remove-label="
-                    $t('Remove the link :label', {
-                        label: linkLabels.get(linkKey(link)) ?? linkKey(link),
-                    })
-                "
-                @remove="unlink(link)"
-            />
-        </div>
-        <FormKit
-            v-model="form.status"
-            type="select"
-            :label="$t('Status')"
-            name="status"
-            :options="options.statuses"
-            :errors="errors(form.errors.status)"
-        />
-        <FormKit
-            v-model="form.tags"
-            type="text"
-            :label="$t('Tags')"
-            name="tags"
-            :help="$t('Separated by commas, for example: salary, 2026')"
-            :errors="tagErrors"
-        />
-        <FormKit
-            v-model="form.notes"
-            type="textarea"
-            :label="$t('Notes')"
-            name="notes"
-            :errors="errors(form.errors.notes)"
-        />
-        <div class="mt-1.5 flex flex-wrap justify-end gap-2.5">
-            <FmButton
-                v-if="cancelLabel"
-                variant="text"
-                @click="$emit('cancel')"
-            >
-                {{ cancelLabel }}
-            </FmButton>
-            <FmButton type="submit" :disabled="form.processing">
-                {{ submitLabel }}
-            </FmButton>
+        <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">
+            <slot name="start" />
+            <div class="ml-auto flex flex-wrap gap-2.5">
+                <FmButton
+                    v-if="cancelLabel"
+                    variant="text"
+                    @click="$emit('cancel')"
+                >
+                    {{ cancelLabel }}
+                </FmButton>
+                <FmButton type="submit" :disabled="form.processing">
+                    {{ submitLabel }}
+                </FmButton>
+            </div>
         </div>
     </form>
 </template>

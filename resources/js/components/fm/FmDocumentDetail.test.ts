@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { documentDetail } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
@@ -29,24 +30,60 @@ describe('FmDocumentDetail', () => {
         ).toHaveAttribute('src', '/files/12');
     });
 
-    it('downloads and edits the document', () => {
-        renderPage(FmDocumentDetail, { document: documentDetail });
+    it('in the panel beside the list only Download and the ⋯ menu are on top', () => {
+        renderPage(FmDocumentDetail, {
+            document: documentDetail,
+            compact: true,
+        });
 
-        expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
-            'href',
-            '/files/12/download',
+        expect(
+            screen.getByRole('link', { name: 'Download' }),
+        ).not.toHaveTextContent('Download');
+        expect(
+            screen.getByRole('button', { name: 'More actions' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'Edit' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Delete' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('the ⋯ menu opens the file in a new tab and edits the document', async () => {
+        renderPage(FmDocumentDetail, {
+            document: documentDetail,
+            compact: true,
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
         );
-        expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
+
+        const open = await screen.findByRole('menuitem', {
+            name: 'Open in a new tab',
+        });
+        expect(open).toHaveAttribute('href', '/files/12');
+        expect(open).toHaveAttribute('target', '_blank');
+        expect(screen.getByRole('menuitem', { name: 'Edit' })).toHaveAttribute(
             'href',
             '/documents/5/edit',
         );
     });
 
-    it('asks before deleting, then deletes', async () => {
+    it('the ⋯ menu asks before deleting, then deletes', async () => {
         const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
-        renderPage(FmDocumentDetail, { document: documentDetail });
+        renderPage(FmDocumentDetail, {
+            document: documentDetail,
+            compact: true,
+        });
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            await screen.findByRole('menuitem', { name: 'Delete' }),
+        );
         expect(destroy).not.toHaveBeenCalled();
         await fireEvent.click(
             await screen.findByRole('button', { name: 'Delete the document' }),
@@ -55,16 +92,56 @@ describe('FmDocumentDetail', () => {
         expect(destroy).toHaveBeenCalledWith('/documents/5', expect.anything());
     });
 
-    it('without the permissions shows neither Edit nor Delete', () => {
+    it('without the permissions the ⋯ menu has neither Edit nor Delete', async () => {
         renderPage(FmDocumentDetail, {
             document: { ...documentDetail, can_edit: false, can_delete: false },
+            compact: true,
         });
 
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+
         expect(
-            screen.queryByRole('link', { name: 'Edit' }),
+            await screen.findByRole('menuitem', { name: 'Open in a new tab' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('menuitem', { name: 'Edit' }),
         ).not.toBeInTheDocument();
         expect(
-            screen.queryByRole('button', { name: 'Delete' }),
+            screen.queryByRole('menuitem', { name: 'Delete' }),
         ).not.toBeInTheDocument();
+    });
+
+    it('in the panel beside the list the title, the date and the buttons are on top, in one card', () => {
+        const { container } = renderPage(FmDocumentDetail, {
+            document: documentDetail,
+            compact: true,
+        });
+
+        const heading = screen.getByRole('heading', {
+            name: 'Busta paga di ottobre',
+            level: 2,
+        });
+        expect(heading.querySelector('a')).toHaveAttribute(
+            'href',
+            '/documents/5',
+        );
+        expect(screen.getByText('Arrived on 23/10/2026')).toBeInTheDocument();
+        expect(container.querySelectorAll('[data-card]')).toHaveLength(1);
+    });
+
+    it('on its own page the title is not repeated', () => {
+        renderPage(FmDocumentDetail, { document: documentDetail });
+
+        expect(
+            screen.queryByRole('heading', { name: 'Busta paga di ottobre' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('the button to add a link has no border', () => {
+        renderPage(FmDocumentDetail, { document: documentDetail });
+
+        expect(screen.getByTitle('Add a link')).not.toHaveClass('border');
     });
 });

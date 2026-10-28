@@ -215,7 +215,7 @@ function rowHref(document: App.Data.DocumentData): string {
                         @submit.prevent="searchDocuments"
                     >
                         <label
-                            class="flex h-12 items-center gap-2.5 rounded-[14px] border border-edge bg-white px-3.5 text-ink-soft"
+                            class="flex h-11.5 items-center gap-2.5 rounded-[10px] border border-edge bg-white px-3.5 text-ink-soft"
                         >
                             <FmIcon :icon="Search" :size="20" />
                             <input
@@ -230,7 +230,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     <button
                         type="button"
                         :aria-label="$t('Filters')"
-                        class="flex size-12 shrink-0 items-center justify-center rounded-[14px] border border-edge bg-white text-ink lg:hidden"
+                        class="flex size-11.5 shrink-0 items-center justify-center rounded-[10px] border border-edge bg-white text-ink lg:hidden"
                         @click="filtersOpen = true"
                     >
                         <FmIcon :icon="ListFilter" :size="22" />
@@ -254,6 +254,7 @@ function rowHref(document: App.Data.DocumentData): string {
                             :key="document.id"
                             :document="document"
                             :href="rowHref(document)"
+                            :current="selected?.id === document.id"
                         />
                     </FmCard>
                     <nav
@@ -284,14 +285,8 @@ function rowHref(document: App.Data.DocumentData): string {
                 />
             </div>
 
-            <section
-                v-if="selected"
-                class="hidden min-w-0 grow flex-col gap-3 lg:flex"
-            >
-                <h2 class="m-0 text-2xl font-extrabold">
-                    {{ selected.title }}
-                </h2>
-                <FmDocumentDetail :document="selected" />
+            <section v-if="selected" class="hidden min-w-0 grow lg:block">
+                <FmDocumentDetail :document="selected" compact />
             </section>
         </div>
 

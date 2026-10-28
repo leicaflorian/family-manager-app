@@ -30,7 +30,7 @@ use Inertia\Response;
 final class DocumentController extends Controller
 {
     /** How many documents a page of the list holds. */
-    private const int PER_PAGE = 30;
+    private const int PER_PAGE = 15;
 
     public function __construct(private readonly CategoryTree $categories, private readonly DocumentLinks $links) {}
 

@@ -1,8 +1,9 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { newDocument } from '@/lib/documents';
-import { choose, renderPage, settle } from '@/test/page';
+import { choose, pressSave, renderPage, settle } from '@/test/page';
 import FmDocumentForm from './FmDocumentForm.vue';
 
 const options = {
@@ -42,6 +43,7 @@ const options = {
         { value: 'active', label: 'Active', help: null },
         { value: 'archived', label: 'Archived', help: null },
     ],
+    tags: ['Bills', 'salary'],
 };
 
 const props = {
@@ -57,32 +59,39 @@ afterEach(() => {
 });
 
 describe('FmDocumentForm', () => {
-    it('proposes the title and offers categories with their path, people and organizations', () => {
+    it('proposes the title and offers categories with their path, people and organizations', async () => {
         renderPage(FmDocumentForm, props);
 
         expect(screen.getByLabelText('What it is')).toHaveValue(
             'Busta paga novembre 2026',
         );
-        expect(
-            screen.getByRole('option', { name: 'Work › Payslips' }),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByRole('option', { name: 'Laura Bianchi' }),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByRole('option', { name: 'Comune di Bologna' }),
-        ).toBeInTheDocument();
-        expect(screen.getByLabelText('Expires on')).toHaveAttribute(
-            'type',
-            'date',
-        );
+        await choose('What kind it is', 'Work › Payslips');
+        await choose('Whose it is', 'Laura Bianchi');
+        await choose('Who it is from', 'Comune di Bologna');
         expect(screen.getByLabelText('Tags')).toBeInTheDocument();
+    });
+
+    it('shows the dates the Italian way and sends them as the server reads them', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmDocumentForm, {
+            ...props,
+            initial: { ...props.initial, expiry_date: '2027-03-31' },
+        });
+
+        expect(await screen.findByLabelText('Expires on')).toHaveValue(
+            '31/03/2027',
+        );
+        await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post.mock.calls[0]?.[1]).toMatchObject({
+            expiry_date: '2027-03-31',
+        });
     });
 
     it('adds a chosen record to the links, and removes it with the ×', async () => {
         renderPage(FmDocumentForm, props);
 
-        await choose('Link it to', 'employment:3');
+        await choose('Link it to', 'Laura - Comune di Bologna');
         const chip = await screen.findByRole('button', {
             name: 'Remove the link Laura - Comune di Bologna',
         });
@@ -91,6 +100,103 @@ describe('FmDocumentForm', () => {
         expect(
             screen.queryByRole('button', { name: /Remove the link/ }),
         ).not.toBeInTheDocument();
+    });
+
+    it('asks before removing a link that is already saved, and keeps it on Cancel', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            initial: {
+                ...props.initial,
+                links: [{ type: 'employment', id: 3 }],
+            },
+        });
+
+        await fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Remove the link Laura - Comune di Bologna',
+            }),
+        );
+        expect(
+            await screen.findByRole('heading', {
+                name: 'Remove the link to Laura - Comune di Bologna?',
+            }),
+        ).toBeInTheDocument();
+        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await settle();
+
+        expect(
+            screen.getByRole('button', {
+                name: 'Remove the link Laura - Comune di Bologna',
+            }),
+        ).toBeInTheDocument();
+    });
+
+    it('removes a saved link once the person confirms', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            initial: {
+                ...props.initial,
+                links: [{ type: 'employment', id: 3 }],
+            },
+        });
+
+        await fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Remove the link Laura - Comune di Bologna',
+            }),
+        );
+        await fireEvent.click(
+            await screen.findByRole('button', { name: 'Remove the link' }),
+        );
+
+        expect(
+            screen.queryByRole('button', { name: /Remove the link Laura/ }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('proposes the tags already used, but not the ones the document has', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            initial: { ...props.initial, tags: ['salary'] },
+        });
+
+        await userEvent.type(screen.getByLabelText('Tags'), 'l');
+        const list = await screen.findByRole('listbox');
+
+        expect(
+            within(list).getByRole('option', { name: 'Bills' }),
+        ).toBeInTheDocument();
+        expect(
+            within(list).queryByRole('option', { name: 'salary' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('adds the highlighted tag with Tab, and what was written with Enter', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmDocumentForm, props);
+
+        const field = screen.getByLabelText('Tags');
+        await userEvent.type(field, 'Bi');
+        await screen.findByRole('option', { name: 'Bills' });
+        await userEvent.keyboard('{ArrowDown}{Tab}');
+        await settle();
+        await userEvent.type(field, 'house{Enter}');
+        await settle();
+        await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post.mock.calls[0]?.[1]).toMatchObject({
+            tags: ['Bills', 'house'],
+        });
+    });
+
+    it('says how to add a new tag when no tag used before matches', async () => {
+        renderPage(FmDocumentForm, props);
+
+        await userEvent.type(screen.getByLabelText('Tags'), 'house');
+
+        expect(
+            await screen.findByText('Press Enter to add the tag'),
+        ).toBeInTheDocument();
     });
 
     it('does not send without the title', async () => {
@@ -112,8 +218,8 @@ describe('FmDocumentForm', () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(FmDocumentForm, props);
 
-        await choose('What kind it is', '4');
-        await choose('Link it to', 'employment:3');
+        await choose('What kind it is', 'Work › Payslips');
+        await choose('Link it to', 'Laura - Comune di Bologna');
         await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
         expect(post).toHaveBeenCalledOnce();
@@ -125,5 +231,31 @@ describe('FmDocumentForm', () => {
             person_id: null,
             links: [{ type: 'employment', id: 3 }],
         });
+    });
+
+    it('chooses the status among the segments, one always chosen', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmDocumentForm, props);
+
+        const active = await screen.findByRole('button', { name: 'Active' });
+        expect(active).toHaveAttribute('aria-pressed', 'true');
+        await fireEvent.click(active);
+        expect(active).toHaveAttribute('aria-pressed', 'true');
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+        await settle();
+        await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post.mock.calls[0]?.[1]).toMatchObject({ status: 'archived' });
+    });
+
+    it('saves with ⌘S too', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmDocumentForm, props);
+
+        pressSave();
+        await settle();
+
+        expect(post).toHaveBeenCalled();
     });
 });

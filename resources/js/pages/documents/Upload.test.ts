@@ -10,6 +10,7 @@ const options = {
     organizations: [],
     links: [],
     statuses: [{ value: 'active', label: 'Active', help: null }],
+    tags: [],
 };
 
 const payslip = {

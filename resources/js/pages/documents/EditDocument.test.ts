@@ -1,12 +1,14 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, within } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import type { DocumentFormOptions } from '@/lib/documents';
 import { documentDetail, documentFilterOptions } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, settle } from '@/test/page';
 import EditDocument from './EditDocument.vue';
 
-const options = {
+const options: DocumentFormOptions = {
     ...documentFilterOptions,
+    tags: [],
     links: [
         {
             type: 'employment',
@@ -55,5 +57,60 @@ describe('Edit a document', () => {
             category_id: 4,
             links: [{ type: 'employment', id: 3 }],
         });
+    });
+
+    it('shows the file beside the form, as the board', () => {
+        renderPage(EditDocument, { document: documentDetail, options });
+
+        expect(
+            screen.getByTitle('Busta paga ottobre 2026.pdf'),
+        ).toHaveAttribute('src', '/files/12');
+        expect(
+            screen.queryByRole('link', { name: 'Close' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('deletes the document from the bottom of the form, after asking', async () => {
+        const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+        renderPage(EditDocument, { document: documentDetail, options });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Delete the document' }),
+        );
+        expect(destroy).not.toHaveBeenCalled();
+        const panel = await screen.findByRole('dialog');
+        await fireEvent.click(
+            within(panel).getByRole('button', { name: 'Delete the document' }),
+        );
+
+        expect(destroy).toHaveBeenCalledWith('/documents/5', expect.anything());
+    });
+
+    it('without the permission it does not offer to delete', () => {
+        renderPage(EditDocument, {
+            document: { ...documentDetail, can_delete: false },
+            options,
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Delete the document' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('shows the tags as chips, each one with its ×, and sends what is left', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(EditDocument, { document: documentDetail, options });
+
+        const tags = screen
+            .getByRole('combobox', { name: 'Tags' })
+            .closest<HTMLElement>('[data-type]')!;
+        expect(within(tags).getByText('salary')).toBeInTheDocument();
+        await fireEvent.click(
+            within(tags).getAllByRole('button', { name: 'Remove' })[0]!,
+        );
+        await settle();
+        await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(put.mock.calls[0]?.[1]).toMatchObject({ tags: ['2026'] });
     });
 });

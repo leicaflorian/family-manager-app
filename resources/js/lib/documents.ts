@@ -15,8 +15,8 @@ export type DocumentFormValues = {
     date: string;
     expiry_date: string;
     status: string;
-    /** The tags, separated by commas, as the person writes them. */
-    tags: string;
+    /** The tags, one by one, as the person adds them. */
+    tags: string[];
     notes: string;
     links: DocumentLink[];
 };
@@ -60,6 +60,8 @@ export type DocumentFormOptions = {
     organizations: App.Data.OptionData[];
     links: App.Data.LinkGroupData[];
     statuses: App.Data.OptionData[];
+    /** The tags already used in the family, to reuse them. */
+    tags: string[];
 };
 
 /**
@@ -77,7 +79,7 @@ export function newDocument(title: string): DocumentFormValues {
         date: '',
         expiry_date: '',
         status: 'active',
-        tags: '',
+        tags: [],
         notes: '',
         links: [],
     };
@@ -101,7 +103,6 @@ export function toPayload(values: DocumentFormValues): DocumentPayload {
         tags: [
             ...new Set(
                 values.tags
-                    .split(',')
                     .map((tag) => tag.trim())
                     .filter((tag) => tag !== ''),
             ),
@@ -128,7 +129,7 @@ export function documentValues(
         date: document.date ?? '',
         expiry_date: document.expiry_date ?? '',
         status: document.status,
-        tags: document.tags.join(', '),
+        tags: [...document.tags],
         notes: document.notes ?? '',
         links: document.links.map(({ type, id }) => ({ type, id })),
     };
