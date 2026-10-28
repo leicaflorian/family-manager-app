@@ -144,3 +144,17 @@ test('a file that has its document is not discarded from Upload', function (): v
 
     expect($file->fresh())->not->toBeNull();
 });
+
+test('a waiting file has a preview address only when it has a preview', function (): void {
+    $file = uploadOne('Busta paga novembre 2026.pdf');
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.preview_url', route('files.preview', $file)));
+
+    $file->forceFill(['preview_failed' => true])->save();
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.preview_url', null));
+
+    $file->forceFill(['preview_failed' => false, 'mime_type' => 'image/png'])->save();
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.preview_url', null));
+});

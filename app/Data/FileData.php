@@ -20,6 +20,7 @@ final class FileData extends Data
      * @param  int  $size  the size in bytes
      * @param  string  $url  the address that opens it
      * @param  string  $download_url  the address that downloads it
+     * @param  string|null  $preview_url  the address of the preview image, null when the file has none
      */
     public function __construct(
         public readonly string $name,
@@ -27,6 +28,7 @@ final class FileData extends Data
         public readonly int $size,
         public readonly string $url,
         public readonly string $download_url,
+        public readonly ?string $preview_url,
     ) {}
 
     /**
@@ -36,6 +38,6 @@ final class FileData extends Data
      */
     public static function fromFile(File $file): self
     {
-        return new self($file->original_name, $file->mime_type, $file->size, route('files.show', $file), route('files.download', $file));
+        return new self($file->original_name, $file->mime_type, $file->size, route('files.show', $file), route('files.download', $file), $file->hasPreview() ? route('files.preview', $file) : null);
     }
 }
