@@ -96,7 +96,8 @@ final class FileStore
     {
         DB::transaction(function () use ($file): void {
             $file->delete();
-            Storage::disk($file->disk)->delete([$file->path, resolve(FilePreviews::class)->previewPathOf($file)]);
+            Storage::disk($file->disk)->delete($file->path);
+            resolve(FilePreviews::class)->deleteOf($file);
         });
     }
 

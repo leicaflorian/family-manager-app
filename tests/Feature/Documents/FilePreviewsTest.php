@@ -7,6 +7,8 @@ use App\Services\FilePreviews;
 use App\Services\FileStore;
 use Carbon\CarbonInterval;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -145,4 +147,103 @@ test('deleting a stale copy of the file still deletes the preview', function ():
     resolve(FileStore::class)->delete($stale);
 
     Storage::disk('local')->assertMissing($path);
+});
+
+/**
+ * Puts a file next to the preview of a file, as a tool writing extra images would.
+ */
+function leaveExtra(File $file, string $suffix): string
+{
+    $name = pathinfo($file->path, PATHINFO_FILENAME).$suffix;
+    $path = "families/{$file->family_id}/previews/{$name}";
+    Storage::disk('local')->put($path, 'extra');
+
+    return $path;
+}
+
+test('extra files written next to the preview are deleted after a conversion', function (): void {
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+    $extra = leaveExtra($file, '-depth.jpg');
+
+    $path = (string) resolve(FilePreviews::class)->path($file);
+
+    Storage::disk('local')->assertExists($path);
+    Storage::disk('local')->assertMissing($extra);
+});
+
+test('extra files are deleted also when the conversion fails', function (): void {
+    $file = storeFixture('broken.pdf', 'broken.pdf', 'application/pdf');
+    $extra = leaveExtra($file, '-depth.jpg');
+
+    expect(resolve(FilePreviews::class)->path($file))->toBeNull();
+
+    Storage::disk('local')->assertMissing($extra);
+});
+
+test('deleting the file deletes every file the preview left', function (): void {
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+    $path = (string) resolve(FilePreviews::class)->path($file);
+    $extra = leaveExtra($file, '-depth.jpg');
+    $other = leaveExtra(storeFixture('one-page.pdf', 'other.pdf', 'application/pdf'), '.jpg');
+
+    resolve(FileStore::class)->delete($file->fresh());
+
+    Storage::disk('local')->assertMissing($path);
+    Storage::disk('local')->assertMissing($extra);
+    Storage::disk('local')->assertExists($other);
+});
+
+test('a file deleted while its preview is made leaves no JPEG', function (): void {
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+    $id = $file->id;
+    File::saving(function () use ($id): void {
+        DB::table('files')->where('id', $id)->delete();
+    });
+
+    expect(resolve(FilePreviews::class)->path($file))->toBeNull();
+
+    Storage::disk('local')->assertMissing(resolve(FilePreviews::class)->previewPathOf($file));
+});
+
+test('a big HEIC photo that does not fit in memory is marked and leaves nothing', function (): void {
+    $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
+    $limit = ini_get('memory_limit');
+    ini_set('memory_limit', (string) (memory_get_usage() + 14 * 1024 * 1024));
+
+    try {
+        $path = resolve(FilePreviews::class)->path($file);
+    } finally {
+        ini_set('memory_limit', (string) $limit);
+    }
+
+    expect($path)->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeTrue()
+        ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
+});
+
+test('a failure is logged with the exit code and the message of the tool', function (): void {
+    Log::spy();
+    $broken = storeFixture('broken.pdf', 'broken.pdf', 'application/pdf');
+
+    resolve(FilePreviews::class)->path($broken);
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === '[file-preview] conversion failed'
+        && is_int($context['exit_code'])
+        && $context['exit_code'] > 0
+        && is_string($context['error']))->once();
+});
+
+test('a missing tool does not mark the file as failed', function (): void {
+    Log::spy();
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+    $heic = storeFixture('photo.heic', 'photo.heic', 'image/heic');
+    $previews = new FilePreviews(pdfTool: 'no-such-pdf-tool', heicTool: '/no/such/heic-tool');
+
+    expect($previews->path($file))->toBeNull()
+        ->and($previews->path($heic))->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeFalse()
+        ->and($heic->fresh()->preview_failed)->toBeFalse()
+        ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
+    Log::shouldHaveReceived('error')->twice();
+    expect(resolve(FilePreviews::class)->path($file->fresh()))->not->toBeNull();
 });
