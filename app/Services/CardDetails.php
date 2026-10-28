@@ -174,7 +174,7 @@ final readonly class CardDetails
             $text = $this->text($field, $value);
 
             if ($text !== null) {
-                $values[] = new CardValueData($field->label, $text, is_int($value) ? $this->href($field, $value) : null);
+                $values[] = new CardValueData($field->labelFor($card), $text, is_int($value) ? $this->href($field, $value) : null);
             }
         }
 
@@ -335,6 +335,7 @@ final readonly class CardDetails
             required: $field->required,
             options: $this->options($field),
             show_when: $field->showWhen,
+            label_when: $field->labelWhen,
         );
     }
 

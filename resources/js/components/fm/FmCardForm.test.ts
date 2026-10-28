@@ -3,7 +3,7 @@ import { plugin as formkit } from '@formkit/vue';
 import { render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import formkitConfig from '@/formkit.config';
-import { policyFields } from '@/test/fixtures';
+import { policyFields, utilityFields } from '@/test/fixtures';
 import { choose, openMenu, renderPage, settle, shown } from '@/test/page';
 import FmCardForm from './FmCardForm.vue';
 
@@ -25,6 +25,20 @@ describe('FmCardForm', () => {
 
         expect(screen.queryByLabelText('Vehicle')).not.toBeInTheDocument();
         expect(screen.getByLabelText('Residence')).toBeInTheDocument();
+    });
+
+    it('names a field by the type chosen', async () => {
+        renderPage(FmCardForm, {
+            fields: utilityFields,
+            values: { type: 'electricity', supply_point_code: null },
+        });
+
+        expect(screen.getByLabelText('POD code')).toBeInTheDocument();
+
+        await choose('Type', 'Gas');
+
+        expect(screen.queryByLabelText('POD code')).not.toBeInTheDocument();
+        expect(screen.getByLabelText('PDR code')).toBeInTheDocument();
     });
 
     it('sends a hidden field empty', async () => {
@@ -137,6 +151,7 @@ describe('FmCardForm', () => {
                     required: false,
                     options: [],
                     show_when: {},
+                    label_when: {},
                 },
             ],
             values: { title: 'Casa al mare', is_owned: null },

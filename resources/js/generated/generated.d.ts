@@ -69,6 +69,7 @@ readonly kind: string,
 readonly required: boolean,
 readonly options: App.Data.OptionData[],
 readonly show_when: Record<string, string[]>,
+readonly label_when: Record<string, Record<string, string>>,
 };
 export type CardTypeData = {
 readonly type: string,

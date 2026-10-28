@@ -265,6 +265,7 @@ export const policyFields: App.Data.CardFieldData[] = [
         required: true,
         options: [],
         show_when: {},
+        label_when: {},
     },
     {
         column: 'type',
@@ -272,6 +273,7 @@ export const policyFields: App.Data.CardFieldData[] = [
         kind: 'dropdown',
         required: true,
         show_when: {},
+        label_when: {},
         options: [
             { value: 'car', label: 'Car', help: null },
             { value: 'home', label: 'Home', help: null },
@@ -283,6 +285,7 @@ export const policyFields: App.Data.CardFieldData[] = [
         kind: 'card',
         required: false,
         show_when: { type: ['car'] },
+        label_when: {},
         options: [{ value: '1', label: 'Fiat Panda', help: null }],
     },
     {
@@ -291,7 +294,33 @@ export const policyFields: App.Data.CardFieldData[] = [
         kind: 'card',
         required: false,
         show_when: { type: ['home'] },
+        label_when: {},
         options: [{ value: '1', label: 'Casa di via Roma', help: null }],
+    },
+];
+
+/** The description of a utility, as the form receives it: the supply point code is named by the type. */
+export const utilityFields: App.Data.CardFieldData[] = [
+    {
+        column: 'type',
+        label: 'Type',
+        kind: 'dropdown',
+        required: true,
+        show_when: {},
+        label_when: {},
+        options: [
+            { value: 'electricity', label: 'Electricity', help: null },
+            { value: 'gas', label: 'Gas', help: null },
+        ],
+    },
+    {
+        column: 'supply_point_code',
+        label: 'POD code',
+        kind: 'text',
+        required: false,
+        options: [],
+        show_when: { type: ['electricity', 'gas'] },
+        label_when: { type: { electricity: 'POD code', gas: 'PDR code' } },
     },
 ];
 

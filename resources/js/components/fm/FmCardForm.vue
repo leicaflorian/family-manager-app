@@ -3,7 +3,9 @@
  * The form of a card, built from the description the server gives
  * (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and
  * a field shows only when its `show_when` holds, for example the vehicle only
- * for a car policy. A hidden field is sent empty. The same form creates and
+ * for a car policy, and its label can change with `label_when`, for example
+ * the POD code of electricity that is a PDR code for gas. A hidden field is
+ * sent empty. The same form creates and
  * edits every type of card: the page gives the fields and the values, and gets
  * them back with `submit`.
  */
@@ -99,6 +101,25 @@ function isShown(field: App.Data.CardFieldData): boolean {
     );
 }
 
+/**
+ * The label of a field with the values now: the one of `label_when` they ask
+ * for, otherwise the usual one.
+ *
+ * @param field - the field
+ * @returns the label
+ */
+function labelOf(field: App.Data.CardFieldData): string {
+    for (const [column, labels] of Object.entries(field.label_when)) {
+        const label = labels[String(data[column])];
+
+        if (label !== undefined) {
+            return label;
+        }
+    }
+
+    return field.label;
+}
+
 /** The fields shown now. */
 const shown = computed(() => fields.filter(isShown));
 
@@ -165,7 +186,7 @@ useSaveShortcut(save, () => !processing);
                 v-model="data[field.column]"
                 :type="inputs[field.kind] ?? 'text'"
                 :name="field.column"
-                :label="$t(field.label)"
+                :label="$t(labelOf(field))"
                 :options="
                     field.kind === 'choice' || menus.has(field.kind)
                         ? optionsOf(field)

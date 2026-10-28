@@ -11,6 +11,7 @@ use App\Models\Family;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\User;
+use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\CardDetails;
 use Database\Seeders\BianchiFamilySeeder;
@@ -36,6 +37,17 @@ test('it shows the data of a policy with labels and links', function (): void {
         ->and($values['Policyholder']->href)->toBe(route('people.show', $this->policy->person_id))
         ->and($values['Start']->text)->toBe('20/11/2025')
         ->and($values->has('Policy number'))->toBeFalse();
+});
+
+test('it names the supply point code of a gas utility PDR', function (): void {
+    $gas = insideBianchi(fn (): Utility => Utility::query()->where('type', 'gas')->sole());
+    insideBianchi(fn () => $gas->update(['supply_point_code' => 'IT001E00000001']));
+    $labels = array_map(
+        fn (CardValueData $value): string => $value->label,
+        insideBianchi(fn () => $this->details->of($gas, $this->marco))->values,
+    );
+
+    expect($labels)->toContain('PDR code')->not->toContain('POD code');
 });
 
 test('it lists the linked cards both ways', function (): void {

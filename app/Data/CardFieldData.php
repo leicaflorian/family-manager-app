@@ -21,6 +21,7 @@ final class CardFieldData extends Data
      * @param  bool  $required  whether the person has to fill it in
      * @param  list<OptionData>  $options  the choices, for the kinds that have them
      * @param  array<string, list<string>>  $show_when  the field is shown only when each field has one of these values
+     * @param  array<string, array<string, string>>  $label_when  another label when a field has one of these values
      */
     public function __construct(
         public readonly string $column,
@@ -30,5 +31,6 @@ final class CardFieldData extends Data
         #[DataCollectionOf(OptionData::class)]
         public readonly array $options,
         public readonly array $show_when,
+        public readonly array $label_when,
     ) {}
 }

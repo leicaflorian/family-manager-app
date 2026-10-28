@@ -9,10 +9,12 @@ use App\Cards\CardTypes;
 use App\Cards\FieldKind;
 use App\Enums\Area;
 use App\Enums\InsurancePolicyStatus;
+use App\Enums\UtilityType;
 use App\Models\FinancialAccount;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\MaintenanceRecord;
+use App\Models\Utility;
 use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -187,6 +189,19 @@ test('it asks the linked record by the type of policy', function (): void {
         ->and(cardField('insurance_policy', 'vehicle_id')?->target)->toBe('vehicle')
         ->and(cardField('insurance_policy', 'home_id')?->showWhen)->toBe(['type' => ['home']])
         ->and(cardField('insurance_policy', 'employment_id')?->showWhen)->toBe(['type' => ['health', 'accident', 'fund']]);
+});
+
+test('it asks the supply point code only for electricity and gas', function (): void {
+    expect(cardField('utility', 'supply_point_code')?->showWhen)->toBe(['type' => ['electricity', 'gas']])
+        ->and(cardField('utility', 'customer_code')?->showWhen)->toBe([]);
+});
+
+test('it names the supply point code POD for electricity and PDR for gas', function (): void {
+    app()->setLocale('it');
+
+    expect(cardField('utility', 'supply_point_code')?->labelFor(new Utility(['type' => UtilityType::Electricity])))->toBe('Codice POD')
+        ->and(cardField('utility', 'supply_point_code')?->labelFor(new Utility(['type' => UtilityType::Gas])))->toBe('Codice PDR')
+        ->and(cardField('utility', 'customer_code')?->labelFor(new Utility(['type' => UtilityType::Gas])))->toBe('Codice cliente');
 });
 
 test('it links a maintenance to one thing only', function (): void {
