@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
+import { defineComponent, h } from 'vue';
+import { provideOnColor } from '@/composables/useOnColor';
 import FmBottomSheet from './FmBottomSheet.vue';
+import FmButton from './FmButton.vue';
 
 /**
  * The panel with a field and a button, to try the focus.
@@ -74,5 +77,31 @@ describe('FmBottomSheet', () => {
                 document.activeElement as HTMLElement,
             );
         }
+    });
+
+    it('keeps its buttons as on white, also when opened from a coloured top', async () => {
+        render(
+            defineComponent({
+                setup() {
+                    provideOnColor();
+
+                    return () =>
+                        h(
+                            FmBottomSheet,
+                            { open: true, title: 'Delete the card?' },
+                            () =>
+                                h(
+                                    FmButton,
+                                    { variant: 'text' },
+                                    () => 'Cancel',
+                                ),
+                        );
+                },
+            }),
+        );
+
+        const cancel = await screen.findByRole('button', { name: 'Cancel' });
+        expect(cancel).toHaveClass('text-action');
+        expect(cancel).not.toHaveClass('bg-white/15', 'text-white');
     });
 });

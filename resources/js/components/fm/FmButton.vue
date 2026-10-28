@@ -6,6 +6,7 @@
 import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { useOnColor } from '@/composables/useOnColor';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -73,6 +74,9 @@ const styles: Record<ButtonVariant, string> = {
     danger: cn('px-3 font-normal text-overdue hover:bg-overdue/10'),
 };
 
+/** On a coloured background every variant is translucent white. */
+const onColor = useOnColor();
+
 const classes = computed((): string =>
     cn(
         // Every variant has the same size: two buttons side by side must match
@@ -86,6 +90,9 @@ const classes = computed((): string =>
         label && small && 'size-10',
         label && xsmall && 'size-7.5 rounded-lg',
         label && variant !== 'danger' && 'text-ink',
+        // The colour behind shows through, a bit less on hover
+        onColor &&
+            'border-0 bg-white/15 font-semibold text-white hover:bg-white/25 focus-visible:outline-white active:bg-white/30',
     ),
 );
 

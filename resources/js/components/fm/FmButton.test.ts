@@ -2,7 +2,24 @@ import { render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { Pencil } from '@lucide/vue';
+import { defineComponent, h } from 'vue';
+import { provideOnColor } from '@/composables/useOnColor';
 import FmButton from './FmButton.vue';
+
+/**
+ * A button inside a coloured background, as in the top of a card page.
+ */
+function onColor(props: Record<string, unknown>, text?: string) {
+    return render(
+        defineComponent({
+            setup() {
+                provideOnColor();
+
+                return () => h(FmButton, props, () => text);
+            },
+        }),
+    );
+}
 
 describe('FmButton', () => {
     it('renders a button with the text', () => {
@@ -139,5 +156,25 @@ describe('FmButton', () => {
         expect(link).toHaveAttribute('href', '/files/1');
         expect(link).toHaveAttribute('target', '_blank');
         expect(link).toHaveAttribute('rel', 'noopener');
+    });
+
+    it('on a colour is translucent white, a bit stronger on hover', () => {
+        onColor({ variant: 'soft', icon: Pencil }, 'Edit');
+
+        const button = screen.getByRole('button', { name: 'Edit' });
+        expect(button).toHaveClass(
+            'bg-white/15',
+            'text-white',
+            'hover:bg-white/25',
+        );
+        expect(button).not.toHaveClass('bg-action-soft', 'text-action-dark');
+    });
+
+    it('on a colour the icon square is translucent white too', () => {
+        onColor({ variant: 'soft', icon: Pencil, label: 'More actions' });
+
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(button).toHaveClass('size-11.5', 'bg-white/15', 'text-white');
+        expect(button).not.toHaveClass('bg-canvas', 'text-ink');
     });
 });

@@ -5,6 +5,7 @@
  * *Edit* and the ⋯ menu.
  */
 import { computed } from 'vue';
+import { provideOnColor } from '@/composables/useOnColor';
 import { areaHeader, areaOf } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
@@ -18,9 +19,11 @@ const { card } = defineProps<{
 }>();
 
 defineSlots<{
-    /** On the right: *Edit* and the ⋯ menu. */
+    /** On the right: *Edit* and the ⋯ menu, translucent on the colour. */
     actions?: () => unknown;
 }>();
+
+provideOnColor();
 
 /** The background: the colour of the area. */
 const background = computed((): string => {

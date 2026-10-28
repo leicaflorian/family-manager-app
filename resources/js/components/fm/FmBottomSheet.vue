@@ -14,6 +14,7 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
+import { provideOnColor } from '@/composables/useOnColor';
 import FmIcon from './FmIcon.vue';
 
 const { title } = defineProps<{
@@ -28,6 +29,9 @@ defineSlots<{
     /** The content of the panel. */
     default: () => unknown;
 }>();
+
+// The panel is white, also when it opens from the coloured top of a card
+provideOnColor(false);
 </script>
 
 <template>
