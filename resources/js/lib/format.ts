@@ -26,6 +26,27 @@ export function formatEuro(amount: number): string {
         .replace(/\s/g, ' ');
 }
 
+/** Writes a size with one decimal at most, with the comma. */
+const sizeNumber = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 });
+
+/**
+ * Writes the size of a file: bytes, kilobytes or megabytes, as the person reads it.
+ *
+ * @param bytes - the size in bytes
+ * @returns the size as text, for example `340 KB` or `1,2 MB`
+ */
+export function formatSize(bytes: number): string {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${Math.round(bytes / 1024)} KB`;
+    }
+
+    return `${sizeNumber.format(bytes / (1024 * 1024))} MB`;
+}
+
 /**
  * Turns a date of the server into a local `Date`.
  *

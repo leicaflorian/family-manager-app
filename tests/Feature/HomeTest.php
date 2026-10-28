@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Enums\DocumentStatus;
+use App\Enums\Role;
 use App\Models\Document;
+use App\Models\File;
 use App\Models\Person;
 use App\Models\User;
 use Database\Seeders\BianchiFamilySeeder;
@@ -71,4 +73,40 @@ test('an archived document is not among the expiring ones, on the Home and on th
     $titles = fn ($documents): bool => ! collect($documents)->pluck('title')->contains('Passaporto vecchio');
     $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('expiring', $titles));
     $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('expiring', $titles));
+});
+
+test('the Home shows the first five files waiting for their document, the oldest first, and how many wait', function (): void {
+    $marco = registerFamily();
+    $files = collect(range(1, 6))->map(fn (int $number): File => File::factory()->for($marco->family)->create([
+        'original_name' => "Bolletta {$number}.pdf", 'to_sort' => true,
+    ]));
+    File::factory()->for($marco->family)->create(['original_name' => 'Già archiviata.pdf', 'to_sort' => false]);
+    File::factory()->create(['original_name' => 'Di un\'altra famiglia.pdf', 'to_sort' => true]);
+    $this->actingAs($marco);
+
+    $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pendingCount', 6)
+        ->has('pending', 5)
+        ->where('pending.0.id', $files[0]->id)
+        ->where('pending.0.title', 'Bolletta 1')
+        ->where('pending.4.title', 'Bolletta 5'));
+});
+
+test('without files waiting the Home has none', function (): void {
+    $this->actingAs(registerFamily());
+
+    $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pendingCount', 0)
+        ->has('pending', 0));
+});
+
+test('a member sees the files waiting too', function (): void {
+    $marco = registerFamily();
+    File::factory()->for($marco->family)->create(['to_sort' => true]);
+    $laura = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
+    $this->actingAs($laura);
+
+    $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pendingCount', 1)
+        ->has('pending', 1));
 });

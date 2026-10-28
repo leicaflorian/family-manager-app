@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { healthCard } from '@/test/fixtures';
+import { healthCard, pendingPayslip } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Home from './Home.vue';
 
@@ -18,14 +18,30 @@ const bill = {
     expiry_date: null,
 };
 
+const photo = {
+    ...pendingPayslip,
+    id: 13,
+    name: 'IMG_2041.heic',
+    mime_type: 'image/heic',
+    size: 1_258_291,
+    url: '/files/13',
+    title: 'IMG_2041',
+};
+const home = {
+    firstName: 'Marco',
+    today: '2026-10-26',
+    expiring: [],
+    recent: [bill],
+    hasDocuments: true,
+};
+
 describe('Home', () => {
     it('greets with the day, then the documents expiring and the last uploaded', () => {
         renderPage(Home, {
-            firstName: 'Marco',
-            today: '2026-10-26',
+            ...home,
             expiring: [healthCard, policy],
-            recent: [bill],
-            hasDocuments: true,
+            pending: [],
+            pendingCount: 0,
         });
 
         expect(screen.getByText('Monday 26 October 2026')).toBeInTheDocument();
@@ -54,13 +70,7 @@ describe('Home', () => {
     });
 
     it('says so when nothing expires', () => {
-        renderPage(Home, {
-            firstName: 'Marco',
-            today: '2026-10-26',
-            expiring: [],
-            recent: [bill],
-            hasDocuments: true,
-        });
+        renderPage(Home, { ...home, pending: [], pendingCount: 0 });
 
         expect(
             screen.getByText('Nothing expires in the next 60 days.'),
@@ -74,6 +84,8 @@ describe('Home', () => {
             expiring: [],
             recent: [],
             hasDocuments: false,
+            pending: [],
+            pendingCount: 0,
         });
 
         expect(
@@ -81,6 +93,60 @@ describe('Home', () => {
         ).toHaveAttribute('href', '/upload');
         expect(
             screen.queryByRole('heading', { name: 'Expiring' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('shows the files waiting, with their size, and Finish opens Upload', () => {
+        renderPage(Home, {
+            ...home,
+            pending: [pendingPayslip, photo],
+            pendingCount: 2,
+        });
+
+        const waiting = screen
+            .getByRole('heading', { name: 'Waiting' })
+            .closest('section') as HTMLElement;
+        expect(
+            within(waiting).getByText('Busta paga novembre 2026'),
+        ).toBeInTheDocument();
+        expect(within(waiting).getByText('117 KB')).toBeInTheDocument();
+        expect(within(waiting).getByText('IMG_2041')).toBeInTheDocument();
+        expect(within(waiting).getByText('1,2 MB')).toBeInTheDocument();
+        expect(
+            within(waiting).getByRole('link', { name: 'Finish' }),
+        ).toHaveAttribute('href', '/upload');
+        expect(within(waiting).queryByText(/more/)).not.toBeInTheDocument();
+    });
+
+    it('says how many more files wait beyond the ones shown', () => {
+        renderPage(Home, {
+            ...home,
+            pending: [pendingPayslip, photo],
+            pendingCount: 7,
+        });
+
+        expect(screen.getByText('+5 more')).toBeInTheDocument();
+    });
+
+    it('shows the files waiting even before the first document', () => {
+        renderPage(Home, {
+            ...home,
+            recent: [],
+            hasDocuments: false,
+            pending: [pendingPayslip],
+            pendingCount: 1,
+        });
+
+        expect(
+            screen.getByRole('heading', { name: 'Waiting' }),
+        ).toBeInTheDocument();
+    });
+
+    it('without files waiting has no panel for them', () => {
+        renderPage(Home, { ...home, pending: [], pendingCount: 0 });
+
+        expect(
+            screen.queryByRole('heading', { name: 'Waiting' }),
         ).not.toBeInTheDocument();
     });
 });

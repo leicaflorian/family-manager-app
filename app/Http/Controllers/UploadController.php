@@ -28,9 +28,7 @@ final class UploadController extends Controller
     public function index(Request $request, DocumentFormOptions $options): Response
     {
         return Inertia::render('documents/Upload', [
-            'pending' => File::query()->toSort()->oldest('id')->get()
-                ->map(PendingFileData::fromFile(...))
-                ->values()->all(),
+            'pending' => PendingFileData::waiting(),
             'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
             ...$options->all(),
         ]);

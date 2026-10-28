@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { pendingPayslip as payslip } from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import Upload from './Upload.vue';
 
@@ -12,16 +13,6 @@ const options = {
     statuses: [{ value: 'active', label: 'Active', help: null }],
     tags: [],
     presetLinks: [],
-};
-
-const payslip = {
-    id: 12,
-    name: 'Busta paga novembre 2026.pdf',
-    mime_type: 'application/pdf',
-    size: 120000,
-    url: '/files/12',
-    preview_url: '/files/12/preview',
-    title: 'Busta paga novembre 2026',
 };
 
 afterEach(() => {

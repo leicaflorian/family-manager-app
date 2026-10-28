@@ -3,6 +3,7 @@ import {
     formatDate,
     formatEuro,
     formatLongDate,
+    formatSize,
     isoDate,
     relativeDays,
 } from './format';
@@ -62,5 +63,14 @@ describe('relativeDays', () => {
         expect(
             relativeDays('2026-10-28', new Date('2026-10-28T23:30:00+01:00')),
         ).toBe('today');
+    });
+});
+
+describe('formatSize', () => {
+    it('writes bytes, kilobytes and megabytes with the comma', () => {
+        expect(formatSize(800)).toBe('800 B');
+        expect(formatSize(348_160)).toBe('340 KB');
+        expect(formatSize(1_258_291)).toBe('1,2 MB');
+        expect(formatSize(26_214_400)).toBe('25 MB');
     });
 });

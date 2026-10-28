@@ -439,7 +439,10 @@ export const policyDetail: App.Data.CardDetailData = {
         next_label: 'Expiry',
         next_date: '2026-11-20',
     },
-    heading: 'Car · policyholder Marco Bianchi',
+    heading: [
+        { text: 'Car', href: null },
+        { text: 'policyholder Marco', href: '/people/1' },
+    ],
     dates: [{ label: 'Expiry', date: '2026-11-20', expires: true }],
     notices: [],
     values: [{ label: 'Type', text: 'Car', href: null }],
@@ -459,3 +462,14 @@ export const areaCounts: App.Data.AreaCountData[] = allAreas.map(
         count,
     }),
 );
+
+/** A file of *Upload* waiting for its document, as the server sends it. */
+export const pendingPayslip: App.Data.PendingFileData = {
+    id: 12,
+    name: 'Busta paga novembre 2026.pdf',
+    mime_type: 'application/pdf',
+    size: 120000,
+    url: '/files/12',
+    title: 'Busta paga novembre 2026',
+    preview_url: '/files/12/preview',
+};

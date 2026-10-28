@@ -569,5 +569,8 @@
     "Linked when you save": "Si collega al salvataggio",
     "Unlinked when you save": "Si scollega al salvataggio",
     "Keep :title linked": "Lascia collegato :title",
-    "Undo": "Annulla"
+    "Undo": "Annulla",
+    "Waiting": "In attesa",
+    "Finish": "Completa",
+    "{1} +:count more|[2,*] +:count more": "{1} +:count altro|[2,*] +:count altri"
 }
