@@ -83,4 +83,10 @@ final class LoanCard extends CardType
     {
         return ['financialAccount'];
     }
+
+    /** {@inheritDoc} */
+    public function subtitleRelations(): array
+    {
+        return ['organization'];
+    }
 }

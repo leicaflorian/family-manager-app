@@ -96,4 +96,10 @@ final class MaintenanceRecordCard extends CardType
             ? __('Applies to one thing only. A job is linked to a home, a belonging or a vehicle.')
             : __('Applies to one thing only. A job is linked to a home, a belonging or a vehicle: this one to :name.', ['name' => $thing->label()])];
     }
+
+    /** {@inheritDoc} */
+    public function subtitleRelations(): array
+    {
+        return ['organization'];
+    }
 }

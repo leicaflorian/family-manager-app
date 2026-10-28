@@ -76,4 +76,10 @@ final class HealthEventCard extends CardType
     {
         return $this->card($card, HealthEvent::class)->organization->name ?? '';
     }
+
+    /** {@inheritDoc} */
+    public function subtitleRelations(): array
+    {
+        return ['organization'];
+    }
 }

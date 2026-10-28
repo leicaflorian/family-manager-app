@@ -73,4 +73,10 @@ final class UtilityCard extends CardType
     {
         return ['home'];
     }
+
+    /** {@inheritDoc} */
+    public function subtitleRelations(): array
+    {
+        return ['organization'];
+    }
 }

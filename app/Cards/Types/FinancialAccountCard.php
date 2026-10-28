@@ -89,4 +89,10 @@ final class FinancialAccountCard extends CardType
             ? [__('It is the default account. Full IBANs, card numbers and codes are not saved here.')]
             : [];
     }
+
+    /** {@inheritDoc} */
+    public function subtitleRelations(): array
+    {
+        return ['organization'];
+    }
 }

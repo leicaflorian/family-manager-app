@@ -14,6 +14,31 @@ readonly photo: string | null,
 readonly is_last_admin: boolean,
 readonly family: string,
 };
+export type AreaData = {
+readonly area: string,
+readonly label: string,
+readonly count: number,
+readonly overdue: number,
+readonly cards: App.Data.CardData[],
+};
+export type CardData = {
+readonly type: string,
+readonly id: number,
+readonly type_label: string,
+readonly label: string,
+readonly area: string,
+readonly subtitle: string,
+readonly next_label: string | null,
+readonly next_date: string | null,
+readonly overdue: boolean,
+readonly closed: boolean,
+};
+export type CardTypeData = {
+readonly type: string,
+readonly label: string,
+readonly description: string,
+readonly area: string,
+};
 export type CategoryData = {
 readonly id: number,
 readonly name: string,

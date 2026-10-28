@@ -77,4 +77,10 @@ final class FilingCard extends CardType
     {
         return $this->card($card, Filing::class)->organization->name ?? '';
     }
+
+    /** {@inheritDoc} */
+    public function subtitleRelations(): array
+    {
+        return ['organization'];
+    }
 }

@@ -87,4 +87,10 @@ final class SubscriptionCard extends CardType
     {
         return ['financialAccount'];
     }
+
+    /** {@inheritDoc} */
+    public function subtitleRelations(): array
+    {
+        return ['organization'];
+    }
 }

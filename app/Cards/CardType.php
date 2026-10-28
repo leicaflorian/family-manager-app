@@ -88,6 +88,30 @@ abstract class CardType
     }
 
     /**
+     * The relations `subtitle()` reads, loaded together with a list of cards.
+     *
+     * @return list<string>
+     */
+    public function subtitleRelations(): array
+    {
+        return [];
+    }
+
+    /**
+     * Every relation to load when the cards of the type are listed: the ones
+     * of the name and of the subtitle, so the rows cost no query each.
+     *
+     * @return list<string>
+     */
+    public function listRelations(): array
+    {
+        $model = $this->model();
+        $ofLabel = method_exists($model, 'labelRelations') ? $model::labelRelations() : [];
+
+        return array_values(array_unique([...$ofLabel, ...$this->subtitleRelations()]));
+    }
+
+    /**
      * The Eloquent relations to other cards, in both directions.
      *
      * @return list<string>
