@@ -99,6 +99,39 @@ describe('FmDocumentFilters', () => {
         ).toBeInTheDocument();
     });
 
+    it('opens a filled menu with every option, and filters only what the person types', async () => {
+        renderPage(FmDocumentFilters, {
+            filters: { ...none, category: 4, person: 7, organization: 9 },
+            options: documentFilterOptions,
+        });
+
+        expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
+            'Lavoro › Buste paga',
+        );
+        expect(shown(await openMenu('Category'))).toEqual([
+            'All',
+            'Casa e utenze',
+            'Luce',
+            'Altro',
+            'Lavoro',
+            'Buste paga',
+            'Altro',
+        ]);
+        expect(shown(await openMenu('Person'))).toEqual([
+            'All',
+            'Laura Bianchi',
+        ]);
+        expect(shown(await openMenu('Organization'))).toEqual([
+            'All',
+            'Comune di Bologna',
+        ]);
+        expect(shown(await search('Category', 'casa'))).toEqual([
+            'Casa e utenze',
+            'Luce',
+            'Altro',
+        ]);
+    });
+
     it('sends the expiring documents only', async () => {
         const view = renderPage(FmDocumentFilters, {
             filters: none,

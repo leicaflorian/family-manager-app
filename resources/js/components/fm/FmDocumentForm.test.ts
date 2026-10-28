@@ -114,6 +114,53 @@ describe('FmDocumentForm', () => {
         ]);
     });
 
+    it('opens a filled menu with every option, and filters only what the person types', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            initial: {
+                ...props.initial,
+                category_id: '4',
+                person_id: '7',
+                organization_id: '9',
+            },
+        });
+
+        expect(
+            screen.getByRole('combobox', { name: 'What kind it is' }),
+        ).toHaveValue('Work › Payslips');
+        expect(shown(await openMenu('What kind it is'))).toEqual([
+            'None',
+            'Work',
+            'Payslips',
+        ]);
+        expect(shown(await openMenu('Whose it is'))).toEqual([
+            'None',
+            'Laura Bianchi',
+        ]);
+        expect(shown(await openMenu('Who it is from'))).toEqual([
+            'None',
+            'Comune di Bologna',
+        ]);
+        expect(shown(await search('What kind it is', 'pay'))).toEqual([
+            'Payslips',
+        ]);
+    });
+
+    it('keeps the chosen category when the menu closes without a new choice', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            initial: { ...props.initial, category_id: '4' },
+        });
+
+        await openMenu('What kind it is');
+        await userEvent.keyboard('{Escape}');
+        await settle();
+
+        expect(
+            screen.getByRole('combobox', { name: 'What kind it is' }),
+        ).toHaveValue('Work › Payslips');
+    });
+
     it('shows the dates the Italian way and sends them as the server reads them', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(FmDocumentForm, {

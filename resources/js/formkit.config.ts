@@ -102,6 +102,10 @@ export default defaultConfig({
         valueFormat: 'YYYY-MM-DD',
         // Italian weeks start on Monday
         weekStart: 1,
+        // An autocomplete with a value opens with every option: its text is the
+        // chosen one, not a search, and filters only once the person types.
+        // Closed without a new choice, it shows the chosen one again.
+        clearSearchOnOpen: true,
         // The amounts are in euros and read as 84,20 €. Only currency and unit read these.
         currency: 'EUR',
         displayLocale: 'it-IT',
