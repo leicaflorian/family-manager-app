@@ -17,7 +17,7 @@ final class CardDetailData extends Data
 {
     /**
      * @param  CardData  $card  the row of the card
-     * @param  list<CardLinkData>  $heading  the pieces of the line under the name, for example «Car», «40/123456», «policyholder Marco»
+     * @param  string  $heading  the line under the name, for example «Car · 40/123456 · policyholder Marco»
      * @param  list<CardDateData>  $dates  the dates of the tiles
      * @param  list<string>  $notices  the notices the saved data gives
      * @param  list<CardValueData>  $values  the data, without the empty fields
@@ -30,8 +30,7 @@ final class CardDetailData extends Data
      */
     public function __construct(
         public readonly CardData $card,
-        #[DataCollectionOf(CardLinkData::class)]
-        public readonly array $heading,
+        public readonly string $heading,
         #[DataCollectionOf(CardDateData::class)]
         public readonly array $dates,
         public readonly array $notices,

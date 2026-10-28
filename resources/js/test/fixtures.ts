@@ -439,10 +439,7 @@ export const policyDetail: App.Data.CardDetailData = {
         next_label: 'Expiry',
         next_date: '2026-11-20',
     },
-    heading: [
-        { text: 'Car', href: null },
-        { text: 'policyholder Marco', href: '/people/1' },
-    ],
+    heading: 'Car · policyholder Marco Bianchi',
     dates: [{ label: 'Expiry', date: '2026-11-20', expires: true }],
     notices: [],
     values: [{ label: 'Type', text: 'Car', href: null }],

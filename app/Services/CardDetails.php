@@ -13,7 +13,6 @@ use App\Data\CardData;
 use App\Data\CardDateData;
 use App\Data\CardDetailData;
 use App\Data\CardFieldData;
-use App\Data\CardLinkData;
 use App\Data\CardTypeData;
 use App\Data\CardValueData;
 use App\Data\OptionData;
@@ -117,33 +116,26 @@ final readonly class CardDetails
     }
 
     /**
-     * The pieces of the line under the name: the kind of card, the piece of
-     * data that recognises it and who it belongs to. The subtitle links to
-     * the organization when it is its name, the owner to the person.
-     *
-     * @return list<CardLinkData>
+     * The line under the name: the kind of card, the piece of data that
+     * recognises it and who it belongs to.
      */
-    private function heading(CardType $type, Model $card, CardData $row): array
+    private function heading(CardType $type, Model $card, CardData $row): string
     {
-        $kind = new CardLinkData($type->label());
-        $subtitle = new CardLinkData($row->subtitle);
+        $kind = $type->label();
         $owner = null;
 
         foreach ($type->fields() as $field) {
             $value = $card->getAttribute($field->column);
 
             if ($field->column === 'type' && $value instanceof BackedEnum && method_exists($value, 'label')) {
-                $kind = new CardLinkData((string) $value->label());
+                $kind = (string) $value->label();
             }
-            if ($field->kind === FieldKind::Organization && is_int($value) && $this->text($field, $value) === $row->subtitle) {
-                $subtitle = new CardLinkData($row->subtitle, $this->href($field, $value));
-            }
-            if (! $owner instanceof CardLinkData && $field->kind === FieldKind::Person && is_int($value)) {
-                $owner = new CardLinkData(mb_strtolower($field->label).' '.$this->person($value)?->first_name, $this->href($field, $value));
+            if ($owner === null && $field->kind === FieldKind::Person && is_int($value)) {
+                $owner = mb_strtolower($field->label).' '.$this->person($value)?->first_name;
             }
         }
 
-        return array_values(array_filter([$kind, $subtitle, $owner], static fn (?CardLinkData $part): bool => $part instanceof CardLinkData && trim($part->text) !== ''));
+        return implode(' · ', array_filter([$kind, $row->subtitle, $owner], static fn (?string $part): bool => $part !== null && trim($part) !== ''));
     }
 
     /**

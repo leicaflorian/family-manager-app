@@ -21,8 +21,8 @@ describe('A card', () => {
             }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('link', { name: 'policyholder Marco' }),
-        ).toHaveAttribute('target', '_blank');
+            screen.getByText('Car · policyholder Marco Bianchi'),
+        ).toBeInTheDocument();
         expect(screen.getByText('20/11/2026')).toBeInTheDocument();
         expect(
             screen.getByRole('heading', { name: 'Data' }),
@@ -121,6 +121,7 @@ describe('A card', () => {
         const panda = screen.getByRole('link', { name: 'Fiat Panda' });
         expect(panda).toHaveAttribute('href', '/cards/vehicle/1');
         expect(panda).toHaveAttribute('target', '_blank');
+        expect(panda).toHaveClass('hover:text-action');
     });
 
     it('shows nothing of the budget', () => {

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 use App\Cards\CardTypes;
 use App\Data\CardData;
-use App\Data\CardLinkData;
 use App\Data\CardValueData;
 use App\Data\DocumentData;
 use App\Enums\Role;
 use App\Models\Family;
-use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\User;
@@ -39,26 +37,6 @@ test('it shows the data of a policy with labels and links', function (): void {
         ->and($values['Policyholder']->href)->toBe(route('people.show', $this->policy->person_id))
         ->and($values['Start']->text)->toBe('20/11/2025')
         ->and($values->has('Policy number'))->toBeFalse();
-});
-
-test('it links the organization and the person of the heading', function (): void {
-    $visit = insideBianchi(fn (): HealthEvent => HealthEvent::query()->where('title', 'Dentista di Laura')->sole());
-    $heading = insideBianchi(fn () => $this->details->of($visit, $this->marco))->heading;
-
-    expect(array_map(fn (CardLinkData $part): array => [$part->text, $part->href], $heading))->toBe([
-        ['Visit', null],
-        ['Studio Ferri', route('organizations.show', $visit->organization_id)],
-        ['person Laura', route('people.show', $visit->person_id)],
-    ]);
-});
-
-test('it leaves unlinked a subtitle that names no organization', function (): void {
-    $heading = insideBianchi(fn () => $this->details->of($this->policy, $this->marco))->heading;
-
-    expect(array_map(fn (CardLinkData $part): ?string => $part->href, $heading))->toBe([
-        null,
-        route('people.show', $this->policy->person_id),
-    ]);
 });
 
 test('it names the supply point code of a gas utility PDR', function (): void {

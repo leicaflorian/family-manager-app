@@ -149,6 +149,7 @@ function link(id: number): void {
                             <dd class="m-0 font-semibold break-words">
                                 <FmNewTabLink
                                     v-if="value.href"
+                                    class="hover:text-action"
                                     :href="value.href"
                                     :text="value.text"
                                 />
