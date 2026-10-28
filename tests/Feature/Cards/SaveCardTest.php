@@ -201,3 +201,15 @@ test('it deletes a card without leaving links behind', function (): void {
         ->and(Document::query()->find($logbook->id))->not->toBeNull()
         ->and($logbook->fresh()?->vehicles->pluck('id')->all())->toBe([$other->id]);
 });
+
+test('it can save every field of every description', function (): void {
+    foreach (CardTypes::all() as $type) {
+        $model = new ($type->model());
+
+        foreach ($type->fields() as $field) {
+            if (! $field->virtual) {
+                expect($model->isFillable($field->column))->toBeTrue($type->type().'.'.$field->column.' is not fillable');
+            }
+        }
+    }
+});
