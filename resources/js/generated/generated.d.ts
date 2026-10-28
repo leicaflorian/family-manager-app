@@ -33,11 +33,40 @@ readonly next_date: string | null,
 readonly overdue: boolean,
 readonly closed: boolean,
 };
+export type CardDateData = {
+readonly label: string,
+readonly date: string,
+readonly expires: boolean,
+};
+export type CardDetailData = {
+readonly card: App.Data.CardData,
+readonly heading: string,
+readonly dates: App.Data.CardDateData[],
+readonly notices: string[],
+readonly values: App.Data.CardValueData[],
+readonly related: App.Data.CardData[],
+readonly documents: App.Data.DocumentData[],
+readonly can_edit: boolean,
+readonly can_delete: boolean,
+};
+export type CardFieldData = {
+readonly column: string,
+readonly label: string,
+readonly kind: string,
+readonly required: boolean,
+readonly options: App.Data.OptionData[],
+readonly show_when: Record<string, string[]>,
+};
 export type CardTypeData = {
 readonly type: string,
 readonly label: string,
 readonly description: string,
 readonly area: string,
+};
+export type CardValueData = {
+readonly label: string,
+readonly text: string,
+readonly href: string | null,
 };
 export type CategoryData = {
 readonly id: number,

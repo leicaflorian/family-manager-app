@@ -204,6 +204,7 @@
     "New password": "Nuova password",
     "New person": "Nuova persona",
     "Next": "Avanti",
+    "No": "No",
     "No account": "Nessun account",
     "No contacts yet.": "Ancora nessun recapito.",
     "No document is in this category: it can be deleted.": "Nessun documento è in questa categoria: si può eliminare.",
@@ -519,5 +520,6 @@
     "Utility": "Utenza",
     "Vehicle": "Veicolo",
     "Warranty until": "Garanzia fino al",
-    "Year": "Anno"
+    "Year": "Anno",
+    "Yes": "Sì"
 }

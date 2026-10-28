@@ -31,6 +31,7 @@ final readonly class FilterDocuments
      *   document is not archived;
      * - `linked`: linked to at least one record or, with `false`, to none
      *   (the personal documents of *A person*);
+     * - `record`: linked to that record, `['type' => 'vehicle', 'id' => 1]`;
      * - `search`: in the title and in the notes, ignoring capitals and accents
      *   (the collation of the database does it).
      *
@@ -70,6 +71,14 @@ final readonly class FilterDocuments
         if (is_bool($filters['linked'] ?? null)) {
             $links = static fn (QueryBuilder $links): QueryBuilder => $links->from('documentables')->whereColumn('documentables.document_id', 'documents.id');
             $filters['linked'] ? $query->whereExists($links) : $query->whereNotExists($links);
+        }
+
+        $record = $filters['record'] ?? null;
+        if (is_array($record) && is_string($record['type'] ?? null) && is_int($record['id'] ?? null)) {
+            $query->whereExists(static fn (QueryBuilder $links): QueryBuilder => $links->from('documentables')
+                ->whereColumn('documentables.document_id', 'documents.id')
+                ->where('documentables.documentable_type', $record['type'])
+                ->where('documentables.documentable_id', $record['id']));
         }
 
         if ($search !== '') {

@@ -7,8 +7,11 @@ use App\Models\DocumentCategory;
 use App\Models\Employment;
 use App\Models\Home;
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Queries\FilterDocuments;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
+use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -175,4 +178,21 @@ test('the file of a document has a preview address only when it has a preview', 
     $file->forceFill(['preview_failed' => false, 'mime_type' => 'image/png'])->save();
     $this->get(route('documents.show', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('document.file.preview_url', null));
+});
+
+test('it filters the documents of one record', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    // This file's own family is also called Bianchi, so the seeded one is found by its account.
+    $seeded = User::query()->where('email', 'marco.bianchi@example.com')->sole()->family_id;
+
+    $titles = CurrentFamily::using($seeded, function (): array {
+        $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+
+        return resolve(FilterDocuments::class)
+            ->apply(Document::query(), ['record' => ['type' => 'vehicle', 'id' => $panda->id]])
+            ->pluck('title')->all();
+    });
+
+    expect($titles)->toBe(['Polizza RC auto 2026']);
 });
