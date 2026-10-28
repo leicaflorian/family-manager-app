@@ -1,7 +1,14 @@
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { documentFilterOptions } from '@/test/fixtures';
-import { choose, renderPage, settle } from '@/test/page';
+import {
+    choose,
+    openMenu,
+    renderPage,
+    search,
+    settle,
+    shown,
+} from '@/test/page';
 import FmDocumentFilters from './FmDocumentFilters.vue';
 
 const none = {
@@ -25,6 +32,71 @@ describe('FmDocumentFilters', () => {
         expect(view.emitted('change')?.at(-1)).toEqual([
             { ...none, person: 7 },
         ]);
+    });
+
+    it('lists «All» first, then the categories indented under their main one', async () => {
+        renderPage(FmDocumentFilters, {
+            filters: none,
+            options: documentFilterOptions,
+        });
+
+        const list = await openMenu('Category');
+
+        expect(shown(list)).toEqual([
+            'All',
+            'Casa e utenze',
+            'Luce',
+            'Altro',
+            'Lavoro',
+            'Buste paga',
+            'Altro',
+        ]);
+    });
+
+    it('sends a subcategory chosen in the list, and shows its path in the field', async () => {
+        const view = renderPage(FmDocumentFilters, {
+            filters: none,
+            options: documentFilterOptions,
+        });
+
+        await choose('Category', 'Lavoro › Altro');
+
+        expect(view.emitted('change')?.at(-1)).toEqual([
+            { ...none, category: 6 },
+        ]);
+        expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
+            'Lavoro › Altro',
+        );
+    });
+
+    it('searches the categories by their path, so a main one brings its subcategories', async () => {
+        renderPage(FmDocumentFilters, {
+            filters: none,
+            options: documentFilterOptions,
+        });
+
+        const list = await search('Category', 'lav');
+
+        expect(shown(list)).toEqual(['Lavoro', 'Buste paga', 'Altro']);
+    });
+
+    it('searches the people and the organizations', async () => {
+        renderPage(FmDocumentFilters, {
+            filters: none,
+            options: documentFilterOptions,
+        });
+
+        expect(
+            within(await search('Person', 'laura')).getByRole('option', {
+                name: 'Laura Bianchi',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            within(await search('Organization', 'bologna')).getByRole(
+                'option',
+                { name: 'Comune di Bologna' },
+            ),
+        ).toBeInTheDocument();
     });
 
     it('sends the expiring documents only', async () => {

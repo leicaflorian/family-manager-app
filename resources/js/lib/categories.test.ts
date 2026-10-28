@@ -19,7 +19,7 @@ function category(
 }
 
 describe('categoryOptions', () => {
-    it('lists every category in the order of the tree, with the path of the subcategories', () => {
+    it('lists every category in the order of the tree, each with its name, its depth and its path', () => {
         const tree = [
             category(1, 'Home and utilities', [category(2, 'Electricity')]),
             category(3, 'Work', [
@@ -28,11 +28,31 @@ describe('categoryOptions', () => {
         ];
 
         expect(categoryOptions(tree)).toEqual([
-            { value: '1', label: 'Home and utilities' },
-            { value: '2', label: 'Home and utilities › Electricity' },
-            { value: '3', label: 'Work' },
-            { value: '4', label: 'Work › Payslips' },
-            { value: '5', label: 'Work › Payslips › 2026' },
+            {
+                value: '1',
+                label: 'Home and utilities',
+                name: 'Home and utilities',
+                depth: 0,
+            },
+            {
+                value: '2',
+                label: 'Home and utilities › Electricity',
+                name: 'Electricity',
+                depth: 1,
+            },
+            { value: '3', label: 'Work', name: 'Work', depth: 0 },
+            {
+                value: '4',
+                label: 'Work › Payslips',
+                name: 'Payslips',
+                depth: 1,
+            },
+            {
+                value: '5',
+                label: 'Work › Payslips › 2026',
+                name: '2026',
+                depth: 2,
+            },
         ]);
     });
 

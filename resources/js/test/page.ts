@@ -47,7 +47,11 @@ export function settle(): Promise<void> {
  * @returns the list of the options
  */
 export async function openMenu(label: string): Promise<HTMLElement> {
-    const [menu] = screen.getAllByRole('button', { name: label });
+    // A dropdown opens with its button, a menu with search with its text box
+    const [menu] = [
+        ...screen.queryAllByRole('button', { name: label }),
+        ...screen.queryAllByRole('combobox', { name: label }),
+    ];
     await userEvent.click(menu!);
 
     // The closed menus keep their list in the page: the one wanted is in this field
@@ -67,6 +71,48 @@ export async function choose(label: string, option: string): Promise<void> {
     const list = await openMenu(label);
     await userEvent.click(within(list).getByRole('option', { name: option }));
     await settle();
+}
+
+/**
+ * The options of an open list as the person sees them: without the texts
+ * only for screen readers.
+ *
+ * @param list - the list of a menu
+ * @returns the text of each option, in order
+ */
+export function shown(list: HTMLElement): string[] {
+    return within(list)
+        .getAllByRole('option')
+        .map((option) => {
+            const copy = option.cloneNode(true) as HTMLElement;
+            copy.querySelectorAll('.sr-only').forEach((hidden) =>
+                hidden.remove(),
+            );
+
+            return copy.textContent?.trim() ?? '';
+        });
+}
+
+/**
+ * Searches in a menu with search, as the person does: opens it and types.
+ *
+ * @param label - the label of the menu
+ * @param text - what the person types
+ * @returns the list of the options found
+ */
+export async function search(
+    label: string,
+    text: string,
+): Promise<HTMLElement> {
+    const list = await openMenu(label);
+    await userEvent.type(
+        screen.getAllByRole('combobox', { name: label })[0]!,
+        text,
+    );
+    await settle();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    return list;
 }
 
 /**

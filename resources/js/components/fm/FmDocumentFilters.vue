@@ -1,12 +1,14 @@
 <script setup lang="ts">
 /**
  * The filters of *Documents*: category, person, organization, status and the
- * expiring ones. Every change is sent at once; the page reloads the list.
+ * expiring ones. Every change is sent at once; the page reloads the list. The
+ * category, the person and the organization are found by typing.
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { categoryOptions } from '@/lib/categories';
 import type { DocumentFilterOptions, DocumentFilters } from '@/lib/documents';
+import FmCategoryOption from './FmCategoryOption.vue';
 
 const { filters, options } = defineProps<{
     /** The filters in use. */
@@ -70,17 +72,22 @@ function id(value: unknown): number | null {
         <FormKit
             v-for="menu in menus"
             :key="menu.name"
-            type="dropdown"
+            type="autocomplete"
             :label="menu.label"
             :name="menu.name"
             :options="menu.options"
+            open-on-click
             :model-value="
                 filters[menu.name] === null ? '' : String(filters[menu.name])
             "
             @update:model-value="
                 (value: unknown) => change({ [menu.name]: id(value) })
             "
-        />
+        >
+            <template v-if="menu.name === 'category'" #option="{ option }">
+                <FmCategoryOption :option="option" />
+            </template>
+        </FormKit>
         <FormKit
             type="dropdown"
             :label="$t('Status')"
