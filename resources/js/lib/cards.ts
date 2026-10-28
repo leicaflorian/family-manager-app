@@ -2,6 +2,7 @@
  * What the pages of the cards know about each type: its icon. The colours of the areas are in `areas.ts`.
  */
 import type { LucideIcon } from '@lucide/vue';
+import { create } from '@/routes/cards';
 import {
     Briefcase,
     Car,
@@ -44,4 +45,24 @@ const icons: Record<string, LucideIcon> = {
  */
 export function cardIcon(type: string): LucideIcon {
     return icons[type] ?? FileText;
+}
+
+/**
+ * Where *New card* goes for an area: straight to the form when the area has a
+ * single card type, else to the choice of the type among those of the area.
+ *
+ * @param types - the card types the person can create
+ * @param area - the area, for example `vehicles`
+ * @returns the address of the page
+ */
+export function newCardUrl(
+    types: App.Data.CardTypeData[],
+    area: string,
+): string {
+    const ofArea = types.filter((type) => type.area === area);
+    const [only] = ofArea;
+
+    return only !== undefined && ofArea.length === 1
+        ? create({ query: { type: only.type } }).url
+        : create({ query: { area } }).url;
 }

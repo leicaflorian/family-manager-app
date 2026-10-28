@@ -1,8 +1,9 @@
 /**
- * Helper for the tests of the pages: mounts them as the app does, with FormKit.
+ * Helper for the tests of the pages: mounts them as the app does, with FormKit and the animation of the lists.
  * The Inertia `<Head>` and the translations are set up by `setup.ts` for all
  * the tests.
  */
+import { autoAnimatePlugin } from '@formkit/auto-animate/vue';
 import { plugin as formkit } from '@formkit/vue';
 import { fireEvent, render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
@@ -25,7 +26,7 @@ export function renderPage(
     return render(page, {
         props,
         global: {
-            plugins: [[formkit, formkitConfig]],
+            plugins: [[formkit, formkitConfig], autoAnimatePlugin],
         },
     });
 }

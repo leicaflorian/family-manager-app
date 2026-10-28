@@ -292,3 +292,125 @@ export const policyFields: App.Data.CardFieldData[] = [
         options: [{ value: '1', label: 'Casa di via Roma', help: null }],
     },
 ];
+
+const edison: App.Data.CardData = {
+    ...pandaRow,
+    type: 'utility',
+    id: 3,
+    type_label: 'Utility',
+    label: 'Luce - Edison',
+    area: 'home',
+    area_label: 'Home',
+    subtitle: 'Edison',
+    next_label: null,
+    next_date: null,
+};
+
+/** *Casa* of the Bianchis: one overdue card, one closed. */
+export const homeArea: App.Data.AreaData = {
+    area: 'home',
+    label: 'Home',
+    count: 2,
+    overdue: 1,
+    cards: [
+        {
+            ...pandaRow,
+            type: 'home',
+            id: 1,
+            type_label: 'Residence',
+            label: 'Casa di via Roma',
+            area: 'home',
+            area_label: 'Home',
+            subtitle: 'Via Roma 12, Bologna',
+            next_label: null,
+            next_date: null,
+        },
+        {
+            ...pandaRow,
+            type: 'belonging',
+            id: 2,
+            type_label: 'Belonging',
+            label: 'TV Samsung',
+            area: 'home',
+            area_label: 'Home',
+            next_label: 'Warranty end',
+            next_date: '2026-10-25',
+            overdue: true,
+        },
+        { ...edison, id: 9, label: 'Luce - Enel', closed: true },
+    ],
+};
+
+/** The nine areas, *Casa* and *Veicoli* with their cards, the others empty. */
+export const allAreas: App.Data.AreaData[] = [
+    { ...homeArea, cards: [...homeArea.cards, edison], count: 3 },
+    {
+        area: 'vehicles',
+        label: 'Vehicles',
+        count: 1,
+        overdue: 0,
+        cards: [pandaRow],
+    },
+    ...(
+        [
+            'insurance',
+            'banks',
+            'health',
+            'school',
+            'work',
+            'subscriptions',
+            'paperwork',
+        ] as const
+    ).map((area): App.Data.AreaData => ({
+        area,
+        label: area,
+        count: 0,
+        overdue: 0,
+        cards: [],
+    })),
+];
+
+/** The card types, as *New card* lists them. */
+export const cardTypes: App.Data.CardTypeData[] = [
+    {
+        type: 'home',
+        label: 'Residence',
+        description: 'The home where you live, or a second home',
+        area: 'home',
+    },
+    {
+        type: 'utility',
+        label: 'Utility',
+        description: 'Electricity, gas, water, internet, waste tax',
+        area: 'home',
+    },
+    {
+        type: 'vehicle',
+        label: 'Vehicle',
+        description: 'Car, motorbike, scooter',
+        area: 'vehicles',
+    },
+];
+
+/** The detail of the policy of the Panda. */
+export const policyDetail: App.Data.CardDetailData = {
+    card: {
+        ...pandaRow,
+        type: 'insurance_policy',
+        id: 1,
+        type_label: 'Insurance policy',
+        label: 'RC auto Panda - UnipolSai',
+        area: 'insurance',
+        area_label: 'Insurance',
+        next_label: 'Expiry',
+        next_date: '2026-11-20',
+    },
+    heading: 'Car · policyholder Marco Bianchi',
+    dates: [{ label: 'Expiry', date: '2026-11-20', expires: true }],
+    notices: [],
+    values: [{ label: 'Type', text: 'Car', href: null }],
+    related: [pandaRow],
+    documents: [healthCard],
+    can_edit: true,
+    can_delete: true,
+};

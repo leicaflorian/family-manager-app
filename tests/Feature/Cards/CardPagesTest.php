@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
-    // The pages of the cards (Task 8) do not exist yet; the component names are what is checked.
-    config(['inertia.testing.ensure_pages_exist' => false]);
     Storage::fake('local');
     $this->travelTo('2026-10-26 10:00:00');
     $this->seed(BianchiFamilySeeder::class);

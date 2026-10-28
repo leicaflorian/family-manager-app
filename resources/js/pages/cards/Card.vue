@@ -1,0 +1,219 @@
+<script setup lang="ts">
+/**
+ * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
+ * menu (Delete, for an `admin`, after asking); then the notices, the dates,
+ * the data of the card, its documents (with *Upload* and *Link*, open to a
+ * `member` too) and the cards it is linked to.
+ */
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ChevronLeft, Link2, Pencil, Trash2, Upload } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
+import { computed, ref } from 'vue';
+import FmActions from '@/components/fm/FmActions.vue';
+import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
+import FmButton from '@/components/fm/FmButton.vue';
+import FmCard from '@/components/fm/FmCard.vue';
+import FmCardHeader from '@/components/fm/FmCardHeader.vue';
+import FmCardRow from '@/components/fm/FmCardRow.vue';
+import FmDateTile from '@/components/fm/FmDateTile.vue';
+import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
+import FmNotice from '@/components/fm/FmNotice.vue';
+import FmRow from '@/components/fm/FmRow.vue';
+import type { Action } from '@/lib/actions';
+import { documentSubtitle } from '@/lib/documents';
+import { upload } from '@/routes';
+import { show as showArea } from '@/routes/areas';
+import { destroy, edit } from '@/routes/cards';
+import { store as linkDocument } from '@/routes/cards/documents';
+import { show as showDocument } from '@/routes/documents';
+
+const { card, linkable } = defineProps<{
+    /** The card with its dates, data, documents and linked cards. */
+    card: App.Data.CardDetailData;
+    /** The documents of the family not yet linked to the card. */
+    linkable: App.Data.DocumentData[];
+}>();
+
+/** The panel with the documents that can be linked is open. */
+const linking = ref(false);
+
+/** The address of the card in the routes: its type and its number. */
+const address = computed(() => ({ type: card.card.type, id: card.card.id }));
+
+/** *Edit* beside the title, *Delete* in the ⋯ menu. */
+const actions = computed((): Action[] => [
+    ...(card.can_edit
+        ? [
+              {
+                  label: trans('Edit'),
+                  icon: Pencil,
+                  variant: 'soft',
+                  href: edit.url(address.value),
+              } satisfies Action,
+          ]
+        : []),
+    ...(card.can_delete
+        ? [
+              {
+                  label: trans('Delete'),
+                  icon: Trash2,
+                  variant: 'danger',
+                  menuOnly: true,
+                  confirm: {
+                      url: destroy.url(address.value),
+                      question: trans('Delete this card?'),
+                      text: trans('The documents stay, only the card goes.'),
+                      confirmLabel: trans('Delete the card'),
+                  },
+              } satisfies Action,
+          ]
+        : []),
+]);
+
+/**
+ * Links an already uploaded document to the card, and closes the panel.
+ *
+ * @param id - the id of the document
+ */
+function link(id: number): void {
+    router.post(
+        linkDocument.url(address.value),
+        { document_id: id },
+        { preserveScroll: true, onSuccess: () => (linking.value = false) },
+    );
+}
+</script>
+
+<template>
+    <Head :title="card.card.label" />
+
+    <div class="flex max-w-[1120px] flex-col gap-5">
+        <Link
+            :href="showArea.url(card.card.area)"
+            class="flex items-center gap-1.5 self-start text-[15px] font-semibold no-underline"
+        >
+            <FmIcon :icon="ChevronLeft" :size="18" />
+            {{ card.card.area_label }}
+        </Link>
+
+        <FmCardHeader :card="card.card" :heading="card.heading">
+            <template v-if="actions.length > 0" #actions>
+                <FmActions :actions="actions" />
+            </template>
+        </FmCardHeader>
+
+        <FmNotice v-for="notice in card.notices" :key="notice" tone="warning">{{
+            notice
+        }}</FmNotice>
+
+        <div
+            class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
+        >
+            <div class="flex min-w-0 flex-col gap-5">
+                <div
+                    v-if="card.dates.length > 0"
+                    class="grid grid-cols-2 gap-3"
+                >
+                    <FmDateTile
+                        v-for="date in card.dates"
+                        :key="date.label"
+                        :date="date"
+                    />
+                </div>
+
+                <FmCard v-if="card.values.length > 0" :title="$t('Data')">
+                    <dl
+                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
+                    >
+                        <template
+                            v-for="value in card.values"
+                            :key="value.label"
+                        >
+                            <dt class="text-ink-soft">{{ value.label }}</dt>
+                            <dd class="m-0 font-semibold break-words">
+                                <Link v-if="value.href" :href="value.href">{{
+                                    value.text
+                                }}</Link>
+                                <template v-else>{{ value.text }}</template>
+                            </dd>
+                        </template>
+                    </dl>
+                </FmCard>
+
+                <FmCard
+                    v-if="card.related.length > 0"
+                    :title="$t('Linked to')"
+                    list
+                >
+                    <FmCardRow
+                        v-for="related in card.related"
+                        :key="`${related.type}-${related.id}`"
+                        :card="related"
+                    />
+                </FmCard>
+            </div>
+
+            <section class="flex min-w-0 flex-col gap-2">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="m-0 text-[17px] font-bold">
+                        {{ $t('Documents') }}
+                    </h2>
+                    <div class="flex gap-2">
+                        <FmButton
+                            v-if="linkable.length > 0"
+                            variant="outline"
+                            :icon="Link2"
+                            @click="linking = true"
+                            >{{ $t('Link') }}</FmButton
+                        >
+                        <FmButton
+                            variant="soft"
+                            :icon="Upload"
+                            :href="
+                                upload({
+                                    query: {
+                                        link: `${card.card.type}:${card.card.id}`,
+                                    },
+                                }).url
+                            "
+                            >{{ $t('Upload') }}</FmButton
+                        >
+                    </div>
+                </div>
+                <div
+                    v-auto-animate
+                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
+                >
+                    <FmDocumentRow
+                        v-for="document in card.documents"
+                        :key="document.id"
+                        :document="document"
+                        :href="showDocument.url(document.id)"
+                    />
+                    <p
+                        v-if="card.documents.length === 0"
+                        class="m-0 p-5 text-[15px] text-ink-soft"
+                    >
+                        {{ $t('No documents yet.') }}
+                    </p>
+                </div>
+            </section>
+        </div>
+
+        <FmBottomSheet v-model:open="linking" :title="$t('Link a document')">
+            <div
+                class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl border border-divider"
+            >
+                <FmRow
+                    v-for="document in linkable"
+                    :key="document.id"
+                    button
+                    :title="document.title"
+                    :subtitle="documentSubtitle(document) || undefined"
+                    @click="link(document.id)"
+                />
+            </div>
+        </FmBottomSheet>
+    </div>
+</template>

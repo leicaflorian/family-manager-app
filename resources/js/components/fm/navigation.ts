@@ -93,6 +93,11 @@ export function navigationItems(): NavigationItems {
  * @returns the section of the item that opens that path, or `home`
  */
 export function sectionOf(path: string, items: NavigationItems): Section {
+    // The cards belong to Areas: an area, a card, its form, New card
+    if (path === '/cards' || path.startsWith('/cards/')) {
+        return 'areas';
+    }
+
     const all = [...items.sections, items.settings];
     const found = all.find(
         (item) => path === item.href || path.startsWith(`${item.href}/`),
