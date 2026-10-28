@@ -64,9 +64,13 @@ const styles: Record<ButtonVariant, string> = {
     outline: cn(
         'border-2 border-action bg-white px-5 font-normal text-action hover:bg-action-soft',
     ),
-    soft: cn('bg-action-soft px-5 font-normal text-action-dark'),
-    text: cn('font-norml px-3 text-action hover:text-action-dark'),
-    danger: cn('px-3 font-normal text-overdue'),
+    soft: cn(
+        'bg-action-soft px-5 font-normal text-action-dark hover:bg-action/15',
+    ),
+    text: cn(
+        'px-3 font-normal text-action hover:bg-action-soft hover:text-action-dark',
+    ),
+    danger: cn('px-3 font-normal text-overdue hover:bg-overdue/10'),
 };
 
 const classes = computed((): string =>

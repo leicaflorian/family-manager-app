@@ -88,6 +88,18 @@ describe('FmButton', () => {
         );
     });
 
+    it.each([
+        ['solid', 'hover:bg-action-dark'],
+        ['outline', 'hover:bg-action-soft'],
+        ['soft', 'hover:bg-action/15'],
+        ['text', 'hover:bg-action-soft'],
+        ['danger', 'hover:bg-overdue/10'],
+    ] as const)('changes on hover in the %s variant', (variant, hover) => {
+        render(FmButton, { props: { variant }, slots: { default: 'Go' } });
+
+        expect(screen.getByRole('button', { name: 'Go' })).toHaveClass(hover);
+    });
+
     it('is blue in the solid variant', () => {
         render(FmButton, { slots: { default: 'Save' } });
 
