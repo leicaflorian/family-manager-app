@@ -88,23 +88,37 @@ describe('Upload', () => {
         expect(destroy).toHaveBeenCalledWith('/upload/12', expect.anything());
     });
 
-    it('starts the form with the card it comes from among the links', () => {
+    const vehicles = [
+        {
+            type: 'vehicle',
+            label: 'Vehicles',
+            options: [{ value: '1', label: 'Fiat Panda', help: null }],
+        },
+    ];
+
+    it('starts the form with the card the file was uploaded from, even opened without it', () => {
         renderPage(Upload, {
-            pending: [payslip],
+            pending: [{ ...payslip, links: [{ type: 'vehicle', id: 1 }] }],
             ...options,
-            links: [
-                {
-                    type: 'vehicle',
-                    label: 'Vehicles',
-                    options: [{ value: '1', label: 'Fiat Panda', help: null }],
-                },
-            ],
-            presetLinks: [{ type: 'vehicle', id: 1 }],
+            links: vehicles,
         });
 
         expect(
             screen.getByRole('button', { name: 'Remove the link Fiat Panda' }),
         ).toBeInTheDocument();
+    });
+
+    it('does not link a file uploaded without a card to the card it is opened from', () => {
+        renderPage(Upload, {
+            pending: [payslip],
+            ...options,
+            links: vehicles,
+            presetLinks: [{ type: 'vehicle', id: 1 }],
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Remove the link Fiat Panda' }),
+        ).not.toBeInTheDocument();
     });
 
     it('keeps the card it comes from when it sends the files', async () => {

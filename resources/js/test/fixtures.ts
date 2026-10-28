@@ -469,4 +469,5 @@ export const pendingPayslip: App.Data.PendingFileData = {
     url: '/files/12',
     title: 'Busta paga novembre 2026',
     preview_url: '/files/12/preview',
+    links: [],
 };

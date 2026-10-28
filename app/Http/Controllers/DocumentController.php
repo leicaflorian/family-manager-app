@@ -95,7 +95,7 @@ final class DocumentController extends Controller
     {
         DB::transaction(function () use ($request): void {
             $document = Document::query()->create([...$request->fields(), 'file_id' => $request->integer('file_id')]);
-            $document->file->update(['to_sort' => false]);
+            $document->file->update(['to_sort' => false, 'link_type' => null, 'link_id' => null]);
             $this->links->sync($document, $request->links());
         });
 

@@ -28,11 +28,12 @@ final class FileStore
      *
      * @param  UploadedFile  $file  the uploaded file
      * @param  bool  $toSort  true for a file of *Upload*, which waits for its document
+     * @param  array{type: string, id: int}|null  $link  the card a file of *Upload* comes from, from `PresetLink`
      * @return File the row of the saved file
      *
      * @throws RuntimeException if the family is missing or the disk does not write
      */
-    public function store(UploadedFile $file, bool $toSort = false): File
+    public function store(UploadedFile $file, bool $toSort = false, ?array $link = null): File
     {
         $family = CurrentFamily::id() ?? throw new RuntimeException('No family to save the file for.');
 
@@ -46,6 +47,8 @@ final class FileStore
             'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
             'size' => $file->getSize() ?: 0,
             'to_sort' => $toSort,
+            'link_type' => $link['type'] ?? null,
+            'link_id' => $link['id'] ?? null,
         ]);
     }
 

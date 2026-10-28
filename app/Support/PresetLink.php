@@ -6,6 +6,7 @@ namespace App\Support;
 
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Models\File;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -28,14 +29,37 @@ final class PresetLink
             return null;
         }
 
-        $card = CardTypes::find($parts[1]);
-        $id = (int) $parts[2];
+        return self::find($parts[1], (int) $parts[2]);
+    }
+
+    /**
+     * The card of a type and an id, or null when the type is unknown or the card
+     * is not of the family (or no longer exists).
+     *
+     * @param  string  $type  the type of the card (`vehicle`)
+     * @param  int  $id  the id of the card
+     * @return array{type: string, id: int}|null
+     */
+    public static function find(string $type, int $id): ?array
+    {
+        $card = CardTypes::find($type);
 
         if (! $card instanceof CardType || ! $card->model()::query()->whereKey($id)->exists()) {
             return null;
         }
 
         return ['type' => $card->type(), 'id' => $id];
+    }
+
+    /**
+     * The card a file of *Upload* was uploaded from, while it is still one of the family.
+     *
+     * @param  File  $file  the waiting file
+     * @return array{type: string, id: int}|null
+     */
+    public static function ofFile(File $file): ?array
+    {
+        return $file->link_type === null || $file->link_id === null ? null : self::find($file->link_type, $file->link_id);
     }
 
     /**

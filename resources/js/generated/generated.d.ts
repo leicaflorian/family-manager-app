@@ -196,6 +196,10 @@ readonly size: number,
 readonly url: string,
 readonly title: string,
 readonly preview_url: string | null,
+readonly links: {
+type: string,
+id: number,
+}[],
 };
 export type PersonData = {
 readonly id: number,

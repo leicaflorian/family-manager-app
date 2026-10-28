@@ -6,6 +6,7 @@ namespace App\Data;
 
 use App\Models\File;
 use App\Support\FileTitle;
+use App\Support\PresetLink;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -23,6 +24,7 @@ final class PendingFileData extends Data
      * @param  string  $url  the address that opens the file
      * @param  string  $title  the proposed title, from the name
      * @param  string|null  $preview_url  the address of the preview image, null when the file has none
+     * @param  list<array{type: string, id: int}>  $links  the card the file was uploaded from, linked from the start of its form
      */
     public function __construct(
         public readonly int $id,
@@ -32,6 +34,7 @@ final class PendingFileData extends Data
         public readonly string $url,
         public readonly string $title,
         public readonly ?string $preview_url,
+        public readonly array $links,
     ) {}
 
     /**
@@ -54,6 +57,8 @@ final class PendingFileData extends Data
      */
     public static function fromFile(File $file): self
     {
+        $link = PresetLink::ofFile($file);
+
         return new self(
             id: $file->id,
             name: $file->original_name,
@@ -62,6 +67,7 @@ final class PendingFileData extends Data
             url: route('files.show', $file),
             title: FileTitle::from($file->original_name),
             preview_url: $file->hasPreview() ? route('files.preview', $file) : null,
+            links: $link === null ? [] : [$link],
         );
     }
 }

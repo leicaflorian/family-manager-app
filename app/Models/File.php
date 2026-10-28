@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $mime_type
  * @property int $size
  * @property bool $to_sort
+ * @property string|null $link_type The type of the card the file was uploaded from, while it waits for its document
+ * @property int|null $link_id The id of the card the file was uploaded from, while it waits for its document
  * @property string|null $preview_path The JPEG of the preview, made the first time it is asked
  * @property bool $preview_failed The preview could not be made: it is not tried again
  * @property int|null $created_by
@@ -41,7 +43,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size', 'to_sort'])]
+#[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size', 'to_sort', 'link_type', 'link_id'])]
 final class File extends FamilyModel
 {
     /** @use HasFactory<FileFactory> */
@@ -95,6 +97,7 @@ final class File extends FamilyModel
         return [
             'size' => 'integer',
             'to_sort' => 'boolean',
+            'link_id' => 'integer',
             'preview_failed' => 'boolean',
         ];
     }

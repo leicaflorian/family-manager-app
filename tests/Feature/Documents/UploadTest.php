@@ -160,7 +160,7 @@ test('a waiting file has a preview address only when it has a preview', function
         ->where('pending.0.preview_url', null));
 });
 
-test('upload starts with the card it comes from among the links', function (): void {
+test('upload keeps the card it comes from, for the next files and for going back', function (): void {
     $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
 
     $this->get(route('upload', ['link' => 'vehicle:'.$panda->id]))
@@ -223,4 +223,40 @@ test('the last file uploaded from a card goes back to the card', function (): vo
         'status' => 'active',
         'links' => [['type' => 'vehicle', 'id' => $panda->id]],
     ])->assertSessionHasNoErrors()->assertRedirect(route('cards.show', ['type' => 'vehicle', 'id' => $panda->id]));
+});
+
+test('a file uploaded from a card keeps the card when Upload opens without it', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+    $this->post(route('upload.store', ['link' => 'vehicle:'.$panda->id]), ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')]]);
+
+    $this->get(route('upload'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('pending.0.links', [['type' => 'vehicle', 'id' => $panda->id]]));
+});
+
+test('a file uploaded without a card is not linked to the card Upload opens from', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+    uploadOne('Busta paga novembre 2026.pdf');
+
+    $this->get(route('upload', ['link' => 'vehicle:'.$panda->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('pending.0.links', []));
+});
+
+test('the card of a waiting file that is deleted is no longer proposed', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+    $this->post(route('upload.store', ['link' => 'vehicle:'.$panda->id]), ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')]]);
+    $panda->delete();
+
+    $this->get(route('upload'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('pending.0.links', []));
+});
+
+test('a filed file forgets the card it was uploaded from', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+    $this->post(route('upload.store', ['link' => 'vehicle:'.$panda->id]), ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')]]);
+    $file = File::query()->sole();
+
+    $this->post(route('documents.store'), ['file_id' => $file->id, 'title' => 'Libretto', 'status' => 'active'])->assertSessionHasNoErrors();
+
+    expect($file->fresh())->link_type->toBeNull()->link_id->toBeNull();
 });

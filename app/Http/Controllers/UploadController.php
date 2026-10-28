@@ -35,13 +35,16 @@ final class UploadController extends Controller
     }
 
     /**
-     * Saves the chosen files, which then wait for their document; the card the person
-     * comes from stays in the address, so the form of every file starts linked to it.
+     * Saves the chosen files, which then wait for their document, each with the card
+     * the person comes from, so its form starts linked to it; the card stays in the
+     * address too, for the next files and for going back to it.
      */
     public function store(UploadRequest $request, FileStore $store): RedirectResponse
     {
+        $link = PresetLink::from($request->query('link'));
+
         foreach ($request->file('files', []) as $file) {
-            $store->store($file, toSort: true);
+            $store->store($file, toSort: true, link: $link);
         }
 
         return to_route('upload', PresetLink::query($request->query('link')));

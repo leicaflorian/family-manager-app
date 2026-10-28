@@ -2,8 +2,8 @@
 /**
  * *Upload a document*: one or more files (PDF, JPG, PNG, HEIC, up to 25 MB
  * each) are saved and wait; each in turn gets the form of the board
- * *Proposta*, with the title taken from its name. Saving files it, discarding
- * deletes it. The × goes back to the card the upload comes from.
+ * *Proposta*, with the title taken from its name and the card it was uploaded
+ * from among the links. Saving files it, discarding deletes it. The × goes back to the card the upload comes from.
  */
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
@@ -26,7 +26,7 @@ const props = defineProps<
     {
         /** The files waiting for their document, oldest first. */
         pending: App.Data.PendingFileData[];
-        /** The card the person comes from, linked from the start. */
+        /** The card the person comes from, kept for the next files and the ×. */
         presetLinks: DocumentLink[];
     } & DocumentFormOptions
 >();
@@ -42,7 +42,8 @@ const options = computed<DocumentFormOptions>(() => ({
 
 /**
  * The query that keeps the card the person comes from on the next address
- * (`link=<type>:<id>`), so every file of the upload is linked to it.
+ * (`link=<type>:<id>`): the files sent from here are linked to it, and the
+ * last one filed goes back to it.
  */
 const linkQuery = computed(() => {
     const preset = props.presetLinks[0];
@@ -153,7 +154,7 @@ function discard(file: App.Data.PendingFileData): void {
                     :action="storeDocument(linkQuery)"
                     :initial="{
                         ...newDocument(current.title),
-                        links: presetLinks,
+                        links: current.links,
                     }"
                     :extra="{ file_id: current.id }"
                     :options="options"
