@@ -21,7 +21,7 @@ describe('newDocument', () => {
             expiry_date: '',
             status: 'active',
             notes: '',
-            tags: '',
+            tags: [],
             links: [],
         });
     });
@@ -34,7 +34,7 @@ describe('toPayload', () => {
             category_id: '4',
             person_id: '7',
             date: '2026-11-27',
-            tags: ' salary, 2026 ,, salary ',
+            tags: [' salary', '2026 ', '', 'salary'],
             links: [{ type: 'employment', id: 3 }],
         };
 
@@ -80,7 +80,7 @@ describe('documentValues', () => {
             expiry_date: '',
             status: 'active',
             notes: 'With the arrears of the contract.',
-            tags: 'salary, 2026',
+            tags: ['salary', '2026'],
             links: [{ type: 'employment', id: 3 }],
         });
     });

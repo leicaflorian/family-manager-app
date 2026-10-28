@@ -29,6 +29,7 @@
     --color-ink-soft: #5a6575;
     --color-edge: #cdd5e0;
     --color-divider: #eef1f5;
+    --color-segment: #e6eaf0;
     --color-overdue: #c4283f;
     --color-warning: #9a4308;
     --color-warning-soft: #fff1e7;
@@ -57,6 +58,9 @@
     --color-income: #2ecda7;
     --color-general: #80838d;
     --color-general-dark: #5d6069;
+
+    /* The shadow of what opens over the page: menus and the lists of the dropdowns */
+    --shadow-menu: 0 12px 32px rgba(24, 33, 47, 0.16);
 }
 
 @theme inline {
@@ -217,5 +221,43 @@
         background: var(--color-canvas);
         color: var(--color-ink);
         -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Tailwind 4 leaves the arrow on the buttons: what can be tapped shows the hand */
+    button:not(:disabled),
+    [role='button']:not([aria-disabled='true']) {
+        cursor: pointer;
+    }
+}
+
+/*
+ * The light transitions: the colours that change under the mouse or the finger,
+ * and the fade from one page to the next (lib/transitions.ts). Nothing fades for
+ * those who asked their device for less motion.
+ */
+@layer base {
+    a,
+    button,
+    summary,
+    label,
+    input,
+    select,
+    textarea {
+        transition-property: color, background-color, border-color, box-shadow;
+        transition-duration: 150ms;
+        transition-timing-function: ease-out;
+    }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none;
     }
 }

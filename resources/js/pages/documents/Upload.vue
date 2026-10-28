@@ -37,6 +37,7 @@ const options = computed<DocumentFormOptions>(() => ({
     organizations: props.organizations,
     links: props.links,
     statuses: props.statuses,
+    tags: props.tags,
 }));
 
 /** The file whose form is open: the first one waiting. */

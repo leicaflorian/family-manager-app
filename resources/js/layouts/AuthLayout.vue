@@ -70,7 +70,7 @@ defineSlots<{
                 <p class="m-0 text-[34px] leading-[1.15] font-extrabold">
                     {{ panel.title }}
                 </p>
-                <p v-if="panel.text" class="m-0 text-[17px] leading-normal">
+                <p v-if="panel.text" class="m-0 text-base leading-normal">
                     {{ panel.text }}
                 </p>
             </div>

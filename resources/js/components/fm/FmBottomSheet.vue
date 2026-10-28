@@ -34,11 +34,11 @@ defineSlots<{
     <DialogRoot v-model:open="open">
         <DialogPortal>
             <DialogOverlay
-                class="fixed inset-0 z-40 bg-[rgba(24,33,47,0.45)]"
+                class="fixed inset-0 z-40 bg-[rgba(24,33,47,0.45)] duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             />
             <DialogContent
                 :aria-describedby="undefined"
-                class="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink outline-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:p-7 lg:shadow-[0_24px_60px_rgba(24,33,47,0.25)]"
+                class="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:p-7 lg:shadow-[0_24px_60px_rgba(24,33,47,0.25)] lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
             >
                 <DialogClose
                     :aria-label="$t('Close the panel')"

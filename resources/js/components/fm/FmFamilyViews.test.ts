@@ -21,4 +21,15 @@ describe('FmFamilyViews', () => {
         expect(organizations).toHaveAttribute('href', '/family/organizations');
         expect(organizations).toHaveAttribute('aria-current', 'page');
     });
+
+    it('keeps the views at the same distance from the title on both pages', () => {
+        render(FmFamilyViews, { props: { family, current: 'people' } });
+
+        const views = screen.getByRole('navigation', { name: 'Family' });
+        const block = views.parentElement;
+        expect(block).toContainElement(
+            screen.getByRole('heading', { name: 'Family', level: 1 }),
+        );
+        expect(block).toHaveClass('flex', 'flex-col', 'gap-4');
+    });
 });

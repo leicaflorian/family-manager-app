@@ -1,6 +1,7 @@
+import { router } from '@inertiajs/vue3';
 import { fireEvent, screen, within } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { describe, expect, it, vi } from 'vite-plus/test';
+import { openMenu, pressSave, renderPage } from '@/test/page';
 import Categories from './Categories.vue';
 
 const category = (
@@ -55,7 +56,7 @@ describe('Document categories', () => {
         expect(within(sheet).getByLabelText('Name')).toHaveValue(
             'Home and utilities',
         );
-        const inside = within(sheet).getByLabelText('Inside');
+        const inside = await openMenu('Inside');
         expect(
             within(inside).getByRole('option', {
                 name: 'None: it is a main one',
@@ -121,5 +122,20 @@ describe('Document categories', () => {
         ).toBeNull();
         expect(screen.queryByRole('button', { name: /^Work/ })).toBeNull();
         expect(screen.getByText('Work')).toBeInTheDocument();
+    });
+
+    it('saves the category of the open panel with ⌘S, and nothing with the panel closed', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Categories, { categories, canEdit: true });
+
+        pressSave();
+        expect(put).not.toHaveBeenCalled();
+        await fireEvent.click(
+            screen.getByRole('button', { name: /^Home and utilities/ }),
+        );
+        await screen.findByRole('dialog');
+        pressSave();
+
+        expect(put).toHaveBeenCalled();
     });
 });

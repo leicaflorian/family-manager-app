@@ -8,6 +8,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { Plus, Trash2 } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -15,6 +16,7 @@ import FmCategoryTree from '@/components/fm/FmCategoryTree.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
+import { settings } from '@/routes';
 import { destroy, store, update } from '@/routes/categories';
 
 const { categories, canEdit } = defineProps<{
@@ -130,6 +132,9 @@ function save(): void {
     });
 }
 
+// Only the open panel has a form to save
+useSaveShortcut(save, () => open.value && !form.processing);
+
 /**
  * Deletes the category of the panel.
  */
@@ -149,6 +154,8 @@ function deleteCategory(): void {
     <div class="flex max-w-[720px] flex-col gap-5">
         <FmTitle
             :title="$t('Document categories')"
+            :back="settings().url"
+            :back-label="$t('Settings')"
             :subtitle="
                 $t(
                     'They say what kind of document it is; whose it is and what it refers to is said by the links',
@@ -184,7 +191,7 @@ function deleteCategory(): void {
                 />
                 <FormKit
                     v-model="form.parent_id"
-                    type="select"
+                    type="dropdown"
                     :label="$t('Inside')"
                     name="parent_id"
                     :options="places"

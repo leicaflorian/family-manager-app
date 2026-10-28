@@ -7,6 +7,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { i18nOptions } from '@/lib/i18n';
+import { pageVisitOptions } from '@/lib/transitions';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
 
@@ -42,6 +43,9 @@ void createInertiaApp({
     },
     progress: {
         color: '#0070E0',
+    },
+    defaults: {
+        visitOptions: (_href, options) => pageVisitOptions(options),
     },
 });
 

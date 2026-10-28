@@ -9,6 +9,7 @@ import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import type { Area } from '@/lib/areas';
 import { areaFill } from '@/lib/areas';
+import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 /** The colour of the subtitle: normal, red if overdue, orange if it needs attention. */
@@ -21,6 +22,7 @@ const {
     area,
     tone = 'normal',
     button = false,
+    current = false,
 } = defineProps<{
     /** The main text. */
     title: string;
@@ -34,6 +36,8 @@ const {
     tone?: RowTone;
     /** The row is a button: it sends `click`. */
     button?: boolean;
+    /** The row is the one open now, as the document shown beside the list. */
+    current?: boolean;
 }>();
 
 defineEmits<{
@@ -49,10 +53,10 @@ defineSlots<{
 }>();
 
 const toneColor: Record<RowTone, string> = {
-    normal: 'text-ink-soft',
-    overdue: 'font-semibold text-overdue',
-    warning: 'font-semibold text-warning',
-    paid: 'font-semibold text-paid',
+    normal: cn('text-ink-soft'),
+    overdue: cn('font-semibold text-overdue'),
+    warning: cn('font-semibold text-warning'),
+    paid: cn('font-semibold text-paid'),
 };
 </script>
 
@@ -61,11 +65,14 @@ const toneColor: Record<RowTone, string> = {
         :is="href ? Link : button ? 'button' : 'div'"
         :href="href"
         :type="button ? 'button' : undefined"
-        class="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-3.5 text-left text-inherit no-underline"
+        :aria-current="current ? 'page' : undefined"
         :class="
-            href || button
-                ? 'cursor-pointer hover:bg-canvas focus-visible:bg-canvas focus-visible:outline-none'
-                : ''
+            cn(
+                'flex w-full items-center gap-3 border-0 bg-transparent px-4 py-3.5 text-left text-inherit no-underline',
+                (href || button) &&
+                    'cursor-pointer hover:bg-action-soft focus-visible:bg-action-soft focus-visible:outline-none',
+                current && 'bg-action-soft',
+            )
         "
         @click="button && $emit('click')"
     >

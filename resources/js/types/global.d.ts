@@ -5,6 +5,8 @@ import type { Auth } from '@/types/auth';
 declare module 'vite/client' {
     interface ImportMetaEnv {
         readonly VITE_APP_NAME: string;
+        /** The project key of FormKit Pro (`fk-…`). */
+        readonly VITE_FORMKIT_PRO_KEY: string;
         [key: string]: string | boolean | undefined;
     }
 

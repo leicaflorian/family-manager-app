@@ -39,32 +39,37 @@ const views = computed(() => [
 </script>
 
 <template>
-    <FmTitle
-        :title="$t('Family')"
-        :subtitle="$t(':family family', { family: family.name })"
-    >
-        <template v-if="$slots.actions" #actions>
-            <slot name="actions" />
-        </template>
-    </FmTitle>
-    <nav
-        :aria-label="$t('Family')"
-        class="flex max-w-[420px] gap-1.5 rounded-xl bg-[#E6EAF0] p-1"
-    >
-        <Link
-            v-for="view in views"
-            :key="view.key"
-            :href="view.href"
-            :aria-current="view.key === current ? 'page' : undefined"
-            class="flex h-10 flex-1 items-center justify-center gap-1 rounded-[9px] text-[15px] whitespace-nowrap no-underline"
-            :class="
-                view.key === current
-                    ? 'bg-white font-bold text-ink shadow-[0_1px_3px_rgba(24,33,47,0.12)]'
-                    : 'font-medium text-[#4A5565]'
-            "
+    <!-- One block: the views stay at the same distance from the title on both pages -->
+    <div class="flex flex-col gap-4">
+        <FmTitle
+            :title="$t('Family')"
+            :subtitle="$t(':family family', { family: family.name })"
         >
-            {{ view.label }}
-            <span class="font-semibold text-ink-soft">{{ view.count }}</span>
-        </Link>
-    </nav>
+            <template v-if="$slots.actions" #actions>
+                <slot name="actions" />
+            </template>
+        </FmTitle>
+        <nav
+            :aria-label="$t('Family')"
+            class="flex max-w-[420px] gap-1.5 rounded-xl bg-[#E6EAF0] p-1"
+        >
+            <Link
+                v-for="view in views"
+                :key="view.key"
+                :href="view.href"
+                :aria-current="view.key === current ? 'page' : undefined"
+                class="flex h-9 flex-1 items-center justify-center gap-1 rounded-[9px] text-[15px] whitespace-nowrap no-underline"
+                :class="
+                    view.key === current
+                        ? 'bg-white text-ink shadow-[0_1px_3px_rgba(24,33,47,0.12)]'
+                        : 'text-[#4A5565]'
+                "
+            >
+                {{ view.label }}
+                <span class="font-semibold text-ink-soft">{{
+                    view.count
+                }}</span>
+            </Link>
+        </nav>
+    </div>
 </template>

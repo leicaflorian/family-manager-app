@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { personDetail, personRoles } from '@/test/fixtures';
-import { choose, renderPage } from '@/test/page';
+import { choose, pressSave, renderPage } from '@/test/page';
 import EditPerson from './EditPerson.vue';
 
 describe('Edit a person', () => {
@@ -15,7 +15,7 @@ describe('Edit a person', () => {
         ).toBeInTheDocument();
         await fireEvent.update(screen.getByLabelText('First name'), 'Rosa');
         await fireEvent.update(screen.getByLabelText('Last name'), 'Bianchi');
-        await choose('Who they are', 'other');
+        await choose('Who they are', 'Other');
         await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
         expect(post).toHaveBeenCalledWith(
@@ -40,6 +40,9 @@ describe('Edit a person', () => {
         expect(screen.getByLabelText('Tax code')).toHaveValue(
             'BNCGLI16E64A944K',
         );
+        expect(await screen.findByLabelText('Date of birth')).toHaveValue(
+            '24/05/2016',
+        );
         await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
         expect(put).toHaveBeenCalledWith(
@@ -51,5 +54,14 @@ describe('Edit a person', () => {
             }),
             expect.anything(),
         );
+    });
+
+    it('saves with ⌘S too', () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(EditPerson, { person: personDetail, roles: personRoles });
+
+        pressSave();
+
+        expect(put.mock.calls[0]?.[0]).toBe('/family/people/3');
     });
 });

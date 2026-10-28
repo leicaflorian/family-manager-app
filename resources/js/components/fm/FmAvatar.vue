@@ -2,12 +2,14 @@
 /**
  * The circle of a person: their photo or, without one, the initials on a colour.
  */
+import { cn } from '@/lib/utils';
+
 const {
     initials,
     photo = null,
     name = '',
     size = 48,
-    color = 'bg-action',
+    color = cn('bg-action'),
 } = defineProps<{
     /** The initials, when the photo is missing. */
     initials: string;

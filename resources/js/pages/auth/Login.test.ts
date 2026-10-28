@@ -12,7 +12,9 @@ describe('Log in', () => {
             'type',
             'password',
         );
-        expect(screen.getByLabelText('Stay signed in')).toBeChecked();
+        expect(
+            screen.getByRole('switch', { name: 'Stay signed in' }),
+        ).toBeChecked();
         expect(
             screen.getByRole('link', { name: 'Forgot your password?' }),
         ).toHaveAttribute('href', '/forgot-password');

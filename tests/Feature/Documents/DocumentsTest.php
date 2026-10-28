@@ -45,6 +45,16 @@ test('the list shows the documents with the filters and their choices', function
         ->has('options.statuses', 3));
 });
 
+test('the list shows 15 documents a page, with the address of the next one', function (): void {
+    Document::factory()->for($this->marco->family)->count(15)->create();
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 15)
+        ->where('total', 16)
+        ->where('nextPage', route('documents.index', ['page' => 2]))
+        ->where('previousPage', null));
+});
+
 test('the list asks for valid filters', function (): void {
     $this->get(route('documents.index', ['status' => 'lost', 'category' => 'x']))->assertSessionHasErrors(['status', 'category']);
 });
@@ -59,6 +69,16 @@ test('the page of a document shows its data, its file and its links', function (
         ->where('document.links.0.type', 'employment')
         ->where('document.tags', [])
         ->where('document.can_delete', true));
+});
+
+test('the form proposes the tags already used in the family, once each and in order', function (): void {
+    $this->document->update(['tags' => ['salary', '2026']]);
+    Document::factory()->for($this->marco->family)->create(['tags' => ['Bills', 'salary']]);
+    Document::factory()->for($this->marco->family)->create(['tags' => null]);
+    Document::factory()->for(registerFamily('Rossi', 'anna@example.com')->family)->create(['tags' => ['secret']]);
+
+    $this->get(route('documents.edit', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('options.tags', ['2026', 'Bills', 'salary']));
 });
 
 test('the change sets category and links', function (): void {

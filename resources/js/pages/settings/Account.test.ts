@@ -1,7 +1,8 @@
+import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { account } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { pressSave, renderPage } from '@/test/page';
 import Account from './Account.vue';
 
 describe('My account', () => {
@@ -73,5 +74,14 @@ describe('My account', () => {
         expect(
             screen.getByRole('button', { name: 'Delete forever' }),
         ).toBeInTheDocument();
+    });
+
+    it('saves first name, last name and email with ⌘S too', () => {
+        const patch = vi.spyOn(router, 'patch').mockImplementation(() => {});
+        renderPage(Account, { account });
+
+        pressSave();
+
+        expect(patch).toHaveBeenCalled();
     });
 });

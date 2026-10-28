@@ -1,132 +1,263 @@
 <script setup lang="ts">
 /**
- * A document as the board *Un documento* shows it: the preview of the file,
- * its data, the linked records and the notes, with *Download*, *Share*,
- * *Edit* and, for an `admin`, *Delete*.
+ * A document as the board *Un documento* shows it: the preview of the file on
+ * grey and, beside it, its data, the linked records (one type at a time) and
+ * the notes. On its own page the buttons are next to the title of the page; in
+ * the panel beside the list it is one card, with the title, the date and the
+ * buttons (`FmDocumentActions`) on top.
  * Used by *A document* and, on the computer, on the right of *Documents*.
  */
-import { Download, Pencil, Share2 } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import { Plus } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
-import { useShare } from '@/composables/useShare';
-import { destroy, edit } from '@/routes/documents';
+import { cn } from '@/lib/utils';
+import { edit, show } from '@/routes/documents';
+import FmAvatar from './FmAvatar.vue';
 import FmButton from './FmButton.vue';
-import FmCard from './FmCard.vue';
-import FmDeleteButton from './FmDeleteButton.vue';
-import FmFilePreview from './FmFilePreview.vue';
+import FmDocumentActions from './FmDocumentActions.vue';
+import FmFilePanel from './FmFilePanel.vue';
+import FmIcon from './FmIcon.vue';
 
-const { document } = defineProps<{
+const { document, compact = false } = defineProps<{
     /** The document. */
     document: App.Data.DocumentDetailData;
+    /**
+     * The panel beside the list: one card, with the title and the date on top
+     * and, on their right, *Download* and the ⋯ menu, icons only.
+     */
+    compact?: boolean;
 }>();
 
 const { date } = useFormat();
-const { canShare, shareFile } = useShare();
+
+/** The colours of the badge of each status. */
+const statusColor: Record<string, string> = {
+    active: cn('bg-[#e6f4ee] text-paid'),
+    expired: cn('bg-overdue/10 text-overdue'),
+    archived: cn('bg-divider text-ink-soft'),
+};
+
+/** The linked records grouped by type, in the order they come. */
+const linkGroups = computed(() => {
+    const groups = new Map<
+        string,
+        { type: string; label: string; links: App.Data.DocumentLinkData[] }
+    >();
+
+    for (const link of document.links) {
+        const group = groups.get(link.type) ?? {
+            type: link.type,
+            label: link.type_label,
+            links: [],
+        };
+        group.links.push(link);
+        groups.set(link.type, group);
+    }
+
+    return [...groups.values()];
+});
+
+/** The type of the linked records shown, the first one until another is chosen. */
+const chosenType = ref<string | null>(null);
+
+/** The group of linked records shown. */
+const shownGroup = computed(
+    () =>
+        linkGroups.value.find((group) => group.type === chosenType.value) ??
+        linkGroups.value[0],
+);
 </script>
 
 <template>
-    <div class="flex flex-col gap-4">
-        <div class="flex flex-wrap gap-2.5">
-            <FmButton
-                variant="soft"
-                :icon="Download"
-                :href="document.file.download_url"
-                download
-            >
-                {{ $t('Download') }}
-            </FmButton>
-            <FmButton
-                v-if="canShare"
-                variant="soft"
-                :icon="Share2"
-                @click="shareFile(document.file)"
-            >
-                {{ $t('Share') }}
-            </FmButton>
-            <FmButton
-                v-if="document.can_edit"
-                variant="soft"
-                :icon="Pencil"
-                :href="edit.url(document.id)"
-            >
-                {{ $t('Edit') }}
-            </FmButton>
-            <FmDeleteButton
-                v-if="document.can_delete"
-                :url="destroy.url(document.id)"
-                :question="$t('Delete this document?')"
-                :text="$t('The file goes too, and it cannot be recovered.')"
-                :confirm-label="$t('Delete the document')"
-            />
+    <div
+        :data-card="compact || undefined"
+        :class="
+            cn(
+                'flex flex-col gap-4',
+                compact && 'rounded-[20px] bg-white p-5.5',
+            )
+        "
+    >
+        <div
+            v-if="compact"
+            class="flex flex-nowrap items-start justify-between gap-3"
+        >
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+                <h2 class="m-0 text-xl font-extrabold">
+                    <Link
+                        :href="show.url(document.id)"
+                        class="text-ink underline decoration-ink/30 decoration-2 underline-offset-4 hover:decoration-ink"
+                        >{{ document.title }}</Link
+                    >
+                </h2>
+                <span v-if="document.date" class="text-sm text-ink-soft">{{
+                    $t('Arrived on :date', { date: date(document.date) })
+                }}</span>
+            </div>
+            <FmDocumentActions :document="document" compact />
         </div>
 
         <div
-            class="flex flex-col items-center gap-3 rounded-3xl bg-divider p-4 lg:p-6"
+            :class="
+                cn(
+                    'flex flex-col gap-4',
+                    !compact &&
+                        'gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start',
+                )
+            "
         >
-            <FmFilePreview
-                :url="document.file.url"
-                :mime-type="document.file.mime_type"
-                :name="document.file.name"
-            />
-            <span class="text-sm break-all text-ink-soft">{{
-                document.file.name
-            }}</span>
-        </div>
+            <FmFilePanel :file="document.file" :compact="compact" />
 
-        <div class="rounded-[20px] bg-white p-5">
-            <dl
-                class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
-            >
-                <dt class="text-ink-soft">{{ $t('What kind it is') }}</dt>
-                <dd class="m-0 font-semibold">
-                    {{ document.category ?? '—' }}
-                </dd>
-                <dt class="text-ink-soft">{{ $t('Whose it is') }}</dt>
-                <dd class="m-0 font-semibold">{{ document.person ?? '—' }}</dd>
-                <dt class="text-ink-soft">{{ $t('Who it is from') }}</dt>
-                <dd class="m-0 font-semibold">
-                    {{ document.organization ?? '—' }}
-                </dd>
-                <dt class="text-ink-soft">{{ $t('Date') }}</dt>
-                <dd class="m-0 font-semibold">
-                    {{ date(document.date) || '—' }}
-                </dd>
-                <dt class="text-ink-soft">{{ $t('Expiry') }}</dt>
-                <dd class="m-0 font-semibold">
-                    <span v-if="document.expiry_date">{{
-                        date(document.expiry_date)
-                    }}</span>
-                    <span v-else class="font-normal text-ink-soft">{{
-                        $t('No expiry')
-                    }}</span>
-                </dd>
-                <dt class="text-ink-soft">{{ $t('Status') }}</dt>
-                <dd class="m-0 font-semibold">{{ document.status_label }}</dd>
-                <dt class="text-ink-soft">{{ $t('Tags') }}</dt>
-                <dd class="m-0 font-semibold">
-                    {{ document.tags.join(', ') || '—' }}
-                </dd>
-            </dl>
-        </div>
+            <div class="flex min-w-0 flex-col gap-4">
+                <div
+                    :class="compact ? 'pt-1' : 'rounded-[20px] bg-white p-5.5'"
+                >
+                    <dl
+                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
+                    >
+                        <dt class="text-ink-soft">
+                            {{ $t('What kind it is') }}
+                        </dt>
+                        <dd class="m-0 font-semibold">
+                            {{ document.category ?? '—' }}
+                        </dd>
+                        <dt class="text-ink-soft">{{ $t('Whose it is') }}</dt>
+                        <dd class="m-0 font-semibold">
+                            <span
+                                v-if="document.person"
+                                class="inline-flex items-center gap-2"
+                            >
+                                <FmAvatar
+                                    v-if="document.person_initials"
+                                    :initials="document.person_initials"
+                                    :size="22"
+                                />
+                                {{ document.person }}
+                            </span>
+                            <template v-else>—</template>
+                        </dd>
+                        <dt class="text-ink-soft">
+                            {{ $t('Who it is from') }}
+                        </dt>
+                        <dd class="m-0 font-semibold">
+                            {{ document.organization ?? '—' }}
+                        </dd>
+                        <dt class="text-ink-soft">{{ $t('Date') }}</dt>
+                        <dd class="m-0 font-semibold">
+                            {{ date(document.date) || '—' }}
+                        </dd>
+                        <dt class="text-ink-soft">{{ $t('Expiry') }}</dt>
+                        <dd class="m-0 font-semibold">
+                            <span v-if="document.expiry_date">{{
+                                date(document.expiry_date)
+                            }}</span>
+                            <span v-else class="font-normal text-ink-soft">{{
+                                $t('No expiry')
+                            }}</span>
+                        </dd>
+                        <dt class="text-ink-soft">{{ $t('Status') }}</dt>
+                        <dd class="m-0">
+                            <span
+                                class="inline-flex rounded-lg px-2 py-0.5 text-[13px] font-semibold whitespace-nowrap"
+                                :class="statusColor[document.status]"
+                                >{{ document.status_label }}</span
+                            >
+                        </dd>
+                        <dt class="text-ink-soft">{{ $t('Tags') }}</dt>
+                        <dd class="m-0 font-semibold">
+                            {{ document.tags.join(', ') || '—' }}
+                        </dd>
+                        <template v-if="compact && document.links.length > 0">
+                            <dt class="text-ink-soft">{{ $t('Links') }}</dt>
+                            <dd class="m-0 flex flex-col gap-0.5 font-semibold">
+                                <span
+                                    v-for="link in document.links"
+                                    :key="`${link.type}:${link.id}`"
+                                    >{{ link.label }}</span
+                                >
+                            </dd>
+                        </template>
+                        <template v-if="compact && document.notes">
+                            <dt class="text-ink-soft">{{ $t('Notes') }}</dt>
+                            <dd class="m-0 whitespace-pre-line text-ink-soft">
+                                {{ document.notes }}
+                            </dd>
+                        </template>
+                    </dl>
+                </div>
 
-        <FmCard v-if="document.links.length > 0" :title="$t('Links')" list>
-            <div
-                v-for="link in document.links"
-                :key="`${link.type}:${link.id}`"
-                class="flex flex-col gap-0.5 px-4 py-3"
-            >
-                <span class="text-base font-semibold">{{ link.label }}</span>
-                <span class="text-[13px] text-ink-soft">{{
-                    link.type_label
-                }}</span>
+                <section
+                    v-if="!compact && (shownGroup || document.can_edit)"
+                    class="flex flex-col gap-2"
+                >
+                    <h2 class="m-0 text-[17px] font-bold">{{ $t('Links') }}</h2>
+                    <div class="flex flex-col rounded-2xl bg-white px-4 pt-1">
+                        <div
+                            class="flex items-center gap-4.5 border-b border-edge"
+                        >
+                            <button
+                                v-for="group in linkGroups"
+                                :key="group.type"
+                                type="button"
+                                :aria-pressed="group.type === shownGroup?.type"
+                                class="flex h-10 items-center gap-1.5 border-0 border-b-2 bg-transparent px-1 text-[15px]"
+                                :class="
+                                    group.type === shownGroup?.type
+                                        ? 'border-action font-bold text-action-dark'
+                                        : 'border-transparent font-medium text-[#4A5565]'
+                                "
+                                @click="chosenType = group.type"
+                            >
+                                {{ group.label }}
+                                <span class="font-semibold text-ink-soft">{{
+                                    group.links.length
+                                }}</span>
+                            </button>
+                            <span class="grow" />
+                            <FmButton
+                                v-if="document.can_edit"
+                                :href="edit.url(document.id)"
+                                :icon="Plus"
+                                :label="$t('Add a link')"
+                                xsmall
+                            />
+                        </div>
+                        <p
+                            v-if="!shownGroup"
+                            class="m-0 py-3.5 text-[15px] text-ink-soft"
+                        >
+                            {{ $t('Nothing linked yet.') }}
+                        </p>
+                        <div v-else class="-mx-4 flex flex-col">
+                            <div
+                                v-for="link in shownGroup.links"
+                                :key="`${link.type}:${link.id}`"
+                                class="flex flex-col gap-0.5 px-4 py-3"
+                            >
+                                <span class="text-base font-semibold">{{
+                                    link.label
+                                }}</span>
+                                <span class="text-[13px] text-ink-soft">{{
+                                    link.type_label
+                                }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    v-if="!compact && document.notes"
+                    class="flex flex-col gap-2"
+                >
+                    <h2 class="m-0 text-[17px] font-bold">{{ $t('Notes') }}</h2>
+                    <p
+                        class="m-0 rounded-2xl bg-white px-4 py-3.5 text-[15px] leading-normal whitespace-pre-line text-[#4A5565]"
+                    >
+                        {{ document.notes }}
+                    </p>
+                </section>
             </div>
-        </FmCard>
-
-        <FmCard v-if="document.notes" :title="$t('Notes')">
-            <p
-                class="m-0 text-[15px] leading-normal whitespace-pre-line text-ink-soft"
-            >
-                {{ document.notes }}
-            </p>
-        </FmCard>
+        </div>
     </div>
 </template>

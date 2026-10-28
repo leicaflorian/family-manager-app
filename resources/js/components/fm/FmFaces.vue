@@ -5,6 +5,7 @@
  */
 import { computed } from 'vue';
 import { listNames } from '@/lib/names';
+import { cn } from '@/lib/utils';
 import FmAvatar from './FmAvatar.vue';
 
 const { people, size = 48 } = defineProps<{
@@ -15,7 +16,7 @@ const { people, size = 48 } = defineProps<{
 }>();
 
 /** The colours of the circles, in turn. */
-const colors = ['bg-action', 'bg-paid', 'bg-warning', 'bg-ink'];
+const colors = [cn('bg-action'), cn('bg-paid'), cn('bg-warning'), cn('bg-ink')];
 
 const names = computed(() => listNames(people.map((p) => p.first_name)));
 </script>

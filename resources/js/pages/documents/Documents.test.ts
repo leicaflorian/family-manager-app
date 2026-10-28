@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { documentDetail, documentFilterOptions } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { choose, renderPage } from '@/test/page';
 import Documents from './Documents.vue';
 
 const none = {
@@ -66,12 +66,7 @@ describe('Documents', () => {
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Documents, props);
 
-        const person = screen.getAllByLabelText(
-            'Person',
-        )[0] as HTMLSelectElement;
-        person.value = '7';
-        await fireEvent.input(person);
-        await settle();
+        await choose('Person', 'Laura Bianchi');
 
         expect(get).toHaveBeenCalledWith(
             '/documents',
@@ -154,6 +149,16 @@ describe('Documents', () => {
                 name: 'Busta paga di ottobre',
                 level: 2,
             }),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('link', { current: 'page' })).toHaveTextContent(
+            'Busta paga di ottobre',
+        );
+        expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
+            'title',
+            'Download',
+        );
+        expect(
+            screen.getByRole('button', { name: 'More actions' }),
         ).toBeInTheDocument();
     });
 });

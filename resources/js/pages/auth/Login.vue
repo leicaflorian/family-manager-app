@@ -70,7 +70,7 @@ function logIn(): void {
         <div class="flex items-center justify-between gap-2.5">
             <FormKit
                 v-model="form.remember"
-                type="checkbox"
+                type="toggle"
                 :label="$t('Stay signed in')"
                 name="remember"
                 :classes="{ outer: 'mb-0' }"

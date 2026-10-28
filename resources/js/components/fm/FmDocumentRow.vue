@@ -20,6 +20,7 @@ const {
     href,
     expiry = false,
     today = isoDate(),
+    current = false,
 } = defineProps<{
     /** The document. */
     document: App.Data.DocumentData;
@@ -29,6 +30,8 @@ const {
     expiry?: boolean;
     /** The date of today, ISO: tells a passed expiry from one ahead. */
     today?: string;
+    /** The document is the one open beside the list. */
+    current?: boolean;
 }>();
 
 const { date } = useFormat();
@@ -85,6 +88,7 @@ const when = computed(() => {
         :subtitle="line.text"
         :tone="line.tone"
         :href="href"
+        :current="current"
     >
         <template #before>
             <span

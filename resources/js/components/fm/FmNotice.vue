@@ -5,6 +5,7 @@
  */
 import type { LucideIcon } from '@lucide/vue';
 import { CircleAlert, Info, MailCheck } from '@lucide/vue';
+import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 /** The tone of the message. */
@@ -24,12 +25,12 @@ defineSlots<{
 
 const styles: Record<NoticeTone, { classes: string; icon: LucideIcon }> = {
     info: {
-        classes: 'bg-canvas text-[#4A5565] [&>svg]:text-action',
+        classes: cn('bg-canvas text-[#4A5565] [&>svg]:text-action'),
         icon: Info,
     },
-    ok: { classes: 'bg-[#E6F4EE] text-[#14533F]', icon: MailCheck },
+    ok: { classes: cn('bg-[#E6F4EE] text-[#14533F]'), icon: MailCheck },
     warning: {
-        classes: 'bg-warning-soft text-warning',
+        classes: cn('bg-warning-soft text-warning'),
         icon: CircleAlert,
     },
 };

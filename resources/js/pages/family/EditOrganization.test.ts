@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { organizationDetail, organizationTypes } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { pressSave, renderPage, settle } from '@/test/page';
 import EditOrganization from './EditOrganization.vue';
 
 describe('Edit an organization', () => {
@@ -51,5 +51,17 @@ describe('Edit an organization', () => {
             }),
             expect.anything(),
         );
+    });
+
+    it('saves with ⌘S too', () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(EditOrganization, {
+            organization: organizationDetail,
+            types: organizationTypes,
+        });
+
+        pressSave();
+
+        expect(put).toHaveBeenCalled();
     });
 });

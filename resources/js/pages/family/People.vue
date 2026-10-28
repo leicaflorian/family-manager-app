@@ -30,7 +30,7 @@ const { people, family, canEdit } = defineProps<{
 <template>
     <Head :title="$t('People')" />
 
-    <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-4">
         <FmFamilyViews :family="family" current="people">
             <template v-if="canEdit" #actions>
                 <FmButton variant="soft" :icon="Plus" :href="create().url">{{

@@ -7,6 +7,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { computed } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
@@ -30,6 +31,8 @@ const back = computed(() => (person ? show.url(person.id) : index().url));
 function save(): void {
     form.submit(person ? update(person.id) : store());
 }
+
+useSaveShortcut(save, () => !form.processing);
 </script>
 
 <template>
@@ -47,6 +50,12 @@ function save(): void {
                 person
                     ? $t('Edit :name', { name: person.first_name })
                     : $t('New person')
+            "
+            :back="back"
+            :back-label="
+                person
+                    ? `${person.first_name} ${person.last_name}`
+                    : $t('People')
             "
         >
             <template #actions>
@@ -84,7 +93,7 @@ function save(): void {
             </div>
             <FormKit
                 v-model="form.role"
-                type="select"
+                type="dropdown"
                 :label="$t('Who they are')"
                 name="role"
                 :options="roles"
@@ -93,7 +102,7 @@ function save(): void {
             <div class="grid grid-cols-2 gap-3">
                 <FormKit
                     v-model="form.birth_date"
-                    type="date"
+                    type="datepicker"
                     :label="$t('Date of birth')"
                     name="birth_date"
                     :errors="errors(form.errors.birth_date)"

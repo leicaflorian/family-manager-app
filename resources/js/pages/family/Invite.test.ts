@@ -1,6 +1,6 @@
-import { fireEvent, screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { choose, openMenu, renderPage } from '@/test/page';
 import Invite from './Invite.vue';
 
 const props = {
@@ -26,18 +26,19 @@ const props = {
 };
 
 describe('Invite a family member', () => {
-    it('asks for the email, who they are and what they can do, as the board', () => {
+    it('asks for the email, who they are and what they can do, as the board', async () => {
         renderPage(Invite, props);
 
         expect(screen.getByLabelText('Their email')).toHaveAttribute(
             'type',
             'email',
         );
+        const who = await openMenu('Who they are');
         expect(
-            screen.getByRole('option', { name: 'Laura Bianchi' }),
+            within(who).getByRole('option', { name: 'Laura Bianchi' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('option', { name: 'A new person' }),
+            within(who).getByRole('option', { name: 'A new person' }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('radio', { name: /Everything, like you/ }),
@@ -62,9 +63,7 @@ describe('Invite a family member', () => {
         renderPage(Invite, props);
         expect(screen.queryByLabelText('First name')).not.toBeInTheDocument();
 
-        const who = screen.getByLabelText('Who they are');
-        (who as HTMLSelectElement).value = 'new';
-        await fireEvent.input(who);
+        await choose('Who they are', 'A new person');
 
         expect(await screen.findByLabelText('First name')).toBeInTheDocument();
         expect(screen.getByLabelText('Last name')).toBeInTheDocument();

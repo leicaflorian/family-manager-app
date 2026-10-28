@@ -52,6 +52,8 @@ Regole del proprietario del 26/10/2026. Valgono per ogni riga, in PHP e in Vue.
 - Props, emit e slot tipizzati (`defineProps<…>()`, `defineEmits<…>()`), ritorni delle funzioni dichiarati.
 - TSDoc su ogni componente (in cima allo `<script>`: cosa mostra e quando si usa), su ogni prop ed emit, su ogni funzione e composable.
 - TDD anche qui, con Vitest (quello di Vite+: `import { … } from 'vite-plus/test'`), Testing Library e `jsdom`: ogni componente in `components/fm/` ha il suo `*.test.ts` accanto, scritto prima; ogni composable e utility ha i suoi test; le pagine hanno un test di quello che fanno. Si controlla quello che vede e fa la persona (testi, ruoli, tasti), non i dettagli interni.
+- Le classi di Tailwind scritte nel codice, fuori dal template (oggetti di varianti, `computed`, funzioni, valori predefiniti delle props, `lib/`), passano sempre da `cn(…)` di `resources/js/lib/utils.ts`, anche quando è una sola stringa: così l'editor le completa (`classFunctions` di Tailwind) e `vp check --fix` le ordina. Nel template basta `class` o `:class`. Fa eccezione `formkit.config.ts`, perché lì le classi le somma FormKit con le sue regole (`$reset`).
+- Campi di FormKit Pro (regola del proprietario, 27/10/2026): `dropdown` al posto di `select`, `datepicker` per le date (si vedono `gg/mm/aaaa`, arrivano al form `aaaa-mm-gg`, impostato in `formkit.config.ts`), `currency` per gli importi, `toggle` per un sì/no e `togglebuttons` per una scelta tra poche voci. Nei test si sceglie con `choose()` e `openMenu()` di `resources/js/test/page.ts`, come fa la persona.
 - Le classi di un campo FormKit si aggiungono a quelle di `global` in `formkit.config.ts`, non le sostituiscono: per cambiarne una si comincia con `$reset`.
 
 ## Comandi
@@ -86,7 +88,7 @@ Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori,
   - un MySQL 8 `family-manager-app-db`, separato da `family_manager_mysql` di Directus;
   - un'applicazione `family-manager-app` dal repository pubblico, branch `base-dell-app` (poi `main`), con Nixpacks, porta 80;
   - un volume persistente montato su `/app/storage/app/private`, dove stanno i file delle famiglie;
-  - le variabili `APP_ENV=staging`, `APP_DEBUG=false`, `APP_KEY` nuova, `APP_URL` con l'indirizzo dato da Coolify, `DB_CONNECTION=mysql` e `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` del MySQL nuovo, `MAIL_MAILER=log`, nessuna `DIRECTUS_*`;
+  - le variabili `APP_ENV=staging`, `APP_DEBUG=false`, `APP_KEY` nuova, `APP_URL` con l'indirizzo dato da Coolify, `DB_CONNECTION=mysql` e `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` del MySQL nuovo, `MAIL_MAILER=log`, `VITE_FORMKIT_PRO_KEY` con la chiave di FormKit Pro (serve durante la build, perché finisce nei JS), nessuna `DIRECTUS_*`;
   - come comando dopo il deploy `php artisan migrate --force`; al primo deploy anche `php artisan db:seed --force`, che crea i Bianchi di prova, poi lo si toglie (il seeder non si rilancia due volte).
 - La build vuole Node 22: Vite 8 non parte con il Node 18 di Nixpacks, per questo c'è `engines.node` in `package.json`. Le rotte di Wayfinder (`resources/js/wayfinder`) non sono versionate: le genera il plugin di Vite durante la build, che per questo ha bisogno di PHP e di `vendor`.
 - I token di Coolify stanno in `~/.config/family-manager/`: `coolify-token` basta per rilanciare un deploy, per creare o cambiare un'applicazione serve `coolify-token-write`. Un token non si stampa mai: si passa a `curl` in un file di intestazioni.

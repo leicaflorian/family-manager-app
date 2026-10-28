@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { documentFilterOptions } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { choose, renderPage, settle } from '@/test/page';
 import FmDocumentFilters from './FmDocumentFilters.vue';
 
 const none = {
@@ -20,10 +20,7 @@ describe('FmDocumentFilters', () => {
             options: documentFilterOptions,
         });
 
-        const person = screen.getByLabelText('Person') as HTMLSelectElement;
-        person.value = '7';
-        await fireEvent.input(person);
-        await settle();
+        await choose('Person', 'Laura Bianchi');
 
         expect(view.emitted('change')?.at(-1)).toEqual([
             { ...none, person: 7 },
@@ -36,7 +33,9 @@ describe('FmDocumentFilters', () => {
             options: documentFilterOptions,
         });
 
-        await fireEvent.click(screen.getByLabelText('Expiring within 60 days'));
+        await fireEvent.click(
+            screen.getByRole('switch', { name: 'Expiring within 60 days' }),
+        );
         await settle();
 
         expect(view.emitted('change')?.at(-1)).toEqual([
