@@ -133,3 +133,31 @@ test('it deletes a card and goes back to its area', function (): void {
     $this->get(route('documents.show', $this->booklet->id))->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('document.links', fn ($links): bool => collect($links)->doesntContain(fn (array $link): bool => $link['type'] === 'vehicle' && $link['id'] === $this->panda->id)));
 });
+
+test('it answers 404 for an id that is not a number', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get('/cards/vehicle/'.$this->panda->id.'abc')->assertNotFound();
+    $this->get('/cards/vehicle/'.$this->panda->id.'abc/edit')->assertNotFound();
+});
+
+test('it saves an untouched switch as off, whatever the card type', function (string $type, array $input, string $table, string $column): void {
+    $this->actingAs($this->marco);
+
+    $this->post(route('cards.store', $type), [...$input, $column => null])->assertRedirect();
+
+    expect(insideBianchi(fn (): int => DB::table($table)->where($column, false)->where('name', $input['name'])->count()))->toBe(1);
+})->with([
+    'home' => ['home', ['name' => 'Casa al mare'], 'homes', 'is_owned'],
+    'vehicle' => ['vehicle', ['name' => 'Vespa'], 'vehicles', 'is_owned'],
+    'account' => ['financial_account', ['name' => 'Conto nuovo', 'type' => 'deposit'], 'financial_accounts', 'is_default'],
+    'subscription' => ['subscription', ['name' => 'Spotify', 'type' => 'streaming'], 'subscriptions', 'is_auto_renew'],
+]);
+
+test('it creates a home without the switch in the form', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->post(route('cards.store', 'home'), ['name' => 'Casa al mare'])->assertRedirect();
+
+    expect(insideBianchi(fn (): bool => DB::table('homes')->where('name', 'Casa al mare')->sole()->is_owned === 0))->toBeTrue();
+});

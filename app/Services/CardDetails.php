@@ -224,14 +224,24 @@ final readonly class CardDetails
         foreach ($fields as $field) {
             $value = $field->virtual ? $this->virtualValue($field, $card) : $card->getAttribute($field->column);
 
+            // The ids of a menu are text, like the values of its options (FormKit compares them strictly).
             $values[$field->column] = match (true) {
                 $value instanceof BackedEnum => $value->value,
                 $value instanceof CarbonInterface => $value->format('Y-m-d'),
+                is_scalar($value) && $this->isReference($field) => (string) $value,
                 default => $value,
             };
         }
 
         return $values;
+    }
+
+    /**
+     * Whether the field holds the id of a person, an organization or another card.
+     */
+    private function isReference(CardField $field): bool
+    {
+        return in_array($field->kind, [FieldKind::Person, FieldKind::Organization, FieldKind::Card], true);
     }
 
     /**
@@ -277,7 +287,8 @@ final readonly class CardDetails
             $value = $preset[$field->column];
 
             $values[$field->column] = match ($field->kind) {
-                FieldKind::Person, FieldKind::Organization, FieldKind::Card, FieldKind::Number => is_numeric($value) ? (int) $value : null,
+                FieldKind::Person, FieldKind::Organization, FieldKind::Card => is_numeric($value) ? (string) (int) $value : null,
+                FieldKind::Number => is_numeric($value) ? (int) $value : null,
                 FieldKind::Currency => is_numeric($value) ? (float) $value : null,
                 FieldKind::Toggle => filter_var($value, FILTER_VALIDATE_BOOLEAN),
                 default => is_scalar($value) ? (string) $value : null,

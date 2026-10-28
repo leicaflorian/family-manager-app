@@ -116,4 +116,37 @@ describe('FmCardForm', () => {
             screen.getByRole('button', { name: 'Delete' }),
         ).toBeInTheDocument();
     });
+
+    it('shows the name of a linked card when the server sends its id as a number', () => {
+        renderPage(FmCardForm, {
+            fields: policyFields,
+            values: { ...values, vehicle_id: 1 },
+        });
+
+        expect(screen.getByLabelText('Vehicle')).toHaveValue('Fiat Panda');
+    });
+
+    it('sends an untouched switch as off, never as null', async () => {
+        const view = renderPage(FmCardForm, {
+            fields: [
+                policyFields[0],
+                {
+                    column: 'is_owned',
+                    label: 'Owned',
+                    kind: 'toggle',
+                    required: false,
+                    options: [],
+                    show_when: {},
+                },
+            ],
+            values: { title: 'Casa al mare', is_owned: null },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(view.emitted('submit')?.[0]).toEqual([
+            { title: 'Casa al mare', is_owned: false },
+        ]);
+    });
 });

@@ -8,6 +8,7 @@ use App\Cards\CardField;
 use App\Cards\CardRules;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Cards\FieldKind;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -79,6 +80,23 @@ final class SaveCardRequest extends FormRequest
         }
 
         return $labels;
+    }
+
+    /**
+     * An untouched switch arrives as null; a yes/no column is never null, so it
+     * counts as off.
+     */
+    protected function prepareForValidation(): void
+    {
+        $off = [];
+
+        foreach ($this->cardType()->fields() as $field) {
+            if ($field->kind === FieldKind::Toggle && $this->has($field->column) && $this->input($field->column) === null) {
+                $off[$field->column] = false;
+            }
+        }
+
+        $this->merge($off);
     }
 
     /**

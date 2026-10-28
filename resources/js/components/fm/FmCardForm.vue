@@ -57,9 +57,29 @@ const inputs: Record<string, string> = {
 /** The kinds whose input is a menu that can be left empty. */
 const menus = new Set(['dropdown', 'person', 'organization', 'card']);
 
+/** The kinds whose value is the id of a record and whose options have text values. */
+const references = new Set(['person', 'organization', 'card']);
+
+/**
+ * The value a field starts from: an id is text like the values of its options
+ * (FormKit compares them strictly), an untouched switch is off.
+ *
+ * @param field - the field
+ * @returns the starting value
+ */
+function startValue(field: App.Data.CardFieldData): unknown {
+    const value = values[field.column] ?? null;
+
+    if (field.kind === 'toggle') {
+        return value ?? false;
+    }
+
+    return references.has(field.kind) && value !== null ? String(value) : value;
+}
+
 const data = reactive<Record<string, unknown>>(
     Object.fromEntries(
-        fields.map((field) => [field.column, values[field.column] ?? null]),
+        fields.map((field) => [field.column, startValue(field)]),
     ),
 );
 
@@ -126,7 +146,8 @@ function save(): void {
         Object.fromEntries(
             fields.map((field) => [
                 field.column,
-                isShown(field) && !isEmpty(data[field.column])
+                isShown(field) &&
+                (field.kind === 'toggle' || !isEmpty(data[field.column]))
                     ? data[field.column]
                     : null,
             ]),

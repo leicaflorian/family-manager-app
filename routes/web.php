@@ -39,12 +39,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
         Route::get('cards/create', [CardController::class, 'create'])->name('cards.create');
         Route::post('cards/{type}', [CardController::class, 'store'])->name('cards.store');
-        Route::get('cards/{type}/{id}', [CardController::class, 'show'])->name('cards.show');
-        Route::get('cards/{type}/{id}/edit', [CardController::class, 'edit'])->name('cards.edit');
-        Route::put('cards/{type}/{id}', [CardController::class, 'update'])->name('cards.update');
-        Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy');
-        Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store');
-        Route::delete('cards/{type}/{id}/documents/{document}', [CardDocumentController::class, 'destroy'])->name('cards.documents.destroy');
+        Route::get('cards/{type}/{id}', [CardController::class, 'show'])->name('cards.show')->whereNumber('id');
+        Route::get('cards/{type}/{id}/edit', [CardController::class, 'edit'])->name('cards.edit')->whereNumber('id');
+        Route::put('cards/{type}/{id}', [CardController::class, 'update'])->name('cards.update')->whereNumber('id');
+        Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy')->whereNumber('id');
+        Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store')->whereNumber('id');
+        Route::delete('cards/{type}/{id}/documents/{document}', [CardDocumentController::class, 'destroy'])->name('cards.documents.destroy')->whereNumber('id');
 
         Route::get('family/invite', [InvitationController::class, 'create'])->name('family.invitations.create');
         Route::post('family/invitations', [InvitationController::class, 'store'])->name('family.invitations.store');

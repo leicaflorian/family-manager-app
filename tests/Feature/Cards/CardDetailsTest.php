@@ -65,10 +65,20 @@ test('it prepares the form with presets', function (): void {
         'family_id' => '99',
     ]));
 
-    expect($form['values']['vehicle_id'])->toBe($this->panda->id)
+    expect($form['values']['vehicle_id'])->toBe((string) $this->panda->id)
         ->and($form['values'])->not->toHaveKey('family_id')
         ->and($form['type']->type)->toBe('insurance_policy')
         ->and(collect($form['fields'])->firstWhere('column', 'vehicle_id')->show_when)->toBe(['type' => ['car']]);
+});
+
+test('it sends the ids of a saved card as text, like the options of their menus', function (): void {
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('vehicle_id', $this->panda->id)->firstOrFail());
+    $form = insideBianchi(fn () => $this->details->form(CardTypes::find('insurance_policy'), $policy, []));
+    $vehicle = collect($form['fields'])->firstWhere('column', 'vehicle_id');
+
+    expect($form['values']['vehicle_id'])->toBe((string) $this->panda->id)
+        ->and(collect($vehicle->options)->pluck('value')->all())->toContain($form['values']['vehicle_id'])
+        ->and($form['values']['organization_id'])->toBeString();
 });
 
 test('it lets only an admin edit and delete', function (): void {
