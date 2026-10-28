@@ -47,7 +47,7 @@ test('it lists the linked cards both ways', function (): void {
 
     expect($names($this->panda))->toContain('RC auto Panda')
         ->and($names($this->policy))->toContain('Fiat Panda')
-        ->and($names($home))->toContain('Electricity - Casa di via Roma', 'Gas - Casa di via Roma', 'Water - Casa di via Roma', 'TV Samsung');
+        ->and($names($home))->toContain('Electricity - Edison', 'Gas - Enel Energia', 'Water - Hera', 'TV Samsung');
 });
 
 test('it lists the documents of the card', function (): void {

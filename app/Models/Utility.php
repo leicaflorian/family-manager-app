@@ -100,11 +100,12 @@ final class Utility extends FamilyModel
     }
 
     /**
-     * The name among a document's links: the type and the home, for example «Electricity - Via Roma 12».
+     * The name among a document's links: the type and the supplier, for example «Electricity - Edison».
+     * Without a supplier the home stands in for it; without either, only the type is shown.
      */
     public function label(): string
     {
-        return self::joinLabel($this->type->label(), $this->home?->name);
+        return self::joinLabel($this->type->label(), $this->organization instanceof Organization ? $this->organization->name : $this->home?->name);
     }
 
     /**
@@ -114,6 +115,6 @@ final class Utility extends FamilyModel
      */
     public static function labelRelations(): array
     {
-        return ['home'];
+        return ['organization', 'home'];
     }
 }
