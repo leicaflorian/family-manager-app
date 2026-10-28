@@ -87,6 +87,22 @@ final class PresetLink
      */
     public static function of(CardType $type, Model $card): array
     {
-        return ['link' => $type->type().':'.ModelId::of($card)];
+        $link = self::card($type, $card);
+
+        return ['link' => $link['type'].':'.$link['id']];
+    }
+
+    /**
+     * A card as a link, for the files uploaded with it.
+     *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card
+     * @return array{type: string, id: int}
+     *
+     * @throws InvalidArgumentException if the card has no numeric id
+     */
+    public static function card(CardType $type, Model $card): array
+    {
+        return ['type' => $type->type(), 'id' => ModelId::of($card)];
     }
 }

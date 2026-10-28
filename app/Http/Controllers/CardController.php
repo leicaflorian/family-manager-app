@@ -175,8 +175,8 @@ final class CardController extends Controller
     }
 
     /**
-     * Keeps the files sent with the card waiting for their document and opens
-     * *Upload* linked to the card; without files, opens the card.
+     * Keeps the files sent with the card waiting for their document, each linked
+     * to the card, and opens *Upload*; without files, opens the card.
      *
      * @param  CardType  $type  the type of the card
      * @param  Model  $card  the card just saved
@@ -187,8 +187,10 @@ final class CardController extends Controller
     {
         $files = $request->uploadedFiles();
 
+        $link = PresetLink::card($type, $card);
+
         foreach ($files as $file) {
-            $store->store($file, toSort: true);
+            $store->store($file, toSort: true, link: $link);
         }
 
         return $files === []

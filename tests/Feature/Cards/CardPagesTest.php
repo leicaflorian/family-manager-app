@@ -220,7 +220,9 @@ test('it creates a vehicle with its documents and opens the upload linked to it'
     $vespa = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Vespa')->sole());
     $response->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => 'vehicle:'.$vespa->id]));
     expect($vespa->is_owned)->toBeTrue()
-        ->and(insideBianchi(fn (): array => File::query()->toSort()->oldest('id')->pluck('original_name')->all()))->toBe(['Libretto.pdf', 'Bollo.pdf']);
+        ->and(insideBianchi(fn (): array => File::query()->toSort()->oldest('id')->pluck('original_name')->all()))->toBe(['Libretto.pdf', 'Bollo.pdf'])
+        ->and(insideBianchi(fn (): array => File::query()->toSort()->get(['link_type', 'link_id'])->map->only('link_type', 'link_id')->unique()->values()->all()))
+        ->toBe([['link_type' => 'vehicle', 'link_id' => $vespa->id]]);
 });
 
 test('it creates nothing when a document is not a file it takes', function (): void {
@@ -242,7 +244,9 @@ test('it saves a change with documents and opens the upload linked to the card',
     ])->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => 'vehicle:'.$this->panda->id]));
 
     expect(insideBianchi(fn (): array => File::query()->toSort()->pluck('original_name')->all()))->toBe(['Libretto.pdf'])
-        ->and(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda bianca');
+        ->and(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda bianca')
+        ->and(insideBianchi(fn (): array => File::query()->toSort()->sole()->only('link_type', 'link_id')))
+        ->toBe(['link_type' => 'vehicle', 'link_id' => $this->panda->id]);
 });
 
 test('it changes nothing when a document of a change is not a file it takes', function (): void {
