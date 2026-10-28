@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\Employment;
+use App\Models\Expense;
 use App\Models\Home;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -72,6 +73,21 @@ test('the page of a document shows its data, its file and its links', function (
         ->where('document.links.0.type', 'employment')
         ->where('document.tags', [])
         ->where('document.can_delete', true));
+});
+
+test('a link leads to a card page only when the record has one', function (): void {
+    $expense = Expense::factory()->for($this->marco->family)->create();
+    DB::table('documentables')->insert([
+        ['document_id' => $this->document->id, 'documentable_type' => 'home', 'documentable_id' => $this->home->id],
+        ['document_id' => $this->document->id, 'documentable_type' => 'expense', 'documentable_id' => $expense->id],
+    ]);
+
+    $this->get(route('documents.show', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.links', fn ($links): bool => collect($links)->mapWithKeys(fn ($link): array => [$link['type'] => $link['href']])->all() === [
+            'home' => '/cards/home/'.$this->home->id,
+            'employment' => '/cards/employment/'.$this->employment->id,
+            'expense' => null,
+        ]));
 });
 
 test('the form proposes the tags already used in the family, once each and in order', function (): void {

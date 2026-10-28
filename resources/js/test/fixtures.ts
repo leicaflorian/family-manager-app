@@ -47,6 +47,7 @@ export const documentDetail: App.Data.DocumentDetailData = {
             id: 3,
             type_label: 'Employments',
             label: 'Laura - Comune di Bologna',
+            href: '/cards/employment/3',
         },
     ],
     can_edit: true,

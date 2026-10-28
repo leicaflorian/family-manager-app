@@ -117,6 +117,7 @@ readonly type: string,
 readonly id: number,
 readonly type_label: string,
 readonly label: string,
+readonly href: string | null,
 };
 export type FamilyData = {
 readonly name: string,

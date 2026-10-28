@@ -18,11 +18,13 @@ final class DocumentLinkData extends Data
      * @param  int  $id  the id of the record
      * @param  string  $type_label  the name of the type, in the current language
      * @param  string  $label  the name of the record
+     * @param  string|null  $href  the address of its card page, null for a record without one (an expense, an income)
      */
     public function __construct(
         public readonly string $type,
         public readonly int $id,
         public readonly string $type_label,
         public readonly string $label,
+        public readonly ?string $href = null,
     ) {}
 }

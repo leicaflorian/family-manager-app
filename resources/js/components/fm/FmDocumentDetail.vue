@@ -12,7 +12,6 @@ import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { cn } from '@/lib/utils';
-import { show as showCard } from '@/routes/cards';
 import { edit, show } from '@/routes/documents';
 import FmAvatar from './FmAvatar.vue';
 import FmButton from './FmButton.vue';
@@ -174,16 +173,12 @@ const shownGroup = computed(
                         <template v-if="compact && document.links.length > 0">
                             <dt class="text-ink-soft">{{ $t('Links') }}</dt>
                             <dd class="m-0 flex flex-col gap-0.5 font-semibold">
-                                <Link
+                                <component
+                                    :is="link.href ? Link : 'span'"
                                     v-for="link in document.links"
                                     :key="`${link.type}:${link.id}`"
-                                    :href="
-                                        showCard({
-                                            type: link.type,
-                                            id: link.id,
-                                        }).url
-                                    "
-                                    >{{ link.label }}</Link
+                                    :href="link.href ?? undefined"
+                                    >{{ link.label }}</component
                                 >
                             </dd>
                         </template>
@@ -239,13 +234,11 @@ const shownGroup = computed(
                             {{ $t('Nothing linked yet.') }}
                         </p>
                         <div v-else class="-mx-4 flex flex-col">
-                            <Link
+                            <component
+                                :is="link.href ? Link : 'div'"
                                 v-for="link in shownGroup.links"
                                 :key="`${link.type}:${link.id}`"
-                                :href="
-                                    showCard({ type: link.type, id: link.id })
-                                        .url
-                                "
+                                :href="link.href ?? undefined"
                                 class="flex flex-col gap-0.5 px-4 py-3 text-ink no-underline"
                             >
                                 <span class="text-base font-semibold">{{
@@ -254,7 +247,7 @@ const shownGroup = computed(
                                 <span class="text-[13px] text-ink-soft">{{
                                     link.type_label
                                 }}</span>
-                            </Link>
+                            </component>
                         </div>
                     </div>
                 </section>

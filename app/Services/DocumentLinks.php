@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cards\CardType;
+use App\Cards\CardTypes;
 use App\Data\DocumentLinkData;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
@@ -68,7 +70,13 @@ final class DocumentLinks
                 $id = $record->getKey();
 
                 if (is_int($id) && method_exists($record, 'label')) {
-                    $records[] = new DocumentLinkData($type, $id, self::typeLabel($type), $record->label());
+                    $records[] = new DocumentLinkData(
+                        $type,
+                        $id,
+                        self::typeLabel($type),
+                        $record->label(),
+                        CardTypes::find($type) instanceof CardType ? route('cards.show', ['type' => $type, 'id' => $id], absolute: false) : null,
+                    );
                 }
             }
 

@@ -165,6 +165,7 @@ describe('FmDocumentDetail', () => {
                         id: 1,
                         type_label: 'Vehicles',
                         label: 'Fiat Panda',
+                        href: '/cards/vehicle/1',
                     },
                 ],
             },
@@ -173,5 +174,27 @@ describe('FmDocumentDetail', () => {
         expect(
             screen.getByRole('link', { name: /Fiat Panda/ }),
         ).toHaveAttribute('href', '/cards/vehicle/1');
+    });
+
+    it('shows a link without a card page as plain text', () => {
+        renderPage(FmDocumentDetail, {
+            document: {
+                ...documentDetail,
+                links: [
+                    {
+                        type: 'expense',
+                        id: 8,
+                        type_label: 'Expenses',
+                        label: 'Spesa di ottobre',
+                        href: null,
+                    },
+                ],
+            },
+        });
+
+        expect(screen.getByText('Spesa di ottobre')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: /Spesa di ottobre/ }),
+        ).not.toBeInTheDocument();
     });
 });
