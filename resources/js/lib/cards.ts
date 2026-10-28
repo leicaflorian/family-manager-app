@@ -1,6 +1,5 @@
 /**
- * What the pages of the cards know about each type: its icon and the name of
- * its area. The colours of the areas are in `areas.ts`.
+ * What the pages of the cards know about each type: its icon . The colours of the areas are in `areas.ts`.
  */
 import type { LucideIcon } from '@lucide/vue';
 import {
@@ -19,7 +18,6 @@ import {
     Wrench,
     Zap,
 } from '@lucide/vue';
-import { trans } from 'laravel-vue-i18n';
 
 /** The icon of each card type, as on the boards. */
 const icons: Record<string, LucideIcon> = {
@@ -46,27 +44,4 @@ const icons: Record<string, LucideIcon> = {
  */
 export function cardIcon(type: string): LucideIcon {
     return icons[type] ?? FileText;
-}
-
-/**
- * The name of an area, in the language of the page.
- *
- * @param area - the area of the card, for example `vehicles`
- * @returns the name, or the area itself if it is not one of the known
- */
-export function areaLabel(area: string): string {
-    const labels: Record<string, string> = {
-        home: trans('Home'),
-        vehicles: trans('Vehicles'),
-        insurance: trans('Insurance'),
-        banks: trans('Banks and loans'),
-        health: trans('Health'),
-        school: trans('School and activities'),
-        work: trans('Work'),
-        subscriptions: trans('Subscriptions'),
-        paperwork: trans('Paperwork'),
-        general: trans('General'),
-    };
-
-    return labels[area] ?? area;
 }

@@ -246,6 +246,7 @@ export const pandaRow: App.Data.CardData = {
     type_label: 'Vehicle',
     label: 'Fiat Panda',
     area: 'vehicles',
+    area_label: 'Vehicles',
     subtitle: 'GH 482 TK',
     next_label: 'Inspection',
     next_date: '2027-01-09',

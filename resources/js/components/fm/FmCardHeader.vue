@@ -6,7 +6,7 @@
  */
 import { computed } from 'vue';
 import { areaHeader, areaOf } from '@/lib/areas';
-import { areaLabel, cardIcon } from '@/lib/cards';
+import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -38,7 +38,7 @@ const background = computed((): string => {
         <div class="flex min-w-0 flex-col gap-1.5">
             <span class="flex items-center gap-1.5 text-sm font-semibold">
                 <FmIcon :icon="cardIcon(card.type)" :size="18" />{{
-                    `${areaLabel(card.area)} · ${card.type_label}`
+                    `${card.area_label} · ${card.type_label}`
                 }}
             </span>
             <h1 class="m-0 text-[28px] font-extrabold lg:text-4xl">

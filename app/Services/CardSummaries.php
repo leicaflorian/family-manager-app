@@ -41,6 +41,7 @@ final class CardSummaries
             type_label: $type->label(),
             label: $this->labelOf($card),
             area: $type->area()->value,
+            area_label: $type->area()->label(),
             subtitle: $type->subtitle($card),
             next_label: $next['label'] ?? null,
             next_date: $next['date'] ?? null,

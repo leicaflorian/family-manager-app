@@ -19,6 +19,7 @@ final class CardData extends Data
      * @param  string  $type_label  the name of the type, for example «Vehicle»
      * @param  string  $label  the name of the card
      * @param  string  $area  the value of the area, for example `vehicles`
+     * @param  string  $area_label  the name of the area, in the current language
      * @param  string  $subtitle  the piece of data that recognises the card, or empty
      * @param  string|null  $next_label  the label of the next date of the card
      * @param  string|null  $next_date  the next date, as `yyyy-mm-dd`
@@ -31,6 +32,7 @@ final class CardData extends Data
         public readonly string $type_label,
         public readonly string $label,
         public readonly string $area,
+        public readonly string $area_label,
         public readonly string $subtitle,
         public readonly ?string $next_label,
         public readonly ?string $next_date,

@@ -1,8 +1,10 @@
 import userEvent from '@testing-library/user-event';
-import { screen } from '@testing-library/vue';
+import { plugin as formkit } from '@formkit/vue';
+import { render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
+import formkitConfig from '@/formkit.config';
 import { policyFields } from '@/test/fixtures';
-import { choose, renderPage, settle } from '@/test/page';
+import { choose, openMenu, renderPage, settle, shown } from '@/test/page';
 import FmCardForm from './FmCardForm.vue';
 
 const values = {
@@ -50,5 +52,68 @@ describe('FmCardForm', () => {
         await settle();
 
         expect(view.emitted('submit')).toBeUndefined();
+        expect(screen.getByText('This field is required.')).toBeInTheDocument();
+    });
+
+    it('shows the error of the server under its field', () => {
+        renderPage(FmCardForm, {
+            fields: policyFields,
+            values,
+            serverErrors: { title: 'The title is taken.' },
+        });
+
+        expect(screen.getByText('The title is taken.')).toBeInTheDocument();
+    });
+
+    it('waits while it is being sent', () => {
+        renderPage(FmCardForm, {
+            fields: policyFields,
+            values,
+            processing: true,
+        });
+
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('sends a field left empty as null', async () => {
+        const view = renderPage(FmCardForm, {
+            fields: policyFields,
+            values: { ...values, vehicle_id: '' },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(view.emitted('submit')?.[0]).toEqual([
+            expect.objectContaining({ vehicle_id: null }),
+        ]);
+    });
+
+    it('offers to choose nothing in a menu that is not required', async () => {
+        renderPage(FmCardForm, { fields: policyFields, values });
+
+        const list = await openMenu('Vehicle');
+
+        expect(shown(list)).toEqual(['None', 'Fiat Panda']);
+    });
+
+    it('does not offer it in a required menu', async () => {
+        renderPage(FmCardForm, { fields: policyFields, values });
+
+        const list = await openMenu('Type');
+
+        expect(shown(list)).toEqual(['Car', 'Home']);
+    });
+
+    it('shows what the page puts in the start slot', () => {
+        render(FmCardForm, {
+            props: { fields: policyFields, values },
+            slots: { start: '<button type="button">Delete</button>' },
+            global: { plugins: [[formkit, formkitConfig]] },
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'Delete' }),
+        ).toBeInTheDocument();
     });
 });

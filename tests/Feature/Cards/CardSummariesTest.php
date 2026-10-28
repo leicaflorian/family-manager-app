@@ -60,6 +60,7 @@ test('it builds the row of a card', function (): void {
         expect($row->type)->toBe('vehicle')
             ->and($row->type_label)->toBe('Vehicle')
             ->and($row->area)->toBe('vehicles')
+            ->and($row->area_label)->toBe(Area::Vehicles->label())
             ->and($row->subtitle)->toBe('GH 482 TK')
             ->and($row->closed)->toBeFalse()
             ->and($row->next_label)->toBeNull()
