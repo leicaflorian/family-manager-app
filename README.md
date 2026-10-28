@@ -19,6 +19,8 @@ docker run --rm -v "$PWD":/app -w /app composer:2 composer install
 ./vendor/bin/sail npm install
 ```
 
+Per le anteprime dei documenti l'app usa `pdftoppm` (`poppler-utils`) e `heif-convert` (`libheif-examples`) e l'estensione `ext-gd` di PHP: l'immagine di Sail (`docker/8.5/`) e `nixpacks.toml` li installano, quindi non c'è niente da aggiungere. Se in locale l'anteprima non compare dopo un aggiornamento, si ricostruisce l'immagine con `./vendor/bin/sail build --no-cache`.
+
 Poi, ogni volta:
 
 ```bash

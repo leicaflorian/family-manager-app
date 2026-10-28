@@ -1,2 +1,7 @@
 [phases.setup]
-aptPkgs = ["...", "poppler-utils", "libheif-examples", "libheif-plugin-libde265"]
+aptPkgs = [
+    "...",
+    "poppler-utils",
+    "libheif-examples",
+    "libheif-plugin-libde265",
+]
