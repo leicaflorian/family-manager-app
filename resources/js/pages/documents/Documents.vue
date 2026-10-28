@@ -196,10 +196,16 @@ function rowHref(document: App.Data.DocumentData): string {
             }}</FmButton>
         </FmEmpty>
 
-        <div v-else class="flex flex-col gap-6 lg:flex-row lg:items-start">
-            <aside
-                class="hidden w-64 shrink-0 rounded-[20px] bg-white p-5 lg:block"
-            >
+        <div
+            v-else
+            :class="[
+                'flex flex-col gap-6 lg:grid lg:items-start',
+                selected
+                    ? 'lg:grid-cols-[16rem_minmax(0,3fr)_minmax(0,2fr)]'
+                    : 'lg:grid-cols-[16rem_minmax(0,1fr)]',
+            ]"
+        >
+            <aside class="hidden rounded-[20px] bg-white p-5 lg:block">
                 <FmDocumentFilters
                     :filters="filters"
                     :options="options"
@@ -207,7 +213,7 @@ function rowHref(document: App.Data.DocumentData): string {
                 />
             </aside>
 
-            <div class="flex min-w-0 grow flex-col gap-3.5">
+            <div class="flex min-w-0 flex-col gap-3.5">
                 <div class="flex gap-2.5">
                     <form
                         role="search"
@@ -285,7 +291,7 @@ function rowHref(document: App.Data.DocumentData): string {
                 />
             </div>
 
-            <section v-if="selected" class="hidden min-w-0 grow lg:block">
+            <section v-if="selected" class="hidden min-w-0 lg:block">
                 <FmDocumentDetail :document="selected" compact />
             </section>
         </div>

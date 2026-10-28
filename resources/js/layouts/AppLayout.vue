@@ -37,9 +37,11 @@ const family = computed((): string => page.props.family?.name ?? '');
             :user="user"
         />
         <div class="flex min-w-0 grow flex-col">
-            <main class="grow px-5 pt-4 pb-6 lg:px-10 lg:pt-8 lg:pb-12">
+            <main
+                class="@container grow px-(--main-gutter) pt-4 pb-6 [--main-gutter:--spacing(5)] lg:pt-8 lg:pb-12 lg:[--main-gutter:--spacing(10)]"
+            >
                 <div
-                    class="mx-auto flex max-w-[1120px] flex-col gap-4 lg:gap-6"
+                    class="mx-auto flex max-w-(--main-width) flex-col gap-4 lg:gap-6"
                 >
                     <slot />
                 </div>

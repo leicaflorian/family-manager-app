@@ -20,6 +20,9 @@
  * which Tailwind does not see.
  */
 @theme static {
+    /* Widest the content of a page gets, in the middle of AppLayout's main */
+    --main-width: 1120px;
+
     --color-brand: #3399ff;
     --color-action: #0070e0;
     --color-action-dark: #0059b3;
@@ -231,7 +234,61 @@
 }
 
 /*
- * The light transitions: the colours that change under the mouse or the finger,
+ * A row that runs out of the content to the edges of AppLayout's main, from the
+ * sidebar to the window, keeping its first item lined up with the content: for the
+ * rows that scroll sideways. The gap is main's padding (--main-gutter) plus half of
+ * what main has more than --main-width; main is the container that 100cqw measures.
+ */
+@utility full-bleed {
+    --bleed: calc(
+        var(--main-gutter, 0px) + max(0px, (100cqw - var(--main-width)) / 2)
+    );
+    margin-inline: calc(var(--bleed) * -1);
+    padding-inline: var(--bleed);
+    scroll-padding-inline: var(--bleed);
+
+    /* The bar stays as wide as the content, only the items run out (not in Firefox) */
+    &::-webkit-scrollbar-track {
+        margin-inline: var(--bleed);
+    }
+}
+
+/*
+ * Thin, quiet scrollbars everywhere in the app: a rounded thumb on a clear track.
+ * Chrome and Safari draw them from the ::-webkit-scrollbar parts, which Chrome
+ * ignores as soon as scrollbar-color is set: the standard properties are only
+ * for the browsers without those parts (Firefox).
+ */
+@layer base {
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track,
+    ::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border-radius: 9999px;
+        background: var(--color-edge);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-ink-soft);
+    }
+
+    @supports not selector(::-webkit-scrollbar) {
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-edge) transparent;
+        }
+    }
+}
+
+/*
+ * The light transitions:the colours that change under the mouse or the finger,
  * and the fade from one page to the next (lib/transitions.ts). Nothing fades for
  * those who asked their device for less motion.
  */

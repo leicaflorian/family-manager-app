@@ -91,7 +91,7 @@ const shown = computed(() =>
             <div
                 role="group"
                 :aria-label="$t('Kind of organization')"
-                class="flex gap-2 overflow-x-auto"
+                class="full-bleed flex gap-2 overflow-x-auto pb-1.5"
             >
                 <button
                     v-for="filter in filters"
