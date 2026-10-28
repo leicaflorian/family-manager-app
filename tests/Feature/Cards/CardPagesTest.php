@@ -222,12 +222,24 @@ test('it creates nothing when a document is not a file it takes', function (): v
 test('it saves a change with documents and opens the upload linked to the card', function (): void {
     $this->actingAs($this->marco);
 
-    $this->put(route('cards.update', $this->pandaUrl), [
-        'name' => 'Fiat Panda bianca', 'files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')],
+    // As the page sends it with files: a POST with the real method in _method.
+    $this->post(route('cards.update', $this->pandaUrl), [
+        '_method' => 'put', 'name' => 'Fiat Panda bianca', 'files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')],
     ])->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => 'vehicle:'.$this->panda->id]));
 
     expect(insideBianchi(fn (): array => File::query()->toSort()->pluck('original_name')->all()))->toBe(['Libretto.pdf'])
         ->and(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda bianca');
+});
+
+test('it changes nothing when a document of a change is not a file it takes', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->post(route('cards.update', $this->pandaUrl), [
+        '_method' => 'put', 'name' => 'Fiat Panda bianca', 'files' => [UploadedFile::fake()->create('Virus.exe', 120, 'application/x-msdownload')],
+    ])->assertSessionHasErrors(['files.0' => 'Only PDF, JPG, PNG and HEIC files can be uploaded.']);
+
+    expect(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda')
+        ->and(insideBianchi(fn (): bool => File::query()->toSort()->exists()))->toBeFalse();
 });
 
 test('it opens the form of a card with the documents linked to it', function (): void {

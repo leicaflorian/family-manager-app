@@ -42,8 +42,7 @@ describe('Edit a card', () => {
         ).toBeInTheDocument();
     });
 
-    it('saves a change with PUT and a new card with POST', async () => {
-        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+    it('saves a change as a POST with _method put, so files can go with it, and a new card with POST', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         const first = renderPage(EditCard, {
             type,
@@ -55,9 +54,9 @@ describe('Edit a card', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         await settle();
 
-        expect(put).toHaveBeenCalledWith(
+        expect(post).toHaveBeenCalledWith(
             '/cards/insurance_policy/1',
-            expect.objectContaining({ title: 'RC auto Panda' }),
+            expect.objectContaining({ title: 'RC auto Panda', _method: 'put' }),
             expect.anything(),
         );
         first.unmount();
@@ -148,7 +147,7 @@ describe('Edit a card', () => {
         });
 
         it('sends the new files with a change too', async () => {
-            const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
             renderPage(EditCard, {
                 type,
                 fields: policyFields,
@@ -161,9 +160,9 @@ describe('Edit a card', () => {
             await userEvent.click(screen.getByRole('button', { name: 'Save' }));
             await settle();
 
-            expect(put).toHaveBeenCalledWith(
+            expect(post).toHaveBeenCalledWith(
                 '/cards/insurance_policy/1',
-                expect.objectContaining({ files: [libretto] }),
+                expect.objectContaining({ _method: 'put', files: [libretto] }),
                 expect.anything(),
             );
         });

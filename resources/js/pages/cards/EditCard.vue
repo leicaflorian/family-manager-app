@@ -17,6 +17,7 @@ import FmCardForm from '@/components/fm/FmCardForm.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { listErrors } from '@/lib/errors';
+import { withMethod } from '@/lib/forms';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
 
@@ -64,7 +65,7 @@ const back = computed(() =>
 );
 
 /**
- * Sends the values: PUT on the card, POST for a new one.
+ * Sends the values: a change of the card (PUT), or a new one (POST).
  *
  * @param data - the values of the form
  */
@@ -79,15 +80,15 @@ function save(data: Record<string, unknown>): void {
         files.value.length > 0 ? { ...data, files: files.value } : data
     ) as RequestPayload;
 
-    if (card) {
-        router.put(
-            update.url({ type: card.type, id: card.id }),
-            payload,
-            visit,
-        );
-    } else {
-        router.post(store.url(type.type), payload, visit);
-    }
+    // Always a POST: PHP does not read the files of a PUT, so a change goes
+    // with the real method in _method
+    router.post(
+        card
+            ? update.url({ type: card.type, id: card.id })
+            : store.url(type.type),
+        card ? withMethod(payload, 'put') : payload,
+        visit,
+    );
 }
 </script>
 

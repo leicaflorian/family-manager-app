@@ -17,8 +17,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * The form of a card, new or changed (only an `admin`). The fields and their
- * rules come from the description of the card type in the route; a new card
- * can also bring the files of its documents.
+ * rules come from the description of the card type in the route; new or
+ * changed, it can also bring the files of its documents.
  */
 final class SaveCardRequest extends FormRequest
 {
@@ -61,15 +61,13 @@ final class SaveCardRequest extends FormRequest
     }
 
     /**
-     * The rules of the fields, and of the files on a new card.
+     * The rules of the fields and of the files.
      *
      * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
-        $rules = CardRules::for($this->cardType());
-
-        return $this->card() instanceof Model ? $rules : [...$rules, ...$this->filesRules(required: false)];
+        return [...CardRules::for($this->cardType()), ...$this->filesRules(required: false)];
     }
 
     /**
