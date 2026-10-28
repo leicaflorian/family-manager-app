@@ -7,6 +7,7 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { KeyRound, LogOut, Users } from '@lucide/vue';
 import { ref, useTemplateRef } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -17,7 +18,7 @@ import FmPasswordField from '@/components/fm/FmPasswordField.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
-import { logout } from '@/routes';
+import { logout, settings } from '@/routes';
 import { destroy, password, photo, update } from '@/routes/account';
 
 const { account } = defineProps<{
@@ -30,6 +31,13 @@ const details = useForm({
     last_name: account.last_name,
     email: account.email,
 });
+
+/** Sends first name, last name and email. */
+function saveDetails(): void {
+    details.submit(update(), { preserveScroll: true });
+}
+
+useSaveShortcut(saveDetails, () => !details.processing);
 
 const newPhoto = useForm({ photo: null as File | null });
 const photoPicker = useTemplateRef<HTMLInputElement>('photoPicker');
@@ -76,6 +84,8 @@ function deleteAccount(): void {
     <div class="flex max-w-[720px] flex-col gap-5">
         <FmTitle
             :title="$t('My account')"
+            :back="settings().url"
+            :back-label="$t('Settings')"
             :subtitle="
                 $t(
                     'Yours only: the rest of the settings applies to the whole family',
@@ -83,10 +93,7 @@ function deleteAccount(): void {
             "
         />
 
-        <form
-            novalidate
-            @submit.prevent="details.submit(update(), { preserveScroll: true })"
-        >
+        <form novalidate @submit.prevent="saveDetails">
             <FmCard>
                 <div class="flex items-center gap-4">
                     <FmAvatar

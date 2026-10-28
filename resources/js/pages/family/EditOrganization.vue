@@ -7,6 +7,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { computed } from 'vue';
+import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
@@ -35,6 +36,8 @@ const typeErrors = computed(() => listErrors(form.errors, 'types'));
 function save(): void {
     form.submit(organization ? update(organization.id) : store());
 }
+
+useSaveShortcut(save, () => !form.processing);
 </script>
 
 <template>
@@ -53,6 +56,8 @@ function save(): void {
                     ? $t('Edit :name', { name: organization.name })
                     : $t('New organization')
             "
+            :back="back"
+            :back-label="organization?.name ?? $t('Organizations')"
         >
             <template #actions>
                 <Link
