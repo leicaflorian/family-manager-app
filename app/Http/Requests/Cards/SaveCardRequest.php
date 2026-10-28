@@ -9,6 +9,7 @@ use App\Cards\CardRules;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -27,7 +28,19 @@ final class SaveCardRequest extends FormRequest
     {
         $type = $this->route('type');
 
-        return (is_string($type) ? CardTypes::find($type) : null) ?? abort(404);
+        return is_string($type) ? CardTypes::findOrFail($type) : throw new NotFoundHttpException;
+    }
+
+    /**
+     * The card of the `id` of the route, or null on a new card.
+     *
+     * @throws ModelNotFoundException if the family has no such card (it answers 404)
+     */
+    public function card(): ?Model
+    {
+        $id = $this->route()?->parameters()['id'] ?? null;
+
+        return is_string($id) || is_int($id) ? $this->cardType()->findOrFail($id) : null;
     }
 
     /**
@@ -35,7 +48,7 @@ final class SaveCardRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $card = $this->route('card');
+        $card = $this->card();
 
         return $card instanceof Model
             ? $this->user()?->can('update', $card) ?? false

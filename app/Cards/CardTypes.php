@@ -18,8 +18,10 @@ use App\Cards\Types\SubscriptionCard;
 use App\Cards\Types\UtilityCard;
 use App\Cards\Types\VehicleCard;
 use App\Enums\Area;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * The register of the 13 card types.
@@ -72,6 +74,28 @@ final class CardTypes
         }
 
         return null;
+    }
+
+    /**
+     * The card type of a type in an address.
+     *
+     * @param  string  $type  for example `insurance_policy`
+     *
+     * @throws NotFoundHttpException if the type is not a card
+     */
+    public static function findOrFail(string $type): CardType
+    {
+        return self::find($type) ?? throw new NotFoundHttpException;
+    }
+
+    /**
+     * Whether the person may add cards (any type: the permission is the same for all).
+     *
+     * @param  User  $user  whoever signed in
+     */
+    public static function canCreate(User $user): bool
+    {
+        return $user->can('create', self::all()[0]->model());
     }
 
     /**

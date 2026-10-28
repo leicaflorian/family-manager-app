@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AreaController;
+use App\Http\Controllers\CardController;
+use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FileController;
@@ -31,7 +34,17 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::middleware(RedirectToWelcome::class)->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
-        Route::inertia('areas', 'Areas')->name('areas');
+        Route::get('areas', [AreaController::class, 'index'])->name('areas');
+        Route::get('areas/{area}', [AreaController::class, 'show'])->name('areas.show');
+
+        Route::get('cards/create', [CardController::class, 'create'])->name('cards.create');
+        Route::post('cards/{type}', [CardController::class, 'store'])->name('cards.store');
+        Route::get('cards/{type}/{id}', [CardController::class, 'show'])->name('cards.show');
+        Route::get('cards/{type}/{id}/edit', [CardController::class, 'edit'])->name('cards.edit');
+        Route::put('cards/{type}/{id}', [CardController::class, 'update'])->name('cards.update');
+        Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy');
+        Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store');
+        Route::delete('cards/{type}/{id}/documents/{document}', [CardDocumentController::class, 'destroy'])->name('cards.documents.destroy');
 
         Route::get('family/invite', [InvitationController::class, 'create'])->name('family.invitations.create');
         Route::post('family/invitations', [InvitationController::class, 'store'])->name('family.invitations.store');

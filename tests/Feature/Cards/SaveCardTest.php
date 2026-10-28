@@ -36,7 +36,7 @@ function cardRequest(string $type, array $input, User $user, ?Model $card = null
     $route->bind($request);
     $route->setParameter('type', $type);
     if ($card instanceof Model) {
-        $route->setParameter('card', $card);
+        $route->setParameter('id', $card->getKey());
     }
     $request->setRouteResolver(fn (): Route => $route);
     $request->setUserResolver(fn (): User => $user);

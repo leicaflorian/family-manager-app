@@ -8,6 +8,7 @@ use App\Enums\Area;
 use App\Support\Linkables;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use InvalidArgumentException;
 use LogicException;
 
@@ -75,6 +76,19 @@ abstract class CardType
     public function type(): string
     {
         return Linkables::typeOf($this->model()) ?? throw new LogicException($this->model().' is not in the morph map.');
+    }
+
+    /**
+     * The card of the current family with that id.
+     *
+     * @param  int|string  $id  the id in the address
+     * @return Model the card
+     *
+     * @throws ModelNotFoundException if the family has no such card (it answers 404)
+     */
+    public function findOrFail(int|string $id): Model
+    {
+        return $this->model()::query()->findOrFail($id);
     }
 
     /**
