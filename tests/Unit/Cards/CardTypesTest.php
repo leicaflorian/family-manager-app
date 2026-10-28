@@ -27,6 +27,13 @@ uses(RefreshDatabase::class);
 const NOT_ASKED = ['id', 'family_id', 'status', 'created_at', 'updated_at', 'created_by', 'updated_by'];
 
 /**
+ * The fields the canvas marks as required although their column is nullable:
+ * where the code and the canvas differ, the canvas wins (`Modifica-pc` has
+ * «Titolo *» on a policy).
+ */
+const REQUIRED_BY_THE_CANVAS = ['insurance_policy' => ['title']];
+
+/**
  * The type of a card, which the test expects to be there.
  *
  * @param  string  $type  the type of the morph map
@@ -98,6 +105,7 @@ test('it requires exactly the columns the database requires', function (): void 
             ->filter(fn (array $column): bool => ! $column['nullable'] && $column['default'] === null && ! $column['auto_increment'])
             ->map(fn (array $column): string => $column['name'])
             ->reject(fn (string $name): bool => in_array($name, NOT_ASKED, true))
+            ->merge(REQUIRED_BY_THE_CANVAS[$card->type()] ?? [])
             ->sort()->values()->all();
 
         expect($required)->toBe($notNull, $card->type());

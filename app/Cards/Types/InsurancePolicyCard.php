@@ -48,7 +48,7 @@ final class InsurancePolicyCard extends CardType
     public function fields(): array
     {
         return [
-            new CardField('title', __('Title'), FieldKind::Text),
+            new CardField('title', __('Title'), FieldKind::Text, required: true),
             new CardField('type', __('Type'), FieldKind::Dropdown, required: true, enum: InsurancePolicyType::class),
             new CardField('policy_number', __('Policy number'), FieldKind::Text),
             new CardField('vehicle_id', __('Vehicle'), FieldKind::Card, target: 'vehicle', showWhen: ['type' => ['car']]),
