@@ -45,7 +45,7 @@ test('it counts the cards of each area', function (): void {
         $areas = summaries()->areas();
 
         expect(array_map(fn (AreaData $area): string => $area->area, $areas))->toBe(array_map(fn (Area $area): string => $area->value, Area::cases()))
-            ->and(collect($areas)->firstWhere('area', 'home')?->count)->toBe(6)
+            ->and(collect($areas)->firstWhere('area', 'home')?->count)->toBe(7)
             ->and(collect($areas)->firstWhere('area', 'vehicles')?->count)->toBe(1)
             ->and(collect($areas)->firstWhere('area', 'school')?->count)->toBe(1)
             ->and(collect($areas)->firstWhere('area', 'home')?->label)->toBe(Area::Home->label())

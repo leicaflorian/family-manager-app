@@ -11,6 +11,7 @@ use App\Enums\FilingType;
 use App\Enums\FinancialAccountType;
 use App\Enums\HealthEventType;
 use App\Enums\InsurancePolicyType;
+use App\Enums\MaintenanceType;
 use App\Enums\OrganizationType;
 use App\Enums\PersonRole;
 use App\Enums\Role;
@@ -28,6 +29,7 @@ use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\Subscription;
@@ -77,6 +79,7 @@ final class BianchiFamilySeeder extends Seeder
         'Studio Ferri' => OrganizationType::Healthcare,
         'Dott.ssa Neri' => OrganizationType::Healthcare,
         'Netflix' => OrganizationType::Shop,
+        'Termoidraulica Rossi' => OrganizationType::Other,
     ];
 
     /** @var array<string, Organization> the organizations created, by name */
@@ -151,7 +154,7 @@ final class BianchiFamilySeeder extends Seeder
     }
 
     /**
-     * The 14 organizations of the canvas.
+     * The 15 organizations of the canvas.
      */
     private function createOrganizations(): void
     {
@@ -167,6 +170,7 @@ final class BianchiFamilySeeder extends Seeder
     {
         $home = Home::query()->create(['name' => 'Casa di via Roma', 'address' => 'Via Roma 12', 'city' => 'Bologna', 'country' => 'Italia', 'is_owned' => true]);
         $account = FinancialAccount::query()->create(['name' => 'Conto BPER', 'type' => FinancialAccountType::CheckingAccount, 'organization_id' => $this->organizations['BPER Banca']->id, 'person_id' => $this->people['Marco']->id, 'is_default' => true]);
+        $lauraCard = FinancialAccount::query()->create(['name' => 'Carta Laura', 'type' => FinancialAccountType::Card, 'organization_id' => $this->organizations['BPER Banca']->id, 'person_id' => $this->people['Laura']->id, 'last_four_digits' => '0937']);
         $panda = Vehicle::query()->create(['name' => 'Fiat Panda', 'brand' => 'Fiat', 'model' => 'Panda', 'plate_number' => 'GH 482 TK', 'registration_year' => 2019, 'is_owned' => true, 'person_id' => $this->people['Marco']->id]);
 
         $this->records = [
@@ -182,9 +186,12 @@ final class BianchiFamilySeeder extends Seeder
             'Finanziamento Panda' => Loan::query()->create(['name' => 'Finanziamento Panda', 'organization_id' => $this->organizations['Findomestic']->id, 'person_id' => $this->people['Marco']->id, 'financial_account_id' => $account->id, 'start_date' => '2024-03-01']),
             'Marco - Studio Rinaldi' => Employment::query()->create(['person_id' => $this->people['Marco']->id, 'organization_id' => $this->organizations['Studio Rinaldi']->id, 'job_title' => 'Geometra']),
             'Laura - Comune di Bologna' => Employment::query()->create(['person_id' => $this->people['Laura']->id, 'organization_id' => $this->organizations['Comune di Bologna']->id, 'job_title' => 'Impiegata']),
-            'Netflix' => Subscription::query()->create(['name' => 'Netflix', 'type' => SubscriptionType::Streaming, 'organization_id' => $this->organizations['Netflix']->id, 'person_id' => $this->people['Laura']->id, 'financial_account_id' => $account->id, 'is_auto_renew' => true]),
+            'Netflix' => Subscription::query()->create(['name' => 'Netflix', 'type' => SubscriptionType::Streaming, 'organization_id' => $this->organizations['Netflix']->id, 'person_id' => $this->people['Laura']->id, 'financial_account_id' => $lauraCard->id, 'account' => 'laura.bianchi@email.it', 'activation_date' => '2026-10-05', 'trial_end_date' => '2026-11-04', 'manage_url' => 'https://netflix.com/account', 'is_auto_renew' => true]),
             'Danza Giulia' => Enrollment::query()->create(['person_id' => $this->people['Giulia']->id, 'organization_id' => $this->organizations['Scuola Passo a Due']->id, 'type' => EnrollmentType::Sport, 'school_year' => '2026/27', 'class_name' => 'Danza']),
             'Visite di Giulia' => HealthEvent::query()->create(['title' => 'Visite di Giulia', 'type' => HealthEventType::Visit, 'person_id' => $this->people['Giulia']->id, 'organization_id' => $this->organizations['Dott.ssa Neri']->id, 'date' => '2025-12-11']),
+            'Dentista di Laura' => HealthEvent::query()->create(['title' => 'Dentista di Laura', 'type' => HealthEventType::Visit, 'person_id' => $this->people['Laura']->id, 'organization_id' => $this->organizations['Studio Ferri']->id, 'date' => '2026-10-08', 'next_checkup_date' => '2027-04-08', 'outcome' => 'Pulizia, nessuna carie']),
+            'Revisione caldaia' => MaintenanceRecord::query()->create(['title' => 'Revisione caldaia', 'type' => MaintenanceType::BoilerService, 'date' => '2026-09-15', 'home_id' => $home->id, 'organization_id' => $this->organizations['Termoidraulica Rossi']->id, 'notes' => 'Controllo annuale e pulizia del bruciatore']),
+            'Carta Laura' => $lauraCard,
             'TV Samsung' => Belonging::query()->create(['name' => 'TV Samsung', 'brand' => 'Samsung', 'home_id' => $home->id, 'purchase_date' => '2024-12-20', 'warranty_expiry_date' => '2026-12-20']),
             'ISEE 2027' => Filing::query()->create(['title' => 'ISEE 2027', 'type' => FilingType::Isee, 'reference_year' => 2027, 'organization_id' => $this->organizations['CAF CGIL Bologna']->id]),
         ];

@@ -48,7 +48,7 @@ test('People lists the family with their account and how many documents and reco
         ->where('people.2.documents_count', 4)
         ->where('people.2.records_count', 2)
         ->where('family.people', 3)
-        ->where('family.organizations', 14)
+        ->where('family.organizations', 15)
         ->where('canEdit', true));
 });
 
@@ -142,14 +142,14 @@ test('a person of another family answers 404', function (): void {
 test('Organizations lists them by name, with their types and their records', function (): void {
     $this->withHeader('Accept-Language', 'it')->get(route('organizations.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->component('family/Organizations')
-        ->has('organizations', 14)
+        ->has('organizations', 15)
         ->where('organizations.0.name', 'BPER Banca')
         ->where('organizations.4.name', 'Edison')
         ->where('organizations.4.types', ['utility_provider'])
         ->where('organizations.4.type_labels', ['Fornitore utenze'])
         ->has('organizations.4.records', 1)
         ->has('types', 9)
-        ->where('family.organizations', 14));
+        ->where('family.organizations', 15));
 });
 
 test('the page of an organization shows its contacts, its records and its documents', function (): void {
