@@ -85,9 +85,9 @@ Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori,
 
 ## Pubblicazione
 
-- Il branch `base-dell-app` è su GitHub (`leicaflorian/family-manager-app`, pubblico). L'applicazione su Coolify non c'è ancora: il proprietario ha deciso (28/10/2026) che va online solo quando l'app sarà completa, non prima. Va fatta nel progetto *Family Manager*, ambiente `production`, server `localhost`:
+- **Branch** (decisione del proprietario, 29/10/2026): gli sviluppi nuovi partono da `dev`, che contiene la base dell'app e le pagine delle schede; `base-dell-app` e `pagine-delle-schede` sono stati uniti in `dev` e cancellati. Il repository è su GitHub (`leicaflorian/family-manager-app`, pubblico). L'applicazione su Coolify non c'è ancora: il proprietario ha deciso (28/10/2026) che va online solo quando l'app sarà completa, non prima. Va fatta nel progetto *Family Manager*, ambiente `production`, server `localhost`:
   - un MySQL 8 `family-manager-app-db`, separato da `family_manager_mysql` di Directus;
-  - un'applicazione `family-manager-app` dal repository pubblico, branch `base-dell-app` (poi `main`), con Nixpacks, porta 80;
+  - un'applicazione `family-manager-app` dal repository pubblico, branch `dev` (poi `main`), con Nixpacks, porta 80;
   - un volume persistente montato su `/app/storage/app/private`, dove stanno i file delle famiglie;
   - le variabili `APP_ENV=staging`, `APP_DEBUG=false`, `APP_KEY` nuova, `APP_URL` con l'indirizzo dato da Coolify, `DB_CONNECTION=mysql` e `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` del MySQL nuovo, `MAIL_MAILER=log`, `VITE_FORMKIT_PRO_KEY` con la chiave di FormKit Pro (serve durante la build, perché finisce nei JS), nessuna `DIRECTUS_*`;
   - come comando dopo il deploy `php artisan migrate --force`; al primo deploy anche `php artisan db:seed --force`, che crea i Bianchi di prova, poi lo si toglie (il seeder non si rilancia due volte).
