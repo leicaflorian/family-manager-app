@@ -1,3 +1,5 @@
+import { cn } from './utils';
+
 /**
  * The areas of family life and their colours, as on the canvas.
  *
@@ -18,30 +20,30 @@ export type Area =
 
 /** The full colour of each area, for dots and icons. */
 export const areaFill: Record<Area, string> = {
-    home: 'bg-home',
-    vehicles: 'bg-vehicles',
-    insurance: 'bg-insurance',
-    banks: 'bg-banks',
-    health: 'bg-health',
-    school: 'bg-school',
-    work: 'bg-work',
-    subscriptions: 'bg-subscriptions',
-    paperwork: 'bg-paperwork',
-    general: 'bg-general',
+    home: cn('bg-home'),
+    vehicles: cn('bg-vehicles'),
+    insurance: cn('bg-insurance'),
+    banks: cn('bg-banks'),
+    health: cn('bg-health'),
+    school: cn('bg-school'),
+    work: cn('bg-work'),
+    subscriptions: cn('bg-subscriptions'),
+    paperwork: cn('bg-paperwork'),
+    general: cn('bg-general'),
 };
 
 /** The soft background and the icon colour of each area, for the icon tiles. */
 export const areaTile: Record<Area, string> = {
-    home: 'bg-home/15 text-home',
-    vehicles: 'bg-vehicles/15 text-vehicles',
-    insurance: 'bg-insurance/15 text-insurance',
-    banks: 'bg-banks/15 text-banks',
-    health: 'bg-health/15 text-health',
-    school: 'bg-school/15 text-school',
-    work: 'bg-work/15 text-work',
-    subscriptions: 'bg-subscriptions/15 text-subscriptions',
-    paperwork: 'bg-paperwork/15 text-paperwork',
-    general: 'bg-general/15 text-general',
+    home: cn('bg-home/15 text-home'),
+    vehicles: cn('bg-vehicles/15 text-vehicles'),
+    insurance: cn('bg-insurance/15 text-insurance'),
+    banks: cn('bg-banks/15 text-banks'),
+    health: cn('bg-health/15 text-health'),
+    school: cn('bg-school/15 text-school'),
+    work: cn('bg-work/15 text-work'),
+    subscriptions: cn('bg-subscriptions/15 text-subscriptions'),
+    paperwork: cn('bg-paperwork/15 text-paperwork'),
+    general: cn('bg-general/15 text-general'),
 };
 
 /**

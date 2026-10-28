@@ -7,6 +7,7 @@
 import { Link } from '@inertiajs/vue3';
 import { LogOut, Menu, Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { cn } from '@/lib/utils';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
@@ -42,10 +43,10 @@ const moreActive = computed((): boolean =>
  * @param marked - the item is the one of the page that is open
  */
 function itemClasses(marked: boolean): string {
-    return [
+    return cn(
         'flex min-h-13 flex-col items-center justify-center gap-1 text-xs no-underline',
         marked ? 'font-semibold text-action' : 'font-medium text-ink-soft',
-    ].join(' ');
+    );
 }
 </script>
 

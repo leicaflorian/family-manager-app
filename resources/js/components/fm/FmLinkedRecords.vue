@@ -30,11 +30,11 @@ const open = computed(
                         :key="group.type"
                         type="button"
                         :aria-pressed="group.type === open.type"
-                        class="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 border-0 border-b-2 bg-transparent px-0.5 text-[15px] whitespace-nowrap"
+                        class="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border-0 border-b-2 bg-transparent px-0.5 text-[15px] whitespace-nowrap"
                         :class="
                             group.type === open.type
-                                ? 'border-action font-bold text-action-dark'
-                                : 'border-transparent font-medium text-[#4A5565]'
+                                ? 'border-action text-action-dark'
+                                : 'border-transparent text-[#4A5565]'
                         "
                         @click="chosen = group.type"
                     >
