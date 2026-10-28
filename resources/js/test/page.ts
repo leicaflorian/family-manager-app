@@ -4,7 +4,8 @@
  * the tests.
  */
 import { plugin as formkit } from '@formkit/vue';
-import { fireEvent, render, screen } from '@testing-library/vue';
+import { render, screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import type { RenderResult } from '@testing-library/vue';
 import type { Component } from 'vue';
 import formkitConfig from '@/formkit.config';
@@ -39,14 +40,55 @@ export function settle(): Promise<void> {
 }
 
 /**
- * Chooses a value in a menu, as the person does, and waits for FormKit.
+ * Opens a menu, as the person does. With the same menu twice on the page (the
+ * filters of the computer and of the phone) it opens the first one.
  *
  * @param label - the label of the menu
- * @param value - the value of the option
+ * @returns the list of the options
  */
-export async function choose(label: string, value: string): Promise<void> {
-    const select = screen.getByLabelText(label) as HTMLSelectElement;
-    select.value = value;
-    await fireEvent.input(select);
+export async function openMenu(label: string): Promise<HTMLElement> {
+    const [menu] = screen.getAllByRole('button', { name: label });
+    await userEvent.click(menu!);
+
+    // The closed menus keep their list in the page: the one wanted is in this field
+    return within(menu!.closest<HTMLElement>('[data-type]')!).findByRole(
+        'listbox',
+    );
+}
+
+/**
+ * Chooses an option in a menu, as the person does: opens it, taps the option
+ * and waits for FormKit.
+ *
+ * @param label - the label of the menu
+ * @param option - the text of the option
+ */
+export async function choose(label: string, option: string): Promise<void> {
+    const list = await openMenu(label);
+    await userEvent.click(within(list).getByRole('option', { name: option }));
     await settle();
+}
+
+/**
+ * Presses a key on the page, as the person does.
+ *
+ * @param init - the key and its modifiers
+ * @returns the event, to see whether the browser was stopped
+ */
+export function press(init: KeyboardEventInit): KeyboardEvent {
+    const event = new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        ...init,
+    });
+    document.body.dispatchEvent(event);
+
+    return event;
+}
+
+/**
+ * Presses ⌘S, which saves the form of the page.
+ */
+export function pressSave(): void {
+    press({ key: 's', metaKey: true });
 }

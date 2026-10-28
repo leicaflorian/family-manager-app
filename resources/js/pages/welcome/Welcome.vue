@@ -150,7 +150,7 @@ function done(withoutHome = false): void {
                 </div>
                 <FormKit
                     v-model="person.role"
-                    type="select"
+                    type="dropdown"
                     :label="$t('In the family they are')"
                     :name="`people.${i}.role`"
                     :options="roles"
@@ -194,7 +194,7 @@ function done(withoutHome = false): void {
             />
             <FormKit
                 v-model="form.home.is_owned"
-                type="checkbox"
+                type="toggle"
                 :label="$t('It is your property')"
                 name="home.is_owned"
             />

@@ -51,6 +51,9 @@ describe('Welcome', () => {
         expect(screen.getByLabelText('Address')).toBeInTheDocument();
         expect(screen.getByLabelText('City')).toBeInTheDocument();
         expect(
+            screen.getByRole('switch', { name: 'It is your property' }),
+        ).toBeInTheDocument();
+        expect(
             screen.getByRole('button', { name: "Done, let's go in" }),
         ).toHaveAttribute('type', 'submit');
         expect(

@@ -17,6 +17,17 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     Head: { render: () => null },
 }));
 
+// jsdom does not measure the page: the FormKit Pro dropdown watches its size
+// with a ResizeObserver, which here has nothing to report.
+globalThis.ResizeObserver ??= class {
+    /** Nothing to watch in jsdom. */
+    observe(): void {}
+    /** Nothing to stop watching in jsdom. */
+    unobserve(): void {}
+    /** Nothing to disconnect in jsdom. */
+    disconnect(): void {}
+};
+
 // The tests read the texts in English, the language they are written in.
 config.global.plugins.push([i18nVue, i18nOptions('en')]);
 

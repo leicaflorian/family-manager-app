@@ -66,7 +66,11 @@ function send(): void {
         novalidate
         @submit.prevent="send"
     >
-        <FmTitle :title="$t('Invite a family member')" />
+        <FmTitle
+            :title="$t('Invite a family member')"
+            :back="family().url"
+            :back-label="$t('Family')"
+        />
         <FormKit
             v-model="form.email"
             type="email"
@@ -77,7 +81,7 @@ function send(): void {
         />
         <FormKit
             v-model="who"
-            type="select"
+            type="dropdown"
             :label="$t('Who they are')"
             name="who"
             :options="whoOptions"
@@ -102,7 +106,7 @@ function send(): void {
             </div>
             <FormKit
                 v-model="form.person_role"
-                type="select"
+                type="dropdown"
                 :label="$t('In the family they are')"
                 name="person_role"
                 :options="roles"

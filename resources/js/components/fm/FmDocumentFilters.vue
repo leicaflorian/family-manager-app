@@ -70,7 +70,7 @@ function id(value: unknown): number | null {
         <FormKit
             v-for="menu in menus"
             :key="menu.name"
-            type="select"
+            type="dropdown"
             :label="menu.label"
             :name="menu.name"
             :options="menu.options"
@@ -82,7 +82,7 @@ function id(value: unknown): number | null {
             "
         />
         <FormKit
-            type="select"
+            type="dropdown"
             :label="$t('Status')"
             name="status"
             :options="statuses"
@@ -93,7 +93,7 @@ function id(value: unknown): number | null {
             "
         />
         <FormKit
-            type="checkbox"
+            type="toggle"
             :label="$t('Expiring within 60 days')"
             name="expiring"
             :model-value="filters.expiring"
