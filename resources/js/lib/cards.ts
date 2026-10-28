@@ -1,5 +1,5 @@
 /**
- * What the pages of the cards know about each type: its icon . The colours of the areas are in `areas.ts`.
+ * What the pages of the cards know about each type: its icon. The colours of the areas are in `areas.ts`.
  */
 import type { LucideIcon } from '@lucide/vue';
 import {
