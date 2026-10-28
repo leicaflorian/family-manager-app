@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Family;
+use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
 use Database\Seeders\BianchiFamilySeeder;
@@ -72,6 +73,23 @@ test('it answers 404 for another family', function (): void {
     $this->delete(route('cards.documents.destroy', [...$this->pandaUrl, 'document' => $this->booklet->id]))->assertNotFound();
 });
 
+test('it answers 404 for a document of another family', function (): void {
+    $theirs = registerFamily('Rossi', 'mario@rossi.example');
+    $document = Document::factory()->for($theirs->family)->create();
+    $this->actingAs($this->marco);
+
+    $this->post(route('cards.documents.store', $this->pandaUrl), ['document_id' => $document->id])->assertNotFound();
+    $this->delete(route('cards.documents.destroy', [...$this->pandaUrl, 'document' => $document->id]))->assertNotFound();
+    expect(DB::table('documentables')->where('document_id', $document->id)->exists())->toBeFalse();
+});
+
+test('it answers 404, not 422, for an invalid change to a card of another family', function (): void {
+    $this->actingAs(registerFamily('Rossi', 'mario@rossi.example'));
+
+    $this->put(route('cards.update', $this->pandaUrl), ['name' => ''])->assertNotFound();
+    $this->post(route('cards.documents.store', $this->pandaUrl), [])->assertNotFound();
+});
+
 test('it answers 404 for an unknown type or area', function (): void {
     $this->actingAs($this->marco);
 
@@ -94,7 +112,17 @@ test('it creates a vehicle and opens it', function (): void {
 
 test('it deletes a card and goes back to its area', function (): void {
     $this->actingAs($this->marco);
+    $reminder = insideBianchi(fn (): Reminder => Reminder::factory()->create());
+    DB::table('documentables')->insert(['document_id' => $this->booklet->id, 'documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id]);
+    DB::table('remindables')->insert(['reminder_id' => $reminder->id, 'remindable_type' => 'vehicle', 'remindable_id' => $this->panda->id]);
 
     $this->delete(route('cards.destroy', $this->pandaUrl))->assertRedirect(route('areas.show', 'vehicles'));
+
     expect(insideBianchi(fn (): bool => Vehicle::query()->whereKey($this->panda->id)->exists()))->toBeFalse();
+    foreach (['documentables', 'remindables'] as $table) {
+        $link = rtrim($table, 's');
+        expect(DB::table($table)->where([$link.'_type' => 'vehicle', $link.'_id' => $this->panda->id])->exists())->toBeFalse();
+    }
+    $this->get(route('documents.show', $this->booklet->id))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('document.links', fn ($links): bool => collect($links)->doesntContain(fn (array $link): bool => $link['type'] === 'vehicle' && $link['id'] === $this->panda->id)));
 });
