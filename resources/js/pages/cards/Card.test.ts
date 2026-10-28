@@ -137,12 +137,24 @@ describe('A card', () => {
         }
     });
 
-    it('uploads a document already linked to the card', () => {
+    it('uploads a document already linked to the card, from the panel', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Card, { card: policyDetail, linkable: [] });
 
-        expect(screen.getByRole('link', { name: 'Upload' })).toHaveAttribute(
-            'href',
-            '/upload?link=insurance_policy%3A1',
+        await userEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        const file = new File(['%PDF-1.4'], 'Polizza.pdf', {
+            type: 'application/pdf',
+        });
+        await fireEvent.change(
+            await screen.findByLabelText('Choose the files'),
+            { target: { files: [file] } },
+        );
+
+        expect(
+            screen.getByRole('dialog', { name: 'Upload a document' }),
+        ).toBeInTheDocument();
+        expect(decodeURIComponent(`${post.mock.calls[0]?.[0] as string}`)).toBe(
+            '/upload?link=insurance_policy:1',
         );
     });
 
@@ -309,7 +321,7 @@ describe('A card', () => {
             screen.queryByRole('button', { name: 'Delete' }),
         ).not.toBeInTheDocument();
         expect(
-            screen.getByRole('link', { name: 'Upload' }),
+            screen.getByRole('button', { name: 'Upload' }),
         ).toBeInTheDocument();
     });
 

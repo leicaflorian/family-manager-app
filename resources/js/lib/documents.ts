@@ -197,6 +197,20 @@ export function linkKey(link: DocumentLink): string {
 }
 
 /**
+ * The query that keeps the card an upload comes from on an address
+ * (`?link=vehicle:1`): the files sent are linked to it, and the last one
+ * filed goes back to it.
+ *
+ * @param link - the card, if there is one
+ * @returns the query for a route of Wayfinder, empty without a card
+ */
+export function linkQuery(
+    link: DocumentLink | undefined,
+): { query: { link: string } } | Record<string, never> {
+    return link ? { query: { link: linkKey(link) } } : {};
+}
+
+/**
  * The link written by `linkKey()`.
  *
  * @param key - the value of the menu

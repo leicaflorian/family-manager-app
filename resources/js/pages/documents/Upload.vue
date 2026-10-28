@@ -3,9 +3,10 @@
  * *Upload a document*: one or more files (PDF, JPG, PNG, HEIC, up to 25 MB
  * each) are saved and wait; each in turn gets the form of the board
  * *Proposta*, with the title taken from its name and the card it was uploaded
- * from among the links. Saving files it, discarding deletes it. The × goes back to the card the upload comes from.
+ * from among the links. Saving files it, discarding deletes it. The × goes
+ * back to the card the upload comes from.
  */
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { computed } from 'vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
@@ -14,13 +15,13 @@ import FmFilePreview from '@/components/fm/FmFilePreview.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useFileUpload } from '@/composables/useFileUpload';
 import type { DocumentFormOptions, DocumentLink } from '@/lib/documents';
-import { newDocument } from '@/lib/documents';
-import { listErrors } from '@/lib/errors';
+import { linkQuery, newDocument } from '@/lib/documents';
 import { dashboard } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 import { store as storeDocument } from '@/routes/documents';
-import { destroy, store } from '@/routes/upload';
+import { destroy } from '@/routes/upload';
 
 const props = defineProps<
     {
@@ -40,45 +41,22 @@ const options = computed<DocumentFormOptions>(() => ({
     tags: props.tags,
 }));
 
-/**
- * The query that keeps the card the person comes from on the next address
- * (`link=<type>:<id>`): the files sent from here are linked to it, and the
- * last one filed goes back to it.
- */
-const linkQuery = computed(() => {
-    const preset = props.presetLinks[0];
-
-    return preset ? { query: { link: `${preset.type}:${preset.id}` } } : {};
-});
+/** The card the person comes from, kept for the next files and the ×. */
+const preset = computed(() => props.presetLinks[0]);
 
 /** Where the × goes: the card the person comes from, or the home page. */
-const closeUrl = computed(() => {
-    const preset = props.presetLinks[0];
-
-    return preset ? showCard.url(preset) : dashboard().url;
-});
+const closeUrl = computed(() =>
+    preset.value ? showCard.url(preset.value) : dashboard().url,
+);
 
 /** The file whose form is open: the first one waiting. */
 const current = computed(() => props.pending[0]);
 
-const upload = useForm<{ files: File[] }>({ files: [] });
-
-/** The messages of the files refused (`files.0`, …), all in one notice. */
-const uploadErrors = computed(() => listErrors(upload.errors, 'files'));
-
-/**
- * Sends the chosen or dropped files.
- *
- * @param files - the files given by the zone
- */
-function send(files: File[]): void {
-    upload.files = files;
-    upload.submit(store(linkQuery.value), {
-        forceFormData: true,
-        preserveScroll: true,
-        onFinish: () => upload.reset(),
-    });
-}
+const {
+    send,
+    processing,
+    errors: uploadErrors,
+} = useFileUpload(() => preset.value);
 
 /**
  * Discards a file waiting: it is deleted.
@@ -151,7 +129,7 @@ function discard(file: App.Data.PendingFileData): void {
                 </div>
                 <FmDocumentForm
                     :key="current.id"
-                    :action="storeDocument(linkQuery)"
+                    :action="storeDocument(linkQuery(preset))"
                     :initial="{
                         ...newDocument(current.title),
                         links: current.links,
@@ -172,7 +150,7 @@ function discard(file: App.Data.PendingFileData): void {
                     : undefined
             "
             :compact="current !== undefined"
-            :processing="upload.processing"
+            :processing="processing"
             @files="send"
         />
     </div>

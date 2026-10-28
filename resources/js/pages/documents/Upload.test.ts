@@ -117,7 +117,9 @@ describe('Upload', () => {
         });
 
         expect(
-            screen.queryByRole('button', { name: 'Remove the link Fiat Panda' }),
+            screen.queryByRole('button', {
+                name: 'Remove the link Fiat Panda',
+            }),
         ).not.toBeInTheDocument();
     });
 

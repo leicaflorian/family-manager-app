@@ -3,7 +3,8 @@
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
  * menu (Delete, for an `admin`, after asking); then the notices, the dates,
  * the data of the card (the person, the organization and the card it names
- * open in a new tab), its documents (with *Upload* and *Link*, open to a
+ * open in a new tab), its documents (with *Upload*, which opens the panel
+ * with the zone for the files, and *Link*, open to a
  * `member` too, and beside each the buttons of `FmCardDocumentActions`) and
  * the cards it is linked to, with the + that adds a new one already linked
  * (for an `admin`). *Link* opens the documents not yet linked, searched while
@@ -27,8 +28,8 @@ import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNewTabLink from '@/components/fm/FmNewTabLink.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import type { Action } from '@/lib/actions';
-import { upload } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
 import { store as linkDocument } from '@/routes/cards/documents';
@@ -55,6 +56,9 @@ const {
 
 /** The panel with the documents that can be linked is open. */
 const linking = ref(false);
+
+/** The panel with the zone for the files to upload is open. */
+const uploading = ref(false);
 
 /** The address of the card in the routes: its type and its number. */
 const address = computed(() => ({ type: card.card.type, id: card.card.id }));
@@ -210,13 +214,7 @@ function link(id: number): void {
                             variant="text"
                             inline
                             :icon="Plus"
-                            :href="
-                                upload({
-                                    query: {
-                                        link: `${card.card.type}:${card.card.id}`,
-                                    },
-                                }).url
-                            "
+                            @click="uploading = true"
                             >{{ $t('Upload') }}</FmButton
                         >
                     </div>
@@ -250,6 +248,8 @@ function link(id: number): void {
                 </div>
             </section>
         </div>
+
+        <FmUploadSheet v-model:open="uploading" :link="address" />
 
         <FmLinkDocumentSheet
             v-model:open="linking"

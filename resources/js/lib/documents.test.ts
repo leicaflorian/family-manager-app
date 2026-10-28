@@ -5,6 +5,7 @@ import {
     documentValues,
     filterQuery,
     linkKey,
+    linkQuery,
     newDocument,
     parseLinkKey,
     toPayload,
@@ -66,6 +67,15 @@ describe('linkKey', () => {
         expect(parseLinkKey('')).toBeNull();
         expect(parseLinkKey('employment')).toBeNull();
         expect(parseLinkKey('employment:x')).toBeNull();
+    });
+});
+
+describe('linkQuery', () => {
+    it('keeps the card on the address of Upload, or nothing without one', () => {
+        expect(linkQuery({ type: 'vehicle', id: 1 })).toEqual({
+            query: { link: 'vehicle:1' },
+        });
+        expect(linkQuery(undefined)).toEqual({});
     });
 });
 
