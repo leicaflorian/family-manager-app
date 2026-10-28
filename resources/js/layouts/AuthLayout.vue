@@ -60,9 +60,9 @@ defineSlots<{
 <template>
     <div class="flex min-h-dvh bg-white text-ink lg:bg-canvas">
         <aside
-            class="hidden w-[42%] max-w-[600px] flex-col justify-between gap-5 bg-brand p-12 text-[#0B2540] lg:flex"
+            class="hidden w-[42%] max-w-[600px] flex-col justify-between gap-5 bg-linear-160 from-action to-action-dark p-12 text-white lg:flex"
         >
-            <div class="flex items-center gap-3 text-white">
+            <div class="flex items-center gap-3">
                 <FmLogo white :size="44" />
                 <span class="text-[22px] font-extrabold">Family Manager</span>
             </div>
@@ -70,7 +70,7 @@ defineSlots<{
                 <p class="m-0 text-[34px] leading-[1.15] font-extrabold">
                     {{ panel.title }}
                 </p>
-                <p v-if="panel.text" class="m-0 text-base leading-normal">
+                <p v-if="panel.text" class="m-0 text-[17px] leading-normal">
                     {{ panel.text }}
                 </p>
             </div>
