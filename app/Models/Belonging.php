@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A purchased belonging: appliance, furniture, electronics (`belongings`).
@@ -37,6 +38,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read int|null $documents_count
  * @property-read Family $family
  * @property-read Home|null $home
+ * @property-read Collection<int, MaintenanceRecord> $maintenanceRecords
+ * @property-read int|null $maintenance_records_count
  * @property-read Organization|null $organization
  *
  * @method static BelongingFactory factory($count = null, $state = [])
@@ -72,6 +75,16 @@ final class Belonging extends FamilyModel
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * The maintenance jobs on the belonging.
+     *
+     * @return HasMany<MaintenanceRecord, $this>
+     */
+    public function maintenanceRecords(): HasMany
+    {
+        return $this->hasMany(MaintenanceRecord::class);
     }
 
     /**

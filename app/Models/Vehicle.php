@@ -40,6 +40,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Family $family
  * @property-read Collection<int, InsurancePolicy> $insurancePolicies
  * @property-read int|null $insurance_policies_count
+ * @property-read Collection<int, MaintenanceRecord> $maintenanceRecords
+ * @property-read int|null $maintenance_records_count
  * @property-read Person|null $person
  *
  * @method static VehicleFactory factory($count = null, $state = [])
@@ -75,6 +77,16 @@ final class Vehicle extends FamilyModel
     public function insurancePolicies(): HasMany
     {
         return $this->hasMany(InsurancePolicy::class);
+    }
+
+    /**
+     * The maintenance jobs on the vehicle.
+     *
+     * @return HasMany<MaintenanceRecord, $this>
+     */
+    public function maintenanceRecords(): HasMany
+    {
+        return $this->hasMany(MaintenanceRecord::class);
     }
 
     /**

@@ -1,4 +1,7 @@
 declare namespace App {
+namespace Cards {
+export type FieldKind = 'text' | 'textarea' | 'number' | 'currency' | 'date' | 'toggle' | 'choice' | 'dropdown' | 'person' | 'organization' | 'card';
+}
 namespace Data {
 export type AccountData = {
 readonly first_name: string,
@@ -166,6 +169,7 @@ readonly expires_on: string,
 };
 }
 namespace Enums {
+export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type EmploymentStatus = 'active' | 'ended';
@@ -183,6 +187,7 @@ export type InsurancePolicyStatus = 'active' | 'expired' | 'cancelled';
 export type InsurancePolicyType = 'car' | 'life' | 'home' | 'health' | 'accident' | 'fund' | 'other';
 export type IntervalUnit = 'week' | 'month' | 'year';
 export type LoanStatus = 'active' | 'paid_off';
+export type MaintenanceTarget = 'home' | 'belonging' | 'vehicle';
 export type MaintenanceType = 'service' | 'inspection' | 'repair' | 'boiler_service' | 'other';
 export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'employer' | 'public_office' | 'school' | 'healthcare' | 'shop' | 'other';
 export type PersonRole = 'parent' | 'child' | 'other';

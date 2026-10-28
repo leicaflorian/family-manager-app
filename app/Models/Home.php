@@ -35,6 +35,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
  * @property-read Family $family
+ * @property-read Collection<int, InsurancePolicy> $insurancePolicies
+ * @property-read int|null $insurance_policies_count
+ * @property-read Collection<int, MaintenanceRecord> $maintenanceRecords
+ * @property-read int|null $maintenance_records_count
  * @property-read Collection<int, Utility> $utilities
  * @property-read int|null $utilities_count
  *
@@ -71,6 +75,26 @@ final class Home extends FamilyModel
     public function belongings(): HasMany
     {
         return $this->hasMany(Belonging::class);
+    }
+
+    /**
+     * The maintenance jobs on the home.
+     *
+     * @return HasMany<MaintenanceRecord, $this>
+     */
+    public function maintenanceRecords(): HasMany
+    {
+        return $this->hasMany(MaintenanceRecord::class);
+    }
+
+    /**
+     * The insurance policies of the home.
+     *
+     * @return HasMany<InsurancePolicy, $this>
+     */
+    public function insurancePolicies(): HasMany
+    {
+        return $this->hasMany(InsurancePolicy::class);
     }
 
     /**

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A person's employment (`employments`).
@@ -33,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
  * @property-read Family $family
+ * @property-read Collection<int, InsurancePolicy> $insurancePolicies
+ * @property-read int|null $insurance_policies_count
  * @property-read Organization|null $organization
  * @property-read Person $person
  *
@@ -69,6 +72,16 @@ final class Employment extends FamilyModel
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * The insurance policies that come with the employment: health, accident, fund.
+     *
+     * @return HasMany<InsurancePolicy, $this>
+     */
+    public function insurancePolicies(): HasMany
+    {
+        return $this->hasMany(InsurancePolicy::class);
     }
 
     /**

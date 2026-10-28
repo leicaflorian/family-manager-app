@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * An account, a card or a deposit (`financial_accounts`). Never full IBANs, card numbers, PINs or passwords.
@@ -35,8 +36,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
  * @property-read Family $family
+ * @property-read Collection<int, Loan> $loans
+ * @property-read int|null $loans_count
  * @property-read Organization|null $organization
  * @property-read Person|null $person
+ * @property-read Collection<int, Subscription> $subscriptions
+ * @property-read int|null $subscriptions_count
  *
  * @method static FinancialAccountFactory factory($count = null, $state = [])
  * @method static Builder<static>|FinancialAccount newModelQuery()
@@ -71,6 +76,26 @@ final class FinancialAccount extends FamilyModel
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /**
+     * The loans paid from the account.
+     *
+     * @return HasMany<Loan, $this>
+     */
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    /**
+     * The subscriptions paid from the account.
+     *
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 
     /**

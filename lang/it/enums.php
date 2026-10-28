@@ -7,6 +7,17 @@ declare(strict_types=1);
  * App\Enums\Concerns\HasLabel: the enum name in snake case, then the value.
  */
 return [
+    'area' => [
+        'home' => 'Casa',
+        'vehicles' => 'Veicoli',
+        'insurance' => 'Assicurazioni',
+        'banks' => 'Banche e finanziamenti',
+        'health' => 'Salute',
+        'school' => 'Scuola e attività',
+        'work' => 'Lavoro',
+        'subscriptions' => 'Abbonamenti',
+        'paperwork' => 'Pratiche',
+    ],
     'belonging_status' => [
         'in_use' => 'In uso',
         'disposed' => 'Dismesso',
@@ -99,6 +110,11 @@ return [
     'loan_status' => [
         'active' => 'Attivo',
         'paid_off' => 'Estinto',
+    ],
+    'maintenance_target' => [
+        'home' => 'Abitazione',
+        'belonging' => 'Bene',
+        'vehicle' => 'Veicolo',
     ],
     'maintenance_type' => [
         'service' => 'Tagliando',
