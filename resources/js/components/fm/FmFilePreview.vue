@@ -1,18 +1,20 @@
 <script setup lang="ts">
 /**
- * The preview of a file: a PDF in the page, an image as it is, and for the
- * other types (HEIC, which browsers do not open) the name with a link.
+ * The preview of a file: the image the server made of it (a PDF, a HEIC
+ * photo), an image as it is, and the placeholder for the files without a
+ * preview or whose image does not load. The image and the placeholder open
+ * the file in another tab.
  */
-import { FileText } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { previewKind } from '@/lib/files';
 import { cn } from '@/lib/utils';
-import FmIcon from './FmIcon.vue';
+import placeholderUrl from '../../../images/document-placeholder.png';
 
 const {
     url,
     mimeType,
     name,
+    previewUrl,
     fill = false,
 } = defineProps<{
     /** The address that opens the file. */
@@ -21,11 +23,34 @@ const {
     mimeType: string;
     /** The original name. */
     name: string;
+    /** The address of the preview image made by the server, `null` when the file has none. */
+    previewUrl: string | null;
     /** Takes the height of the box around it instead of a fixed one. */
     fill?: boolean;
 }>();
 
-const kind = computed(() => previewKind(mimeType));
+/** Whether the image did not load: the placeholder takes its place. */
+const failed = ref(false);
+
+/** Another file has its own image: a failure of the previous one does not count. */
+watch(
+    () => [url, previewUrl],
+    () => {
+        failed.value = false;
+    },
+);
+
+const kind = computed(() => previewKind(mimeType, previewUrl));
+
+/** The classes of the image, the same for the preview and the placeholder. */
+const imageClass = computed(() =>
+    cn('w-full object-contain', fill ? 'max-h-full' : 'max-h-[560px]'),
+);
+
+/** Remembers that the image did not load. */
+function onError(): void {
+    failed.value = true;
+}
 </script>
 
 <template>
@@ -37,29 +62,36 @@ const kind = computed(() => previewKind(mimeType));
             )
         "
     >
-        <iframe
-            v-if="kind === 'pdf'"
-            :src="url"
-            :title="name"
-            :class="cn('w-full border-0', fill ? 'h-full' : 'h-[560px]')"
-        />
+        <a
+            v-if="kind === 'preview' && !failed"
+            :href="url"
+            target="_blank"
+            rel="noopener"
+            class="contents"
+        >
+            <img
+                :src="previewUrl ?? undefined"
+                :alt="name"
+                :class="imageClass"
+                @error="onError"
+            />
+        </a>
         <img
-            v-else-if="kind === 'image'"
+            v-else-if="kind === 'image' && !failed"
             :src="url"
             :alt="name"
-            :class="
-                cn(
-                    'w-full object-contain',
-                    fill ? 'max-h-full' : 'max-h-[560px]',
-                )
-            "
+            :class="imageClass"
+            @error="onError"
         />
-        <div v-else class="flex flex-col items-center gap-3 p-8 text-center">
-            <FmIcon :icon="FileText" :size="48" class="text-ink-soft" />
-            <span class="text-[15px] font-semibold break-all">{{ name }}</span>
-            <a :href="url" target="_blank" rel="noopener" class="font-semibold">
-                {{ $t('Open the file') }}
-            </a>
-        </div>
+        <a
+            v-else
+            :href="url"
+            target="_blank"
+            rel="noopener"
+            :aria-label="$t('Open the file')"
+            class="contents"
+        >
+            <img :src="placeholderUrl" :alt="name" :class="imageClass" />
+        </a>
     </div>
 </template>

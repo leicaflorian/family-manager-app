@@ -29,6 +29,7 @@ const { file, compact = false } = defineProps<{
             :url="file.url"
             :mime-type="file.mime_type"
             :name="file.name"
+            :preview-url="file.preview_url"
             fill
         />
         <span class="text-sm break-all text-ink-soft">{{ file.name }}</span>

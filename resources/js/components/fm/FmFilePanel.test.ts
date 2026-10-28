@@ -8,8 +8,8 @@ describe('FmFilePanel', () => {
         render(FmFilePanel, { props: { file: documentDetail.file } });
 
         expect(
-            screen.getByTitle('Busta paga ottobre 2026.pdf'),
-        ).toHaveAttribute('src', '/files/12');
+            screen.getByRole('img', { name: 'Busta paga ottobre 2026.pdf' }),
+        ).toHaveAttribute('src', '/files/12/preview');
         expect(
             screen.getByText('Busta paga ottobre 2026.pdf'),
         ).toBeInTheDocument();
@@ -21,8 +21,8 @@ describe('FmFilePanel', () => {
         });
 
         expect(container.firstElementChild).toHaveClass('aspect-[210/297]');
-        expect(screen.getByTitle('Busta paga ottobre 2026.pdf')).toHaveClass(
-            'h-full',
-        );
+        expect(
+            screen.getByRole('img', { name: 'Busta paga ottobre 2026.pdf' }),
+        ).toHaveClass('max-h-full');
     });
 });

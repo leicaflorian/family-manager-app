@@ -38,7 +38,7 @@ export const documentDetail: App.Data.DocumentDetailData = {
         size: 318000,
         url: '/files/12',
         download_url: '/files/12/download',
-        preview_url: null,
+        preview_url: '/files/12/preview',
     },
     links: [
         {

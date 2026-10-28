@@ -63,8 +63,8 @@ describe('Edit a document', () => {
         renderPage(EditDocument, { document: documentDetail, options });
 
         expect(
-            screen.getByTitle('Busta paga ottobre 2026.pdf'),
-        ).toHaveAttribute('src', '/files/12');
+            screen.getByRole('img', { name: 'Busta paga ottobre 2026.pdf' }),
+        ).toHaveAttribute('src', '/files/12/preview');
         expect(
             screen.queryByRole('link', { name: 'Close' }),
         ).not.toBeInTheDocument();
