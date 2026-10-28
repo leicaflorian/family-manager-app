@@ -1,6 +1,8 @@
 import { screen } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { healthCard, personDetail } from '@/test/fixtures';
+import { layOut, watchLayout } from '@/test/layout';
 import { renderPage } from '@/test/page';
 import Person from './Person.vue';
 
@@ -83,6 +85,27 @@ describe('A person', () => {
             screen.queryByRole('button', { name: 'Delete' }),
         ).not.toBeInTheDocument();
         expect(screen.getByText('Family member')).toBeInTheDocument();
+    });
+
+    it('puts Edit and Delete in the menu when there is no room for them', async () => {
+        watchLayout();
+        renderGiulia();
+
+        await layOut(100);
+
+        expect(
+            screen.queryByRole('link', { name: 'Edit' }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+        expect(
+            await screen.findByRole('menuitem', { name: 'Edit' }),
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+        expect(
+            await screen.findByRole('heading', { name: 'Delete Giulia?' }),
+        ).toBeInTheDocument();
     });
 
     it('shows her photo beside the name', () => {

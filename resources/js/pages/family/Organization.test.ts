@@ -1,6 +1,8 @@
 import { screen } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { healthCard, organizationDetail } from '@/test/fixtures';
+import { layOut, watchLayout } from '@/test/layout';
 import { renderPage } from '@/test/page';
 import Organization from './Organization.vue';
 
@@ -72,6 +74,31 @@ describe('An organization', () => {
         expect(
             screen.queryByRole('button', { name: 'Delete' }),
         ).not.toBeInTheDocument();
+    });
+
+    it('puts Edit and Delete in the menu when there is no room for them', async () => {
+        watchLayout();
+        renderPage(Organization, {
+            organization: organizationDetail,
+            links,
+            documents: [bill],
+        });
+
+        await layOut(100);
+
+        expect(
+            screen.queryByRole('link', { name: 'Edit' }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+        expect(
+            await screen.findByRole('menuitem', { name: 'Edit' }),
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+        expect(
+            await screen.findByRole('heading', { name: 'Delete Edison?' }),
+        ).toBeInTheDocument();
     });
 
     it('shows its logo beside the name', () => {

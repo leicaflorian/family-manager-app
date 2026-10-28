@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/vue3';
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vite-plus/test';
@@ -41,6 +42,22 @@ describe('FmMenuItem', () => {
 
         expect(entry).toHaveAttribute('href', '/documents/5/edit');
         expect(entry).not.toHaveAttribute('target');
+    });
+
+    it('to download, it is a plain link that downloads the file', async () => {
+        const entry = await openWith({
+            href: '/files/12/download',
+            download: true,
+        });
+
+        expect(entry).toHaveAttribute('href', '/files/12/download');
+        expect(entry).toHaveAttribute('download');
+
+        // An Inertia visit would load the file as a page, not download it
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        entry.addEventListener('click', (event) => event.preventDefault());
+        await userEvent.click(entry);
+        expect(visit).not.toHaveBeenCalled();
     });
 
     it('external, it opens the address in a new tab', async () => {

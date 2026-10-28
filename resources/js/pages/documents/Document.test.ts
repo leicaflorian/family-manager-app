@@ -85,8 +85,7 @@ describe('A document', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('the ⋯ menu opens the file in a new tab and deletes after asking', async () => {
-        const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+    it('the ⋯ menu opens the file in a new tab', async () => {
         renderPage(Document, { document: documentDetail });
 
         await userEvent.click(
@@ -96,9 +95,16 @@ describe('A document', () => {
         expect(
             within(menu).getByRole('menuitem', { name: 'Open in a new tab' }),
         ).toHaveAttribute('target', '_blank');
-        await userEvent.click(
-            within(menu).getByRole('menuitem', { name: 'Delete' }),
-        );
+        expect(
+            within(menu).queryByRole('menuitem', { name: 'Delete' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('Delete beside Edit deletes after asking, as the page of a person', async () => {
+        const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+        renderPage(Document, { document: documentDetail });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
         expect(destroy).not.toHaveBeenCalled();
         await fireEvent.click(
             await screen.findByRole('button', { name: 'Delete the document' }),
@@ -118,14 +124,8 @@ describe('A document', () => {
         expect(
             screen.queryByRole('link', { name: 'Add a link' }),
         ).not.toBeInTheDocument();
-        await userEvent.click(
-            screen.getByRole('button', { name: 'More actions' }),
-        );
         expect(
-            await screen.findByRole('menuitem', { name: 'Open in a new tab' }),
-        ).toBeInTheDocument();
-        expect(
-            screen.queryByRole('menuitem', { name: 'Delete' }),
+            screen.queryByRole('button', { name: 'Delete' }),
         ).not.toBeInTheDocument();
     });
 });

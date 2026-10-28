@@ -7,6 +7,7 @@
 import { Head } from '@inertiajs/vue3';
 import { Building, Plus, Search } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFamilyViews from '@/components/fm/FmFamilyViews.vue';
@@ -53,9 +54,15 @@ const shown = computed(() =>
     <div class="flex flex-col gap-4">
         <FmFamilyViews :family="family" current="organizations">
             <template v-if="canEdit" #actions>
-                <FmButton :icon="Plus" :href="create().url">{{
-                    $t('New organization')
-                }}</FmButton>
+                <FmActions
+                    :actions="[
+                        {
+                            label: $t('New organization'),
+                            icon: Plus,
+                            href: create().url,
+                        },
+                    ]"
+                />
             </template>
         </FmFamilyViews>
 

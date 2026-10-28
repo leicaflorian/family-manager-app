@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * *A document*: the way back to *Documents*, the title with *Download*, *Edit*
- * and the ⋯ menu on its right, and the document.
+ * *A document*: the way back to *Documents*, the title with *Download*, *Edit*,
+ * *Delete* and the ⋯ menu on its right, and the document.
  */
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';

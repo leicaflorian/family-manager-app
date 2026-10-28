@@ -1,6 +1,8 @@
 import { screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { familySummary, peopleList } from '@/test/fixtures';
+import { layOut, watchLayout } from '@/test/layout';
 import { renderPage } from '@/test/page';
 import People from './People.vue';
 
@@ -64,6 +66,30 @@ describe('People', () => {
         const card = screen.getAllByRole('link', { name: /Giulia Bianchi/ })[1];
         expect(within(card).getByText('4')).toBeInTheDocument();
         expect(within(card).getByText('2')).toBeInTheDocument();
+    });
+
+    it('puts the actions in the menu when there is no room for them', async () => {
+        watchLayout();
+        renderPage(People, {
+            people: peopleList,
+            family: familySummary,
+            canEdit: true,
+        });
+
+        await layOut(100);
+
+        expect(
+            screen.queryByRole('link', { name: 'New person' }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+        expect(
+            await screen.findByRole('menuitem', { name: 'New person' }),
+        ).toHaveAttribute('href', '/family/people/create');
+        expect(
+            screen.getByRole('menuitem', { name: 'Invite a family member' }),
+        ).toHaveAttribute('href', '/family/invite');
     });
 
     it('shows the photo of whoever has one, the initials for the others', () => {

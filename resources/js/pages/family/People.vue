@@ -7,7 +7,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Plus, UserPlus } from '@lucide/vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
-import FmButton from '@/components/fm/FmButton.vue';
+import FmActions from '@/components/fm/FmActions.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmFamilyViews from '@/components/fm/FmFamilyViews.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -33,15 +33,21 @@ const { people, family, canEdit } = defineProps<{
     <div class="flex flex-col gap-4">
         <FmFamilyViews :family="family" current="people">
             <template v-if="canEdit" #actions>
-                <FmButton variant="soft" :icon="Plus" :href="create().url">{{
-                    $t('New person')
-                }}</FmButton>
-                <FmButton
-                    :icon="UserPlus"
-                    :href="invite().url"
-                    class="hidden lg:inline-flex"
-                    >{{ $t('Invite a family member') }}</FmButton
-                >
+                <FmActions
+                    :actions="[
+                        {
+                            label: $t('New person'),
+                            icon: Plus,
+                            variant: 'soft',
+                            href: create().url,
+                        },
+                        {
+                            label: $t('Invite a family member'),
+                            icon: UserPlus,
+                            href: invite().url,
+                        },
+                    ]"
+                />
             </template>
         </FmFamilyViews>
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * An entry of `FmMenu`: an action, a page of the app (`href`) or an address
- * opened in a new tab (`href` and `external`).
+ * An entry of `FmMenu`: an action, a page of the app (`href`), an address
+ * opened in a new tab (`href` and `external`) or a file to download (`href`
+ * and `download`).
  */
 import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
@@ -13,6 +14,7 @@ const {
     icon,
     href,
     external = false,
+    download = false,
     danger = false,
 } = defineProps<{
     /** The icon before the text. */
@@ -21,6 +23,8 @@ const {
     href?: string;
     /** With `href`: a plain link that opens the address in a new tab. */
     external?: boolean;
+    /** With `href`: a plain link that downloads the file. */
+    download?: boolean;
     /** Red, for the entry that deletes. */
     danger?: boolean;
 }>();
@@ -44,10 +48,11 @@ const classes = cn(
 <template>
     <DropdownMenuItem as-child @select="$emit('select')">
         <a
-            v-if="href && external"
+            v-if="href && (external || download)"
             :href="href"
-            target="_blank"
-            rel="noopener"
+            :target="external ? '_blank' : undefined"
+            :rel="external ? 'noopener' : undefined"
+            :download="download ? '' : undefined"
             :class="classes"
         >
             <FmIcon v-if="icon" :icon="icon" :size="20" />

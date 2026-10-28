@@ -12,17 +12,19 @@ import {
     Pencil,
     Phone,
     StickyNote,
+    Trash2,
 } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
-import FmButton from '@/components/fm/FmButton.vue';
+import FmActions from '@/components/fm/FmActions.vue';
 import FmCard from '@/components/fm/FmCard.vue';
-import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmOrganizationMark from '@/components/fm/FmOrganizationMark.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
 import { websiteHref } from '@/lib/family';
 import { show as showDocument } from '@/routes/documents';
+import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/organizations';
 
 const { organization, links, documents } = defineProps<{
@@ -54,6 +56,39 @@ const contacts = computed(() =>
         },
     ].filter((contact) => !!contact),
 );
+
+/** *Edit* and *Delete*, for an `admin`. */
+const actions = computed((): Action[] => [
+    ...(organization.can_edit
+        ? [
+              {
+                  label: trans('Edit'),
+                  icon: Pencil,
+                  variant: 'soft',
+                  href: edit.url(organization.id),
+              } satisfies Action,
+          ]
+        : []),
+    ...(organization.can_delete
+        ? [
+              {
+                  label: trans('Delete'),
+                  icon: Trash2,
+                  variant: 'danger',
+                  confirm: {
+                      url: destroy.url(organization.id),
+                      question: trans('Delete :name?', {
+                          name: organization.name,
+                      }),
+                      text: trans(
+                          'Its documents and records stay, without the organization.',
+                      ),
+                      confirmLabel: trans('Delete the organization'),
+                  },
+              } satisfies Action,
+          ]
+        : []),
+]);
 </script>
 
 <template>
@@ -68,8 +103,9 @@ const contacts = computed(() =>
             {{ $t('Organizations') }}
         </Link>
 
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
+        <!-- As in FmTitle: the actions take the room the name leaves -->
+        <div class="flex items-center justify-between gap-4">
+            <div class="flex max-w-[60%] min-w-0 shrink-0 items-center gap-4">
                 <FmOrganizationMark
                     :types="organization.types"
                     :logo="organization.logo"
@@ -78,7 +114,9 @@ const contacts = computed(() =>
                     class="size-14 rounded-2xl bg-white lg:size-16"
                 />
                 <div class="flex flex-col gap-1">
-                    <h1 class="m-0 text-[26px] font-extrabold lg:text-[32px]">
+                    <h1
+                        class="m-0 text-[26px] leading-tight font-extrabold lg:text-[32px]"
+                    >
                         {{ organization.name }}
                     </h1>
                     <span
@@ -88,26 +126,7 @@ const contacts = computed(() =>
                     >
                 </div>
             </div>
-            <div class="flex flex-wrap gap-2.5">
-                <FmButton
-                    v-if="organization.can_edit"
-                    variant="soft"
-                    :icon="Pencil"
-                    :href="edit.url(organization.id)"
-                    >{{ $t('Edit') }}</FmButton
-                >
-                <FmDeleteButton
-                    v-if="organization.can_delete"
-                    :url="destroy.url(organization.id)"
-                    :question="$t('Delete :name?', { name: organization.name })"
-                    :text="
-                        $t(
-                            'Its documents and records stay, without the organization.',
-                        )
-                    "
-                    :confirm-label="$t('Delete the organization')"
-                />
-            </div>
+            <FmActions :actions="actions" />
         </div>
 
         <div

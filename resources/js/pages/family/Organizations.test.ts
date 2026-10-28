@@ -1,10 +1,12 @@
 import { fireEvent, screen } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import {
     familySummary,
     organizationsList,
     organizationTypes,
 } from '@/test/fixtures';
+import { layOut, watchLayout } from '@/test/layout';
 import { renderPage, settle } from '@/test/page';
 import Organizations from './Organizations.vue';
 
@@ -93,6 +95,23 @@ describe('Organizations', () => {
         expect(
             screen.queryByRole('link', { name: /New organization/ }),
         ).not.toBeInTheDocument();
+    });
+
+    it('puts New organization in the menu when there is no room for it', async () => {
+        watchLayout();
+        renderList();
+
+        await layOut(40);
+
+        expect(
+            screen.queryByRole('link', { name: 'New organization' }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+        expect(
+            await screen.findByRole('menuitem', { name: 'New organization' }),
+        ).toHaveAttribute('href', '/family/organizations/create');
     });
 
     it('shows the logo of whoever has one, the icon of the type for the others', () => {

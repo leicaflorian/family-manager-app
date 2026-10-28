@@ -10,6 +10,7 @@ import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
+import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCategoryTree from '@/components/fm/FmCategoryTree.vue';
@@ -163,9 +164,15 @@ function deleteCategory(): void {
             "
         >
             <template v-if="canEdit" #actions>
-                <FmButton :icon="Plus" @click="openSheet(null)">{{
-                    $t('New category')
-                }}</FmButton>
+                <FmActions
+                    :actions="[
+                        {
+                            label: $t('New category'),
+                            icon: Plus,
+                            onSelect: () => openSheet(null),
+                        },
+                    ]"
+                />
             </template>
         </FmTitle>
 

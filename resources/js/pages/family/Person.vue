@@ -6,12 +6,12 @@
  * without an account.
  */
 import { Head, Link } from '@inertiajs/vue3';
-import { ChevronLeft, Pencil, UserX } from '@lucide/vue';
+import { ChevronLeft, Pencil, Trash2, UserX } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
-import FmButton from '@/components/fm/FmButton.vue';
+import FmActions from '@/components/fm/FmActions.vue';
 import FmCard from '@/components/fm/FmCard.vue';
-import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
@@ -19,6 +19,7 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { accountText, personSubtitle } from '@/lib/family';
 import { show as showDocument } from '@/routes/documents';
+import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/people';
 
 const { person, expiring, personal, documents, links } = defineProps<{
@@ -37,6 +38,39 @@ const { person, expiring, personal, documents, links } = defineProps<{
 const { date } = useFormat();
 
 const name = computed(() => `${person.first_name} ${person.last_name}`);
+
+/** *Edit* and *Delete*, for an `admin` and a person without an account. */
+const actions = computed((): Action[] => [
+    ...(person.can_edit
+        ? [
+              {
+                  label: trans('Edit'),
+                  icon: Pencil,
+                  variant: 'soft',
+                  href: edit.url(person.id),
+              } satisfies Action,
+          ]
+        : []),
+    ...(person.can_delete
+        ? [
+              {
+                  label: trans('Delete'),
+                  icon: Trash2,
+                  variant: 'danger',
+                  confirm: {
+                      url: destroy.url(person.id),
+                      question: trans('Delete :name?', {
+                          name: person.first_name,
+                      }),
+                      text: trans(
+                          'Their employments, enrollments and health events go too. The documents stay, without the person.',
+                      ),
+                      confirmLabel: trans('Delete the person'),
+                  },
+              } satisfies Action,
+          ]
+        : []),
+]);
 </script>
 
 <template>
@@ -51,8 +85,9 @@ const name = computed(() => `${person.first_name} ${person.last_name}`);
             {{ $t('People') }}
         </Link>
 
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
+        <!-- As in FmTitle: the actions take the room the name leaves -->
+        <div class="flex items-center justify-between gap-4">
+            <div class="flex max-w-[60%] min-w-0 shrink-0 items-center gap-4">
                 <FmAvatar
                     :initials="person.initials"
                     :photo="person.photo"
@@ -60,7 +95,9 @@ const name = computed(() => `${person.first_name} ${person.last_name}`);
                     :size="64"
                 />
                 <div class="flex flex-col gap-1">
-                    <h1 class="m-0 text-[26px] font-extrabold lg:text-[32px]">
+                    <h1
+                        class="m-0 text-[26px] leading-tight font-extrabold lg:text-[32px]"
+                    >
                         {{ name }}
                     </h1>
                     <span class="text-[15px] text-ink-soft">{{
@@ -68,26 +105,7 @@ const name = computed(() => `${person.first_name} ${person.last_name}`);
                     }}</span>
                 </div>
             </div>
-            <div class="flex flex-wrap gap-2.5">
-                <FmButton
-                    v-if="person.can_edit"
-                    variant="soft"
-                    :icon="Pencil"
-                    :href="edit.url(person.id)"
-                    >{{ $t('Edit') }}</FmButton
-                >
-                <FmDeleteButton
-                    v-if="person.can_delete"
-                    :url="destroy.url(person.id)"
-                    :question="$t('Delete :name?', { name: person.first_name })"
-                    :text="
-                        $t(
-                            'Their employments, enrollments and health events go too. The documents stay, without the person.',
-                        )
-                    "
-                    :confirm-label="$t('Delete the person')"
-                />
-            </div>
+            <FmActions :actions="actions" />
         </div>
 
         <div

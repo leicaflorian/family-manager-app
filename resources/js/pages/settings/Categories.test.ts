@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/vue3';
+import userEvent from '@testing-library/user-event';
 import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
+import { layOut, watchLayout } from '@/test/layout';
 import { openMenu, pressSave, renderPage } from '@/test/page';
 import Categories from './Categories.vue';
 
@@ -137,5 +139,25 @@ describe('Document categories', () => {
         pressSave();
 
         expect(put).toHaveBeenCalled();
+    });
+
+    it('puts New category in the menu when there is no room for it, and it still opens the panel', async () => {
+        watchLayout();
+        renderPage(Categories, { categories, canEdit: true });
+
+        await layOut(40);
+
+        expect(
+            screen.queryByRole('button', { name: 'New category' }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            await screen.findByRole('menuitem', { name: 'New category' }),
+        );
+        expect(await screen.findByRole('dialog')).toHaveTextContent(
+            'New category',
+        );
     });
 });
