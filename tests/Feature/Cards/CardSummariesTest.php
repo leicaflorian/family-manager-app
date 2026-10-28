@@ -6,10 +6,16 @@ use App\Data\AreaData;
 use App\Data\CardData;
 use App\Enums\Area;
 use App\Enums\BelongingStatus;
+use App\Enums\FilingStatus;
 use App\Enums\InsurancePolicyStatus;
+use App\Enums\VehicleStatus;
 use App\Models\Belonging;
+use App\Models\Filing;
 use App\Models\InsurancePolicy;
+use App\Models\Subscription;
+use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
@@ -71,16 +77,16 @@ test('it builds the row of a card', function (): void {
 
 test('it marks overdue an active card with an expiring date in the past', function (): void {
     insideBianchi(function (): void {
-        $tv = Belonging::query()->where('name', 'TV Samsung')->sole();
-        $tv->update(['warranty_expiry_date' => '2026-10-25']);
+        $panda = Vehicle::query()->sole();
+        $panda->update(['inspection_due_date' => '2026-10-25']);
 
-        expect(summaries()->row($tv)->overdue)->toBeTrue()
-            ->and(summaries()->area(Area::Home)->overdue)->toBe(1);
+        expect(summaries()->row($panda)->overdue)->toBeTrue()
+            ->and(summaries()->area(Area::Vehicles)->overdue)->toBe(1);
 
-        $tv->update(['status' => BelongingStatus::Disposed]);
+        $panda->update(['status' => VehicleStatus::Sold]);
 
-        expect(summaries()->row($tv)->overdue)->toBeFalse()
-            ->and(summaries()->area(Area::Home)->overdue)->toBe(0);
+        expect(summaries()->row($panda)->overdue)->toBeFalse()
+            ->and(summaries()->area(Area::Vehicles)->overdue)->toBe(0);
     });
 });
 
@@ -152,5 +158,44 @@ test('it reads the rows of an area with one query per type', function (): void {
 
         // 13 types, plus the lazy-load free relations: far below one query per card.
         expect($queries)->toBeLessThanOrEqual(13 * 3);
+    });
+});
+
+test('a past date counts as overdue only while there is something left to do', function (): void {
+    insideBianchi(function (): void {
+        $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
+        $filing->update(['due_date' => '2026-09-01', 'status' => FilingStatus::Draft]);
+        expect(summaries()->row($filing->fresh() ?? $filing)->overdue)->toBeTrue();
+
+        foreach ([FilingStatus::Submitted, FilingStatus::Approved] as $status) {
+            $filing->update(['status' => $status]);
+            expect(summaries()->row($filing->fresh() ?? $filing)->overdue)->toBeFalse();
+        }
+
+        $netflix = Subscription::query()->where('name', 'Netflix')->sole();
+        $netflix->update(['trial_end_date' => '2026-10-01', 'renewal_date' => null]);
+        expect(summaries()->row($netflix->fresh() ?? $netflix)->overdue)->toBeFalse();
+        $netflix->update(['renewal_date' => '2026-10-01']);
+        expect(summaries()->row($netflix->fresh() ?? $netflix)->overdue)->toBeTrue();
+
+        $tv = Belonging::query()->where('name', 'TV Samsung')->sole();
+        $tv->update(['warranty_expiry_date' => '2026-10-01', 'status' => BelongingStatus::InUse]);
+        expect(summaries()->row($tv->fresh() ?? $tv)->overdue)->toBeFalse();
+
+        $panda = Vehicle::query()->sole();
+        $panda->update(['inspection_due_date' => '2026-10-01']);
+        expect(summaries()->row($panda)->overdue)->toBeTrue()
+            ->and(collect(summaries()->areas())->firstWhere('area', 'vehicles')?->overdue)->toBe(1);
+    });
+});
+
+test('the tile of an ended warranty or trial stays in the card even when it is not overdue', function (): void {
+    insideBianchi(function (): void {
+        $tv = Belonging::query()->where('name', 'TV Samsung')->sole();
+        $tv->update(['warranty_expiry_date' => '2026-10-01']);
+        $user = User::query()->where('email', 'marco.bianchi@example.com')->sole();
+        $tile = collect(resolve(CardDetails::class)->of($tv, $user)->dates)->firstWhere('label', 'End of warranty');
+
+        expect($tile?->expires)->toBeTrue()->and($tile?->date)->toBe('2026-10-01');
     });
 });

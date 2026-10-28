@@ -68,7 +68,8 @@ final class SubscriptionCard extends CardType
     {
         return [
             new CardDate('renewal_date', __('Renewal'), expires: true),
-            new CardDate('trial_end_date', __('End of the trial'), expires: true),
+            // There is no «in trial» status: once the trial end has passed the trial is over, so it is never overdue.
+            new CardDate('trial_end_date', __('End of the trial'), expires: true, overdueWhile: static fn (): bool => false),
         ];
     }
 

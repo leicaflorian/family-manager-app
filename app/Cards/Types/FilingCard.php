@@ -63,7 +63,8 @@ final class FilingCard extends CardType
     public function dates(): array
     {
         return [
-            new CardDate('due_date', __('Due date'), expires: true),
+            // A filing already submitted or approved has nothing left to do, whatever its due date.
+            new CardDate('due_date', __('Due date'), expires: true, overdueWhile: fn (Model $card): bool => ! in_array($this->card($card, Filing::class)->status, [FilingStatus::Submitted, FilingStatus::Approved], true)),
             new CardDate('submission_date', __('Submission date'), expires: false),
         ];
     }

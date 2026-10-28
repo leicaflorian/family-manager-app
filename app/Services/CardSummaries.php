@@ -146,13 +146,13 @@ final class CardSummaries
     }
 
     /**
-     * Whether one of the expiring dates of the card is before today.
+     * Whether one of the deadlines of the card that still count is before today.
      */
     private function hasPassedDeadline(CardType $type, Model $card, CarbonImmutable $today): bool
     {
         foreach ($type->dates() as $date) {
             $value = $this->dateOf($card, $date->column);
-            if ($date->expires && $value instanceof CarbonImmutable && $value < $today) {
+            if ($date->countsAsOverdue($card) && $value instanceof CarbonImmutable && $value < $today) {
                 return true;
             }
         }

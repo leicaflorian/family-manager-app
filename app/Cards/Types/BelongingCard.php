@@ -63,7 +63,8 @@ final class BelongingCard extends CardType
     public function dates(): array
     {
         return [
-            new CardDate('warranty_expiry_date', __('End of warranty'), expires: true),
+            // An ended warranty is shown in red but there is nothing to do about it.
+            new CardDate('warranty_expiry_date', __('End of warranty'), expires: true, overdueWhile: static fn (): bool => false),
             new CardDate('purchase_date', __('Purchase date'), expires: false),
         ];
     }
