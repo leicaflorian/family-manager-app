@@ -46,7 +46,7 @@ const { active, items, family, user } = defineProps<{
 
         <Link
             :href="items.upload"
-            class="mb-3.5 flex h-12 items-center justify-center gap-2 rounded-[14px] bg-action text-base font-bold text-white no-underline hover:bg-action-dark"
+            class="mb-3.5 flex h-11.5 items-center justify-center gap-2 rounded-[10px] bg-action text-base font-normal text-white no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
             {{ $t('Upload') }}
@@ -101,7 +101,7 @@ const { active, items, family, user } = defineProps<{
                     <DropdownMenuContent
                         side="top"
                         :side-offset="8"
-                        class="z-50 flex w-[232px] flex-col gap-0.5 rounded-[14px] border border-[#E3E8EF] bg-white p-1.5 text-ink shadow-[0_12px_32px_rgba(24,33,47,0.16)]"
+                        class="z-50 flex w-[232px] flex-col gap-0.5 rounded-[14px] border border-[#E3E8EF] bg-white p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-1 motion-reduce:animate-none"
                     >
                         <DropdownMenuItem as-child>
                             <Link

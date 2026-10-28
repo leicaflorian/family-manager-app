@@ -33,7 +33,11 @@ async function copy(): Promise<void> {
     <Head :title="$t('Invitation sent')" />
 
     <div class="flex max-w-[560px] flex-col gap-5">
-        <FmTitle :title="$t('Invitation sent')" />
+        <FmTitle
+            :title="$t('Invitation sent')"
+            :back="family().url"
+            :back-label="$t('Family')"
+        />
         <FmNotice tone="ok">
             {{
                 $t(

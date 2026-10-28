@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
+import { renderPage } from '@/test/page';
 import FmTitle from './FmTitle.vue';
 
 describe('FmTitle', () => {
@@ -16,5 +17,29 @@ describe('FmTitle', () => {
         expect(
             screen.getByRole('button', { name: 'Upload' }),
         ).toBeInTheDocument();
+    });
+
+    it('has the link back to the page it comes from, above the title', () => {
+        renderPage(FmTitle, {
+            title: 'Edit the document',
+            back: '/documents/5',
+            backLabel: 'Busta paga di ottobre',
+        });
+
+        const back = screen.getByRole('link', {
+            name: 'Busta paga di ottobre',
+        });
+        expect(back).toHaveAttribute('href', '/documents/5');
+        expect(
+            back.compareDocumentPosition(
+                screen.getByRole('heading', { level: 1 }),
+            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
+    it('without a page to go back to has no link', () => {
+        renderPage(FmTitle, { title: 'Documents' });
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 });
