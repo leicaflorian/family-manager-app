@@ -14,7 +14,7 @@ import FmFilePanel from '@/components/fm/FmFilePanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import type { DocumentFormOptions } from '@/lib/documents';
 import { documentValues } from '@/lib/documents';
-import { destroy, show, update } from '@/routes/documents';
+import { destroy, file, show, update } from '@/routes/documents';
 
 const { document, options } = defineProps<{
     /** The document as it is. */
@@ -39,7 +39,10 @@ const confirmingDelete = ref(false);
         <div
             class="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start"
         >
-            <FmFilePanel :file="document.file" />
+            <FmFilePanel
+                :file="document.file"
+                :change-url="file.url(document.id)"
+            />
             <section class="rounded-3xl bg-white p-5 lg:p-7">
                 <FmDocumentForm
                     :action="update(document.id)"

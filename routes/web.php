@@ -55,6 +55,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
         Route::resource('documents', DocumentController::class)->except('create');
+        Route::post('documents/{document}/file', [DocumentController::class, 'file'])->name('documents.file');
 
         Route::redirect('family', '/family/people')->name('family');
         Route::resource('family/people', PersonController::class)->parameters(['people' => 'person'])->names('people');

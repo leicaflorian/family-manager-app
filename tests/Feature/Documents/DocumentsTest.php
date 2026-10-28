@@ -101,6 +101,28 @@ test('the change sets category and links', function (): void {
         ->and($document->homes()->pluck('homes.id')->all())->toBe([$this->home->id]);
 });
 
+test('the file is changed: the new one takes the place of the previous one, which goes', function (): void {
+    $previous = $this->document->file;
+
+    $this->post(route('documents.file', $this->document), ['file' => UploadedFile::fake()->create('Payslip of October.pdf', 50, 'application/pdf')])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('documents.edit', $this->document));
+
+    $file = $this->document->fresh()?->file;
+    expect($file?->original_name)->toBe('Payslip of October.pdf')
+        ->and($file?->to_sort)->toBeFalse()
+        ->and(DB::table('files')->where('id', $previous->id)->count())->toBe(0);
+    Storage::disk('local')->assertMissing($previous->path);
+    Storage::disk('local')->assertExists((string) $file?->path);
+});
+
+test('the new file is a PDF, JPG, PNG or HEIC, and the previous one stays otherwise', function (): void {
+    $this->post(route('documents.file', $this->document), ['file' => UploadedFile::fake()->create('notes.txt', 1, 'text/plain')])
+        ->assertSessionHasErrors(['file' => 'Only PDF, JPG, PNG and HEIC files can be uploaded.']);
+
+    expect($this->document->fresh()?->file_id)->toBe($this->document->file_id);
+});
+
 test('the deletion by an admin removes the document, its links and its file', function (): void {
     $path = $this->document->file->path;
 
@@ -130,6 +152,7 @@ test('a document of the Rossis answers 404 to the Bianchis', function (): void {
     $this->get(route('documents.edit', $theirs))->assertNotFound();
     $this->put(route('documents.update', $theirs), ['title' => 'Mine', 'status' => 'active'])->assertNotFound();
     $this->delete(route('documents.destroy', $theirs))->assertNotFound();
+    $this->post(route('documents.file', $theirs), ['file' => UploadedFile::fake()->create('mine.pdf', 10, 'application/pdf')])->assertNotFound();
 });
 
 test('without documents the list says so', function (): void {

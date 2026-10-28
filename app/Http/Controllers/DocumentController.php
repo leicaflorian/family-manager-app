@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Documents\ChangeFile;
 use App\Data\DocumentData;
 use App\Data\DocumentDetailData;
+use App\Http\Requests\Documents\ChangeFileRequest;
 use App\Http\Requests\Documents\DocumentIndexRequest;
 use App\Http\Requests\Documents\SaveDocumentRequest;
 use App\Models\Document;
@@ -18,6 +20,7 @@ use App\Services\DocumentLinks;
 use App\Services\FileStore;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -25,7 +28,8 @@ use Inertia\Response;
 
 /**
  * The documents of the family: the list with its filters, a document, its
- * change and its deletion, and filing a file of *Upload*.
+ * change, the change of its file and its deletion, and filing a file of
+ * *Upload*.
  */
 final class DocumentController extends Controller
 {
@@ -106,6 +110,20 @@ final class DocumentController extends Controller
         });
 
         return to_route('documents.show', $document);
+    }
+
+    /**
+     * Puts the new file chosen in *Edit* and stays there.
+     */
+    public function file(ChangeFileRequest $request, Document $document, ChangeFile $changeFile): RedirectResponse
+    {
+        $file = $request->file('file');
+
+        if ($file instanceof UploadedFile) {
+            $changeFile->handle($document, $file);
+        }
+
+        return to_route('documents.edit', $document);
     }
 
     /**

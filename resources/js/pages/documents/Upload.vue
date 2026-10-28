@@ -16,13 +16,10 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import type { DocumentFormOptions } from '@/lib/documents';
 import { newDocument } from '@/lib/documents';
 import { listErrors } from '@/lib/errors';
+import { DOCUMENT_FILE_TYPES } from '@/lib/files';
 import { dashboard } from '@/routes';
 import { store as storeDocument } from '@/routes/documents';
 import { destroy, store } from '@/routes/upload';
-
-/** The types *Upload* takes, by extension and by type, for the file picker. */
-const ACCEPT =
-    '.pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic';
 
 const props = defineProps<
     {
@@ -206,7 +203,7 @@ function discard(file: App.Data.PendingFileData): void {
                 id="upload-files"
                 type="file"
                 multiple
-                :accept="ACCEPT"
+                :accept="DOCUMENT_FILE_TYPES"
                 :aria-label="$t('Choose the files')"
                 class="sr-only"
                 @change="chosen"

@@ -5,6 +5,10 @@
 /** A PDF in the page, an image as it is, an icon for the rest. */
 export type PreviewKind = 'pdf' | 'image' | 'other';
 
+/** The types a document takes, by extension and by type, for the file picker. */
+export const DOCUMENT_FILE_TYPES =
+    '.pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic';
+
 /** The image types every browser opens: HEIC is not among them. */
 const IMAGES = ['image/jpeg', 'image/png'];
 

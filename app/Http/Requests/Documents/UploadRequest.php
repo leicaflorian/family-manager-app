@@ -14,6 +14,9 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 final class UploadRequest extends FormRequest
 {
+    /** The rule of one file of a document, here and when its file is changed. */
+    public const array FILE = ['required', 'file', 'mimes:pdf,jpg,jpeg,png,heic', 'max:25600'];
+
     /**
      * Whoever adds documents uploads their files.
      */
@@ -31,7 +34,7 @@ final class UploadRequest extends FormRequest
     {
         return [
             'files' => ['required', 'array', 'min:1', 'max:20'],
-            'files.*' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,heic', 'max:25600'],
+            'files.*' => self::FILE,
         ];
     }
 
