@@ -17,7 +17,8 @@ export default defineConfig({
                 }),
             ],
         }),
-        inertia(),
+        // No server-side rendering: the app is all behind the login (config/inertia.php)
+        inertia({ ssr: false }),
         tailwindcss(),
         vue({
             template: {
