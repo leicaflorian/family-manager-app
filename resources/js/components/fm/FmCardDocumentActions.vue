@@ -2,7 +2,8 @@
 /**
  * The buttons beside a document on the page of a card: *Open in a new tab*,
  * always in sight, and the ⋮ menu with *Edit* (the page of the document, as
- * its row), *Unlink* and *Delete* (for an `admin`), each after asking.
+ * its row), *Unlink* and *Delete* (for an `admin`), each after asking. The
+ * page keeps its state, so in the form of the card what is written stays.
  */
 import { router } from '@inertiajs/vue3';
 import {
@@ -40,6 +41,7 @@ const confirmingDelete = ref(false);
 function unlink(): void {
     router.delete(unlinkDocument.url({ ...card, document: document.id }), {
         preserveScroll: true,
+        preserveState: true,
         onFinish: () => (confirmingUnlink.value = false),
     });
 }
@@ -89,6 +91,7 @@ function unlink(): void {
             :question="$t('Delete this document?')"
             :text="$t('The file goes too, and it cannot be recovered.')"
             :confirm-label="$t('Delete the document')"
+            preserve-state
         />
     </div>
 </template>

@@ -11,6 +11,7 @@ use App\Cards\CardTypes;
 use App\Data\DocumentData;
 use App\Enums\Area;
 use App\Http\Requests\Cards\SaveCardRequest;
+use App\Models\Document;
 use App\Models\User;
 use App\Queries\DocumentRows;
 use App\Services\CardDetails;
@@ -89,9 +90,10 @@ final class CardController extends Controller
     }
 
     /**
-     * *Edit card*: the form with the data of the card and its documents.
+     * *Edit card*: the form with the data of the card, its documents and
+     * whether they can be deleted.
      */
-    public function edit(string $type, string $id): Response
+    public function edit(string $type, string $id, #[CurrentUser] User $user): Response
     {
         $description = CardTypes::findOrFail($type);
         $card = $description->findOrFail($id);
@@ -103,6 +105,7 @@ final class CardController extends Controller
             ...$this->details->form($description, $card, []),
             'card' => $row,
             'documents' => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
+            'canDeleteDocuments' => $user->can('deleteAny', Document::class),
         ]);
     }
 

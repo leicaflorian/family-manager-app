@@ -71,9 +71,10 @@ describe('FmCardDocumentActions', () => {
 
         await userEvent.click(screen.getByRole('button', { name: 'Unlink' }));
 
+        // The state stays: from the form of the card, what is written is not lost
         expect(destroy).toHaveBeenCalledWith(
             `/cards/insurance_policy/1/documents/${healthCard.id}`,
-            expect.anything(),
+            expect.objectContaining({ preserveState: true }),
         );
     });
 
@@ -97,7 +98,7 @@ describe('FmCardDocumentActions', () => {
 
         expect(destroy).toHaveBeenCalledWith(
             `/documents/${healthCard.id}?stay=1`,
-            expect.anything(),
+            expect.objectContaining({ preserveState: true }),
         );
     });
 

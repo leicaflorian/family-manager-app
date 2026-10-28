@@ -35,7 +35,8 @@ final class CardDocumentController extends Controller
     }
 
     /**
-     * Unlinks the document from the card; the document stays.
+     * Unlinks the document from the card and goes back to the page it came
+     * from (the card, or its form); the document stays.
      */
     public function destroy(string $type, string $id, Document $document): RedirectResponse
     {
@@ -44,7 +45,8 @@ final class CardDocumentController extends Controller
 
         $this->documents($card)->detach($document->getKey());
 
-        return to_route('cards.show', ['type' => $type, 'id' => $id]);
+        // From the form of the card the person stays there, otherwise the card opens
+        return back(fallback: route('cards.show', ['type' => $type, 'id' => $id]));
     }
 
     /**

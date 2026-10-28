@@ -256,6 +256,25 @@ test('it changes nothing when a document of a change is not a file it takes', fu
         ->and(insideBianchi(fn (): bool => File::query()->toSort()->exists()))->toBeFalse();
 });
 
+test('it unlinks a document and goes back to the page it came from, the card when there is none', function (): void {
+    $this->actingAs($this->marco);
+    $link = fn () => $this->post(route('cards.documents.store', $this->pandaUrl), ['document_id' => $this->booklet->id]);
+    $unlink = route('cards.documents.destroy', [...$this->pandaUrl, 'document' => $this->booklet->id]);
+
+    $link();
+    $this->from(route('cards.edit', $this->pandaUrl))->delete($unlink)->assertRedirect(route('cards.edit', $this->pandaUrl));
+
+    $link();
+    $this->flushSession()->withoutHeader('referer')->delete($unlink)->assertRedirect(route('cards.show', $this->pandaUrl));
+});
+
+test('the form of a card says whether its documents can be deleted', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.edit', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('canDeleteDocuments', true));
+});
+
 test('it opens the form of a card with the documents linked to it', function (): void {
     $this->actingAs($this->marco);
 

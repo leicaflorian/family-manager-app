@@ -27,6 +27,7 @@ const {
     values,
     card,
     documents = [],
+    canDeleteDocuments = false,
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -38,6 +39,8 @@ const {
     card: App.Data.CardData | null;
     /** The documents linked to the card; none for a new one. */
     documents?: App.Data.DocumentData[];
+    /** Whether whoever edits may delete the linked documents. */
+    canDeleteDocuments?: boolean;
 }>();
 
 /** The form is being sent. */
@@ -117,6 +120,8 @@ function save(data: Record<string, unknown>): void {
             <FmCardFiles
                 v-model:files="files"
                 :documents="documents"
+                :card="card ? { type: card.type, id: card.id } : undefined"
+                :can-delete="canDeleteDocuments"
                 :errors="fileErrors"
             />
             <div class="rounded-3xl bg-white p-5 lg:p-7">

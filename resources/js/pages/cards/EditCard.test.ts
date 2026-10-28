@@ -139,8 +139,14 @@ describe('Edit a card', () => {
                 values: {},
                 card: policyDetail.card,
                 documents: [healthCard],
+                canDeleteDocuments: true,
             });
             expect(screen.getByText('Tessera sanitaria')).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', {
+                    name: 'More actions on Tessera sanitaria',
+                }),
+            ).toBeInTheDocument();
             expect(
                 screen.getByLabelText('Choose the files'),
             ).toBeInTheDocument();

@@ -20,6 +20,33 @@ describe('FmRow', () => {
         expect(link).toHaveTextContent('71,30 €');
     });
 
+    it('with external opens the address in a new tab', () => {
+        render(FmRow, {
+            props: {
+                title: 'Libretto.pdf',
+                href: 'blob:chosen',
+                external: true,
+            },
+        });
+
+        const link = screen.getByRole('link', { name: /Libretto.pdf/ });
+        expect(link).toHaveAttribute('href', 'blob:chosen');
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener');
+    });
+
+    it('without arrow leaves out the arrow of a link with nothing on the right', () => {
+        render(FmRow, {
+            props: {
+                title: 'Libretto.pdf',
+                href: '/documents/1',
+                arrow: false,
+            },
+        });
+
+        expect(screen.getByRole('link').querySelector('svg')).toBeNull();
+    });
+
     it('marks the row that is open, and only that one', () => {
         render({
             components: { FmRow },

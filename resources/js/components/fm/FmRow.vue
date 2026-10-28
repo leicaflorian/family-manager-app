@@ -2,8 +2,9 @@
 /**
  * A list row of the canvas: in front the dot of the area or an icon, then the
  * title and the subtitle, on the right an amount or a date. With `href` the whole
- * row is a link, and with nothing on the right it shows the arrow. With `button`
- * it is a button, for the rows that open a panel.
+ * row is a link (with `external`, a plain link that opens in a new tab), and
+ * with nothing on the right it shows the arrow. With `button` it is a button,
+ * for the rows that open a panel.
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
@@ -19,10 +20,12 @@ const {
     title,
     subtitle,
     href,
+    external = false,
     area,
     tone = 'normal',
     button = false,
     current = false,
+    arrow = true,
 } = defineProps<{
     /** The main text. */
     title: string;
@@ -30,6 +33,8 @@ const {
     subtitle?: string;
     /** The address the row opens. */
     href?: string;
+    /** With `href`: a plain link that opens the address in a new tab. */
+    external?: boolean;
     /** The area, for the coloured dot in front. */
     area?: Area;
     /** The colour of the subtitle. */
@@ -38,6 +43,8 @@ const {
     button?: boolean;
     /** The row is the one open now, as the document shown beside the list. */
     current?: boolean;
+    /** The arrow of a link with nothing on the right; off where buttons follow. */
+    arrow?: boolean;
 }>();
 
 defineEmits<{
@@ -62,8 +69,10 @@ const toneColor: Record<RowTone, string> = {
 
 <template>
     <component
-        :is="href ? Link : button ? 'button' : 'div'"
+        :is="href ? (external ? 'a' : Link) : button ? 'button' : 'div'"
         :href="href"
+        :target="href && external ? '_blank' : undefined"
+        :rel="href && external ? 'noopener' : undefined"
         :type="button ? 'button' : undefined"
         :aria-current="current ? 'page' : undefined"
         :class="
@@ -100,7 +109,7 @@ const toneColor: Record<RowTone, string> = {
             <slot name="after" />
         </span>
         <FmIcon
-            v-else-if="href || button"
+            v-else-if="arrow && (href || button)"
             :icon="ChevronRight"
             :size="20"
             class="text-[#9AA6B6]"

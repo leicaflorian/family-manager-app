@@ -74,4 +74,19 @@ describe('FmDocumentRow', () => {
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
         expect(screen.getByText('Tessera sanitaria')).toBeInTheDocument();
     });
+
+    it('with dateless leaves the date on the right out', () => {
+        render(FmDocumentRow, {
+            props: {
+                document: { ...document, date: '2020-10-20' },
+                href: '/documents/5',
+                dateless: true,
+            },
+        });
+
+        const link = screen.getByRole('link');
+        expect(link).not.toHaveTextContent('20/10/2020');
+        // Nor the arrow a row without anything on the right would get
+        expect(link.querySelectorAll('svg')).toHaveLength(1);
+    });
 });
