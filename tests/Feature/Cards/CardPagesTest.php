@@ -283,3 +283,29 @@ test('it opens the form of a card with the documents linked to it', function ():
         ->has('documents', 1)
         ->where('documents.0.title', 'Polizza RC auto 2026'));
 });
+
+test('the documents to link come 15 at a time, without those already linked', function (): void {
+    $this->actingAs($this->marco);
+    $this->post(route('cards.documents.store', $this->pandaUrl), ['document_id' => $this->booklet->id]);
+    $total = insideBianchi(fn (): int => Document::query()->count()) - DB::table('documentables')->where(['documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id])->count();
+
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('linkable', 15)
+        ->where('linkableNext', 2)
+        ->where('hasLinkable', true)
+        ->where('linkable', fn ($documents): bool => ! collect($documents)->contains('id', $this->booklet->id)));
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'link_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('linkable', $total - 15)
+        ->where('linkableNext', null));
+});
+
+test('the documents to link can be searched', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'link_search' => 'busta paga']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('linkable', fn ($documents): bool => collect($documents)->isNotEmpty()
+            && collect($documents)->every(fn (array $document): bool => str_contains($document['title'], 'Busta paga')))
+        ->where('linkableSearch', 'busta paga')
+        ->where('hasLinkable', true));
+});

@@ -7,6 +7,7 @@ namespace App\Queries;
 use App\Enums\DocumentStatus;
 use App\Models\Document;
 use App\Services\CategoryTree;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
@@ -32,6 +33,7 @@ final readonly class FilterDocuments
      * - `linked`: linked to at least one record or, with `false`, to none
      *   (the personal documents of *A person*);
      * - `record`: linked to that record, `['type' => 'vehicle', 'id' => 1]`;
+     * - `not_record`: not linked to that record, in the same form;
      * - `search`: in the title and in the notes, ignoring capitals and accents
      *   (the collation of the database does it).
      *
@@ -73,12 +75,14 @@ final readonly class FilterDocuments
             $filters['linked'] ? $query->whereExists($links) : $query->whereNotExists($links);
         }
 
-        $record = $filters['record'] ?? null;
-        if (is_array($record) && is_string($record['type'] ?? null) && is_int($record['id'] ?? null)) {
-            $query->whereExists(static fn (QueryBuilder $links): QueryBuilder => $links->from('documentables')
-                ->whereColumn('documentables.document_id', 'documents.id')
-                ->where('documentables.documentable_type', $record['type'])
-                ->where('documentables.documentable_id', $record['id']));
+        $record = $this->record($filters['record'] ?? null);
+        if ($record instanceof Closure) {
+            $query->whereExists($record);
+        }
+
+        $notRecord = $this->record($filters['not_record'] ?? null);
+        if ($notRecord instanceof Closure) {
+            $query->whereNotExists($notRecord);
         }
 
         if ($search !== '') {
@@ -88,5 +92,23 @@ final readonly class FilterDocuments
         }
 
         return $query->orderByDesc('date')->latest()->orderByDesc('id');
+    }
+
+    /**
+     * The subquery of the links to a record, for `record` and `not_record`.
+     *
+     * @param  mixed  $record  the record, `['type' => 'vehicle', 'id' => 1]`
+     * @return (Closure(QueryBuilder): QueryBuilder)|null null when it is not a record
+     */
+    private function record(mixed $record): ?Closure
+    {
+        if (! is_array($record) || ! is_string($record['type'] ?? null) || ! is_int($record['id'] ?? null)) {
+            return null;
+        }
+
+        return static fn (QueryBuilder $links): QueryBuilder => $links->from('documentables')
+            ->whereColumn('documentables.document_id', 'documents.id')
+            ->where('documentables.documentable_type', $record['type'])
+            ->where('documentables.documentable_id', $record['id']);
     }
 }

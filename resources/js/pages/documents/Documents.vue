@@ -19,6 +19,7 @@ import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { categoryOptions } from '@/lib/categories';
 import type { DocumentFilterOptions, DocumentFilters } from '@/lib/documents';
@@ -220,18 +221,10 @@ function rowHref(document: App.Data.DocumentData): string {
                         class="min-w-0 grow"
                         @submit.prevent="searchDocuments"
                     >
-                        <label
-                            class="flex h-11.5 items-center gap-2.5 rounded-[10px] border border-edge bg-white px-3.5 text-ink-soft"
-                        >
-                            <FmIcon :icon="Search" :size="20" />
-                            <input
-                                v-model="search"
-                                type="search"
-                                :placeholder="$t('Search a document')"
-                                :aria-label="$t('Search a document')"
-                                class="min-w-0 grow border-0 bg-transparent text-base text-ink outline-none"
-                            />
-                        </label>
+                        <FmSearchField
+                            v-model="search"
+                            :label="$t('Search a document')"
+                        />
                     </form>
                     <button
                         type="button"

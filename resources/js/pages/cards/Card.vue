@@ -5,10 +5,12 @@
  * the data of the card, its documents (with *Upload* and *Link*, open to a
  * `member` too, and beside each the buttons of `FmCardDocumentActions`) and
  * the cards it is linked to, with the + that adds a new one already linked
- * (for an `admin`).
+ * (for an `admin`). *Link* opens the documents not yet linked, searched while
+ * typing, 15 at a time with the next ones loaded at the end of the list.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
-import { Link2, Pencil, Plus, Trash2 } from '@lucide/vue';
+import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
+import { ExternalLink, Link2, Pencil, Plus, Trash2 } from '@lucide/vue';
+import { watchDebounced } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
@@ -19,12 +21,14 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmCardHeader from '@/components/fm/FmCardHeader.vue';
 import FmCardDocumentActions from '@/components/fm/FmCardDocumentActions.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmRow from '@/components/fm/FmRow.vue';
+import FmSearchField from '@/components/fm/FmSearchField.vue';
 import type { Action } from '@/lib/actions';
 import { documentSubtitle } from '@/lib/documents';
 import { upload } from '@/routes';
@@ -33,15 +37,47 @@ import { destroy, edit } from '@/routes/cards';
 import { store as linkDocument } from '@/routes/cards/documents';
 import { show as showDocument } from '@/routes/documents';
 
-const { card, linkable } = defineProps<{
+const {
+    card,
+    linkable,
+    linkableNext = null,
+    linkableSearch = '',
+    hasLinkable = false,
+} = defineProps<{
     /** The card with its dates, data, documents and linked cards. */
     card: App.Data.CardDetailData;
-    /** The documents of the family not yet linked to the card. */
+    /** The pages loaded so far of the documents not yet linked to the card that match the search. */
     linkable: App.Data.DocumentData[];
+    /** The number of the next page of `linkable`, null at the last one. */
+    linkableNext?: number | null;
+    /** The search that `linkable` answers. */
+    linkableSearch?: string;
+    /** At least one document of the family is not yet linked to the card. */
+    hasLinkable?: boolean;
 }>();
+
+/** The props of the panel, reloaded without the rest of the page. */
+const LINKABLE_PROPS = ['linkable', 'linkableNext', 'linkableSearch'];
 
 /** The panel with the documents that can be linked is open. */
 const linking = ref(false);
+
+/** The text in the search box of the panel. */
+const search = ref(linkableSearch);
+
+// A new search starts again from the first page, instead of adding below.
+// The address stays that of the card: opened again, it starts from the top.
+watchDebounced(
+    search,
+    (text) =>
+        router.reload({
+            data: { link_search: text.trim(), link_page: 1 },
+            only: LINKABLE_PROPS,
+            reset: ['linkable'],
+            preserveUrl: true,
+        }),
+    { debounce: 300 },
+);
 
 /** The address of the card in the routes: its type and its number. */
 const address = computed(() => ({ type: card.card.type, id: card.card.id }));
@@ -183,7 +219,7 @@ function link(id: number): void {
                     </h2>
                     <div class="flex gap-4">
                         <FmButton
-                            v-if="linkable.length > 0"
+                            v-if="hasLinkable"
                             variant="text"
                             inline
                             :icon="Link2"
@@ -236,17 +272,57 @@ function link(id: number): void {
         </div>
 
         <FmBottomSheet v-model:open="linking" :title="$t('Link a document')">
-            <div
-                class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl border border-divider"
-            >
-                <FmRow
-                    v-for="document in linkable"
-                    :key="document.id"
-                    button
-                    :title="document.title"
-                    :subtitle="documentSubtitle(document) || undefined"
-                    @click="link(document.id)"
+            <div class="flex min-h-0 flex-col gap-3.5">
+                <FmSearchField
+                    v-model="search"
+                    :label="$t('Search a document')"
                 />
+                <div
+                    v-if="linkable.length > 0"
+                    class="flex min-h-0 flex-col divide-y divide-divider overflow-y-auto rounded-2xl border border-divider"
+                >
+                    <div
+                        v-for="document in linkable"
+                        :key="document.id"
+                        class="flex items-center"
+                    >
+                        <FmRow
+                            button
+                            :title="document.title"
+                            :subtitle="documentSubtitle(document) || undefined"
+                            @click="link(document.id)"
+                        />
+                        <a
+                            :href="document.file_url"
+                            target="_blank"
+                            rel="noopener"
+                            :aria-label="
+                                $t('Open :title in a new tab', {
+                                    title: document.title,
+                                })
+                            "
+                            class="flex size-11 shrink-0 items-center justify-center text-ink-soft hover:text-ink"
+                        >
+                            <FmIcon :icon="ExternalLink" :size="20" />
+                        </a>
+                    </div>
+                    <WhenVisible
+                        v-if="linkableNext"
+                        :key="linkableNext"
+                        always
+                        :params="{
+                            data: {
+                                link_search: linkableSearch,
+                                link_page: linkableNext,
+                            },
+                            only: LINKABLE_PROPS,
+                            preserveUrl: true,
+                        }"
+                    />
+                </div>
+                <p v-else class="m-0 p-5 text-[15px] text-ink-soft">
+                    {{ $t('No document found.') }}
+                </p>
             </div>
         </FmBottomSheet>
     </div>

@@ -94,3 +94,12 @@ test('linked keeps the documents linked to a record, or with false those linked 
     expect(filtered(['person' => $giulia, 'linked' => false]))->toEqualCanonicalizing(["Carta d'identità", 'Tessera sanitaria'])
         ->and(filtered(['person' => $giulia, 'linked' => true]))->toEqualCanonicalizing(['Certificato medico sportivo', 'Iscrizione danza 2026/27']);
 });
+
+test('not_record leaves out the documents linked to that record', function (): void {
+    $giulia = insideBianchi(fn (): int => Person::query()->where('first_name', 'Giulia')->sole()->id);
+    $dance = insideBianchi(fn (): Document => Document::query()->where('title', 'Iscrizione danza 2026/27')->sole());
+    $record = insideBianchi(fn (): array => ['type' => $dance->linkables()->firstOrFail()->getMorphClass(), 'id' => $dance->linkables()->firstOrFail()->getKey()]);
+
+    expect(filtered(['person' => $giulia, 'not_record' => $record]))->not->toContain('Iscrizione danza 2026/27')
+        ->toContain("Carta d'identità");
+});

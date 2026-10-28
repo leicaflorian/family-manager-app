@@ -8,7 +8,6 @@ use App\Actions\Cards\DeleteCard;
 use App\Actions\Cards\SaveCard;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
-use App\Data\DocumentData;
 use App\Enums\Area;
 use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
@@ -32,6 +31,9 @@ use Inertia\Response;
  */
 final class CardController extends Controller
 {
+    /** How many documents a page of *Link a document* holds. */
+    private const int LINKABLE_PER_PAGE = 15;
+
     public function __construct(
         private readonly CardDetails $details,
         private readonly CardSummaries $summaries,
@@ -72,20 +74,24 @@ final class CardController extends Controller
     }
 
     /**
-     * *A card*: its detail, and the documents of the family that can still be linked to it.
+     * *A card*: its detail and, for *Link a document*, a page of the documents
+     * of the family not yet linked to it, found with `link_search`.
      */
-    public function show(string $type, string $id, #[CurrentUser] User $user): Response
+    public function show(Request $request, string $type, string $id, #[CurrentUser] User $user): Response
     {
         $card = CardTypes::findOrFail($type)->findOrFail($id);
         $detail = $this->details->of($card, $user);
-        $linked = array_map(static fn (DocumentData $document): int => $document->id, $detail->documents);
+        $notLinked = ['not_record' => ['type' => $detail->card->type, 'id' => $detail->card->id]];
+        $search = $request->string('link_search')->trim()->value();
+        $page = $this->documents->page([...$notLinked, 'search' => $search], max(1, $request->integer('link_page', 1)), self::LINKABLE_PER_PAGE);
 
         return Inertia::render('cards/Card', [
             'card' => $detail,
-            'linkable' => array_values(array_filter(
-                $this->documents->of([]),
-                static fn (DocumentData $document): bool => ! in_array($document->id, $linked, true),
-            )),
+            // The next pages are added below those already shown.
+            'linkable' => Inertia::merge($page['documents']),
+            'linkableNext' => $page['next'],
+            'linkableSearch' => $search,
+            'hasLinkable' => $this->documents->exist($notLinked),
         ]);
     }
 

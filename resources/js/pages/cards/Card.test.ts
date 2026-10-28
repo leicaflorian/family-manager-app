@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { healthCard, policyDetail } from '@/test/fixtures';
@@ -152,6 +152,7 @@ describe('A card', () => {
             linkable: [
                 { ...healthCard, id: 30, title: 'Libretto di circolazione' },
             ],
+            hasLinkable: true,
         });
 
         await userEvent.click(
@@ -168,6 +169,110 @@ describe('A card', () => {
             { document_id: 30 },
             expect.anything(),
         );
+    });
+
+    it('opens each document to link in a new tab', async () => {
+        renderPage(Card, {
+            card: policyDetail,
+            linkable: [{ ...healthCard, id: 30, title: 'Libretto' }],
+            hasLinkable: true,
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Link document' }),
+        );
+        const open = await screen.findByRole('link', {
+            name: 'Open Libretto in a new tab',
+        });
+
+        expect(open).toHaveAttribute('href', healthCard.file_url);
+        expect(open).toHaveAttribute('target', '_blank');
+    });
+
+    it('searches the documents to link while typing', async () => {
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderPage(Card, {
+            card: policyDetail,
+            linkable: [{ ...healthCard, id: 30, title: 'Libretto' }],
+            linkableNext: null,
+            linkableSearch: '',
+            hasLinkable: true,
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Link document' }),
+        );
+        await userEvent.type(
+            await screen.findByRole('searchbox', { name: 'Search a document' }),
+            'gas',
+        );
+
+        await waitFor(() =>
+            expect(reload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: { link_search: 'gas', link_page: 1 },
+                    reset: ['linkable'],
+                    preserveUrl: true,
+                }),
+            ),
+        );
+    });
+
+    it('says when the search finds no document to link', async () => {
+        renderPage(Card, {
+            card: policyDetail,
+            linkable: [],
+            linkableNext: null,
+            linkableSearch: 'zzz',
+            hasLinkable: true,
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Link document' }),
+        );
+
+        expect(
+            await screen.findByText('No document found.'),
+        ).toBeInTheDocument();
+    });
+
+    it('loads the next documents to link when the end of the list shows', async () => {
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        vi.stubGlobal(
+            'IntersectionObserver',
+            class {
+                constructor(
+                    private readonly callback: (
+                        entries: { isIntersecting: boolean }[],
+                    ) => void,
+                ) {}
+                observe(): void {
+                    this.callback([{ isIntersecting: true }]);
+                }
+                disconnect(): void {}
+            },
+        );
+        renderPage(Card, {
+            card: policyDetail,
+            linkable: [{ ...healthCard, id: 30, title: 'Libretto' }],
+            linkableNext: 2,
+            linkableSearch: 'li',
+            hasLinkable: true,
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Link document' }),
+        );
+
+        await waitFor(() =>
+            expect(reload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: { link_search: 'li', link_page: 2 },
+                    preserveUrl: true,
+                }),
+            ),
+        );
+        vi.unstubAllGlobals();
     });
 
     it('unlinks a document from the card', async () => {

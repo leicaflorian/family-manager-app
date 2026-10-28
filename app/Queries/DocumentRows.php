@@ -39,6 +39,35 @@ final readonly class DocumentRows
     }
 
     /**
+     * A page of the documents that pass the filters, and the number of the next.
+     *
+     * @param  array<string, mixed>  $filters  the filters of `FilterDocuments::apply()`
+     * @param  int  $page  the number of the page, from 1
+     * @param  int  $perPage  how many documents a page holds
+     * @return array{documents: list<DocumentData>, next: ?int}
+     */
+    public function page(array $filters, int $page, int $perPage): array
+    {
+        $paginator = $this->filter->apply(Document::query()->with(self::RELATIONS), $filters)
+            ->paginate($perPage, page: $page);
+
+        return [
+            'documents' => $this->rows($paginator->getCollection()),
+            'next' => $paginator->hasMorePages() ? $page + 1 : null,
+        ];
+    }
+
+    /**
+     * Whether at least one document passes the filters.
+     *
+     * @param  array<string, mixed>  $filters  the filters of `FilterDocuments::apply()`
+     */
+    public function exist(array $filters): bool
+    {
+        return $this->filter->apply(Document::query()->select('documents.id'), $filters)->exists();
+    }
+
+    /**
      * The last documents uploaded, the most recent first.
      *
      * @param  int  $count  how many
