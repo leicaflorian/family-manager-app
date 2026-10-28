@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\FilePreviews;
 use Carbon\CarbonImmutable;
 use Database\Factories\FileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $mime_type
  * @property int $size
  * @property bool $to_sort
+ * @property string|null $preview_path The JPEG of the preview, made the first time it is asked
+ * @property bool $preview_failed The preview could not be made: it is not tried again
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -55,6 +58,14 @@ final class File extends FamilyModel
     }
 
     /**
+     * Whether a preview can be made for the file: its type has one and it did not fail before.
+     */
+    public function hasPreview(): bool
+    {
+        return in_array($this->mime_type, FilePreviews::TYPES, true) && ! $this->preview_failed;
+    }
+
+    /**
      * Only the files uploaded and still waiting for their document.
      *
      * @param  Builder<self>  $query
@@ -75,6 +86,7 @@ final class File extends FamilyModel
         return [
             'size' => 'integer',
             'to_sort' => 'boolean',
+            'preview_failed' => 'boolean',
         ];
     }
 }

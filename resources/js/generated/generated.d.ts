@@ -72,6 +72,7 @@ readonly mime_type: string,
 readonly size: number,
 readonly url: string,
 readonly download_url: string,
+readonly preview_url: string | null,
 };
 export type InvitationData = {
 readonly first_name: string,
@@ -117,6 +118,7 @@ readonly mime_type: string,
 readonly size: number,
 readonly url: string,
 readonly title: string,
+readonly preview_url: string | null,
 };
 export type PersonData = {
 readonly id: number,

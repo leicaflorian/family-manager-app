@@ -127,6 +127,7 @@ function discard(file: App.Data.PendingFileData): void {
                     :url="current.url"
                     :mime-type="current.mime_type"
                     :name="current.name"
+                    :preview-url="current.preview_url"
                 />
                 <span class="text-sm break-all text-ink-soft">{{
                     current.name

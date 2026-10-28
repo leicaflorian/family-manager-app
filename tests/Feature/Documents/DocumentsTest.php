@@ -162,3 +162,17 @@ test('without documents the list says so', function (): void {
         ->has('documents', 0)
         ->where('hasDocuments', false));
 });
+
+test('the file of a document has a preview address only when it has a preview', function (): void {
+    $file = $this->document->file;
+    $this->get(route('documents.show', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.file.preview_url', route('files.preview', $file)));
+
+    $file->forceFill(['preview_failed' => true])->save();
+    $this->get(route('documents.show', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.file.preview_url', null));
+
+    $file->forceFill(['preview_failed' => false, 'mime_type' => 'image/png'])->save();
+    $this->get(route('documents.show', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.file.preview_url', null));
+});

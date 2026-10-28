@@ -2,8 +2,11 @@
  * How a file is shown in its preview.
  */
 
-/** A PDF in the page, an image as it is, an icon for the rest. */
-export type PreviewKind = 'pdf' | 'image' | 'other';
+/**
+ * The image the server made of the file (`preview`), the file itself when it
+ * is a JPEG or a PNG (`image`), the placeholder for the rest (`other`).
+ */
+export type PreviewKind = 'preview' | 'image' | 'other';
 
 /** The types a document takes, by extension and by type, for the file picker. */
 export const DOCUMENT_FILE_TYPES =
@@ -13,14 +16,18 @@ export const DOCUMENT_FILE_TYPES =
 const IMAGES = ['image/jpeg', 'image/png'];
 
 /**
- * How to show a file of the given type.
+ * How to show a file.
  *
  * @param mimeType - the real type of the file, for example `application/pdf`
+ * @param previewUrl - the address of the preview image made by the server, or `null` when the file has none
  * @returns the kind of preview
  */
-export function previewKind(mimeType: string): PreviewKind {
-    if (mimeType === 'application/pdf') {
-        return 'pdf';
+export function previewKind(
+    mimeType: string,
+    previewUrl: string | null,
+): PreviewKind {
+    if (previewUrl !== null) {
+        return 'preview';
     }
 
     return IMAGES.includes(mimeType) ? 'image' : 'other';

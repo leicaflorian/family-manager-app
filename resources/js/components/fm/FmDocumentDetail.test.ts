@@ -26,8 +26,8 @@ describe('FmDocumentDetail', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('salary, 2026')).toBeInTheDocument();
         expect(
-            screen.getByTitle('Busta paga ottobre 2026.pdf'),
-        ).toHaveAttribute('src', '/files/12');
+            screen.getByRole('img', { name: 'Busta paga ottobre 2026.pdf' }),
+        ).toHaveAttribute('src', '/files/12/preview');
     });
 
     it('in the panel beside the list only Download and the ⋯ menu are on top', () => {

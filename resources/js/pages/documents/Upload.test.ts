@@ -19,6 +19,7 @@ const payslip = {
     mime_type: 'application/pdf',
     size: 120000,
     url: '/files/12',
+    preview_url: '/files/12/preview',
     title: 'Busta paga novembre 2026',
 };
 
@@ -77,8 +78,8 @@ describe('Upload', () => {
             'Busta paga novembre 2026',
         );
         expect(
-            screen.getByTitle('Busta paga novembre 2026.pdf'),
-        ).toHaveAttribute('src', '/files/12');
+            screen.getByRole('img', { name: 'Busta paga novembre 2026.pdf' }),
+        ).toHaveAttribute('src', '/files/12/preview');
         expect(
             screen.getByRole('button', { name: 'Save' }),
         ).toBeInTheDocument();

@@ -88,7 +88,7 @@ final class FileStore
     }
 
     /**
-     * Deletes a file: the row and the file on the disk.
+     * Deletes a file: the row, the file on the disk and its preview, if any.
      *
      * @param  File  $file  the file to delete
      */
@@ -97,6 +97,7 @@ final class FileStore
         DB::transaction(function () use ($file): void {
             $file->delete();
             Storage::disk($file->disk)->delete($file->path);
+            resolve(FilePreviews::class)->deleteOf($file);
         });
     }
 
