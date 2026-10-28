@@ -238,3 +238,56 @@ export const personRoles: App.Data.OptionData[] = [
     { value: 'child', label: 'Child', help: null },
     { value: 'other', label: 'Other', help: null },
 ];
+
+/** The Panda as a row: inspection in 75 days. */
+export const pandaRow: App.Data.CardData = {
+    type: 'vehicle',
+    id: 1,
+    type_label: 'Vehicle',
+    label: 'Fiat Panda',
+    area: 'vehicles',
+    subtitle: 'GH 482 TK',
+    next_label: 'Inspection',
+    next_date: '2027-01-09',
+    overdue: false,
+    closed: false,
+};
+
+/** The description of a policy, as the form receives it. */
+export const policyFields: App.Data.CardFieldData[] = [
+    {
+        column: 'title',
+        label: 'Title',
+        kind: 'text',
+        required: true,
+        options: [],
+        show_when: {},
+    },
+    {
+        column: 'type',
+        label: 'Type',
+        kind: 'dropdown',
+        required: true,
+        show_when: {},
+        options: [
+            { value: 'car', label: 'Car', help: null },
+            { value: 'home', label: 'Home', help: null },
+        ],
+    },
+    {
+        column: 'vehicle_id',
+        label: 'Vehicle',
+        kind: 'card',
+        required: false,
+        show_when: { type: ['car'] },
+        options: [{ value: '1', label: 'Fiat Panda', help: null }],
+    },
+    {
+        column: 'home_id',
+        label: 'Residence',
+        kind: 'card',
+        required: false,
+        show_when: { type: ['home'] },
+        options: [{ value: '1', label: 'Casa di via Roma', help: null }],
+    },
+];

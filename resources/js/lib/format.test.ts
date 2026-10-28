@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { formatDate, formatEuro, formatLongDate, isoDate } from './format';
+import {
+    formatDate,
+    formatEuro,
+    formatLongDate,
+    isoDate,
+    relativeDays,
+} from './format';
 
 describe('formatEuro', () => {
     it('writes amounts the Italian way', () => {
@@ -38,5 +44,23 @@ describe('formatLongDate', () => {
         expect(formatLongDate('2026-10-26', 'en')).toBe(
             'Monday 26 October 2026',
         );
+    });
+});
+
+describe('relativeDays', () => {
+    const today = new Date('2026-10-26T10:00:00+01:00');
+
+    it('counts the days from today in Rome', () => {
+        expect(relativeDays('2026-10-26', today)).toBe('today');
+        expect(relativeDays('2026-10-27', today)).toBe('tomorrow');
+        expect(relativeDays('2026-11-21', today)).toBe('in 26 days');
+        expect(relativeDays('2026-10-25', today)).toBe('yesterday');
+        expect(relativeDays('2026-10-23', today)).toBe('3 days ago');
+    });
+
+    it('reads late evening in Rome as the same day', () => {
+        expect(
+            relativeDays('2026-10-28', new Date('2026-10-28T23:30:00+01:00')),
+        ).toBe('today');
     });
 });

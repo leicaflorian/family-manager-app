@@ -46,6 +46,20 @@ export const areaTile: Record<Area, string> = {
     general: cn('bg-general/15 text-general'),
 };
 
+/** The dark background of the top of a card page. */
+export const areaHeader: Record<Area, string> = {
+    home: cn('bg-home-dark'),
+    vehicles: cn('bg-vehicles-dark'),
+    insurance: cn('bg-insurance-dark'),
+    banks: cn('bg-banks-dark'),
+    health: cn('bg-health-dark'),
+    school: cn('bg-school-dark'),
+    work: cn('bg-work-dark'),
+    subscriptions: cn('bg-subscriptions-dark'),
+    paperwork: cn('bg-paperwork-dark'),
+    general: cn('bg-general-dark'),
+};
+
 /**
  * The area of a colour saved in the database, if it is one of the areas.
  *
