@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\AreaCountData;
 use App\Data\AreaData;
 use App\Data\CardData;
 use App\Enums\Area;
@@ -17,6 +18,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
+use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -198,4 +200,24 @@ test('the tile of an ended warranty or trial stays in the card even when it is n
 
         expect($tile?->expires)->toBeTrue()->and($tile?->date)->toBe('2026-10-01');
     });
+});
+
+test('it counts the active cards of each area without reading the rows', function (): void {
+    insideBianchi(function (): void {
+        InsurancePolicy::query()->create(['title' => 'Aaa old policy', 'type' => 'car', 'status' => InsurancePolicyStatus::Cancelled]);
+        $counts = summaries()->counts();
+
+        expect(array_map(fn (AreaCountData $area): string => $area->area, $counts))->toBe(array_map(fn (Area $area): string => $area->value, Area::cases()))
+            ->and(array_map(fn (AreaCountData $area): int => $area->count, $counts))->toBe(array_map(fn (AreaData $area): int => $area->count, summaries()->areas()))
+            ->and(collect($counts)->firstWhere('area', 'insurance')?->count)->toBe(1)
+            ->and(collect($counts)->firstWhere('area', 'home')?->label)->toBe(Area::Home->label());
+    });
+});
+
+test('it does not count the cards of another family', function (): void {
+    $admin = registerFamily('Rossi', 'rossi@example.com');
+
+    $counts = CurrentFamily::using($admin->family_id, fn (): array => summaries()->counts());
+
+    expect(array_sum(array_map(fn (AreaCountData $area): int => $area->count, $counts)))->toBe(0);
 });

@@ -418,3 +418,12 @@ export const policyDetail: App.Data.CardDetailData = {
     can_edit: true,
     can_delete: true,
 };
+
+/** The nine areas with their active cards, as the sidebar receives them. */
+export const areaCounts: App.Data.AreaCountData[] = allAreas.map(
+    ({ area, label, count }): App.Data.AreaCountData => ({
+        area,
+        label,
+        count,
+    }),
+);

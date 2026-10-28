@@ -553,5 +553,7 @@
     "The documents stay, only the card goes.": "I documenti restano, va via solo la scheda.",
     "What do you want to add?": "Che cosa vuoi aggiungere?",
     "{0} No cards|{1} :count card|[2,*] :count cards": "{0} Nessuna scheda|{1} :count scheda|[2,*] :count schede",
-    "{1} :count overdue|[2,*] :count overdue": "{1} :count scaduta|[2,*] :count scadute"
+    "{1} :count overdue|[2,*] :count overdue": "{1} :count scaduta|[2,*] :count scadute",
+    "All areas": "Tutte le aree",
+    "Show the areas": "Mostra le aree"
 }

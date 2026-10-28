@@ -20,9 +20,9 @@ defineSlots<{
 const page = usePage();
 const items = navigationItems();
 
-const active = computed((): Section =>
-    sectionOf(page.url.split('?')[0] ?? '/', items),
-);
+const path = computed((): string => page.url.split('?')[0] ?? '/');
+const active = computed((): Section => sectionOf(path.value, items));
+const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
 const family = computed((): string => page.props.family?.name ?? '');
 </script>
@@ -32,7 +32,9 @@ const family = computed((): string => page.props.family?.name ?? '');
         <FmSidebar
             class="sticky top-0 hidden h-dvh lg:flex"
             :active="active"
+            :path="path"
             :items="items"
+            :areas="areas"
             :family="family"
             :user="user"
         />

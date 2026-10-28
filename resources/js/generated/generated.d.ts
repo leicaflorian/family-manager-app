@@ -14,6 +14,11 @@ readonly photo: string | null,
 readonly is_last_admin: boolean,
 readonly family: string,
 };
+export type AreaCountData = {
+readonly area: string,
+readonly label: string,
+readonly count: number,
+};
 export type AreaData = {
 readonly area: string,
 readonly label: string,

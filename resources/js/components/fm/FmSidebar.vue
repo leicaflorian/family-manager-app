@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * The sidebar of the computer (from 1024 px): the logo and the family, Upload,
- * the sections, and at the bottom *My account*, which opens Settings and Log out.
+ * the sections with the areas under *Areas*, and at the bottom *My account*,
+ * which opens Settings and Log out.
  */
 import { Link } from '@inertiajs/vue3';
-import { ChevronDown, LogOut, Plus } from '@lucide/vue';
+import { ChevronDown, ChevronUp, LogOut, Plus } from '@lucide/vue';
 import {
     DropdownMenuContent,
     DropdownMenuItem,
@@ -13,21 +14,85 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from 'reka-ui';
+import { computed, ref, watch } from 'vue';
 import { getInitials } from '@/composables/useInitials';
+import { areaFill, areaOf } from '@/lib/areas';
+import { show as areaPage } from '@/routes/areas';
 import FmIcon from './FmIcon.vue';
+import { trans } from 'laravel-vue-i18n';
 import FmLogo from './FmLogo.vue';
 import type { NavigationItems, Section } from './navigation';
 
-const { active, items, family, user } = defineProps<{
+const { active, path, items, areas, family, user } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
+    /** The path of the page, for example `/areas/home`, to mark its area. */
+    path: string;
     /** The navigation items. */
     items: NavigationItems;
+    /** The areas with their active cards, in order. */
+    areas: App.Data.AreaCountData[];
     /** The name of the family, for example «Bianchi». */
     family: string;
     /** The name of who is signed in. */
     user: string;
 }>();
+
+/** A link of the list under *Areas*. */
+type AreaLink = {
+    /** The name of the area, or *All areas*. */
+    label: string;
+    /** The address of the page. */
+    href: string;
+    /** The active cards; null for *All areas*. */
+    count: number | null;
+    /** The colour of the dot; null for *All areas*. */
+    dot: string | null;
+};
+
+/** *All areas*, then one link per area. */
+const areaLinks = computed((): AreaLink[] => [
+    {
+        label: trans('All areas'),
+        href:
+            items.sections.find((item) => item.section === 'areas')?.href ?? '',
+        count: null,
+        dot: null,
+    },
+    ...areas.map((area): AreaLink => ({
+        label: area.label,
+        href: areaPage(area.area).url,
+        count: area.count,
+        dot: areaFill[areaOf(area.area) ?? 'general'],
+    })),
+]);
+
+/** Whether the page is one of the list, so *Areas* itself is not the page. */
+const onAreaLink = computed((): boolean =>
+    areaLinks.value.some((link) => link.href === path),
+);
+
+/** Whether the list of the areas is open: it opens by itself inside Areas. */
+const open = ref(active === 'areas');
+
+watch(
+    () => active,
+    (section): void => {
+        if (section === 'areas') {
+            open.value = true;
+        }
+    },
+);
+
+/**
+ * Whether a section is the page that is open.
+ *
+ * @param section - the section of the item
+ * @returns true for the open section, unless one of its areas is the page
+ */
+function isPage(section: Section): boolean {
+    return section === active && !(section === 'areas' && onAreaLink.value);
+}
 </script>
 
 <template>
@@ -53,25 +118,87 @@ const { active, items, family, user } = defineProps<{
         </Link>
 
         <nav :aria-label="$t('Sections')" class="flex flex-col gap-0.5">
-            <Link
-                v-for="item in items.sections"
-                :key="item.section"
-                :href="item.href"
-                :aria-current="item.section === active ? 'page' : undefined"
-                class="flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] no-underline"
-                :class="
-                    item.section === active
-                        ? 'bg-action-soft font-bold text-action-dark'
-                        : 'font-medium text-ink hover:bg-canvas'
-                "
-            >
-                <FmIcon
-                    :icon="item.icon"
-                    :size="22"
-                    :class="item.section === active ? '' : 'text-ink-soft'"
-                />
-                {{ item.label }}
-            </Link>
+            <template v-for="item in items.sections" :key="item.section">
+                <div class="relative flex items-center">
+                    <Link
+                        :href="item.href"
+                        :aria-current="
+                            isPage(item.section) ? 'page' : undefined
+                        "
+                        class="flex h-11 grow items-center gap-3 rounded-xl px-3 text-[15px] no-underline"
+                        :class="[
+                            isPage(item.section)
+                                ? 'bg-action-soft font-bold text-action-dark'
+                                : item.section === active
+                                  ? 'font-bold text-action-dark hover:bg-canvas'
+                                  : 'font-medium text-ink hover:bg-canvas',
+                            item.section === 'areas' && 'pr-12',
+                        ]"
+                    >
+                        <FmIcon
+                            :icon="item.icon"
+                            :size="22"
+                            :class="
+                                item.section === active ? '' : 'text-ink-soft'
+                            "
+                        />
+                        {{ item.label }}
+                    </Link>
+                    <button
+                        v-if="item.section === 'areas'"
+                        type="button"
+                        :aria-label="$t('Show the areas')"
+                        :aria-expanded="open"
+                        aria-controls="sidebar-areas"
+                        class="absolute right-1 flex size-9 items-center justify-center rounded-lg text-ink-soft hover:bg-white/70 hover:text-ink"
+                        @click="open = !open"
+                    >
+                        <FmIcon
+                            :icon="open ? ChevronUp : ChevronDown"
+                            :size="18"
+                        />
+                    </button>
+                </div>
+                <div v-if="item.section === 'areas'" v-auto-animate>
+                    <ul
+                        v-if="open"
+                        id="sidebar-areas"
+                        :aria-label="item.label"
+                        class="my-0.5 ml-[21px] flex flex-col gap-0.5 border-l border-divider pl-1.5"
+                    >
+                        <li v-for="link in areaLinks" :key="link.href">
+                            <Link
+                                :href="link.href"
+                                :aria-current="
+                                    link.href === path ? 'page' : undefined
+                                "
+                                class="flex h-9 items-center gap-2 rounded-lg px-2.5 text-[13px] no-underline"
+                                :class="
+                                    link.href === path
+                                        ? 'bg-action-soft font-bold text-action-dark'
+                                        : 'font-medium text-ink hover:bg-canvas'
+                                "
+                            >
+                                <span
+                                    v-if="link.dot"
+                                    class="size-2.5 shrink-0 rounded-full"
+                                    :class="link.dot"
+                                />
+                                <span class="grow truncate">{{
+                                    link.label
+                                }}</span>
+                                <!-- A space, so the link reads «Home 3» -->
+                                {{ ' ' }}
+                                <span
+                                    v-if="link.count"
+                                    class="text-xs font-semibold text-ink-soft"
+                                    >{{ link.count }}</span
+                                >
+                            </Link>
+                        </li>
+                    </ul>
+                </div>
+            </template>
         </nav>
 
         <span class="min-h-6 grow" />

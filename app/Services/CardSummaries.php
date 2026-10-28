@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Data\AreaCountData;
 use App\Data\AreaData;
 use App\Data\CardData;
 use App\Enums\Area;
@@ -60,6 +61,21 @@ final class CardSummaries
         $rows = $this->rows(CardTypes::all());
 
         return array_map(fn (Area $area): AreaData => $this->areaData($area, $rows[$area->value] ?? []), Area::cases());
+    }
+
+    /**
+     * All the areas with the number of their active cards, in the order of
+     * `Area`: one count per card type, without reading the cards.
+     *
+     * @return list<AreaCountData>
+     */
+    public function counts(): array
+    {
+        return array_map(fn (Area $area): AreaCountData => new AreaCountData(
+            area: $area->value,
+            label: $area->label(),
+            count: array_sum(array_map(static fn (CardType $type): int => $type->countActive(), CardTypes::of($area))),
+        ), Area::cases());
     }
 
     /**

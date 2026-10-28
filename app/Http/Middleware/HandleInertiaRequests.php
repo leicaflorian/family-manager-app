@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Data\FamilyData;
 use App\Models\User;
+use App\Services\CardSummaries;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -19,6 +20,11 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    /**
+     * @param  CardSummaries  $summaries  the cards of the family, for the counts of the sidebar
+     */
+    public function __construct(private readonly CardSummaries $summaries) {}
 
     /**
      * Determines the current asset version.
@@ -46,6 +52,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'family' => fn (): ?FamilyData => $this->family($request),
+            'areas' => fn (): array => $request->user() instanceof User ? $this->summaries->counts() : [],
             'locale' => app()->getLocale(),
         ];
     }

@@ -7,6 +7,7 @@ namespace App\Cards;
 use App\Enums\Area;
 use App\Support\Linkables;
 use BackedEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use InvalidArgumentException;
@@ -146,6 +147,23 @@ abstract class CardType
     public function notices(Model $card): array
     {
         return [];
+    }
+
+    /**
+     * The cards of this type that are not closed, counted in the database: a
+     * type without a status has no closed cards.
+     */
+    public function countActive(): int
+    {
+        $query = $this->model()::query();
+        $hasStatus = array_any($this->fields(), static fn (CardField $field): bool => $field->column === 'status');
+
+        if ($hasStatus) {
+            // A card with an empty status is active, and `NOT IN` alone would skip it
+            $query->where(static fn (Builder $query): Builder => $query->whereNull('status')->orWhereNotIn('status', self::CLOSED));
+        }
+
+        return $query->count();
     }
 
     /**
