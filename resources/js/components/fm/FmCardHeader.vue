@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * The coloured top of a card page, as on the board *Scheda*: «Area · Type»,
- * the name and the line of data. On the right, the `actions` slot holds
+ * the name and the line of data, where the person and the organization open
+ * in a new tab. On the right, the `actions` slot holds
  * *Edit* and the ⋯ menu.
  */
 import { computed } from 'vue';
@@ -10,12 +11,16 @@ import { areaHeader, areaOf } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
+import FmNewTabLink from './FmNewTabLink.vue';
 
 const { card } = defineProps<{
     /** The card. */
     card: App.Data.CardData;
-    /** The line of data below the name, for example «Plate GH 482 TK · Marco». */
-    heading: string;
+    /**
+     * The pieces of the line below the name, for example «Plate GH 482 TK» and
+     * «Marco»: the ones with an address open it in a new tab.
+     */
+    heading: App.Data.CardLinkData[];
 }>();
 
 defineSlots<{
@@ -47,7 +52,16 @@ const background = computed((): string => {
             <h1 class="m-0 text-[28px] font-extrabold lg:text-4xl">
                 {{ card.label }}
             </h1>
-            <span class="text-base">{{ heading }}</span>
+            <span class="text-base">
+                <template v-for="(part, index) in heading" :key="index"
+                    ><template v-if="index > 0"> · </template
+                    ><FmNewTabLink
+                        v-if="part.href"
+                        :href="part.href"
+                        :text="part.text"
+                    /><span v-else>{{ part.text }}</span></template
+                >
+            </span>
         </div>
         <div v-if="$slots.actions" class="flex items-center gap-2.5">
             <slot name="actions" />

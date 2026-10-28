@@ -21,8 +21,8 @@ describe('A card', () => {
             }),
         ).toBeInTheDocument();
         expect(
-            screen.getByText('Car · policyholder Marco Bianchi'),
-        ).toBeInTheDocument();
+            screen.getByRole('link', { name: 'policyholder Marco' }),
+        ).toHaveAttribute('target', '_blank');
         expect(screen.getByText('20/11/2026')).toBeInTheDocument();
         expect(
             screen.getByRole('heading', { name: 'Data' }),
@@ -118,9 +118,9 @@ describe('A card', () => {
         });
 
         expect(screen.getByText('Expires in 26 days')).toBeInTheDocument();
-        expect(
-            screen.getByRole('link', { name: 'Fiat Panda' }),
-        ).toHaveAttribute('href', '/cards/vehicle/1');
+        const panda = screen.getByRole('link', { name: 'Fiat Panda' });
+        expect(panda).toHaveAttribute('href', '/cards/vehicle/1');
+        expect(panda).toHaveAttribute('target', '_blank');
     });
 
     it('shows nothing of the budget', () => {

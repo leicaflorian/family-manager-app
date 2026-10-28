@@ -51,7 +51,7 @@ readonly expires: boolean,
 };
 export type CardDetailData = {
 readonly card: App.Data.CardData,
-readonly heading: string,
+readonly heading: App.Data.CardLinkData[],
 readonly dates: App.Data.CardDateData[],
 readonly notices: string[],
 readonly values: App.Data.CardValueData[],
@@ -70,6 +70,10 @@ readonly required: boolean,
 readonly options: App.Data.OptionData[],
 readonly show_when: Record<string, string[]>,
 readonly label_when: Record<string, Record<string, string>>,
+};
+export type CardLinkData = {
+readonly text: string,
+readonly href: string | null,
 };
 export type CardTypeData = {
 readonly type: string,

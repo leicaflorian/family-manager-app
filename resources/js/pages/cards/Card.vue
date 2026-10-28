@@ -2,13 +2,14 @@
 /**
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
  * menu (Delete, for an `admin`, after asking); then the notices, the dates,
- * the data of the card, its documents (with *Upload* and *Link*, open to a
+ * the data of the card (the person, the organization and the card it names
+ * open in a new tab), its documents (with *Upload* and *Link*, open to a
  * `member` too, and beside each the buttons of `FmCardDocumentActions`) and
  * the cards it is linked to, with the + that adds a new one already linked
  * (for an `admin`). *Link* opens the documents not yet linked, searched while
  * typing, 15 at a time with the next ones loaded at the end of the list.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Link2, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -24,6 +25,7 @@ import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
+import FmNewTabLink from '@/components/fm/FmNewTabLink.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import type { Action } from '@/lib/actions';
 import { upload } from '@/routes';
@@ -145,9 +147,11 @@ function link(id: number): void {
                         >
                             <dt class="text-ink-soft">{{ value.label }}</dt>
                             <dd class="m-0 font-semibold break-words">
-                                <Link v-if="value.href" :href="value.href">{{
-                                    value.text
-                                }}</Link>
+                                <FmNewTabLink
+                                    v-if="value.href"
+                                    :href="value.href"
+                                    :text="value.text"
+                                />
                                 <template v-else>{{ value.text }}</template>
                             </dd>
                         </template>
