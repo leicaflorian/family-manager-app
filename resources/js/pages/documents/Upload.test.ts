@@ -151,4 +151,23 @@ describe('Upload', () => {
             '/documents?link=vehicle:1',
         );
     });
+
+    it('closes to the card it comes from, or to the home page', () => {
+        const result = renderPage(Upload, {
+            pending: [],
+            ...options,
+            presetLinks: [{ type: 'vehicle', id: 1 }],
+        });
+        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
+            'href',
+            '/cards/vehicle/1',
+        );
+        result.unmount();
+
+        renderPage(Upload, { pending: [], ...options });
+        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
+            'href',
+            '/dashboard',
+        );
+    });
 });

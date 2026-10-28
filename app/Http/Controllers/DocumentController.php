@@ -87,7 +87,8 @@ final class DocumentController extends Controller
 
     /**
      * Files a file of *Upload*: the document, with its links. Back to
-     * *Upload* while other files wait, otherwise to *Documents*.
+     * *Upload* while other files wait, otherwise to the card the upload comes
+     * from, or to *Documents*.
      */
     public function store(SaveDocumentRequest $request): RedirectResponse
     {
@@ -97,9 +98,13 @@ final class DocumentController extends Controller
             $this->links->sync($document, $request->links());
         });
 
-        return File::query()->toSort()->exists()
-            ? to_route('upload', PresetLink::query($request->query('link')))
-            : to_route('documents.index');
+        $card = PresetLink::from($request->query('link'));
+
+        return match (true) {
+            File::query()->toSort()->exists() => to_route('upload', PresetLink::query($request->query('link'))),
+            $card !== null => to_route('cards.show', $card),
+            default => to_route('documents.index'),
+        };
     }
 
     /**

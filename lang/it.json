@@ -555,5 +555,7 @@
     "{0} No cards|{1} :count card|[2,*] :count cards": "{0} Nessuna scheda|{1} :count scheda|[2,*] :count schede",
     "{1} :count overdue|[2,*] :count overdue": "{1} :count scaduta|[2,*] :count scadute",
     "All areas": "Tutte le aree",
-    "Show the areas": "Mostra le aree"
+    "Show the areas": "Mostra le aree",
+    "Its documents? Drag them here, or choose them": "Hai già i suoi documenti? Trascinali qui, oppure sceglili",
+    "Remove :name": "Togli :name"
 }

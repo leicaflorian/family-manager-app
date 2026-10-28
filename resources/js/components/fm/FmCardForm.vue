@@ -37,6 +37,8 @@ const emit = defineEmits<{
 defineSlots<{
     /** On the left of the *Save* button, for example *Delete*. */
     start?: () => unknown;
+    /** Below the fields, above the buttons, for example the documents of a new card. */
+    end?: () => unknown;
 }>();
 
 /** The FormKit input of each kind of field. */
@@ -180,6 +182,7 @@ useSaveShortcut(save, () => !processing);
                 "
             />
         </template>
+        <slot name="end" />
         <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">
             <slot name="start" />
             <FmButton type="submit" class="ml-auto" :disabled="processing">

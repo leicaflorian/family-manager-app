@@ -14,6 +14,8 @@ use App\Models\User;
 use App\Queries\DocumentRows;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
+use App\Services\FileStore;
+use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,14 +58,22 @@ final class CardController extends Controller
     }
 
     /**
-     * Adds the card and opens it.
+     * Adds the card and opens it. With files, they wait for their document and
+     * *Upload* opens with the card among the links of each.
      */
-    public function store(SaveCardRequest $request, SaveCard $save): RedirectResponse
+    public function store(SaveCardRequest $request, SaveCard $save, FileStore $store): RedirectResponse
     {
         $type = $request->cardType();
         $card = $save->handle($type, $request->columns());
+        $files = $request->uploadedFiles();
 
-        return to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()]);
+        foreach ($files as $file) {
+            $store->store($file, toSort: true);
+        }
+
+        return $files === []
+            ? to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()])
+            : to_route('upload', PresetLink::of($type, $card));
     }
 
     /**

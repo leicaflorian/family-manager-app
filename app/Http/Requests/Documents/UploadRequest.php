@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Documents;
 
+use App\Http\Requests\Concerns\UploadsFiles;
 use App\Models\Document;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The files chosen in *Upload*: PDF, JPG, PNG or HEIC, at most 25 MB each.
- * The type is the real one, read from the content, not from the name.
+ * The files chosen in *Upload*: at least one, with the rules of `UploadsFiles`.
  */
 final class UploadRequest extends FormRequest
 {
-    /** The rule of one file of a document, here and when its file is changed. */
-    public const array FILE = ['required', 'file', 'mimes:pdf,jpg,jpeg,png,heic', 'max:25600'];
+    use UploadsFiles;
 
     /**
      * Whoever adds documents uploads their files.
@@ -32,10 +31,7 @@ final class UploadRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'files' => ['required', 'array', 'min:1', 'max:20'],
-            'files.*' => self::FILE,
-        ];
+        return $this->filesRules(required: true);
     }
 
     /**
@@ -45,14 +41,6 @@ final class UploadRequest extends FormRequest
      */
     public function messages(): array
     {
-        $tooBig = __('Each file can be at most 25 MB.');
-
-        return [
-            'files.required' => __('Choose at least one file.'),
-            'files.max' => __('Upload at most 20 files at a time.'),
-            'files.*.mimes' => __('Only PDF, JPG, PNG and HEIC files can be uploaded.'),
-            'files.*.max' => $tooBig,
-            'files.*.uploaded' => $tooBig,
-        ];
+        return $this->filesMessages();
     }
 }

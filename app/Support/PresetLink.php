@@ -6,6 +6,8 @@ namespace App\Support;
 
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 
 /**
  * The card an upload comes from (`?link=<type>:<id>`): read from the query only
@@ -48,5 +50,19 @@ final class PresetLink
         $preset = self::from($link);
 
         return $preset === null ? [] : ['link' => $preset['type'].':'.$preset['id']];
+    }
+
+    /**
+     * The query that opens the upload from a card.
+     *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card
+     * @return array{link: string}
+     *
+     * @throws InvalidArgumentException if the card has no numeric id
+     */
+    public static function of(CardType $type, Model $card): array
+    {
+        return ['link' => $type->type().':'.ModelId::of($card)];
     }
 }

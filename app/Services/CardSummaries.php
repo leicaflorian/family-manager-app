@@ -10,6 +10,7 @@ use App\Data\AreaCountData;
 use App\Data\AreaData;
 use App\Data\CardData;
 use App\Enums\Area;
+use App\Support\ModelId;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -38,7 +39,7 @@ final class CardSummaries
 
         return new CardData(
             type: $type->type(),
-            id: $this->idOf($card),
+            id: ModelId::of($card),
             type_label: $type->label(),
             label: $this->labelOf($card),
             area: $type->area()->value,
@@ -188,17 +189,5 @@ final class CardSummaries
         }
 
         return is_string($value) && $value !== '' ? CarbonImmutable::parse($value, 'Europe/Rome')->startOfDay() : null;
-    }
-
-    /**
-     * The id of the card as a number.
-     *
-     * @throws InvalidArgumentException if the card has no numeric id
-     */
-    private function idOf(Model $card): int
-    {
-        $id = $card->getKey();
-
-        return is_int($id) ? $id : throw new InvalidArgumentException($card::class.' has no numeric id.');
     }
 }

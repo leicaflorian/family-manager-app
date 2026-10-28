@@ -211,3 +211,16 @@ test('a link of another family is not carried through the upload', function (): 
         ->post(route('upload.store', ['link' => 'vehicle:'.$other->id]), ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')]])
         ->assertRedirect(route('upload'));
 });
+
+test('the last file uploaded from a card goes back to the card', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+    $link = 'vehicle:'.$panda->id;
+    $this->post(route('upload.store', ['link' => $link]), ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')]]);
+
+    $this->post(route('documents.store', ['link' => $link]), [
+        'file_id' => File::query()->sole()->id,
+        'title' => 'Libretto',
+        'status' => 'active',
+        'links' => [['type' => 'vehicle', 'id' => $panda->id]],
+    ])->assertSessionHasNoErrors()->assertRedirect(route('cards.show', ['type' => 'vehicle', 'id' => $panda->id]));
+});

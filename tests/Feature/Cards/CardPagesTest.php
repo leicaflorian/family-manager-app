@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Family;
+use App\Models\File;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
 use Database\Seeders\BianchiFamilySeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -160,4 +162,39 @@ test('it creates a home without the switch in the form', function (): void {
     $this->post(route('cards.store', 'home'), ['name' => 'Casa al mare'])->assertRedirect();
 
     expect(insideBianchi(fn (): bool => DB::table('homes')->where('name', 'Casa al mare')->sole()->is_owned === 0))->toBeTrue();
+});
+
+test('it creates a vehicle with its documents and opens the upload linked to it', function (): void {
+    $this->actingAs($this->marco);
+
+    // As the page sends it with files: form data, so the switch is "1" and an empty date "".
+    $response = $this->post(route('cards.store', 'vehicle'), [
+        'name' => 'Vespa', 'status' => 'active', 'is_owned' => '1', 'inspection_due_date' => '',
+        'files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf'), UploadedFile::fake()->create('Bollo.pdf', 120, 'application/pdf')],
+    ]);
+
+    $vespa = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Vespa')->sole());
+    $response->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => 'vehicle:'.$vespa->id]));
+    expect($vespa->is_owned)->toBeTrue()
+        ->and(insideBianchi(fn (): array => File::query()->toSort()->oldest('id')->pluck('original_name')->all()))->toBe(['Libretto.pdf', 'Bollo.pdf']);
+});
+
+test('it creates nothing when a document is not a file it takes', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->post(route('cards.store', 'vehicle'), [
+        'name' => 'Vespa', 'files' => [UploadedFile::fake()->create('Virus.exe', 120, 'application/x-msdownload')],
+    ])->assertSessionHasErrors(['files.0' => 'Only PDF, JPG, PNG and HEIC files can be uploaded.']);
+
+    expect(insideBianchi(fn (): bool => Vehicle::query()->where('name', 'Vespa')->exists()))->toBeFalse();
+});
+
+test('it takes documents only for a new card', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->put(route('cards.update', $this->pandaUrl), [
+        'name' => 'Fiat Panda', 'files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')],
+    ])->assertRedirect(route('cards.show', $this->pandaUrl));
+
+    expect(insideBianchi(fn (): bool => File::query()->toSort()->exists()))->toBeFalse();
 });

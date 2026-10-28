@@ -117,6 +117,25 @@ describe('FmCardForm', () => {
         ).toBeInTheDocument();
     });
 
+    it('shows what the page puts below the fields, above the buttons', () => {
+        render(FmCardForm, {
+            props: { fields: policyFields, values },
+            slots: { end: '<p>Its documents</p>' },
+            global: { plugins: [[formkit, formkitConfig]] },
+        });
+
+        const end = screen.getByText('Its documents');
+        expect(
+            screen.getByLabelText('Title').compareDocumentPosition(end) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+            end.compareDocumentPosition(
+                screen.getByRole('button', { name: 'Save' }),
+            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
     it('shows the name of a linked card when the server sends its id as a number', () => {
         renderPage(FmCardForm, {
             fields: policyFields,

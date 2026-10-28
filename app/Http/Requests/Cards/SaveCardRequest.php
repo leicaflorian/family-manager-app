@@ -9,6 +9,7 @@ use App\Cards\CardRules;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Cards\FieldKind;
+use App\Http\Requests\Concerns\UploadsFiles;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,10 +17,13 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * The form of a card, new or changed (only an `admin`). The fields and their
- * rules come from the description of the card type in the route.
+ * rules come from the description of the card type in the route; a new card
+ * can also bring the files of its documents.
  */
 final class SaveCardRequest extends FormRequest
 {
+    use UploadsFiles;
+
     /**
      * The card type of the `type` of the route, for example `vehicle`.
      *
@@ -57,13 +61,25 @@ final class SaveCardRequest extends FormRequest
     }
 
     /**
-     * The rules of the fields.
+     * The rules of the fields, and of the files on a new card.
      *
      * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
-        return CardRules::for($this->cardType());
+        $rules = CardRules::for($this->cardType());
+
+        return $this->card() instanceof Model ? $rules : [...$rules, ...$this->filesRules(required: false)];
+    }
+
+    /**
+     * The messages of the files that say what to do.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->filesMessages();
     }
 
     /**
