@@ -4,11 +4,14 @@
  * always in sight, and the ⋮ menu with *Edit* (the page of the document, as
  * its row), *Unlink* and *Delete* (for an `admin`), each after asking. The
  * page keeps its state, so in the form of the card what is written stays.
+ * In the form (`inForm`) only the menu is left, where the room is short, with
+ * *Open the file* first, and the links open in a new tab, so the form stays.
  */
 import { router } from '@inertiajs/vue3';
 import {
     EllipsisVertical,
     ExternalLink,
+    FileText,
     Pencil,
     Trash2,
     Unlink,
@@ -22,13 +25,20 @@ import FmConfirmDelete from './FmConfirmDelete.vue';
 import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
 
-const { document, card, canDelete } = defineProps<{
+const {
+    document,
+    card,
+    canDelete,
+    inForm = false,
+} = defineProps<{
     /** The document linked to the card. */
     document: App.Data.DocumentData;
     /** The address of the card in the routes: its type and its number. */
     card: { type: string; id: number };
     /** Whether whoever looks may delete the document. */
     canDelete: boolean;
+    /** In the form of the card: only the menu, and its links in a new tab. */
+    inForm?: boolean;
 }>();
 
 /** The panel that asks before unlinking, opened from the menu. */
@@ -50,6 +60,7 @@ function unlink(): void {
 <template>
     <div class="mr-3 flex shrink-0 items-center gap-1">
         <FmButton
+            v-if="!inForm"
             variant="text"
             :icon="ExternalLink"
             :label="$t('Open :title in a new tab', { title: document.title })"
@@ -62,7 +73,19 @@ function unlink(): void {
             :label="$t('More actions on :title', { title: document.title })"
             small
         >
-            <FmMenuItem :icon="Pencil" :href="show.url(document.id)">
+            <FmMenuItem
+                v-if="inForm"
+                :icon="FileText"
+                :href="document.file_url"
+                external
+            >
+                {{ $t('Open the file') }}
+            </FmMenuItem>
+            <FmMenuItem
+                :icon="Pencil"
+                :href="show.url(document.id)"
+                :external="inForm"
+            >
                 {{ $t('Edit') }}
             </FmMenuItem>
             <FmMenuItem :icon="Unlink" @select="confirmingUnlink = true">

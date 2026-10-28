@@ -2,14 +2,13 @@
 /**
  * The documents of a card on grey, beside its form, as the file beside *Edit
  * the document*: at the top the zone to add files, then the files chosen and
- * not saved yet, then the documents already linked, with the buttons of the
- * card page. Every row opens in a new tab, so the form is not left. Nothing is
- * sent here: the form sends the files with the card, and *Upload* opens to
- * file them.
+ * not saved yet, then the documents already linked, with the menu of the
+ * card page. Every row opens its file in a new tab, so the form is not left.
+ * Nothing is sent here: the form sends the files with the card, and *Upload*
+ * opens to file them.
  */
 import { X } from '@lucide/vue';
 import { onBeforeUnmount, useId, watch } from 'vue';
-import { show } from '@/routes/documents';
 import FmCardDocumentActions from './FmCardDocumentActions.vue';
 import FmDocumentRow from './FmDocumentRow.vue';
 import FmFileDrop from './FmFileDrop.vue';
@@ -130,6 +129,7 @@ function remove(index: number): void {
                     :subtitle="$t('To file after saving')"
                     :href="urlOf(file)"
                     external
+                    :arrow="false"
                 >
                     <template #before>
                         <FmFileTile />
@@ -158,7 +158,7 @@ function remove(index: number): void {
                 <FmDocumentRow
                     class="min-w-0 grow"
                     :document="document"
-                    :href="show.url(document.id)"
+                    :href="document.file_url"
                     external
                     dateless
                 />
@@ -167,6 +167,7 @@ function remove(index: number): void {
                     :document="document"
                     :card="card"
                     :can-delete="canDelete"
+                    in-form
                 />
             </div>
         </div>

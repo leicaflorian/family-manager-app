@@ -94,17 +94,17 @@ describe('FmCardFiles', () => {
         expect(before(chosen, linked)).toBe(true);
     });
 
-    it('opens a linked document in a new tab, with the buttons of the card page', () => {
+    it('opens the file of a linked document in a new tab, with only the menu beside it', () => {
         box({ documents: [healthCard], card, canDelete: true });
 
         const row = screen.getByRole('link', { name: /^Tessera sanitaria/ });
-        expect(row).toHaveAttribute('href', `/documents/${healthCard.id}`);
+        expect(row).toHaveAttribute('href', healthCard.file_url);
         expect(row).toHaveAttribute('target', '_blank');
         expect(
-            screen.getByRole('link', {
+            screen.queryByRole('link', {
                 name: 'Open Tessera sanitaria in a new tab',
             }),
-        ).toHaveAttribute('href', healthCard.file_url);
+        ).not.toBeInTheDocument();
         expect(
             screen.getByRole('button', {
                 name: 'More actions on Tessera sanitaria',
@@ -135,6 +135,8 @@ describe('FmCardFiles', () => {
         const row = screen.getByRole('link', { name: /^Libretto.pdf/ });
         expect(row).toHaveAttribute('href', 'blob:chosen');
         expect(row).toHaveAttribute('target', '_blank');
+        // Only the sheet of the file: no arrow, the ✕ follows
+        expect(row.querySelectorAll('svg')).toHaveLength(1);
 
         await userEvent.click(
             screen.getByRole('button', { name: 'Remove Libretto.pdf' }),

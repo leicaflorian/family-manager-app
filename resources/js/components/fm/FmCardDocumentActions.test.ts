@@ -47,9 +47,12 @@ describe('FmCardDocumentActions', () => {
 
         await openMenu();
 
+        const edit = await screen.findByRole('menuitem', { name: 'Edit' });
+        expect(edit).toHaveAttribute('href', `/documents/${healthCard.id}`);
+        expect(edit).not.toHaveAttribute('target');
         expect(
-            await screen.findByRole('menuitem', { name: 'Edit' }),
-        ).toHaveAttribute('href', `/documents/${healthCard.id}`);
+            screen.queryByRole('menuitem', { name: 'Open the file' }),
+        ).not.toBeInTheDocument();
     });
 
     it('unlinks only after asking', async () => {
@@ -100,6 +103,45 @@ describe('FmCardDocumentActions', () => {
             `/documents/${healthCard.id}?stay=1`,
             expect.objectContaining({ preserveState: true }),
         );
+    });
+
+    describe('in the form of the card', () => {
+        it('keeps only the menu, with Open the file first', async () => {
+            renderPage(FmCardDocumentActions, {
+                document: healthCard,
+                card,
+                canDelete: false,
+                inForm: true,
+            });
+
+            expect(
+                screen.queryByRole('link', {
+                    name: `Open ${healthCard.title} in a new tab`,
+                }),
+            ).not.toBeInTheDocument();
+
+            await openMenu();
+
+            const items = await screen.findAllByRole('menuitem');
+            expect(items[0]).toHaveTextContent('Open the file');
+            expect(items[0]).toHaveAttribute('href', healthCard.file_url);
+            expect(items[0]).toHaveAttribute('target', '_blank');
+        });
+
+        it('opens Edit in a new tab, so the form stays', async () => {
+            renderPage(FmCardDocumentActions, {
+                document: healthCard,
+                card,
+                canDelete: false,
+                inForm: true,
+            });
+
+            await openMenu();
+
+            const edit = await screen.findByRole('menuitem', { name: 'Edit' });
+            expect(edit).toHaveAttribute('href', `/documents/${healthCard.id}`);
+            expect(edit).toHaveAttribute('target', '_blank');
+        });
     });
 
     it('does not offer Delete to whoever may not delete', async () => {
