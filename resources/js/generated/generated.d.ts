@@ -26,6 +26,11 @@ readonly count: number,
 readonly overdue: number,
 readonly cards: App.Data.CardData[],
 };
+export type CardAddData = {
+readonly type: string,
+readonly label: string,
+readonly href: string,
+};
 export type CardData = {
 readonly type: string,
 readonly id: number,
@@ -51,6 +56,7 @@ readonly dates: App.Data.CardDateData[],
 readonly notices: string[],
 readonly values: App.Data.CardValueData[],
 readonly related: App.Data.CardData[],
+readonly addable: App.Data.CardAddData[],
 readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,

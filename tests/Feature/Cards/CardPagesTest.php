@@ -51,7 +51,7 @@ test('the card types carry the name of their area in the current language', func
 test('it lets only an admin create, edit and delete', function (): void {
     $this->actingAs($this->rosa);
 
-    $this->get(route('cards.create', ['type' => 'vehicle']))->assertForbidden();
+    $this->get(route('cards.create', ['card' => 'vehicle']))->assertForbidden();
     $this->post(route('cards.store', 'vehicle'), ['name' => 'Vespa'])->assertForbidden();
     $this->get(route('cards.edit', $this->pandaUrl))->assertForbidden();
     $this->put(route('cards.update', $this->pandaUrl), ['name' => 'Panda'])->assertForbidden();
@@ -103,8 +103,38 @@ test('it answers 404 for an unknown type or area', function (): void {
     $this->actingAs($this->marco);
 
     $this->get('/cards/spaceship/1')->assertNotFound();
-    $this->get('/cards/create?type=spaceship')->assertNotFound();
+    $this->get('/cards/create?card=spaceship')->assertNotFound();
     $this->get('/areas/garden')->assertNotFound();
+});
+
+test('it opens the form of a new card with the values of the address, but not the type of the card', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.create', ['card' => 'maintenance_record', 'target' => 'vehicle', 'vehicle_id' => $this->panda->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('cards/EditCard')
+            ->where('type.type', 'maintenance_record')
+            ->where('values.target', 'vehicle')
+            ->where('values.vehicle_id', (string) $this->panda->id)
+            ->missing('values.type'));
+});
+
+test('it offers an admin the cards that can be added linked to this one', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('card.addable', 2)
+        ->where('card.addable.0.label', 'Maintenance job')
+        ->where('card.addable.0.href', route('cards.create', ['card' => 'maintenance_record', 'target' => 'vehicle', 'vehicle_id' => $this->panda->id], false))
+        ->where('card.addable.1.label', 'Policy')
+        ->where('card.addable.1.href', route('cards.create', ['card' => 'insurance_policy', 'type' => 'car', 'vehicle_id' => $this->panda->id], false)));
+});
+
+test('it offers a member no card to add', function (): void {
+    $this->actingAs($this->rosa);
+
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('card.addable', []));
 });
 
 test('it creates a vehicle and opens it', function (): void {

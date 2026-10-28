@@ -34,6 +34,6 @@ it('opens the form when an area has one card type, the choice when it has more',
     ];
 
     expect(newCardUrl(types, 'home')).toBe('/cards/create?area=home');
-    expect(newCardUrl(types, 'vehicles')).toBe('/cards/create?type=vehicle');
+    expect(newCardUrl(types, 'vehicles')).toBe('/cards/create?card=vehicle');
     expect(newCardUrl([], 'work')).toBe('/cards/create?area=work');
 });

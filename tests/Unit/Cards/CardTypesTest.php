@@ -266,3 +266,31 @@ test('it recognises a card by a piece of its data, and warns from the saved data
 test('it finds no unknown type', function (): void {
     expect(CardTypes::find('spaceship'))->toBeNull();
 });
+
+test('it gives the card types a new card can be linked to, with the values that link it', function (string $type, array $expected): void {
+    $addable = array_map(
+        static fn (array $entry): array => [$entry['type']->type(), $entry['preset']],
+        CardTypes::addableTo(cardType($type), 5),
+    );
+
+    expect($addable)->toBe($expected);
+})->with([
+    'vehicle' => ['vehicle', [
+        ['maintenance_record', ['target' => 'vehicle', 'vehicle_id' => 5]],
+        ['insurance_policy', ['type' => 'car', 'vehicle_id' => 5]],
+    ]],
+    'home' => ['home', [
+        ['utility', ['home_id' => 5]],
+        ['belonging', ['home_id' => 5]],
+        ['maintenance_record', ['target' => 'home', 'home_id' => 5]],
+        ['insurance_policy', ['type' => 'home', 'home_id' => 5]],
+    ]],
+    'belonging' => ['belonging', [['maintenance_record', ['target' => 'belonging', 'belonging_id' => 5]]]],
+    'account' => ['financial_account', [
+        ['loan', ['financial_account_id' => 5]],
+        ['subscription', ['financial_account_id' => 5]],
+    ]],
+    // Three types of policy cover an employment: the person picks one, only the link is set.
+    'employment' => ['employment', [['insurance_policy', ['employment_id' => 5]]]],
+    'policy' => ['insurance_policy', []],
+]);

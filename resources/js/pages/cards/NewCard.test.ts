@@ -16,7 +16,7 @@ describe('New card', () => {
         ).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /Utility/ })).toHaveAttribute(
             'href',
-            '/cards/create?type=utility',
+            '/cards/create?card=utility',
         );
         expect(
             screen.getByText('Electricity, gas, water, internet, waste tax'),

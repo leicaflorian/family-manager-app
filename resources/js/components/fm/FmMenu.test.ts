@@ -1,6 +1,9 @@
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
+import type { LucideIcon } from '@lucide/vue';
+import { Plus } from '@lucide/vue';
+import type { PropType } from 'vue';
 import { defineComponent, h } from 'vue';
 import { renderPage } from '@/test/page';
 import FmMenu from './FmMenu.vue';
@@ -11,11 +14,12 @@ const Menu = defineComponent({
     props: {
         label: { type: String, default: undefined },
         small: { type: Boolean, default: false },
+        icon: { type: Function as PropType<LucideIcon>, default: undefined },
     },
     setup: (props) => () =>
         h(
             FmMenu,
-            { label: props.label, small: props.small },
+            { label: props.label, small: props.small, icon: props.icon },
             { default: () => h(FmMenuItem, null, () => 'Rename') },
         ),
 });
@@ -48,5 +52,13 @@ describe('FmMenu', () => {
         expect(
             screen.getByRole('button', { name: 'More actions' }),
         ).toHaveClass('size-10');
+    });
+
+    it('takes its own icon in place of the ⋯', () => {
+        renderPage(Menu, { label: 'Add', icon: Plus });
+
+        const button = screen.getByRole('button', { name: 'Add' });
+        expect(button.querySelector('.lucide-plus')).not.toBeNull();
+        expect(button.querySelector('.lucide-ellipsis')).toBeNull();
     });
 });

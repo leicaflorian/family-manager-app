@@ -47,7 +47,7 @@ describe('Area', () => {
         });
         expect(screen.getByRole('link', { name: 'New' })).toHaveAttribute(
             'href',
-            '/cards/create?type=vehicle',
+            '/cards/create?card=vehicle',
         );
     });
 

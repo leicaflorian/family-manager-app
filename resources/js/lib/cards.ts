@@ -63,6 +63,6 @@ export function newCardUrl(
     const [only] = ofArea;
 
     return only !== undefined && ofArea.length === 1
-        ? create({ query: { type: only.type } }).url
+        ? create({ query: { card: only.type } }).url
         : create({ query: { area } }).url;
 }

@@ -70,7 +70,7 @@ function tile(area: string): string {
                 <Link
                     v-for="type in group.types"
                     :key="type.type"
-                    :href="create({ query: { type: type.type } }).url"
+                    :href="create({ query: { card: type.type } }).url"
                     class="flex items-center gap-3 rounded-2xl bg-white p-4 text-inherit no-underline"
                 >
                     <span :class="tile(type.area)">

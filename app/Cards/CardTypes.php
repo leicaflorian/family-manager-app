@@ -99,6 +99,42 @@ final class CardTypes
     }
 
     /**
+     * The card types whose new card can be linked to a card of this type, in the
+     * order of *New card*, each with the values of its form that link it: the
+     * field that names the card and, when the field shows for one value only of
+     * another field, that value too (a policy of a vehicle is `car`).
+     *
+     * @param  CardType  $type  the type of the card the new one links to
+     * @param  int  $id  the id of that card
+     * @return list<array{type: CardType, preset: array<string, int|string>}>
+     */
+    public static function addableTo(CardType $type, int $id): array
+    {
+        $addable = [];
+
+        foreach (self::all() as $other) {
+            foreach ($other->fields() as $field) {
+                if ($field->kind !== FieldKind::Card || $field->target !== $type->type()) {
+                    continue;
+                }
+
+                $preset = [];
+
+                foreach ($field->showWhen as $column => $values) {
+                    // With more values (the policies of an employment) the person picks one.
+                    if (count($values) === 1) {
+                        $preset[$column] = $values[0];
+                    }
+                }
+
+                $addable[] = ['type' => $other, 'preset' => [...$preset, $field->column => $id]];
+            }
+        }
+
+        return $addable;
+    }
+
+    /**
      * The card types of an area, in the order of *New card*.
      *
      * @return list<CardType>

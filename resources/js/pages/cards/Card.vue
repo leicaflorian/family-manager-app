@@ -3,10 +3,11 @@
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
  * menu (Delete, for an `admin`, after asking); then the notices, the dates,
  * the data of the card, its documents (with *Upload* and *Link*, open to a
- * `member` too) and the cards it is linked to.
+ * `member` too) and the cards it is linked to, with the + that adds a new one
+ * already linked (for an `admin`).
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Link2, Pencil, Trash2, Unlink, Upload } from '@lucide/vue';
+import { Link2, Pencil, Plus, Trash2, Unlink, Upload } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
@@ -18,6 +19,8 @@ import FmCardHeader from '@/components/fm/FmCardHeader.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
+import FmMenu from '@/components/fm/FmMenu.vue';
+import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import type { Action } from '@/lib/actions';
@@ -153,15 +156,35 @@ function unlink(id: number): void {
                 </FmCard>
 
                 <FmCard
-                    v-if="card.related.length > 0"
+                    v-if="card.related.length > 0 || card.addable.length > 0"
                     :title="$t('Linked to')"
                     list
                 >
+                    <template v-if="card.addable.length > 0" #actions>
+                        <FmMenu
+                            :icon="Plus"
+                            :label="$t('Add a linked card')"
+                            small
+                        >
+                            <FmMenuItem
+                                v-for="entry in card.addable"
+                                :key="entry.type"
+                                :href="entry.href"
+                                >{{ entry.label }}</FmMenuItem
+                            >
+                        </FmMenu>
+                    </template>
                     <FmCardRow
                         v-for="related in card.related"
                         :key="`${related.type}-${related.id}`"
                         :card="related"
                     />
+                    <p
+                        v-if="card.related.length === 0"
+                        class="m-0 px-4 py-3.5 text-[15px] text-ink-soft"
+                    >
+                        {{ $t('Nothing linked yet.') }}
+                    </p>
                 </FmCard>
             </div>
 

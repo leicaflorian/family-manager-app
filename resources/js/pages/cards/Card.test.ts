@@ -35,6 +35,63 @@ describe('A card', () => {
         ).toHaveAttribute('href', '/cards/vehicle/1');
     });
 
+    it('offers the cards that can be added linked to this one', async () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                related: [],
+                addable: [
+                    {
+                        type: 'maintenance_record',
+                        label: 'Maintenance job',
+                        href: '/cards/create?card=maintenance_record&target=vehicle&vehicle_id=1',
+                    },
+                    {
+                        type: 'insurance_policy',
+                        label: 'Policy',
+                        href: '/cards/create?card=insurance_policy&type=car&vehicle_id=1',
+                    },
+                ],
+            },
+            linkable: [],
+        });
+
+        expect(
+            screen.getByRole('heading', { name: 'Linked to' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Nothing linked yet.')).toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Add a linked card' }),
+        );
+
+        expect(
+            await screen.findByRole('menuitem', { name: 'Maintenance job' }),
+        ).toHaveAttribute(
+            'href',
+            '/cards/create?card=maintenance_record&target=vehicle&vehicle_id=1',
+        );
+        expect(
+            screen.getByRole('menuitem', { name: 'Policy' }),
+        ).toHaveAttribute(
+            'href',
+            '/cards/create?card=insurance_policy&type=car&vehicle_id=1',
+        );
+    });
+
+    it('offers nothing to add, and hides Linked to when empty, to whoever cannot create', () => {
+        renderPage(Card, {
+            card: { ...policyDetail, related: [], addable: [] },
+            linkable: [],
+        });
+
+        expect(
+            screen.queryByRole('heading', { name: 'Linked to' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Add a linked card' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('goes back to the area', () => {
         renderPage(Card, { card: policyDetail, linkable: [] });
 

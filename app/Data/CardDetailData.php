@@ -22,6 +22,7 @@ final class CardDetailData extends Data
      * @param  list<string>  $notices  the notices the saved data gives
      * @param  list<CardValueData>  $values  the data, without the empty fields
      * @param  list<CardData>  $related  the linked cards, in both directions
+     * @param  list<CardAddData>  $addable  the cards whoever looks can add already linked to this one
      * @param  list<DocumentData>  $documents  the documents linked to the card
      * @param  bool  $can_edit  whether whoever looks can edit the card
      * @param  bool  $can_delete  whether whoever looks can delete the card
@@ -36,6 +37,8 @@ final class CardDetailData extends Data
         public readonly array $values,
         #[DataCollectionOf(CardData::class)]
         public readonly array $related,
+        #[DataCollectionOf(CardAddData::class)]
+        public readonly array $addable,
         #[DataCollectionOf(DocumentData::class)]
         public readonly array $documents,
         public readonly bool $can_edit,

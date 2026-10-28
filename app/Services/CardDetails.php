@@ -8,6 +8,7 @@ use App\Cards\CardField;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Cards\FieldKind;
+use App\Data\CardAddData;
 use App\Data\CardData;
 use App\Data\CardDateData;
 use App\Data\CardDetailData;
@@ -20,6 +21,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Queries\DocumentRows;
 use App\Support\Linkables;
+use App\Support\ModelId;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -59,6 +61,7 @@ final readonly class CardDetails
             notices: $type->notices($card),
             values: $this->values($type, $card),
             related: $this->related($type, $card),
+            addable: CardTypes::canCreate($user) ? $this->addable($type, $card) : [],
             documents: $this->documents->of(['record' => ['type' => $type->type(), 'id' => $row->id]]),
             can_edit: Gate::forUser($user)->allows('update', $card),
             can_delete: Gate::forUser($user)->allows('delete', $card),
@@ -209,6 +212,26 @@ final readonly class CardDetails
         }
 
         return $rows;
+    }
+
+    /**
+     * The cards that can be added already linked to this one, each with the
+     * address of its form.
+     *
+     * @return list<CardAddData>
+     *
+     * @throws InvalidArgumentException if the card has no numeric id
+     */
+    private function addable(CardType $type, Model $card): array
+    {
+        return array_map(
+            static fn (array $entry): CardAddData => new CardAddData(
+                type: $entry['type']->type(),
+                label: $entry['type']->label(),
+                href: route('cards.create', ['card' => $entry['type']->type(), ...$entry['preset']], false),
+            ),
+            CardTypes::addableTo($type, ModelId::of($card)),
+        );
     }
 
     /**

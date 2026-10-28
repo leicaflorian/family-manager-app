@@ -25,4 +25,16 @@ describe('FmCard', () => {
             'p-5',
         );
     });
+
+    it('shows the actions beside the title', () => {
+        render(FmCard, {
+            props: { title: 'Linked to' },
+            slots: { actions: '<button>Add</button>' },
+        });
+
+        const heading = screen.getByRole('heading', { name: 'Linked to' });
+        expect(heading.parentElement).toContainElement(
+            screen.getByRole('button', { name: 'Add' }),
+        );
+    });
 });

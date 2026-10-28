@@ -37,11 +37,11 @@ final class CardController extends Controller
 
     /**
      * *New card*: the choice of the type (only the ones of `?area=` if given),
-     * or the empty form of the type in `?type=`, with the values of the query as presets.
+     * or the empty form of the type in `?card=`, with the values of the query as presets.
      */
     public function create(Request $request): Response
     {
-        $type = $request->query('type');
+        $type = $request->query('card');
 
         if (is_string($type)) {
             $card = CardTypes::findOrFail($type);

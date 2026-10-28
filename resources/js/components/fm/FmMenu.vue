@@ -3,6 +3,7 @@
  * The ⋯ button that opens a small menu of the less frequent actions, so that
  * a title next to it keeps its room. The entries are `FmMenuItem`.
  */
+import type { LucideIcon } from '@lucide/vue';
 import { Ellipsis } from '@lucide/vue';
 import {
     DropdownMenuContent,
@@ -12,9 +13,15 @@ import {
 } from 'reka-ui';
 import FmButton from './FmButton.vue';
 
-const { label, small = false } = defineProps<{
+const {
+    label,
+    small = false,
+    icon,
+} = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
     label?: string;
+    /** The icon of the button; the ⋯ if missing. */
+    icon?: LucideIcon;
     /** The smaller ⋯ button, 40 px, as beside the title of a panel. */
     small?: boolean;
 }>();
@@ -31,7 +38,7 @@ defineSlots<{
         <DropdownMenuTrigger as-child>
             <FmButton
                 variant="soft"
-                :icon="Ellipsis"
+                :icon="icon ?? Ellipsis"
                 :label="label ?? $t('More actions')"
                 :small="small"
             />

@@ -414,6 +414,7 @@ export const policyDetail: App.Data.CardDetailData = {
     notices: [],
     values: [{ label: 'Type', text: 'Car', href: null }],
     related: [pandaRow],
+    addable: [],
     documents: [healthCard],
     can_edit: true,
     can_delete: true,
