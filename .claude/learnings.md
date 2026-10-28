@@ -15,3 +15,8 @@ Cose da ricordare lavorando su questo progetto, scritte dall'agente man mano che
   - Le regole per scrivere una voce sono in `.claude/voci-del-todo.md` del repository `family-manager-cms`, non di questo.
   - Le voci di questa app: *Nuova app per le famiglie in Laravel*, *Nuova app - base dell'app*, *Nuova app - le pagine delle schede*.
   - Quando il proprietario nomina una voce, la si cerca lì e se ne leggono analisi e piano prima di scrivere codice.
+
+## Codice
+
+- **Le fixture del frontend hanno la forma che manda il server** (28/10/2026, pagine delle schede): due errori sono passati a tutti i test perché `resources/js/test/fixtures.ts` aveva gli id come testo mentre il server li mandava come numeri, e un interruttore FormKit mai toccato arrivava `null` a una colonna NOT NULL (errore 500). Una fixture nuova si copia da quello che manda il controller (o dal test Pest della classe dati), e un modulo ha un test che parte da valori come quelli del server; un `toggle` non toccato si manda `false`.
+- **Un testo che vede la persona ha la chiave sua se il significato cambia**: la stessa chiave inglese (`"Link"`) era sia il campo URL di un abbonamento sia il tasto *Collega*, e in italiano non si possono tradurre tutte e due.
