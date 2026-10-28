@@ -1,14 +1,14 @@
-# Family Manager - app per le famiglie
+# Family Manager - app for families
 
-La nuova app di Family Manager, pensata per genitori che non sono tecnici. Prenderà il posto dell'interfaccia di Directus del repository `family-manager-cms`, e si potrà vendere ad altre famiglie: ogni famiglia vede solo i suoi dati.
+The new Family Manager app, made for parents who are not technical. It will replace the Directus interface of the `family-manager-cms` repository, and it can be sold to other families: each family sees only its own data.
 
-È fatta in Laravel 13 dallo starter kit per Vue (Inertia, Vue 3, TypeScript, Tailwind 4, Fortify per l'accesso, Wayfinder per le rotte), e gira in Docker con Laravel Sail. Il prototipo della tappa 1 non c'è più: si recupera dalla storia di git, commit `54a6702` (`git show 54a6702:prototype/…`).
+It is built with Laravel 13 from the Vue starter kit (Inertia, Vue 3, TypeScript, Tailwind 4, Fortify for sign-in, Wayfinder for the routes), and runs in Docker with Laravel Sail. The stage 1 prototype is gone: it can be recovered from the git history, commit `54a6702` (`git show 54a6702:prototype/…`).
 
-Il codice è in inglese e l'app parla inglese e italiano: prende la lingua del browser, e senza una delle due usa `APP_LOCALE` (`it`). Le traduzioni italiane sono in `lang/it.json` e `lang/it/`; come si aggiunge un testo è in `AGENTS.md`.
+The code is in English and the app speaks English and Italian: it takes the browser's language, and when it is neither of the two it uses `APP_LOCALE` (`it`). The Italian translations are in `lang/it.json` and `lang/it/`; how to add a text is in `AGENTS.md`.
 
-## Avviare l'app
+## Starting the app
 
-Serve Docker. La prima volta:
+You need Docker. The first time:
 
 ```bash
 cp .env.example .env
@@ -19,46 +19,46 @@ docker run --rm -v "$PWD":/app -w /app composer:2 composer install
 ./vendor/bin/sail npm install
 ```
 
-I campi dei moduli sono di FormKit Pro: la sua chiave va scritta in `VITE_FORMKIT_PRO_KEY` del `.env` prima di `npm run dev` o `npm run build`.
+The form fields come from FormKit Pro: its key goes in `VITE_FORMKIT_PRO_KEY` in `.env` before `npm run dev` or `npm run build`.
 
-Per le anteprime dei documenti l'app usa `pdftoppm` (`poppler-utils`) e `heif-convert` (`libheif-examples`) e l'estensione `ext-gd` di PHP: l'immagine di Sail (`docker/8.5/`, Ubuntu 24.04, che aggiunge `libheif-plugin-libde265` per leggere gli HEIC) e `nixpacks.toml` (Ubuntu 22.04, dove quel decoder è già in `libheif1`) li installano, quindi non c'è niente da aggiungere. Se in locale l'anteprima non compare dopo un aggiornamento, si ricostruisce l'immagine con `./vendor/bin/sail build --no-cache`.
+For the document previews the app uses `pdftoppm` (`poppler-utils`), `heif-convert` (`libheif-examples`) and PHP's `ext-gd` extension. The Sail image (`docker/8.5/`, Ubuntu 24.04, which adds `libheif-plugin-libde265` to read HEIC files) and `nixpacks.toml` (Ubuntu 22.04, where that decoder is already in `libheif1`) install them, so there is nothing to add. If a preview does not show up locally after an update, rebuild the image with `./vendor/bin/sail build --no-cache`.
 
-Poi, ogni volta:
+Then, every time:
 
 ```bash
 ./vendor/bin/sail up -d
 ./vendor/bin/sail npm run dev
 ```
 
-L'app è su http://localhost:8090, le email che manda su Mailpit, http://localhost:8025.
+The app is on http://localhost:8090, the emails it sends on Mailpit, http://localhost:8025.
 
-## Account di prova
+## Test accounts
 
-Il seeder crea la famiglia Bianchi della tela. La password è `password` per tutti gli account:
+The seeder creates the Bianchi family from the design board. The password is `password` for every account:
 
-| Account | Chi è | Livello |
+| Account | Who | Level |
 | --- | --- | --- |
-| `marco.bianchi@example.com` | Marco Bianchi | Tutto |
-| `laura.bianchi@example.com` | Laura Bianchi | Tutto |
+| `marco.bianchi@example.com` | Marco Bianchi | Everything |
+| `laura.bianchi@example.com` | Laura Bianchi | Everything |
 
-Giulia, la figlia, non ha un account.
+Giulia, the daughter, has no account.
 
-## Comandi
+## Commands
 
-L'elenco completo dei comandi, con le regole del codice, è in `AGENTS.md`. I più usati:
+The full list of commands, with the code rules, is in `AGENTS.md`. The most used:
 
-| Comando | Cosa fa |
+| Command | What it does |
 | --- | --- |
-| `./vendor/bin/sail test` | Test PHP |
-| `./vendor/bin/sail npm run test` | Test del frontend |
-| `./vendor/bin/sail npm run build` | Build del frontend |
-| `./vendor/bin/sail artisan migrate:fresh --seed` | Rifà il database con la famiglia Bianchi |
-| `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copia una famiglia da Directus |
+| `./vendor/bin/sail test` | PHP tests |
+| `./vendor/bin/sail npm run test` | Frontend tests |
+| `./vendor/bin/sail npm run build` | Frontend build |
+| `./vendor/bin/sail artisan migrate:fresh --seed` | Rebuilds the database with the Bianchi family |
+| `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copies a family from Directus |
 
-## Copia da Directus
+## Copy from Directus
 
-`directus:copy --family="<nome>"` copia nell'app la famiglia che sta in Directus: persone, enti, schede, documenti con i loro file e collegamenti, promemoria e gli account delle persone (con l'email di Directus e una password nuova, da scegliere con *Password dimenticata*). Directus si legge in sola lettura: la connessione `directus` prende le variabili `DIRECTUS_DB_*` del `.env`, e la cartella dei file di Directus si monta in sola lettura da `DIRECTUS_UPLOADS_SOURCE` (di default `../family-manager-cms/uploads`). Se la famiglia c'è già si ferma; `--replace` la elimina con i suoi file e la rifà, ma solo se era stata copiata da Directus (una famiglia omonima iscritta dall'app non si tocca), `--without-files` non copia il contenuto dei file. Cosa copia e cosa no è nella nota *Copia da Directus* del vault (`02 - Documentazione tecnica/App Laravel/`).
+`directus:copy --family="<name>"` copies the family stored in Directus into the app: people, organizations, records, documents with their files and links, reminders, and the people's accounts (with their Directus email and a new password, chosen through *Forgot password*). Directus is read only: the `directus` connection takes the `DIRECTUS_DB_*` variables from `.env`, and the Directus files folder is mounted read only from `DIRECTUS_UPLOADS_SOURCE` (by default `../family-manager-cms/uploads`). If the family is already there the command stops; `--replace` deletes it with its files and copies it again, but only if it was copied from Directus (a family with the same name that signed up in the app is never touched), and `--without-files` does not copy the content of the files. What is copied and what is not is in the *Copia da Directus* note of the vault (`02 - Documentazione tecnica/App Laravel/`).
 
-## Documentazione
+## Documentation
 
-Analisi, piano e decisioni sono nel vault Obsidian del progetto, voci del ToDo *Nuova app per le famiglie in Laravel* e *Nuova app - base dell'app*. Le schermate approvate sono sulla tela di Claude Design *Family Manager - app per le famiglie*.
+Analysis, plan and decisions are in the project's Obsidian vault, ToDo items *Nuova app per le famiglie in Laravel* and *Nuova app - base dell'app*. The approved screens are on the Claude Design board *Family Manager - app per le famiglie*.
