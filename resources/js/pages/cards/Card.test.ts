@@ -176,9 +176,13 @@ describe('A card', () => {
 
         await userEvent.click(
             screen.getByRole('button', {
-                name: `Unlink ${healthCard.title}`,
+                name: `More actions on ${healthCard.title}`,
             }),
         );
+        await userEvent.click(
+            await screen.findByRole('menuitem', { name: 'Unlink' }),
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Unlink' }));
 
         expect(destroy).toHaveBeenCalledWith(
             `/cards/insurance_policy/1/documents/${healthCard.id}`,

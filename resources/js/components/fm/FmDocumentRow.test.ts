@@ -12,6 +12,7 @@ const document: App.Data.DocumentData = {
     expiry_date: '2026-10-20',
     status: 'active',
     mime_type: 'application/pdf',
+    file_url: '/files/5',
 };
 
 describe('FmDocumentRow', () => {

@@ -60,6 +60,7 @@ readonly addable: App.Data.CardAddData[],
 readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+readonly can_delete_documents: boolean,
 };
 export type CardFieldData = {
 readonly column: string,
@@ -100,6 +101,7 @@ readonly date: string | null,
 readonly expiry_date: string | null,
 readonly status: string,
 readonly mime_type: string,
+readonly file_url: string,
 };
 export type DocumentDetailData = {
 readonly id: number,

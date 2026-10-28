@@ -24,6 +24,7 @@ final class DocumentData extends Data
      * @param  string|null  $expiry_date  the expiry, ISO
      * @param  string  $status  `active`, `archived` or `expired`
      * @param  string  $mime_type  the type of its file, for the icon
+     * @param  string  $file_url  the address that opens its file
      */
     public function __construct(
         public readonly int $id,
@@ -35,6 +36,7 @@ final class DocumentData extends Data
         public readonly ?string $expiry_date,
         public readonly string $status,
         public readonly string $mime_type,
+        public readonly string $file_url,
     ) {}
 
     /**
@@ -55,6 +57,7 @@ final class DocumentData extends Data
             expiry_date: $document->expiry_date?->toDateString(),
             status: $document->status->value,
             mime_type: $document->file->mime_type,
+            file_url: route('files.show', $document->file),
         );
     }
 }

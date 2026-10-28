@@ -26,6 +26,7 @@ final class CardDetailData extends Data
      * @param  list<DocumentData>  $documents  the documents linked to the card
      * @param  bool  $can_edit  whether whoever looks can edit the card
      * @param  bool  $can_delete  whether whoever looks can delete the card
+     * @param  bool  $can_delete_documents  whether whoever looks can delete the documents of the card
      */
     public function __construct(
         public readonly CardData $card,
@@ -43,5 +44,6 @@ final class CardDetailData extends Data
         public readonly array $documents,
         public readonly bool $can_edit,
         public readonly bool $can_delete,
+        public readonly bool $can_delete_documents,
     ) {}
 }

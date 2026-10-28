@@ -16,6 +16,7 @@ use App\Data\CardFieldData;
 use App\Data\CardTypeData;
 use App\Data\CardValueData;
 use App\Data\OptionData;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -65,6 +66,7 @@ final readonly class CardDetails
             documents: $this->documents->of(['record' => ['type' => $type->type(), 'id' => $row->id]]),
             can_edit: Gate::forUser($user)->allows('update', $card),
             can_delete: Gate::forUser($user)->allows('delete', $card),
+            can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
         );
     }
 

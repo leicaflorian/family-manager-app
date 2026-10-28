@@ -60,6 +60,16 @@ class FamilyPolicy
     }
 
     /**
+     * Deleting rows of the family, before choosing one: only an `admin`.
+     *
+     * @param  User  $user  whoever signed in
+     */
+    public function deleteAny(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    /**
      * Deleting: only an `admin` of the family.
      *
      * @param  User  $user  whoever signed in
@@ -67,7 +77,7 @@ class FamilyPolicy
      */
     public function delete(User $user, FamilyModel $model): bool
     {
-        return $user->isAdmin() && $this->ofFamily($user, $model);
+        return $this->deleteAny($user) && $this->ofFamily($user, $model);
     }
 
     /**

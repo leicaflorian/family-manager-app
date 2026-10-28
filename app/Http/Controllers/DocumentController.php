@@ -21,6 +21,7 @@ use App\Services\FileStore;
 use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -136,8 +137,13 @@ final class DocumentController extends Controller
 
     /**
      * Deletes the document, with its links and its file (only an `admin`).
+     * With `stay`, it goes back to the page it came from instead of the list.
+     *
+     * @param  Request  $request  the request, with `stay` when the person stays on the page
+     * @param  Document  $document  the document
+     * @param  FileStore  $store  where the files are kept
      */
-    public function destroy(Document $document, FileStore $store): RedirectResponse
+    public function destroy(Request $request, Document $document, FileStore $store): RedirectResponse
     {
         Gate::authorize('delete', $document);
 
@@ -147,7 +153,8 @@ final class DocumentController extends Controller
             $store->delete($document->file);
         });
 
-        return to_route('documents.index');
+        // From a page that lists the document (a card), the person stays there
+        return $request->boolean('stay') ? back() : to_route('documents.index');
     }
 
     /**

@@ -158,6 +158,17 @@ describe('FmButton', () => {
         expect(link).toHaveAttribute('rel', 'noopener');
     });
 
+    it('inline is a text as tall as the title beside it, without the 46 px box', () => {
+        render(FmButton, {
+            props: { variant: 'text', icon: Pencil, inline: true },
+            slots: { default: 'Upload' },
+        });
+
+        const button = screen.getByRole('button', { name: 'Upload' });
+        expect(button).toHaveClass('h-auto', 'px-0', 'font-semibold');
+        expect(button).not.toHaveClass('h-11.5', 'px-3');
+    });
+
     it('on a colour is translucent white, a bit stronger on hover', () => {
         onColor({ variant: 'soft', icon: Pencil }, 'Edit');
 

@@ -181,6 +181,7 @@ export const healthCard: App.Data.DocumentData = {
     expiry_date: '2026-10-20',
     status: 'active',
     mime_type: 'application/pdf',
+    file_url: '/files/21',
 };
 
 /** Three organizations of the Bianchis, by name. */
@@ -418,6 +419,7 @@ export const policyDetail: App.Data.CardDetailData = {
     documents: [healthCard],
     can_edit: true,
     can_delete: true,
+    can_delete_documents: true,
 };
 
 /** The nine areas with their active cards, as the sidebar receives them. */

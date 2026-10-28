@@ -71,6 +71,20 @@ test('it lets a member link and unlink a document', function (): void {
     expect($linked())->toBeFalse();
 });
 
+test('the documents of a card carry the address of their file, and only an admin may delete them', function (User $user, bool $canDelete): void {
+    $this->actingAs($user);
+    $this->post(route('cards.documents.store', $this->pandaUrl), ['document_id' => $this->booklet->id]);
+
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('card.documents', fn ($documents): bool => collect($documents)
+            ->contains(fn (array $document): bool => $document['id'] === $this->booklet->id
+                && $document['file_url'] === route('files.show', $this->booklet->file_id)))
+        ->where('card.can_delete_documents', $canDelete));
+})->with([
+    'admin' => fn (): array => [User::query()->where('email', 'marco.bianchi@example.com')->sole(), true],
+    'member' => fn (): array => [User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]), false],
+]);
+
 test('it answers 404 for another family', function (): void {
     $this->actingAs(registerFamily('Rossi', 'mario@rossi.example'));
 

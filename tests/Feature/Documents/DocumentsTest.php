@@ -153,6 +153,14 @@ test('the deletion by an admin removes the document, its links and its file', fu
     Storage::disk('local')->assertMissing($path);
 });
 
+test('the deletion asked to stay goes back to the page it came from', function (): void {
+    $from = route('cards.show', ['type' => 'employment', 'id' => $this->employment->id]);
+
+    $this->from($from)->delete(route('documents.destroy', ['document' => $this->document, 'stay' => 1]))->assertRedirect($from);
+
+    expect(Document::query()->find($this->document->id))->toBeNull();
+});
+
 test('a member who calls the deletion gets 403, and the document stays', function (): void {
     $member = User::factory()->for($this->marco->family)->create(['email_verified_at' => now()]);
 

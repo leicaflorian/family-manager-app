@@ -3,11 +3,12 @@
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
  * menu (Delete, for an `admin`, after asking); then the notices, the dates,
  * the data of the card, its documents (with *Upload* and *Link*, open to a
- * `member` too) and the cards it is linked to, with the + that adds a new one
- * already linked (for an `admin`).
+ * `member` too, and beside each the buttons of `FmCardDocumentActions`) and
+ * the cards it is linked to, with the + that adds a new one already linked
+ * (for an `admin`).
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Link2, Pencil, Plus, Trash2, Unlink, Upload } from '@lucide/vue';
+import { Link2, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
@@ -16,6 +17,7 @@ import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCardHeader from '@/components/fm/FmCardHeader.vue';
+import FmCardDocumentActions from '@/components/fm/FmCardDocumentActions.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
@@ -28,10 +30,7 @@ import { documentSubtitle } from '@/lib/documents';
 import { upload } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
-import {
-    destroy as unlinkDocument,
-    store as linkDocument,
-} from '@/routes/cards/documents';
+import { store as linkDocument } from '@/routes/cards/documents';
 import { show as showDocument } from '@/routes/documents';
 
 const { card, linkable } = defineProps<{
@@ -88,17 +87,6 @@ function link(id: number): void {
         { document_id: id },
         { preserveScroll: true, onSuccess: () => (linking.value = false) },
     );
-}
-
-/**
- * Removes the link between a document and the card; the document stays.
- *
- * @param id - the id of the document
- */
-function unlink(id: number): void {
-    router.delete(unlinkDocument.url({ ...address.value, document: id }), {
-        preserveScroll: true,
-    });
 }
 </script>
 
@@ -193,17 +181,19 @@ function unlink(id: number): void {
                     <h2 class="m-0 text-[17px] font-bold">
                         {{ $t('Documents') }}
                     </h2>
-                    <div class="flex gap-2">
+                    <div class="flex gap-4">
                         <FmButton
                             v-if="linkable.length > 0"
-                            variant="outline"
+                            variant="text"
+                            inline
                             :icon="Link2"
                             @click="linking = true"
                             >{{ $t('Link document') }}</FmButton
                         >
                         <FmButton
-                            variant="soft"
-                            :icon="Upload"
+                            variant="text"
+                            inline
+                            :icon="Plus"
                             :href="
                                 upload({
                                     query: {
@@ -229,17 +219,11 @@ function unlink(id: number): void {
                             :document="document"
                             :href="showDocument.url(document.id)"
                         />
-                        <button
-                            type="button"
-                            class="mr-3 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-ink-soft hover:bg-action-soft"
-                            :aria-label="
-                                $t('Unlink :title', { title: document.title })
-                            "
-                            :title="$t('Unlink a document')"
-                            @click="unlink(document.id)"
-                        >
-                            <Unlink :size="18" />
-                        </button>
+                        <FmCardDocumentActions
+                            :document="document"
+                            :card="address"
+                            :can-delete="card.can_delete_documents"
+                        />
                     </div>
                     <p
                         v-if="card.documents.length === 0"
