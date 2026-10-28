@@ -272,7 +272,7 @@ function link(id: number): void {
         </div>
 
         <FmBottomSheet v-model:open="linking" :title="$t('Link a document')">
-            <div class="flex min-h-0 flex-col gap-3.5">
+            <div class="flex h-[min(600px,70dvh)] min-h-0 flex-col gap-3.5">
                 <FmSearchField
                     v-model="search"
                     :label="$t('Search a document')"
