@@ -97,7 +97,9 @@ describe('A card', () => {
             ],
         });
 
-        await userEvent.click(screen.getByRole('button', { name: 'Link' }));
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Link document' }),
+        );
         await userEvent.click(
             await screen.findByRole('button', {
                 name: /Libretto di circolazione/,
@@ -107,6 +109,22 @@ describe('A card', () => {
         expect(post).toHaveBeenCalledWith(
             '/cards/insurance_policy/1/documents',
             { document_id: 30 },
+            expect.anything(),
+        );
+    });
+
+    it('unlinks a document from the card', async () => {
+        const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+        renderPage(Card, { card: policyDetail, linkable: [] });
+
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: `Unlink ${healthCard.title}`,
+            }),
+        );
+
+        expect(destroy).toHaveBeenCalledWith(
+            `/cards/insurance_policy/1/documents/${healthCard.id}`,
             expect.anything(),
         );
     });

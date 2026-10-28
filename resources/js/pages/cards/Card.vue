@@ -6,7 +6,7 @@
  * `member` too) and the cards it is linked to.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Link2, Pencil, Trash2, Upload } from '@lucide/vue';
+import { Link2, Pencil, Trash2, Unlink, Upload } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
@@ -25,7 +25,10 @@ import { documentSubtitle } from '@/lib/documents';
 import { upload } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
-import { store as linkDocument } from '@/routes/cards/documents';
+import {
+    destroy as unlinkDocument,
+    store as linkDocument,
+} from '@/routes/cards/documents';
 import { show as showDocument } from '@/routes/documents';
 
 const { card, linkable } = defineProps<{
@@ -82,6 +85,17 @@ function link(id: number): void {
         { document_id: id },
         { preserveScroll: true, onSuccess: () => (linking.value = false) },
     );
+}
+
+/**
+ * Removes the link between a document and the card; the document stays.
+ *
+ * @param id - the id of the document
+ */
+function unlink(id: number): void {
+    router.delete(unlinkDocument.url({ ...address.value, document: id }), {
+        preserveScroll: true,
+    });
 }
 </script>
 
@@ -162,7 +176,7 @@ function link(id: number): void {
                             variant="outline"
                             :icon="Link2"
                             @click="linking = true"
-                            >{{ $t('Link') }}</FmButton
+                            >{{ $t('Link document') }}</FmButton
                         >
                         <FmButton
                             variant="soft"
@@ -182,12 +196,28 @@ function link(id: number): void {
                     v-auto-animate
                     class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
                 >
-                    <FmDocumentRow
+                    <div
                         v-for="document in card.documents"
                         :key="document.id"
-                        :document="document"
-                        :href="showDocument.url(document.id)"
-                    />
+                        class="flex items-center"
+                    >
+                        <FmDocumentRow
+                            class="min-w-0 grow"
+                            :document="document"
+                            :href="showDocument.url(document.id)"
+                        />
+                        <button
+                            type="button"
+                            class="mr-3 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-ink-soft hover:bg-action-soft"
+                            :aria-label="
+                                $t('Unlink :title', { title: document.title })
+                            "
+                            :title="$t('Unlink a document')"
+                            @click="unlink(document.id)"
+                        >
+                            <Unlink :size="18" />
+                        </button>
+                    </div>
                     <p
                         v-if="card.documents.length === 0"
                         class="m-0 p-5 text-[15px] text-ink-soft"
