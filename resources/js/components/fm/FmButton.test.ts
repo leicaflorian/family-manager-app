@@ -50,6 +50,16 @@ describe('FmButton', () => {
         expect(button).not.toHaveClass('bg-action-soft');
     });
 
+    it('plain and with label has no background until hovered, as beside a row', () => {
+        render(FmButton, {
+            props: { icon: Pencil, label: 'Edit', small: true, plain: true },
+        });
+
+        const button = screen.getByRole('button', { name: 'Edit' });
+        expect(button).toHaveClass('bg-transparent', 'hover:bg-canvas');
+        expect(button).not.toHaveClass('bg-canvas');
+    });
+
     it('small and with label is a square of 40 px, as beside the title of a panel', () => {
         render(FmButton, {
             props: { icon: Pencil, label: 'Edit', small: true },

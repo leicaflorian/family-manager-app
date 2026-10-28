@@ -4,7 +4,8 @@
  * from the description of the fields the server gives. A new card is sent with
  * POST and opens; a change is sent with PUT. On the left, the box of its
  * documents: the ones linked and the files to add, sent with the card, after
- * which *Upload* opens to file them.
+ * which *Upload* opens to file them; the documents chosen in *Link* and those
+ * marked to unlink go with the card too, and change only when it is saved.
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -28,6 +29,10 @@ const {
     card,
     documents = [],
     canDeleteDocuments = false,
+    linkable = [],
+    linkableNext = null,
+    linkableSearch = '',
+    hasLinkable = false,
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -41,6 +46,14 @@ const {
     documents?: App.Data.DocumentData[];
     /** Whether whoever edits may delete the linked documents. */
     canDeleteDocuments?: boolean;
+    /** The pages loaded so far of the documents that can be linked, for *Link*. */
+    linkable?: App.Data.DocumentData[];
+    /** The number of the next page of `linkable`, null at the last one. */
+    linkableNext?: number | null;
+    /** The search that `linkable` answers. */
+    linkableSearch?: string;
+    /** At least one document of the family can be linked. */
+    hasLinkable?: boolean;
 }>();
 
 /** The form is being sent. */
@@ -51,6 +64,12 @@ const serverErrors = ref<Partial<Record<string, string>>>({});
 
 /** The files of new documents of the card, sent with it. */
 const files = ref<File[]>([]);
+
+/** The documents chosen in *Link*, linked when the card is saved. */
+const link = ref<App.Data.DocumentData[]>([]);
+
+/** The ids of the linked documents to unlink when the card is saved. */
+const unlink = ref<number[]>([]);
 
 /** The messages of the files refused (`files.0`, …), all in one notice. */
 const fileErrors = computed(() => listErrors(serverErrors.value, 'files'));
@@ -79,9 +98,14 @@ function save(data: Record<string, unknown>): void {
             (serverErrors.value = errors),
         onFinish: () => (processing.value = false),
     };
-    const payload = (
-        files.value.length > 0 ? { ...data, files: files.value } : data
-    ) as RequestPayload;
+    const payload = {
+        ...data,
+        ...(files.value.length > 0 && { files: files.value }),
+        ...(link.value.length > 0 && {
+            link_documents: link.value.map((document) => document.id),
+        }),
+        ...(unlink.value.length > 0 && { unlink_documents: unlink.value }),
+    } as RequestPayload;
 
     // Always a POST: PHP does not read the files of a PUT, so a change goes
     // with the real method in _method
@@ -119,10 +143,16 @@ function save(data: Record<string, unknown>): void {
         >
             <FmCardFiles
                 v-model:files="files"
+                v-model:link="link"
+                v-model:unlink="unlink"
                 :documents="documents"
                 :card="card ? { type: card.type, id: card.id } : undefined"
                 :can-delete="canDeleteDocuments"
                 :errors="fileErrors"
+                :linkable="linkable"
+                :linkable-next="linkableNext"
+                :linkable-search="linkableSearch"
+                :has-linkable="hasLinkable"
             />
             <div class="rounded-3xl bg-white p-5 lg:p-7">
                 <FmCardForm

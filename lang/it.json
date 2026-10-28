@@ -565,5 +565,9 @@
     "Remove :name": "Togli :name",
     "No documents yet": "Ancora nessun documento",
     "To file after saving": "Da archiviare dopo aver salvato",
-    "No document found.": "Nessun documento trovato."
+    "No document found.": "Nessun documento trovato.",
+    "Linked when you save": "Si collega al salvataggio",
+    "Unlinked when you save": "Si scollega al salvataggio",
+    "Keep :title linked": "Lascia collegato :title",
+    "Undo": "Annulla"
 }

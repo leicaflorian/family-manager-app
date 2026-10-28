@@ -216,6 +216,52 @@ describe('Edit a card', () => {
             );
         });
 
+        it('links and unlinks the documents chosen only when the card is saved', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            const destroy = vi
+                .spyOn(router, 'delete')
+                .mockImplementation(() => {});
+            renderPage(EditCard, {
+                type,
+                fields: policyFields,
+                values: { title: 'RC auto Panda', type: 'car' },
+                card: policyDetail.card,
+                documents: [healthCard],
+                linkable: [{ ...healthCard, id: 30, title: 'Libretto' }],
+                hasLinkable: true,
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Link document' }),
+            );
+            await userEvent.click(
+                await screen.findByRole('button', { name: /^Libretto/ }),
+            );
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: `More actions on ${healthCard.title}`,
+                }),
+            );
+            await userEvent.click(
+                await screen.findByRole('menuitem', { name: 'Unlink' }),
+            );
+            expect(post).not.toHaveBeenCalled();
+            expect(destroy).not.toHaveBeenCalled();
+
+            await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+            await settle();
+
+            expect(post).toHaveBeenCalledWith(
+                '/cards/insurance_policy/1',
+                expect.objectContaining({
+                    _method: 'put',
+                    link_documents: [30],
+                    unlink_documents: [healthCard.id],
+                }),
+                expect.anything(),
+            );
+        });
+
         it('sends no files when none is chosen', async () => {
             const post = vi.spyOn(router, 'post').mockImplementation(() => {});
             renderPage(EditCard, {
@@ -229,6 +275,12 @@ describe('Edit a card', () => {
             await settle();
 
             expect(post.mock.calls[0]?.[1]).not.toHaveProperty('files');
+            expect(post.mock.calls[0]?.[1]).not.toHaveProperty(
+                'link_documents',
+            );
+            expect(post.mock.calls[0]?.[1]).not.toHaveProperty(
+                'unlink_documents',
+            );
         });
 
         it('shows why the server refused a file', async () => {

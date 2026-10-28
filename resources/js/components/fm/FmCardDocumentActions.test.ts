@@ -38,6 +38,26 @@ describe('FmCardDocumentActions', () => {
         expect(open).toHaveAttribute('target', '_blank');
     });
 
+    it('has buttons without a background, as they sit on the row', () => {
+        renderPage(FmCardDocumentActions, {
+            document: healthCard,
+            card,
+            canDelete: false,
+        });
+
+        for (const button of [
+            screen.getByRole('link', {
+                name: `Open ${healthCard.title} in a new tab`,
+            }),
+            screen.getByRole('button', {
+                name: `More actions on ${healthCard.title}`,
+            }),
+        ]) {
+            expect(button).toHaveClass('bg-transparent');
+            expect(button).not.toHaveClass('bg-canvas');
+        }
+    });
+
     it('has Edit in the menu, that opens the document as its row does', async () => {
         renderPage(FmCardDocumentActions, {
             document: healthCard,
@@ -126,6 +146,31 @@ describe('FmCardDocumentActions', () => {
             expect(items[0]).toHaveTextContent('Open the file');
             expect(items[0]).toHaveAttribute('href', healthCard.file_url);
             expect(items[0]).toHaveAttribute('target', '_blank');
+        });
+
+        it('unlinks without asking and sends nothing, as the form does it when saved', async () => {
+            const destroy = vi
+                .spyOn(router, 'delete')
+                .mockImplementation(() => {});
+            const onUnlink = vi.fn();
+            renderPage(FmCardDocumentActions, {
+                document: healthCard,
+                card,
+                canDelete: false,
+                inForm: true,
+                onUnlink,
+            });
+
+            await openMenu();
+            await userEvent.click(
+                await screen.findByRole('menuitem', { name: 'Unlink' }),
+            );
+
+            expect(onUnlink).toHaveBeenCalled();
+            expect(destroy).not.toHaveBeenCalled();
+            expect(
+                screen.queryByText(`Unlink ${healthCard.title}?`),
+            ).not.toBeInTheDocument();
         });
 
         it('opens Edit in a new tab, so the form stays', async () => {

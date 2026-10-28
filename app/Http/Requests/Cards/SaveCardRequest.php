@@ -10,6 +10,8 @@ use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Cards\FieldKind;
 use App\Http\Requests\Concerns\UploadsFiles;
+use App\Models\Document;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -18,7 +20,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * The form of a card, new or changed (only an `admin`). The fields and their
  * rules come from the description of the card type in the route; new or
- * changed, it can also bring the files of its documents.
+ * changed, it can also bring the files of its documents and the documents to
+ * link to it or unlink from it, chosen in the form.
  */
 final class SaveCardRequest extends FormRequest
 {
@@ -61,13 +64,44 @@ final class SaveCardRequest extends FormRequest
     }
 
     /**
-     * The rules of the fields and of the files.
+     * The rules of the fields, of the files and of the documents to link and unlink.
      *
      * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
-        return [...CardRules::for($this->cardType()), ...$this->filesRules(required: false)];
+        return [
+            ...CardRules::for($this->cardType()),
+            ...$this->filesRules(required: false),
+            'link_documents' => ['array'],
+            'link_documents.*' => ['integer'],
+            'unlink_documents' => ['array'],
+            'unlink_documents.*' => ['integer'],
+        ];
+    }
+
+    /**
+     * The documents to link to the card.
+     *
+     * @return Collection<int, Document>
+     *
+     * @throws ModelNotFoundException if one is not of the family (it answers 404)
+     */
+    public function documentsToLink(): Collection
+    {
+        return $this->documents('link_documents');
+    }
+
+    /**
+     * The documents to unlink from the card.
+     *
+     * @return Collection<int, Document>
+     *
+     * @throws ModelNotFoundException if one is not of the family (it answers 404)
+     */
+    public function documentsToUnlink(): Collection
+    {
+        return $this->documents('unlink_documents');
     }
 
     /**
@@ -144,6 +178,22 @@ final class SaveCardRequest extends FormRequest
         }
 
         return $columns;
+    }
+
+    /**
+     * The documents of the family whose ids are in a list of the form.
+     *
+     * @param  string  $key  the list, `link_documents` or `unlink_documents`
+     * @return Collection<int, Document>
+     *
+     * @throws ModelNotFoundException if one is not of the family (it answers 404)
+     */
+    private function documents(string $key): Collection
+    {
+        // The rule lets "5" through as well as 5
+        $ids = $this->collect($key)->map(fn (mixed $id): int => is_numeric($id) ? (int) $id : 0)->unique()->values()->all();
+
+        return Document::query()->findOrFail($ids);
     }
 
     /**

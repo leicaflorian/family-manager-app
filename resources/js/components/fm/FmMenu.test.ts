@@ -14,12 +14,18 @@ const Menu = defineComponent({
     props: {
         label: { type: String, default: undefined },
         small: { type: Boolean, default: false },
+        plain: { type: Boolean, default: false },
         icon: { type: Function as PropType<LucideIcon>, default: undefined },
     },
     setup: (props) => () =>
         h(
             FmMenu,
-            { label: props.label, small: props.small, icon: props.icon },
+            {
+                label: props.label,
+                small: props.small,
+                plain: props.plain,
+                icon: props.icon,
+            },
             { default: () => h(FmMenuItem, null, () => 'Rename') },
         ),
 });
@@ -52,6 +58,14 @@ describe('FmMenu', () => {
         expect(
             screen.getByRole('button', { name: 'More actions' }),
         ).toHaveClass('size-10');
+    });
+
+    it('plain, the ⋯ button has no background until hovered, and its icon changes colour as a plain button beside it', () => {
+        renderPage(Menu, { plain: true });
+
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(button).toHaveClass('bg-transparent', 'hover:text-action-dark');
+        expect(button).not.toHaveClass('bg-canvas');
     });
 
     it('takes its own icon in place of the ⋯', () => {

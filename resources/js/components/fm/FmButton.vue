@@ -25,6 +25,7 @@ const {
     label,
     small = false,
     xsmall = false,
+    plain = false,
     inline = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red). */
@@ -52,6 +53,8 @@ const {
     small?: boolean;
     /** With `label`: the smallest square, 30 px, as beside the tabs of a card. */
     xsmall?: boolean;
+    /** With `label`: no background until hovered, as beside a row. */
+    plain?: boolean;
     /**
      * As tall as the line of a title beside it, with no box around the text,
      * as *Upload* beside *Documents*. Meant for the text variant.
@@ -97,6 +100,7 @@ const classes = computed((): string =>
         label && 'size-11.5 border-0 bg-canvas px-0 hover:bg-divider',
         label && small && 'size-10',
         label && xsmall && 'size-7.5 rounded-lg',
+        label && plain && 'bg-transparent hover:bg-canvas',
         label && variant !== 'danger' && 'text-ink',
         // The colour behind shows through, a bit less on hover
         onColor &&

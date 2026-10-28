@@ -309,3 +309,53 @@ test('the documents to link can be searched', function (): void {
         ->where('linkableSearch', 'busta paga')
         ->where('hasLinkable', true));
 });
+
+test('the forms of a card offer the documents to link, without those already linked', function (): void {
+    $this->actingAs($this->marco);
+    $policy = insideBianchi(fn (): Document => Document::query()->where('title', 'Polizza RC auto 2026')->sole());
+
+    $this->get(route('cards.edit', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('linkable', 15)
+        ->where('linkableNext', 2)
+        ->where('hasLinkable', true)
+        ->where('linkable', fn ($documents): bool => ! collect($documents)->contains('id', $policy->id)));
+
+    $this->get(route('cards.create', ['card' => 'vehicle', 'link_search' => 'busta paga']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('linkable', fn ($documents): bool => collect($documents)->isNotEmpty()
+            && collect($documents)->every(fn (array $document): bool => str_contains($document['title'], 'Busta paga')))
+        ->where('linkableSearch', 'busta paga')
+        ->where('hasLinkable', true));
+});
+
+test('a change links and unlinks the documents when it is saved', function (): void {
+    $this->actingAs($this->marco);
+    $policy = insideBianchi(fn (): Document => Document::query()->where('title', 'Polizza RC auto 2026')->sole());
+
+    $this->put(route('cards.update', $this->pandaUrl), [
+        'name' => 'Fiat Panda', 'link_documents' => [$this->booklet->id], 'unlink_documents' => [$policy->id],
+    ])->assertSessionHasNoErrors()->assertRedirect(route('cards.show', $this->pandaUrl));
+
+    expect(insideBianchi(fn (): array => $this->panda->documents()->pluck('title')->all()))->toBe(['Scontrino TV Samsung']);
+});
+
+test('a new card is saved with the documents linked to it', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->post(route('cards.store', 'vehicle'), [
+        'name' => 'Vespa', 'status' => 'active', 'is_owned' => true, 'link_documents' => [$this->booklet->id],
+    ])->assertSessionHasNoErrors();
+
+    expect(insideBianchi(fn (): array => Vehicle::query()->where('name', 'Vespa')->sole()->documents()->pluck('title')->all()))
+        ->toBe(['Scontrino TV Samsung']);
+});
+
+test('it answers 404 and saves nothing when a document to link or unlink is of another family', function (string $list): void {
+    $theirs = registerFamily('Rossi', 'mario@rossi.example');
+    $document = Document::factory()->for($theirs->family)->create();
+    $this->actingAs($this->marco);
+
+    $this->put(route('cards.update', $this->pandaUrl), ['name' => 'Fiat Panda bianca', $list => [$document->id]])->assertNotFound();
+
+    expect(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda')
+        ->and(DB::table('documentables')->where('document_id', $document->id)->exists())->toBeFalse();
+})->with(['link_documents', 'unlink_documents']);

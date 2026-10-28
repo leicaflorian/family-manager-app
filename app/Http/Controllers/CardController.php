@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Cards\DeleteCard;
+use App\Actions\Cards\LinkCardDocuments;
 use App\Actions\Cards\SaveCard;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
@@ -18,11 +19,13 @@ use App\Services\CardSummaries;
 use App\Services\FileStore;
 use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Inertia\MergeProp;
 use Inertia\Response;
 
 /**
@@ -52,7 +55,10 @@ final class CardController extends Controller
             $card = CardTypes::findOrFail($type);
             Gate::authorize('create', $card->model());
 
-            return Inertia::render('cards/EditCard', $this->details->form($card, null, $request->query()));
+            return Inertia::render('cards/EditCard', [
+                ...$this->details->form($card, null, $request->query()),
+                ...$this->linkable($request, []),
+            ]);
         }
 
         Gate::authorize('create', CardTypes::all()[0]->model());
@@ -63,14 +69,19 @@ final class CardController extends Controller
     }
 
     /**
-     * Adds the card and opens it. With files, they wait for their document and
-     * *Upload* opens with the card among the links of each.
+     * Adds the card with the documents chosen in the form and opens it. With
+     * files, they wait for their document and *Upload* opens with the card
+     * among the links of each.
      */
-    public function store(SaveCardRequest $request, SaveCard $save, FileStore $store): RedirectResponse
+    public function store(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store): RedirectResponse
     {
         $type = $request->cardType();
+        // Looked up first: a document of another family answers 404 before anything is saved
+        $link = $request->documentsToLink();
+        $card = $save->handle($type, $request->columns());
+        $links->handle($card, $link, new Collection);
 
-        return $this->openWithFiles($type, $save->handle($type, $request->columns()), $request, $store);
+        return $this->openWithFiles($type, $card, $request, $store);
     }
 
     /**
@@ -81,25 +92,18 @@ final class CardController extends Controller
     {
         $card = CardTypes::findOrFail($type)->findOrFail($id);
         $detail = $this->details->of($card, $user);
-        $notLinked = ['not_record' => ['type' => $detail->card->type, 'id' => $detail->card->id]];
-        $search = $request->string('link_search')->trim()->value();
-        $page = $this->documents->page([...$notLinked, 'search' => $search], max(1, $request->integer('link_page', 1)), self::LINKABLE_PER_PAGE);
 
         return Inertia::render('cards/Card', [
             'card' => $detail,
-            // The next pages are added below those already shown.
-            'linkable' => Inertia::merge($page['documents']),
-            'linkableNext' => $page['next'],
-            'linkableSearch' => $search,
-            'hasLinkable' => $this->documents->exist($notLinked),
+            ...$this->linkable($request, ['not_record' => ['type' => $detail->card->type, 'id' => $detail->card->id]]),
         ]);
     }
 
     /**
-     * *Edit card*: the form with the data of the card, its documents and
-     * whether they can be deleted.
+     * *Edit card*: the form with the data of the card, its documents, whether
+     * they can be deleted and the documents that can be linked.
      */
-    public function edit(string $type, string $id, #[CurrentUser] User $user): Response
+    public function edit(Request $request, string $type, string $id, #[CurrentUser] User $user): Response
     {
         $description = CardTypes::findOrFail($type);
         $card = $description->findOrFail($id);
@@ -112,18 +116,24 @@ final class CardController extends Controller
             'card' => $row,
             'documents' => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
             'canDeleteDocuments' => $user->can('deleteAny', Document::class),
+            ...$this->linkable($request, ['not_record' => ['type' => $description->type(), 'id' => $row->id]]),
         ]);
     }
 
     /**
-     * Saves the change and opens the card. With files, they wait for their
-     * document and *Upload* opens with the card among the links of each.
+     * Saves the change, links and unlinks the documents chosen in the form and
+     * opens the card. With files, they wait for their document and *Upload*
+     * opens with the card among the links of each.
      */
-    public function update(SaveCardRequest $request, SaveCard $save, FileStore $store): RedirectResponse
+    public function update(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store): RedirectResponse
     {
         $type = $request->cardType();
         $card = $request->card() ?? abort(404);
+        // Looked up first: a document of another family answers 404 before anything is saved
+        $link = $request->documentsToLink();
+        $unlink = $request->documentsToUnlink();
         $save->handle($type, $request->columns(), $card);
+        $links->handle($card, $link, $unlink);
 
         return $this->openWithFiles($type, $card, $request, $store);
     }
@@ -140,6 +150,28 @@ final class CardController extends Controller
         $delete->handle($card);
 
         return to_route('areas.show', $description->area());
+    }
+
+    /**
+     * For *Link a document*: a page of the documents of the family that match
+     * `link_search` (the page in `link_page`), the next pages added below
+     * those already shown, and whether there is any document to link.
+     *
+     * @param  Request  $request  the request with the search and the page
+     * @param  array<string, mixed>  $filters  the filters that leave out the documents already linked
+     * @return array{linkable: MergeProp, linkableNext: ?int, linkableSearch: string, hasLinkable: bool}
+     */
+    private function linkable(Request $request, array $filters): array
+    {
+        $search = $request->string('link_search')->trim()->value();
+        $page = $this->documents->page([...$filters, 'search' => $search], max(1, $request->integer('link_page', 1)), self::LINKABLE_PER_PAGE);
+
+        return [
+            'linkable' => Inertia::merge($page['documents']),
+            'linkableNext' => $page['next'],
+            'linkableSearch' => $search,
+            'hasLinkable' => $this->documents->exist($filters),
+        ];
     }
 
     /**

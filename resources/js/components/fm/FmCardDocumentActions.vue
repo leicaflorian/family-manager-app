@@ -5,7 +5,8 @@
  * its row), *Unlink* and *Delete* (for an `admin`), each after asking. The
  * page keeps its state, so in the form of the card what is written stays.
  * In the form (`inForm`) only the menu is left, where the room is short, with
- * *Open the file* first, and the links open in a new tab, so the form stays.
+ * *Open the file* first, and the links open in a new tab, so the form stays;
+ * there *Unlink* asks nothing and sends nothing, the form unlinks when saved.
  */
 import { router } from '@inertiajs/vue3';
 import {
@@ -37,8 +38,13 @@ const {
     card: { type: string; id: number };
     /** Whether whoever looks may delete the document. */
     canDelete: boolean;
-    /** In the form of the card: only the menu, and its links in a new tab. */
+    /** In the form of the card: only the menu, its links in a new tab, and *Unlink* left to the form. */
     inForm?: boolean;
+}>();
+
+const emit = defineEmits<{
+    /** In the form: *Unlink* was chosen, to do when the card is saved. */
+    unlink: [];
 }>();
 
 /** The panel that asks before unlinking, opened from the menu. */
@@ -65,6 +71,7 @@ function unlink(): void {
             :icon="ExternalLink"
             :label="$t('Open :title in a new tab', { title: document.title })"
             small
+            plain
             :href="document.file_url"
             external
         />
@@ -72,6 +79,7 @@ function unlink(): void {
             :icon="EllipsisVertical"
             :label="$t('More actions on :title', { title: document.title })"
             small
+            plain
         >
             <FmMenuItem
                 v-if="inForm"
@@ -88,7 +96,10 @@ function unlink(): void {
             >
                 {{ $t('Edit') }}
             </FmMenuItem>
-            <FmMenuItem :icon="Unlink" @select="confirmingUnlink = true">
+            <FmMenuItem
+                :icon="Unlink"
+                @select="inForm ? emit('unlink') : (confirmingUnlink = true)"
+            >
                 {{ $t('Unlink') }}
             </FmMenuItem>
             <FmMenuItem

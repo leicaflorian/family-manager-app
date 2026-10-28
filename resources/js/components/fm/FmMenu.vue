@@ -16,6 +16,7 @@ import FmButton from './FmButton.vue';
 const {
     label,
     small = false,
+    plain = false,
     icon,
 } = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
@@ -24,6 +25,8 @@ const {
     icon?: LucideIcon;
     /** The smaller ⋯ button, 40 px, as beside the title of a panel. */
     small?: boolean;
+    /** The ⋯ button without a background until hovered, as the plain buttons beside a row. */
+    plain?: boolean;
 }>();
 
 defineSlots<{
@@ -37,10 +40,11 @@ defineSlots<{
     <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger as-child>
             <FmButton
-                variant="soft"
+                :variant="plain ? 'text' : 'soft'"
                 :icon="icon ?? Ellipsis"
                 :label="label ?? $t('More actions')"
                 :small="small"
+                :plain="plain"
             />
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
