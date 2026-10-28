@@ -3,6 +3,42 @@ import { describe, expect, it } from 'vite-plus/test';
 import FmRow from './FmRow.vue';
 
 describe('FmRow', () => {
+    it('keeps the title on one line, with the ellipsis in the middle so its end shows', () => {
+        render(FmRow, {
+            props: {
+                title: 'Polizza RC auto 2026',
+                subtitle: 'Assicurazioni e fondi · Marco · UnipolSai',
+            },
+        });
+
+        // Read whole, seen in two pieces
+        expect(screen.getByText('Polizza RC auto 2026')).toHaveClass('sr-only');
+        const title = screen.getByTitle('Polizza RC auto 2026');
+        expect(title).toHaveClass('flex', 'whitespace-nowrap');
+        const [start, end] = title.querySelectorAll('[data-piece]');
+        expect(start).toHaveTextContent('Polizza RC a');
+        expect(start).toHaveClass('text-ellipsis');
+        expect(start).toHaveAttribute('aria-hidden', 'true');
+        expect(end).toHaveTextContent('uto 2026');
+        expect(end).toHaveClass('shrink-0');
+        // A space at the edge of a piece stays: "luce di| ottobre"
+        expect(start).toHaveClass('whitespace-pre');
+        expect(end).toHaveClass('whitespace-pre');
+    });
+
+    it('keeps the subtitle on one line, cut at its end', () => {
+        render(FmRow, {
+            props: {
+                title: 'Polizza RC auto 2026',
+                subtitle: 'Assicurazioni e fondi · Marco · UnipolSai',
+            },
+        });
+
+        expect(
+            screen.getByText('Assicurazioni e fondi · Marco · UnipolSai'),
+        ).toHaveClass('truncate');
+    });
+
     it('is a link covering the whole row with href', () => {
         render(FmRow, {
             props: {

@@ -1,15 +1,18 @@
 <script setup lang="ts">
 /**
  * A list row of the canvas: in front the dot of the area or an icon, then the
- * title and the subtitle, on the right an amount or a date. With `href` the whole
+ * title and the subtitle, each on one line (the title cut in the middle, so
+ * its end shows), on the right an amount or a date. With `href` the whole
  * row is a link (with `external`, a plain link that opens in a new tab), and
  * with nothing on the right it shows the arrow. With `button` it is a button,
  * for the rows that open a panel.
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
+import { computed } from 'vue';
 import type { Area } from '@/lib/areas';
 import { areaFill } from '@/lib/areas';
+import { splitTail } from '@/lib/text';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -65,6 +68,9 @@ const toneColor: Record<RowTone, string> = {
     warning: cn('font-semibold text-warning'),
     paid: cn('font-semibold text-paid'),
 };
+
+/** The title in two: the beginning, cut where room is short, and its last 8 characters. */
+const titleParts = computed(() => splitTail(title, 8));
 </script>
 
 <template>
@@ -94,10 +100,37 @@ const toneColor: Record<RowTone, string> = {
             />
         </slot>
         <span class="flex min-w-0 grow flex-col gap-0.5">
-            <span class="text-base font-semibold text-ink">{{ title }}</span>
+            <!-- One line: where room is short the ellipsis goes in the middle,
+                 so the end of the title (a year, a number) stays in sight. The
+                 pieces are only seen; the whole title is what is read. -->
+            <span
+                v-if="titleParts[1]"
+                class="flex min-w-0 text-base font-semibold whitespace-nowrap text-ink"
+                :title="title"
+            >
+                <span class="sr-only">{{ title }}</span>
+                <span
+                    aria-hidden="true"
+                    data-piece
+                    class="overflow-hidden text-ellipsis whitespace-pre"
+                    >{{ titleParts[0] }}</span
+                >
+                <span
+                    aria-hidden="true"
+                    data-piece
+                    class="shrink-0 whitespace-pre"
+                    >{{ titleParts[1] }}</span
+                >
+            </span>
+            <span
+                v-else
+                class="truncate text-base font-semibold text-ink"
+                :title="title"
+                >{{ title }}</span
+            >
             <span
                 v-if="subtitle"
-                class="text-[13px]"
+                class="truncate text-[13px]"
                 :class="toneColor[tone]"
                 >{{ subtitle }}</span
             >
