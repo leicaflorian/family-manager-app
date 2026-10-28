@@ -1,6 +1,6 @@
 # Family Manager - app per le famiglie
 
-Repository della nuova app di Family Manager, in Laravel + Inertia + Vue. Analisi, piano e decisioni stanno nel vault Obsidian, voci del ToDo *Nuova app per le famiglie in Laravel* e *Nuova app - base dell'app* (`MyVault/Projects/Family Manager/ToDo/_Opened/`): si leggono prima di lavorare qui. Le regole di `family-manager-cms` (GitNexus, `./fm`, migrazioni di Directus) non valgono qui. È un repository solo di questo progetto: `git add -A` va bene.
+Repository della nuova app di Family Manager, in Laravel + Inertia + Vue. Analisi, piano e decisioni stanno nel vault Obsidian, voci del ToDo *Nuova app per le famiglie in Laravel* (in `_Done`) e *Nuova app - base dell'app* (in `_Opened`), in `MyVault/Projects/Family Manager/ToDo/`: si leggono prima di lavorare qui. Le regole di `family-manager-cms` (GitNexus, `./fm`, migrazioni di Directus) non valgono qui. È un repository solo di questo progetto: `git add -A` va bene.
 
 La [tela di Claude Design](https://claude.ai/artifact/XwCgtJdtBEgWrGDbLAmRrr) è il riferimento delle pagine: dove il codice dice cose diverse dalla tavola vale la tavola, e la differenza si scrive nelle *Decisioni prese* del piano.
 
@@ -53,7 +53,7 @@ Regole del proprietario del 26/10/2026. Valgono per ogni riga, in PHP e in Vue.
 - TSDoc su ogni componente (in cima allo `<script>`: cosa mostra e quando si usa), su ogni prop ed emit, su ogni funzione e composable.
 - TDD anche qui, con Vitest (quello di Vite+: `import { … } from 'vite-plus/test'`), Testing Library e `jsdom`: ogni componente in `components/fm/` ha il suo `*.test.ts` accanto, scritto prima; ogni composable e utility ha i suoi test; le pagine hanno un test di quello che fanno. Si controlla quello che vede e fa la persona (testi, ruoli, tasti), non i dettagli interni.
 - Le classi di Tailwind scritte nel codice, fuori dal template (oggetti di varianti, `computed`, funzioni, valori predefiniti delle props, `lib/`), passano sempre da `cn(…)` di `resources/js/lib/utils.ts`, anche quando è una sola stringa: così l'editor le completa (`classFunctions` di Tailwind) e `vp check --fix` le ordina. Nel template basta `class` o `:class`. Fa eccezione `formkit.config.ts`, perché lì le classi le somma FormKit con le sue regole (`$reset`).
-- Campi di FormKit Pro (regola del proprietario, 27/10/2026): `dropdown` al posto di `select`, `datepicker` per le date (si vedono `gg/mm/aaaa`, arrivano al form `aaaa-mm-gg`, impostato in `formkit.config.ts`), `currency` per gli importi, `toggle` per un sì/no e `togglebuttons` per una scelta tra poche voci. Nei test si sceglie con `choose()` e `openMenu()` di `resources/js/test/page.ts`, come fa la persona.
+- Campi di FormKit Pro (regola del proprietario, 27/10/2026): `dropdown` al posto di `select`, `datepicker` per le date (si vedono `gg/mm/aaaa`, arrivano al form `aaaa-mm-gg`, impostato in `formkit.config.ts`), `currency` per gli importi, `toggle` per un sì/no, `togglebuttons` per una scelta tra poche voci, `autocomplete` per un menu lungo che si cerca scrivendo (categoria, persona, ente: il `dropdown` di FormKit Pro 0.130 non ha la ricerca) e `taglist` per le etichette. I plugin che ne correggono il comportamento stanno in `resources/js/lib/formkit*.ts`, elencati in `formkit.config.ts`. Nei test si sceglie con `choose()`, `openMenu()` e `search()` di `resources/js/test/page.ts`, come fa la persona.
 - Le classi di un campo FormKit si aggiungono a quelle di `global` in `formkit.config.ts`, non le sostituiscono: per cambiarne una si comincia con `$reset`.
 
 ## Comandi
@@ -84,7 +84,7 @@ Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori,
 
 ## Pubblicazione
 
-- Il branch `base-dell-app` è su GitHub (`leicaflorian/family-manager-app`, pubblico). L'applicazione su Coolify non c'è ancora: crearla l'agente non ha potuto (permesso negato). Va fatta nel progetto *Family Manager*, ambiente `production`, server `localhost`:
+- Il branch `base-dell-app` è su GitHub (`leicaflorian/family-manager-app`, pubblico). L'applicazione su Coolify non c'è ancora: il proprietario ha deciso (28/10/2026) che va online solo quando l'app sarà completa, non prima. Va fatta nel progetto *Family Manager*, ambiente `production`, server `localhost`:
   - un MySQL 8 `family-manager-app-db`, separato da `family_manager_mysql` di Directus;
   - un'applicazione `family-manager-app` dal repository pubblico, branch `base-dell-app` (poi `main`), con Nixpacks, porta 80;
   - un volume persistente montato su `/app/storage/app/private`, dove stanno i file delle famiglie;

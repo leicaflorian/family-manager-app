@@ -19,6 +19,8 @@ docker run --rm -v "$PWD":/app -w /app composer:2 composer install
 ./vendor/bin/sail npm install
 ```
 
+I campi dei moduli sono di FormKit Pro: la sua chiave va scritta in `VITE_FORMKIT_PRO_KEY` del `.env` prima di `npm run dev` o `npm run build`.
+
 Per le anteprime dei documenti l'app usa `pdftoppm` (`poppler-utils`) e `heif-convert` (`libheif-examples`) e l'estensione `ext-gd` di PHP: l'immagine di Sail (`docker/8.5/`, Ubuntu 24.04, che aggiunge `libheif-plugin-libde265` per leggere gli HEIC) e `nixpacks.toml` (Ubuntu 22.04, dove quel decoder è già in `libheif1`) li installano, quindi non c'è niente da aggiungere. Se in locale l'anteprima non compare dopo un aggiornamento, si ricostruisce l'immagine con `./vendor/bin/sail build --no-cache`.
 
 Poi, ogni volta:
@@ -55,7 +57,7 @@ L'elenco completo dei comandi, con le regole del codice, è in `AGENTS.md`. I pi
 
 ## Copia da Directus
 
-`directus:copy --family="<nome>"` copia nell'app la famiglia che sta in Directus: persone, enti, schede, documenti con i loro file e collegamenti, promemoria e gli account delle persone (con l'email di Directus e una password nuova, da scegliere con *Password dimenticata*). Directus si legge in sola lettura: la connessione `directus` prende le variabili `DIRECTUS_DB_*` del `.env`, e la cartella dei file di Directus si monta in sola lettura da `DIRECTUS_UPLOADS_SOURCE` (di default `../family-manager-cms/uploads`). Se la famiglia c'è già si ferma; `--replace` la elimina con i suoi file e la rifà, `--without-files` non copia il contenuto dei file. Cosa copia e cosa no è nella nota *Copia da Directus* del vault (`02 - Documentazione tecnica/App Laravel/`).
+`directus:copy --family="<nome>"` copia nell'app la famiglia che sta in Directus: persone, enti, schede, documenti con i loro file e collegamenti, promemoria e gli account delle persone (con l'email di Directus e una password nuova, da scegliere con *Password dimenticata*). Directus si legge in sola lettura: la connessione `directus` prende le variabili `DIRECTUS_DB_*` del `.env`, e la cartella dei file di Directus si monta in sola lettura da `DIRECTUS_UPLOADS_SOURCE` (di default `../family-manager-cms/uploads`). Se la famiglia c'è già si ferma; `--replace` la elimina con i suoi file e la rifà, ma solo se era stata copiata da Directus (una famiglia omonima iscritta dall'app non si tocca), `--without-files` non copia il contenuto dei file. Cosa copia e cosa no è nella nota *Copia da Directus* del vault (`02 - Documentazione tecnica/App Laravel/`).
 
 ## Documentazione
 
