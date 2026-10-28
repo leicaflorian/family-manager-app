@@ -12,6 +12,7 @@ import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { cn } from '@/lib/utils';
+import { show as showCard } from '@/routes/cards';
 import { edit, show } from '@/routes/documents';
 import FmAvatar from './FmAvatar.vue';
 import FmButton from './FmButton.vue';
@@ -173,10 +174,16 @@ const shownGroup = computed(
                         <template v-if="compact && document.links.length > 0">
                             <dt class="text-ink-soft">{{ $t('Links') }}</dt>
                             <dd class="m-0 flex flex-col gap-0.5 font-semibold">
-                                <span
+                                <Link
                                     v-for="link in document.links"
                                     :key="`${link.type}:${link.id}`"
-                                    >{{ link.label }}</span
+                                    :href="
+                                        showCard({
+                                            type: link.type,
+                                            id: link.id,
+                                        }).url
+                                    "
+                                    >{{ link.label }}</Link
                                 >
                             </dd>
                         </template>
@@ -232,10 +239,14 @@ const shownGroup = computed(
                             {{ $t('Nothing linked yet.') }}
                         </p>
                         <div v-else class="-mx-4 flex flex-col">
-                            <div
+                            <Link
                                 v-for="link in shownGroup.links"
                                 :key="`${link.type}:${link.id}`"
-                                class="flex flex-col gap-0.5 px-4 py-3"
+                                :href="
+                                    showCard({ type: link.type, id: link.id })
+                                        .url
+                                "
+                                class="flex flex-col gap-0.5 px-4 py-3 text-ink no-underline"
                             >
                                 <span class="text-base font-semibold">{{
                                     link.label
@@ -243,7 +254,7 @@ const shownGroup = computed(
                                 <span class="text-[13px] text-ink-soft">{{
                                     link.type_label
                                 }}</span>
-                            </div>
+                            </Link>
                         </div>
                     </div>
                 </section>

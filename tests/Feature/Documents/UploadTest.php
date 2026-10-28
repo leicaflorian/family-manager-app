@@ -8,6 +8,7 @@ use App\Models\Employment;
 use App\Models\File;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -158,3 +159,22 @@ test('a waiting file has a preview address only when it has a preview', function
     $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('pending.0.preview_url', null));
 });
+
+test('upload starts with the card it comes from among the links', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+
+    $this->get(route('upload', ['link' => 'vehicle:'.$panda->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('presetLinks', [['type' => 'vehicle', 'id' => $panda->id]]));
+});
+
+test('upload ignores a link of another family or of an unknown type', function (string $link): void {
+    $rossi = registerFamily('Rossi', 'mario@rossi.example');
+    $other = Vehicle::factory()->for($rossi->family)->create();
+    $link = str_replace('{other}', (string) $other->id, $link);
+
+    $this->actingAs($this->marco)
+        ->get(route('upload', ['link' => $link]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetLinks', []));
+})->with(['spaceship:1', 'vehicle:999999', 'vehicle:abc', 'nothing', 'vehicle:{other}']);

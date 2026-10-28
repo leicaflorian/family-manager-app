@@ -4,6 +4,7 @@
  * type at a time, with a tab for each type and how many records it has.
  */
 import { computed, ref } from 'vue';
+import { show } from '@/routes/cards';
 import FmRow from './FmRow.vue';
 
 const { groups } = defineProps<{
@@ -49,6 +50,7 @@ const open = computed(
                         v-for="record in open.options"
                         :key="record.value"
                         :title="record.label"
+                        :href="show({ type: open.type, id: record.value }).url"
                     />
                 </div>
             </template>

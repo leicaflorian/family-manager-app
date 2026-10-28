@@ -44,4 +44,24 @@ describe('FmLinkedRecords', () => {
 
         expect(screen.getByText('No records yet.')).toBeInTheDocument();
     });
+
+    it('leads every record to its card', () => {
+        render(FmLinkedRecords, {
+            props: {
+                groups: [
+                    {
+                        type: 'vehicle',
+                        label: 'Vehicles',
+                        options: [
+                            { value: '1', label: 'Fiat Panda', help: null },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        expect(
+            screen.getByRole('link', { name: /Fiat Panda/ }),
+        ).toHaveAttribute('href', '/cards/vehicle/1');
+    });
 });

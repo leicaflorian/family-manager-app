@@ -11,6 +11,7 @@ const options = {
     links: [],
     statuses: [{ value: 'active', label: 'Active', help: null }],
     tags: [],
+    presetLinks: [],
 };
 
 const payslip = {
@@ -94,5 +95,24 @@ describe('Upload', () => {
         );
 
         expect(destroy).toHaveBeenCalledWith('/upload/12', expect.anything());
+    });
+
+    it('starts the form with the card it comes from among the links', () => {
+        renderPage(Upload, {
+            pending: [payslip],
+            ...options,
+            links: [
+                {
+                    type: 'vehicle',
+                    label: 'Vehicles',
+                    options: [{ value: '1', label: 'Fiat Panda', help: null }],
+                },
+            ],
+            presetLinks: [{ type: 'vehicle', id: 1 }],
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'Remove the link Fiat Panda' }),
+        ).toBeInTheDocument();
     });
 });

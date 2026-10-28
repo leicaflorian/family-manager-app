@@ -13,7 +13,7 @@ import FmFilePreview from '@/components/fm/FmFilePreview.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import type { DocumentFormOptions } from '@/lib/documents';
+import type { DocumentFormOptions, DocumentLink } from '@/lib/documents';
 import { newDocument } from '@/lib/documents';
 import { listErrors } from '@/lib/errors';
 import { DOCUMENT_FILE_TYPES } from '@/lib/files';
@@ -25,6 +25,8 @@ const props = defineProps<
     {
         /** The files waiting for their document, oldest first. */
         pending: App.Data.PendingFileData[];
+        /** The card the person comes from, linked from the start. */
+        presetLinks: DocumentLink[];
     } & DocumentFormOptions
 >();
 
@@ -159,7 +161,10 @@ function discard(file: App.Data.PendingFileData): void {
                 <FmDocumentForm
                     :key="current.id"
                     :action="storeDocument()"
-                    :initial="newDocument(current.title)"
+                    :initial="{
+                        ...newDocument(current.title),
+                        links: presetLinks,
+                    }"
                     :extra="{ file_id: current.id }"
                     :options="options"
                     :submit-label="$t('Save')"

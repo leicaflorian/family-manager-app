@@ -154,4 +154,24 @@ describe('FmDocumentDetail', () => {
             screen.getByRole('img', { name: documentDetail.person ?? '' }),
         ).toHaveAttribute('src', '/files/40');
     });
+
+    it('leads every link to its card', () => {
+        renderPage(FmDocumentDetail, {
+            document: {
+                ...documentDetail,
+                links: [
+                    {
+                        type: 'vehicle',
+                        id: 1,
+                        type_label: 'Vehicles',
+                        label: 'Fiat Panda',
+                    },
+                ],
+            },
+        });
+
+        expect(
+            screen.getByRole('link', { name: /Fiat Panda/ }),
+        ).toHaveAttribute('href', '/cards/vehicle/1');
+    });
 });
