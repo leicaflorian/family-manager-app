@@ -8,7 +8,7 @@
 import { computed, ref, watch } from 'vue';
 import { previewKind } from '@/lib/files';
 import { cn } from '@/lib/utils';
-import placeholderUrl from '../../../images/document-placeholder.png';
+import placeholderUrl from '../../../images/document-placeholder.jpg';
 
 const {
     url,
