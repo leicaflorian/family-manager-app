@@ -178,3 +178,36 @@ test('upload ignores a link of another family or of an unknown type', function (
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetLinks', []));
 })->with(['spaceship:1', 'vehicle:999999', 'vehicle:abc', 'nothing', 'vehicle:{other}']);
+
+test('a file uploaded from a card keeps the card for the form and for the next file', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+    $link = 'vehicle:'.$panda->id;
+    $files = ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf'), UploadedFile::fake()->create('Bollo.pdf', 120, 'application/pdf')]];
+
+    $this->post(route('upload.store', ['link' => $link]), $files)->assertRedirect(route('upload', ['link' => $link]));
+    $this->get(route('upload', ['link' => $link]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('pending', 2)
+            ->where('presetLinks', [['type' => 'vehicle', 'id' => $panda->id]]));
+
+    // The page posts the form with the preset link, as Upload.vue does.
+    $first = File::query()->oldest('id')->firstOrFail();
+    $this->post(route('documents.store', ['link' => $link]), [
+        'file_id' => $first->id,
+        'title' => 'Libretto',
+        'status' => 'active',
+        'links' => [['type' => 'vehicle', 'id' => $panda->id]],
+    ])->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => $link]));
+
+    $document = Document::query()->where('title', 'Libretto')->sole();
+    expect($panda->documents()->pluck('documents.id')->all())->toBe([$document->id]);
+});
+
+test('a link of another family is not carried through the upload', function (): void {
+    $rossi = registerFamily('Rossi', 'mario@rossi.example');
+    $other = Vehicle::factory()->for($rossi->family)->create();
+
+    $this->actingAs($this->marco)
+        ->post(route('upload.store', ['link' => 'vehicle:'.$other->id]), ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')]])
+        ->assertRedirect(route('upload'));
+});

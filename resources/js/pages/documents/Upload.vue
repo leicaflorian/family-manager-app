@@ -39,6 +39,16 @@ const options = computed<DocumentFormOptions>(() => ({
     tags: props.tags,
 }));
 
+/**
+ * The query that keeps the card the person comes from on the next address
+ * (`link=<type>:<id>`), so every file of the upload is linked to it.
+ */
+const linkQuery = computed(() => {
+    const preset = props.presetLinks[0];
+
+    return preset ? { query: { link: `${preset.type}:${preset.id}` } } : {};
+});
+
 /** The file whose form is open: the first one waiting. */
 const current = computed(() => props.pending[0]);
 
@@ -61,7 +71,7 @@ function send(files: FileList | null | undefined): void {
     }
 
     upload.files = Array.from(files);
-    upload.submit(store(), {
+    upload.submit(store(linkQuery.value), {
         forceFormData: true,
         preserveScroll: true,
         onFinish: () => upload.reset(),
@@ -160,7 +170,7 @@ function discard(file: App.Data.PendingFileData): void {
                 </div>
                 <FmDocumentForm
                     :key="current.id"
-                    :action="storeDocument()"
+                    :action="storeDocument(linkQuery)"
                     :initial="{
                         ...newDocument(current.title),
                         links: presetLinks,

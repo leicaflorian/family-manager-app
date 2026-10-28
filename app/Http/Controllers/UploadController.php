@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Cards\CardType;
-use App\Cards\CardTypes;
 use App\Data\PendingFileData;
 use App\Http\Requests\Documents\UploadRequest;
 use App\Models\File;
 use App\Services\DocumentFormOptions;
 use App\Services\FileStore;
+use App\Support\PresetLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,36 +31,14 @@ final class UploadController extends Controller
             'pending' => File::query()->toSort()->oldest('id')->get()
                 ->map(PendingFileData::fromFile(...))
                 ->values()->all(),
-            'presetLinks' => $this->presetLinks($request->query('link')),
+            'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
             ...$options->all(),
         ]);
     }
 
     /**
-     * The link of the query as the form takes it: empty when it is malformed,
-     * of an unknown type or of a card the family does not have (nothing leaks).
-     *
-     * @param  mixed  $link  the `link` of the query, `<type>:<id>`
-     * @return list<array{type: string, id: int}>
-     */
-    private function presetLinks(mixed $link): array
-    {
-        if (! is_string($link) || preg_match('/^([a-z_]+):(\d+)$/', $link, $parts) !== 1) {
-            return [];
-        }
-
-        $card = CardTypes::find($parts[1]);
-        $id = (int) $parts[2];
-
-        if (! $card instanceof CardType || ! $card->model()::query()->whereKey($id)->exists()) {
-            return [];
-        }
-
-        return [['type' => $card->type(), 'id' => $id]];
-    }
-
-    /**
-     * Saves the chosen files, which then wait for their document.
+     * Saves the chosen files, which then wait for their document; the card the person
+     * comes from stays in the address, so the form of every file starts linked to it.
      */
     public function store(UploadRequest $request, FileStore $store): RedirectResponse
     {
@@ -69,7 +46,7 @@ final class UploadController extends Controller
             $store->store($file, toSort: true);
         }
 
-        return to_route('upload');
+        return to_route('upload', PresetLink::query($request->query('link')));
     }
 
     /**

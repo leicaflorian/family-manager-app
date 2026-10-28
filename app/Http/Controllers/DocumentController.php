@@ -18,6 +18,7 @@ use App\Services\CategoryTree;
 use App\Services\DocumentFormOptions;
 use App\Services\DocumentLinks;
 use App\Services\FileStore;
+use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -96,7 +97,9 @@ final class DocumentController extends Controller
             $this->links->sync($document, $request->links());
         });
 
-        return File::query()->toSort()->exists() ? to_route('upload') : to_route('documents.index');
+        return File::query()->toSort()->exists()
+            ? to_route('upload', PresetLink::query($request->query('link')))
+            : to_route('documents.index');
     }
 
     /**

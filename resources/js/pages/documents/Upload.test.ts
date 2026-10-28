@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { renderPage, settle } from '@/test/page';
 import Upload from './Upload.vue';
 
 const options = {
@@ -114,5 +114,41 @@ describe('Upload', () => {
         expect(
             screen.getByRole('button', { name: 'Remove the link Fiat Panda' }),
         ).toBeInTheDocument();
+    });
+
+    it('keeps the card it comes from when it sends the files', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Upload, {
+            pending: [],
+            ...options,
+            presetLinks: [{ type: 'vehicle', id: 1 }],
+        });
+
+        const file = new File(['%PDF-1.4'], 'Libretto.pdf', {
+            type: 'application/pdf',
+        });
+        await fireEvent.change(screen.getByLabelText('Choose the files'), {
+            target: { files: [file] },
+        });
+
+        expect(decodeURIComponent(`${post.mock.calls[0]?.[0] as string}`)).toBe(
+            '/upload?link=vehicle:1',
+        );
+    });
+
+    it('keeps the card it comes from when it files the document', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Upload, {
+            pending: [payslip],
+            ...options,
+            presetLinks: [{ type: 'vehicle', id: 1 }],
+        });
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(decodeURIComponent(`${post.mock.calls[0]?.[0] as string}`)).toBe(
+            '/documents?link=vehicle:1',
+        );
     });
 });
