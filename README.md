@@ -57,10 +57,14 @@ The full list of commands, with the code rules, is in `AGENTS.md`. The most used
 | `./vendor/bin/sail artisan migrate:fresh --seed` | Rebuilds the database with the Bianchi family |
 | `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copies a family from Directus |
 
+## Cards
+
+The cards of a family (home, utilities, vehicles, insurance policies, loans and the others) are described in `app/Cards/`: one class per type in `app/Cards/Types/`, listed in `CardTypes`, with its area, fields, conditions and dates. Rules, saving, rows and the form of the pages all come from that description, so a new field of a card is added there (and in the migration, if the column is new), with its case in `tests/Unit/Cards/CardTypesTest.php`.
+
 ## Copy from Directus
 
 `directus:copy --family="<name>"` copies the family stored in Directus into the app: people, organizations, records, documents with their files and links, reminders, and the people's accounts (with their Directus email and a new password, chosen through *Forgot password*). Directus is read only: the `directus` connection takes the `DIRECTUS_DB_*` variables from `.env`, and the Directus files folder is mounted read only from `DIRECTUS_UPLOADS_SOURCE` (by default `../family-manager-cms/uploads`). If the family is already there the command stops; `--replace` deletes it with its files and copies it again, but only if it was copied from Directus (a family with the same name that signed up in the app is never touched), and `--without-files` does not copy the content of the files. What is copied and what is not is in the *Copia da Directus* note of the vault (`02 - Documentazione tecnica/App Laravel/`).
 
 ## Documentation
 
-Analysis, plan and decisions are in the project's Obsidian vault, ToDo items *Nuova app per le famiglie in Laravel* and *Nuova app - base dell'app*. The approved screens are on the Claude Design board *Family Manager - app per le famiglie*.
+Analysis, plan and decisions are in the project's Obsidian vault, ToDo items *Nuova app per le famiglie in Laravel*, *Nuova app - base dell'app* and *Nuova app - le pagine delle schede*. The approved screens are on the Claude Design board *Family Manager - app per le famiglie*.
