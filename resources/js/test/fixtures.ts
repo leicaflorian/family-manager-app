@@ -377,18 +377,21 @@ export const cardTypes: App.Data.CardTypeData[] = [
         label: 'Residence',
         description: 'The home where you live, or a second home',
         area: 'home',
+        area_label: 'Home',
     },
     {
         type: 'utility',
         label: 'Utility',
         description: 'Electricity, gas, water, internet, waste tax',
         area: 'home',
+        area_label: 'Home',
     },
     {
         type: 'vehicle',
         label: 'Vehicle',
         description: 'Car, motorbike, scooter',
         area: 'vehicles',
+        area_label: 'Vehicles',
     },
 ];
 

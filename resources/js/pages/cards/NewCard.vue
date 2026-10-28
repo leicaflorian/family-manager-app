@@ -7,7 +7,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { areaName, areaOf, areaTile } from '@/lib/areas';
+import { areaOf, areaTile } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
 import { areas } from '@/routes';
@@ -62,7 +62,7 @@ function tile(area: string): string {
             class="flex flex-col gap-2"
         >
             <h2 class="m-0 text-[17px] font-bold">
-                {{ areaName(group.area) }}
+                {{ group.types[0]?.area_label }}
             </h2>
             <div
                 class="grid gap-3 lg:grid-cols-[repeat(auto-fill,minmax(320px,1fr))]"

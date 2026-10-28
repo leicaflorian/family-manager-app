@@ -16,6 +16,7 @@ describe('Edit a card', () => {
         label: 'Insurance policy',
         description: '',
         area: 'insurance',
+        area_label: 'Insurance',
     };
 
     it('names a new card and a change', () => {

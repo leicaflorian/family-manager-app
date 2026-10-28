@@ -63,6 +63,7 @@ readonly type: string,
 readonly label: string,
 readonly description: string,
 readonly area: string,
+readonly area_label: string,
 };
 export type CardValueData = {
 readonly label: string,

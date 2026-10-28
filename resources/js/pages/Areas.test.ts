@@ -14,8 +14,8 @@ describe('Areas', () => {
         });
 
         expect(
-            screen.getAllByRole('link', { name: /cards?$|card$/ }).length,
-        ).toBeGreaterThan(0);
+            screen.getByRole('link', { name: /^Home.*3 cards.*1 overdue$/ }),
+        ).toHaveAttribute('href', '/areas/home');
         expect(screen.getByText('3 cards')).toBeInTheDocument();
         expect(screen.getByText('1 overdue')).toBeInTheDocument();
         expect(

@@ -1,19 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { areaFill, areaIcon, areaName, areaOf } from './areas';
+import { areaFill, areaIcon, areaOf } from './areas';
 
 describe('areaOf', () => {
     it('recognises an area and discards the rest', () => {
         expect(areaOf('home')).toBe('home');
         expect(areaOf('purple')).toBeUndefined();
         expect(areaOf(null)).toBeUndefined();
-    });
-});
-
-describe('areaName', () => {
-    it('names every area', () => {
-        expect(areaName('home')).toBe('Home');
-        expect(areaName('banks')).toBe('Banks and loans');
-        expect(areaName('paperwork')).toBe('Paperwork');
     });
 });
 

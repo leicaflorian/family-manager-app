@@ -37,6 +37,15 @@ test('it shows the areas, an area and a card to every account', function (User $
     'member' => fn (): User => User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]),
 ]);
 
+test('the card types carry the name of their area in the current language', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('areas.show', 'vehicles'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('Area')
+        ->where('types.0.area', 'vehicles')
+        ->where('types.0.area_label', 'Vehicles'));
+});
+
 test('it lets only an admin create, edit and delete', function (): void {
     $this->actingAs($this->rosa);
 

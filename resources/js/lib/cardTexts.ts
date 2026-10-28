@@ -32,7 +32,7 @@ export function overdueText(count: number): string {
 }
 
 /**
- * The line under the name of an area.
+ * The line under the name of an area; the two parts are joined with « · ».
  *
  * @param count - the number of cards
  * @param overdue - how many of them are overdue

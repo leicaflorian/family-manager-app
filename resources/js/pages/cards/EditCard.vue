@@ -78,7 +78,7 @@ function save(data: Record<string, unknown>): void {
         <FmTitle
             :title="title"
             :back="back"
-            :back-label="card ? card.label : $t('Areas')"
+            :back-label="card ? card.label : type.area_label"
         >
             <template #actions>
                 <Link

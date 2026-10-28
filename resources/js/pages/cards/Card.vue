@@ -6,9 +6,10 @@
  * `member` too) and the cards it is linked to.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ChevronLeft, Link2, Pencil, Trash2, Upload } from '@lucide/vue';
+import { Link2, Pencil, Trash2, Upload } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -17,7 +18,6 @@ import FmCardHeader from '@/components/fm/FmCardHeader.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import type { Action } from '@/lib/actions';
@@ -89,13 +89,10 @@ function link(id: number): void {
     <Head :title="card.card.label" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <Link
+        <FmBackLink
             :href="showArea.url(card.card.area)"
-            class="flex items-center gap-1.5 self-start text-[15px] font-semibold no-underline"
-        >
-            <FmIcon :icon="ChevronLeft" :size="18" />
-            {{ card.card.area_label }}
-        </Link>
+            :label="card.card.area_label"
+        />
 
         <FmCardHeader :card="card.card" :heading="card.heading">
             <template v-if="actions.length > 0" #actions>

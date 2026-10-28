@@ -10,13 +10,26 @@ it('gives every card type its icon, and a sheet to an unknown one', () => {
 
 it('opens the form when an area has one card type, the choice when it has more', () => {
     const types = [
-        { type: 'home', label: 'Residence', description: '', area: 'home' },
-        { type: 'utility', label: 'Utility', description: '', area: 'home' },
+        {
+            type: 'home',
+            label: 'Residence',
+            description: '',
+            area: 'home',
+            area_label: '',
+        },
+        {
+            type: 'utility',
+            label: 'Utility',
+            description: '',
+            area: 'home',
+            area_label: '',
+        },
         {
             type: 'vehicle',
             label: 'Vehicle',
             description: '',
             area: 'vehicles',
+            area_label: '',
         },
     ];
 

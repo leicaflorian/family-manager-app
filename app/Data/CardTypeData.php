@@ -19,12 +19,14 @@ final class CardTypeData extends Data
      * @param  string  $label  the name of the type
      * @param  string  $description  what the type is for
      * @param  string  $area  the value of the area of the type
+     * @param  string  $area_label  the name of the area, in the current language
      */
     public function __construct(
         public readonly string $type,
         public readonly string $label,
         public readonly string $description,
         public readonly string $area,
+        public readonly string $area_label,
     ) {}
 
     /**
@@ -34,6 +36,6 @@ final class CardTypeData extends Data
      */
     public static function fromCardType(CardType $card): self
     {
-        return new self($card->type(), $card->label(), $card->description(), $card->area()->value);
+        return new self($card->type(), $card->label(), $card->description(), $card->area()->value, $card->area()->label());
     }
 }
