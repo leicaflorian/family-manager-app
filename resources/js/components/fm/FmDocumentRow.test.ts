@@ -66,4 +66,11 @@ describe('FmDocumentRow', () => {
             'text-warning',
         );
     });
+
+    it('without href shows the document without leading anywhere', () => {
+        render(FmDocumentRow, { props: { document } });
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(screen.getByText('Tessera sanitaria')).toBeInTheDocument();
+    });
 });

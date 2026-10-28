@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { policyDetail, policyFields } from '@/test/fixtures';
+import { healthCard, policyDetail, policyFields } from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import EditCard from './EditCard.vue';
 
@@ -103,7 +103,7 @@ describe('Edit a card', () => {
         );
     });
 
-    describe('documents of a new card', () => {
+    describe('documents of the card', () => {
         const libretto = new File(['%PDF-1.4'], 'Libretto.pdf', {
             type: 'application/pdf',
         });
@@ -119,19 +119,8 @@ describe('Edit a card', () => {
             });
         }
 
-        it('asks for them only on a new card', () => {
+        it('asks for them on a new card, and shows the linked ones when editing', () => {
             const first = renderPage(EditCard, {
-                type,
-                fields: policyFields,
-                values: {},
-                card: policyDetail.card,
-            });
-            expect(
-                screen.queryByLabelText('Choose the files'),
-            ).not.toBeInTheDocument();
-            first.unmount();
-
-            renderPage(EditCard, {
                 type,
                 fields: policyFields,
                 values: {},
@@ -142,6 +131,41 @@ describe('Edit a card', () => {
                     'Its documents? Drag them here, or choose them',
                 ),
             ).toBeInTheDocument();
+            expect(screen.getByText('No documents yet')).toBeInTheDocument();
+            first.unmount();
+
+            renderPage(EditCard, {
+                type,
+                fields: policyFields,
+                values: {},
+                card: policyDetail.card,
+                documents: [healthCard],
+            });
+            expect(screen.getByText('Tessera sanitaria')).toBeInTheDocument();
+            expect(
+                screen.getByLabelText('Choose the files'),
+            ).toBeInTheDocument();
+        });
+
+        it('sends the new files with a change too', async () => {
+            const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+            renderPage(EditCard, {
+                type,
+                fields: policyFields,
+                values: { title: 'RC auto Panda', type: 'car' },
+                card: policyDetail.card,
+                documents: [healthCard],
+            });
+
+            await choose(libretto);
+            await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+            await settle();
+
+            expect(put).toHaveBeenCalledWith(
+                '/cards/insurance_policy/1',
+                expect.objectContaining({ files: [libretto] }),
+                expect.anything(),
+            );
         });
 
         it('lists the chosen files, which can be removed', async () => {

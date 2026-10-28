@@ -24,8 +24,8 @@ const {
 } = defineProps<{
     /** The document. */
     document: App.Data.DocumentData;
-    /** Where the row leads. */
-    href: string;
+    /** Where the row leads; without it the row is not a link. */
+    href?: string;
     /** The line below is the expiry, with its colour. */
     expiry?: boolean;
     /** The date of today, ISO: tells a passed expiry from one ahead. */

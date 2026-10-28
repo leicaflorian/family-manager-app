@@ -219,12 +219,22 @@ test('it creates nothing when a document is not a file it takes', function (): v
     expect(insideBianchi(fn (): bool => Vehicle::query()->where('name', 'Vespa')->exists()))->toBeFalse();
 });
 
-test('it takes documents only for a new card', function (): void {
+test('it saves a change with documents and opens the upload linked to the card', function (): void {
     $this->actingAs($this->marco);
 
     $this->put(route('cards.update', $this->pandaUrl), [
-        'name' => 'Fiat Panda', 'files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')],
-    ])->assertRedirect(route('cards.show', $this->pandaUrl));
+        'name' => 'Fiat Panda bianca', 'files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')],
+    ])->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => 'vehicle:'.$this->panda->id]));
 
-    expect(insideBianchi(fn (): bool => File::query()->toSort()->exists()))->toBeFalse();
+    expect(insideBianchi(fn (): array => File::query()->toSort()->pluck('original_name')->all()))->toBe(['Libretto.pdf'])
+        ->and(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda bianca');
+});
+
+test('it opens the form of a card with the documents linked to it', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.edit', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('cards/EditCard')
+        ->has('documents', 1)
+        ->where('documents.0.title', 'Polizza RC auto 2026'));
 });

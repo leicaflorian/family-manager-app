@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Cards\DeleteCard;
 use App\Actions\Cards\SaveCard;
+use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Data\DocumentData;
 use App\Enums\Area;
@@ -17,6 +18,7 @@ use App\Services\CardSummaries;
 use App\Services\FileStore;
 use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -64,16 +66,8 @@ final class CardController extends Controller
     public function store(SaveCardRequest $request, SaveCard $save, FileStore $store): RedirectResponse
     {
         $type = $request->cardType();
-        $card = $save->handle($type, $request->columns());
-        $files = $request->uploadedFiles();
 
-        foreach ($files as $file) {
-            $store->store($file, toSort: true);
-        }
-
-        return $files === []
-            ? to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()])
-            : to_route('upload', PresetLink::of($type, $card));
+        return $this->openWithFiles($type, $save->handle($type, $request->columns()), $request, $store);
     }
 
     /**
@@ -95,7 +89,7 @@ final class CardController extends Controller
     }
 
     /**
-     * *Edit card*: the form with the data of the card.
+     * *Edit card*: the form with the data of the card and its documents.
      */
     public function edit(string $type, string $id): Response
     {
@@ -103,22 +97,26 @@ final class CardController extends Controller
         $card = $description->findOrFail($id);
         Gate::authorize('update', $card);
 
+        $row = $this->summaries->row($card);
+
         return Inertia::render('cards/EditCard', [
             ...$this->details->form($description, $card, []),
-            'card' => $this->summaries->row($card),
+            'card' => $row,
+            'documents' => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
         ]);
     }
 
     /**
-     * Saves the change and opens the card.
+     * Saves the change and opens the card. With files, they wait for their
+     * document and *Upload* opens with the card among the links of each.
      */
-    public function update(SaveCardRequest $request, SaveCard $save): RedirectResponse
+    public function update(SaveCardRequest $request, SaveCard $save, FileStore $store): RedirectResponse
     {
         $type = $request->cardType();
         $card = $request->card() ?? abort(404);
         $save->handle($type, $request->columns(), $card);
 
-        return to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()]);
+        return $this->openWithFiles($type, $card, $request, $store);
     }
 
     /**
@@ -133,5 +131,27 @@ final class CardController extends Controller
         $delete->handle($card);
 
         return to_route('areas.show', $description->area());
+    }
+
+    /**
+     * Keeps the files sent with the card waiting for their document and opens
+     * *Upload* linked to the card; without files, opens the card.
+     *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card just saved
+     * @param  SaveCardRequest  $request  the request with the files
+     * @param  FileStore  $store  where the files are kept
+     */
+    private function openWithFiles(CardType $type, Model $card, SaveCardRequest $request, FileStore $store): RedirectResponse
+    {
+        $files = $request->uploadedFiles();
+
+        foreach ($files as $file) {
+            $store->store($file, toSort: true);
+        }
+
+        return $files === []
+            ? to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()])
+            : to_route('upload', PresetLink::of($type, $card));
     }
 }
