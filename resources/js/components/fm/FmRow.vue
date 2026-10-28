@@ -69,8 +69,8 @@ const toneColor: Record<RowTone, string> = {
     paid: cn('font-semibold text-paid'),
 };
 
-/** The title in two: the beginning, cut where room is short, and its last 8 characters. */
-const titleParts = computed(() => splitTail(title, 8));
+/** The title in two: the beginning, cut where room is short, and its last 5 characters. */
+const titleParts = computed(() => splitTail(title, 5));
 </script>
 
 <template>

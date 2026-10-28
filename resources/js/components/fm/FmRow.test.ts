@@ -16,10 +16,12 @@ describe('FmRow', () => {
         const title = screen.getByTitle('Polizza RC auto 2026');
         expect(title).toHaveClass('flex', 'whitespace-nowrap');
         const [start, end] = title.querySelectorAll('[data-piece]');
-        expect(start).toHaveTextContent('Polizza RC a');
+        expect(start).toHaveTextContent('Polizza RC auto');
         expect(start).toHaveClass('text-ellipsis');
         expect(start).toHaveAttribute('aria-hidden', 'true');
-        expect(end).toHaveTextContent('uto 2026');
+        expect(end).toHaveTextContent(/^ 2026$/, {
+            normalizeWhitespace: false,
+        });
         expect(end).toHaveClass('shrink-0');
         // A space at the edge of a piece stays: "luce di| ottobre"
         expect(start).toHaveClass('whitespace-pre');
