@@ -1,6 +1,6 @@
 # Family Manager - app per le famiglie
 
-Repository della nuova app di Family Manager, in Laravel + Inertia + Vue. Analisi, piano e decisioni stanno nel vault Obsidian, voci del ToDo *Nuova app per le famiglie in Laravel* (in `_Done`) e *Nuova app - base dell'app* (in `_Opened`), in `MyVault/Projects/Family Manager/ToDo/`: si leggono prima di lavorare qui. Le regole di `family-manager-cms` (GitNexus, `./fm`, migrazioni di Directus) non valgono qui. È un repository solo di questo progetto: `git add -A` va bene.
+Repository della nuova app di Family Manager, in Laravel + Inertia + Vue. Analisi, piano e decisioni stanno nel vault Obsidian, voci del ToDo *Nuova app per le famiglie in Laravel* e *Nuova app - base dell'app* (in `_Done`), in `MyVault/Projects/Family Manager/ToDo/`: si leggono prima di lavorare qui. Le regole di `family-manager-cms` (GitNexus, `./fm`, migrazioni di Directus) non valgono qui. È un repository solo di questo progetto: `git add -A` va bene.
 
 La [tela di Claude Design](https://claude.ai/artifact/XwCgtJdtBEgWrGDbLAmRrr) è il riferimento delle pagine: dove il codice dice cose diverse dalla tavola vale la tavola, e la differenza si scrive nelle *Decisioni prese* del piano.
 
