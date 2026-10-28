@@ -82,6 +82,14 @@ final class Person extends FamilyModel
     }
 
     /**
+     * The address of the photo of the person, or null without one. Load `photo` first in a list.
+     */
+    public function photoUrl(): ?string
+    {
+        return $this->photo?->imageUrl();
+    }
+
+    /**
      * The title of the account's level, «Administrator» or «Family member», or
      * null for a person without an account.
      */

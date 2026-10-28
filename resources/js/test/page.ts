@@ -4,10 +4,11 @@
  * the tests.
  */
 import { plugin as formkit } from '@formkit/vue';
-import { render, screen, within } from '@testing-library/vue';
+import { fireEvent, render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import type { RenderResult } from '@testing-library/vue';
 import type { Component } from 'vue';
+import { vi } from 'vite-plus/test';
 import formkitConfig from '@/formkit.config';
 
 /**
@@ -137,4 +138,37 @@ export function press(init: KeyboardEventInit): KeyboardEvent {
  */
 export function pressSave(): void {
     press({ key: 's', metaKey: true });
+}
+
+/**
+ * Chooses a file in a hidden file picker, as its button does. jsdom has no
+ * object URLs: call `stubObjectUrls()` first when the page shows the file.
+ *
+ * @param label - the accessible name of the picker
+ * @param file - the file chosen
+ */
+export async function pickFile(label: string, file: File): Promise<void> {
+    const picker = screen.getByLabelText(label, { selector: 'input' });
+    Object.defineProperty(picker, 'files', {
+        value: [file],
+        configurable: true,
+    });
+    await fireEvent.change(picker);
+}
+
+/**
+ * Gives jsdom the object URLs it lacks: every file shows as `blob:chosen`.
+ * Undo it with `vi.unstubAllGlobals()`.
+ */
+export function stubObjectUrls(): void {
+    vi.stubGlobal(
+        'URL',
+        class extends URL {
+            static override createObjectURL(): string {
+                return 'blob:chosen';
+            }
+
+            static override revokeObjectURL(): void {}
+        },
+    );
 }

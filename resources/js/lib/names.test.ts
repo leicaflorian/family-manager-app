@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { listNames } from './names';
+import { initialsOf, listNames } from './names';
 
 describe('listNames', () => {
     it('joins the names with commas and «and» before the last one', () => {
@@ -15,5 +15,13 @@ describe('listNames', () => {
         expect(listNames(['Marco', 'Laura', 'Giulia'], 'it')).toBe(
             'Marco, Laura e Giulia',
         );
+    });
+});
+
+describe('initialsOf', () => {
+    it('takes the first letter of first and last name, upper case, as the server does', () => {
+        expect(initialsOf('rosa', 'Bianchi')).toBe('RB');
+        expect(initialsOf('Èlia', '')).toBe('È');
+        expect(initialsOf('', '')).toBe('');
     });
 });

@@ -84,4 +84,12 @@ describe('A person', () => {
         ).not.toBeInTheDocument();
         expect(screen.getByText('Family member')).toBeInTheDocument();
     });
+
+    it('shows her photo beside the name', () => {
+        renderGiulia({ ...personDetail, photo: '/files/40' });
+
+        expect(
+            screen.getByRole('img', { name: 'Giulia Bianchi' }),
+        ).toHaveAttribute('src', '/files/40');
+    });
 });

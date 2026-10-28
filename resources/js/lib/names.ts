@@ -17,3 +17,18 @@ export function listNames(
         type: 'conjunction',
     }).format(names);
 }
+
+/**
+ * The initials of a person, as the server makes them when the form leaves
+ * them empty (`App\Support\Initials`).
+ *
+ * @param firstName - the first name
+ * @param lastName - the last name
+ * @returns the first letters, upper case, for example `MB`
+ */
+export function initialsOf(firstName: string, lastName: string): string {
+    return (
+        Array.from(firstName).slice(0, 1).join('') +
+        Array.from(lastName).slice(0, 1).join('')
+    ).toUpperCase();
+}

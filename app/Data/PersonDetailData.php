@@ -20,6 +20,7 @@ final class PersonDetailData extends Data
      * @param  string  $first_name  the first name
      * @param  string  $last_name  the last name
      * @param  string  $initials  the initials of the circle
+     * @param  string|null  $photo  the address of the photo, or null for the initials
      * @param  string  $role  `parent`, `child` or `other`
      * @param  string  $role_label  who they are in the family, for example «Parent»
      * @param  string|null  $birth_date  the birth date, ISO
@@ -36,6 +37,7 @@ final class PersonDetailData extends Data
         public readonly string $first_name,
         public readonly string $last_name,
         public readonly string $initials,
+        public readonly ?string $photo,
         public readonly string $role,
         public readonly string $role_label,
         public readonly ?string $birth_date,
@@ -61,6 +63,7 @@ final class PersonDetailData extends Data
             first_name: $person->first_name,
             last_name: $person->last_name,
             initials: $person->initials,
+            photo: $person->photoUrl(),
             role: $person->role->value,
             role_label: $person->role->label(),
             birth_date: $person->birth_date?->toDateString(),

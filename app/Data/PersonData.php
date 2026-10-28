@@ -21,6 +21,7 @@ final class PersonData extends Data
      * @param  string  $first_name  the first name
      * @param  string  $last_name  the last name
      * @param  string  $initials  the initials of the circle
+     * @param  string|null  $photo  the address of the photo, or null for the initials
      * @param  string  $role_label  who they are in the family, for example «Parent»
      * @param  int|null  $age  the age in years, if the birth date is known
      * @param  string|null  $account_label  the level of the account, or null without one
@@ -33,6 +34,7 @@ final class PersonData extends Data
         public readonly string $first_name,
         public readonly string $last_name,
         public readonly string $initials,
+        public readonly ?string $photo,
         public readonly string $role_label,
         public readonly ?int $age,
         public readonly ?string $account_label,
@@ -42,7 +44,7 @@ final class PersonData extends Data
     ) {}
 
     /**
-     * A person of the list, with `user` loaded and the documents counted.
+     * A person of the list, with `user` and `photo` loaded and the documents counted.
      *
      * @param  Person  $person  the person
      * @param  User  $viewer  whoever is looking
@@ -55,6 +57,7 @@ final class PersonData extends Data
             first_name: $person->first_name,
             last_name: $person->last_name,
             initials: $person->initials,
+            photo: $person->photoUrl(),
             role_label: $person->role->label(),
             age: $person->birth_date?->age,
             account_label: $person->accountLabel(),

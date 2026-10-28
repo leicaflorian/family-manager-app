@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Files\ReplaceImage;
 use App\Data\FamilySummaryData;
 use App\Data\OptionData;
 use App\Data\OrganizationData;
@@ -36,7 +37,7 @@ final class OrganizationController extends Controller
         $labels = $this->records->labelsByOrganization();
 
         return Inertia::render('family/Organizations', [
-            'organizations' => Organization::query()->orderBy('name')->get()
+            'organizations' => Organization::query()->with('logo')->orderBy('name')->get()
                 ->map(static fn (Organization $organization): OrganizationData => OrganizationData::fromOrganization($organization, $labels[$organization->id] ?? []))
                 ->values()->all(),
             'types' => OptionData::list(OrganizationType::options()),
@@ -56,11 +57,12 @@ final class OrganizationController extends Controller
     }
 
     /**
-     * Adds the organization.
+     * Adds the organization, with its logo.
      */
-    public function store(SaveOrganizationRequest $request): RedirectResponse
+    public function store(SaveOrganizationRequest $request, ReplaceImage $replace): RedirectResponse
     {
         $organization = Organization::query()->create($request->fields());
+        $replace->handle($organization, 'logo_id', $request->uploadedImage('logo'));
 
         return to_route('organizations.show', $organization);
     }
@@ -88,11 +90,12 @@ final class OrganizationController extends Controller
     }
 
     /**
-     * Saves the change.
+     * Saves the change, with the new logo or without the old one.
      */
-    public function update(SaveOrganizationRequest $request, Organization $organization): RedirectResponse
+    public function update(SaveOrganizationRequest $request, Organization $organization, ReplaceImage $replace): RedirectResponse
     {
         $organization->update($request->fields());
+        $replace->handle($organization, 'logo_id', $request->uploadedImage('logo'), $request->boolean('remove_logo'));
 
         return to_route('organizations.show', $organization);
     }

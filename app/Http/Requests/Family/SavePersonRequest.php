@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Requests\Family;
 
 use App\Enums\PersonRole;
+use App\Http\Requests\Concerns\UploadsImage;
 use App\Models\Person;
+use App\Support\ImageUpload;
 use App\Support\Initials;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,6 +18,8 @@ use Illuminate\Validation\Rule;
  */
 final class SavePersonRequest extends FormRequest
 {
+    use UploadsImage;
+
     /** The columns of the person the form fills. */
     private const array FIELDS = ['first_name', 'last_name', 'initials', 'role', 'birth_date', 'tax_code', 'notes'];
 
@@ -46,6 +50,8 @@ final class SavePersonRequest extends FormRequest
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'tax_code' => ['nullable', 'string', 'max:16'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'photo' => ['nullable', ...ImageUpload::RULES],
+            'remove_photo' => ['boolean'],
         ];
     }
 
@@ -57,6 +63,7 @@ final class SavePersonRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'photo' => __('photo'),
             'first_name' => __('first name'),
             'last_name' => __('last name'),
             'initials' => __('initials'),

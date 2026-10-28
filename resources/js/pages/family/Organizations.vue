@@ -11,10 +11,10 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFamilyViews from '@/components/fm/FmFamilyViews.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmOrganizationMark from '@/components/fm/FmOrganizationMark.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import {
     filterOrganizations,
-    organizationIcon,
     organizationSubtitle,
     typeFilters,
 } from '@/lib/family';
@@ -126,14 +126,12 @@ const shown = computed(() =>
                     class="border-b border-divider"
                 >
                     <template #before>
-                        <span
-                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-canvas text-[#4A5565]"
-                        >
-                            <FmIcon
-                                :icon="organizationIcon(organization.types)"
-                                :size="20"
-                            />
-                        </span>
+                        <FmOrganizationMark
+                            :types="organization.types"
+                            :logo="organization.logo"
+                            :name="organization.name"
+                            class="size-10 rounded-xl bg-canvas"
+                        />
                     </template>
                 </FmRow>
             </div>

@@ -53,7 +53,7 @@ final class AccountData extends Data
             role: $user->role->title(),
             is_admin: $user->isAdmin(),
             initials: $person->initials ?? mb_strtoupper(mb_substr($user->name, 0, 1)),
-            photo: $person?->photo_id !== null ? route('files.show', $person->photo_id) : null,
+            photo: $person?->photoUrl(),
             is_last_admin: $user->isLastAdmin(),
             family: $user->family->name,
         );

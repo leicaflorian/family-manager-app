@@ -61,6 +61,14 @@ final class Organization extends FamilyModel
     }
 
     /**
+     * The address of the logo of the organization, or null without one. Load `logo` first in a list.
+     */
+    public function logoUrl(): ?string
+    {
+        return $this->logo?->imageUrl();
+    }
+
+    /**
      * The documents of the organization (`documents.organization_id`).
      *
      * @return HasMany<Document, $this>

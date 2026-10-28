@@ -432,5 +432,9 @@
     "Remove the link": "Togli il collegamento",
     "Remove the link to :label?": "Togliere il collegamento a :label?",
     "The document will no longer be linked to it, once you save.": "Quando salvi, il documento non sarà più collegato.",
-    "Press Enter to add the tag": "Premi Invio per aggiungere l'etichetta"
+    "Press Enter to add the tag": "Premi Invio per aggiungere l'etichetta",
+    "Add a photo": "Aggiungi una foto",
+    "Add a logo": "Aggiungi un logo",
+    "Change the logo": "Cambia il logo",
+    "logo": "logo"
 }

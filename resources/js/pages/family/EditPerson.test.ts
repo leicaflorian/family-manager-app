@@ -1,9 +1,32 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { personDetail, personRoles } from '@/test/fixtures';
-import { choose, pressSave, renderPage } from '@/test/page';
+import {
+    choose,
+    pickFile,
+    pressSave,
+    renderPage,
+    settle,
+    stubObjectUrls,
+} from '@/test/page';
 import EditPerson from './EditPerson.vue';
+
+beforeEach(() => {
+    stubObjectUrls();
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+});
 
 describe('Edit a person', () => {
     it('adds a new person with what was written', async () => {
@@ -31,7 +54,7 @@ describe('Edit a person', () => {
     });
 
     it('changes a person, starting from her data', async () => {
-        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditPerson, { person: personDetail, roles: personRoles });
 
         expect(
@@ -45,9 +68,10 @@ describe('Edit a person', () => {
         );
         await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-        expect(put).toHaveBeenCalledWith(
+        expect(post).toHaveBeenCalledWith(
             '/family/people/3',
             expect.objectContaining({
+                _method: 'put',
                 first_name: 'Giulia',
                 role: 'child',
                 birth_date: '2016-05-24',
@@ -57,11 +81,67 @@ describe('Edit a person', () => {
     });
 
     it('saves with ⌘S too', () => {
-        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditPerson, { person: personDetail, roles: personRoles });
 
         pressSave();
 
-        expect(put.mock.calls[0]?.[0]).toBe('/family/people/3');
+        expect(post.mock.calls[0]?.[0]).toBe('/family/people/3');
+    });
+
+    it('beside the form shows the initials as they are written', async () => {
+        renderPage(EditPerson, { person: null, roles: personRoles });
+
+        await fireEvent.update(screen.getByLabelText('First name'), 'Rosa');
+        await fireEvent.update(screen.getByLabelText('Last name'), 'Bianchi');
+        await settle();
+
+        expect(screen.getByText('RB')).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Add a photo' }),
+        ).toBeInTheDocument();
+    });
+
+    it('the photo chosen goes with the person when saving', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        const photo = new File(['x'], 'giulia.jpg', { type: 'image/jpeg' });
+        renderPage(EditPerson, { person: personDetail, roles: personRoles });
+
+        await pickFile('Add a photo', photo);
+        expect(
+            screen.getByRole('img', { name: 'Giulia Bianchi' }),
+        ).toHaveAttribute('src', 'blob:chosen');
+        await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/family/people/3',
+            expect.objectContaining({
+                _method: 'put',
+                photo,
+                remove_photo: false,
+            }),
+            expect.anything(),
+        );
+    });
+
+    it('removing the photo tells the server when saving', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditPerson, {
+            person: { ...personDetail, photo: '/files/40' },
+            roles: personRoles,
+        });
+
+        expect(
+            screen.getByRole('img', { name: 'Giulia Bianchi' }),
+        ).toHaveAttribute('src', '/files/40');
+        await fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(screen.getByText('GB')).toBeInTheDocument();
+        expect(post).toHaveBeenCalledWith(
+            '/family/people/3',
+            expect.objectContaining({ photo: null, remove_photo: true }),
+            expect.anything(),
+        );
     });
 });

@@ -20,6 +20,7 @@ final class OrganizationDetailData extends Data
      * @param  string  $name  the name
      * @param  list<string>  $types  the values of its types
      * @param  list<string>  $type_labels  the labels of its types
+     * @param  string|null  $logo  the address of the logo, or null for the icon of its type
      * @param  string|null  $email  the email
      * @param  string|null  $phone  the phone number
      * @param  string|null  $website  the website, as it was written
@@ -32,6 +33,7 @@ final class OrganizationDetailData extends Data
         public readonly string $name,
         public readonly array $types,
         public readonly array $type_labels,
+        public readonly ?string $logo,
         public readonly ?string $email,
         public readonly ?string $phone,
         public readonly ?string $website,
@@ -53,6 +55,7 @@ final class OrganizationDetailData extends Data
             name: $organization->name,
             types: $organization->typeValues(),
             type_labels: $organization->typeLabels(),
+            logo: $organization->logoUrl(),
             email: $organization->email,
             phone: $organization->phone,
             website: $organization->website,

@@ -94,4 +94,23 @@ describe('Organizations', () => {
             screen.queryByRole('link', { name: /New organization/ }),
         ).not.toBeInTheDocument();
     });
+
+    it('shows the logo of whoever has one, the icon of the type for the others', () => {
+        renderPage(Organizations, {
+            organizations: organizationsList.map((organization) =>
+                organization.id === 1
+                    ? { ...organization, logo: '/files/41' }
+                    : organization,
+            ),
+            types: organizationTypes,
+            family: familySummary,
+            canEdit: true,
+        });
+
+        expect(screen.getByRole('img', { name: 'Edison' })).toHaveAttribute(
+            'src',
+            '/files/41',
+        );
+        expect(screen.queryByRole('img', { name: 'Enel Energia' })).toBeNull();
+    });
 });

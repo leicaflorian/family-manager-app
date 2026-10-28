@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Account;
 
+use App\Actions\Files\ReplaceImage;
 use App\Models\User;
-use App\Services\FileStore;
 use Illuminate\Http\UploadedFile;
 
 /**
@@ -13,7 +13,7 @@ use Illuminate\Http\UploadedFile;
  */
 final readonly class ChangePhoto
 {
-    public function __construct(private FileStore $files) {}
+    public function __construct(private ReplaceImage $replace) {}
 
     /**
      * Saves the photo. An account without a person has nowhere to keep it.
@@ -23,17 +23,8 @@ final readonly class ChangePhoto
      */
     public function handle(User $user, UploadedFile $photo): void
     {
-        $person = $user->person;
-
-        if ($person === null) {
-            return;
-        }
-
-        $previous = $person->photo()->first();
-        $person->update(['photo_id' => $this->files->store($photo)->id]);
-
-        if ($previous !== null) {
-            $this->files->delete($previous);
+        if ($user->person !== null) {
+            $this->replace->handle($user->person, 'photo_id', $photo);
         }
     }
 }

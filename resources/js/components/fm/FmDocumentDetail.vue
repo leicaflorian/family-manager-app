@@ -131,6 +131,8 @@ const shownGroup = computed(
                                 <FmAvatar
                                     v-if="document.person_initials"
                                     :initials="document.person_initials"
+                                    :photo="document.person_photo"
+                                    :name="document.person ?? ''"
                                     :size="22"
                                 />
                                 {{ document.person }}

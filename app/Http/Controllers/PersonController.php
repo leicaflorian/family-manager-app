@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Files\ReplaceImage;
 use App\Actions\People\DeletePerson;
 use App\Data\FamilySummaryData;
 use App\Data\OptionData;
@@ -37,7 +38,7 @@ final class PersonController extends Controller
         $counts = $this->records->countByPerson();
 
         return Inertia::render('family/People', [
-            'people' => Person::query()->with('user')->withCount('documents')->orderBy('id')->get()
+            'people' => Person::query()->with(['user', 'photo'])->withCount('documents')->orderBy('id')->get()
                 ->map(static fn (Person $person): PersonData => PersonData::fromPerson($person, $user, $counts[$person->id] ?? 0))
                 ->values()->all(),
             'family' => FamilySummaryData::of($user),
@@ -56,11 +57,12 @@ final class PersonController extends Controller
     }
 
     /**
-     * Adds the person, without an account: that comes with an invitation.
+     * Adds the person, with their photo, without an account: that comes with an invitation.
      */
-    public function store(SavePersonRequest $request): RedirectResponse
+    public function store(SavePersonRequest $request, ReplaceImage $replace): RedirectResponse
     {
         $person = Person::query()->create($request->fields());
+        $replace->handle($person, 'photo_id', $request->uploadedImage('photo'));
 
         return to_route('people.show', $person);
     }
@@ -94,11 +96,12 @@ final class PersonController extends Controller
     }
 
     /**
-     * Saves the change.
+     * Saves the change, with the new photo or without the old one.
      */
-    public function update(SavePersonRequest $request, Person $person): RedirectResponse
+    public function update(SavePersonRequest $request, Person $person, ReplaceImage $replace): RedirectResponse
     {
         $person->update($request->fields());
+        $replace->handle($person, 'photo_id', $request->uploadedImage('photo'), $request->boolean('remove_photo'));
 
         return to_route('people.show', $person);
     }

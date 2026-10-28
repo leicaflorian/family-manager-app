@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Requests\Family;
 
 use App\Enums\OrganizationType;
+use App\Http\Requests\Concerns\UploadsImage;
 use App\Models\Organization;
+use App\Support\ImageUpload;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -15,6 +17,8 @@ use Illuminate\Validation\Rule;
  */
 final class SaveOrganizationRequest extends FormRequest
 {
+    use UploadsImage;
+
     /** The columns of the organization the form fills. */
     private const array FIELDS = ['name', 'types', 'email', 'phone', 'website', 'notes'];
 
@@ -45,6 +49,8 @@ final class SaveOrganizationRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'website' => ['nullable', 'string', 'max:200'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'logo' => ['nullable', ...ImageUpload::RULES],
+            'remove_logo' => ['boolean'],
         ];
     }
 
@@ -56,6 +62,7 @@ final class SaveOrganizationRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'logo' => __('logo'),
             'name' => __('name'),
             'types.*' => __('type'),
             'email' => __('email'),

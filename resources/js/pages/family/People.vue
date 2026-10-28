@@ -54,7 +54,12 @@ const { people, family, canEdit } = defineProps<{
                 :href="show.url(person.id)"
             >
                 <template #before>
-                    <FmAvatar :initials="person.initials" :size="44" />
+                    <FmAvatar
+                        :initials="person.initials"
+                        :photo="person.photo"
+                        :name="`${person.first_name} ${person.last_name}`"
+                        :size="44"
+                    />
                 </template>
                 <template #after>
                     <span class="text-[13px] font-normal text-ink-soft">{{
@@ -76,7 +81,12 @@ const { people, family, canEdit } = defineProps<{
                 class="flex flex-col gap-3.5 rounded-[20px] bg-white p-[22px] text-inherit no-underline"
             >
                 <span class="flex items-center gap-3.5">
-                    <FmAvatar :initials="person.initials" :size="56" />
+                    <FmAvatar
+                        :initials="person.initials"
+                        :photo="person.photo"
+                        :name="`${person.first_name} ${person.last_name}`"
+                        :size="56"
+                    />
                     <span class="flex flex-col gap-0.5">
                         <span class="text-lg font-extrabold"
                             >{{ person.first_name }}

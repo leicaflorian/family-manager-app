@@ -24,6 +24,7 @@ final class DocumentDetailData extends Data
      * @param  int|null  $person_id  the person it refers to
      * @param  string|null  $person  the full name of that person
      * @param  string|null  $person_initials  the initials of that person, for the avatar
+     * @param  string|null  $person_photo  the address of the photo of that person, for the avatar
      * @param  int|null  $organization_id  the organization it comes from
      * @param  string|null  $organization  the name of that organization
      * @param  string|null  $date  the date, ISO
@@ -45,6 +46,7 @@ final class DocumentDetailData extends Data
         public readonly ?int $person_id,
         public readonly ?string $person,
         public readonly ?string $person_initials,
+        public readonly ?string $person_photo,
         public readonly ?int $organization_id,
         public readonly ?string $organization,
         public readonly ?string $date,
@@ -60,7 +62,7 @@ final class DocumentDetailData extends Data
     ) {}
 
     /**
-     * The data of a document, with `person`, `organization` and `file` loaded.
+     * The data of a document, with `person.photo`, `organization` and `file` loaded.
      *
      * @param  Document  $document  the document
      * @param  list<string>|null  $path  the path of its category, from `CategoryTree::paths()`
@@ -77,6 +79,7 @@ final class DocumentDetailData extends Data
             person_id: $document->person_id,
             person: $document->person === null ? null : "{$document->person->first_name} {$document->person->last_name}",
             person_initials: $document->person?->initials,
+            person_photo: $document->person?->photoUrl(),
             organization_id: $document->organization_id,
             organization: $document->organization?->name,
             date: $document->date?->toDateString(),

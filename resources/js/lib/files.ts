@@ -12,6 +12,10 @@ export type PreviewKind = 'preview' | 'image' | 'other';
 export const DOCUMENT_FILE_TYPES =
     '.pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic';
 
+/** The types of a photo or a logo, as the server takes them (`ImageUpload::RULES`). */
+export const IMAGE_FILE_TYPES =
+    '.jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp,image/heic';
+
 /** The image types every browser opens: HEIC is not among them. */
 const IMAGES = ['image/jpeg', 'image/png'];
 

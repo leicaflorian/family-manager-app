@@ -53,7 +53,12 @@ const name = computed(() => `${person.first_name} ${person.last_name}`);
 
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-                <FmAvatar :initials="person.initials" :size="64" />
+                <FmAvatar
+                    :initials="person.initials"
+                    :photo="person.photo"
+                    :name="name"
+                    :size="64"
+                />
                 <div class="flex flex-col gap-1">
                     <h1 class="m-0 text-[26px] font-extrabold lg:text-[32px]">
                         {{ name }}

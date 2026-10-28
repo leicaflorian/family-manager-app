@@ -19,6 +19,7 @@ final class OrganizationData extends Data
      * @param  string  $name  the name
      * @param  list<string>  $types  the values of its types, for the filter and the icon
      * @param  list<string>  $type_labels  the labels of its types
+     * @param  string|null  $logo  the address of the logo, or null for the icon of its type
      * @param  list<string>  $records  the names of the records that name it
      */
     public function __construct(
@@ -26,17 +27,18 @@ final class OrganizationData extends Data
         public readonly string $name,
         public readonly array $types,
         public readonly array $type_labels,
+        public readonly ?string $logo,
         public readonly array $records,
     ) {}
 
     /**
-     * An organization of the list.
+     * An organization of the list, with `logo` loaded.
      *
      * @param  Organization  $organization  the organization
      * @param  list<string>  $records  the names of its records, from `LinkedRecords::labelsByOrganization()`
      */
     public static function fromOrganization(Organization $organization, array $records): self
     {
-        return new self($organization->id, $organization->name, $organization->typeValues(), $organization->typeLabels(), $records);
+        return new self($organization->id, $organization->name, $organization->typeValues(), $organization->typeLabels(), $organization->logoUrl(), $records);
     }
 }

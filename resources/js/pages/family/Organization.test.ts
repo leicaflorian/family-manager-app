@@ -73,4 +73,17 @@ describe('An organization', () => {
             screen.queryByRole('button', { name: 'Delete' }),
         ).not.toBeInTheDocument();
     });
+
+    it('shows its logo beside the name', () => {
+        renderPage(Organization, {
+            organization: { ...organizationDetail, logo: '/files/41' },
+            links,
+            documents: [bill],
+        });
+
+        expect(screen.getByRole('img', { name: 'Edison' })).toHaveAttribute(
+            'src',
+            '/files/41',
+        );
+    });
 });

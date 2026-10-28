@@ -45,7 +45,7 @@ final class DocumentController extends Controller
     public function index(DocumentIndexRequest $request, FilterDocuments $filter, DocumentFormOptions $options, #[CurrentUser] User $user): Response
     {
         $filters = $request->filters();
-        $page = $filter->apply(Document::query()->with(['person', 'organization', 'file']), $filters)
+        $page = $filter->apply(Document::query()->with(['person.photo', 'organization', 'file']), $filters)
             ->paginate(self::PER_PAGE)
             ->withQueryString();
         $paths = $this->categories->paths();
@@ -147,7 +147,7 @@ final class DocumentController extends Controller
      */
     private function detail(Document $document, User $user): DocumentDetailData
     {
-        $document->loadMissing(['person', 'organization', 'file']);
+        $document->loadMissing(['person.photo', 'organization', 'file']);
 
         return DocumentDetailData::fromDocument(
             $document,

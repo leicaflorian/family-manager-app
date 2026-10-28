@@ -144,4 +144,14 @@ describe('FmDocumentDetail', () => {
 
         expect(screen.getByTitle('Add a link')).not.toHaveClass('border');
     });
+
+    it('shows the photo of the person the document belongs to', () => {
+        renderPage(FmDocumentDetail, {
+            document: { ...documentDetail, person_photo: '/files/40' },
+        });
+
+        expect(
+            screen.getByRole('img', { name: documentDetail.person ?? '' }),
+        ).toHaveAttribute('src', '/files/40');
+    });
 });

@@ -66,6 +66,15 @@ final class File extends FamilyModel
     }
 
     /**
+     * The address that shows the file as an image: its preview for a HEIC,
+     * which most browsers do not open, the file itself otherwise.
+     */
+    public function imageUrl(): string
+    {
+        return route($this->hasPreview() ? 'files.preview' : 'files.show', $this);
+    }
+
+    /**
      * Only the files uploaded and still waiting for their document.
      *
      * @param  Builder<self>  $query

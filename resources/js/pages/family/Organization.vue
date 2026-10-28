@@ -19,8 +19,9 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmOrganizationMark from '@/components/fm/FmOrganizationMark.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
-import { organizationIcon, websiteHref } from '@/lib/family';
+import { websiteHref } from '@/lib/family';
 import { show as showDocument } from '@/routes/documents';
 import { destroy, edit, index } from '@/routes/organizations';
 
@@ -69,14 +70,13 @@ const contacts = computed(() =>
 
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-                <span
-                    class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white text-[#4A5565] lg:size-16"
-                >
-                    <FmIcon
-                        :icon="organizationIcon(organization.types)"
-                        :size="28"
-                    />
-                </span>
+                <FmOrganizationMark
+                    :types="organization.types"
+                    :logo="organization.logo"
+                    :name="organization.name"
+                    :icon-size="28"
+                    class="size-14 rounded-2xl bg-white lg:size-16"
+                />
                 <div class="flex flex-col gap-1">
                     <h1 class="m-0 text-[26px] font-extrabold lg:text-[32px]">
                         {{ organization.name }}

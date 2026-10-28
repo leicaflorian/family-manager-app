@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
+use App\Support\ImageUpload;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -19,7 +20,7 @@ final class UploadPhotoRequest extends FormRequest
      */
     public function rules(): array
     {
-        return ['photo' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,heic', 'max:10240']];
+        return ['photo' => ['required', ...ImageUpload::RULES]];
     }
 
     /**

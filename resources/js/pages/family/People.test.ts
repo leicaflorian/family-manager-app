@@ -65,4 +65,23 @@ describe('People', () => {
         expect(within(card).getByText('4')).toBeInTheDocument();
         expect(within(card).getByText('2')).toBeInTheDocument();
     });
+
+    it('shows the photo of whoever has one, the initials for the others', () => {
+        renderPage(People, {
+            people: peopleList.map((person) =>
+                person.id === 3 ? { ...person, photo: '/files/40' } : person,
+            ),
+            family: familySummary,
+            canEdit: true,
+        });
+
+        for (const photo of screen.getAllByRole('img', {
+            name: 'Giulia Bianchi',
+        })) {
+            expect(photo).toHaveAttribute('src', '/files/40');
+        }
+        expect(
+            screen.queryAllByRole('img', { name: 'Marco Bianchi' }),
+        ).toHaveLength(0);
+    });
 });
