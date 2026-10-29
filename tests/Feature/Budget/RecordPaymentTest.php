@@ -18,6 +18,7 @@ use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -141,5 +142,22 @@ test('it refuses to pay a due date twice', function (): void {
 
         expect(fn (): Expense|Income => recordIt($deadline, '2026-10-26', 418.0))->toThrow(ValidationException::class, 'Questa scadenza è già pagata.')
             ->and(Expense::query()->where('title', 'Assicurazione auto novembre 2026')->count())->toBe(1);
+    });
+});
+
+test('it locks the planned item before reading again whether the due date is paid', function (): void {
+    insideBianchi(function (): void {
+        $deadline = paymentDeadline('income', 'Stipendio di Marco', '2026-10-27');
+        DB::enableQueryLog();
+
+        recordIt($deadline, '2026-10-27', 1850.0);
+
+        $queries = array_column(DB::getQueryLog(), 'query');
+        $lock = array_find_key($queries, static fn (string $query): bool => str_contains($query, 'planned_incomes') && str_contains($query, 'for update'));
+        $read = array_find_key($queries, static fn (string $query): bool => str_contains($query, 'from `incomes`'));
+
+        expect($lock)->not->toBeNull()
+            ->and($read)->not->toBeNull()
+            ->and($lock)->toBeLessThan($read);
     });
 });

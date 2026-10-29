@@ -35,6 +35,19 @@ final class PlannedKind
     }
 
     /**
+     * Locks the row of a planned item until the transaction ends, so that two payments of the same due date
+     * wait for each other and the second one sees the first. It must be the first query of the transaction:
+     * MySQL takes the snapshot of a transaction at its first plain read, and a read before the lock would not see
+     * the payment the other transaction has just committed.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     */
+    public static function lock(PlannedExpense|PlannedIncome $planned): void
+    {
+        $planned->newQuery()->whereKey($planned->getKey())->lockForUpdate()->first();
+    }
+
+    /**
      * The card a planned item refers to: the first of the cards of a planned expense, the employment of an income.
      * The relations are read as loaded; `Deadlines::between()` loads them for a whole collection.
      *

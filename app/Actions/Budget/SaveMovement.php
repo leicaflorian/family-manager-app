@@ -43,9 +43,16 @@ final readonly class SaveMovement
      */
     public function handle(string $kind, array $columns, Expense|Income|null $movement = null): Expense|Income
     {
-        // The request checked the due date, but a payment can have arrived since: read it again, as RecordPayment does
-        return DB::transaction(function () use ($kind, $columns, $movement): Expense|Income {
-            $columns = $this->complete($kind, $columns, $movement);
+        // The request checked the due date, but a payment can have arrived since: with the planned item locked,
+        // read it again, as RecordPayment does. The planned item is found before the transaction, so the lock comes first in it.
+        $planned = $this->planned($kind, $columns, $movement);
+
+        return DB::transaction(function () use ($kind, $columns, $movement, $planned): Expense|Income {
+            if ($planned instanceof PlannedExpense || $planned instanceof PlannedIncome) {
+                PlannedKind::lock($planned);
+            }
+
+            $columns = $this->complete($kind, $columns, $movement, $planned);
             $this->assertOpen($kind, $columns, $movement);
 
             if ($movement instanceof Expense || $movement instanceof Income) {
@@ -60,6 +67,21 @@ final readonly class SaveMovement
                 default => throw new InvalidArgumentException("Unknown kind {$kind}."),
             };
         });
+    }
+
+    /**
+     * The planned item the movement will belong to: the one sent, else the one it has.
+     *
+     * @param  string  $kind  `expense` or `income`
+     * @param  array<string, mixed>  $columns  what the form sent
+     * @param  Expense|Income|null  $movement  the movement being changed
+     */
+    private function planned(string $kind, array $columns, Expense|Income|null $movement): PlannedExpense|PlannedIncome|null
+    {
+        $current = $movement instanceof Expense ? $movement->planned_expense_id : $movement?->planned_income_id;
+        $plannedId = array_key_exists('planned_id', $columns) ? $this->id($columns['planned_id']) : $current;
+
+        return $plannedId === null ? null : PlannedKind::find($kind, (string) $plannedId);
     }
 
     /**
@@ -93,18 +115,18 @@ final readonly class SaveMovement
      * @param  string  $kind  `expense` or `income`
      * @param  array<string, mixed>  $columns  what the form sent
      * @param  Expense|Income|null  $movement  the movement being changed
+     * @param  PlannedExpense|PlannedIncome|null  $planned  the planned item it will belong to, from `planned()`
      * @return array<string, mixed>
      */
-    private function complete(string $kind, array $columns, Expense|Income|null $movement): array
+    private function complete(string $kind, array $columns, Expense|Income|null $movement, PlannedExpense|PlannedIncome|null $planned): array
     {
         $new = $movement === null;
         $link = $kind === 'expense' ? 'planned_expense_id' : 'planned_income_id';
         $sent = array_key_exists('planned_id', $columns);
         $current = $movement instanceof Expense ? $movement->planned_expense_id : $movement?->planned_income_id;
-        $plannedId = $sent ? $this->id($columns['planned_id']) : $current;
+        $plannedId = $planned?->id;
         unset($columns['planned_id']);
 
-        $planned = $plannedId === null ? null : PlannedKind::find($kind, (string) $plannedId);
         // What the planned item gives is taken when it is chosen, not at every save: a change must not bring back what the person emptied
         $chosen = $planned !== null && $plannedId !== $current;
 

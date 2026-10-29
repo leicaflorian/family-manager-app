@@ -16,6 +16,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia;
 
@@ -337,6 +338,18 @@ it('checks again, inside the transaction, that the due date is not paid', functi
     ])))->toThrow(ValidationException::class);
 
     $this->assertDatabaseMissing('expenses', ['title' => 'Retta doppia']);
+});
+
+it('locks the planned item before checking its due date, so two saves cannot both pay it', function (): void {
+    $dance = movementPlan('Retta danza');
+    DB::enableQueryLog();
+
+    insideBianchi(fn () => resolve(SaveMovement::class)->handle('expense', [
+        'title' => 'Retta di gennaio', 'amount' => 45, 'date' => '2027-01-04', 'planned_id' => $dance->id,
+    ]));
+
+    $locks = array_filter(DB::getQueryLog(), static fn (array $query): bool => str_contains($query['query'], 'planned_expenses') && str_contains($query['query'], 'for update'));
+    expect($locks)->toHaveCount(1);
 });
 
 it('lets a movement keep its own due date when its day is changed without naming it', function (): void {

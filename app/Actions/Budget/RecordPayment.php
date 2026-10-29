@@ -15,6 +15,7 @@ use App\Services\Occurrences;
 use App\Support\Deadline;
 use App\Support\DefaultAccount;
 use App\Support\PaymentTitle;
+use App\Support\PlannedKind;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
@@ -46,7 +47,8 @@ final readonly class RecordPayment
     public function handle(Deadline $deadline, CarbonImmutable $date, float $amount, ?int $accountId, ?UploadedFile $receipt): Expense|Income
     {
         return DB::transaction(function () use ($deadline, $date, $amount, $accountId, $receipt): Expense|Income {
-            // The caller's due date can be stale: read again whether something already pays it.
+            // The caller's due date can be stale: with the planned item locked, read again whether something already pays it.
+            PlannedKind::lock($deadline->planned);
             $current = $this->deadlines->find($deadline->planned, $deadline->occurrence->originalDate);
 
             if ($current->isPaid()) {
