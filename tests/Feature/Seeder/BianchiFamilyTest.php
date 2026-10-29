@@ -196,10 +196,12 @@ describe('the budget of the Bianchi family on 26/10/2026', function (): void {
             $fee = PlannedExpense::query()->where('title', 'Retta danza')->sole();
             $november = $deadlines->find($fee, CarbonImmutable::parse('2026-11-05', 'Europe/Rome'));
 
-            expect($deadlines->yearTotal([$fee], $today))->toBe(465.00)
+            $year = array_sum(array_map(static fn (Deadline $deadline): float => $deadline->occurrence->amount, $deadlines->between([$fee], $today, $today->addYear()->subDay())));
+
+            expect(round($year, 2))->toBe(465.00)
                 ->and($november->isPaid())->toBeTrue()
                 ->and($november->payment?->date?->toDateString())->toBe('2026-10-20')
-                ->and($deadlines->next([$fee], $today)?->occurrence->originalDate->toDateString())->toBe('2026-12-05');
+                ->and($deadlines->unpaidUntil([$fee], $today->addYear(), $today)[0]->occurrence->originalDate->toDateString())->toBe('2026-12-05');
         });
     });
 

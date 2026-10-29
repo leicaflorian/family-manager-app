@@ -85,16 +85,6 @@ final readonly class LoanTerms
     }
 
     /**
-     * The same terms with another last date, for the one worked out from the start and the count.
-     *
-     * @param  ?CarbonImmutable  $end  The date of the last instalment.
-     */
-    public function withEnd(?CarbonImmutable $end): self
-    {
-        return new self($this->status, $this->start, $end, $this->count, $this->installment, $this->finalInstallment, $this->financed);
-    }
-
-    /**
      * A day from a date or from text such as `2026-01-05` or `2026-01-05T00:00:00.000Z`; null when it is not one.
      *
      * @param  mixed  $value  The date, text or nothing.

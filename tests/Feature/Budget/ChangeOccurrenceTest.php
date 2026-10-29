@@ -100,8 +100,8 @@ test('it removes the exceptions when nothing is chosen', function (): void {
 test('it works the same for a planned income', function (): void {
     insideBianchi(function (): void {
         $income = PlannedIncome::query()->firstOrFail();
-        $due = resolve(Deadlines::class)->next([$income], CarbonImmutable::parse('2026-10-26'));
-        $original = $due?->occurrence->originalDate->toDateString() ?? '';
+        $today = CarbonImmutable::parse('2026-10-26', 'Europe/Rome');
+        $original = resolve(Deadlines::class)->unpaidUntil([$income], $today->addYear(), $today)[0]->occurrence->originalDate->toDateString();
 
         changeDue($income, $original, false, 3000.0, '2026-11-30', 'Bonus');
 

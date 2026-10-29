@@ -161,27 +161,6 @@ it('finds only real occurrences', function (): void {
     });
 })->throws(NotFoundHttpException::class);
 
-it('picks the oldest late one before the next one', function (): void {
-    insideBianchi(function (): void {
-        $retta = deadlinesRetta(['start_date' => '2026-08-05']);
-        deadlinesPaid($retta, '2026-08-05', '2026-08-05');
-        deadlinesPaid($retta, '2026-09-05', '2026-09-05');
-        $later = deadlinesRetta(['title' => 'Palestra', 'is_recurring' => false, 'start_date' => '2026-10-30']);
-        $today = deadlinesDay('2026-10-26');
-
-        $next = resolve(Deadlines::class)->next([$later, $retta], $today);
-
-        expect($next?->planned->is($retta))->toBeTrue()
-            ->and($next?->occurrence->originalDate->toDateString())->toBe('2026-10-05')
-            ->and($next?->isLate($today))->toBeTrue();
-
-        deadlinesPaid($retta, '2026-10-05', '2026-10-05');
-
-        expect(resolve(Deadlines::class)->next([$later, $retta], $today)?->planned->is($later))->toBeTrue();
-        expect(resolve(Deadlines::class)->next([], $today))->toBeNull();
-    });
-});
-
 it('lists the late deadlines and those up to a day, unpaid only', function (): void {
     insideBianchi(function (): void {
         $retta = deadlinesRetta(['start_date' => '2026-09-05']);
@@ -194,23 +173,6 @@ it('lists the late deadlines and those up to a day, unpaid only', function (): v
     });
 });
 
-it('sums the next twelve months with the exceptions', function (): void {
-    insideBianchi(function (): void {
-        $retta = deadlinesRetta(['amount' => 45, 'start_date' => '2026-09-05']);
-
-        foreach (['2027-07-05', '2027-08-05'] as $day) {
-            PlannedExpenseException::factory()->create(['family_id' => deadlinesFamily(), 'planned_expense_id' => $retta->id, 'type' => ExceptionType::Skip, 'occurrence_date' => $day]);
-        }
-
-        PlannedExpenseException::factory()->create([
-            'family_id' => deadlinesFamily(), 'planned_expense_id' => $retta->id, 'type' => ExceptionType::AmountOverride,
-            'occurrence_date' => '2026-12-05', 'amount_override' => 60,
-        ]);
-
-        expect(resolve(Deadlines::class)->yearTotal([$retta], deadlinesDay('2026-10-26')))->toBe(465.0);
-    });
-});
-
 it('never reads another family', function (): void {
     $rossi = Family::factory()->create();
     $foreign = PlannedExpense::factory()->create(['family_id' => $rossi->id, 'start_date' => '2026-09-05'])->fresh();
@@ -220,8 +182,7 @@ it('never reads another family', function (): void {
         $deadlines = resolve(Deadlines::class);
 
         expect($deadlines->between([$foreign], deadlinesDay('2026-09-01'), deadlinesDay('2026-12-31')))->toBe([])
-            ->and($deadlines->next([$foreign], deadlinesDay('2026-10-26')))->toBeNull()
-            ->and($deadlines->yearTotal([$foreign], deadlinesDay('2026-10-26')))->toBe(0.0);
+            ->and($deadlines->unpaidUntil([$foreign], deadlinesDay('2026-12-31'), deadlinesDay('2026-10-26')))->toBe([]);
     });
 });
 

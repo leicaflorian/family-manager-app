@@ -33,9 +33,6 @@ final readonly class Deadlines
     /** How many months back a due date still counts as late. */
     private const int MONTHS_BACK = 12;
 
-    /** How many months ahead the next due date is looked for. */
-    private const int MONTHS_AHEAD = 24;
-
     /** How many years around a date `find()` looks, because an exception can move a due date. */
     private const int FIND_YEARS = 2;
 
@@ -200,37 +197,6 @@ final readonly class Deadlines
         }
 
         return $this->find($planned, $day, $withSkipped);
-    }
-
-    /**
-     * The due date to show first: the oldest one still open, which is a late one if there is any, otherwise the next.
-     * It looks from 12 months before today to 24 months after.
-     *
-     * @param  iterable<PlannedExpense|PlannedIncome>  $planned  The planned items to look at.
-     * @param  CarbonImmutable  $today  Today.
-     */
-    public function next(iterable $planned, CarbonImmutable $today): ?Deadline
-    {
-        $from = $today->subMonthsNoOverflow(self::MONTHS_BACK);
-        $to = $today->addMonthsNoOverflow(self::MONTHS_AHEAD);
-
-        return array_find($this->between($planned, $from, $to), static fn (Deadline $deadline): bool => ! $deadline->isPaid());
-    }
-
-    /**
-     * The sum of the due dates of the next 12 months, from today to the same day a year later minus one day, exceptions applied.
-     *
-     * @param  iterable<PlannedExpense|PlannedIncome>  $planned  The planned items to look at.
-     * @param  CarbonImmutable  $today  Today.
-     */
-    public function yearTotal(iterable $planned, CarbonImmutable $today): float
-    {
-        $total = array_sum(array_map(
-            static fn (Deadline $deadline): float => $deadline->occurrence->amount,
-            $this->between($planned, $today, $today->addYear()->subDay()),
-        ));
-
-        return round($total, 2);
     }
 
     /**
