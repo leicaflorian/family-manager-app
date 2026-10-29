@@ -6,6 +6,7 @@ import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import { exceptions, payment, show } from '@/routes/budget/deadlines';
 import { daysFromToday, formatDate, formatEuro, relativeDays } from './format';
+import { listNames } from './names';
 
 /** The unit of a recurrence. */
 export type RecurrenceUnit = 'week' | 'month' | 'year';
@@ -166,7 +167,7 @@ function monthPart(month: string, pattern: string): string {
  * @param text - the text
  * @returns the text, starting with a capital
  */
-function capitalized(text: string): string {
+export function capitalized(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
@@ -226,4 +227,103 @@ export function deadlineUrls(deadline: App.Data.DeadlineData): {
         payment: payment.url(args),
         exceptions: exceptions.url(args),
     };
+}
+
+/**
+ * Names the months a planned item skips, for its head.
+ *
+ * @param months - the numbers of the months, 1 to 12, in the order they come
+ * @returns for example «July and August skipped», empty if none
+ */
+export function skippedMonthsText(months: number[]): string {
+    if (months.length === 0) {
+        return '';
+    }
+
+    const names = months.map((month) =>
+        longMonth(`2000-${String(month).padStart(2, '0')}`),
+    );
+
+    return transChoice(
+        '{1} :months skipped|[2,*] :months skipped',
+        names.length,
+        { months: listNames(names) },
+    );
+}
+
+/**
+ * The due date that the exceptions of one day change, built from the planned
+ * item: the sheet *Change this due date* needs it for a day that is not among
+ * the next ones. The exceptions of the same day are gathered, as the server does.
+ *
+ * @param row - the planned item
+ * @param exceptions - its exceptions
+ * @param originalDate - the day the rules give, `yyyy-mm-dd`
+ * @returns the due date, open (nothing says it is paid)
+ */
+export function deadlineOfException(
+    row: App.Data.PlannedRowData,
+    exceptions: App.Data.ExceptionData[],
+    originalDate: string,
+): App.Data.DeadlineData {
+    const mine = exceptions.filter(
+        (exception) => exception.occurrence_date === originalDate,
+    );
+    const amount = mine.find((exception) => exception.amount_override !== null);
+    const moved = mine.find((exception) => exception.date_override !== null);
+
+    return {
+        kind: row.kind,
+        planned_id: row.id,
+        title: row.title,
+        planned_title: row.title,
+        date: moved?.date_override ?? originalDate,
+        original_date: originalDate,
+        amount: amount?.amount_override ?? row.amount,
+        base_amount: amount ? row.amount : null,
+        estimated: row.estimated,
+        notes: mine.find((exception) => exception.notes)?.notes ?? null,
+        late: false,
+        payment: null,
+        account_id: null,
+        account: row.account,
+        card: row.card,
+        income_type: null,
+        person: row.person,
+    };
+}
+
+/** The values of the form of a planned expense or income, as the server sends and receives them. */
+export interface PlannedFormValues {
+    title: string;
+    amount: number | string | null;
+    is_estimated: boolean;
+    notes: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    is_recurring: boolean;
+    interval: number | string;
+    interval_unit: RecurrenceUnit;
+    organization_id: string | null;
+    financial_account_id: string | null;
+    person_id: string | null;
+    /** An expense: the category. */
+    category_id?: string | null;
+    /** An expense: the card it refers to, `type:id`. */
+    card?: string | null;
+    /** An income: its type. */
+    type?: string;
+    /** An income: the employment it comes from. */
+    employment_id?: string | null;
+}
+
+/** The choices of the form of a planned expense or income (`BudgetFormOptions::for()`). */
+export interface PlannedFormOptions {
+    accounts: App.Data.OptionData[];
+    categories: App.Data.OptionData[];
+    organizations: App.Data.OptionData[];
+    people: App.Data.OptionData[];
+    cards: App.Data.OptionData[];
+    employments: App.Data.OptionData[];
+    income_types: App.Data.OptionData[];
 }

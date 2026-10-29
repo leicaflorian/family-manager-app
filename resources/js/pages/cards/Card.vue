@@ -26,9 +26,9 @@ import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
-import FmNewTabLink from '@/components/fm/FmNewTabLink.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
+import FmValueList from '@/components/fm/FmValueList.vue';
 import type { Action } from '@/lib/actions';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
@@ -142,25 +142,7 @@ function link(id: number): void {
                 </div>
 
                 <FmCard v-if="card.values.length > 0" :title="$t('Data')">
-                    <dl
-                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
-                    >
-                        <template
-                            v-for="value in card.values"
-                            :key="value.label"
-                        >
-                            <dt class="text-ink-soft">{{ value.label }}</dt>
-                            <dd class="m-0 font-semibold break-words">
-                                <FmNewTabLink
-                                    v-if="value.href"
-                                    class="hover:text-action"
-                                    :href="value.href"
-                                    :text="value.text"
-                                />
-                                <template v-else>{{ value.text }}</template>
-                            </dd>
-                        </template>
-                    </dl>
+                    <FmValueList :values="card.values" new-tab />
                 </FmCard>
 
                 <FmCard

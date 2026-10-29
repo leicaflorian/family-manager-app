@@ -6,6 +6,7 @@ namespace App\Support;
 
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -29,6 +30,36 @@ final class PlannedKind
         return match ($kind) {
             'expense' => PlannedExpense::query()->findOrFail($id),
             'income' => PlannedIncome::query()->findOrFail($id),
+            default => throw new NotFoundHttpException,
+        };
+    }
+
+    /**
+     * The card a planned item refers to: the first of the cards of a planned expense, the employment of an income.
+     * The relations are read as loaded; `Deadlines::between()` loads them for a whole collection.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     */
+    public static function card(PlannedExpense|PlannedIncome $planned): ?Model
+    {
+        return $planned instanceof PlannedExpense
+            ? ($planned->utility ?? $planned->insurancePolicy ?? $planned->loan ?? $planned->enrollment ?? $planned->home ?? $planned->vehicle ?? $planned->subscription)
+            : $planned->employment;
+    }
+
+    /**
+     * The model class of a kind.
+     *
+     * @param  string  $kind  `expense` or `income`
+     * @return class-string<PlannedExpense|PlannedIncome>
+     *
+     * @throws NotFoundHttpException if the kind is not `expense` or `income`
+     */
+    public static function modelClass(string $kind): string
+    {
+        return match ($kind) {
+            'expense' => PlannedExpense::class,
+            'income' => PlannedIncome::class,
             default => throw new NotFoundHttpException,
         };
     }

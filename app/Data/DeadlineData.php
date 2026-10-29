@@ -8,7 +8,9 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\CardSummaries;
 use App\Support\Deadline;
+use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -74,9 +76,7 @@ final class DeadlineData extends Data
         $occurrence = $deadline->occurrence;
         $payment = $deadline->payment;
         $account = $deadline->account;
-        $card = $planned instanceof PlannedExpense
-            ? ($planned->utility ?? $planned->insurancePolicy ?? $planned->loan ?? $planned->enrollment ?? $planned->home ?? $planned->vehicle ?? $planned->subscription)
-            : $planned->employment;
+        $card = PlannedKind::card($planned);
 
         return new self(
             kind: $deadline->kind(),
@@ -93,7 +93,7 @@ final class DeadlineData extends Data
             payment: $payment === null ? null : PaymentData::fromMovement($payment),
             account_id: $account?->id,
             account: $account?->name,
-            card: $card === null ? null : resolve(CardSummaries::class)->row($card, $today),
+            card: $card instanceof Model ? resolve(CardSummaries::class)->row($card, $today) : null,
             income_type: $planned instanceof PlannedIncome ? $planned->type->value : null,
             person: $planned->person?->first_name,
         );

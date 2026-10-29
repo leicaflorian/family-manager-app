@@ -20,7 +20,7 @@ defineSlots<{
 </script>
 
 <template>
-    <section class="flex flex-col gap-2">
+    <section class="flex flex-col gap-2" :aria-label="title">
         <div
             v-if="title || $slots.actions"
             class="flex items-center justify-between gap-3"

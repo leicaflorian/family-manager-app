@@ -7,16 +7,14 @@ namespace App\Http\Controllers\Budget;
 use App\Actions\Budget\ChangeOccurrence;
 use App\Actions\Budget\RecordPayment;
 use App\Data\DeadlineData;
-use App\Data\OptionData;
-use App\Enums\FinancialAccountStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\ChangeOccurrenceRequest;
 use App\Http\Requests\Budget\RecordPaymentRequest;
 use App\Models\Expense;
-use App\Models\FinancialAccount;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\User;
+use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Support\Deadline;
 use Carbon\CarbonImmutable;
@@ -59,7 +57,7 @@ final class DeadlineController extends Controller
         return Inertia::render('budget/Deadline', [
             'deadline' => DeadlineData::fromDeadline($deadline, $today),
             'next' => array_map(fn (Deadline $following): DeadlineData => DeadlineData::fromDeadline($following, $today), $next),
-            'accounts' => $this->accounts(),
+            'accounts' => BudgetFormOptions::accounts(),
             'canPay' => $user->can('create', $planned instanceof PlannedExpense ? Expense::class : Income::class),
             'canChange' => $user->can('update', $planned),
             'pay' => $request->boolean('pay'),
@@ -110,23 +108,5 @@ final class DeadlineController extends Controller
     private function back(string $kind, string $id, string $date): RedirectResponse
     {
         return to_route('budget.deadlines.show', ['kind' => $kind, 'id' => $id, 'date' => $date]);
-    }
-
-    /**
-     * The accounts to pay with: the active ones, the default first.
-     *
-     * @return list<OptionData>
-     */
-    private function accounts(): array
-    {
-        $accounts = FinancialAccount::query()
-            ->where('status', FinancialAccountStatus::Active)
-            ->orderByDesc('is_default')
-            ->orderBy('name')
-            ->get()
-            ->map(static fn (FinancialAccount $account): OptionData => new OptionData((string) $account->id, $account->name))
-            ->all();
-
-        return array_values($accounts);
     }
 }

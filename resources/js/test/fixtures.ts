@@ -590,3 +590,218 @@ export const monthBars: App.Data.MonthBarData[] = [
     { month: '2026-09', spent: 1655.2, planned: 1610, current: false },
     { month: '2026-10', spent: 1284.2, planned: 1469.3, current: true },
 ];
+
+/** The dance lessons as *Planned expenses* lists them (45,00 € every month, on the 5th). */
+export const danceRow: App.Data.PlannedRowData = {
+    kind: 'expense',
+    id: 4,
+    title: 'Retta danza',
+    card: danceEnrollmentRow,
+    unit: 'month',
+    interval: 1,
+    start_date: '2025-09-05',
+    end_date: null,
+    recurring: true,
+    person: 'Giulia',
+    next_date: '2026-12-05',
+    account: 'Carta Laura',
+    amount: 45,
+    estimated: false,
+    icon: 'graduation-cap',
+    color: '#E5A50A',
+    ended: false,
+};
+
+/** The gas bill: an estimate, for the whole family, with the card of the supply. */
+export const gasRow: App.Data.PlannedRowData = {
+    ...danceRow,
+    id: 9,
+    title: 'Gas',
+    card: {
+        ...danceEnrollmentRow,
+        type: 'utility',
+        id: 2,
+        label: 'Gas - Enel',
+        area: 'home',
+        area_label: 'Home',
+    },
+    start_date: '2026-01-30',
+    person: null,
+    next_date: '2026-10-30',
+    account: 'Conto BPER',
+    amount: 55,
+    estimated: true,
+    icon: 'flame',
+    color: '#F76B15',
+};
+
+/** Netflix: every month from 04/11/2026, on Laura's card. */
+export const netflixRow: App.Data.PlannedRowData = {
+    ...danceRow,
+    id: 11,
+    title: 'Netflix',
+    card: null,
+    start_date: '2026-11-04',
+    person: 'Laura',
+    next_date: '2026-11-04',
+    amount: 13.99,
+    icon: 'clapperboard',
+    color: '#E35169',
+};
+
+/** The salary of Marco, every month on the 27th. */
+export const salaryRow: App.Data.PlannedRowData = {
+    ...danceRow,
+    kind: 'income',
+    id: 2,
+    title: 'Stipendio di Marco',
+    card: salaryDeadline.card,
+    start_date: '2026-01-27',
+    person: 'Marco',
+    next_date: '2026-10-27',
+    account: 'Conto BPER',
+    amount: 1850,
+    icon: null,
+    color: null,
+};
+
+/** The exceptions of the dance lessons, the latest first. */
+export const danceExceptions: App.Data.ExceptionData[] = [
+    {
+        id: 3,
+        occurrence_date: '2026-12-05',
+        type: 'amount_override',
+        amount_override: 60,
+        date_override: null,
+        notes: 'Comprende la quota del saggio di Natale',
+    },
+    {
+        id: 2,
+        occurrence_date: '2026-08-05',
+        type: 'skip',
+        amount_override: null,
+        date_override: null,
+        notes: 'Vacanze',
+    },
+    {
+        id: 1,
+        occurrence_date: '2026-07-05',
+        type: 'date_override',
+        amount_override: null,
+        date_override: '2026-07-10',
+        notes: null,
+    },
+];
+
+/** A payment of the dance lessons. */
+export const danceMovement: App.Data.MovementData = {
+    kind: 'expense',
+    id: 31,
+    title: 'Retta di novembre',
+    date: '2026-10-20',
+    amount: 45,
+    fee_amount: null,
+    account_id: 2,
+    account: 'Carta Laura',
+    category_id: 8,
+    category: 'Sport',
+    icon: 'dumbbell',
+    color: '#E5A50A',
+    organization_id: 5,
+    organization: 'Scuola Passo a Due',
+    person_id: 4,
+    planned_id: 4,
+    occurrence_date: '2026-11-05',
+    type: null,
+    employment_id: null,
+    documents: [],
+    can_edit: true,
+    can_delete: true,
+};
+
+/** The page of the dance lessons: the year, the next four due dates, the exceptions, the data and the payments. */
+export const danceDetail: App.Data.PlannedDetailData = {
+    row: danceRow,
+    year_total: 465,
+    skipped_months: [7, 8],
+    next: [
+        paidDeadline,
+        danceDeadline,
+        {
+            ...danceDeadline,
+            date: '2027-01-05',
+            original_date: '2027-01-05',
+            amount: 45,
+            base_amount: null,
+            notes: null,
+        },
+        {
+            ...danceDeadline,
+            date: '2027-02-05',
+            original_date: '2027-02-05',
+            amount: 45,
+            base_amount: null,
+            notes: null,
+        },
+    ],
+    exceptions: danceExceptions,
+    values: [
+        { label: 'Category', text: 'Scuola e attività › Sport', href: null },
+        {
+            label: 'Organization',
+            text: 'Scuola Passo a Due',
+            href: '/family/organizations/5',
+        },
+        { label: 'Account', text: 'Carta Laura', href: null },
+        { label: 'Holder', text: 'Giulia', href: '/family/people/4' },
+        {
+            label: 'Refers to',
+            text: 'Danza Giulia',
+            href: '/cards/enrollment/1',
+        },
+    ],
+    payments: [{ year: 2026, total: 135, count: 3, payments: [danceMovement] }],
+    can_edit: true,
+    can_pay: true,
+};
+
+/** The choices of the form of a planned expense. */
+export const plannedExpenseOptions = {
+    accounts: accountOptions,
+    categories: [
+        { value: '1', label: 'Casa e affitto', help: null },
+        { value: '2', label: 'Svago', help: null },
+    ],
+    organizations: [{ value: '5', label: 'Netflix', help: null }],
+    people: [
+        { value: '3', label: 'Laura Bianchi', help: null },
+        { value: '4', label: 'Giulia Bianchi', help: null },
+    ],
+    cards: [
+        {
+            value: 'subscription:7',
+            label: 'Subscription · Netflix',
+            help: null,
+        },
+    ],
+    employments: [],
+    income_types: [],
+};
+
+/** The starting values of the form, as the server sends them for a new planned expense. */
+export const newPlannedValues = {
+    title: '',
+    amount: null,
+    is_estimated: false,
+    notes: null,
+    start_date: null,
+    end_date: null,
+    is_recurring: true,
+    interval: 1,
+    interval_unit: 'month',
+    organization_id: null,
+    financial_account_id: null,
+    person_id: null,
+    category_id: null,
+    card: null,
+};

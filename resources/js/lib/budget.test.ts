@@ -4,6 +4,8 @@ import { i18nOptions } from './i18n';
 import { afterEach, describe, expect, it } from 'vite-plus/test';
 import {
     danceDeadline,
+    danceExceptions,
+    danceRow,
     lateDeadline,
     paidDeadline,
     salaryDeadline,
@@ -11,9 +13,11 @@ import {
 import {
     comparisonComment,
     deadlineStatus,
+    deadlineOfException,
     deadlineUrls,
     monthName,
     recurrenceText,
+    skippedMonthsText,
 } from './budget';
 
 const today = new Date(2026, 9, 26, 10, 0);
@@ -176,5 +180,70 @@ describe('deadlineUrls', () => {
                 original_date: '2026-10-27',
             }).show,
         ).toBe('/budget/planned/income/2/occurrences/2026-10-27');
+    });
+});
+
+describe('skippedMonthsText', () => {
+    it('names the months that are skipped', async () => {
+        expect(skippedMonthsText([7, 8])).toBe('July and August skipped');
+        expect(skippedMonthsText([8])).toBe('August skipped');
+        expect(skippedMonthsText([])).toBe('');
+        await speak('it');
+        expect(skippedMonthsText([7, 8])).toBe('luglio e agosto saltati');
+        await speak('en');
+    });
+});
+
+describe('deadlineOfException', () => {
+    it('builds the due date of an exception from the planned item', () => {
+        const deadline = deadlineOfException(
+            danceRow,
+            danceExceptions,
+            '2026-12-05',
+        );
+
+        expect(deadline).toMatchObject({
+            kind: 'expense',
+            planned_id: 4,
+            planned_title: 'Retta danza',
+            date: '2026-12-05',
+            original_date: '2026-12-05',
+            amount: 60,
+            base_amount: 45,
+            notes: 'Comprende la quota del saggio di Natale',
+            payment: null,
+        });
+    });
+
+    it('gathers the exceptions of the same due date', () => {
+        const deadline = deadlineOfException(
+            danceRow,
+            [
+                ...danceExceptions,
+                {
+                    id: 4,
+                    occurrence_date: '2026-07-05',
+                    type: 'amount_override',
+                    amount_override: 20,
+                    date_override: null,
+                    notes: 'Mezza retta',
+                },
+            ],
+            '2026-07-05',
+        );
+
+        expect(deadline).toMatchObject({
+            date: '2026-07-10',
+            original_date: '2026-07-05',
+            amount: 20,
+            base_amount: 45,
+            notes: 'Mezza retta',
+        });
+    });
+
+    it('leaves the amount of the planned item when no exception changes it', () => {
+        expect(
+            deadlineOfException(danceRow, danceExceptions, '2026-08-05'),
+        ).toMatchObject({ amount: 45, base_amount: null });
     });
 });

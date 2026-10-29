@@ -152,6 +152,14 @@ readonly type_label: string,
 readonly label: string,
 readonly href: string | null,
 };
+export type ExceptionData = {
+readonly id: number,
+readonly occurrence_date: string,
+readonly type: string,
+readonly amount_override: number | null,
+readonly date_override: string | null,
+readonly notes: string | null,
+};
 export type FamilyData = {
 readonly name: string,
 };
@@ -298,6 +306,36 @@ readonly id: number,
 readonly first_name: string,
 readonly last_name: string,
 readonly initials: string,
+};
+export type PlannedDetailData = {
+readonly row: App.Data.PlannedRowData,
+readonly year_total: number,
+readonly skipped_months: number[],
+readonly next: App.Data.DeadlineData[],
+readonly exceptions: App.Data.ExceptionData[],
+readonly values: App.Data.CardValueData[],
+readonly payments: App.Data.PaymentYearData[],
+readonly can_edit: boolean,
+readonly can_pay: boolean,
+};
+export type PlannedRowData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly card: App.Data.CardData | null,
+readonly unit: string,
+readonly interval: number,
+readonly start_date: string,
+readonly end_date: string | null,
+readonly recurring: boolean,
+readonly person: string | null,
+readonly next_date: string | null,
+readonly account: string | null,
+readonly amount: number,
+readonly estimated: boolean,
+readonly icon: string | null,
+readonly color: string | null,
+readonly ended: boolean,
 };
 export type SentInvitationData = {
 readonly email: string,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\Budget\DeadlineController;
+use App\Http\Controllers\Budget\PlannedController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CategoryController;
@@ -46,6 +47,19 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy')->whereNumber('id');
         Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store')->whereNumber('id');
         Route::delete('cards/{type}/{id}/documents/{document}', [CardDocumentController::class, 'destroy'])->name('cards.documents.destroy')->whereNumber('id');
+
+        Route::get('budget/planned', [PlannedController::class, 'index'])->name('budget.planned.index');
+        Route::prefix('budget/planned/{kind}')
+            ->where(['kind' => 'expense|income', 'id' => '[0-9]+'])
+            ->name('budget.planned.')
+            ->group(function (): void {
+                Route::get('create', [PlannedController::class, 'create'])->name('create');
+                Route::post('', [PlannedController::class, 'store'])->name('store');
+                Route::get('{id}', [PlannedController::class, 'show'])->name('show');
+                Route::get('{id}/edit', [PlannedController::class, 'edit'])->name('edit');
+                Route::put('{id}', [PlannedController::class, 'update'])->name('update');
+                Route::delete('{id}', [PlannedController::class, 'destroy'])->name('destroy');
+            });
 
         Route::prefix('budget/planned/{kind}/{id}/occurrences/{date}')
             ->where(['kind' => 'expense|income', 'id' => '[0-9]+', 'date' => '[0-9]{4}-[0-9]{2}-[0-9]{2}'])
