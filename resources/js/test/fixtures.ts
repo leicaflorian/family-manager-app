@@ -739,6 +739,7 @@ export const danceMovement: App.Data.MovementData = {
     organization_id: 5,
     organization: 'Scuola Passo a Due',
     person_id: 4,
+    card: null,
     planned_id: 4,
     occurrence_date: '2026-11-05',
     type: null,
@@ -813,6 +814,8 @@ export const plannedExpenseOptions = {
             help: null,
         },
     ],
+    category_card_types: { '1': 'home' },
+    card_type_labels: { home: 'Home', subscription: 'Subscription' },
     employments: [],
     income_types: [],
 };
@@ -856,6 +859,7 @@ export const movementOptions: MovementFormOptions = {
             value: '4',
             label: 'Retta danza',
             category_id: '8',
+            card: 'enrollment:3',
             organization_id: '5',
             financial_account_id: '2',
             person_id: '4',
@@ -867,6 +871,7 @@ export const movementOptions: MovementFormOptions = {
             value: '2',
             label: 'Stipendio di Laura',
             category_id: null,
+            card: null,
             organization_id: '6',
             financial_account_id: '1',
             person_id: '3',
@@ -874,6 +879,23 @@ export const movementOptions: MovementFormOptions = {
             type: 'salary',
         },
     ],
+    cards: [
+        {
+            value: 'enrollment:3',
+            label: 'Enrollment · Danza Giulia',
+            help: null,
+        },
+        {
+            value: 'health_event:2',
+            label: 'Health event · Visite di Giulia',
+            help: null,
+        },
+    ],
+    category_card_types: { '8': 'enrollment', '9': 'health_event' },
+    card_type_labels: {
+        enrollment: 'Enrollment',
+        health_event: 'Health event',
+    },
     employments: [
         { value: '1', label: 'Laura - Comune di Bologna', help: null },
         { value: '2', label: 'Marco - Studio Rinaldi', help: null },

@@ -3,22 +3,26 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Models\Belonging;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
 use App\Models\FinancialAccount;
+use App\Models\HealthEvent;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\Vehicle;
 use App\Services\Deadlines;
 use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
+use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-10-26 10:00', 'Europe/Rome'));
@@ -98,7 +102,9 @@ it('moves the card when Refers to changes and clears it when emptied', function 
     $planned = savePlannedOf('Retta danza');
     $this->actingAs($this->marco);
 
-    $this->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'card' => "utility:{$utility->id}"]))->assertRedirect();
+    $bills = (string) insideBianchi(fn (): int => ExpenseCategory::query()->where('name', 'Bollette e utenze')->sole()->id);
+
+    $this->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'category_id' => $bills, 'card' => "utility:{$utility->id}"]))->assertRedirect();
     $moved = savePlannedOf('Retta danza');
     expect($moved->card_type)->toBe('utility')->and($moved->card_id)->toBe($utility->id);
 
@@ -117,10 +123,71 @@ it('refuses a card of another family in Refers to', function (): void {
     expect(insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Palestra')->count()))->toBe(0);
 });
 
-it('refuses a card of a type that a planned expense cannot refer to', function (): void {
+it('refuses a card of an unknown type', function (): void {
     $this->actingAs($this->marco)
-        ->post('/budget/planned/expense', savePlannedValues(['card' => 'filing:1']))
+        ->post('/budget/planned/expense', savePlannedValues(['card' => 'boat:1']))
         ->assertSessionHasErrors('card');
+});
+
+it('refuses a card of another type than the category', function (): void {
+    $utility = insideBianchi(fn (): Utility => Utility::query()->firstOrFail());
+    $car = (string) insideBianchi(fn (): int => ExpenseCategory::query()->where('name', 'Auto')->sole()->id);
+
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['category_id' => $car, 'card' => "utility:{$utility->id}"]))
+        ->assertSessionHasErrors(['card' => 'Choose a card of the type of the category.']);
+});
+
+it('checks the card against the category the planned expense keeps when a change does not send one', function (): void {
+    $utility = insideBianchi(fn (): Utility => Utility::query()->firstOrFail());
+    $planned = savePlannedOf('Retta danza');
+
+    $this->actingAs($this->marco)
+        ->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'card' => "utility:{$utility->id}"]))
+        ->assertSessionHasErrors('card');
+});
+
+it('links any card when the category has none', function (): void {
+    $panda = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Fiat Panda')->sole());
+    $groceries = (string) insideBianchi(fn (): int => ExpenseCategory::query()->where('name', 'Spesa')->sole()->id);
+
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['category_id' => $groceries, 'card' => "vehicle:{$panda->id}"]))
+        ->assertSessionHasNoErrors();
+
+    expect(savePlannedOf('Palestra'))->card_type->toBe('vehicle')->card_id->toBe($panda->id);
+});
+
+it('links a planned expense to a health event', function (): void {
+    $visits = insideBianchi(fn (): HealthEvent => HealthEvent::query()->where('title', 'Visite di Giulia')->sole());
+    $health = (string) insideBianchi(fn (): int => ExpenseCategory::query()->where('name', 'Salute')->sole()->id);
+
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['category_id' => $health, 'card' => "health_event:{$visits->id}"]))
+        ->assertSessionHasNoErrors();
+
+    expect(savePlannedOf('Palestra'))->card_type->toBe('health_event')->card_id->toBe($visits->id);
+});
+
+it('presets the category of the card', function (): void {
+    $light = insideBianchi(fn (): Utility => Utility::query()->where('type', 'electricity')->sole());
+    $bills = (string) insideBianchi(fn (): int => ExpenseCategory::query()->where('name', 'Bollette e utenze')->sole()->id);
+
+    $this->actingAs($this->marco)
+        ->get("/budget/planned/expense/create?card=utility:{$light->id}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('values.card', "utility:{$light->id}")
+            ->where('values.category_id', $bills));
+});
+
+it('leaves the category empty when no category has the type', function (): void {
+    $tv = insideBianchi(fn (): Belonging => Belonging::query()->where('name', 'TV Samsung')->sole());
+
+    $this->actingAs($this->marco)
+        ->get("/budget/planned/expense/create?card=belonging:{$tv->id}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('values.card', "belonging:{$tv->id}")
+            ->where('values.category_id', null));
 });
 
 it('refuses an organization, an account, a person and a category of another family', function (string $field, string $model): void {

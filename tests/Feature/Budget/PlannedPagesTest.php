@@ -177,7 +177,7 @@ it('opens a new planned expense without a card and ignores a card of nowhere', f
             ->where('values.card', null)
             ->where('values.title', '')
             ->where('values.interval_unit', 'month'));
-})->with(['nonsense', 'subscription:99999', 'filing:1']);
+})->with(['nonsense', 'subscription:99999', 'boat:1']);
 
 it('starts a policy every year', function (): void {
     $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->firstOrFail());

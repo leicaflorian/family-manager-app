@@ -9,6 +9,7 @@ use App\Enums\EnrollmentType;
 use App\Enums\InsurancePolicyType;
 use App\Models\Employment;
 use App\Models\Enrollment;
+use App\Models\ExpenseCategory;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
 use App\Models\PlannedExpense;
@@ -22,27 +23,10 @@ use InvalidArgumentException;
 
 /**
  * The starting values of a new planned expense that comes from a card (*Add* in *Planned expenses* of a card):
- * the card is linked and the fields it knows are filled in. The ids are text, as the options of the form are.
+ * the card is linked and the fields it knows are filled in, with the category of its type. The ids are text, as the options of the form are.
  */
 final class PlannedPreset
 {
-    /** The cards a planned expense can refer to, by the name of their type (the `card_type` of the planned expense). */
-    public const array CARD_TYPES = ['utility', 'insurance_policy', 'loan', 'enrollment', 'home', 'vehicle', 'subscription'];
-
-    /**
-     * The card of a `type:id` text (the query of the new form, the field *Refers to*), when it is a card of the family
-     * of a type a planned expense can refer to.
-     *
-     * @param  mixed  $link  the text, `<type>:<id>`
-     * @return array{type: string, id: int}|null
-     */
-    public static function link(mixed $link): ?array
-    {
-        $card = PresetLink::from($link);
-
-        return $card !== null && in_array($card['type'], self::CARD_TYPES, true) ? $card : null;
-    }
-
     /**
      * The starting values of a new planned expense or income without a card.
      *
@@ -131,16 +115,27 @@ final class PlannedPreset
     }
 
     /**
-     * The starting values of a new planned expense that comes from the card of `?card=type:id`.
+     * The starting values of a new planned expense that comes from the card of `?card=type:id`: what the card knows
+     * and the first main category (by order, then name) whose expenses refer to cards of its type, when there is one.
      *
      * @param  mixed  $link  the `card` of the query
-     * @return array<string, mixed> nothing when the text is not a card of the family a planned expense can refer to
+     * @return array<string, mixed> nothing when the text is not a card of the family
      */
     public static function fromQuery(mixed $link): array
     {
-        $card = self::link($link);
+        $card = PresetLink::from($link);
 
-        return $card === null ? [] : self::from(CardTypes::findOrFail($card['type'])->findOrFail($card['id']));
+        if ($card === null) {
+            return [];
+        }
+
+        $category = ExpenseCategory::query()->whereNull('parent_id')->where('card_type', $card['type'])
+            ->orderBy('sort')->orderBy('name')->value('id');
+
+        return [
+            ...self::from(CardTypes::findOrFail($card['type'])->findOrFail($card['id'])),
+            ...is_int($category) ? ['category_id' => (string) $category] : [],
+        ];
     }
 
     /**

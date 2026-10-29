@@ -49,11 +49,11 @@ final class PlannedKind
 
     /**
      * What a planned item gives the expense or income that pays it: the organization, the account and the holder,
-     * and the category of an expense or the employment and type of an income. *I paid it*, the form of a movement
-     * and its menu of planned items all take them from here.
+     * and the category and card of an expense or the employment and type of an income. *I paid it*, the form of a
+     * movement and its menu of planned items all take them from here.
      *
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
-     * @return array{organization_id: ?int, financial_account_id: ?int, person_id: ?int, category_id?: ?int, employment_id?: ?int, type?: string}
+     * @return array{organization_id: ?int, financial_account_id: ?int, person_id: ?int, category_id?: ?int, card_type?: ?string, card_id?: ?int, employment_id?: ?int, type?: string}
      */
     public static function paymentColumns(PlannedExpense|PlannedIncome $planned): array
     {
@@ -64,7 +64,7 @@ final class PlannedKind
         ];
 
         return $planned instanceof PlannedExpense
-            ? [...$shared, 'category_id' => $planned->category_id]
+            ? [...$shared, 'category_id' => $planned->category_id, 'card_type' => $planned->card_type, 'card_id' => $planned->card_id]
             : [...$shared, 'employment_id' => $planned->employment_id, 'type' => $planned->type->value];
     }
 

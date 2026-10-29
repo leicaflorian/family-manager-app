@@ -166,6 +166,8 @@ test('a planned item gives its payments the same columns everywhere', function (
             'financial_account_id' => $expense->financial_account_id,
             'person_id' => $expense->person_id,
             'category_id' => $expense->category_id,
+            'card_type' => 'enrollment',
+            'card_id' => $expense->card_id,
         ])->and(PlannedKind::paymentColumns($income))->toBe([
             'organization_id' => $income->organization_id,
             'financial_account_id' => $income->financial_account_id,

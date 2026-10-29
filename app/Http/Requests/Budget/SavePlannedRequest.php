@@ -6,16 +6,14 @@ namespace App\Http\Requests\Budget;
 
 use App\Enums\IncomeType;
 use App\Enums\IntervalUnit;
+use App\Http\Requests\Concerns\ReadsCard;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Rules\OfFamily;
 use App\Support\PlannedKind;
-use App\Support\PlannedPreset;
-use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Translation\PotentiallyTranslatedString;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -25,6 +23,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class SavePlannedRequest extends FormRequest
 {
+    use ReadsCard;
+
     /**
      * The kind of the route.
      *
@@ -90,7 +90,7 @@ final class SavePlannedRequest extends FormRequest
             ...$expense
                 ? [
                     'category_id' => ['nullable', new OfFamily('expense_categories')],
-                    'card' => ['nullable', 'string', $this->cardRule(...)],
+                    ...$this->cardRules(),
                 ]
                 : [
                     'type' => ['required', Rule::enum(IncomeType::class)],
@@ -120,22 +120,19 @@ final class SavePlannedRequest extends FormRequest
             return $columns;
         }
 
-        $card = PlannedPreset::link($this->input('card'));
-
-        return [...$columns, 'card_type' => $card['type'] ?? null, 'card_id' => $card['id'] ?? null];
+        return [...$columns, ...$this->cardColumns()];
     }
 
     /**
-     * Checks that *Refers to* is a card of the family of a type a planned expense can refer to.
+     * The category of the planned expense being changed, null on a new one.
      *
-     * @param  string  $attribute  the field
-     * @param  mixed  $value  the `type:id` sent
-     * @param  Closure(string, ?string=): PotentiallyTranslatedString  $fail  reports the error
+     * @throws NotFoundHttpException if the kind is unknown
+     * @throws ModelNotFoundException if the family has no such planned item (Laravel answers 404)
      */
-    private function cardRule(string $attribute, mixed $value, Closure $fail): void
+    protected function savedCategoryId(): ?int
     {
-        if (PlannedPreset::link($value) === null) {
-            $fail('validation.exists')->translate();
-        }
+        $planned = $this->planned();
+
+        return $planned instanceof PlannedExpense ? $planned->category_id : null;
     }
 }

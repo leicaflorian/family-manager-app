@@ -33,6 +33,7 @@ final class MovementData extends Data
      * @param  int|null  $organization_id  the organization
      * @param  string|null  $organization  the name of the organization
      * @param  int|null  $person_id  the person
+     * @param  string|null  $card  the card an expense refers to, `type:id`
      * @param  int|null  $planned_id  the planned expense or income it settles
      * @param  string|null  $occurrence_date  the original day of the due date it settles, ISO
      * @param  string|null  $type  the type of an income
@@ -57,6 +58,7 @@ final class MovementData extends Data
         public readonly ?int $organization_id,
         public readonly ?string $organization,
         public readonly ?int $person_id,
+        public readonly ?string $card,
         public readonly ?int $planned_id,
         public readonly ?string $occurrence_date,
         public readonly ?string $type,
@@ -96,6 +98,7 @@ final class MovementData extends Data
             organization_id: $movement->organization_id,
             organization: $movement->organization?->name,
             person_id: $movement->person_id,
+            card: $expense?->card_type !== null && $expense->card_id !== null ? $expense->card_type.':'.$expense->card_id : null,
             planned_id: $movement instanceof Expense ? $movement->planned_expense_id : $movement->planned_income_id,
             occurrence_date: $movement->occurrence_date?->toDateString(),
             type: $income?->type->value,

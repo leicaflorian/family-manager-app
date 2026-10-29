@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Budget;
 
 use App\Enums\IncomeType;
+use App\Http\Requests\Concerns\ReadsCard;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Rules\OfFamily;
@@ -27,6 +28,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class SaveMovementRequest extends FormRequest
 {
+    use ReadsCard;
+
     /**
      * The kind: the one of the address of a change, the one of the body of a new movement.
      *
@@ -90,6 +93,7 @@ final class SaveMovementRequest extends FormRequest
                 ? [
                     'fee_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
                     'category_id' => ['nullable', new OfFamily('expense_categories')],
+                    ...$this->cardRules(),
                 ]
                 : [
                     'type' => [$this->route('id') === null ? 'required' : 'sometimes', 'required', Rule::enum(IncomeType::class)],
@@ -121,13 +125,29 @@ final class SaveMovementRequest extends FormRequest
     }
 
     /**
-     * The columns to write: the validated fields, `planned_id` among them when the form sent it.
+     * The columns to write: the validated fields, `planned_id` among them when the form sent it, and the card of an
+     * expense as the pair `card_type`, `card_id` when the form sent it.
      *
      * @return array<string, mixed>
      */
     public function columns(): array
     {
-        return $this->safe()->except(['kind']);
+        $columns = $this->safe()->except(['kind', 'card']);
+
+        return $this->kind() === 'expense' && $this->exists('card') ? [...$columns, ...$this->cardColumns()] : $columns;
+    }
+
+    /**
+     * The category of the expense being changed, null on a new one or an income.
+     *
+     * @throws NotFoundHttpException if the kind is not `expense` or `income`
+     * @throws ModelNotFoundException if the family has no such movement (Laravel answers 404)
+     */
+    protected function savedCategoryId(): ?int
+    {
+        $movement = $this->movement();
+
+        return $movement instanceof Expense ? $movement->category_id : null;
     }
 
     /**

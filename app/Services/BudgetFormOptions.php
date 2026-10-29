@@ -10,18 +10,19 @@ use App\Data\PlannedChoiceData;
 use App\Enums\FinancialAccountStatus;
 use App\Enums\IncomeType;
 use App\Models\Employment;
+use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\ModelId;
-use App\Support\PlannedPreset;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * The choices of the forms of the budget: the accounts, the categories, the organizations, the people, the cards
- * a planned expense can refer to, the employments and the types of an income. Always the ones of the current family.
+ * The choices of the forms of the budget: the accounts, the categories with the card type of each, the organizations,
+ * the people, the cards an expense can refer to, the employments and the types of an income. Always the ones of the
+ * current family.
  */
 final class BudgetFormOptions
 {
@@ -29,7 +30,7 @@ final class BudgetFormOptions
      * The choices of the form of a planned expense or income; the lists that do not belong to the kind are empty.
      *
      * @param  string  $kind  `expense` or `income`
-     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, cards: list<OptionData>, employments: list<OptionData>, income_types: list<OptionData>}
+     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, cards: list<OptionData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, employments: list<OptionData>, income_types: list<OptionData>}
      */
     public static function for(string $kind): array
     {
@@ -41,6 +42,8 @@ final class BudgetFormOptions
             'organizations' => self::organizations(),
             'people' => self::people(),
             'cards' => $expense ? self::cards() : [],
+            'category_card_types' => $expense ? self::categoryCardTypes() : [],
+            'card_type_labels' => $expense ? self::cardTypeLabels() : [],
             'employments' => $expense ? [] : self::employments(),
             'income_types' => $expense ? [] : OptionData::list(IncomeType::options()),
         ];
@@ -50,7 +53,7 @@ final class BudgetFormOptions
      * The choices of the form of a movement, an expense or an income: the lists of both kinds, because the first
      * choice of the form is which one it is.
      *
-     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, planned: list<PlannedChoiceData>, employments: list<OptionData>, income_types: list<OptionData>}
+     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, planned: list<PlannedChoiceData>, cards: list<OptionData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, employments: list<OptionData>, income_types: list<OptionData>}
      */
     public static function forMovement(): array
     {
@@ -60,6 +63,9 @@ final class BudgetFormOptions
             'organizations' => self::organizations(),
             'people' => self::people(),
             'planned' => self::planned(),
+            'cards' => self::cards(),
+            'category_card_types' => self::categoryCardTypes(),
+            'card_type_labels' => self::cardTypeLabels(),
             'employments' => self::employments(),
             'income_types' => OptionData::list(IncomeType::options()),
         ];
@@ -131,7 +137,8 @@ final class BudgetFormOptions
     }
 
     /**
-     * The cards a planned expense can refer to, by type and name; the value is `type:id`.
+     * The cards an expense or a planned expense can refer to, of every type: for each type the open ones by name, then
+     * the closed ones. The value is `type:id`, the text «Type · name».
      *
      * @return list<OptionData>
      */
@@ -139,18 +146,49 @@ final class BudgetFormOptions
     {
         $options = [];
 
-        foreach (PlannedPreset::CARD_TYPES as $name) {
-            $type = CardTypes::findOrFail($name);
+        foreach (CardTypes::all() as $type) {
             $cards = $type->model()::query()->with($type->listRelations())->get()
-                ->map(static fn (Model $card): array => [(string) ModelId::of($card), method_exists($card, 'label') ? (string) $card->label() : ''])
-                ->sortBy(1, SORT_NATURAL | SORT_FLAG_CASE);
+                ->map(static fn (Model $card): array => [
+                    (string) ModelId::of($card),
+                    method_exists($card, 'label') ? (string) $card->label() : '',
+                    $type->isClosed($card),
+                ])
+                ->sort(static fn (array $a, array $b): int => ($a[2] <=> $b[2]) ?: strnatcasecmp($a[1], $b[1]));
 
             foreach ($cards as [$id, $label]) {
-                $options[] = new OptionData("{$name}:{$id}", "{$type->label()} · {$label}");
+                $options[] = new OptionData("{$type->type()}:{$id}", "{$type->label()} · {$label}");
             }
         }
 
         return $options;
+    }
+
+    /**
+     * The card type of each expense category that has one (a subcategory takes the one of its main category), by
+     * the id of the category. The page reads it as an object keyed by the id as text, as the options of the
+     * categories have it.
+     *
+     * @return array<int, string>
+     */
+    private static function categoryCardTypes(): array
+    {
+        return ExpenseCategory::cardTypes();
+    }
+
+    /**
+     * The name of each card type, for the label of the field of the card.
+     *
+     * @return array<string, string>
+     */
+    private static function cardTypeLabels(): array
+    {
+        $labels = [];
+
+        foreach (CardTypes::all() as $type) {
+            $labels[$type->type()] = $type->label();
+        }
+
+        return $labels;
     }
 
     /**

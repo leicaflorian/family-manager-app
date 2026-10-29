@@ -22,6 +22,7 @@ final class PlannedChoiceData extends Data
      * @param  string  $value  the id of the planned item
      * @param  string  $label  its title
      * @param  string|null  $category_id  the category of a planned expense
+     * @param  string|null  $card  the card of a planned expense, `type:id`
      * @param  string|null  $organization_id  the organization
      * @param  string|null  $financial_account_id  the account
      * @param  string|null  $person_id  the person
@@ -33,6 +34,7 @@ final class PlannedChoiceData extends Data
         public readonly string $value,
         public readonly string $label,
         public readonly ?string $category_id,
+        public readonly ?string $card,
         public readonly ?string $organization_id,
         public readonly ?string $financial_account_id,
         public readonly ?string $person_id,
@@ -54,6 +56,7 @@ final class PlannedChoiceData extends Data
             value: (string) $planned->id,
             label: $planned->displayTitle(),
             category_id: self::text($columns['category_id'] ?? null),
+            card: isset($columns['card_type'], $columns['card_id']) ? $columns['card_type'].':'.$columns['card_id'] : null,
             organization_id: self::text($columns['organization_id']),
             financial_account_id: self::text($columns['financial_account_id']),
             person_id: self::text($columns['person_id']),

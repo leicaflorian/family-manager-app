@@ -161,3 +161,13 @@ test('it locks the planned item before reading again whether the due date is pai
             ->and($lock)->toBeLessThan($read);
     });
 });
+
+test('it gives the payment the card of its planned expense', function (): void {
+    insideBianchi(function (): void {
+        $planned = PlannedExpense::query()->where('title', 'Bollo auto')->sole();
+
+        $expense = recordIt(paymentDeadline('expense', 'Bollo auto', '2027-01-31'), '2026-10-26', 198.0);
+
+        expect($expense)->card_type->toBe('vehicle')->card_id->toBe($planned->card_id);
+    });
+});
