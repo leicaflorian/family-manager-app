@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in
- * the middle, Documents and More. More opens a panel with Family, Settings and
- * Log out, and stays marked when one of those pages is open.
+ * The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in
+ * the middle, Areas and More. More opens a panel with Documents, Family,
+ * Settings and Log out, and stays marked when one of those pages is open.
  */
 import { Link } from '@inertiajs/vue3';
 import { LogOut, Menu, Plus } from '@lucide/vue';
@@ -22,14 +22,19 @@ const { active, items } = defineProps<{
 
 const moreOpen = ref(false);
 
-/** The items that stay in the bar: Home, Areas, Documents. */
+/** The sections that stay in the bar, in the order of the board. */
+const barSections: Section[] = ['home', 'budget', 'areas'];
+
+/** The items that stay in the bar: Home, Budget, Areas. */
 const inBar = computed((): NavigationItem[] =>
-    items.sections.filter((item) => item.section !== 'family'),
+    barSections.flatMap((section) =>
+        items.sections.filter((item) => item.section === section),
+    ),
 );
 
-/** The items inside More. */
+/** The items inside More: the sections that are not in the bar, and Settings. */
 const inMore = computed((): NavigationItem[] => [
-    ...items.sections.filter((item) => item.section === 'family'),
+    ...items.sections.filter((item) => !barSections.includes(item.section)),
     items.settings,
 ]);
 

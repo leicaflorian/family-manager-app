@@ -47,6 +47,27 @@ describe('FmSidebar', () => {
         expect(screen.getByText('Bianchi family')).toBeInTheDocument();
     });
 
+    it('has Budget between Documents and Family, marked on its pages', () => {
+        bar('budget', '/budget/comparison');
+
+        const nav = screen.getByRole('navigation', { name: 'Sections' });
+        const names = within(nav)
+            .getAllByRole('link')
+            .map((link) => link.textContent?.trim())
+            .filter((name) =>
+                ['Documents', 'Budget', 'Family'].includes(name ?? ''),
+            );
+        expect(names).toEqual(['Documents', 'Budget', 'Family']);
+        expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute(
+            'href',
+            '/budget',
+        );
+        expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
     it('opens Settings and Log out from My account at the bottom', async () => {
         bar('home');
 

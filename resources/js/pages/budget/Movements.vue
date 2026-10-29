@@ -12,6 +12,7 @@ import { Plus, Receipt, Wallet } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import FmAmount from '@/components/fm/FmAmount.vue';
+import FmBudgetTabs from '@/components/fm/FmBudgetTabs.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -203,6 +204,7 @@ function subtitle(movement: App.Data.MovementData): string {
                 }}</FmButton>
             </template>
         </FmTitle>
+        <FmBudgetTabs current="movements" />
 
         <div
             :class="

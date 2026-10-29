@@ -83,6 +83,15 @@ readonly label: string,
 readonly text: string,
 readonly href: string | null,
 };
+export type CategoryComparisonData = {
+readonly name: string,
+readonly icon: string | null,
+readonly color: string | null,
+readonly spent: number,
+readonly planned: number,
+readonly estimated: boolean,
+readonly late_title: string | null,
+};
 export type CategoryData = {
 readonly id: number,
 readonly name: string,
@@ -91,6 +100,17 @@ readonly icon: string | null,
 readonly color: string | null,
 readonly documents_count: number,
 readonly children: App.Data.CategoryData[],
+};
+export type ComparisonData = {
+readonly month: string,
+readonly planned: number,
+readonly spent: number,
+readonly incomes: number,
+readonly incomes_planned: number,
+readonly days_left: number | null,
+readonly categories: App.Data.CategoryComparisonData[],
+readonly months: App.Data.MonthBarData[],
+readonly unpaid: App.Data.DeadlineData[],
 };
 export type DeadlineData = {
 readonly kind: string,

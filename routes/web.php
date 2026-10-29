@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\Budget\ComparisonController;
 use App\Http\Controllers\Budget\DeadlineController;
 use App\Http\Controllers\Budget\MovementController;
 use App\Http\Controllers\Budget\PlannedController;
@@ -61,6 +62,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 Route::put('', [MovementController::class, 'update'])->name('update');
                 Route::delete('', [MovementController::class, 'destroy'])->name('destroy');
             });
+
+        Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
 
         Route::get('budget/planned', [PlannedController::class, 'index'])->name('budget.planned.index');
         Route::prefix('budget/planned/{kind}')

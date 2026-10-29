@@ -106,6 +106,12 @@ describe('comparisonComment', () => {
         );
     });
 
+    it('writes the title of the late due date in lowercase', () => {
+        expect(comparisonComment(29.9, 223.3, false, 'Luce')).toBe(
+            '193,40 € less · luce late',
+        );
+    });
+
     it('speaks Italian', async () => {
         await speak('it');
 

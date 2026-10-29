@@ -889,3 +889,65 @@ export const salaryMovement: App.Data.MovementData = {
     type: 'salary',
     employment_id: 1,
 };
+
+/** October 2026 as *Planned and spent* sends it on 26/10/2026 (the Bianchi). */
+export const octoberComparison: App.Data.ComparisonData = {
+    month: '2026-10',
+    planned: 1469.3,
+    spent: 1284.2,
+    incomes: 1720,
+    incomes_planned: 3570,
+    days_left: 5,
+    categories: [
+        {
+            name: 'Casa e affitto',
+            icon: 'house',
+            color: '#2563eb',
+            spent: 612,
+            planned: 612,
+            estimated: false,
+            late_title: null,
+        },
+        {
+            name: 'Spesa',
+            icon: 'shopping-basket',
+            color: '#16a34a',
+            spent: 150.1,
+            planned: 320,
+            estimated: true,
+            late_title: null,
+        },
+        {
+            name: 'Bollette e utenze',
+            icon: 'zap',
+            color: '#e35169',
+            spent: 29.9,
+            planned: 223.3,
+            estimated: false,
+            late_title: 'Luce',
+        },
+        {
+            name: 'Salute',
+            icon: 'heart-pulse',
+            color: '#d9467a',
+            spent: 108.4,
+            planned: 0,
+            estimated: false,
+            late_title: null,
+        },
+    ],
+    months: monthBars,
+    unpaid: [
+        lateDeadline,
+        {
+            ...lateDeadline,
+            planned_id: 8,
+            title: 'Bolletta gas',
+            planned_title: 'Gas',
+            date: '2026-10-30',
+            original_date: '2026-10-30',
+            amount: 84.2,
+            late: false,
+        },
+    ],
+};

@@ -197,4 +197,16 @@ describe('Movements', () => {
 
         expect(get.mock.calls[0]![0]).toBe('/budget/movements/create');
     });
+
+    it('has the tabs of the budget with this page marked', () => {
+        renderPage(Movements, props);
+
+        expect(screen.getByRole('link', { name: 'Movements' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+        expect(
+            screen.getByRole('link', { name: 'Planned and spent' }),
+        ).toHaveAttribute('href', '/budget/comparison');
+    });
 });

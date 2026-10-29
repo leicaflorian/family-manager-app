@@ -8,6 +8,7 @@ import { Head } from '@inertiajs/vue3';
 import { Plus, Repeat } from '@lucide/vue';
 import { computed } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
+import FmBudgetTabs from '@/components/fm/FmBudgetTabs.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -76,6 +77,7 @@ const hasEstimate = computed(() =>
                 />
             </template>
         </FmTitle>
+        <FmBudgetTabs current="planned" />
 
         <FmEmpty
             v-if="empty"

@@ -108,7 +108,12 @@ export function comparisonComment(
     }
 
     if (lateTitle !== null) {
-        parts.push(trans(':title late', { title: lateTitle }));
+        // The title is a name of a planned expense («Luce»): it reads in the middle of the sentence
+        parts.push(
+            trans(':title late', {
+                title: lateTitle.charAt(0).toLowerCase() + lateTitle.slice(1),
+            }),
+        );
     }
 
     return parts.join(' · ');

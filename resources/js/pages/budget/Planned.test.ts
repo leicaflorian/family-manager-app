@@ -114,4 +114,15 @@ describe('Planned expenses', () => {
             screen.queryByRole('heading', { name: /Going out/ }),
         ).not.toBeInTheDocument();
     });
+
+    it('has the tabs of the budget with this page marked', () => {
+        renderPage(Planned, props);
+
+        expect(
+            screen.getByRole('link', { name: 'Planned expenses' }),
+        ).toHaveAttribute('aria-current', 'page');
+        expect(
+            screen.getByRole('link', { name: 'Planned and spent' }),
+        ).toHaveAttribute('href', '/budget/comparison');
+    });
 });

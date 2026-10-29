@@ -722,5 +722,15 @@
     "Deleted.": "Eliminato.",
     "This due date is already paid: choose another one.": "Questa scadenza è già pagata: scegline un'altra.",
     "An expense": "Spesa",
-    "An income": "Entrata"
+    "An income": "Entrata",
+    "Planned and spent": "Previsto e speso",
+    "Spent so far": "Speso fin qui",
+    "going out in :month": "in uscita a :month",
+    "of :amount planned": "su :amount previste",
+    "{0} The month is in progress: it ends today.|{1} The month is in progress: 1 day left.|[2,*] The month is in progress: :count days left.": "{0} Il mese è in corso: finisce oggi.|{1} Il mese è in corso: manca 1 giorno.|[2,*] Il mese è in corso: mancano :count giorni.",
+    "By category": "Per categoria",
+    "Nothing planned or spent this month": "Questo mese non c'è niente di previsto né di speso",
+    "Planned and not yet registered": "Previste e non ancora registrate",
+    "The plan comes from the planned expenses, with their exceptions; what was spent is the expenses dated in the month, even the ones that were not planned.": "Il previsto viene dalle spese fisse, con le loro eccezioni; lo speso sono le spese con la data nel mese, anche quelle che non erano previste.",
+    "No category": "Senza categoria"
 }
