@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Budget;
 
+use App\Http\Requests\Concerns\ResolvesDeadline;
 use App\Http\Requests\Concerns\UploadsFiles;
 use App\Models\Expense;
 use App\Models\Income;
@@ -16,13 +17,16 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 final class RecordPaymentRequest extends FormRequest
 {
+    use ResolvesDeadline;
     use UploadsFiles;
 
     /**
-     * Whoever may create an expense or an income records payments.
+     * Whoever may create an expense or an income records payments. The address is resolved first:
+     * a wrong one answers 404 before anyone is refused or the body is read.
      */
     public function authorize(): bool
     {
+        $this->deadline();
         $user = $this->user();
 
         return $user !== null && $user->can('create', Expense::class) && $user->can('create', Income::class);

@@ -121,6 +121,7 @@ function changeRequest(User $user, PlannedExpense $planned): ChangeOccurrenceReq
     $route->bind($request);
     $route->setParameter('kind', 'expense');
     $route->setParameter('id', (string) $planned->id);
+    $route->setParameter('date', '2026-12-05');
     $request->setRouteResolver(static fn (): Route => $route);
 
     return $request;

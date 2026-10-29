@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Budget;
 
-use App\Support\PlannedKind;
+use App\Http\Requests\Concerns\ResolvesDeadline;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -14,20 +14,15 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 final class ChangeOccurrenceRequest extends FormRequest
 {
+    use ResolvesDeadline;
+
     /**
-     * Whoever may update the planned item, which is the `admin` only. The planned item comes from the route
-     * parameters `kind` and `id`: a wrong one answers 404 before anyone is refused.
+     * Whoever may update the planned item, which is the `admin` only. The address is resolved first:
+     * a wrong one answers 404 before anyone is refused or the body is read.
      */
     public function authorize(): bool
     {
-        $kind = $this->route('kind');
-        $id = $this->route('id');
-
-        if (! is_string($kind) || ! is_string($id)) {
-            return false;
-        }
-
-        return (bool) $this->user()?->can('update', PlannedKind::find($kind, $id));
+        return (bool) $this->user()?->can('update', $this->deadline()->planned);
     }
 
     /**

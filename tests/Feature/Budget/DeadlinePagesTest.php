@@ -145,6 +145,8 @@ test('it answers 404 to an address that is not a due date', function (string $pa
         'get' => $this->get($path)->assertNotFound(),
         'post' => $this->post("{$path}/payment", ['date' => '2026-10-26', 'amount' => 45])->assertNotFound(),
         'put' => $this->put("{$path}/exceptions", ['skip' => true])->assertNotFound(),
+        'post invalid' => $this->post("{$path}/payment", ['date' => 'not a date', 'amount' => 'much'])->assertNotFound(),
+        'put invalid' => $this->put("{$path}/exceptions", ['change_amount' => true, 'amount' => 'much', 'notes' => str_repeat('x', 600)])->assertNotFound(),
     };
 })->with(function (): array {
     $paths = [
@@ -157,7 +159,7 @@ test('it answers 404 to an address that is not a due date', function (string $pa
     $sets = [];
 
     foreach ($paths as $name => $path) {
-        foreach (['get', 'post', 'put'] as $how) {
+        foreach (['get', 'post', 'put', 'post invalid', 'put invalid'] as $how) {
             $sets["{$name} on {$how}"] = [$path, $how];
         }
     }

@@ -19,7 +19,6 @@ use App\Models\PlannedExpense;
 use App\Models\User;
 use App\Services\Deadlines;
 use App\Support\Deadline;
-use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -51,7 +50,7 @@ final class DeadlineController extends Controller
      */
     public function show(Request $request, string $kind, string $id, string $date, #[CurrentUser] User $user): Response
     {
-        $deadline = $this->find($kind, $id, $date);
+        $deadline = $this->deadlines->findByAddress($kind, $id, $date);
         $planned = $deadline->planned;
         $today = CarbonImmutable::today('Europe/Rome');
         $after = $deadline->occurrence->date->addDay();
@@ -74,7 +73,7 @@ final class DeadlineController extends Controller
      */
     public function payment(RecordPaymentRequest $request, string $kind, string $id, string $date, RecordPayment $record): RedirectResponse
     {
-        $deadline = $this->find($kind, $id, $date);
+        $deadline = $request->deadline();
         $paid = CarbonImmutable::createFromFormat('!Y-m-d', $request->string('date')->toString(), 'Europe/Rome') ?: throw new NotFoundHttpException;
         $account = $request->integer('financial_account_id');
         $receipt = $request->file('receipt');
@@ -92,35 +91,13 @@ final class DeadlineController extends Controller
      */
     public function exceptions(ChangeOccurrenceRequest $request, string $kind, string $id, string $date, ChangeOccurrence $change): RedirectResponse
     {
-        $deadline = $this->find($kind, $id, $date);
+        $deadline = $request->deadline();
         $choices = $request->choices();
 
         $change->handle($deadline->planned, $deadline->occurrence->originalDate, $choices['skip'], $choices['amount'], $choices['date'], $choices['notes']);
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved.')]);
 
         return $this->back($kind, $id, $date);
-    }
-
-    /**
-     * The due date of an address: its planned item must be of the family and its day one the rules give.
-     *
-     * @param  string  $kind  `expense` or `income`
-     * @param  string  $id  the id of the planned item
-     * @param  string  $date  the day the rules give, `yyyy-mm-dd`
-     *
-     * @throws NotFoundHttpException if any part is wrong
-     */
-    private function find(string $kind, string $id, string $date): Deadline
-    {
-        $planned = PlannedKind::find($kind, $id);
-        $day = CarbonImmutable::createFromFormat('!Y-m-d', $date, 'Europe/Rome');
-
-        // A date such as 2026-13-45 is read as another day: it must come back the same
-        if (! $day instanceof CarbonImmutable || $day->toDateString() !== $date) {
-            throw new NotFoundHttpException;
-        }
-
-        return $this->deadlines->find($planned, $day);
     }
 
     /**

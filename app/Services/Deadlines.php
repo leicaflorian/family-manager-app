@@ -15,6 +15,7 @@ use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use App\Support\DefaultAccount;
 use App\Support\Occurrence;
+use App\Support\PlannedKind;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -149,6 +150,28 @@ final readonly class Deadlines
         }
 
         throw new NotFoundHttpException;
+    }
+
+    /**
+     * The due date of an address: the kind and id of its planned item and the day the rules give.
+     *
+     * @param  string  $kind  `expense` or `income`
+     * @param  string  $id  The id of the planned item.
+     * @param  string  $date  The day the rules give, `yyyy-mm-dd`.
+     *
+     * @throws NotFoundHttpException if the planned item is not of the family or the day is not one of its due dates
+     */
+    public function findByAddress(string $kind, string $id, string $date): Deadline
+    {
+        $planned = PlannedKind::find($kind, $id);
+        $day = CarbonImmutable::createFromFormat('!Y-m-d', $date, 'Europe/Rome');
+
+        // A date such as 2026-13-45 is read as another day: it must come back the same
+        if (! $day instanceof CarbonImmutable || $day->toDateString() !== $date) {
+            throw new NotFoundHttpException;
+        }
+
+        return $this->find($planned, $day);
     }
 
     /**
