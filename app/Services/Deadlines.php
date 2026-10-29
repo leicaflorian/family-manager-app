@@ -146,7 +146,7 @@ final readonly class Deadlines
     }
 
     /**
-     * The due dates of a planned item that the rules give on some days, skipped ones included, read at once.
+     * The due dates of a planned item that the rules give on some days, read at once.
      * A day that is not a due date of the planned item is left out.
      *
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
@@ -154,7 +154,7 @@ final readonly class Deadlines
      * @param  bool  $withSkipped  Whether the skipped due dates are found too, flagged `skipped`.
      * @return array<string, Deadline> By original date, `yyyy-mm-dd`.
      */
-    public function findMany(PlannedExpense|PlannedIncome $planned, array $originalDates, bool $withSkipped = true): array
+    public function findMany(PlannedExpense|PlannedIncome $planned, array $originalDates, bool $withSkipped = false): array
     {
         if ($originalDates === []) {
             return [];
