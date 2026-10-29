@@ -1,7 +1,14 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import {
     danceMovement,
     movementOptions,
@@ -13,6 +20,11 @@ import FmMovementPanel from './FmMovementPanel.vue';
 const start = { kind: 'expense', planned_id: null, date: '2026-10-26' };
 
 const props = { movement: null, options: movementOptions, start };
+
+beforeEach(() => {
+    // Choosing a planned item asks the page for its due dates
+    vi.spyOn(router, 'reload').mockImplementation(() => {});
+});
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -32,10 +44,10 @@ describe('FmMovementPanel', () => {
             screen.getByRole('heading', { name: 'New expense or income' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('button', { name: 'Expense' }),
+            screen.getByRole('button', { name: 'An expense' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('button', { name: 'Income' }),
+            screen.getByRole('button', { name: 'An income' }),
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Commission')).toBeInTheDocument();
         expect(
@@ -132,7 +144,9 @@ describe('FmMovementPanel', () => {
     it('shows the income fields instead of the expense ones', async () => {
         renderPage(FmMovementPanel, props);
 
-        await userEvent.click(screen.getByRole('button', { name: 'Income' }));
+        await userEvent.click(
+            screen.getByRole('button', { name: 'An income' }),
+        );
         await settle();
 
         expect(screen.getByLabelText('Received on')).toBeInTheDocument();
@@ -140,6 +154,98 @@ describe('FmMovementPanel', () => {
         expect(screen.queryByLabelText('Commission')).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
         expect(screen.getByLabelText('Planned income')).toBeInTheDocument();
+    });
+
+    it('asks the page for the open due dates of whichever planned expense is chosen', async () => {
+        vi.spyOn(router, 'post').mockImplementation(() => {});
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        const view = renderPage(FmMovementPanel, props);
+        expect(screen.queryByLabelText('Due date')).not.toBeInTheDocument();
+
+        await choose('Planned expense', 'Retta danza');
+
+        expect(reload).toHaveBeenCalledWith({
+            only: ['occurrences'],
+            data: {
+                planned_kind: 'expense',
+                planned: '4',
+                planned_date: '2026-10-26',
+            },
+            preserveUrl: true,
+        });
+
+        await view.rerender({
+            occurrences: [
+                { value: '2026-12-05', label: '05/12/2026', help: null },
+            ],
+        });
+        expect(screen.getByLabelText('Due date')).toBeInTheDocument();
+
+        // Choosing nothing hides the menu and asks for nothing
+        reload.mockClear();
+        await choose('Planned expense', 'None');
+        expect(reload).not.toHaveBeenCalled();
+        expect(screen.queryByLabelText('Due date')).not.toBeInTheDocument();
+    });
+
+    it('sends the due date that the page offered first', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        const view = renderPage(FmMovementPanel, props);
+        await write('Amount', '45');
+        await choose('Planned expense', 'Retta danza');
+        await view.rerender({
+            occurrences: [
+                { value: '2026-12-05', label: '05/12/2026', help: null },
+            ],
+        });
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            planned_id: '4',
+            occurrence_date: '2026-12-05',
+        });
+    });
+
+    it('asks for the employment of an income and fills it from the planned income', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmMovementPanel, props);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'An income' }),
+        );
+        await settle();
+        await write('Amount', '1720');
+        await choose('Planned income', 'Stipendio di Laura');
+        expect(screen.getByLabelText('Employment')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            kind: 'income',
+            employment_id: '1',
+            type: 'salary',
+            planned_id: '2',
+        });
+        expect(post.mock.calls[0]![1]).not.toHaveProperty('category_id');
+    });
+
+    it('never sends an income without its type', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmMovementPanel, props);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'An income' }),
+        );
+        await settle();
+        await write('Title', 'Rimborso');
+        await write('Amount', '20');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        const type = (post.mock.calls[0]![1] as { type: string | null }).type;
+        expect(type).toBeTruthy();
     });
 
     it('shows a movement and saves a change as a POST with the method PUT', async () => {
@@ -159,7 +265,7 @@ describe('FmMovementPanel', () => {
         expect(screen.getByLabelText('Title')).toHaveValue('Retta di novembre');
         // The kind cannot change on a saved movement
         expect(
-            screen.queryByRole('button', { name: 'Expense' }),
+            screen.queryByRole('button', { name: 'An expense' }),
         ).not.toBeInTheDocument();
 
         await write('Amount', '46');

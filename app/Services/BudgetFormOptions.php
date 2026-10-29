@@ -50,7 +50,7 @@ final class BudgetFormOptions
      * The choices of the form of a movement, an expense or an income: the lists of both kinds, because the first
      * choice of the form is which one it is.
      *
-     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, planned: list<PlannedChoiceData>, income_types: list<OptionData>}
+     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, planned: list<PlannedChoiceData>, employments: list<OptionData>, income_types: list<OptionData>}
      */
     public static function forMovement(): array
     {
@@ -60,6 +60,7 @@ final class BudgetFormOptions
             'organizations' => self::organizations(),
             'people' => self::people(),
             'planned' => self::planned(),
+            'employments' => self::employments(),
             'income_types' => OptionData::list(IncomeType::options()),
         ];
     }

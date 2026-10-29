@@ -9,11 +9,14 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Services\Deadlines;
 use App\Services\Occurrences;
 use App\Support\DefaultAccount;
 use App\Support\PlannedKind;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /**
@@ -26,7 +29,7 @@ final readonly class SaveMovement
     /** The columns that an empty field takes from the planned item. */
     private const array FROM_PLANNED = ['organization_id', 'financial_account_id', 'person_id'];
 
-    public function __construct(private Occurrences $occurrences) {}
+    public function __construct(private Occurrences $occurrences, private Deadlines $deadlines) {}
 
     /**
      * Creates the movement, or changes the one given.
@@ -36,22 +39,52 @@ final readonly class SaveMovement
      * @param  Expense|Income|null  $movement  the movement to change, null for a new one
      *
      * @throws InvalidArgumentException if the kind is not `expense` or `income`
+     * @throws ValidationException if the due date is already paid by another movement
      */
     public function handle(string $kind, array $columns, Expense|Income|null $movement = null): Expense|Income
     {
-        $columns = $this->complete($kind, $columns, $movement);
+        // The request checked the due date, but a payment can have arrived since: read it again, as RecordPayment does
+        return DB::transaction(function () use ($kind, $columns, $movement): Expense|Income {
+            $columns = $this->complete($kind, $columns, $movement);
+            $this->assertOpen($kind, $columns, $movement);
 
-        if ($movement instanceof Expense || $movement instanceof Income) {
-            $movement->update($columns);
+            if ($movement instanceof Expense || $movement instanceof Income) {
+                $movement->update($columns);
 
-            return $movement;
+                return $movement;
+            }
+
+            return match ($kind) {
+                'expense' => Expense::query()->create($columns),
+                'income' => Income::query()->create($columns),
+                default => throw new InvalidArgumentException("Unknown kind {$kind}."),
+            };
+        });
+    }
+
+    /**
+     * Checks that no other movement pays the due date this one is going to settle.
+     *
+     * @param  string  $kind  `expense` or `income`
+     * @param  array<string, mixed>  $columns  the columns to write
+     * @param  Expense|Income|null  $movement  the movement being changed
+     *
+     * @throws ValidationException if another movement pays that due date
+     */
+    private function assertOpen(string $kind, array $columns, Expense|Income|null $movement): void
+    {
+        $plannedId = $columns[$kind === 'expense' ? 'planned_expense_id' : 'planned_income_id'] ?? null;
+        $day = $columns['occurrence_date'] ?? null;
+
+        if (! is_numeric($plannedId) || ! is_string($day)) {
+            return;
         }
 
-        return match ($kind) {
-            'expense' => Expense::query()->create($columns),
-            'income' => Income::query()->create($columns),
-            default => throw new InvalidArgumentException("Unknown kind {$kind}."),
-        };
+        $payment = $this->deadlines->find(PlannedKind::find($kind, (string) $plannedId), CarbonImmutable::parse($day, 'Europe/Rome'))->payment;
+
+        if ($payment !== null && ! $payment->is($movement)) {
+            throw ValidationException::withMessages(['occurrence_date' => __('This due date is already paid: choose another one.')]);
+        }
     }
 
     /**

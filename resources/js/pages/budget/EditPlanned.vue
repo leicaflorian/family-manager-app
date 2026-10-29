@@ -17,6 +17,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { PlannedFormOptions, PlannedFormValues } from '@/lib/budget';
 import { errors } from '@/lib/errors';
+import { isEmpty, withNone } from '@/lib/forms';
 import { destroy, index, show, store, update } from '@/routes/budget/planned';
 
 const { kind, planned, values, options } = defineProps<{
@@ -34,24 +35,6 @@ const form = useForm<PlannedFormValues>({ ...values });
 
 /** Whether it is an income. */
 const income = computed(() => kind === 'income');
-
-/** The empty choice at the top of a menu. */
-const none = computed(() => ({ value: '', label: trans('None') }));
-
-/**
- * The options of a menu that can stay empty: the empty choice, then the options.
- *
- * @param choices - the options of the menu
- * @returns the options with «None» in front
- */
-function withNone(
-    choices: App.Data.OptionData[],
-): { value: string; label: string }[] {
-    return [
-        none.value,
-        ...choices.map(({ value, label }) => ({ value, label })),
-    ];
-}
 
 /** The title of the page. */
 const heading = computed(() =>
@@ -73,16 +56,6 @@ const units = computed(() => [
     { value: 'month', label: trans('Months') },
     { value: 'year', label: trans('Years') },
 ]);
-
-/**
- * Whether a value is empty: nothing written or chosen. Zero is a value.
- *
- * @param value - the value of a field
- * @returns true if it is empty
- */
-function isEmpty(value: unknown): boolean {
-    return value === null || value === undefined || value === '';
-}
 
 /** Sends the planned item, if the title, the amount and the start are there. */
 function save(): void {

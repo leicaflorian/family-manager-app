@@ -14,6 +14,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Support\Deadline;
+use App\Support\Occurrence;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -135,6 +136,21 @@ final readonly class Movements
             static fn (Deadline $deadline): OptionData => new OptionData($deadline->occurrence->originalDate->toDateString(), $deadline->occurrence->date->format('d/m/Y')),
             array_slice($open, 0, self::MENU),
         );
+    }
+
+    /**
+     * Whether the due date that a day registers (the closest one, see `Occurrences::at()`) can be settled: it is open,
+     * or paid by the movement being changed, or the day registers none.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     * @param  CarbonImmutable  $date  The day of the movement.
+     * @param  Expense|Income|null  $except  The movement being changed.
+     */
+    public function registeredIsOpen(PlannedExpense|PlannedIncome $planned, CarbonImmutable $date, Expense|Income|null $except = null): bool
+    {
+        $occurrence = $this->occurrences->at(Schedule::of($planned), $date);
+
+        return ! $occurrence instanceof Occurrence || $this->isOpen($planned, $occurrence->originalDate, $except);
     }
 
     /**

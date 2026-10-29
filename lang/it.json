@@ -700,7 +700,6 @@
     "This is not a due date that is still open.": "Questa non è una scadenza ancora aperta.",
     "New expense or income": "Nuova spesa o entrata",
     "It is": "È",
-    "Expense": "Spesa",
     "Paid on": "Pagata il",
     "Received on": "Incassata il",
     "Commission": "Commissione",
@@ -720,5 +719,8 @@
     "incomes minus expenses": "entrate meno uscite",
     "No movements this month": "Nessun movimento questo mese",
     "The expenses and incomes you add will appear here.": "Le spese e le entrate che aggiungi compariranno qui.",
-    "Deleted.": "Eliminato."
+    "Deleted.": "Eliminato.",
+    "This due date is already paid: choose another one.": "Questa scadenza è già pagata: scegline un'altra.",
+    "An expense": "Spesa",
+    "An income": "Entrata"
 }

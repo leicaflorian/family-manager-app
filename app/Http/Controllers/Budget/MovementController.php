@@ -52,7 +52,7 @@ final class MovementController extends Controller
             'kind' => $request->kind(),
             'account' => $request->account(),
             'selected' => $selected instanceof Expense || $selected instanceof Income ? MovementData::fromMovement($selected, $user) : null,
-            'occurrences' => $selected instanceof Expense || $selected instanceof Income ? $this->occurrences($selected) : [],
+            'occurrences' => fn (): array => $this->occurrences($request, $selected instanceof Expense ? 'expense' : ($selected instanceof Income ? 'income' : 'expense'), CarbonImmutable::today('Europe/Rome'), $selected),
             'options' => BudgetFormOptions::forMovement(),
         ]);
     }
@@ -64,7 +64,11 @@ final class MovementController extends Controller
      */
     public function create(Request $request, #[CurrentUser] User $user): Response
     {
-        $kind = $request->query('kind') === 'income' ? 'income' : 'expense';
+        $kind = match ($request->query('kind', 'expense')) {
+            'expense' => 'expense',
+            'income' => 'income',
+            default => throw new NotFoundHttpException,
+        };
         Gate::authorize('create', Movements::modelClass($kind));
 
         $planned = is_scalar($request->query('planned')) ? PlannedKind::find($kind, (string) $request->query('planned')) : null;
@@ -73,7 +77,7 @@ final class MovementController extends Controller
         return Inertia::render('budget/Movement', [
             'movement' => null,
             'start' => ['kind' => $kind, 'planned_id' => $planned === null ? null : (string) $planned->id, 'date' => $today->toDateString()],
-            'occurrences' => $planned === null ? [] : $this->movements->openOccurrences($planned, $today),
+            'occurrences' => fn (): array => $this->occurrences($request, $kind, $today, null, $planned),
             'options' => BudgetFormOptions::forMovement(),
         ]);
     }
@@ -91,7 +95,7 @@ final class MovementController extends Controller
      *
      * @throws NotFoundHttpException if the kind is unknown or the movement is not of the family
      */
-    public function show(string $kind, string $id, #[CurrentUser] User $user): Response
+    public function show(Request $request, string $kind, string $id, #[CurrentUser] User $user): Response
     {
         $movement = Movements::find($kind, $id);
         $data = MovementData::fromMovement($movement, $user);
@@ -99,7 +103,7 @@ final class MovementController extends Controller
         return Inertia::render('budget/Movement', [
             'movement' => $data,
             'start' => ['kind' => $data->kind, 'planned_id' => $data->planned_id === null ? null : (string) $data->planned_id, 'date' => $data->date],
-            'occurrences' => $this->occurrences($movement),
+            'occurrences' => fn (): array => $this->occurrences($request, $data->kind, CarbonImmutable::parse($data->date, 'Europe/Rome'), $movement),
             'options' => BudgetFormOptions::forMovement(),
         ]);
     }
@@ -148,17 +152,35 @@ final class MovementController extends Controller
     }
 
     /**
-     * The due dates that the movement can settle, if it belongs to a planned item.
+     * The due dates a movement of a day can settle. The page asks for another planned item by a partial reload with
+     * `?planned_kind=&planned=&planned_date=`; otherwise they are those of the planned item the movement already has
+     * (or the one the new form starts from).
      *
-     * @param  Expense|Income  $movement  the movement
+     * @param  Request  $request  the request, which may name the planned item
+     * @param  string  $kind  `expense` or `income`, the kind of the movement
+     * @param  CarbonImmutable  $date  the day of the movement
+     * @param  Expense|Income|null  $movement  the movement being changed
+     * @param  PlannedExpense|PlannedIncome|null  $default  the planned item of a new form
      * @return list<OptionData>
+     *
+     * @throws NotFoundHttpException if the planned item named is not of the family
      */
-    private function occurrences(Expense|Income $movement): array
+    private function occurrences(Request $request, string $kind, CarbonImmutable $date, Expense|Income|null $movement = null, PlannedExpense|PlannedIncome|null $default = null): array
     {
-        $planned = $movement instanceof Expense ? $movement->plannedExpense : $movement->plannedIncome;
+        $asked = $request->query('planned');
+
+        if (is_string($asked) && ctype_digit($asked)) {
+            $plannedKind = $request->query('planned_kind') === 'income' ? 'income' : $kind;
+            $day = $request->query('planned_date');
+            $parsed = is_string($day) ? CarbonImmutable::createFromFormat('!Y-m-d', $day, 'Europe/Rome') : false;
+
+            return $this->movements->openOccurrences(PlannedKind::find($plannedKind, $asked), $parsed instanceof CarbonImmutable ? $parsed : $date, $movement);
+        }
+
+        $planned = $default ?? ($movement instanceof Expense ? $movement->plannedExpense : $movement?->plannedIncome);
 
         return $planned instanceof PlannedExpense || $planned instanceof PlannedIncome
-            ? $this->movements->openOccurrences($planned, CarbonImmutable::parse($movement->date, 'Europe/Rome'), $movement)
+            ? $this->movements->openOccurrences($planned, $date, $movement)
             : [];
     }
 }

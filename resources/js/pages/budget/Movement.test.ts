@@ -34,7 +34,7 @@ describe('Movement', () => {
             screen.getByRole('heading', { name: 'New expense or income' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('button', { name: 'Expense' }),
+            screen.getByRole('button', { name: 'An expense' }),
         ).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Movements' })).toHaveAttribute(
             'href',

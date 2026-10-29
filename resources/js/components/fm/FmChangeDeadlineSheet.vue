@@ -9,6 +9,7 @@ import { router } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { errors } from '@/lib/errors';
+import { formatAmount, parseAmount } from '@/lib/forms';
 import FmAmount from './FmAmount.vue';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
@@ -40,7 +41,7 @@ function initial() {
     return {
         skip: false,
         change_amount: deadline.base_amount !== null,
-        amount: deadline.amount.toFixed(2),
+        amount: formatAmount(deadline.amount),
         change_date: deadline.date !== deadline.original_date,
         date: deadline.date,
         notes: deadline.notes ?? '',
@@ -91,7 +92,7 @@ function save(): void {
             skip: values.skip,
             change_amount: values.change_amount,
             ...(values.change_amount
-                ? { amount: Number(String(values.amount).replace(',', '.')) }
+                ? { amount: parseAmount(values.amount) }
                 : {}),
             change_date: values.change_date,
             ...(values.change_date ? { date: values.date } : {}),

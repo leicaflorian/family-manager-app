@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Budget\SaveMovement;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Expense;
@@ -15,6 +16,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
@@ -195,7 +197,7 @@ it('creates an income from a planned income', function (): void {
     $planned = insideBianchi(fn () => PlannedIncome::query()->where('title', 'Stipendio di Marco')->sole());
 
     $this->actingAs($this->marco)
-        ->post('/budget/movements', ['kind' => 'income', 'title' => 'Busta paga di Ottobre', 'amount' => 1850, 'date' => '2026-10-27', 'planned_id' => $planned->id])
+        ->post('/budget/movements', ['kind' => 'income', 'title' => 'Busta paga di Ottobre', 'amount' => 1850, 'date' => '2026-10-27', 'planned_id' => $planned->id, 'type' => 'salary'])
         ->assertSessionHasNoErrors();
 
     $income = insideBianchi(fn (): Income => Income::query()->where('title', 'Busta paga di Ottobre')->sole());
@@ -314,4 +316,83 @@ it('answers 404 to a movement of another family', function (): void {
 
     $this->actingAs($this->marco)->get('/budget/movements/gift/1')->assertNotFound();
     $this->assertDatabaseHas('expenses', ['id' => $foreignExpense->id]);
+});
+
+it('refuses a day that registers a due date already paid, when none is chosen', function (): void {
+    $dance = movementPlan('Retta danza');
+
+    // 04/11 is in the window of the 05/11 due date, paid on 20/10
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Retta doppia', 'amount' => 45, 'date' => '2026-11-04', 'planned_id' => $dance->id])
+        ->assertSessionHasErrors(['occurrence_date' => 'This due date is already paid: choose another one.']);
+
+    $this->assertDatabaseMissing('expenses', ['title' => 'Retta doppia']);
+});
+
+it('checks again, inside the transaction, that the due date is not paid', function (): void {
+    $dance = movementPlan('Retta danza');
+
+    expect(fn (): mixed => insideBianchi(fn () => resolve(SaveMovement::class)->handle('expense', [
+        'title' => 'Retta doppia', 'amount' => 45, 'date' => '2026-11-04', 'planned_id' => $dance->id, 'occurrence_date' => '2026-11-05',
+    ])))->toThrow(ValidationException::class);
+
+    $this->assertDatabaseMissing('expenses', ['title' => 'Retta doppia']);
+});
+
+it('lets a movement keep its own due date when its day is changed without naming it', function (): void {
+    $dance = movementExpense('Retta di novembre');
+
+    $this->actingAs($this->marco)
+        ->put("/budget/movements/expense/{$dance->id}", ['title' => $dance->title, 'amount' => 45, 'date' => '2026-10-21', 'planned_id' => $dance->planned_expense_id, 'occurrence_date' => ''])
+        ->assertSessionHasNoErrors();
+
+    expect($dance->refresh()->occurrence_date?->toDateString())->toBe('2026-11-05');
+});
+
+it('offers the open due dates of whichever planned expense is asked, by a reload of the page', function (): void {
+    $dance = movementPlan('Retta danza');
+
+    foreach (['/budget/movements', '/budget/movements/create', '/budget/movements/expense/'.movementExpense('Parcheggio')->id] as $address) {
+        $this->actingAs($this->marco)
+            ->get("{$address}?planned_kind=expense&planned={$dance->id}&planned_date=2026-10-26")
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('occurrences.0.value', '2026-12-05'));
+    }
+
+    $rossi = Family::factory()->create();
+    $foreign = PlannedExpense::factory()->create(['family_id' => $rossi->id]);
+    $this->actingAs($this->marco)->get("/budget/movements?planned_kind=expense&planned={$foreign->id}")->assertNotFound();
+});
+
+it('gives the employments to the form of an income', function (): void {
+    $this->actingAs($this->marco)
+        ->get('/budget/movements/create?kind=income')
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('options.employments', 2)->has('options.employments.0.label'));
+});
+
+it('keeps the employment of an income', function (): void {
+    $planned = insideBianchi(fn () => PlannedIncome::query()->where('title', 'Stipendio di Laura')->sole());
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'income', 'title' => 'Altro', 'amount' => 10, 'date' => '2026-10-02', 'type' => 'other', 'employment_id' => $planned->employment_id])
+        ->assertSessionHasNoErrors();
+
+    expect(insideBianchi(fn (): ?int => Income::query()->where('title', 'Altro')->sole()->employment_id))->toBe($planned->employment_id);
+});
+
+it('requires the type of an income', function (): void {
+    foreach ([[], ['type' => ''], ['type' => 'gift']] as $extra) {
+        $this->actingAs($this->marco)
+            ->post('/budget/movements', ['kind' => 'income', 'title' => 'x', 'amount' => 1, 'date' => '2026-10-02', ...$extra])
+            ->assertSessionHasErrors('type');
+    }
+
+    $income = insideBianchi(fn (): Income => Income::query()->latest('id')->firstOrFail());
+    $this->actingAs($this->marco)
+        ->put("/budget/movements/income/{$income->id}", ['title' => 'x', 'amount' => 1, 'date' => '2026-10-02', 'type' => ''])
+        ->assertSessionHasErrors('type');
+});
+
+it('answers 404 to a new movement of an unknown kind', function (): void {
+    $this->actingAs($this->marco)->get('/budget/movements/create?kind=gift')->assertNotFound();
+    $this->actingAs($this->marco)->get('/budget/movements/create')->assertOk();
 });

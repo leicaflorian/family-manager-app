@@ -14,6 +14,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { longMonth, monthName } from '@/lib/budget';
 import { errors } from '@/lib/errors';
+import { formatAmount, parseAmount } from '@/lib/forms';
 import { isoDate, relativeDays } from '@/lib/format';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
@@ -45,7 +46,7 @@ const income = computed(() => deadline.kind === 'income');
 /** The fields of the form. */
 const values = reactive({
     date: isoDate(),
-    amount: deadline.amount.toFixed(2),
+    amount: formatAmount(deadline.amount),
     financial_account_id:
         deadline.account_id === null ? '' : String(deadline.account_id),
     receipt: null as File | null,
@@ -64,7 +65,7 @@ const picker = ref<HTMLInputElement | null>(null);
 watch(open, (isOpen) => {
     if (isOpen) {
         values.date = isoDate();
-        values.amount = deadline.amount.toFixed(2);
+        values.amount = formatAmount(deadline.amount);
         values.financial_account_id =
             deadline.account_id === null ? '' : String(deadline.account_id);
         values.receipt = null;
@@ -125,7 +126,7 @@ function save(): void {
         action,
         {
             date: values.date,
-            amount: Number(String(values.amount).replace(',', '.')),
+            amount: parseAmount(values.amount),
             financial_account_id: values.financial_account_id || null,
             ...(values.receipt ? { receipt: values.receipt } : {}),
         },

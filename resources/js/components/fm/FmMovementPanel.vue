@@ -16,7 +16,13 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { MovementFormOptions, MovementStart } from '@/lib/budget';
 import { errors } from '@/lib/errors';
-import { withMethod } from '@/lib/forms';
+import {
+    formatAmount,
+    isEmpty,
+    parseAmount,
+    withMethod,
+    withNone,
+} from '@/lib/forms';
 import { cn } from '@/lib/utils';
 import { show as showDocument } from '@/routes/documents';
 import { destroy, store, update } from '@/routes/budget/movements';
@@ -59,16 +65,6 @@ function text(id: number | null | undefined): string {
     return id === null || id === undefined ? '' : String(id);
 }
 
-/**
- * An amount for a currency field.
- *
- * @param amount - the amount, or null
- * @returns the amount with two decimals, empty when there is none
- */
-function money(amount: number | null | undefined): string {
-    return amount === null || amount === undefined ? '' : amount.toFixed(2);
-}
-
 /** The planned item the form started with, and its due date. */
 const initialPlanned = text(movement?.planned_id) || start.planned_id || '';
 const initialOccurrence = movement
@@ -80,16 +76,27 @@ const values = reactive({
     kind: movement?.kind ?? start.kind,
     title: movement?.title ?? '',
     date: movement?.date ?? start.date,
-    amount: money(movement?.amount),
-    fee_amount: money(movement?.fee_amount),
+    amount: formatAmount(movement?.amount),
+    fee_amount: formatAmount(movement?.fee_amount),
     financial_account_id: text(movement?.account_id),
     category_id: text(movement?.category_id),
     organization_id: text(movement?.organization_id),
     person_id: text(movement?.person_id),
+    employment_id: text(movement?.employment_id),
     planned_id: initialPlanned,
     occurrence_date: initialOccurrence,
     type: movement?.type ?? '',
 });
+
+/** The type a new income starts with, until a planned income says another. */
+const defaultType =
+    options.income_types.find((type) => type.value === 'other')?.value ??
+    options.income_types[0]?.value ??
+    '';
+
+if (values.kind === 'income' && values.type === '') {
+    values.type = defaultType;
+}
 
 /** The messages of the server, by field. */
 const problems = ref<Record<string, string>>({});
@@ -103,35 +110,20 @@ const expense = computed(() => values.kind === 'expense');
 /** The movement cannot be changed by this person: the fields are only read. */
 const readonly = computed(() => movement !== null && !movement.can_edit);
 
-/** The empty choice at the top of a menu. */
-const none = computed(() => ({ value: '', label: trans('None') }));
-
-/**
- * The options of a menu that can stay empty.
- *
- * @param choices - the options of the menu
- * @returns the options with «None» in front
- */
-function withNone(
-    choices: { value: string; label: string }[],
-): { value: string; label: string }[] {
-    return [
-        none.value,
-        ...choices.map(({ value, label }) => ({ value, label })),
-    ];
-}
-
 /** The planned expenses or incomes the movement can settle, by its kind. */
 const plannedChoices = computed(() =>
     withNone(options.planned.filter((choice) => choice.kind === values.kind)),
 );
 
-/** The due dates are offered only for the planned item the form started with. */
+/** The planned item that the due dates of the page are for. */
+const loadedFor = ref(initialPlanned);
+
+/** The due dates are offered for the planned item chosen, once the page has sent them. */
 const showOccurrences = computed(
     () =>
         occurrences.length > 0 &&
-        values.planned_id === initialPlanned &&
-        values.planned_id !== '',
+        values.planned_id !== '' &&
+        values.planned_id === loadedFor.value,
 );
 
 /** The title of the panel. */
@@ -141,16 +133,6 @@ const heading = computed(
 
 /** Whether the person can save: a new movement, or one they can change. */
 const canSave = computed(() => movement === null || movement.can_edit);
-
-/**
- * Whether a field is empty.
- *
- * @param value - the value of a field
- * @returns true when nothing is written or chosen
- */
-function isEmpty(value: unknown): boolean {
-    return value === null || value === undefined || value === '';
-}
 
 /**
  * Fills what is still empty from the planned item chosen: the title, the
@@ -172,13 +154,24 @@ function fillFrom(id: string): void {
         ['organization_id', choice.organization_id],
         ['financial_account_id', choice.financial_account_id],
         ['person_id', choice.person_id],
-        expense.value
-            ? ['category_id', choice.category_id]
-            : ['type', choice.type],
     ];
 
+    if (expense.value) {
+        fields.push(['category_id', choice.category_id]);
+    } else {
+        fields.push(
+            ['employment_id', choice.employment_id],
+            ['type', choice.type],
+        );
+    }
+
     for (const [field, value] of fields) {
-        if (isEmpty(values[field]) && value !== null) {
+        // A new income starts as «other», which a planned income may replace
+        const empty =
+            isEmpty(values[field]) ||
+            (field === 'type' && values.type === defaultType);
+
+        if (empty && value !== null) {
             values[field] = value;
         }
     }
@@ -188,35 +181,54 @@ if (movement === null && initialPlanned !== '') {
     fillFrom(initialPlanned);
 }
 
-// A new planned item fills the empty fields; its due dates are not known here, so the server picks the one of the day
+// A planned item chosen fills the empty fields and asks the page for its open due dates
 watch(
     () => values.planned_id,
     (id) => {
-        values.occurrence_date = id === initialPlanned ? initialOccurrence : '';
+        values.occurrence_date = '';
 
-        if (id !== '') {
-            fillFrom(id);
+        if (id === '') {
+            loadedFor.value = '';
+
+            return;
         }
+
+        fillFrom(id);
+        router.reload({
+            only: ['occurrences'],
+            data: {
+                planned_kind: values.kind,
+                planned: id,
+                planned_date: values.date,
+            },
+            preserveUrl: true,
+        });
+    },
+);
+
+// The due dates of the planned item chosen arrived: the first is the one the day registers
+watch(
+    () => occurrences,
+    (list) => {
+        loadedFor.value = values.planned_id;
+        values.occurrence_date =
+            values.planned_id === initialPlanned && movement
+                ? initialOccurrence
+                : (list[0]?.value ?? '');
     },
 );
 
 // The planned expenses and the planned incomes are different lists
 watch(
     () => values.kind,
-    () => {
+    (kind) => {
         values.planned_id = '';
+
+        if (kind === 'income' && values.type === '') {
+            values.type = defaultType;
+        }
     },
 );
-
-/**
- * A number from a currency field.
- *
- * @param value - what the field holds, «3.50» or «3,50»
- * @returns the number, or null when the field is empty
- */
-function number(value: string): number | null {
-    return isEmpty(value) ? null : Number(String(value).replace(',', '.'));
-}
 
 /** Sends the movement, if it has its title and amount. */
 function save(): void {
@@ -235,7 +247,7 @@ function save(): void {
     const data = {
         ...(movement ? {} : { kind: values.kind }),
         title: values.title,
-        amount: number(values.amount),
+        amount: parseAmount(values.amount),
         date: values.date,
         financial_account_id: values.financial_account_id || null,
         organization_id: values.organization_id || null,
@@ -244,10 +256,13 @@ function save(): void {
         occurrence_date: values.occurrence_date || null,
         ...(expense.value
             ? {
-                  fee_amount: number(values.fee_amount),
+                  fee_amount: parseAmount(values.fee_amount),
                   category_id: values.category_id || null,
               }
-            : { type: values.type || null }),
+            : {
+                  type: values.type || null,
+                  employment_id: values.employment_id || null,
+              }),
     };
     processing.value = true;
 
@@ -308,8 +323,8 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 :label="$t('It is')"
                 name="kind"
                 :options="[
-                    { value: 'expense', label: $t('Expense') },
-                    { value: 'income', label: $t('Income') },
+                    { value: 'expense', label: $t('An expense') },
+                    { value: 'income', label: $t('An income') },
                 ]"
                 :errors="errors(problems.kind)"
             />
@@ -373,6 +388,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                     v-else
                     v-model="values.type"
                     type="togglebuttons"
+                    enforced
                     :label="$t('Type')"
                     name="type"
                     :options="options.income_types"
@@ -408,6 +424,16 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                     :errors="errors(problems.planned_id)"
                 />
             </div>
+            <FormKit
+                v-if="!expense"
+                v-model="values.employment_id"
+                type="autocomplete"
+                open-on-click
+                :label="$t('Employment')"
+                name="employment_id"
+                :options="withNone(options.employments)"
+                :errors="errors(problems.employment_id)"
+            />
             <FormKit
                 v-if="showOccurrences"
                 v-model="values.occurrence_date"

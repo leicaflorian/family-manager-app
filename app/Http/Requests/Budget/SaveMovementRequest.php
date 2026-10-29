@@ -13,6 +13,7 @@ use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Translation\PotentiallyTranslatedString;
@@ -91,10 +92,32 @@ final class SaveMovementRequest extends FormRequest
                     'category_id' => ['nullable', new OfFamily('expense_categories')],
                 ]
                 : [
-                    'type' => ['nullable', Rule::enum(IncomeType::class)],
+                    'type' => [$this->route('id') === null ? 'required' : 'sometimes', 'required', Rule::enum(IncomeType::class)],
                     'employment_id' => ['nullable', new OfFamily('employments')],
                 ],
         ];
+    }
+
+    /**
+     * The checks after the rules: without a due date named, the one that the day registers must be open.
+     *
+     * @return list<Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            $planned = $this->input('planned_id');
+            $day = $this->input('date');
+            $date = is_string($day) ? CarbonImmutable::createFromFormat('!Y-m-d', $day, 'Europe/Rome') : false;
+
+            if ($validator->errors()->isNotEmpty() || ! is_numeric($planned) || $this->filled('occurrence_date') || ! $date instanceof CarbonImmutable) {
+                return;
+            }
+
+            if (! resolve(Movements::class)->registeredIsOpen(PlannedKind::find($this->kind(), (string) $planned), $date, $this->movement())) {
+                $validator->errors()->add('occurrence_date', __('This due date is already paid: choose another one.'));
+            }
+        }];
     }
 
     /**

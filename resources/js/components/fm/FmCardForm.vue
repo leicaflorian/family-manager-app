@@ -13,6 +13,7 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
+import { isEmpty } from '@/lib/forms';
 import FmButton from './FmButton.vue';
 
 const {
@@ -138,16 +139,6 @@ function optionsOf(
     return menus.has(field.kind) && !field.required
         ? [{ value: '', label: trans('None') }, ...options]
         : options;
-}
-
-/**
- * Whether a value is empty: nothing written or chosen. Zero and "no" are values.
- *
- * @param value - the value of a field
- * @returns true if it is empty
- */
-function isEmpty(value: unknown): boolean {
-    return value === null || value === undefined || value === '';
 }
 
 /** Sends the values, if every shown field that is required has one. */

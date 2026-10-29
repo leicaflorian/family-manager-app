@@ -18,6 +18,7 @@ import type {
 } from '@/lib/documents';
 import { linkKey, parseLinkKey, toPayload } from '@/lib/documents';
 import { errors, listErrors } from '@/lib/errors';
+import { withNone } from '@/lib/forms';
 import type { RouteDefinition } from '@/wayfinder';
 import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
@@ -61,15 +62,13 @@ const form = useForm<DocumentFormValues>({
     links: [...initial.links],
 });
 
-/** The empty choice at the top of a menu. */
-const none = computed(() => ({ value: '', label: trans('None') }));
-
+// The categories keep their name and depth, which the list of the menu shows
 const categories = computed(() => [
-    none.value,
+    ...withNone([]),
     ...categoryOptions(options.categories),
 ]);
-const people = computed(() => [none.value, ...options.people]);
-const organizations = computed(() => [none.value, ...options.organizations]);
+const people = computed(() => withNone(options.people));
+const organizations = computed(() => withNone(options.organizations));
 
 /** The name of each record that can be linked, by `linkKey()`. */
 const linkLabels = computed(

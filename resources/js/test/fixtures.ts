@@ -846,6 +846,10 @@ export const movementOptions: MovementFormOptions = {
             type: 'salary',
         },
     ],
+    employments: [
+        { value: '1', label: 'Laura - Comune di Bologna', help: null },
+        { value: '2', label: 'Marco - Studio Rinaldi', help: null },
+    ],
     income_types: [
         { value: 'salary', label: 'Stipendio', help: null },
         { value: 'other', label: 'Altro', help: null },

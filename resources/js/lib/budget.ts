@@ -336,6 +336,7 @@ export interface MovementFormOptions {
     organizations: App.Data.OptionData[];
     people: App.Data.OptionData[];
     planned: App.Data.PlannedChoiceData[];
+    employments: App.Data.OptionData[];
     income_types: App.Data.OptionData[];
 }
 
