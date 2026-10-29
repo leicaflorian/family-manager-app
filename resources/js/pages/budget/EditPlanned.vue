@@ -2,9 +2,9 @@
 /**
  * *New planned expense*, *New planned income* and the change of one (only an
  * `admin`): what it is, when it happens and how often, where it goes (who it
- * is for, the account, the category or the type) and the card it refers to
- * (the employment, for an income). A new one can start already filled in from
- * a card.
+ * is for, the account, the category or the type, and for an expense the card
+ * of the type of its category) and, for an income, the employment it comes
+ * from. A new one can start already filled in from a card.
  */
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
@@ -14,6 +14,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useCardChoice } from '@/composables/useCardChoice';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { PlannedFormOptions, PlannedFormValues } from '@/lib/budget';
 import { errors } from '@/lib/errors';
@@ -32,6 +33,21 @@ const { kind, planned, values, options } = defineProps<{
 }>();
 
 const form = useForm<PlannedFormValues>({ ...values });
+
+/** The card of the expense, null when none is chosen. */
+const card = computed<string | null>({
+    get: () => form.card ?? null,
+    set: (value) => {
+        form.card = value;
+    },
+});
+
+/** The label and the choices of the card, by the type of the category. */
+const { label: cardLabel, choices: cardChoices } = useCardChoice(
+    () => form.category_id,
+    card,
+    options,
+);
 
 /** Whether it is an income. */
 const income = computed(() => kind === 'income');
@@ -229,6 +245,16 @@ useSaveShortcut(save, () => !form.processing);
                     :errors="errors(form.errors.category_id)"
                 />
                 <FormKit
+                    v-if="!income"
+                    v-model="form.card"
+                    type="autocomplete"
+                    open-on-click
+                    :label="cardLabel"
+                    name="card"
+                    :options="withNone(cardChoices)"
+                    :errors="errors(form.errors.card)"
+                />
+                <FormKit
                     v-model="form.financial_account_id"
                     type="dropdown"
                     :label="$t('Account')"
@@ -249,12 +275,11 @@ useSaveShortcut(save, () => !form.processing);
                 />
             </fieldset>
 
-            <fieldset class="m-0 flex flex-col border-0 p-0">
+            <fieldset v-if="income" class="m-0 flex flex-col border-0 p-0">
                 <legend class="mb-3 p-0 text-[17px] font-bold">
                     {{ $t('Refers to') }}
                 </legend>
                 <FormKit
-                    v-if="income"
                     v-model="form.employment_id"
                     type="autocomplete"
                     open-on-click
@@ -262,16 +287,6 @@ useSaveShortcut(save, () => !form.processing);
                     name="employment_id"
                     :options="withNone(options.employments)"
                     :errors="errors(form.errors.employment_id)"
-                />
-                <FormKit
-                    v-else
-                    v-model="form.card"
-                    type="autocomplete"
-                    open-on-click
-                    :label="$t('Card')"
-                    name="card"
-                    :options="withNone(options.cards)"
-                    :errors="errors(form.errors.card)"
                 />
             </fieldset>
 

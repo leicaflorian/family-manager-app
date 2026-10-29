@@ -801,6 +801,7 @@ export const plannedExpenseOptions = {
     categories: [
         { value: '1', label: 'Casa e affitto', help: null },
         { value: '2', label: 'Svago', help: null },
+        { value: '3', label: 'Bollette e utenze', help: null },
     ],
     organizations: [{ value: '5', label: 'Netflix', help: null }],
     people: [
@@ -813,9 +814,14 @@ export const plannedExpenseOptions = {
             label: 'Subscription · Netflix',
             help: null,
         },
+        { value: 'utility:3', label: 'Utility · Luce - Edison', help: null },
     ],
-    category_card_types: { '1': 'home' },
-    card_type_labels: { home: 'Home', subscription: 'Subscription' },
+    category_card_types: { '1': 'home', '3': 'utility' },
+    card_type_labels: {
+        home: 'Home',
+        subscription: 'Subscription',
+        utility: 'Utility',
+    },
     employments: [],
     income_types: [],
 };
@@ -844,6 +850,8 @@ export const movementOptions: MovementFormOptions = {
     categories: [
         { value: '8', label: 'Svago › Sport', help: null },
         { value: '9', label: 'Salute', help: null },
+        { value: '10', label: 'Auto', help: null },
+        { value: '11', label: 'Bollette e utenze', help: null },
     ],
     organizations: [
         { value: '5', label: 'Scuola Passo a Due', help: null },
@@ -863,6 +871,18 @@ export const movementOptions: MovementFormOptions = {
             organization_id: '5',
             financial_account_id: '2',
             person_id: '4',
+            employment_id: null,
+            type: null,
+        },
+        {
+            kind: 'expense',
+            value: '7',
+            label: 'Bollo Panda',
+            category_id: '10',
+            card: 'vehicle:1',
+            organization_id: null,
+            financial_account_id: '1',
+            person_id: null,
             employment_id: null,
             type: null,
         },
@@ -890,11 +910,20 @@ export const movementOptions: MovementFormOptions = {
             label: 'Health event · Visite di Giulia',
             help: null,
         },
+        { value: 'utility:3', label: 'Utility · Luce - Edison', help: null },
+        { value: 'vehicle:1', label: 'Vehicle · Panda', help: null },
     ],
-    category_card_types: { '8': 'enrollment', '9': 'health_event' },
+    category_card_types: {
+        '8': 'enrollment',
+        '9': 'health_event',
+        '10': 'vehicle',
+        '11': 'utility',
+    },
     card_type_labels: {
         enrollment: 'Enrollment',
         health_event: 'Health event',
+        utility: 'Utility',
+        vehicle: 'Vehicle',
     },
     employments: [
         { value: '1', label: 'Laura - Comune di Bologna', help: null },

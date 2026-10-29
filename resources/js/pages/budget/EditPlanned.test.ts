@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
@@ -7,7 +7,7 @@ import {
     newPlannedValues,
     plannedExpenseOptions,
 } from '@/test/fixtures';
-import { choose, renderPage, settle } from '@/test/page';
+import { choose, openMenu, renderPage, settle, shown } from '@/test/page';
 import EditPlanned from './EditPlanned.vue';
 
 const props = {
@@ -22,7 +22,7 @@ afterEach(() => {
 });
 
 describe('Edit a planned expense', () => {
-    it('shows the four groups', () => {
+    it('shows the three groups, with the card in *Where*', () => {
         renderPage(EditPlanned, props);
 
         expect(
@@ -31,11 +31,55 @@ describe('Edit a planned expense', () => {
                 level: 1,
             }),
         ).toBeInTheDocument();
-        for (const group of ['What', 'When', 'Where', 'Refers to']) {
+        for (const group of ['What', 'When', 'Where']) {
             expect(
                 screen.getByRole('group', { name: group }),
             ).toBeInTheDocument();
         }
+        expect(
+            screen.queryByRole('group', { name: 'Refers to' }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(screen.getByRole('group', { name: 'Where' })).getByRole(
+                'combobox',
+                { name: 'Refers to' },
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('starts from the card of a card page, with its category and the field named after its type', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditPlanned, {
+            ...props,
+            values: {
+                ...newPlannedValues,
+                title: 'Luce - Edison',
+                amount: 84.2,
+                start_date: '2026-11-15',
+                category_id: '3',
+                card: 'utility:3',
+            },
+        });
+
+        expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
+            'Bollette e utenze',
+        );
+        expect(screen.getByRole('combobox', { name: 'Utility' })).toHaveValue(
+            'Utility · Luce - Edison',
+        );
+        expect(shown(await openMenu('Utility'))).toEqual([
+            'None',
+            'Utility · Luce - Edison',
+        ]);
+
+        await choose('Category', 'Casa e affitto');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/planned/expense',
+            expect.objectContaining({ category_id: '1', card: null }),
+            expect.anything(),
+        );
     });
 
     it('sends the card and the starting values, and a switch that was not touched as off', async () => {
@@ -171,7 +215,10 @@ describe('Edit a planned expense', () => {
             screen.queryByRole('combobox', { name: 'Category' }),
         ).not.toBeInTheDocument();
         expect(
-            screen.getByRole('combobox', { name: 'Employment' }),
+            within(screen.getByRole('group', { name: 'Refers to' })).getByRole(
+                'combobox',
+                { name: 'Employment' },
+            ),
         ).toBeInTheDocument();
     });
 });

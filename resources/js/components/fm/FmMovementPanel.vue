@@ -2,7 +2,8 @@
 /**
  * The panel of a movement, as the board *Pagamenti-pc* draws it: the title,
  * when it was paid (or received) and how much, the commission and the account,
- * the category, the organization, the holder, the planned expense or income it
+ * the category and (for an expense) the card of its type, the organization,
+ * the holder, the planned expense or income it
  * settles (and which of its due dates), and the documents linked to it, with
  * *Delete*, *Cancel* and *Save*. Without a movement it is the form of a new
  * expense or income, which starts with the choice between the two. Choosing a
@@ -13,7 +14,8 @@ import { router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, toRef, watch } from 'vue';
+import { useCardChoice } from '@/composables/useCardChoice';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { MovementFormOptions, MovementStart } from '@/lib/budget';
 import { errors } from '@/lib/errors';
@@ -84,6 +86,7 @@ const values = reactive({
     fee_amount: formatAmount(movement?.fee_amount),
     financial_account_id: text(movement?.account_id),
     category_id: text(movement?.category_id),
+    card: movement?.card ?? null,
     organization_id: text(movement?.organization_id),
     person_id: text(movement?.person_id),
     employment_id: text(movement?.employment_id),
@@ -91,6 +94,13 @@ const values = reactive({
     occurrence_date: initialOccurrence,
     type: movement?.type ?? '',
 });
+
+/** The label and the choices of the card of an expense, by the type of the category. */
+const { label: cardLabel, choices: cardChoices } = useCardChoice(
+    () => values.category_id,
+    toRef(values, 'card'),
+    options,
+);
 
 /** The type a new income starts with, until a planned income says another. */
 const defaultType =
@@ -161,7 +171,7 @@ function fillFrom(id: string): void {
     ];
 
     if (expense.value) {
-        fields.push(['category_id', choice.category_id]);
+        fields.push(['category_id', choice.category_id], ['card', choice.card]);
     } else {
         fields.push(
             ['employment_id', choice.employment_id],
@@ -262,6 +272,7 @@ function save(): void {
             ? {
                   fee_amount: parseAmount(values.fee_amount),
                   category_id: values.category_id || null,
+                  card: values.card || null,
               }
             : {
                   type: values.type || null,
@@ -409,6 +420,16 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                     name="category_id"
                     :options="withNone(options.categories)"
                     :errors="errors(problems.category_id)"
+                />
+                <FormKit
+                    v-if="expense"
+                    v-model="values.card"
+                    type="autocomplete"
+                    open-on-click
+                    :label="cardLabel"
+                    name="card"
+                    :options="withNone(cardChoices)"
+                    :errors="errors(problems.card)"
                 />
                 <ReuseOrganization v-if="expense" />
                 <FormKit
