@@ -232,6 +232,27 @@ it('saves the loan once when the final payment or the dates change', function ()
     });
 });
 
+it('goes on with the other loans when one cannot be worked out, and says how many failed', function (): void {
+    [$broken, $panda] = insideBianchi(function (): array {
+        $broken = loanAutoPanda(['name' => 'Rotto']);
+        $panda = loanAutoPanda();
+        // Written around the model: 48 instalments of this amount do not fit in the total, so saving the loan fails
+        Loan::query()->whereKey($broken->id)->update(['installment_amount' => 99999999]);
+        Loan::query()->whereKey($panda->id)->update(['installments_paid' => 0]);
+
+        return [$broken, $panda];
+    });
+
+    $this->artisan('loans:refresh')
+        ->expectsOutputToContain('Loans changed: 1')
+        ->expectsOutputToContain('Loans that could not be worked out: 1')
+        ->assertFailed();
+
+    insideBianchi(function () use ($panda): void {
+        expect($panda->fresh()?->installments_paid)->toBe(32);
+    });
+});
+
 it('counts the instalment of the day after midnight', function (): void {
     $panda = insideBianchi(fn (): Loan => loanAutoPanda());
     $this->travelTo(CarbonImmutable::parse('2026-11-10 00:30:00', 'Europe/Rome'));
