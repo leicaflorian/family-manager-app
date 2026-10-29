@@ -210,7 +210,42 @@ it('shows the movements of an account in this month', function (): void {
         ->and(collect($budget->due)->pluck('planned_title')->all())->toContain('Mutuo casa')
         ->and(collect($budget->due)->pluck('planned_title')->all())->not->toContain('Retta danza')
         ->and(collect($budget->due)->every(fn (DeadlineData $deadline): bool => ! $deadline->late && $deadline->date <= '2026-11-25'))->toBeTrue()
-        ->and($budget->payments_label)->toBeNull();
+        ->and($budget->payments_label)->toBe('Expenses');
+});
+
+it('shows the expenses linked to an account', function (): void {
+    $bper = fn (): FinancialAccount => FinancialAccount::query()->where('name', 'Conto BPER')->sole();
+    $before = budgetOf($bper);
+    assert($before instanceof CardBudgetData);
+
+    insideBianchi(function () use ($bper): void {
+        Expense::query()->create(['title' => 'Canone conto', 'amount' => 3.5, 'date' => '2026-10-01', 'card_type' => 'financial_account', 'card_id' => $bper()->id]);
+        Expense::query()->where('title', 'Rata mutuo')->orderByDesc('date')->firstOrFail()->card()->associate($bper())->save();
+    });
+    $after = budgetOf($bper);
+    assert($after instanceof CardBudgetData);
+
+    expect($before->payments)->toBe([])
+        ->and($after->payments_label)->toBe('Expenses')
+        ->and($after->payments[0]->year)->toBe(2026)
+        ->and($after->payments[0]->count)->toBe(2)
+        ->and($after->payments[0]->total)->toBe(615.5)
+        ->and(collect($after->payments[0]->payments)->pluck('title')->sort()->values()->all())->toBe(['Canone conto', 'Rata mutuo'])
+        ->and($after->can_pay)->toBeFalse()
+        ->and($after->pay)->toBe([]);
+});
+
+it('never counts an expense linked to a job as a salary', function (): void {
+    $job = fn (): Employment => Employment::query()->whereHas('person', fn ($query) => $query->where('first_name', 'Marco'))->sole();
+    $before = budgetOf($job);
+    assert($before instanceof CardBudgetData);
+
+    insideBianchi(fn () => Expense::query()->create(['title' => 'Pranzo di lavoro', 'amount' => 25, 'date' => '2026-10-20', 'card_type' => 'employment', 'card_id' => $job()->id]));
+    $after = budgetOf($job);
+    assert($after instanceof CardBudgetData);
+
+    expect($after->payments)->toEqual($before->payments)
+        ->and($after->numbers)->toEqual($before->numbers);
 });
 
 it('gives no salaries to an account that never receives one', function (): void {

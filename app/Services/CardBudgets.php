@@ -426,8 +426,9 @@ final readonly class CardBudgets
     }
 
     /**
-     * An account or card: the income and the spending of this month with it, and the due dates of the next 30 days
-     * paid from it. A planned expense without an account is paid from the default one.
+     * An account or card: the income and the spending of this month with it, the due dates of the next 30 days
+     * paid from it and the expenses linked to it. The payments of the planned expenses paid from it are its
+     * movements, not its expenses, so they are not listed. A planned expense without an account is paid from the default one.
      *
      * @param  FinancialAccount  $account  the account or card
      * @param  User  $user  whoever looks at the card, for the permissions
@@ -460,13 +461,17 @@ final readonly class CardBudgets
                 static fn (Deadline $deadline): bool => ! $deadline->isPaid() && $deadline->account?->id === $account->id
                     && $deadline->occurrence->date->toDateString() >= $today->toDateString() && $deadline->occurrence->date->toDateString() <= $last,
             )),
+            paymentsLabel: __('Expenses'),
+            paymentsMore: __('See all the expenses, year by year'),
+            plannedPayments: false,
         );
     }
 
     /**
      * Puts the parts of a card together. The numbers and the open due dates can be closures, which receive the due
      * dates read once for the whole card (and the payments by year), so that every part reads the same. The payments
-     * count the expenses linked to the card too.
+     * of a card of expenses count the expenses linked to the card too; the ones of an employment count only its
+     * incomes.
      *
      * @param  Model  $card  the card
      * @param  list<PlannedExpense|PlannedIncome>  $planned  the planned items of the card
@@ -481,6 +486,8 @@ final readonly class CardBudgets
      * @param  string|null  $plannedLabel  the title of the planned items; null for no section
      * @param  string|null  $paymentsLabel  the title of the payments; null for no section
      * @param  string  $paymentsMore  the link to all the payments
+     * @param  bool  $plannedPayments  whether the payments of the planned items are listed, with *Record payment*;
+     *                                 false for only the expenses linked to the card
      * @param  array{count: ?int, paid: ?int, paid_amount: ?float, left_amount: ?float}|null  $loan  the figures of a loan
      * @return CardBudgetData the payments of the card
      */
@@ -497,14 +504,16 @@ final readonly class CardBudgets
         ?string $plannedLabel = null,
         ?string $paymentsLabel = null,
         string $paymentsMore = '',
+        bool $plannedPayments = true,
         ?array $loan = null,
     ): CardBudgetData {
         $found = $this->deadlines->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addMonthsNoOverflow(self::MONTHS_AHEAD));
         $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid()));
-        $payments = $paymentsLabel === null ? [] : $this->summaries->paymentsByYear($planned, $user, $card);
+        $income = $kind === 'income';
+        $payable = $plannedPayments ? $planned : [];
+        $payments = $paymentsLabel === null ? [] : $this->summaries->paymentsByYear($payable, $user, $income ? null : $card);
         $nextLabel = is_callable($nextLabel) ? $nextLabel($payments) : $nextLabel;
         $next = $nextLabel === '' ? null : ($open[0] ?? null);
-        $income = $kind === 'income';
         $data = static fn (Deadline $deadline): DeadlineData => DeadlineData::fromDeadline($deadline, $today);
 
         return new CardBudgetData(
@@ -526,8 +535,8 @@ final readonly class CardBudgets
             payments_label: $paymentsLabel,
             payments_more: $paymentsMore,
             payments: $payments,
-            pay: $paymentsLabel === null ? [] : array_map($data, $this->firstOpenOfEach($planned, $open)),
-            can_pay: $paymentsLabel !== null && $planned !== [] && $user->can('create', $income ? Income::class : Expense::class),
+            pay: $paymentsLabel === null ? [] : array_map($data, $this->firstOpenOfEach($payable, $open)),
+            can_pay: $paymentsLabel !== null && $payable !== [] && $user->can('create', $income ? Income::class : Expense::class),
         );
     }
 
