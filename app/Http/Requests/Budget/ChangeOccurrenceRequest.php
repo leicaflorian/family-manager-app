@@ -43,7 +43,7 @@ final class ChangeOccurrenceRequest extends FormRequest
         return [
             'skip' => ['boolean'],
             'change_amount' => ['boolean'],
-            'amount' => ['exclude_if:skip,true,1', 'required_if:change_amount,true,1', 'nullable', 'numeric', 'min:0'],
+            'amount' => ['exclude_if:skip,true,1', 'required_if:change_amount,true,1', 'nullable', 'numeric', 'min:0', 'max:99999999'],
             'change_date' => ['boolean'],
             'date' => ['exclude_if:skip,true,1', 'required_if:change_date,true,1', 'nullable', 'date_format:Y-m-d'],
             'notes' => ['nullable', 'string', 'max:500'],

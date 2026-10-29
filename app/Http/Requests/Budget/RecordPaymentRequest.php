@@ -41,7 +41,7 @@ final class RecordPaymentRequest extends FormRequest
     {
         return [
             'date' => ['required', 'date_format:Y-m-d'],
-            'amount' => ['required', 'numeric', 'min:0'],
+            'amount' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
             'receipt' => ['nullable', ...array_slice(self::FILE, 1)],
         ];

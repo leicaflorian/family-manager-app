@@ -245,3 +245,16 @@ test('a skipped due date cannot be paid', function (): void {
 
     expect(insideBianchi(fn (): int => Expense::query()->where('occurrence_date', '2026-07-05')->count()))->toBe(0);
 });
+
+test('it refuses an amount too big to be written', function (string $suffix, array $body, string $field): void {
+    $address = deadlineAddress('Assicurazione auto', '2026-11-21');
+
+    $this->actingAs($this->marco);
+    $response = $suffix === '/payment' ? $this->post("{$address}{$suffix}", $body) : $this->put("{$address}{$suffix}", $body);
+
+    $response->assertSessionHasErrors($field);
+    expect(insideBianchi(fn (): int => Expense::query()->where('occurrence_date', '2026-11-21')->count()))->toBe(0);
+})->with([
+    'I paid it' => ['/payment', ['date' => '2026-10-26', 'amount' => 100000000], 'amount'],
+    'Change this due date' => ['/exceptions', ['change_amount' => true, 'amount' => 100000000], 'amount'],
+]);
