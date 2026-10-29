@@ -68,24 +68,6 @@ final class ExpenseCategory extends FamilyModel
     }
 
     /**
-     * The card type the expenses of this category refer to: its own for a main category, the one of its main
-     * category for a subcategory.
-     *
-     * @return string|null a type of the morph map, for example `vehicle`, or null without a type
-     */
-    public function cardType(): ?string
-    {
-        $main = $this;
-
-        // Up to the main category; the visited ids stop a loop, should the data have one.
-        for ($seen = []; $main->parent_id !== null && $main->parent !== null && ! isset($seen[$main->id]); $main = $main->parent) {
-            $seen[$main->id] = true;
-        }
-
-        return $main->card_type;
-    }
-
-    /**
      * The card type of every category of the current family, with the inheritance from the main category, in one
      * query. A category without a type is left out.
      *

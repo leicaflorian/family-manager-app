@@ -19,7 +19,7 @@
  */
 import { ChevronDown, ChevronRight } from '@lucide/vue';
 import { ref } from 'vue';
-import { areaFill, areaOf, areaTile } from '@/lib/areas';
+import { areaFill, areaOf, areaTile, colorFill, colorTile } from '@/lib/areas';
 import { categoryIcon } from '@/lib/icons';
 import FmCategoryTree from './FmCategoryTree.vue';
 import FmIcon from './FmIcon.vue';
@@ -110,6 +110,7 @@ function toggle(id: number): void {
                             :class="
                                 areaTile[areaOf(category.color) ?? 'general']
                             "
+                            :style="colorTile(category.color)"
                         >
                             <FmIcon
                                 :icon="categoryIcon(category.icon)"
@@ -122,6 +123,7 @@ function toggle(id: number): void {
                             :class="
                                 areaFill[areaOf(category.color) ?? 'general']
                             "
+                            :style="colorFill(category.color)"
                         />
                     </template>
                     <template #after>

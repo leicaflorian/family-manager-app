@@ -8,9 +8,11 @@ use App\Enums\IncomeType;
 use App\Http\Requests\Concerns\ReadsCard;
 use App\Models\Expense;
 use App\Models\Income;
+use App\Models\PlannedExpense;
 use App\Rules\OfFamily;
 use App\Services\Movements;
 use App\Support\PlannedKind;
+use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -148,6 +150,30 @@ final class SaveMovementRequest extends FormRequest
         $movement = $this->movement();
 
         return $movement instanceof Expense ? $movement->category_id : null;
+    }
+
+    /**
+     * The card of the expense being changed, null on a new one, an income or without a card.
+     *
+     * @throws NotFoundHttpException if the kind is not `expense` or `income`
+     * @throws ModelNotFoundException if the family has no such movement (Laravel answers 404)
+     */
+    protected function savedCard(): ?string
+    {
+        $movement = $this->movement();
+
+        return $movement instanceof Expense ? PresetLink::key($movement->card_type, $movement->card_id) : null;
+    }
+
+    /**
+     * The card of the planned expense chosen (`planned_id`): the payment of a due date may keep it.
+     */
+    protected function plannedCard(): ?string
+    {
+        $id = $this->input('planned_id');
+        $planned = is_numeric($id) ? PlannedExpense::query()->find((int) $id) : null;
+
+        return $planned instanceof PlannedExpense ? PresetLink::key($planned->card_type, $planned->card_id) : null;
     }
 
     /**

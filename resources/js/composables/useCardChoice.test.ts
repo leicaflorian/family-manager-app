@@ -79,4 +79,25 @@ describe('useCardChoice', () => {
 
         expect(card.value).toBe('vehicle:1');
     });
+
+    it('keeps the card chosen of another type among the choices', () => {
+        const { choices } = useCardChoice(ref('11'), ref('vehicle:2'), options);
+
+        expect(choices.value.map((choice) => choice.value)).toEqual([
+            'utility:3',
+            'vehicle:2',
+        ]);
+    });
+
+    it('keeps a card of another type set together with the category', async () => {
+        const category = ref<string | null>(null);
+        const card = ref<string | null>(null);
+        useCardChoice(category, card, options);
+
+        category.value = '11';
+        card.value = 'vehicle:2';
+        await nextTick();
+
+        expect(card.value).toBe('vehicle:2');
+    });
 });

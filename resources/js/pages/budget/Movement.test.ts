@@ -134,6 +134,69 @@ describe('Movement', () => {
         );
     });
 
+    it('opens from a due date with the card of the planned expense, even of another type than the category, and sends it', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        // The mortgage of the Bianchi: category «Casa e affitto» (home), card its loan
+        renderPage(Movement, {
+            ...newExpense,
+            start: { kind: 'expense', planned_id: '9', date: '2026-11-15' },
+            occurrences: [
+                { value: '2026-11-15', label: '15/11/2026', help: null },
+            ],
+            options: {
+                ...movementOptions,
+                categories: [
+                    ...movementOptions.categories,
+                    { value: '12', label: 'Casa e affitto', help: null },
+                ],
+                planned: [
+                    ...movementOptions.planned,
+                    {
+                        kind: 'expense',
+                        value: '9',
+                        label: 'Mutuo casa',
+                        category_id: '12',
+                        card: 'loan:1',
+                        organization_id: null,
+                        financial_account_id: '1',
+                        person_id: null,
+                        employment_id: null,
+                        type: null,
+                    },
+                ],
+                cards: [
+                    ...movementOptions.cards,
+                    { value: 'home:1', label: 'Home · Casa', help: null },
+                    { value: 'loan:1', label: 'Loan · Mutuo casa', help: null },
+                ],
+                category_card_types: {
+                    ...movementOptions.category_card_types,
+                    '12': 'home',
+                },
+                card_type_labels: {
+                    ...movementOptions.card_type_labels,
+                    home: 'Home',
+                    loan: 'Loan',
+                },
+            },
+        });
+        await settle();
+
+        expect(screen.getByRole('combobox', { name: 'Home' })).toHaveValue(
+            'Loan · Mutuo casa',
+        );
+
+        await write('Amount', '612');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post).toHaveBeenCalledTimes(1);
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            planned_id: '9',
+            category_id: '12',
+            card: 'loan:1',
+        });
+    });
+
     it('has no card for an income', async () => {
         renderPage(Movement, newExpense);
 

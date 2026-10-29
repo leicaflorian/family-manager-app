@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\Role;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Models\Family;
 use App\Models\PlannedExpense;
 use App\Models\User;
 use App\Models\Utility;
@@ -91,6 +93,34 @@ it('takes the card of the planned expense it pays', function (): void {
         ->assertSessionHasNoErrors();
 
     expect(cardExpenseOf('Bollo 2027'))->card_type->toBe('vehicle')->card_id->toBe($this->panda->id);
+});
+
+it('accepts the card of the planned expense it pays, of another type than the category', function (): void {
+    $mortgage = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Mutuo casa')->sole());
+    $home = (string) insideBianchi(fn (): int => ExpenseCategory::query()->where('name', 'Casa e affitto')->sole()->id);
+    $values = ['title' => 'Rata mutuo novembre', 'amount' => 612, 'date' => '2026-11-15', 'occurrence_date' => '2026-11-15', 'planned_id' => $mortgage->id, 'category_id' => $home];
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', cardExpense([...$values, 'card' => "loan:{$mortgage->card_id}"]))
+        ->assertSessionHasNoErrors();
+
+    expect(cardExpenseOf('Rata mutuo novembre'))->card_type->toBe('loan')->card_id->toBe($mortgage->card_id);
+
+    $light = insideBianchi(fn (): Utility => Utility::query()->firstOrFail());
+
+    $this->post('/budget/movements', cardExpense([...$values, 'date' => '2026-12-15', 'occurrence_date' => '2026-12-15', 'card' => "utility:{$light->id}"]))
+        ->assertSessionHasErrors(['card' => 'Choose a card of the type of the category.']);
+});
+
+it('lets a member save an expense with a card', function (): void {
+    $rosa = User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]);
+
+    $this->actingAs($rosa)
+        ->post('/budget/movements', cardExpense(['category_id' => (string) $this->parking->id, 'card' => "vehicle:{$this->panda->id}"]))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect(cardExpenseOf('Parcheggio'))->card_type->toBe('vehicle')->card_id->toBe($this->panda->id);
 });
 
 it('gives the form of a saved expense its card', function (): void {

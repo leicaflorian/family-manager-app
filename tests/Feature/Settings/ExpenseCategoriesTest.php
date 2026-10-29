@@ -47,10 +47,7 @@ it('gives the card type of every category, with the inheritance', function (): v
 
     expect($types[$this->car->id])->toBe('vehicle')
         ->and($types[$this->parking->id])->toBe('vehicle')
-        ->and($types)->not->toHaveKey($this->groceries->id)
-        ->and(insideBianchi(fn (): ?string => $this->parking->cardType()))->toBe('vehicle')
-        ->and($this->car->cardType())->toBe('vehicle')
-        ->and($this->groceries->cardType())->toBeNull();
+        ->and($types)->not->toHaveKey($this->groceries->id);
 });
 
 it('sets the card of a main category', function (): void {

@@ -147,6 +147,20 @@ it('checks the card against the category the planned expense keeps when a change
         ->assertSessionHasErrors('card');
 });
 
+it('keeps a card of another type already linked', function (): void {
+    $mortgage = savePlannedOf('Mutuo casa');
+
+    $this->actingAs($this->marco)
+        ->put("/budget/planned/expense/{$mortgage->id}", savePlannedValues([
+            'title' => 'Mutuo casa', 'amount' => 612, 'start_date' => '2018-06-15', 'end_date' => '2041-06-15',
+            'category_id' => (string) $mortgage->category_id, 'card' => "loan:{$mortgage->card_id}",
+        ]))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+
+    expect(savePlannedOf('Mutuo casa'))->card_type->toBe('loan')->card_id->toBe($mortgage->card_id);
+});
+
 it('links any card when the category has none', function (): void {
     $panda = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Fiat Panda')->sole());
     $groceries = (string) insideBianchi(fn (): int => ExpenseCategory::query()->where('name', 'Spesa')->sole()->id);

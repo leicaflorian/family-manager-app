@@ -61,7 +61,22 @@ describe('Payments of a card', () => {
             '/budget/planned/expense/7/occurrences/2026-10-23?pay=1',
         );
         expect(
-            screen.getByText(/These are the payments linked to Luce\./),
+            screen.getByText(
+                /These are the payments linked to Luce and the expenses that refer to this card\./,
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('speaks only of the expenses that refer to the card when it has no planned expense', () => {
+        renderPage(CardPayments, {
+            ...props,
+            budget: { ...luceBudget, planned: [] },
+        });
+
+        expect(
+            screen.getByText(
+                /^These are the expenses that refer to this card\./,
+            ),
         ).toBeInTheDocument();
     });
 

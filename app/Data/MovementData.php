@@ -8,6 +8,7 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\User;
 use App\Services\CategoryTree;
+use App\Support\PresetLink;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -98,7 +99,7 @@ final class MovementData extends Data
             organization_id: $movement->organization_id,
             organization: $movement->organization?->name,
             person_id: $movement->person_id,
-            card: $expense?->card_type !== null && $expense->card_id !== null ? $expense->card_type.':'.$expense->card_id : null,
+            card: PresetLink::key($expense?->card_type, $expense?->card_id),
             planned_id: $movement instanceof Expense ? $movement->planned_expense_id : $movement->planned_income_id,
             occurrence_date: $movement->occurrence_date?->toDateString(),
             type: $income?->type->value,

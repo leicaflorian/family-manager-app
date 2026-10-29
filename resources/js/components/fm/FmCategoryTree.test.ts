@@ -74,4 +74,38 @@ describe('FmCategoryTree', () => {
             screen.queryByRole('button', { name: /^Electricity/ }),
         ).toBeNull();
     });
+
+    it('colours the tile and the dot of an expense category with its own colour', async () => {
+        const { container } = render(FmCategoryTree, {
+            props: {
+                categories: [
+                    {
+                        id: 3,
+                        name: 'Auto',
+                        icon: 'car',
+                        color: '#0797B9',
+                        children: [
+                            {
+                                id: 4,
+                                name: 'Parcheggi',
+                                icon: null,
+                                color: '#0797B9',
+                                children: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Open Auto' }),
+        );
+
+        const coloured = container.querySelectorAll<HTMLElement>('span[style]');
+
+        expect(coloured).toHaveLength(2);
+        expect(coloured[0]).toHaveStyle({ color: '#0797B9' });
+        expect(coloured[1]).toHaveStyle({ backgroundColor: '#0797B9' });
+    });
 });

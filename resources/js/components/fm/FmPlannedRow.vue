@@ -5,6 +5,7 @@
  * the account, and the amount. It leads to *A planned expense*.
  */
 import { computed } from 'vue';
+import { colorTile } from '@/lib/areas';
 import { recurrenceText, shortDate } from '@/lib/budget';
 import { expenseIcon } from '@/lib/icons';
 import FmAmount from './FmAmount.vue';
@@ -40,10 +41,7 @@ const subtitle = computed(() =>
         <template #before>
             <span
                 class="flex size-10 shrink-0 items-center justify-center rounded-xl"
-                :style="{
-                    color: row.color ?? undefined,
-                    backgroundColor: row.color ? `${row.color}1f` : undefined,
-                }"
+                :style="colorTile(row.color)"
             >
                 <FmIcon :icon="expenseIcon(row.icon)" :size="20" />
             </span>

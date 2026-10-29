@@ -12,7 +12,8 @@ use Illuminate\Translation\PotentiallyTranslatedString;
 /**
  * The card an expense or a planned expense refers to, sent as `card` (`<type>:<id>`): a card of the family and,
  * when the category of the expense (with its main category's) has a card type, a card of that type. Without a
- * category, or with one without a type, any card of the family is fine.
+ * category, or with one without a type, any card of the family is fine. The card already linked to the record, or
+ * the one of the planned expense a payment pays, is fine whatever its type.
  */
 trait ReadsCard
 {
@@ -20,6 +21,21 @@ trait ReadsCard
      * The category the expense keeps when the form does not send one: the one already saved, null on a new one.
      */
     abstract protected function savedCategoryId(): ?int;
+
+    /**
+     * The card already linked to the record being changed, as `<type>:<id>`: it stays valid even when it is not of
+     * the type of the category (the category may have changed type after it was linked). Null on a new one.
+     */
+    abstract protected function savedCard(): ?string;
+
+    /**
+     * Another card that stays valid whatever the category: on a payment, the card of the planned expense it pays.
+     * None by default.
+     */
+    protected function plannedCard(): ?string
+    {
+        return null;
+    }
 
     /**
      * The rules of the field `card`.
@@ -44,7 +60,8 @@ trait ReadsCard
     }
 
     /**
-     * Checks that the card is one of the family, of the type of the category when it has one.
+     * Checks that the card is one of the family, of the type of the category when it has one, unless it is the card
+     * already linked or the one of the planned expense paid.
      *
      * @param  string  $attribute  the field
      * @param  mixed  $value  the `type:id` sent
@@ -57,6 +74,12 @@ trait ReadsCard
         if ($card === null) {
             $fail('validation.exists')->translate();
 
+            return;
+        }
+
+        $sent = PresetLink::key($card['type'], $card['id']);
+
+        if ($sent === $this->savedCard() || $sent === $this->plannedCard()) {
             return;
         }
 

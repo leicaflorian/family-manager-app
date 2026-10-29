@@ -39,10 +39,14 @@ const note = computed((): string => {
               'These are the incomes linked to :planned. An income without that link does not show here: you link it from its form, in the field Planned income.',
               { planned },
           )
-        : trans(
-              'These are the payments linked to :planned. A payment without that link does not show here: you link it from its form, in the field Planned expense.',
-              { planned },
-          );
+        : budget.planned.length === 0
+          ? trans(
+                'These are the expenses that refer to this card. An expense without that link does not show here: you link it from its form, by choosing this card.',
+            )
+          : trans(
+                'These are the payments linked to :planned and the expenses that refer to this card. An expense with neither link does not show here: you link it from its form, in the field Planned expense or by choosing this card.',
+                { planned },
+            );
 });
 </script>
 
@@ -99,7 +103,7 @@ const note = computed((): string => {
         </div>
 
         <p
-            v-if="budget.planned.length > 0"
+            v-if="!income || budget.planned.length > 0"
             class="m-0 text-[13px] text-ink-soft"
         >
             {{ note }}

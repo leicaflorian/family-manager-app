@@ -11,6 +11,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Rules\OfFamily;
 use App\Support\PlannedKind;
+use App\Support\PresetLink;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -134,5 +135,18 @@ final class SavePlannedRequest extends FormRequest
         $planned = $this->planned();
 
         return $planned instanceof PlannedExpense ? $planned->category_id : null;
+    }
+
+    /**
+     * The card of the planned expense being changed, null on a new one or without a card.
+     *
+     * @throws NotFoundHttpException if the kind is unknown
+     * @throws ModelNotFoundException if the family has no such planned item (Laravel answers 404)
+     */
+    protected function savedCard(): ?string
+    {
+        $planned = $this->planned();
+
+        return $planned instanceof PlannedExpense ? PresetLink::key($planned->card_type, $planned->card_id) : null;
     }
 }
