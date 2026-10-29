@@ -92,7 +92,7 @@ final readonly class Movements
             month: $from->format('Y-m'),
             incomes: $total($incomes),
             salaries_in: $salariesIn,
-            salaries_expected: max($salariesIn, $this->salaryDeadlines($from, $to)),
+            salaries_expected: max($salariesIn, $this->salaryDeadlines($from, $to, $accountId)),
             expenses: $total($expenses),
             payments: count($expenses),
             balance: round($total($incomes) - $total($expenses), 2),
@@ -190,13 +190,17 @@ final readonly class Movements
     }
 
     /**
-     * How many salaries the planned incomes give in a period, paid or not.
+     * How many salaries the planned incomes give in a period, paid or not. With an account, only those that come
+     * to it: the account of the planned income, else the default one, as {@see Deadline::$account} says.
      *
      * @param  CarbonImmutable  $from  The first day.
      * @param  CarbonImmutable  $to  The last day.
+     * @param  int|null  $accountId  The account shown, null for all.
      */
-    private function salaryDeadlines(CarbonImmutable $from, CarbonImmutable $to): int
+    private function salaryDeadlines(CarbonImmutable $from, CarbonImmutable $to, ?int $accountId): int
     {
-        return count($this->deadlines->between(PlannedIncome::query()->where('type', IncomeType::Salary)->get(), $from, $to));
+        $found = $this->deadlines->between(PlannedIncome::query()->where('type', IncomeType::Salary)->get(), $from, $to);
+
+        return count($accountId === null ? $found : array_filter($found, static fn (Deadline $deadline): bool => $deadline->account?->id === $accountId));
     }
 }

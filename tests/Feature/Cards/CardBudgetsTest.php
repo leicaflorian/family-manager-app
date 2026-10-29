@@ -211,6 +211,13 @@ it('shows the movements of an account in this month', function (): void {
         ->and($budget->payments_label)->toBeNull();
 });
 
+it('gives no salaries to an account that never receives one', function (): void {
+    $budget = budgetOf(fn (): FinancialAccount => FinancialAccount::query()->where('name', 'Carta Laura')->sole());
+    assert($budget instanceof CardBudgetData);
+
+    expect(budgetNumber($budget, 'Income in October')->hint)->toBeNull();
+});
+
 it('asks to create the planned expense first', function (): void {
     $budget = budgetOf(fn (): Subscription => Subscription::query()->create(['name' => 'Spotify', 'type' => 'streaming']));
     assert($budget instanceof CardBudgetData);

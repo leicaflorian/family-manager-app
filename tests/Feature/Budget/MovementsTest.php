@@ -70,6 +70,31 @@ it('sums the month', function (): void {
             ->where('selected', null));
 });
 
+it('counts only the salaries expected on the account that is shown', function (): void {
+    $this->actingAs($this->marco)
+        ->get('/budget/movements?month=2026-10&account='.movementAccount('Carta Laura'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('summary.salaries_in', 0)
+            ->where('summary.salaries_expected', 0));
+
+    $this->actingAs($this->marco)
+        ->get('/budget/movements?month=2026-10&account='.movementAccount('Conto BPER'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('summary.salaries_expected', 2));
+});
+
+it('counts a salary without an account on the default account', function (): void {
+    // Marco's salary has no account, so it comes to the default one (Conto BPER); Laura's goes to her card
+    insideBianchi(fn (): int => PlannedIncome::query()->where('title', 'Stipendio di Marco')->update(['financial_account_id' => null]));
+    insideBianchi(fn (): int => PlannedIncome::query()->where('title', 'Stipendio di Laura')->update(['financial_account_id' => movementAccount('Carta Laura')]));
+
+    foreach (['Conto BPER' => 1, 'Carta Laura' => 1] as $account => $expected) {
+        $this->actingAs($this->marco)
+            ->get('/budget/movements?month=2026-10&account='.movementAccount($account))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('summary.salaries_expected', $expected));
+    }
+});
+
 it('opens the current month when none is asked', function (): void {
     $this->actingAs($this->marco)
         ->get('/budget/movements')
