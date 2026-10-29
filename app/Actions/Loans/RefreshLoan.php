@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Loans;
 
+use App\Enums\ExceptionType;
 use App\Models\Loan;
+use App\Models\PlannedExpense;
+use App\Models\PlannedExpenseException;
 use App\Services\LoanSchedule;
 use App\Support\LoanFigures;
 use App\Support\LoanTerms;
@@ -12,6 +15,7 @@ use App\Support\Schedule;
 use App\Support\ScheduleException;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Brings what a loan works out by itself (the last date, the number of instalments, the total, the cost and how far
@@ -50,15 +54,20 @@ final readonly class RefreshLoan
     /**
      * Puts on the loan the figures that differ from the ones it has, without saving: for the loan being saved.
      *
+     * For a loan being saved, `$before` is the loan before the save: its planned expense will move or change the
+     * exception of the final balloon payment after the save ({@see LoanSchedule::balloonChanges()}), so the figures
+     * are worked out with that exception as it will be, and the loan is written once.
+     *
      * @param  Loan  $loan  The loan.
      * @param  CarbonImmutable  $today  The day the instalments paid are counted on.
+     * @param  ?array<string, mixed>  $before  The columns of the loan before the save, when it is being saved.
      * @return bool Whether a figure changed.
      */
-    public function fill(Loan $loan, CarbonImmutable $today): bool
+    public function fill(Loan $loan, CarbonImmutable $today, ?array $before = null): bool
     {
         $changed = false;
 
-        foreach ($this->columns($loan, $this->schedule->derive(LoanTerms::of($loan), $this->exceptions($loan), $today)) as $column => $value) {
+        foreach ($this->columns($loan, $this->schedule->derive(LoanTerms::of($loan), $this->exceptions($loan, $before), $today)) as $column => $value) {
             if ($this->same($loan->getAttribute($column), $value)) {
                 continue;
             }
@@ -68,6 +77,16 @@ final readonly class RefreshLoan
         }
 
         return $changed;
+    }
+
+    /**
+     * The planned expense that follows the loan: the first one created for it. One linked by hand never follows.
+     *
+     * @param  Collection<int, PlannedExpense>  $expenses  The planned expenses linked to the loan.
+     */
+    public function followed(Collection $expenses): ?PlannedExpense
+    {
+        return $expenses->sortBy('id')->first(fn (PlannedExpense $expense): bool => $expense->is_auto_created);
     }
 
     /**
@@ -99,21 +118,59 @@ final readonly class RefreshLoan
      * The exceptions of the planned expenses linked to the loan.
      *
      * @param  Loan  $loan  The loan.
+     * @param  ?array<string, mixed>  $before  The columns of the loan before the save, when it is being saved.
      * @return list<ScheduleException> None for a loan not saved yet.
      */
-    private function exceptions(Loan $loan): array
+    private function exceptions(Loan $loan, ?array $before): array
     {
         if (! $loan->exists) {
             return [];
         }
 
+        $expenses = $loan->plannedExpenses()->with('exceptions')->get();
+        $followed = $before === null ? null : $this->followed($expenses);
+
+        if ($followed instanceof PlannedExpense) {
+            $followed->setRelation('exceptions', $this->afterBalloon($before, $loan, $followed->exceptions));
+        }
+
         $exceptions = [];
 
-        foreach ($loan->plannedExpenses()->with('exceptions')->get() as $planned) {
+        foreach ($expenses as $planned) {
             array_push($exceptions, ...Schedule::of($planned)->exceptions);
         }
 
         return $exceptions;
+    }
+
+    /**
+     * The exceptions of the planned expense as they will be once the final balloon payment follows the loan, in
+     * memory only: the loan observer writes them after the save.
+     *
+     * @param  array<string, mixed>  $before  The columns of the loan before the save.
+     * @param  Loan  $loan  The loan being saved.
+     * @param  Collection<int, PlannedExpenseException>  $exceptions  The saved exceptions of the planned expense.
+     * @return Collection<int, PlannedExpenseException>
+     */
+    private function afterBalloon(array $before, Loan $loan, Collection $exceptions): Collection
+    {
+        $changes = $this->schedule->balloonChanges(LoanTerms::fromForm($before), LoanTerms::of($loan), $exceptions);
+
+        if (isset($changes['update'])) {
+            [$id, $values] = $changes['update'];
+            $exceptions = $exceptions->map(fn (PlannedExpenseException $e): PlannedExpenseException => $e->id === $id ? (clone $e)->fill($values) : $e);
+        }
+
+        if (isset($changes['remove'])) {
+            $removed = $changes['remove'];
+            $exceptions = $exceptions->reject(fn (PlannedExpenseException $e): bool => $e->id === $removed);
+        }
+
+        if (isset($changes['create'])) {
+            $exceptions = $exceptions->push(new PlannedExpenseException([...$changes['create'], 'type' => ExceptionType::AmountOverride]));
+        }
+
+        return $exceptions->values();
     }
 
     /**

@@ -51,10 +51,14 @@ final readonly class LoanObserver
      */
     public function saving(Loan $loan): void
     {
-        $fill = fn (): bool => $this->refresh->fill($loan, CarbonImmutable::today());
-
         // A new loan has no family yet (it comes in `creating`) and no planned expenses to read.
-        $loan->exists ? CurrentFamily::using($loan->family_id, $fill) : $fill();
+        if (! $loan->exists) {
+            $this->refresh->fill($loan, CarbonImmutable::today());
+
+            return;
+        }
+
+        CurrentFamily::using($loan->family_id, fn (): bool => $this->refresh->fill($loan, CarbonImmutable::today(), $loan->getOriginal()));
     }
 
     /**
@@ -79,7 +83,7 @@ final readonly class LoanObserver
 
             $written = $this->plans->muted(fn (): bool => $expenses->isEmpty()
                 ? $this->create($loan)
-                : $this->follow($loan, $before, $expenses->first(fn (PlannedExpense $expense): bool => $expense->is_auto_created), $today));
+                : $this->follow($loan, $before, $this->refresh->followed($expenses), $today));
 
             if ($written) {
                 $this->refreshAfter($loan, $today);

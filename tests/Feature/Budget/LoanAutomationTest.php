@@ -205,6 +205,33 @@ it('saves each side once', function (): void {
     });
 });
 
+it('saves the loan once when the final payment or the dates change', function (): void {
+    insideBianchi(function (): void {
+        $loan = loanAutoPanda(['final_installment_amount' => 2000]);
+
+        $writes = [];
+        DB::listen(function (QueryExecuted $query) use (&$writes): void {
+            if (preg_match('/^(insert into|update|delete from) [`"]?(loans|planned_expenses|planned_expense_exceptions)[`"]?\s/i', $query->sql, $match) === 1) {
+                $writes[] = strtolower($match[2]);
+            }
+        });
+
+        $loan->update(['final_installment_amount' => 2500]);
+
+        expect(array_count_values($writes))->toBe(['loans' => 1, 'planned_expense_exceptions' => 1])
+            ->and($loan->fresh()?->total_to_pay)->toBe('11383.00');
+
+        $writes = [];
+        $loan->update(['start_date' => '2024-04-10', 'end_date' => '2028-03-10']);
+
+        $exceptions = loanAutoExpense($loan)->exceptions;
+        expect(array_count_values($writes))->toBe(['loans' => 1, 'planned_expenses' => 1, 'planned_expense_exceptions' => 1])
+            ->and($exceptions)->toHaveCount(1)
+            ->and($exceptions[0]->occurrence_date?->toDateString())->toBe('2028-03-10')
+            ->and($loan->fresh()?->total_to_pay)->toBe('11383.00');
+    });
+});
+
 it('counts the instalment of the day after midnight', function (): void {
     $panda = insideBianchi(fn (): Loan => loanAutoPanda());
     $this->travelTo(CarbonImmutable::parse('2026-11-10 00:30:00', 'Europe/Rome'));
