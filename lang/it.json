@@ -806,5 +806,14 @@
     "No card": "Nessuna",
     "The card a category refers to is chosen on its main category": "La scheda a cui si riferisce una categoria si sceglie sulla categoria principale",
     "The expenses of this category and of its subcategories refer to a card of this type": "Le spese di questa categoria e delle sue sottocategorie si collegano a una scheda di questo tipo",
-    "A subcategory takes the card of its main category.": "Una sottocategoria prende la scheda della sua categoria principale."
+    "A subcategory takes the card of its main category.": "Una sottocategoria prende la scheda della sua categoria principale.",
+    "Residences": "Abitazioni",
+    "Items under warranty": "Beni in garanzia",
+    "Maintenance jobs": "Manutenzioni",
+    "Policies": "Polizze",
+    "Accounts and cards": "Conti e carte",
+    "Filings": "Pratiche",
+    "Jobs": "Lavori",
+    "Health events": "Eventi di salute",
+    "Enrollments": "Iscrizioni"
 }

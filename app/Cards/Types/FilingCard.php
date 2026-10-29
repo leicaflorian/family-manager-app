@@ -32,6 +32,12 @@ final class FilingCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Filings');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('Tax return, ISEE, child benefit, residence');

@@ -32,6 +32,12 @@ final class FinancialAccountCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Accounts and cards');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('A current account or a card');

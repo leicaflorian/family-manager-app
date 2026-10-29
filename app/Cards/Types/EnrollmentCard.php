@@ -31,6 +31,12 @@ final class EnrollmentCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Enrollments');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('School, sport, a course');

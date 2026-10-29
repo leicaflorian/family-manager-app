@@ -31,6 +31,12 @@ final class EmploymentCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Jobs');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('An employment and its salary');

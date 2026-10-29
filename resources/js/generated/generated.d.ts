@@ -107,6 +107,7 @@ readonly hint_amount: number | null,
 export type CardTypeData = {
 readonly type: string,
 readonly label: string,
+readonly plural_label: string,
 readonly description: string,
 readonly area: string,
 readonly area_label: string,

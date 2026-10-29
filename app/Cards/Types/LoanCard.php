@@ -33,6 +33,12 @@ final class LoanCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Loans');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('Mortgage, loan, purchase in instalments');

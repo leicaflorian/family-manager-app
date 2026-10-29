@@ -21,6 +21,7 @@ describe('Edit a card', () => {
     const type: App.Data.CardTypeData = {
         type: 'insurance_policy',
         label: 'Insurance policy',
+        plural_label: 'Policies',
         description: '',
         area: 'insurance',
         area_label: 'Insurance',

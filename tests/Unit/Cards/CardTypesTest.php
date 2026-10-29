@@ -96,6 +96,15 @@ test('it names the types and the areas as the canvas does', function (): void {
         ->and(cardField('financial_account', 'last_four_digits')?->label)->toBe('Ultime 4 cifre');
 });
 
+test('it names every type in the plural too, for the groups of an area', function (): void {
+    app()->setLocale('it');
+
+    expect(collect(CardTypes::all())->map(fn (CardType $card): string => $card->pluralLabel())->all())->toBe([
+        'Abitazioni', 'Utenze', 'Beni in garanzia', 'Manutenzioni', 'Veicoli', 'Polizze', 'Conti e carte',
+        'Finanziamenti', 'Abbonamenti', 'Pratiche', 'Lavori', 'Eventi di salute', 'Iscrizioni',
+    ]);
+});
+
 test('it requires exactly the columns the database requires', function (): void {
     foreach (CardTypes::all() as $card) {
         $required = collect($card->fields())

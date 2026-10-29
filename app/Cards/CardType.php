@@ -41,6 +41,12 @@ abstract class CardType
     abstract public function label(): string;
 
     /**
+     * The name of the type in the plural, for example «Policies»: the heading of
+     * its group in an area with more types.
+     */
+    abstract public function pluralLabel(): string;
+
+    /**
      * What the type is for, under its name in *New card*.
      */
     abstract public function description(): string;

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * *An area*: the open cards of the area by name, with how many there are and
- * how many are overdue; the closed ones stay folded under *Closed*. An
+ * how many are overdue, grouped by type when the area has more types (an
+ * empty type is left out); the closed ones stay folded under *Closed*. An
  * `admin` adds a card with *New*, which opens the choice of the type of the
  * area, or the form when the area has only one.
  */
@@ -29,6 +30,34 @@ const { area, types, canCreate } = defineProps<{
 
 /** The cards still open. */
 const open = computed(() => area.cards.filter((card) => !card.closed));
+
+/** A list of open cards on the page, with the heading of its type. */
+interface CardGroup {
+    /** The type of the cards, or `all` when the area is not grouped. */
+    type: string;
+    /** The heading: the type in the plural, or null when the area is not grouped. */
+    label: string | null;
+    /** The open cards, by name. */
+    cards: App.Data.CardData[];
+}
+
+/**
+ * The open cards by type, in the order of *New card*, when the area has more
+ * types; otherwise a single list without a heading.
+ */
+const groups = computed((): CardGroup[] => {
+    if (types.length <= 1) {
+        return [{ type: 'all', label: null, cards: open.value }];
+    }
+
+    return types
+        .map((type) => ({
+            type: type.type,
+            label: type.plural_label,
+            cards: open.value.filter((card) => card.type === type.type),
+        }))
+        .filter((group) => group.cards.length > 0);
+});
 
 /** The cards that are closed. */
 const closed = computed(() => area.cards.filter((card) => card.closed));
@@ -67,17 +96,37 @@ const closed = computed(() => area.cards.filter((card) => card.closed));
             }}</FmButton>
         </FmEmpty>
 
-        <div
-            v-if="open.length > 0"
-            v-auto-animate
-            class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
-        >
-            <FmCardRow
-                v-for="card in open"
-                :key="`${card.type}-${card.id}`"
-                :card="card"
-            />
-        </div>
+        <template v-if="open.length > 0">
+            <section
+                v-for="group in groups"
+                :key="group.type"
+                :aria-labelledby="
+                    group.label ? `group-${group.type}` : undefined
+                "
+                class="flex flex-col gap-2"
+            >
+                <h2
+                    v-if="group.label"
+                    :id="`group-${group.type}`"
+                    class="m-0 flex items-baseline gap-2 text-[17px] font-bold"
+                >
+                    {{ group.label }}
+                    <span class="text-[15px] font-normal text-ink-soft">{{
+                        group.cards.length
+                    }}</span>
+                </h2>
+                <div
+                    v-auto-animate
+                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
+                >
+                    <FmCardRow
+                        v-for="card in group.cards"
+                        :key="`${card.type}-${card.id}`"
+                        :card="card"
+                    />
+                </div>
+            </section>
+        </template>
 
         <FmFold
             v-if="closed.length > 0"

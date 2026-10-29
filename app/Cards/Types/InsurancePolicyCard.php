@@ -33,6 +33,12 @@ final class InsurancePolicyCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Policies');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('Car, home, life, health');

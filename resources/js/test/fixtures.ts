@@ -409,6 +409,7 @@ export const cardTypes: App.Data.CardTypeData[] = [
     {
         type: 'home',
         label: 'Residence',
+        plural_label: 'Residences',
         description: 'The home where you live, or a second home',
         area: 'home',
         area_label: 'Home',
@@ -416,6 +417,7 @@ export const cardTypes: App.Data.CardTypeData[] = [
     {
         type: 'utility',
         label: 'Utility',
+        plural_label: 'Utilities',
         description: 'Electricity, gas, water, internet, waste tax',
         area: 'home',
         area_label: 'Home',
@@ -423,6 +425,7 @@ export const cardTypes: App.Data.CardTypeData[] = [
     {
         type: 'vehicle',
         label: 'Vehicle',
+        plural_label: 'Vehicles',
         description: 'Car, motorbike, scooter',
         area: 'vehicles',
         area_label: 'Vehicles',
