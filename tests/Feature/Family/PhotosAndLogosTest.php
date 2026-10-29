@@ -87,22 +87,22 @@ test('the photo of a person and the logo of an organization are images', functio
         'photo' => UploadedFile::fake()->create('rosa.pdf', 10, 'application/pdf'),
     ])->assertSessionHasErrors('photo');
     $this->post(route('organizations.store'), [
-        'name' => 'Coop', 'logo' => UploadedFile::fake()->create('coop.pdf', 10, 'application/pdf'),
+        'name' => 'Conad', 'logo' => UploadedFile::fake()->create('coop.pdf', 10, 'application/pdf'),
     ])->assertSessionHasErrors('logo');
 });
 
 test('an admin adds an organization with a logo, shown on its page and in Organizations', function (): void {
-    $this->post(route('organizations.store'), ['name' => 'Coop', 'logo' => UploadedFile::fake()->image('coop.png')])
+    $this->post(route('organizations.store'), ['name' => 'Conad', 'logo' => UploadedFile::fake()->image('coop.png')])
         ->assertSessionHasNoErrors();
 
-    $coop = insideBianchi(fn (): Organization => Organization::query()->where('name', 'Coop')->sole());
+    $coop = insideBianchi(fn (): Organization => Organization::query()->where('name', 'Conad')->sole());
     $logo = insideBianchi(fn (): ?File => $coop->logo);
     expect($logo?->original_name)->toBe('coop.png');
 
     $this->get(route('organizations.show', $coop))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('organization.logo', route('files.show', $logo)));
     $this->get(route('organizations.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('organizations', fn ($organizations): bool => collect($organizations)->firstWhere('name', 'Coop')['logo'] === route('files.show', $logo)));
+        ->where('organizations', fn ($organizations): bool => collect($organizations)->firstWhere('name', 'Conad')['logo'] === route('files.show', $logo)));
 });
 
 test('a new logo replaces the previous one, and removing it deletes the file', function (): void {
