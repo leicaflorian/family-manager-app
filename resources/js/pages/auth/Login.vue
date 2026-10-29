@@ -73,7 +73,7 @@ function logIn(): void {
                 type="toggle"
                 :label="$t('Stay signed in')"
                 name="remember"
-                :classes="{ outer: 'mb-0' }"
+                :classes="{ outer: 'mb-0!' }"
             />
             <Link
                 v-if="canResetPassword"
