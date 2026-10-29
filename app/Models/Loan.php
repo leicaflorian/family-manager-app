@@ -6,13 +6,16 @@ namespace App\Models;
 
 use App\Enums\LoanStatus;
 use App\Models\Concerns\HasDocuments;
+use App\Observers\LoanObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\LoanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A loan or a mortgage (`loans`).
@@ -46,6 +49,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read FinancialAccount|null $financialAccount
  * @property-read Organization|null $organization
  * @property-read Person|null $person
+ * @property-read Collection<int, PlannedExpense> $plannedExpenses
+ * @property-read int|null $planned_expenses_count
  *
  * @method static LoanFactory factory($count = null, $state = [])
  * @method static Builder<static>|Loan newModelQuery()
@@ -55,6 +60,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'organization_id', 'person_id', 'financial_account_id', 'total_amount', 'installments_count', 'installment_amount', 'final_installment_amount', 'total_to_pay', 'cost', 'installments_paid', 'installments_left', 'residual_amount', 'start_date', 'end_date', 'notes'])]
+#[ObservedBy(LoanObserver::class)]
 final class Loan extends FamilyModel
 {
     use HasDocuments;
@@ -90,6 +96,16 @@ final class Loan extends FamilyModel
     public function financialAccount(): BelongsTo
     {
         return $this->belongsTo(FinancialAccount::class);
+    }
+
+    /**
+     * The planned expenses of its instalments: the one created for the loan, and any linked by hand.
+     *
+     * @return HasMany<PlannedExpense, $this>
+     */
+    public function plannedExpenses(): HasMany
+    {
+        return $this->hasMany(PlannedExpense::class);
     }
 
     /**

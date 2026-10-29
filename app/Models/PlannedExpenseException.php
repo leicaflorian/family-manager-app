@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\ExceptionType;
+use App\Observers\LoanPlanObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlannedExpenseExceptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,6 +41,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @mixin \Eloquent
  */
 #[Fillable(['planned_expense_id', 'type', 'occurrence_date', 'amount_override', 'date_override', 'sort', 'notes'])]
+#[ObservedBy(LoanPlanObserver::class)]
 final class PlannedExpenseException extends FamilyModel
 {
     /** @use HasFactory<PlannedExpenseExceptionFactory> */

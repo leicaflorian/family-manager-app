@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\IntervalUnit;
+use App\Observers\LoanPlanObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlannedExpenseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -69,6 +71,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'utility_id', 'insurance_policy_id', 'loan_id', 'enrollment_id', 'home_id', 'vehicle_id', 'subscription_id', 'notes'])]
+#[ObservedBy(LoanPlanObserver::class)]
 final class PlannedExpense extends FamilyModel
 {
     /** @use HasFactory<PlannedExpenseFactory> */

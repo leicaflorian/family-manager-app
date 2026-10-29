@@ -63,11 +63,11 @@ final readonly class Schedule
         return new self(
             $planned->start_date,
             $planned->end_date,
-            $planned->is_recurring,
+            (bool) $planned->is_recurring,
             max(1, (int) $planned->interval),
             $planned->interval_unit,
             (float) $planned->amount,
-            $planned->is_estimated,
+            (bool) $planned->is_estimated,
             $exceptions,
         );
     }

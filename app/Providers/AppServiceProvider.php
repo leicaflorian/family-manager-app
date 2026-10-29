@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Models\Document;
 use App\Models\FamilyModel;
 use App\Models\User;
+use App\Observers\LoanPlanObserver;
 use App\Policies\DocumentPolicy;
 use App\Policies\FamilyPolicy;
 use App\Support\CurrentFamily;
@@ -28,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // One per request (and per test): a family set by hand does not carry over to the next one
         $this->app->scoped(CurrentFamily::class);
+
+        // One per request too: the loan observer keeps it quiet while it writes the planned expense of a loan
+        $this->app->scoped(LoanPlanObserver::class);
     }
 
     /**

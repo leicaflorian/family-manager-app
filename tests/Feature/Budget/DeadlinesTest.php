@@ -243,3 +243,19 @@ it('reads the schedule from the real models', function (): void {
             ->and($schedule->exceptions[0]->amount)->toBe(12.5);
     });
 });
+
+it('reads the schedule of a planned item just made by a factory', function (): void {
+    insideBianchi(function (): void {
+        $expense = PlannedExpense::factory()->create(['family_id' => deadlinesFamily(), 'amount' => 30, 'start_date' => '2026-10-01']);
+        $income = PlannedIncome::factory()->create(['family_id' => deadlinesFamily(), 'amount' => 900, 'start_date' => '2026-10-27']);
+
+        $expenseSchedule = Schedule::of($expense);
+        $incomeSchedule = Schedule::of($income);
+
+        expect($expenseSchedule->estimated)->toBeFalse()
+            ->and($expenseSchedule->recurring)->toBeTrue()
+            ->and($expenseSchedule->interval)->toBe(1)
+            ->and($incomeSchedule->estimated)->toBeFalse()
+            ->and($incomeSchedule->unit)->toBe(IntervalUnit::Month);
+    });
+});

@@ -28,6 +28,7 @@ final class PlannedExpenseFactory extends Factory
             'is_recurring' => true,
             'interval' => 1,
             'interval_unit' => IntervalUnit::Month,
+            'is_estimated' => false,
             'start_date' => fake()->dateTimeBetween('-1 year'),
         ];
     }
