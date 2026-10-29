@@ -26,7 +26,9 @@ describe('FmPlannedRow', () => {
     });
 
     it('says the whole family when nobody is named', () => {
-        render(FmPlannedRow, { props: { row: gasRow, href: '/x' } });
+        render(FmPlannedRow, {
+            props: { row: { ...gasRow, person: null }, href: '/x' },
+        });
 
         expect(screen.getByText('Whole family')).toBeInTheDocument();
     });

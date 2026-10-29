@@ -7,6 +7,7 @@ namespace App\Actions\Budget;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\DefaultAccount;
+use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
@@ -26,7 +27,10 @@ final readonly class SavePlanned
      */
     public function handle(string $kind, array $columns, PlannedExpense|PlannedIncome|null $planned = null): PlannedExpense|PlannedIncome
     {
-        $columns['financial_account_id'] ??= DefaultAccount::id();
+        // A change that does not send the account keeps the current one; an empty account means the default
+        if (! $planned instanceof Model || array_key_exists('financial_account_id', $columns)) {
+            $columns['financial_account_id'] ??= DefaultAccount::id();
+        }
 
         if ($planned instanceof PlannedExpense || $planned instanceof PlannedIncome) {
             $planned->update($columns);

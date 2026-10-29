@@ -626,7 +626,7 @@ export const gasRow: App.Data.PlannedRowData = {
         area_label: 'Home',
     },
     start_date: '2026-01-30',
-    person: null,
+    person: 'Marco',
     next_date: '2026-10-30',
     account: 'Conto BPER',
     amount: 55,

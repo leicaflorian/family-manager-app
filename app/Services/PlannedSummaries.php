@@ -14,7 +14,6 @@ use App\Data\PlannedDetailData;
 use App\Data\PlannedRowData;
 use App\Enums\ExceptionType;
 use App\Models\Expense;
-use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
 use App\Models\Income;
 use App\Models\PlannedExpense;
@@ -117,7 +116,7 @@ final readonly class PlannedSummaries
      */
     public function detail(PlannedExpense|PlannedIncome $planned, User $user, CarbonImmutable $today): PlannedDetailData
     {
-        $planned->loadMissing($planned instanceof PlannedExpense ? ['category.parent', 'organization', 'person'] : ['organization', 'person']);
+        $planned->loadMissing($planned instanceof PlannedExpense ? ['category', 'organization', 'person'] : ['organization', 'person']);
         $found = $this->deadlines->between([$planned], $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addYears(self::YEARS_AHEAD));
         $late = array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->isLate($today)));
         $coming = array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() >= $today->toDateString()));
@@ -228,7 +227,7 @@ final readonly class PlannedSummaries
         $person = $planned->person;
         $values = [
             $planned instanceof PlannedIncome ? new CardValueData(__('Type'), $planned->type->label()) : null,
-            $category === null ? null : new CardValueData(__('Category'), $this->path($category)),
+            $category === null ? null : new CardValueData(__('Category'), ExpenseCategoryPaths::all()[$category->id] ?? $category->name),
             $planned->organization === null ? null : new CardValueData(__('Organization'), $planned->organization->name, route('organizations.show', $planned->organization)),
             $account === null ? null : new CardValueData(__('Account'), $account->name),
             $person === null
@@ -238,24 +237,6 @@ final readonly class PlannedSummaries
         ];
 
         return array_values(array_filter($values));
-    }
-
-    /**
-     * The path of an expense category, from its main category: «Home › Gas».
-     *
-     * @param  ExpenseCategory  $category  the category, with its parents loaded
-     */
-    private function path(ExpenseCategory $category): string
-    {
-        $names = [];
-
-        // The visited ids stop a loop, should the data have one
-        for ($current = $category, $seen = []; $current instanceof ExpenseCategory && ! isset($seen[$current->id]); $current = $current->parent) {
-            $seen[$current->id] = true;
-            array_unshift($names, $current->name);
-        }
-
-        return implode(' › ', $names);
     }
 
     /**

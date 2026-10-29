@@ -9,14 +9,12 @@ use App\Data\OptionData;
 use App\Enums\FinancialAccountStatus;
 use App\Enums\IncomeType;
 use App\Models\Employment;
-use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Support\ModelId;
 use App\Support\PlannedPreset;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
 
 /**
  * The choices of the forms of the budget: the accounts, the categories, the organizations, the people, the cards
@@ -65,18 +63,11 @@ final class BudgetFormOptions
      */
     private static function categories(): array
     {
-        $byParent = ExpenseCategory::query()->orderBy('sort')->orderBy('name')->get()->groupBy(static fn (ExpenseCategory $category): int => $category->parent_id ?? 0);
         $options = [];
 
-        // Depth first, so a subcategory comes right after its main category
-        $walk = static function (int $parent, string $path) use (&$walk, &$options, $byParent): void {
-            foreach ($byParent->get($parent, new Collection) as $category) {
-                $label = $path === '' ? $category->name : "{$path} › {$category->name}";
-                $options[] = new OptionData((string) $category->id, $label);
-                $walk($category->id, $label);
-            }
-        };
-        $walk(0, '');
+        foreach (ExpenseCategoryPaths::all() as $id => $path) {
+            $options[] = new OptionData((string) $id, $path);
+        }
 
         return $options;
     }

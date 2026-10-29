@@ -206,3 +206,24 @@ it('a member sees the planned expenses but cannot save them', function (): void 
 
     expect(savePlannedOf('Retta danza')->title)->toBe('Retta danza');
 });
+
+it('stores an interval of one when Every is cleared', function (): void {
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['interval' => null]))
+        ->assertRedirect();
+
+    expect(savePlannedOf('Palestra')->interval)->toBe(1);
+});
+
+it('keeps the account when a change does not send one, and uses the default when it is emptied', function (): void {
+    $planned = savePlannedOf('Retta danza');
+    $card = $planned->financial_account_id;
+    $default = insideBianchi(fn (): int => FinancialAccount::query()->where('is_default', true)->firstOrFail()->id);
+    $this->actingAs($this->marco);
+
+    $this->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza']))->assertRedirect();
+    expect(savePlannedOf('Retta danza')->financial_account_id)->toBe($card)->not->toBe($default);
+
+    $this->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'financial_account_id' => null]))->assertRedirect();
+    expect(savePlannedOf('Retta danza')->financial_account_id)->toBe($default);
+});

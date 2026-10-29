@@ -112,7 +112,7 @@ final class SavePlannedRequest extends FormRequest
             ...$validated,
             'is_recurring' => $this->boolean('is_recurring'),
             'is_estimated' => $this->boolean('is_estimated'),
-            'interval' => $this->integer('interval', 1),
+            'interval' => max(1, $this->integer('interval')),
             'interval_unit' => $this->input('interval_unit') ?? IntervalUnit::Month->value,
         ];
 
