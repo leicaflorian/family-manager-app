@@ -3,13 +3,13 @@
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
  * menu (Delete, for an `admin`, after asking); then the notices, the
  * payments of the card around its dates and data (`FmCardBudget`: the next
- * due date, the figures, the due dates to pay, the planned expenses and the
- * payments), the data of the card (the person, the organization and the card it names
- * open in a new tab), its documents (with *Upload*, which opens the panel
- * with the zone for the files, and *Link*, open to a
- * `member` too, and beside each the buttons of `FmCardDocumentActions`) and
- * the cards it is linked to, with the + that adds a new one already linked
- * (for an `admin`). *Link* opens the documents not yet linked, searched while
+ * due date, the figures, the due dates to pay), the data of the card (the
+ * person, the organization and the card it names open in a new tab) and the
+ * cards it is linked to, with the + that adds a new one already linked (for an
+ * `admin`); beside them its documents, 10 a page (with *Upload*, which opens
+ * the panel with the zone for the files, and *Link*, open to a `member` too,
+ * and beside each the buttons of `FmCardDocumentActions`), and under the
+ * documents the planned expenses and the payments (`FmCardPayments`). *Link* opens the documents not yet linked, searched while
  * typing, 15 at a time with the next ones loaded at the end of the list.
  */
 import { Head, router } from '@inertiajs/vue3';
@@ -22,6 +22,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCardBudget from '@/components/fm/FmCardBudget.vue';
 import FmCardHeader from '@/components/fm/FmCardHeader.vue';
+import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardDocumentActions from '@/components/fm/FmCardDocumentActions.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
@@ -30,6 +31,7 @@ import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmPager from '@/components/fm/FmPager.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import type { Action } from '@/lib/actions';
@@ -228,6 +230,15 @@ function link(id: number): void {
                     >
                         {{ $t('No documents yet.') }}
                     </p>
+                </div>
+                <FmPager
+                    :previous="card.documents_previous"
+                    :next="card.documents_next"
+                    preserve-scroll
+                />
+
+                <div v-if="card.budget" class="mt-3 flex flex-col gap-5">
+                    <FmCardPayments :budget="card.budget" :card="address" />
                 </div>
             </section>
         </div>

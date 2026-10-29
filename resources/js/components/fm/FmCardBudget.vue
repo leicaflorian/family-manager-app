@@ -5,10 +5,9 @@
  * next instalment of a loan, the salary coming in), which opens *A due date*
  * (with *It arrived* open on a salary);
  * the figures, beside the dates of the card (`tiles`); how far a loan is paid;
- * the open due dates; then the data of the card (the default slot) and the
- * planned expenses with their payments. A card without planned expenses (a
- * belonging, a maintenance job, a filing, a health event) shows only the
- * expenses linked to it; without a budget only the tiles and the data remain.
+ * the open due dates; then the data of the card (the default slot). The
+ * planned expenses and their payments (`FmCardPayments`) the page shows under
+ * the documents; without a budget only the tiles and the data remain.
  */
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -19,7 +18,6 @@ import { relativeDays } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import FmAmount from './FmAmount.vue';
 import FmCard from './FmCard.vue';
-import FmCardPayments from './FmCardPayments.vue';
 import FmDeadlineRow from './FmDeadlineRow.vue';
 import FmNumberTile from './FmNumberTile.vue';
 
@@ -33,7 +31,7 @@ const { budget, card } = defineProps<{
 defineSlots<{
     /** The tiles of the dates of the card, in the grid of the figures. */
     tiles?: () => unknown;
-    /** The data of the card, between the open due dates and the planned expenses. */
+    /** The data of the card, after the open due dates. */
     default?: () => unknown;
 }>();
 
@@ -208,6 +206,4 @@ const nextLineClass = computed((): string =>
     </FmCard>
 
     <slot />
-
-    <FmCardPayments v-if="budget" :budget="budget" :card="card" />
 </template>

@@ -5,7 +5,7 @@
  * computer the chosen document on the right. Without any document, the card
  * that invites to upload the first one.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
 import { FileText, ListFilter, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
@@ -19,6 +19,7 @@ import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { categoryOptions } from '@/lib/categories';
@@ -256,25 +257,7 @@ function rowHref(document: App.Data.DocumentData): string {
                             :current="selected?.id === document.id"
                         />
                     </FmCard>
-                    <nav
-                        v-if="nextPage || previousPage"
-                        :aria-label="$t('Pages')"
-                        class="flex justify-between gap-3"
-                    >
-                        <Link
-                            v-if="previousPage"
-                            :href="previousPage"
-                            class="font-semibold"
-                            >{{ $t('Previous') }}</Link
-                        >
-                        <span v-else />
-                        <Link
-                            v-if="nextPage"
-                            :href="nextPage"
-                            class="font-semibold"
-                            >{{ $t('Next') }}</Link
-                        >
-                    </nav>
+                    <FmPager :previous="previousPage" :next="nextPage" />
                 </template>
                 <FmEmpty
                     v-else

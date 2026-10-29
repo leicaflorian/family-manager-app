@@ -32,7 +32,7 @@ const budgetSalary: App.Data.CardBudgetData = {
 };
 
 describe('FmCardBudget', () => {
-    it('shows the figures, the bills to pay, the data in between, the planned expenses and the bills paid, in this order', () => {
+    it('shows the figures and the bills to pay, and leaves the planned expenses and the bills paid to the page', () => {
         renderPage(FmCardBudget, {
             budget: luceBudget,
             card: { type: 'utility', id: 3 },
@@ -55,7 +55,7 @@ describe('FmCardBudget', () => {
         const titles = screen
             .getAllByRole('heading', { level: 2 })
             .map((heading) => heading.textContent);
-        expect(titles).toEqual(['To pay', 'Expected expenses', 'Bills paid']);
+        expect(titles).toEqual(['To pay']);
     });
 
     it('puts the renewal in the box at the top, which opens the due date', () => {
@@ -101,7 +101,7 @@ describe('FmCardBudget', () => {
         expect(screen.getByText('Left 3.024,00 €')).toBeInTheDocument();
     });
 
-    it('places the tiles of the card beside the figures and its data before the planned expenses', () => {
+    it('places the tiles of the card beside the figures and its data after the bills to pay', () => {
         renderPage({
             render: () =>
                 h(
@@ -118,12 +118,7 @@ describe('FmCardBudget', () => {
         const titles = screen
             .getAllByRole('heading', { level: 2 })
             .map((heading) => heading.textContent);
-        expect(titles).toEqual([
-            'To pay',
-            'Data',
-            'Expected expenses',
-            'Bills paid',
-        ]);
+        expect(titles).toEqual(['To pay', 'Data']);
     });
 
     it('without payments, keeps only the tiles and the data', () => {
@@ -145,42 +140,6 @@ describe('FmCardBudget', () => {
                 .getAllByRole('heading', { level: 2 })
                 .map((h2) => h2.textContent),
         ).toEqual(['Data']);
-    });
-
-    it('shows only the expenses of a card without planned expenses', () => {
-        renderPage(FmCardBudget, {
-            budget: {
-                ...luceBudget,
-                numbers: [],
-                due_label: null,
-                due: [],
-                planned_label: null,
-                planned: [],
-                can_add_planned: false,
-                payments_label: 'Expenses',
-                payments_more: 'See all the expenses, year by year',
-                pay: [],
-                can_pay: false,
-            },
-            card: { type: 'health_event', id: 4 },
-        });
-
-        expect(
-            screen
-                .getAllByRole('heading', { level: 2 })
-                .map((h2) => h2.textContent),
-        ).toEqual(['Expenses']);
-        expect(
-            screen.queryByRole('button', { name: /Record payment/ }),
-        ).not.toBeInTheDocument();
-        expect(
-            screen.queryByText('Create the planned expense first.'),
-        ).not.toBeInTheDocument();
-        expect(
-            screen.getByRole('link', {
-                name: 'See all the expenses, year by year',
-            }),
-        ).toHaveAttribute('href', '/cards/health_event/4/payments');
     });
 
     it('opens It arrived on the salary coming in, for whoever can record it', () => {

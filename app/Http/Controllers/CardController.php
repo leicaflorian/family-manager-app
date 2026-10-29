@@ -98,13 +98,13 @@ final class CardController extends Controller
     }
 
     /**
-     * *A card*: its detail and, for *Link a document*, a page of the documents
+     * *A card*: its detail, with the page of its documents in `documents_page`, and, for *Link a document*, a page of the documents
      * of the family not yet linked to it, found with `link_search`.
      */
     public function show(Request $request, string $type, string $id, #[CurrentUser] User $user): Response
     {
         $card = CardTypes::findOrFail($type)->findOrFail($id);
-        $detail = $this->details->of($card, $user);
+        $detail = $this->details->of($card, $user, documentsPage: max(1, $request->integer('documents_page')));
 
         return Inertia::render('cards/Card', [
             'card' => $detail,

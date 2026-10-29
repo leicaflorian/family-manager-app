@@ -380,12 +380,27 @@ describe('A card', () => {
             ).toEqual([
                 'To pay',
                 'Data',
-                'Expected expenses',
-                'Bills paid',
                 'Linked to',
                 'Documents',
+                'Expected expenses',
+                'Bills paid',
             ]);
             expect(screen.getByText('9 bills')).toBeInTheDocument();
+        });
+
+        it('shows the pages of the documents, 10 at a time', () => {
+            renderPage(Card, {
+                card: {
+                    ...luceDetail,
+                    documents_next: '/cards/utility/3?documents_page=2',
+                },
+                linkable: [],
+            });
+
+            expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute(
+                'href',
+                '/cards/utility/3?documents_page=2',
+            );
         });
 
         it('adds a planned expense already linked to the card', () => {

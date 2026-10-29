@@ -452,6 +452,8 @@ export const policyDetail: App.Data.CardDetailData = {
     can_edit: true,
     can_delete: true,
     can_delete_documents: true,
+    documents_previous: null,
+    documents_next: null,
     budget: null,
 };
 

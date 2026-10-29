@@ -55,6 +55,15 @@ test('the card types carry the name of their area in the current language', func
         ->where('types.0.area_label', 'Vehicles'));
 });
 
+test('the card types carry their name in the plural, for the groups of an area', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('areas.show', 'home'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('Area')
+        ->where('types.0.plural_label', 'Residences')
+        ->where('types.1.plural_label', 'Utilities'));
+});
+
 test('it lets only an admin create, edit and delete', function (): void {
     $this->actingAs($this->rosa);
 
@@ -487,4 +496,29 @@ it('works out the figures of a saved loan with its saved last date and status, a
     // The count is left out: the saved last date (05/12/2026) gives it back
     loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), ['total_amount' => '1100', 'installment_amount' => '100', 'start_date' => '2026-01-05'])
         ->assertJsonPath('props.loanFigures.total_to_pay', 1200);
+});
+
+test('a card shows its documents 10 at a time, with the addresses of the other pages', function (): void {
+    $this->actingAs($this->marco);
+    $linked = insideBianchi(fn (): int => DB::table('documentables')->where(['documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id])->count());
+    Document::factory()->for($this->marco->family)->count(12 - $linked)->create()
+        ->each(fn (Document $document): bool => DB::table('documentables')->insert(['document_id' => $document->id, 'documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id]));
+
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('card.documents', 10)
+        ->where('card.documents_previous', null)
+        ->where('card.documents_next', route('cards.show', [...$this->pandaUrl, 'documents_page' => 2])));
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('card.documents', 2)
+        ->where('card.documents_previous', route('cards.show', $this->pandaUrl))
+        ->where('card.documents_next', null));
+});
+
+test('a page of documents past the last one shows the first', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 5]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('card.documents.0.title', 'Polizza RC auto 2026')
+        ->where('card.documents_previous', null));
 });

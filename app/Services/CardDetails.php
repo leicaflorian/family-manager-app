@@ -15,6 +15,7 @@ use App\Data\CardDetailData;
 use App\Data\CardFieldData;
 use App\Data\CardTypeData;
 use App\Data\CardValueData;
+use App\Data\DocumentData;
 use App\Data\OptionData;
 use App\Models\Document;
 use App\Models\Organization;
@@ -41,6 +42,9 @@ use LogicException;
  */
 final readonly class CardDetails
 {
+    /** How many documents a page of the card shows. */
+    private const int DOCUMENTS_PER_PAGE = 10;
+
     public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets) {}
 
     /**
@@ -49,14 +53,16 @@ final readonly class CardDetails
      * @param  Model  $card  a record of one of the 13 models
      * @param  User  $user  whoever looks at the card
      * @param  CarbonImmutable|null  $today  today in Rome, the clock's if missing
+     * @param  int  $documentsPage  the page of the documents, from 1; past the last one it is the first
      *
      * @throws InvalidArgumentException if the record is not a card
      */
-    public function of(Model $card, User $user, ?CarbonImmutable $today = null): CardDetailData
+    public function of(Model $card, User $user, ?CarbonImmutable $today = null, int $documentsPage = 1): CardDetailData
     {
         $today ??= CarbonImmutable::today('Europe/Rome');
         $type = CardTypes::for($card);
         $row = $this->summaries->row($card, $today);
+        $documents = $this->documentsPage($type, $row, $documentsPage);
 
         return new CardDetailData(
             card: $row,
@@ -66,7 +72,9 @@ final readonly class CardDetails
             values: $this->values($type, $card),
             related: $this->related($type, $card),
             addable: CardTypes::canCreate($user) ? $this->addable($type, $card) : [],
-            documents: $this->documents->of(['record' => ['type' => $type->type(), 'id' => $row->id]]),
+            documents: $documents['documents'],
+            documents_previous: $documents['previous'],
+            documents_next: $documents['next'],
             can_edit: Gate::forUser($user)->allows('update', $card),
             can_delete: Gate::forUser($user)->allows('delete', $card),
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
@@ -427,6 +435,39 @@ final readonly class CardDetails
         $text = __($key);
 
         return is_string($text) ? $text : $key;
+    }
+
+    /**
+     * A page of the documents of the card, with the addresses of the pages
+     * before and after it. A page past the last one (the last document of the
+     * page just unlinked) gives the first.
+     *
+     * @param  CardType  $type  the description of the card type
+     * @param  CardData  $row  the row of the card
+     * @param  int  $page  the page asked for, from 1
+     * @return array{documents: list<DocumentData>, previous: ?string, next: ?string}
+     */
+    private function documentsPage(CardType $type, CardData $row, int $page): array
+    {
+        $filters = ['record' => ['type' => $type->type(), 'id' => $row->id]];
+        $found = $this->documents->page($filters, $page, self::DOCUMENTS_PER_PAGE);
+
+        if ($found['documents'] === [] && $page > 1) {
+            $page = 1;
+            $found = $this->documents->page($filters, $page, self::DOCUMENTS_PER_PAGE);
+        }
+
+        $address = static fn (int $number): string => route('cards.show', [
+            'type' => $type->type(),
+            'id' => $row->id,
+            ...($number > 1 ? ['documents_page' => $number] : []),
+        ]);
+
+        return [
+            'documents' => $found['documents'],
+            'previous' => $page > 1 ? $address($page - 1) : null,
+            'next' => $found['next'] !== null ? $address($found['next']) : null,
+        ];
     }
 
     /**
