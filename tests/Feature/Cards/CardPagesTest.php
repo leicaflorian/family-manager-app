@@ -420,6 +420,18 @@ it('works out the totals of a loan from the values of the form', function (): vo
         ->assertJsonPath('props.loanFigures.cost', 40);
 });
 
+it('works out only the loan figures when the form asks for them again', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::query()->firstOrFail());
+    DB::enableQueryLog();
+
+    $response = loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), ['total_amount' => '1100'])->assertOk();
+
+    $tables = array_map(static fn (array $query): string => $query['query'], DB::getQueryLog());
+    expect(array_keys($response->json('props')))->not->toContain('budget', 'documents', 'fields', 'values', 'type')
+        ->and(array_filter($tables, static fn (string $query): bool => (bool) preg_match('/from `(expenses|incomes|expense_categories)`/', $query)))->toBe([]);
+});
+
 it('answers null figures when the form of a loan is not complete', function (): void {
     $this->actingAs($this->marco);
 

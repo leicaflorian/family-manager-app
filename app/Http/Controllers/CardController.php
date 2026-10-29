@@ -10,6 +10,8 @@ use App\Actions\Cards\SaveCard;
 use App\Actions\Loans\RefreshLoan;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Data\CardBudgetData;
+use App\Data\CardTypeData;
 use App\Data\LoanFiguresData;
 use App\Enums\Area;
 use App\Http\Requests\Cards\SaveCardRequest;
@@ -122,14 +124,21 @@ final class CardController extends Controller
         Gate::authorize('update', $card);
 
         $row = $this->summaries->row($card);
+        // Closures, so that the reload of `loanFigures` while the person types does not work these out again
+        $worked = null;
+        $form = function () use (&$worked, $description, $card): array {
+            return $worked ??= $this->details->form($description, $card, []);
+        };
 
         return Inertia::render('cards/EditCard', [
-            ...$this->details->form($description, $card, []),
+            'type' => fn (): CardTypeData => $form()['type'],
+            'fields' => fn (): array => $form()['fields'],
+            'values' => fn (): array => $form()['values'],
             ...$this->loanFigures($request, $description, $card),
             'card' => $row,
-            'documents' => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
+            'documents' => fn (): array => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
             'canDeleteDocuments' => $user->can('deleteAny', Document::class),
-            'budget' => $this->budgets->of($card, $user, CarbonImmutable::today('Europe/Rome')),
+            'budget' => fn (): ?CardBudgetData => $this->budgets->of($card, $user, CarbonImmutable::today('Europe/Rome')),
             ...$this->linkable($request, ['not_record' => ['type' => $description->type(), 'id' => $row->id]]),
         ]);
     }
