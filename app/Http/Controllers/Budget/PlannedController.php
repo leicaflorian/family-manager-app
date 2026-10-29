@@ -43,7 +43,7 @@ final class PlannedController extends Controller
     }
 
     /**
-     * *New planned expense*: the empty form, or filled in from the card of `?card=type:id`.
+     * *New planned expense*: the empty form, or filled in from the card of `?card=type:id` (for an income, its employment).
      *
      * @throws NotFoundHttpException if the kind is not `expense` or `income`
      */
@@ -51,8 +51,8 @@ final class PlannedController extends Controller
     {
         Gate::authorize('create', PlannedKind::modelClass($kind));
 
-        // Only an expense comes from a card; the card of an income is its employment
-        $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card')) : [];
+        // The card of an income is its employment
+        $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card')) : PlannedPreset::incomeFromQuery($request->query('card'));
 
         return $this->form($kind, null, [...PlannedPreset::defaults($kind), ...$preset]);
     }

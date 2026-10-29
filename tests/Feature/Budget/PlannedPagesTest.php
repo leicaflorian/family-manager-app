@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Models\Employment;
 use App\Models\Enrollment;
 use App\Models\Family;
 use App\Models\InsurancePolicy;
@@ -12,8 +13,8 @@ use App\Models\PlannedIncome;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
+use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
-use Closure;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\App;
@@ -257,4 +258,30 @@ it('does not give the form to a member', function (): void {
     $this->actingAs($this->rosa)
         ->get('/budget/planned')
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('canEdit', false));
+});
+
+it('links a new planned income to the employment of the card', function (): void {
+    $job = insideBianchi(fn (): Employment => Employment::query()->whereRelation('organization', 'name', 'Studio Rinaldi')->sole());
+
+    $this->actingAs($this->marco)
+        ->get("/budget/planned/income/create?card=employment:{$job->id}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('budget/EditPlanned')
+            ->where('kind', 'income')
+            ->where('values.employment_id', (string) $job->id)
+            ->where('values.person_id', (string) $job->person_id)
+            ->where('values.organization_id', (string) $job->organization_id)
+            ->where('values.type', 'salary'));
+});
+
+it('never presets a new planned income with an employment of another family', function (): void {
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    $theirs = CurrentFamily::using($rossi->family_id, fn (): int => Employment::factory()->create(['family_id' => $rossi->family_id])->id);
+
+    // As for an expense, a card of another family is ignored, not echoed
+    $this->actingAs($this->marco)
+        ->get("/budget/planned/income/create?card=employment:{$theirs}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('values.employment_id', null)
+            ->where('values.person_id', null));
 });

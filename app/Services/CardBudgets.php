@@ -196,11 +196,16 @@ final readonly class CardBudgets
 
     /**
      * A policy: the renewal at the top, the premium, the planned expenses and the premiums paid.
+     *
+     * @param  InsurancePolicy  $policy  the policy
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function policy(InsurancePolicy $policy, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('insurance_policy_id', $policy->id));
-        $first = $planned[0] ?? null;
+        $first = $this->running($planned, $today);
 
         return $this->budget($planned, $user, $today,
             nextLabel: __('Renewal'),
@@ -213,11 +218,16 @@ final readonly class CardBudgets
 
     /**
      * A utility: what is planned and what was paid this year, the bills to pay, the planned expenses and the bills paid.
+     *
+     * @param  Utility  $utility  the utility
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function utility(Utility $utility, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('utility_id', $utility->id));
-        $first = $planned[0] ?? null;
+        $first = $this->running($planned, $today);
         $numbers = fn (array $found, array $payments): array => [
             ...($first === null ? [] : [new CardNumberData(__('Planned'), $this->amountOf($first), hint: $this->perUnit($first))]),
             ...$this->paidIn($utility, $payments, $today->year, $this->paidLabel($utility, $today->year)),
@@ -236,11 +246,16 @@ final readonly class CardBudgets
     /**
      * A loan: the next instalment with its number, the instalment, the total and the cost, and the instalments paid.
      * Its planned expense is made by the loan itself, so it is not listed.
+     *
+     * @param  Loan  $loan  the loan
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function loan(Loan $loan, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('loan_id', $loan->id));
-        $first = $planned[0] ?? null;
+        $first = $this->running($planned, $today);
         $total = $loan->total_to_pay === null ? null : round((float) $loan->total_to_pay, 2);
         $left = $loan->residual_amount === null ? null : round((float) $loan->residual_amount, 2);
         $installment = $loan->installment_amount ?? $first?->amount;
@@ -271,15 +286,19 @@ final readonly class CardBudgets
 
     /**
      * A subscription: the first (or next) payment, the fee and what it comes to in a year, the planned expenses and the payments.
+     *
+     * @param  Subscription  $subscription  the subscription
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function subscription(Subscription $subscription, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('subscription_id', $subscription->id));
-        $first = $planned[0] ?? null;
-        $paid = Expense::query()->whereIn('planned_expense_id', array_map(static fn (PlannedExpense $item): int => $item->id, $planned))->exists();
+        $first = $this->running($planned, $today);
 
         return $this->budget($planned, $user, $today,
-            nextLabel: $paid ? __('Next payment') : __('First payment'),
+            nextLabel: fn (array $payments): string => $payments === [] ? __('First payment') : __('Next payment'),
             numbers: fn (array $found): array => $first === null ? [] : [
                 new CardNumberData(__('Subscription fee'), $this->amountOf($first), hint: $this->every($first, withDay: false)),
                 $this->inYear($found, $today, __('In a year'), fn (int $count): string => trans_choice('{1} :count renewal|[2,*] :count renewals', $count)),
@@ -293,11 +312,16 @@ final readonly class CardBudgets
     /**
      * An enrollment: the next due date, the fee and the fees of the school year (September to August), the planned
      * expenses and the payments.
+     *
+     * @param  Enrollment  $enrollment  the enrollment
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function enrollment(Enrollment $enrollment, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('enrollment_id', $enrollment->id));
-        $first = $planned[0] ?? null;
+        $first = $this->running($planned, $today);
         $start = $today->setDate($today->month >= 9 ? $today->year : $today->year - 1, 9, 1)->startOfDay();
         $end = $start->addYear()->subDay()->toDateString();
 
@@ -324,13 +348,19 @@ final readonly class CardBudgets
     /**
      * An employment: the salary coming in, the salary and the salaries of this year, the planned incomes and the
      * salaries received.
+     *
+     * @param  Employment  $employment  the employment
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function employment(Employment $employment, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = array_values(PlannedIncome::query()->where('employment_id', $employment->id)->oldest('start_date')->orderBy('id')->get()->all());
-        $first = $planned[0] ?? null;
+        $first = $this->running($planned, $today);
 
         return $this->budget($planned, $user, $today,
+            kind: 'income',
             nextLabel: __('Arriving'),
             numbers: fn (array $found, array $payments): array => [
                 ...($first === null ? [] : [new CardNumberData(__('Salary'), $this->amountOf($first), hint: $this->every($first, withDay: true))]),
@@ -344,6 +374,11 @@ final readonly class CardBudgets
 
     /**
      * A vehicle: the next due date and what it costs in the next 12 months, with the ones of its policies.
+     *
+     * @param  Vehicle  $vehicle  the vehicle
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function vehicle(Vehicle $vehicle, User $user, CarbonImmutable $today): CardBudgetData
     {
@@ -359,6 +394,11 @@ final readonly class CardBudgets
     /**
      * A home: what it costs in the next 12 months with its utilities, its utilities and the next due dates. A planned
      * expense has no belonging or maintenance job, so only the ones of the home and of its utilities count.
+     *
+     * @param  Home  $home  the home
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function home(Home $home, User $user, CarbonImmutable $today): CardBudgetData
     {
@@ -380,6 +420,11 @@ final readonly class CardBudgets
     /**
      * An account or card: the income and the spending of this month with it, and the due dates of the next 30 days
      * paid from it. A planned expense without an account is paid from the default one.
+     *
+     * @param  FinancialAccount  $account  the account or card
+     * @param  User  $user  whoever looks at the card, for the permissions
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its payments
      */
     private function account(FinancialAccount $account, User $user, CarbonImmutable $today): CardBudgetData
     {
@@ -417,7 +462,9 @@ final readonly class CardBudgets
      * @param  list<PlannedExpense|PlannedIncome>  $planned  the planned items of the card
      * @param  User  $user  whoever looks at the card
      * @param  CarbonImmutable  $today  today in Rome
-     * @param  string  $nextLabel  the name of the box at the top; empty for no box
+     * @param  string  $kind  `expense`, or `income` for an employment: what its planned items are, even when it has none
+     * @param  string|callable(list<PaymentYearData>): string  $nextLabel  the name of the box at the top, or picks it
+     *                                                                     from the payments; empty for no box
      * @param  list<CardNumberData>|callable(list<Deadline>, list<PaymentYearData>): list<CardNumberData>  $numbers  the figures
      * @param  string|null  $dueLabel  the title of the open due dates; null for no list
      * @param  callable(list<Deadline>): list<Deadline>|null  $due  picks the open due dates to list
@@ -425,12 +472,14 @@ final readonly class CardBudgets
      * @param  string|null  $paymentsLabel  the title of the payments; null for no section
      * @param  string  $paymentsMore  the link to all the payments
      * @param  array{count: ?int, paid: ?int, paid_amount: ?float, left_amount: ?float}|null  $loan  the figures of a loan
+     * @return CardBudgetData the payments of the card
      */
     private function budget(
         array $planned,
         User $user,
         CarbonImmutable $today,
-        string $nextLabel = '',
+        string $kind = 'expense',
+        string|callable $nextLabel = '',
         array|callable $numbers = [],
         ?string $dueLabel = null,
         ?callable $due = null,
@@ -441,13 +490,14 @@ final readonly class CardBudgets
     ): CardBudgetData {
         $found = $this->deadlines->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addMonthsNoOverflow(self::MONTHS_AHEAD));
         $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid()));
-        $next = $nextLabel === '' ? null : ($open[0] ?? null);
         $payments = $paymentsLabel === null ? [] : $this->summaries->paymentsByYear($planned, $user);
-        $income = ($planned[0] ?? null) instanceof PlannedIncome;
+        $nextLabel = is_callable($nextLabel) ? $nextLabel($payments) : $nextLabel;
+        $next = $nextLabel === '' ? null : ($open[0] ?? null);
+        $income = $kind === 'income';
         $data = static fn (Deadline $deadline): DeadlineData => DeadlineData::fromDeadline($deadline, $today);
 
         return new CardBudgetData(
-            kind: $income ? 'income' : 'expense',
+            kind: $kind,
             next: $next === null ? null : $data($next),
             next_label: $nextLabel,
             installment_number: $loan === null || ! $next instanceof Deadline || $next->planned->start_date === null ? null
@@ -468,6 +518,22 @@ final readonly class CardBudgets
             pay: $paymentsLabel === null ? [] : array_map($data, $this->firstOpenOfEach($planned, $open)),
             can_pay: $paymentsLabel !== null && $planned !== [] && $user->can('create', $income ? Income::class : Expense::class),
         );
+    }
+
+    /**
+     * The planned item the figures of a card read: the one still running (not ended) that started last, else the one
+     * that started last.
+     *
+     * @param  list<PlannedExpense|PlannedIncome>  $planned  the planned items, oldest first
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return PlannedExpense|PlannedIncome|null null when the card has no planned item
+     */
+    private function running(array $planned, CarbonImmutable $today): PlannedExpense|PlannedIncome|null
+    {
+        $day = $today->toDateString();
+        $running = array_filter($planned, static fn (PlannedExpense|PlannedIncome $item): bool => $item->end_date === null || $item->end_date->toDateString() >= $day);
+
+        return array_last($running) ?? array_last($planned);
     }
 
     /**
@@ -593,6 +659,9 @@ final readonly class CardBudgets
 
     /**
      * The amount of every due date of a planned item.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item
+     * @return float the amount, rounded to the cent
      */
     private function amountOf(PlannedExpense|PlannedIncome $planned): float
     {
@@ -644,6 +713,9 @@ final readonly class CardBudgets
 
     /**
      * The day of a planned item that happens once.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item
+     * @return string for example «once, on 21/11/2026»
      */
     private function once(PlannedExpense|PlannedIncome $planned): string
     {

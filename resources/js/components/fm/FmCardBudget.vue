@@ -2,7 +2,8 @@
 /**
  * The payments on the page of a card, as the boards of the cards draw them:
  * in the box at the top the oldest open due date (the renewal of a policy, the
- * next instalment of a loan, the salary coming in), which opens *A due date*;
+ * next instalment of a loan, the salary coming in), which opens *A due date*
+ * (with *It arrived* open on a salary);
  * the figures, beside the dates of the card (`tiles`); how far a loan is paid;
  * the open due dates; then the data of the card (the default slot) and the
  * planned expenses with their payments. A card without payments (a belonging)
@@ -39,6 +40,19 @@ const { date, euro } = useFormat();
 
 /** The due date of the box at the top. */
 const next = computed(() => budget?.next ?? null);
+
+/** Where the box leads: *A due date*, with *It arrived* open on an income for whoever can record it. */
+const nextUrl = computed((): string => {
+    if (next.value === null) {
+        return '';
+    }
+
+    const url = deadlineUrls(next.value).show;
+
+    return next.value.kind === 'income' && budget?.can_pay
+        ? `${url}?pay=1`
+        : url;
+});
 
 /** The title of the box: the number of the instalment of a loan, else the title of the due date. */
 const nextTitle = computed((): string => {
@@ -107,7 +121,7 @@ const nextLineClass = computed((): string =>
 <template>
     <Link
         v-if="budget && next"
-        :href="deadlineUrls(next).show"
+        :href="nextUrl"
         class="flex flex-col gap-1 rounded-2xl bg-white p-4 text-ink no-underline hover:bg-white/80"
     >
         <span class="text-[13px] font-semibold text-ink-soft">{{

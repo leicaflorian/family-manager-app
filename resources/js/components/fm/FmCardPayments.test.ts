@@ -93,7 +93,7 @@ describe('FmCardPayments', () => {
 
         expect(screen.getByRole('link', { name: 'Add' })).toHaveAttribute(
             'href',
-            '/budget/planned/income/create',
+            '/budget/planned/income/create?card=employment%3A3',
         );
         expect(
             screen.getByRole('link', { name: 'Record income' }),
@@ -111,5 +111,45 @@ describe('FmCardPayments', () => {
         });
 
         expect(screen.queryByRole('region')).not.toBeInTheDocument();
+    });
+
+    it('asks a job without a planned income to create it first', () => {
+        renderPage(FmCardPayments, {
+            budget: {
+                ...luceBudget,
+                kind: 'income',
+                planned_label: 'Expected income',
+                planned: [],
+                payments_label: 'Salaries received',
+                payments: [],
+                pay: [],
+                can_pay: false,
+            },
+            card: { type: 'employment', id: 3 },
+        });
+
+        expect(
+            screen.getByText('Create the planned income first.'),
+        ).toBeInTheDocument();
+    });
+
+    it('does not ask a loan to create its planned expense, which is automatic', () => {
+        renderPage(FmCardPayments, {
+            budget: {
+                ...luceBudget,
+                planned_label: null,
+                planned: [],
+                payments_label: 'Instalments paid',
+                payments: [],
+                pay: [],
+                can_pay: false,
+            },
+            card: { type: 'loan', id: 2 },
+        });
+
+        expect(
+            screen.queryByText('Create the planned expense first.'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('No payments recorded.')).toBeInTheDocument();
     });
 });

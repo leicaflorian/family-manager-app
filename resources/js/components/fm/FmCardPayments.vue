@@ -4,7 +4,9 @@
  * boards of the cards and the column beside *Edit card* show them: the rows of
  * the planned items, which open *A planned expense*, with *Add* for an
  * `admin`; then the latest payments with *Record payment* and the link to all
- * of them, year by year. Without a planned item it says to create it first.
+ * of them, year by year. Without a planned item it says to create it first,
+ * unless the card has no planned items of its own (a loan makes its instalment
+ * by itself).
  */
 import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
@@ -30,14 +32,12 @@ const LATEST = 2;
 /** Whether the planned items are incomes, as the ones of an employment. */
 const income = computed(() => budget.kind === 'income');
 
-/** *Add*: the form of a new planned item, already linked to the card (an income takes its employment by itself). */
+/** *Add*: the form of a new planned item, already linked to the card (an income to its employment). */
 const addUrl = computed(
     () =>
         create(
-            {
-                kind: budget.kind,
-            },
-            income.value ? {} : { query: { card: `${card.type}:${card.id}` } },
+            { kind: budget.kind },
+            { query: { card: `${card.type}:${card.id}` } },
         ).url,
 );
 </script>
@@ -73,7 +73,9 @@ const addUrl = computed(
             </template>
             <p
                 v-if="
-                    budget.planned.length === 0 && budget.payments.length === 0
+                    budget.planned_label &&
+                    budget.planned.length === 0 &&
+                    budget.payments.length === 0
                 "
                 class="m-0 px-4 py-3 text-[15px] text-ink-soft"
             >

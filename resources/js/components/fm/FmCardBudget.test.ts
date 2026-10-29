@@ -8,7 +8,7 @@ import {
     beforeEach,
 } from 'vite-plus/test';
 import { h } from 'vue';
-import { luceBudget, policyBudget } from '@/test/fixtures';
+import { luceBudget, policyBudget, salaryDeadline } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import FmCardBudget from './FmCardBudget.vue';
 
@@ -20,6 +20,16 @@ beforeEach(() => {
 afterEach(() => {
     vi.useRealTimers();
 });
+
+/** The payments of the job of Marco, with the salary of October coming in. */
+const budgetSalary: App.Data.CardBudgetData = {
+    ...luceBudget,
+    kind: 'income',
+    next: salaryDeadline,
+    next_label: 'Arriving',
+    due_label: null,
+    due: [],
+};
 
 describe('FmCardBudget', () => {
     it('shows the figures, the bills to pay, the data in between, the planned expenses and the bills paid, in this order', () => {
@@ -135,5 +145,30 @@ describe('FmCardBudget', () => {
                 .getAllByRole('heading', { level: 2 })
                 .map((h2) => h2.textContent),
         ).toEqual(['Data']);
+    });
+
+    it('opens It arrived on the salary coming in, for whoever can record it', () => {
+        const salary = {
+            ...budgetSalary,
+        };
+        const first = renderPage(FmCardBudget, {
+            budget: salary,
+            card: { type: 'employment', id: 3 },
+        });
+
+        expect(screen.getByRole('link', { name: /Arriving/ })).toHaveAttribute(
+            'href',
+            '/budget/planned/income/2/occurrences/2026-10-27?pay=1',
+        );
+        first.unmount();
+
+        renderPage(FmCardBudget, {
+            budget: { ...salary, can_pay: false },
+            card: { type: 'employment', id: 3 },
+        });
+        expect(screen.getByRole('link', { name: /Arriving/ })).toHaveAttribute(
+            'href',
+            '/budget/planned/income/2/occurrences/2026-10-27',
+        );
     });
 });

@@ -7,6 +7,7 @@ namespace App\Support;
 use App\Cards\CardTypes;
 use App\Enums\EnrollmentType;
 use App\Enums\InsurancePolicyType;
+use App\Models\Employment;
 use App\Models\Enrollment;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
@@ -16,6 +17,7 @@ use App\Models\Subscription;
 use App\Models\Utility;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use InvalidArgumentException;
 
 /**
@@ -100,6 +102,32 @@ final class PlannedPreset
             'category_id' => $planned->category_id,
             'card' => $card instanceof Model ? CardTypes::for($card)->type().':'.ModelId::of($card) : null,
         ]);
+    }
+
+    /**
+     * The starting values of a new planned income that comes from the employment of `?card=employment:id`: the
+     * employment, its person and its employer.
+     *
+     * @param  mixed  $link  the `card` of the query
+     * @return array<string, mixed> nothing when the text is not an employment
+     *
+     * @throws ModelNotFoundException if the family has no such employment (Laravel answers 404)
+     */
+    public static function incomeFromQuery(mixed $link): array
+    {
+        $card = PresetLink::from($link);
+
+        if ($card === null || $card['type'] !== 'employment') {
+            return [];
+        }
+
+        $employment = Employment::query()->findOrFail($card['id']);
+
+        return self::asText(array_filter([
+            'employment_id' => $employment->id,
+            'person_id' => $employment->person_id,
+            'organization_id' => $employment->organization_id,
+        ], static fn (?int $value): bool => $value !== null));
     }
 
     /**

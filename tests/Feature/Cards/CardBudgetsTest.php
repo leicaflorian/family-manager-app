@@ -9,11 +9,13 @@ use App\Data\PlannedRowData;
 use App\Enums\Role;
 use App\Models\Belonging;
 use App\Models\Employment;
+use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\Subscription;
 use App\Models\User;
@@ -289,4 +291,49 @@ it('sends the payments with the card and with its form', function (): void {
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('budget.planned.0.title', 'Luce')
             ->where('budget.payments.0.year', 2026));
+});
+
+it('offers incomes on a job without a planned income', function (): void {
+    $job = fn (): Employment => Employment::query()->create(['person_id' => Person::query()->where('first_name', 'Laura')->sole()->id, 'job_title' => 'Consulente']);
+    $budget = budgetOf($job);
+    assert($budget instanceof CardBudgetData);
+    $rosa = User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]);
+    $member = budgetOf(fn (): Employment => Employment::query()->where('job_title', 'Consulente')->sole(), $rosa);
+    assert($member instanceof CardBudgetData);
+
+    expect($budget->kind)->toBe('income')
+        ->and($budget->planned_label)->toBe('Expected income')
+        ->and($budget->planned)->toBe([])
+        ->and($budget->can_add_planned)->toBeTrue()
+        ->and($budget->can_pay)->toBeFalse()
+        ->and($member->kind)->toBe('income')
+        ->and($member->can_add_planned)->toBeFalse();
+});
+
+it('reads the figures from the planned item still running', function (): void {
+    insideBianchi(function (): void {
+        $policy = InsurancePolicy::query()->sole();
+        PlannedExpense::query()->where('insurance_policy_id', $policy->id)->update(['end_date' => '2026-01-01']);
+        PlannedExpense::query()->create(['title' => 'Assicurazione auto 2026', 'amount' => 450, 'start_date' => '2026-11-21', 'interval_unit' => 'year', 'insurance_policy_id' => $policy->id]);
+    });
+
+    $budget = budgetOf(fn (): InsurancePolicy => InsurancePolicy::query()->sole());
+    assert($budget instanceof CardBudgetData);
+
+    expect(budgetNumber($budget, 'Premium')->amount)->toBe(450.0);
+});
+
+it('calls the box of a subscription paid at least once the next payment', function (): void {
+    $budget = budgetOf(fn (): Subscription => Subscription::query()->where('name', 'Netflix')->sole());
+    assert($budget instanceof CardBudgetData);
+    expect($budget->next_label)->toBe('First payment');
+
+    insideBianchi(function (): void {
+        $netflix = PlannedExpense::query()->where('title', 'Netflix')->sole();
+        Expense::query()->create(['title' => 'Netflix', 'amount' => 13.99, 'date' => '2026-10-20', 'planned_expense_id' => $netflix->id, 'occurrence_date' => '2026-11-04']);
+    });
+    $paid = budgetOf(fn (): Subscription => Subscription::query()->where('name', 'Netflix')->sole());
+    assert($paid instanceof CardBudgetData);
+
+    expect($paid->next_label)->toBe('Next payment');
 });
