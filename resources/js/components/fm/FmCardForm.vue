@@ -5,22 +5,29 @@
  * a field shows only when its `show_when` holds, for example the vehicle only
  * for a car policy, and its label can change with `label_when`, for example
  * the POD code of electricity that is a PDR code for gas. A hidden field is
- * sent empty. The same form creates and
+ * sent empty. For a loan the page also gives `loanFigures`: under the instalment
+ * the form shows the total to pay and the cost, which it asks the server for
+ * (a partial reload) 300 ms after the amounts or the start stop changing. The same form creates and
  * edits every type of card: the page gives the fields and the values, and gets
  * them back with `submit`.
  */
+import type { RequestPayload } from '@inertiajs/core';
+import { router } from '@inertiajs/vue3';
+import { watchDebounced } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
 import { isEmpty } from '@/lib/forms';
 import FmButton from './FmButton.vue';
+import FmLoanFigures from './FmLoanFigures.vue';
 
 const {
     fields,
     values,
     serverErrors = {},
     processing = false,
+    loanFigures = undefined,
 } = defineProps<{
     /** The description of the fields, in the order they are shown. */
     fields: App.Data.CardFieldData[];
@@ -30,6 +37,8 @@ const {
     serverErrors?: Partial<Record<string, string>>;
     /** The form is being sent: the button waits. */
     processing?: boolean;
+    /** The total to pay and the cost of a loan: null until the server answers, left out for any other card. */
+    loanFigures?: App.Data.LoanFiguresData | null;
 }>();
 
 const emit = defineEmits<{
@@ -84,6 +93,41 @@ const data = reactive<Record<string, unknown>>(
     Object.fromEntries(
         fields.map((field) => [field.column, startValue(field)]),
     ),
+);
+
+/** The columns of a loan that its total to pay and cost follow. */
+const LOAN_COLUMNS = [
+    'total_amount',
+    'installments_count',
+    'installment_amount',
+    'final_installment_amount',
+    'start_date',
+];
+
+/** The column of the field the figures of a loan are written under. */
+const FIGURES_AFTER = 'installment_amount';
+
+// The address stays that of the page, so a reload does not leave the form
+watchDebounced(
+    () => LOAN_COLUMNS.map((column) => data[column]),
+    () => {
+        if (loanFigures === undefined) {
+            return;
+        }
+
+        router.reload({
+            only: ['loanFigures'],
+            data: {
+                figures: Object.fromEntries(
+                    LOAN_COLUMNS.filter((column) => !isEmpty(data[column])).map(
+                        (column) => [column, data[column]],
+                    ),
+                ),
+            } as RequestPayload,
+            preserveUrl: true,
+        });
+    },
+    { debounce: 300 },
 );
 
 /** What the person tried to save with something missing: the errors found. */
@@ -190,6 +234,12 @@ useSaveShortcut(save, () => !processing);
                 :errors="
                     errors(missing[field.column] ?? serverErrors[field.column])
                 "
+            />
+            <FmLoanFigures
+                v-if="
+                    loanFigures !== undefined && field.column === FIGURES_AFTER
+                "
+                :figures="loanFigures"
             />
         </template>
         <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">

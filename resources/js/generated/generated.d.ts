@@ -240,6 +240,10 @@ readonly type: string,
 readonly label: string,
 readonly options: App.Data.OptionData[],
 };
+export type LoanFiguresData = {
+readonly total_to_pay: number | null,
+readonly cost: number | null,
+};
 export type MonthBarData = {
 readonly month: string,
 readonly spent: number,

@@ -1,9 +1,10 @@
 import userEvent from '@testing-library/user-event';
 import { plugin as formkit } from '@formkit/vue';
-import { render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { fireEvent, render, screen } from '@testing-library/vue';
+import { router } from '@inertiajs/vue3';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import formkitConfig from '@/formkit.config';
-import { policyFields, utilityFields } from '@/test/fixtures';
+import { loanFields, policyFields, utilityFields } from '@/test/fixtures';
 import { choose, openMenu, renderPage, settle, shown } from '@/test/page';
 import FmCardForm from './FmCardForm.vue';
 
@@ -163,5 +164,86 @@ describe('FmCardForm', () => {
         expect(view.emitted('submit')?.[0]).toEqual([
             { title: 'Casa al mare', is_owned: false },
         ]);
+    });
+
+    describe('with the figures of a loan', () => {
+        afterEach(() => {
+            vi.useRealTimers();
+            vi.restoreAllMocks();
+        });
+
+        const loanValues = {
+            name: 'Finanziamento TV',
+            total_amount: '1100',
+            installments_count: 12,
+            installment_amount: 100,
+            final_installment_amount: null,
+            start_date: '2026-01-05',
+        };
+
+        it('asks the server for the figures once, after a pause in the typing', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            renderPage(FmCardForm, {
+                fields: loanFields,
+                values: loanValues,
+                loanFigures: null,
+            });
+
+            await fireEvent.update(screen.getByLabelText('Instalment'), '10');
+            await vi.advanceTimersByTimeAsync(200);
+            await fireEvent.update(screen.getByLabelText('Instalment'), '105');
+            expect(reload).not.toHaveBeenCalled();
+
+            await vi.advanceTimersByTimeAsync(400);
+
+            expect(reload).toHaveBeenCalledTimes(1);
+            expect(reload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    only: ['loanFigures'],
+                    preserveUrl: true,
+                    data: {
+                        figures: expect.objectContaining({
+                            total_amount: '1100',
+                            installments_count: 12,
+                            installment_amount: '105',
+                            start_date: '2026-01-05',
+                        }),
+                    },
+                }),
+            );
+        });
+
+        it('writes the figures that arrived under the instalment', () => {
+            renderPage(FmCardForm, {
+                fields: loanFields,
+                values: loanValues,
+                loanFigures: { total_to_pay: 1200, cost: 100 },
+            });
+
+            expect(screen.getByText('1.200,00 €')).toBeInTheDocument();
+            expect(screen.getByText('100,00 €')).toBeInTheDocument();
+        });
+
+        it('does not ask for figures from a card that is not a loan', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            const user = userEvent.setup({
+                advanceTimers: vi.advanceTimersByTime,
+            });
+            renderPage(FmCardForm, { fields: policyFields, values });
+
+            await user.type(screen.getByLabelText('Title'), 'x');
+            await vi.advanceTimersByTimeAsync(400);
+
+            expect(reload).not.toHaveBeenCalled();
+            expect(
+                screen.queryByTestId('loan-figures'),
+            ).not.toBeInTheDocument();
+        });
     });
 });

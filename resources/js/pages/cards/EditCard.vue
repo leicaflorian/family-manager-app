@@ -37,6 +37,7 @@ const {
     linkableSearch = '',
     hasLinkable = false,
     budget = null,
+    loanFigures = null,
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -60,6 +61,8 @@ const {
     hasLinkable?: boolean;
     /** The planned expenses and the payments of the card to change; none for a new one. */
     budget?: App.Data.CardBudgetData | null;
+    /** The total to pay and the cost of a loan, asked for while the person types; only a loan gets them. */
+    loanFigures?: App.Data.LoanFiguresData | null;
 }>();
 
 /** The form is being sent. */
@@ -178,6 +181,9 @@ function save(data: Record<string, unknown>): void {
                     :values="values"
                     :server-errors="serverErrors"
                     :processing="processing"
+                    :loan-figures="
+                        type.type === 'loan' ? loanFigures : undefined
+                    "
                     @submit="save"
                 >
                     <template #start>

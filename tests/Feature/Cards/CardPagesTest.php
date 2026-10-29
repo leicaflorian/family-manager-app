@@ -2,14 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Enums\ExceptionType;
 use App\Enums\Role;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
 use App\Models\Family;
 use App\Models\File;
+use App\Models\Loan;
+use App\Models\PlannedExpenseException;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -363,3 +369,78 @@ test('it answers 404 and saves nothing when a document to link or unlink is of a
     expect(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda')
         ->and(DB::table('documentables')->where('document_id', $document->id)->exists())->toBeFalse();
 })->with(['link_documents', 'unlink_documents']);
+
+/**
+ * Asks only for the loan figures of a card form, as the form does while the person types.
+ *
+ * @param  string  $url  The address of the form.
+ * @param  array<string, mixed>  $figures  The values written in the form.
+ */
+function loanFiguresReload(mixed $test, string $url, array $figures): mixed
+{
+    return $test->getJson($url.(str_contains($url, '?') ? '&' : '?').http_build_query(['figures' => $figures]), [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) resolve(HandleInertiaRequests::class)->version(Request::create('/')),
+        'X-Inertia-Partial-Component' => 'cards/EditCard',
+        'X-Inertia-Partial-Data' => 'loanFigures',
+    ]);
+}
+
+it('works out the totals of a loan from the values of the form', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::factory()->create([
+        'family_id' => $this->marco->family_id,
+        'name' => 'Prestito prova',
+        'total_amount' => 1100,
+        'installments_count' => 12,
+        'installment_amount' => 100,
+        'start_date' => '2026-01-05',
+    ]));
+    $form = ['total_amount' => '1100', 'installments_count' => '12', 'installment_amount' => '100', 'start_date' => '2026-01-05'];
+
+    loanFiguresReload($this, route('cards.create', ['card' => 'loan'], false), $form)
+        ->assertOk()
+        ->assertJsonPath('props.loanFigures.total_to_pay', 1200)
+        ->assertJsonPath('props.loanFigures.cost', 100);
+
+    insideBianchi(function () use ($loan): void {
+        $planned = $loan->plannedExpenses()->sole();
+        PlannedExpenseException::factory()->create([
+            'family_id' => $loan->family_id,
+            'planned_expense_id' => $planned->id,
+            'type' => ExceptionType::AmountOverride,
+            'occurrence_date' => '2026-03-05',
+            'amount_override' => 40,
+        ]);
+    });
+
+    loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), $form)
+        ->assertJsonPath('props.loanFigures.total_to_pay', 1140)
+        ->assertJsonPath('props.loanFigures.cost', 40);
+});
+
+it('answers null figures when the form of a loan is not complete', function (): void {
+    $this->actingAs($this->marco);
+
+    loanFiguresReload($this, route('cards.create', ['card' => 'loan'], false), ['installment_amount' => 'abc', 'start_date' => 'ieri'])
+        ->assertOk()
+        ->assertJsonPath('props.loanFigures', ['total_to_pay' => null, 'cost' => null]);
+});
+
+it('sends the loan figures only to a loan', function (): void {
+    $this->actingAs($this->marco);
+    $form = ['total_amount' => '1100', 'installments_count' => '12', 'installment_amount' => '100'];
+
+    loanFiguresReload($this, route('cards.create', ['card' => 'vehicle'], false), $form)->assertJsonMissingPath('props.loanFigures');
+    loanFiguresReload($this, route('cards.edit', $this->pandaUrl, false), $form)->assertJsonMissingPath('props.loanFigures');
+    // Not asked for, not worked out
+    $this->get(route('cards.create', ['card' => 'loan']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->missing('loanFigures'));
+});
+
+it('answers 404 for the figures of a loan of another family', function (): void {
+    $other = Family::factory()->create();
+    $loan = CurrentFamily::using($other->id, fn (): Loan => Loan::factory()->create(['family_id' => $other->id]));
+    $this->actingAs($this->marco);
+
+    loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), [])->assertNotFound();
+});

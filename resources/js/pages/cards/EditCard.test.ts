@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
     healthCard,
+    loanFields,
     policyBudget,
     policyDetail,
     policyFields,
@@ -348,5 +349,52 @@ describe('Edit a card', () => {
         });
 
         expect(screen.queryByTestId('card-payments')).not.toBeInTheDocument();
+    });
+
+    it('shows the total to pay and the cost under the instalment of a loan', () => {
+        renderPage(EditCard, {
+            type: {
+                type: 'loan',
+                label: 'Loan',
+                description: '',
+                area: 'banks',
+                area_label: 'Banks',
+            },
+            fields: loanFields,
+            values: { name: 'Finanziamento TV' },
+            card: null,
+            loanFigures: { total_to_pay: 1200, cost: 100 },
+        });
+
+        expect(screen.getByText('Total to pay')).toBeInTheDocument();
+        expect(screen.getByText('1.200,00 €')).toBeInTheDocument();
+    });
+
+    it('waits for the first figures of a new loan, as dashes', () => {
+        renderPage(EditCard, {
+            type: {
+                type: 'loan',
+                label: 'Loan',
+                description: '',
+                area: 'banks',
+                area_label: 'Banks',
+            },
+            fields: loanFields,
+            values: {},
+            card: null,
+        });
+
+        expect(screen.getAllByText('—')).toHaveLength(2);
+    });
+
+    it('shows no figures for a card that is not a loan', () => {
+        renderPage(EditCard, {
+            type,
+            fields: policyFields,
+            values: {},
+            card: null,
+        });
+
+        expect(screen.queryByText('Total to pay')).not.toBeInTheDocument();
     });
 });

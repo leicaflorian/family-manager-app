@@ -1126,3 +1126,26 @@ export const policyBudget: App.Data.CardBudgetData = {
         },
     ],
 };
+
+/** The description of the fields of a loan that its totals follow, as the form receives it. */
+export const loanFields: App.Data.CardFieldData[] = [
+    ['name', 'Name', 'text', true],
+    ['total_amount', 'Amount financed', 'currency', false],
+    ['installments_count', 'Number of instalments', 'number', false],
+    ['installment_amount', 'Instalment', 'currency', false],
+    [
+        'final_installment_amount',
+        'Amount of the last instalment',
+        'currency',
+        false,
+    ],
+    ['start_date', 'Start', 'date', false],
+].map(([column, label, kind, required]) => ({
+    column: String(column),
+    label: String(label),
+    kind: String(kind),
+    required: required === true,
+    options: [],
+    show_when: {},
+    label_when: {},
+}));

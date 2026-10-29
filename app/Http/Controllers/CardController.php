@@ -7,17 +7,21 @@ namespace App\Http\Controllers;
 use App\Actions\Cards\DeleteCard;
 use App\Actions\Cards\LinkCardDocuments;
 use App\Actions\Cards\SaveCard;
+use App\Actions\Loans\RefreshLoan;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Data\LoanFiguresData;
 use App\Enums\Area;
 use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
+use App\Models\Loan;
 use App\Models\User;
 use App\Queries\DocumentRows;
 use App\Services\CardBudgets;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use App\Services\FileStore;
+use App\Support\LoanTerms;
 use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -28,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\MergeProp;
+use Inertia\OptionalProp;
 use Inertia\Response;
 
 /**
@@ -44,6 +49,7 @@ final class CardController extends Controller
         private readonly CardSummaries $summaries,
         private readonly DocumentRows $documents,
         private readonly CardBudgets $budgets,
+        private readonly RefreshLoan $loans,
     ) {}
 
     /**
@@ -60,6 +66,7 @@ final class CardController extends Controller
 
             return Inertia::render('cards/EditCard', [
                 ...$this->details->form($card, null, $request->query()),
+                ...$this->loanFigures($request, $card, null),
                 ...$this->linkable($request, []),
             ]);
         }
@@ -117,6 +124,7 @@ final class CardController extends Controller
 
         return Inertia::render('cards/EditCard', [
             ...$this->details->form($description, $card, []),
+            ...$this->loanFigures($request, $description, $card),
             'card' => $row,
             'documents' => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
             'canDeleteDocuments' => $user->can('deleteAny', Document::class),
@@ -155,6 +163,33 @@ final class CardController extends Controller
         $delete->handle($card);
 
         return to_route('areas.show', $description->area());
+    }
+
+    /**
+     * For the form of a loan: the total to pay and the cost of the values written so far (`figures`), worked out as
+     * saving them would, with the saved exceptions of the loan's planned expenses. Only asked for by the form while
+     * the person types; partial or wrong values give null figures.
+     *
+     * @param  Request  $request  the request with the values of the form in `figures`
+     * @param  CardType  $type  the type of the card
+     * @param  Model|null  $card  the loan to change, or null for a new one
+     * @return array{loanFigures?: OptionalProp}
+     */
+    private function loanFigures(Request $request, CardType $type, ?Model $card): array
+    {
+        if ($type->model() !== Loan::class) {
+            return [];
+        }
+
+        return ['loanFigures' => Inertia::optional(function () use ($request, $card): LoanFiguresData {
+            $figures = $this->loans->preview(
+                $card instanceof Loan ? $card : null,
+                LoanTerms::fromForm($request->array('figures')),
+                CarbonImmutable::today('Europe/Rome'),
+            );
+
+            return new LoanFiguresData($figures->totalToPay, $figures->cost);
+        })];
     }
 
     /**

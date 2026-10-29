@@ -66,8 +66,10 @@ final readonly class RefreshLoan
     public function fill(Loan $loan, CarbonImmutable $today, ?array $before = null): bool
     {
         $changed = false;
+        $terms = LoanTerms::of($loan);
+        $exceptions = $this->exceptions($loan, $before === null ? null : LoanTerms::fromForm($before), $terms);
 
-        foreach ($this->columns($loan, $this->schedule->derive(LoanTerms::of($loan), $this->exceptions($loan, $before), $today)) as $column => $value) {
+        foreach ($this->columns($loan, $this->schedule->derive($terms, $exceptions, $today)) as $column => $value) {
             if ($this->same($loan->getAttribute($column), $value)) {
                 continue;
             }
@@ -77,6 +79,22 @@ final readonly class RefreshLoan
         }
 
         return $changed;
+    }
+
+    /**
+     * The figures a loan would have with the terms of a form, worked out as saving them would: with the saved
+     * exceptions of its planned expenses and the final balloon payment as it would follow the new terms. Nothing
+     * is written.
+     *
+     * @param  ?Loan  $saved  The loan being changed, or null for a new one (no exceptions yet).
+     * @param  LoanTerms  $terms  The terms written in the form.
+     * @param  CarbonImmutable  $today  The day the instalments paid are counted on.
+     */
+    public function preview(?Loan $saved, LoanTerms $terms, CarbonImmutable $today): LoanFigures
+    {
+        $exceptions = $saved instanceof Loan ? $this->exceptions($saved, LoanTerms::of($saved), $terms) : [];
+
+        return $this->schedule->derive($terms, $exceptions, $today);
     }
 
     /**
@@ -118,20 +136,21 @@ final readonly class RefreshLoan
      * The exceptions of the planned expenses linked to the loan.
      *
      * @param  Loan  $loan  The loan.
-     * @param  ?array<string, mixed>  $before  The columns of the loan before the save, when it is being saved.
+     * @param  ?LoanTerms  $before  The terms of the loan before the save, when it is being saved.
+     * @param  LoanTerms  $after  The terms the loan is saved with.
      * @return list<ScheduleException> None for a loan not saved yet.
      */
-    private function exceptions(Loan $loan, ?array $before): array
+    private function exceptions(Loan $loan, ?LoanTerms $before, LoanTerms $after): array
     {
         if (! $loan->exists) {
             return [];
         }
 
         $expenses = $loan->plannedExpenses()->with('exceptions')->get();
-        $followed = $before === null ? null : $this->followed($expenses);
+        $followed = $before instanceof LoanTerms ? $this->followed($expenses) : null;
 
         if ($followed instanceof PlannedExpense) {
-            $followed->setRelation('exceptions', $this->afterBalloon($before, $loan, $followed->exceptions));
+            $followed->setRelation('exceptions', $this->afterBalloon($before, $after, $followed->exceptions));
         }
 
         $exceptions = [];
@@ -147,14 +166,14 @@ final readonly class RefreshLoan
      * The exceptions of the planned expense as they will be once the final balloon payment follows the loan, in
      * memory only: the loan observer writes them after the save.
      *
-     * @param  array<string, mixed>  $before  The columns of the loan before the save.
-     * @param  Loan  $loan  The loan being saved.
+     * @param  LoanTerms  $before  The terms of the loan before the save.
+     * @param  LoanTerms  $after  The terms the loan is saved with.
      * @param  Collection<int, PlannedExpenseException>  $exceptions  The saved exceptions of the planned expense.
      * @return Collection<int, PlannedExpenseException>
      */
-    private function afterBalloon(array $before, Loan $loan, Collection $exceptions): Collection
+    private function afterBalloon(LoanTerms $before, LoanTerms $after, Collection $exceptions): Collection
     {
-        $changes = $this->schedule->balloonChanges(LoanTerms::fromForm($before), LoanTerms::of($loan), $exceptions);
+        $changes = $this->schedule->balloonChanges($before, $after, $exceptions);
 
         if (isset($changes['update'])) {
             [$id, $values] = $changes['update'];
