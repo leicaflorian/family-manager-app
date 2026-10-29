@@ -60,6 +60,9 @@ final class DeadlineData extends Data
     /**
      * The data of a due date.
      *
+     * It reads the account, the person and the card of the planned item and the account of the payment:
+     * `Deadlines::between()` and `find()` load them for the whole collection, so a list does not query once per row.
+     *
      * @param  Deadline  $deadline  the due date
      * @param  CarbonImmutable  $today  today in Rome
      */

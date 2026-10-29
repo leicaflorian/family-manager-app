@@ -8,12 +8,14 @@ use App\Enums\Role;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\PlannedExpense;
+use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-10-26 10:00', 'Europe/Rome'));
@@ -65,4 +67,36 @@ test('it lets a member edit a movement but not delete it', function (): void {
         ->and($data->category)->not->toBeNull()
         ->and($data->can_edit)->toBeTrue()
         ->and($data->can_delete)->toBeFalse();
+});
+
+/**
+ * How many queries it takes to build the data of every due date between two days.
+ */
+function budgetDataQueries(string $from, string $to): array
+{
+    return insideBianchi(function () use ($from, $to): array {
+        $planned = [...PlannedExpense::query()->get()->all(), ...PlannedIncome::query()->get()->all()];
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $today = CarbonImmutable::today('Europe/Rome');
+        $deadlines = resolve(Deadlines::class)->between($planned, CarbonImmutable::parse($from, 'Europe/Rome'), CarbonImmutable::parse($to, 'Europe/Rome'));
+        foreach ($deadlines as $deadline) {
+            DeadlineData::fromDeadline($deadline, $today);
+        }
+
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return [$count, count($deadlines)];
+    });
+}
+
+test('it builds the data of the due dates with a fixed number of queries', function (): void {
+    [$oneMonth, $oneMonthDeadlines] = budgetDataQueries('2026-10-01', '2026-10-31');
+    [$threeMonths, $threeMonthsDeadlines] = budgetDataQueries('2026-08-01', '2026-10-31');
+
+    expect($threeMonthsDeadlines)->toBeGreaterThan($oneMonthDeadlines)
+        ->and($threeMonths)->toBe($oneMonth);
 });

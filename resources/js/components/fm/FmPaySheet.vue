@@ -83,7 +83,8 @@ const fileLabel = computed(() =>
 
 /** What the income will be called: the planned title with the month of the due date. */
 const incomeTitle = computed(
-    () => `${deadline.planned_title} ${monthName(deadline.date, false)}`,
+    () =>
+        `${deadline.planned_title} ${monthName(deadline.original_date, false)}`,
 );
 
 /** The box that says what the income becomes. */

@@ -62,11 +62,12 @@ final readonly class Deadlines
             }
         }
 
-        $expenses->loadMissing('exceptions');
-        $incomes->loadMissing('exceptions');
+        // Everything `DeadlineData::fromDeadline` reads is loaded here, once per collection
+        $expenses->loadMissing(['exceptions', 'financialAccount', 'person', 'utility', 'insurancePolicy', 'loan', 'enrollment', 'home', 'vehicle', 'subscription']);
+        $incomes->loadMissing(['exceptions', 'financialAccount', 'person', 'employment']);
 
-        $payments = $this->groupBy(Expense::query()->whereIn('planned_expense_id', $expenses->modelKeys())->orderBy('date')->get(), 'planned_expense_id')
-            + $this->groupBy(Income::query()->whereIn('planned_income_id', $incomes->modelKeys())->orderBy('date')->get(), 'planned_income_id', 'income');
+        $payments = $this->groupBy(Expense::query()->with('financialAccount')->whereIn('planned_expense_id', $expenses->modelKeys())->orderBy('date')->get(), 'planned_expense_id')
+            + $this->groupBy(Income::query()->with('financialAccount')->whereIn('planned_income_id', $incomes->modelKeys())->orderBy('date')->get(), 'planned_income_id', 'income');
         $documents = $this->groupBy(Document::query()->whereIn('planned_expense_id', $expenses->modelKeys())->get(), 'planned_expense_id');
 
         $found = [];

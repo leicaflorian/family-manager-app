@@ -98,6 +98,21 @@ describe('FmPaySheet', () => {
         ).toBeInTheDocument();
     });
 
+    it('names the month of the original due date when the day was moved', async () => {
+        renderPage(FmPaySheet, {
+            ...props,
+            deadline: {
+                ...salaryDeadline,
+                date: '2026-11-02',
+                original_date: '2026-10-31',
+            },
+        });
+
+        expect(
+            await screen.findByText(/Stipendio di Marco October 2026/),
+        ).toBeInTheDocument();
+    });
+
     it('tells the parent when it closes', async () => {
         const view = renderPage(FmPaySheet, props);
         await screen.findByRole('dialog');
