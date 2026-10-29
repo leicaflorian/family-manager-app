@@ -11,6 +11,7 @@
  */
 import { router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
+import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -30,6 +31,9 @@ import FmButton from './FmButton.vue';
 import FmDeleteButton from './FmDeleteButton.vue';
 import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
+
+/** The organization field, beside the account for an income and beside the category for an expense. */
+const [DefineOrganization, ReuseOrganization] = createReusableTemplate();
 
 const {
     movement,
@@ -298,6 +302,17 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
         novalidate
         @submit.prevent="save"
     >
+        <DefineOrganization>
+            <FormKit
+                v-model="values.organization_id"
+                type="autocomplete"
+                open-on-click
+                :label="$t('Organization')"
+                name="organization_id"
+                :options="withNone(options.organizations)"
+                :errors="errors(problems.organization_id)"
+            />
+        </DefineOrganization>
         <div class="flex items-center justify-between gap-3">
             <h2 class="m-0 text-xl font-extrabold">{{ heading }}</h2>
             <button
@@ -369,10 +384,21 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                     :options="withNone(options.accounts)"
                     :errors="errors(problems.financial_account_id)"
                 />
+                <ReuseOrganization v-if="!expense" />
             </div>
             <p v-if="expense" class="m-0 -mt-1 text-[13px] text-ink-soft">
                 {{ $t('The commission is already included in the amount.') }}
             </p>
+            <FormKit
+                v-if="!expense"
+                v-model="values.type"
+                type="togglebuttons"
+                enforced
+                :label="$t('Type')"
+                name="type"
+                :options="options.income_types"
+                :errors="errors(problems.type)"
+            />
             <div class="grid grid-cols-2 gap-3">
                 <FormKit
                     v-if="expense"
@@ -384,25 +410,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                     :options="withNone(options.categories)"
                     :errors="errors(problems.category_id)"
                 />
-                <FormKit
-                    v-else
-                    v-model="values.type"
-                    type="togglebuttons"
-                    enforced
-                    :label="$t('Type')"
-                    name="type"
-                    :options="options.income_types"
-                    :errors="errors(problems.type)"
-                />
-                <FormKit
-                    v-model="values.organization_id"
-                    type="autocomplete"
-                    open-on-click
-                    :label="$t('Organization')"
-                    name="organization_id"
-                    :options="withNone(options.organizations)"
-                    :errors="errors(problems.organization_id)"
-                />
+                <ReuseOrganization v-if="expense" />
                 <FormKit
                     v-model="values.person_id"
                     type="autocomplete"

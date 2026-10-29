@@ -156,6 +156,24 @@ describe('FmMovementPanel', () => {
         expect(screen.getByLabelText('Planned income')).toBeInTheDocument();
     });
 
+    it('puts the organization of an income beside the account, and the type on a row of its own', async () => {
+        const view = renderPage(FmMovementPanel, props);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'An income' }),
+        );
+        await settle();
+
+        const labels = [...view.container.querySelectorAll('label, legend')]
+            .map((label) => label.textContent?.trim())
+            .filter((text) =>
+                ['Account', 'Organization', 'Type', 'Holder'].includes(
+                    text ?? '',
+                ),
+            );
+        expect(labels).toEqual(['Account', 'Organization', 'Type', 'Holder']);
+    });
+
     it('asks the page for the open due dates of whichever planned expense is chosen', async () => {
         vi.spyOn(router, 'post').mockImplementation(() => {});
         const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
