@@ -26,6 +26,7 @@ use App\Support\DefaultAccount;
 use App\Support\ModelId;
 use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -145,13 +146,15 @@ final readonly class PlannedSummaries
 
     /**
      * The payments of some planned items by year, the latest year first, each year with its total and its payments
-     * latest first.
+     * latest first. With a card, the expenses linked to the card count too, each one once even when it is also a
+     * payment of one of the planned items.
      *
      * @param  iterable<PlannedExpense|PlannedIncome>  $planned  the planned items
      * @param  User  $user  whoever looks at them, for the permissions of each payment
+     * @param  Model|null  $card  the card whose linked expenses count too, null for none
      * @return list<PaymentYearData>
      */
-    public function paymentsByYear(iterable $planned, User $user): array
+    public function paymentsByYear(iterable $planned, User $user, ?Model $card = null): array
     {
         $expenses = [];
         $incomes = [];
@@ -165,7 +168,11 @@ final readonly class PlannedSummaries
         }
 
         $with = ['financialAccount', 'organization', 'documents.person', 'documents.organization', 'documents.file'];
-        $movements = Expense::query()->with([...$with, 'category'])->whereIn('planned_expense_id', $expenses)->get()
+        $movements = Expense::query()->with([...$with, 'category'])
+            ->where(static fn (Builder $query): Builder => $card instanceof Model
+                ? $query->whereIn('planned_expense_id', $expenses)->orWhereMorphedTo('card', $card)
+                : $query->whereIn('planned_expense_id', $expenses))
+            ->get()
             ->concat(Income::query()->with($with)->whereIn('planned_income_id', $incomes)->get())
             ->sortByDesc(static fn (Expense|Income $movement): string => $movement->date?->toDateString().sprintf('%010d', $movement->id));
         $paths = $movements->contains(static fn (Expense|Income $movement): bool => $movement->documents->isNotEmpty()) ? resolve(CategoryTree::class)->paths() : [];

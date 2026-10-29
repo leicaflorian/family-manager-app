@@ -6,7 +6,7 @@
  * (with *It arrived* open on a salary);
  * the figures, beside the dates of the card (`tiles`); how far a loan is paid;
  * the open due dates; then the data of the card (the default slot) and the
- * planned expenses with their payments. A card without payments (a belonging)
+ * planned expenses with their payments. A card without payments
  * has only its tiles and its data.
  */
 import { Link } from '@inertiajs/vue3';

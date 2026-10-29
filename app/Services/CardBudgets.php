@@ -11,14 +11,18 @@ use App\Data\DeadlineData;
 use App\Data\PaymentYearData;
 use App\Data\PlannedRowData;
 use App\Enums\IntervalUnit;
+use App\Models\Belonging;
 use App\Models\Employment;
 use App\Models\Enrollment;
 use App\Models\Expense;
+use App\Models\Filing;
 use App\Models\FinancialAccount;
+use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\Income;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\MaintenanceRecord;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\Subscription;
@@ -61,8 +65,8 @@ final readonly class CardBudgets
     ) {}
 
     /**
-     * The payments of a card, or null for the types that have none (belongings, filings, health events,
-     * maintenance jobs).
+     * The payments of a card, or null for the types that have none. A belonging, a maintenance job, a filing and a
+     * health event have no planned expenses: only the expenses linked to them, year by year.
      *
      * @param  Model  $card  a record of one of the 13 models
      * @param  User  $user  whoever looks at the card, for the permissions
@@ -80,6 +84,10 @@ final readonly class CardBudgets
             $card instanceof Vehicle => $this->vehicle($card, $user, $today),
             $card instanceof Home => $this->home($card, $user, $today),
             $card instanceof FinancialAccount => $this->account($card, $user, $today),
+            $card instanceof Belonging, $card instanceof MaintenanceRecord, $card instanceof Filing, $card instanceof HealthEvent => $this->budget($card, [], $user, $today,
+                paymentsLabel: __('Expenses'),
+                paymentsMore: __('See all the expenses, year by year'),
+            ),
             default => null,
         };
     }
@@ -200,7 +208,7 @@ final readonly class CardBudgets
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $policy));
         $first = $this->running($planned, $today);
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($policy, $planned, $user, $today,
             nextLabel: __('Renewal'),
             numbers: $first === null ? [] : [new CardNumberData(__('Premium'), $this->amountOf($first), hint: $this->every($first, withDay: false))],
             plannedLabel: __('Expected expenses'),
@@ -226,7 +234,7 @@ final readonly class CardBudgets
             ...$this->paidIn($utility, $payments, $today->year, $this->paidLabel($utility, $today->year)),
         ];
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($utility, $planned, $user, $today,
             numbers: $numbers,
             dueLabel: __('To pay'),
             due: fn (array $found): array => $this->openUntil($found, $today->addDays(self::DUE_DAYS)),
@@ -263,7 +271,7 @@ final readonly class CardBudgets
             $loan->cost === null ? null : new CardNumberData(__('Cost'), round((float) $loan->cost, 2), hint: __('interest and fees')),
         ];
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($loan, $planned, $user, $today,
             nextLabel: __('Next instalment'),
             numbers: array_values(array_filter($numbers)),
             paymentsLabel: __('Instalments paid'),
@@ -290,7 +298,7 @@ final readonly class CardBudgets
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $subscription));
         $first = $this->running($planned, $today);
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($subscription, $planned, $user, $today,
             nextLabel: fn (array $payments): string => $payments === [] ? __('First payment') : __('Next payment'),
             numbers: fn (array $found): array => $first === null ? [] : [
                 new CardNumberData(__('Subscription fee'), $this->amountOf($first), hint: $this->every($first, withDay: false)),
@@ -318,7 +326,7 @@ final readonly class CardBudgets
         $start = $today->setDate($today->month >= 9 ? $today->year : $today->year - 1, 9, 1)->startOfDay();
         $end = $start->addYear()->subDay()->toDateString();
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($enrollment, $planned, $user, $today,
             nextLabel: __('Next due date'),
             numbers: function (array $found) use ($first, $start, $end): array {
                 if ($first === null) {
@@ -352,7 +360,7 @@ final readonly class CardBudgets
         $planned = array_values(PlannedIncome::query()->where('employment_id', $employment->id)->oldest('start_date')->orderBy('id')->get()->all());
         $first = $this->running($planned, $today);
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($employment, $planned, $user, $today,
             kind: 'income',
             nextLabel: __('Arriving'),
             numbers: fn (array $found, array $payments): array => [
@@ -366,7 +374,8 @@ final readonly class CardBudgets
     }
 
     /**
-     * A vehicle: the next due date and what it costs in the next 12 months, with the ones of its policies.
+     * A vehicle: the next due date and what it costs in the next 12 months, with the ones of its policies, and the
+     * payments of both with the expenses linked to the vehicle.
      *
      * @param  Vehicle  $vehicle  the vehicle
      * @param  User  $user  whoever looks at the card, for the permissions
@@ -379,14 +388,17 @@ final readonly class CardBudgets
             ->orWhere(fn (Builder $policies): Builder => $policies->where('card_type', (new InsurancePolicy)->getMorphClass())
                 ->whereIn('card_id', InsurancePolicy::query()->where('vehicle_id', $vehicle->id)->select('id'))));
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($vehicle, $planned, $user, $today,
             nextLabel: __('Next due date'),
             numbers: fn (array $found): array => [$this->whatYouPay($found, $today)],
+            paymentsLabel: __('Expenses'),
+            paymentsMore: __('See all the expenses, year by year'),
         );
     }
 
     /**
-     * A home: what it costs in the next 12 months with its utilities, its utilities and the next due dates. A planned
+     * A home: what it costs in the next 12 months with its utilities, its utilities, the next due dates and the
+     * payments of both with the expenses linked to the home. A planned
      * expense has no belonging or maintenance job, so only the ones of the home and of its utilities count.
      *
      * @param  Home  $home  the home
@@ -401,13 +413,15 @@ final readonly class CardBudgets
             ->orWhere(fn (Builder $bills): Builder => $bills->where('card_type', (new Utility)->getMorphClass())->whereIn('card_id', $utilities->modelKeys())));
         $names = $utilities->map(static fn (Utility $utility): string => mb_strtolower($utility->type->label()))->implode(', ');
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($home, $planned, $user, $today,
             numbers: fn (array $found): array => [
                 $this->whatYouPay($found, $today),
                 new CardNumberData(__('Utilities'), null, count: $utilities->count(), hint: $names === '' ? null : $names),
             ],
             dueLabel: __('Next due dates'),
             due: fn (array $found): array => $this->openUntil($found, $today->addDays(self::DUE_DAYS)),
+            paymentsLabel: __('Expenses'),
+            paymentsMore: __('See all the expenses, year by year'),
         );
     }
 
@@ -431,7 +445,7 @@ final readonly class CardBudgets
         $month = $today->translatedFormat('F');
         $last = $today->addDays(self::DUE_DAYS)->toDateString();
 
-        return $this->budget($planned, $user, $today,
+        return $this->budget($account, $planned, $user, $today,
             numbers: [
                 new CardNumberData(__('Income in :month', ['month' => $month]), $summary->incomes, hint: $summary->salaries_expected === 0 ? null : trans_choice(
                     '{0} :count salaries of :expected|{1} :count salary of :expected|[2,*] :count salaries of :expected',
@@ -451,8 +465,10 @@ final readonly class CardBudgets
 
     /**
      * Puts the parts of a card together. The numbers and the open due dates can be closures, which receive the due
-     * dates read once for the whole card (and the payments by year), so that every part reads the same.
+     * dates read once for the whole card (and the payments by year), so that every part reads the same. The payments
+     * count the expenses linked to the card too.
      *
+     * @param  Model  $card  the card
      * @param  list<PlannedExpense|PlannedIncome>  $planned  the planned items of the card
      * @param  User  $user  whoever looks at the card
      * @param  CarbonImmutable  $today  today in Rome
@@ -469,6 +485,7 @@ final readonly class CardBudgets
      * @return CardBudgetData the payments of the card
      */
     private function budget(
+        Model $card,
         array $planned,
         User $user,
         CarbonImmutable $today,
@@ -484,7 +501,7 @@ final readonly class CardBudgets
     ): CardBudgetData {
         $found = $this->deadlines->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addMonthsNoOverflow(self::MONTHS_AHEAD));
         $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid()));
-        $payments = $paymentsLabel === null ? [] : $this->summaries->paymentsByYear($planned, $user);
+        $payments = $paymentsLabel === null ? [] : $this->summaries->paymentsByYear($planned, $user, $card);
         $nextLabel = is_callable($nextLabel) ? $nextLabel($payments) : $nextLabel;
         $next = $nextLabel === '' ? null : ($open[0] ?? null);
         $income = $kind === 'income';

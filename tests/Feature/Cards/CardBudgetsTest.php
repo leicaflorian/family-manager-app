@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Data\CardBudgetData;
 use App\Data\CardNumberData;
 use App\Data\DeadlineData;
+use App\Data\PaymentYearData;
 use App\Data\PlannedRowData;
 use App\Enums\Role;
 use App\Models\Belonging;
@@ -12,6 +13,7 @@ use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
+use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
@@ -173,7 +175,7 @@ it('sums what a vehicle costs with its policies', function (): void {
         ->and($budget->next?->title)->toBe('Carburante')
         ->and($budget->next?->date)->toBe('2026-11-01')
         ->and($budget->planned_label)->toBeNull()
-        ->and($budget->payments_label)->toBeNull();
+        ->and($budget->payments_label)->toBe('Expenses');
 });
 
 it('sums what a home costs with its utilities', function (): void {
@@ -237,8 +239,14 @@ it('lets a member pay but not add a planned expense', function (): void {
     expect($budget->can_pay)->toBeTrue()->and($budget->can_add_planned)->toBeFalse();
 });
 
-it('has no budget for a card without payments', function (): void {
-    expect(budgetOf(fn (): Model => Belonging::query()->sole()))->toBeNull();
+it('gives a card without planned expenses only its expenses', function (): void {
+    $budget = budgetOf(fn (): Model => Belonging::query()->sole());
+    assert($budget instanceof CardBudgetData);
+
+    expect($budget->payments_label)->toBe('Expenses')
+        ->and($budget->payments)->toBe([])
+        ->and($budget->planned_label)->toBeNull()
+        ->and($budget->can_pay)->toBeFalse();
 });
 
 it('never counts a planned expense of another family', function (): void {
@@ -276,13 +284,11 @@ it('opens the payments of a card year by year', function (): void {
             ->where('counts.2026', '9 bills'));
 });
 
-it('answers 404 for the payments of a card of another family or without payments', function (): void {
+it('answers 404 for the payments of a card of another family', function (): void {
     $rossi = registerFamily('Rossi', 'rossi@example.com');
     $theirs = CurrentFamily::using($rossi->family_id, fn (): int => Utility::factory()->create(['family_id' => $rossi->family_id])->id);
-    $tv = insideBianchi(fn (): int => Belonging::query()->sole()->id);
 
     $this->actingAs($this->marco)->get("/cards/utility/{$theirs}/payments")->assertNotFound();
-    $this->actingAs($this->marco)->get("/cards/belonging/{$tv}/payments")->assertNotFound();
 });
 
 it('sends the payments with the card and with its form', function (): void {
@@ -343,4 +349,98 @@ it('calls the box of a subscription paid at least once the next payment', functi
     assert($paid instanceof CardBudgetData);
 
     expect($paid->next_label)->toBe('Next payment');
+});
+
+/**
+ * The payments of a year of a budget, or null when the year has none.
+ */
+function paymentYear(CardBudgetData $budget, int $year): ?PaymentYearData
+{
+    return array_find($budget->payments, static fn (PaymentYearData $data): bool => $data->year === $year);
+}
+
+it('counts the expenses linked to the vehicle', function (): void {
+    $before = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
+    assert($before instanceof CardBudgetData);
+    $year = paymentYear($before, 2026);
+    assert($year instanceof PaymentYearData);
+
+    insideBianchi(fn () => Expense::query()->where('title', 'Parcheggio')->sole()->card()->associate(Vehicle::query()->sole())->save());
+    $after = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
+    assert($after instanceof CardBudgetData);
+    $linked = paymentYear($after, 2026);
+    assert($linked instanceof PaymentYearData);
+    $parking = collect($linked->payments)->firstWhere('title', 'Parcheggio');
+
+    expect($after->payments_label)->toBe('Expenses')
+        ->and($parking?->date)->toBe('2026-10-24')
+        ->and($parking?->amount)->toBe(12.0)
+        ->and($linked->count)->toBe($year->count + 1)
+        ->and(round($linked->total - $year->total, 2))->toBe(12.0);
+});
+
+it('shows a payment linked to its card once', function (): void {
+    insideBianchi(fn () => Expense::query()->where('title', 'Bollo auto')->sole()->card()->associate(Vehicle::query()->sole())->save());
+
+    $budget = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
+    assert($budget instanceof CardBudgetData);
+    $year = paymentYear($budget, 2026);
+    assert($year instanceof PaymentYearData);
+
+    expect(collect($year->payments)->where('title', 'Bollo auto')->count())->toBe(1);
+});
+
+it('shows the expenses of a health event', function (): void {
+    insideBianchi(fn () => Expense::query()->create([
+        'title' => 'Visita dentista', 'amount' => 80, 'date' => '2026-10-08', 'card_type' => 'health_event',
+        'card_id' => HealthEvent::query()->where('title', 'Dentista di Laura')->sole()->id,
+    ]));
+
+    $budget = budgetOf(fn (): HealthEvent => HealthEvent::query()->where('title', 'Dentista di Laura')->sole());
+    assert($budget instanceof CardBudgetData);
+
+    expect($budget->payments_label)->toBe('Expenses')
+        ->and($budget->next)->toBeNull()
+        ->and($budget->planned_label)->toBeNull()
+        ->and($budget->numbers)->toBe([])
+        ->and($budget->due_label)->toBeNull()
+        ->and($budget->can_pay)->toBeFalse()
+        ->and($budget->payments[0]->year)->toBe(2026)
+        ->and($budget->payments[0]->total)->toBe(80.0)
+        ->and($budget->payments[0]->payments[0]->title)->toBe('Visita dentista');
+});
+
+it('opens the expenses of a health event year by year', function (): void {
+    $id = insideBianchi(function (): int {
+        $event = HealthEvent::query()->where('title', 'Dentista di Laura')->sole();
+        Expense::query()->create(['title' => 'Visita dentista', 'amount' => 80, 'date' => '2026-10-08', 'card_type' => 'health_event', 'card_id' => $event->id]);
+
+        return $event->id;
+    });
+
+    $this->actingAs($this->marco)
+        ->get("/cards/health_event/{$id}/payments")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('cards/CardPayments')
+            ->where('budget.payments_label', 'Expenses')
+            ->where('budget.payments.0.total', 80)
+            ->where('numbers.0.label', 'Paid in 2026')
+            ->where('numbers.0.amount', 80));
+});
+
+it('never shows an expense of another family linked to the same id', function (): void {
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    $panda = insideBianchi(fn (): Vehicle => Vehicle::query()->sole());
+    $event = insideBianchi(fn (): HealthEvent => HealthEvent::query()->where('title', 'Dentista di Laura')->sole());
+    CurrentFamily::using($rossi->family_id, function () use ($rossi, $panda, $event): void {
+        Expense::query()->create(['family_id' => $rossi->family_id, 'title' => 'Furto', 'amount' => 999, 'date' => '2026-10-20', 'card_type' => 'vehicle', 'card_id' => $panda->id]);
+        Expense::query()->create(['family_id' => $rossi->family_id, 'title' => 'Furto', 'amount' => 999, 'date' => '2026-10-20', 'card_type' => 'health_event', 'card_id' => $event->id]);
+    });
+
+    $vehicle = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
+    $health = budgetOf(fn (): HealthEvent => HealthEvent::query()->where('title', 'Dentista di Laura')->sole());
+    assert($vehicle instanceof CardBudgetData && $health instanceof CardBudgetData);
+
+    expect(collect($vehicle->payments)->flatMap(fn (PaymentYearData $year): array => $year->payments)->pluck('title')->all())->not->toContain('Furto')
+        ->and($health->payments)->toBe([]);
 });

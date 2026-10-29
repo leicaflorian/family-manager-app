@@ -147,6 +147,42 @@ describe('FmCardBudget', () => {
         ).toEqual(['Data']);
     });
 
+    it('shows only the expenses of a card without planned expenses', () => {
+        renderPage(FmCardBudget, {
+            budget: {
+                ...luceBudget,
+                numbers: [],
+                due_label: null,
+                due: [],
+                planned_label: null,
+                planned: [],
+                can_add_planned: false,
+                payments_label: 'Expenses',
+                payments_more: 'See all the expenses, year by year',
+                pay: [],
+                can_pay: false,
+            },
+            card: { type: 'health_event', id: 4 },
+        });
+
+        expect(
+            screen
+                .getAllByRole('heading', { level: 2 })
+                .map((h2) => h2.textContent),
+        ).toEqual(['Expenses']);
+        expect(
+            screen.queryByRole('button', { name: /Record payment/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByText('Create the planned expense first.'),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('link', {
+                name: 'See all the expenses, year by year',
+            }),
+        ).toHaveAttribute('href', '/cards/health_event/4/payments');
+    });
+
     it('opens It arrived on the salary coming in, for whoever can record it', () => {
         const salary = {
             ...budgetSalary,
