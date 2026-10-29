@@ -6,11 +6,13 @@
  * `admin`; then the latest payments with *Record payment* and the link to all
  * of them, year by year. Without a planned item it says to create it first,
  * unless the card has no planned items of its own (a loan makes its instalment
- * by itself).
+ * by itself). A card that only has expenses linked to it (a belonging, a
+ * maintenance job, a filing, a health event) offers *Add expense* instead.
  */
 import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import { computed } from 'vue';
+import { create as createMovement } from '@/routes/budget/movements';
 import { create, show as showPlanned } from '@/routes/budget/planned';
 import { payments as cardPayments } from '@/routes/cards';
 import FmButton from './FmButton.vue';
@@ -39,6 +41,11 @@ const addUrl = computed(
             { kind: budget.kind },
             { query: { card: `${card.type}:${card.id}` } },
         ).url,
+);
+
+/** *Add expense*: the form of a new expense, already linked to the card. */
+const addExpenseUrl = computed(
+    () => createMovement({ query: { card: `${card.type}:${card.id}` } }).url,
 );
 </script>
 
@@ -70,6 +77,15 @@ const addUrl = computed(
                     :deadlines="budget.pay"
                     :label="income ? $t('Record income') : $t('Record payment')"
                 />
+            </template>
+            <template v-else-if="budget.can_add_expense" #actions>
+                <FmButton
+                    variant="text"
+                    inline
+                    :icon="Plus"
+                    :href="addExpenseUrl"
+                    >{{ $t('Add expense') }}</FmButton
+                >
             </template>
             <p
                 v-if="

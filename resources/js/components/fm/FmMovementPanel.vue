@@ -85,8 +85,10 @@ const values = reactive({
     amount: formatAmount(movement?.amount),
     fee_amount: formatAmount(movement?.fee_amount),
     financial_account_id: text(movement?.account_id),
-    category_id: text(movement?.category_id),
-    card: movement?.card ?? null,
+    category_id: movement
+        ? text(movement.category_id)
+        : (start.category_id ?? ''),
+    card: movement ? movement.card : (start.card ?? null),
     organization_id: text(movement?.organization_id),
     person_id: text(movement?.person_id),
     employment_id: text(movement?.employment_id),
@@ -268,6 +270,8 @@ function save(): void {
         person_id: values.person_id || null,
         planned_id: values.planned_id || null,
         occurrence_date: values.occurrence_date || null,
+        // From *Add expense* of a card, the server opens the card again
+        ...(!movement && start.card ? { back_to_card: true } : {}),
         ...(expense.value
             ? {
                   fee_amount: parseAmount(values.fee_amount),

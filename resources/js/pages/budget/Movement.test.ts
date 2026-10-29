@@ -81,6 +81,41 @@ describe('Movement', () => {
         );
     });
 
+    it('starts a new expense from a card, with its category, goes back to the card and asks to come back to it', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Movement, {
+            ...newExpense,
+            start: {
+                ...newExpense.start,
+                card: 'health_event:2',
+                category_id: '9',
+            },
+        });
+
+        expect(
+            screen.getByRole('link', {
+                name: 'Health event · Visite di Giulia',
+            }),
+        ).toHaveAttribute('href', '/cards/health_event/2');
+        expect(
+            screen.getByRole('combobox', { name: 'Health event' }),
+        ).toHaveValue('Health event · Visite di Giulia');
+
+        await write('Title', 'Visita');
+        await write('Amount', '80');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            category_id: '9',
+            card: 'health_event:2',
+            back_to_card: true,
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(get).toHaveBeenCalledWith('/cards/health_event/2');
+    });
+
     it('names the card after the type of the category, offers only its cards and sends the one chosen', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Movement, newExpense);

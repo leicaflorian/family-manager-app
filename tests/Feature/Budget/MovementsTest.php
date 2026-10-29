@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 use App\Actions\Budget\SaveMovement;
 use App\Enums\Role;
+use App\Models\Belonging;
 use App\Models\Document;
 use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\Family;
 use App\Models\FinancialAccount;
+use App\Models\HealthEvent;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\App;
@@ -446,4 +450,49 @@ it('requires the type of an income', function (): void {
 it('answers 404 to a new movement of an unknown kind', function (): void {
     $this->actingAs($this->marco)->get('/budget/movements/create?kind=gift')->assertNotFound();
     $this->actingAs($this->marco)->get('/budget/movements/create')->assertOk();
+});
+
+it('starts a new expense from a card, with the category of its type', function (): void {
+    [$tv, $dentist, $health] = insideBianchi(fn (): array => [
+        Belonging::query()->where('name', 'TV Samsung')->sole()->id,
+        HealthEvent::query()->where('title', 'Dentista di Laura')->sole()->id,
+        ExpenseCategory::query()->whereNull('parent_id')->where('card_type', 'health_event')->sole()->id,
+    ]);
+
+    $this->actingAs($this->marco)
+        ->get("/budget/movements/create?card=belonging:{$tv}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('start.kind', 'expense')
+            ->where('start.card', "belonging:{$tv}")
+            ->where('start.category_id', null));
+
+    $this->actingAs($this->marco)
+        ->get("/budget/movements/create?card=health_event:{$dentist}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('start.card', "health_event:{$dentist}")
+            ->where('start.category_id', (string) $health));
+});
+
+it('ignores a card of another family on a new expense', function (): void {
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    $theirs = CurrentFamily::using($rossi->family_id, fn (): int => Belonging::query()->create(['name' => 'Frigo'])->id);
+
+    $this->actingAs($this->marco)
+        ->get("/budget/movements/create?card=belonging:{$theirs}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('start.card', null)
+            ->where('start.category_id', null));
+});
+
+it('goes back to the card after adding an expense from it', function (): void {
+    $tv = insideBianchi(fn (): int => Belonging::query()->where('name', 'TV Samsung')->sole()->id);
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Staffa a muro', 'amount' => 35, 'date' => '2026-10-20', 'card' => "belonging:{$tv}", 'back_to_card' => true])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect("/cards/belonging/{$tv}");
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Senza scheda', 'amount' => 5, 'date' => '2026-10-20', 'back_to_card' => true])
+        ->assertRedirectContains('/budget/movements');
 });

@@ -87,6 +87,7 @@ final readonly class CardBudgets
             $card instanceof Belonging, $card instanceof MaintenanceRecord, $card instanceof Filing, $card instanceof HealthEvent => $this->budget($card, [], $user, $today,
                 paymentsLabel: __('Expenses'),
                 paymentsMore: __('See all the expenses, year by year'),
+                addExpense: true,
             ),
             default => null,
         };
@@ -489,6 +490,7 @@ final readonly class CardBudgets
      * @param  bool  $plannedPayments  whether the payments of the planned items are listed, with *Record payment*;
      *                                 false for only the expenses linked to the card
      * @param  array{count: ?int, paid: ?int, paid_amount: ?float, left_amount: ?float}|null  $loan  the figures of a loan
+     * @param  bool  $addExpense  whether the payments offer *Add expense*, on the cards without planned items
      * @return CardBudgetData the payments of the card
      */
     private function budget(
@@ -506,6 +508,7 @@ final readonly class CardBudgets
         string $paymentsMore = '',
         bool $plannedPayments = true,
         ?array $loan = null,
+        bool $addExpense = false,
     ): CardBudgetData {
         $found = $this->deadlines->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addMonthsNoOverflow(self::MONTHS_AHEAD));
         $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid()));
@@ -537,6 +540,7 @@ final readonly class CardBudgets
             payments: $payments,
             pay: $paymentsLabel === null ? [] : array_map($data, $this->firstOpenOfEach($payable, $open)),
             can_pay: $paymentsLabel !== null && $payable !== [] && $user->can('create', $income ? Income::class : Expense::class),
+            can_add_expense: $addExpense && $user->can('create', Expense::class),
         );
     }
 

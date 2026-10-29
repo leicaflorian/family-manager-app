@@ -51,6 +51,7 @@ readonly payments_more: string,
 readonly payments: App.Data.PaymentYearData[],
 readonly pay: App.Data.DeadlineData[],
 readonly can_pay: boolean,
+readonly can_add_expense: boolean,
 };
 export type CardData = {
 readonly type: string,

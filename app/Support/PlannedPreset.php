@@ -129,8 +129,7 @@ final class PlannedPreset
             return [];
         }
 
-        $category = ExpenseCategory::query()->whereNull('parent_id')->where('card_type', $card['type'])
-            ->orderBy('sort')->orderBy('name')->value('id');
+        $category = ExpenseCategory::firstOfCardType($card['type']);
 
         return [
             ...self::from(CardTypes::findOrFail($card['type'])->findOrFail($card['id'])),

@@ -91,6 +91,7 @@ final class SaveMovementRequest extends FormRequest
             'person_id' => ['nullable', new OfFamily('people')],
             'planned_id' => ['nullable', new OfFamily($expense ? 'planned_expenses' : 'planned_incomes')],
             'occurrence_date' => ['nullable', 'date_format:Y-m-d', $this->occurrenceRule(...)],
+            'back_to_card' => ['sometimes', 'boolean'],
             ...$expense
                 ? [
                     'fee_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
@@ -134,7 +135,7 @@ final class SaveMovementRequest extends FormRequest
      */
     public function columns(): array
     {
-        $columns = $this->safe()->except(['kind', 'card']);
+        $columns = $this->safe()->except(['kind', 'card', 'back_to_card']);
 
         return $this->kind() === 'expense' && $this->exists('card') ? [...$columns, ...$this->cardColumns()] : $columns;
     }

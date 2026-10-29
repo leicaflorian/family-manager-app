@@ -1155,6 +1155,7 @@ export const luceBudget: App.Data.CardBudgetData = {
     payments: lucePayments,
     pay: [{ ...lateDeadline, card: edison }],
     can_pay: true,
+    can_add_expense: false,
 };
 
 /** The policy of the Panda with its renewal, its premium and the premium paid in 2025. */

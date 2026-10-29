@@ -188,4 +188,40 @@ describe('FmCardPayments', () => {
             }),
         ).toHaveAttribute('href', '/cards/health_event/4/payments');
     });
+
+    it('adds an expense to a card without planned expenses', () => {
+        renderPage(FmCardPayments, {
+            budget: {
+                ...luceBudget,
+                planned_label: null,
+                planned: [],
+                can_add_planned: false,
+                payments_label: 'Expenses',
+                payments: [],
+                pay: [],
+                can_pay: false,
+                can_add_expense: true,
+            },
+            card: { type: 'belonging', id: 5 },
+        });
+
+        const expenses = screen.getByRole('region', { name: 'Expenses' });
+        expect(
+            within(expenses).getByRole('link', { name: 'Add expense' }),
+        ).toHaveAttribute(
+            'href',
+            '/budget/movements/create?card=belonging%3A5',
+        );
+        expect(
+            within(expenses).getByText('No payments recorded.'),
+        ).toBeInTheDocument();
+    });
+
+    it('leaves out Add expense when it is not offered', () => {
+        renderPage(FmCardPayments, { budget: luceBudget, card });
+
+        expect(
+            screen.queryByRole('link', { name: 'Add expense' }),
+        ).not.toBeInTheDocument();
+    });
 });

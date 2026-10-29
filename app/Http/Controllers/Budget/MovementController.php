@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\MovementIndexRequest;
 use App\Http\Requests\Budget\SaveMovementRequest;
 use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
@@ -19,6 +20,7 @@ use App\Models\User;
 use App\Services\BudgetFormOptions;
 use App\Services\Movements;
 use App\Support\PlannedKind;
+use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -59,7 +61,9 @@ final class MovementController extends Controller
     }
 
     /**
-     * *New expense or income*: the empty form, or the one of `?kind=&planned=` for a planned item.
+     * *New expense or income*: the empty form, the one of `?kind=&planned=` for a planned item, or the expense of the
+     * card of `?card=type:id` (*Add expense* of a card), with the category of its type. A card of another family is
+     * ignored.
      *
      * @throws NotFoundHttpException if the kind is not `expense` or `income` or the planned item is not of the family
      */
@@ -73,22 +77,39 @@ final class MovementController extends Controller
         Gate::authorize('create', Movements::modelClass($kind));
 
         $planned = is_scalar($request->query('planned')) ? PlannedKind::find($kind, (string) $request->query('planned')) : null;
+        $card = $kind === 'expense' ? PresetLink::from($request->query('card')) : null;
+        $category = $card === null ? null : ExpenseCategory::firstOfCardType($card['type']);
         $today = CarbonImmutable::today('Europe/Rome');
 
         return Inertia::render('budget/Movement', [
             'movement' => null,
-            'start' => ['kind' => $kind, 'planned_id' => $planned === null ? null : (string) $planned->id, 'date' => $today->toDateString()],
+            'start' => [
+                'kind' => $kind,
+                'planned_id' => $planned === null ? null : (string) $planned->id,
+                'date' => $today->toDateString(),
+                'card' => $card === null ? null : PresetLink::key($card['type'], $card['id']),
+                'category_id' => $category === null ? null : (string) $category,
+            ],
             'occurrences' => fn (): array => $this->occurrences($request, $kind, $today, null, $planned),
             'options' => BudgetFormOptions::forMovement(),
         ]);
     }
 
     /**
-     * Adds the movement and opens the month it belongs to.
+     * Adds the movement and opens the month it belongs to, or the card it is linked to when it comes from *Add expense*
+     * of the card (`back_to_card`).
      */
     public function store(SaveMovementRequest $request, SaveMovement $save): RedirectResponse
     {
-        return $this->saved($save->handle($request->kind(), $request->columns()));
+        $movement = $save->handle($request->kind(), $request->columns());
+
+        if ($request->boolean('back_to_card') && $movement instanceof Expense && $movement->card_type !== null && $movement->card_id !== null) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved.')]);
+
+            return to_route('cards.show', ['type' => $movement->card_type, 'id' => $movement->card_id]);
+        }
+
+        return $this->saved($movement);
     }
 
     /**
@@ -103,7 +124,7 @@ final class MovementController extends Controller
 
         return Inertia::render('budget/Movement', [
             'movement' => $data,
-            'start' => ['kind' => $data->kind, 'planned_id' => $data->planned_id === null ? null : (string) $data->planned_id, 'date' => $data->date],
+            'start' => ['kind' => $data->kind, 'planned_id' => $data->planned_id === null ? null : (string) $data->planned_id, 'date' => $data->date, 'card' => null, 'category_id' => null],
             'occurrences' => fn (): array => $this->occurrences($request, $data->kind, CarbonImmutable::parse($data->date, 'Europe/Rome'), $movement),
             'options' => BudgetFormOptions::forMovement(),
         ]);

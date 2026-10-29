@@ -12,11 +12,13 @@ use App\Models\Belonging;
 use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\Family;
+use App\Models\Filing;
 use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\MaintenanceRecord;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\Subscription;
@@ -478,4 +480,28 @@ it('never shows an expense of another family linked to the same id', function ()
 
     expect(collect($vehicle->payments)->flatMap(fn (PaymentYearData $year): array => $year->payments)->pluck('title')->all())->not->toContain('Furto')
         ->and($health->payments)->toBe([]);
+});
+
+it('offers a new expense on the cards that only have expenses linked to them', function (Closure $card): void {
+    $budget = budgetOf($card);
+    assert($budget instanceof CardBudgetData);
+    $rosa = User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]);
+    $member = budgetOf($card, $rosa);
+    assert($member instanceof CardBudgetData);
+
+    expect($budget->can_add_expense)->toBeTrue()
+        ->and($budget->can_pay)->toBeFalse()
+        ->and($member->can_add_expense)->toBeTrue();
+})->with([
+    'a belonging' => fn (): Belonging => Belonging::query()->where('name', 'TV Samsung')->sole(),
+    'a maintenance job' => fn (): MaintenanceRecord => MaintenanceRecord::query()->where('title', 'Revisione caldaia')->sole(),
+    'a filing' => fn (): Filing => Filing::query()->where('title', 'ISEE 2027')->sole(),
+    'a health event' => fn (): HealthEvent => HealthEvent::query()->where('title', 'Dentista di Laura')->sole(),
+]);
+
+it('offers no new expense on the cards with planned expenses', function (): void {
+    $budget = budgetOf(fn (): Utility => Utility::query()->firstOrFail());
+    assert($budget instanceof CardBudgetData);
+
+    expect($budget->can_add_expense)->toBeFalse();
 });

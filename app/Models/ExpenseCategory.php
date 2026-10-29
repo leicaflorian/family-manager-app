@@ -91,6 +91,20 @@ final class ExpenseCategory extends FamilyModel
     }
 
     /**
+     * The first main category (by order, then name) whose expenses refer to cards of a type: the one a new expense or
+     * planned expense that comes from a card starts with.
+     *
+     * @param  string  $type  the type of the card, as in the morph map
+     * @return int|null its id, null when no main category has that type
+     */
+    public static function firstOfCardType(string $type): ?int
+    {
+        $id = self::query()->whereNull('parent_id')->where('card_type', $type)->orderBy('sort')->orderBy('name')->value('id');
+
+        return is_int($id) ? $id : null;
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>

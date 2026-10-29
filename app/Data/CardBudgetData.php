@@ -35,6 +35,8 @@ final class CardBudgetData extends Data
      * @param  list<PaymentYearData>  $payments  the payments of the planned items, by year, the latest first
      * @param  list<DeadlineData>  $pay  for *Record payment*: the oldest open due date of each planned item
      * @param  bool  $can_pay  whether whoever looks may record a payment, and the card has a planned item to pay
+     * @param  bool  $can_add_expense  whether whoever looks may add an expense linked to the card, on the cards that only
+     *                                 have expenses linked to them (a belonging, a maintenance job, a filing, a health event)
      */
     public function __construct(
         public readonly string $kind,
@@ -61,5 +63,6 @@ final class CardBudgetData extends Data
         #[DataCollectionOf(DeadlineData::class)]
         public readonly array $pay,
         public readonly bool $can_pay,
+        public readonly bool $can_add_expense,
     ) {}
 }

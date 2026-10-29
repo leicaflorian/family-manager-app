@@ -323,6 +323,10 @@ export interface MovementStart {
     planned_id: string | null;
     /** The day, `yyyy-mm-dd`. */
     date: string;
+    /** The card a new expense comes from (*Add expense* of a card), `type:id`. */
+    card?: string | null;
+    /** The category of the type of that card, as text. */
+    category_id?: string | null;
 }
 
 /**
