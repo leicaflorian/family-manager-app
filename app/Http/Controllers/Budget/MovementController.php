@@ -52,7 +52,8 @@ final class MovementController extends Controller
             'kind' => $request->kind(),
             'account' => $request->account(),
             'selected' => $selected instanceof Expense || $selected instanceof Income ? MovementData::fromMovement($selected, $user) : null,
-            'occurrences' => fn (): array => $this->occurrences($request, $selected instanceof Expense ? 'expense' : ($selected instanceof Income ? 'income' : 'expense'), CarbonImmutable::today('Europe/Rome'), $selected),
+            // As on the page of a movement, the due dates are looked for around the movement's own day
+            'occurrences' => fn (): array => $this->occurrences($request, $selected instanceof Income ? 'income' : 'expense', $selected->date ?? CarbonImmutable::today('Europe/Rome'), $selected),
             'options' => BudgetFormOptions::forMovement(),
         ]);
     }

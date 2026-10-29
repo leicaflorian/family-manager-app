@@ -140,6 +140,19 @@ it('offers the open due dates of the planned expense of a movement, with its own
         });
 });
 
+it('offers the due dates around the selected movement, not around today', function (): void {
+    $september = insideBianchi(fn (): Expense => Expense::query()->where('title', 'Retta di settembre')->whereDate('date', '2025-09-05')->sole());
+
+    $this->actingAs($this->marco)
+        ->get("/budget/movements?month=2025-09&movement=expense:{$september->id}")
+        ->assertInertia(function (AssertableInertia $page): void {
+            $values = collect($page->toArray()['props']['occurrences'])->pluck('value');
+
+            // Its own due date is more than a year before today, and comes first
+            expect($values->first())->toBe('2025-09-05');
+        });
+});
+
 it('opens the form of a new movement, from a planned expense', function (): void {
     $dance = movementPlan('Retta danza');
 
