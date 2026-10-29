@@ -273,7 +273,7 @@ final class BianchiFamilySeeder extends Seeder
         // title, category (main › sub), person, organization, date, expiry, records, file
         $documents = [
             ['Bolletta luce di ottobre', 'Casa e utenze › Luce', null, 'Edison', '2026-10-26', null, ['Luce - Edison'], 'bolletta-luce-ottobre.pdf'],
-            ['Bolletta luce di settembre', 'Casa e utenze › Luce', null, 'Edison', '2026-09-25', null, ['Luce - Edison'], 'bolletta-luce-settembre.pdf'],
+            ['Bolletta luce di settembre', 'Casa e utenze › Luce', null, 'Edison', '2026-10-08', null, ['Luce - Edison'], 'bolletta-luce-settembre.pdf'],
             ['Contratto Edison', 'Casa e utenze › Luce', null, 'Edison', '2019-03-01', null, ['Luce - Edison'], 'contratto-edison.pdf'],
             ['Bolletta gas di settembre', 'Casa e utenze › Gas', null, 'Enel Energia', '2026-10-25', null, ['Gas - Enel'], 'bolletta-gas-settembre.pdf'],
             ['Fattura Fastweb', 'Casa e utenze › Internet', null, 'Fastweb', '2026-10-25', null, ['Internet - Fastweb'], 'fattura-fastweb.pdf'],
@@ -323,6 +323,9 @@ final class BianchiFamilySeeder extends Seeder
         $this->createExpenseCategories();
         $this->createPlannedExpenses();
         $this->createPlannedIncomes();
+        // The September bill is the document to pay of the 23/10 due date: 08/10 is inside its window.
+        Document::query()->where('title', 'Bolletta luce di settembre')->where('category_id', $this->category('Casa e utenze › Luce')->id)
+            ->update(['planned_expense_id' => $this->plannedExpenses['Luce']->id]);
         $this->createPayments();
         $this->createMovements();
     }

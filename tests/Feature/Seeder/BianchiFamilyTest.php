@@ -203,6 +203,24 @@ describe('the budget of the Bianchi family on 26/10/2026', function (): void {
         });
     });
 
+    it('has the late electricity bill of September', function (): void {
+        insideBianchi(function (): void {
+            $today = CarbonImmutable::today('Europe/Rome');
+            $luce = PlannedExpense::query()->where('title', 'Luce')->sole();
+            $due = resolve(Deadlines::class)->between([$luce], $today->subMonth(), $today->addMonth());
+            $september = collect($due)->first(fn (Deadline $deadline): bool => $deadline->occurrence->originalDate->toDateString() === '2026-10-23');
+            $following = collect($due)->first(fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() > '2026-10-23');
+
+            expect($september?->title)->toBe('Bolletta luce di settembre')
+                ->and($september?->occurrence->amount)->toBe(71.30)
+                ->and($september?->isPaid())->toBeFalse()
+                ->and($september?->isLate($today))->toBeTrue()
+                ->and($following?->occurrence->date->toDateString())->toBe('2026-11-06')
+                ->and($following?->occurrence->amount)->toBe(62.40)
+                ->and($following?->title)->toBe('Luce');
+        });
+    });
+
     it('has the Panda loan', function (): void {
         insideBianchi(function (): void {
             $panda = Loan::query()->where('name', 'Finanziamento Panda')->sole();
