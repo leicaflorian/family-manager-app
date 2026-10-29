@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Data;
 
-use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\CardSummaries;
 use App\Support\Deadline;
@@ -84,7 +83,7 @@ final class DeadlineData extends Data
             kind: $deadline->kind(),
             planned_id: $planned->id,
             title: $deadline->title,
-            planned_title: $planned instanceof PlannedExpense ? $planned->title : $planned->title ?? $planned->type->label(),
+            planned_title: $planned->displayTitle(),
             date: $occurrence->date->toDateString(),
             original_date: $occurrence->originalDate->toDateString(),
             amount: $occurrence->amount,

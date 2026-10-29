@@ -13,6 +13,7 @@ use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Models\Utility;
 use App\Services\Deadlines;
+use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\App;
@@ -139,4 +140,38 @@ test('it falls back to the default account when the planned item has none', func
 
     expect($data->account)->toBe('Conto BPER')
         ->and($data->account_id)->toBeInt();
+});
+
+test('a planned item is called by its title, an income without one by its type', function (): void {
+    insideBianchi(function (): void {
+        $expense = PlannedExpense::query()->where('title', 'Retta danza')->sole();
+        $income = PlannedIncome::query()->where('title', 'Stipendio di Marco')->sole();
+
+        expect($expense->displayTitle())->toBe('Retta danza')
+            ->and($income->displayTitle())->toBe('Stipendio di Marco');
+
+        $income->title = null;
+
+        expect($income->displayTitle())->toBe('Stipendio');
+    });
+});
+
+test('a planned item gives its payments the same columns everywhere', function (): void {
+    insideBianchi(function (): void {
+        $expense = PlannedExpense::query()->where('title', 'Retta danza')->sole();
+        $income = PlannedIncome::query()->where('title', 'Stipendio di Marco')->sole();
+
+        expect(PlannedKind::paymentColumns($expense))->toBe([
+            'organization_id' => $expense->organization_id,
+            'financial_account_id' => $expense->financial_account_id,
+            'person_id' => $expense->person_id,
+            'category_id' => $expense->category_id,
+        ])->and(PlannedKind::paymentColumns($income))->toBe([
+            'organization_id' => $income->organization_id,
+            'financial_account_id' => $income->financial_account_id,
+            'person_id' => $income->person_id,
+            'employment_id' => $income->employment_id,
+            'type' => 'salary',
+        ]);
+    });
 });

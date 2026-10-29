@@ -75,7 +75,9 @@ final readonly class Comparison
     private function categories(array $deadlines, Collection $expenses, CarbonImmutable $today): array
     {
         $categories = ExpenseCategory::query()->orderBy('sort')->orderBy('name')->get()->keyBy('id');
-        $mainOf = fn (?int $id): int => $this->mainCategory($categories, $id);
+        $mains = ExpenseCategoryPaths::walk($categories);
+        // A missing parent or a loop leaves a category out of the tree: its spending stays in the total, under «No category»
+        $mainOf = static fn (?int $id): int => $id === null ? 0 : ($mains[$id]['main'] ?? 0);
 
         $rows = [];
 
@@ -112,38 +114,6 @@ final readonly class Comparison
         }
 
         return $result;
-    }
-
-    /**
-     * The id of the main category of a category: itself when it has no parent. A loop in the data stops at the
-     * first category seen twice.
-     *
-     * @param  Collection<int, ExpenseCategory>  $categories  All the categories, by id.
-     * @param  int|null  $id  The category, null for none.
-     * @return int The id of the main category, 0 when there is no category.
-     */
-    private function mainCategory(Collection $categories, ?int $id): int
-    {
-        $seen = [];
-
-        while ($id !== null && ! isset($seen[$id])) {
-            $category = $categories->get($id);
-
-            if ($category === null) {
-                return 0;
-            }
-
-            $seen[$id] = true;
-
-            if ($category->parent_id === null) {
-                return $id;
-            }
-
-            $id = $category->parent_id;
-        }
-
-        // A missing parent or a loop: the spending stays in the total, under «No category»
-        return 0;
     }
 
     /**

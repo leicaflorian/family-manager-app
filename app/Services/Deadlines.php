@@ -263,7 +263,7 @@ final readonly class Deadlines
             return $best->title;
         }
 
-        return $planned instanceof PlannedExpense ? $planned->title : $planned->title ?? $planned->type->label();
+        return $planned->displayTitle();
     }
 
     /**

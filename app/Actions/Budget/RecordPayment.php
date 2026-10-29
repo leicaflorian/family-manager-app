@@ -57,33 +57,20 @@ final readonly class RecordPayment
 
             $planned = $current->planned;
             $original = $current->occurrence->originalDate;
-            $title = PaymentTitle::for($planned instanceof PlannedExpense ? $planned->title : ($planned->title ?? $planned->type->label()), $original);
+            $title = PaymentTitle::for($planned->displayTitle(), $original);
             $account = $accountId ?? $planned->financial_account_id ?? DefaultAccount::id();
 
+            $columns = [
+                ...PlannedKind::paymentColumns($planned),
+                'title' => $title,
+                'amount' => $amount,
+                'date' => $date,
+                'occurrence_date' => $original,
+                'financial_account_id' => $account,
+            ];
             $payment = $planned instanceof PlannedExpense
-                ? Expense::query()->create([
-                    'title' => $title,
-                    'amount' => $amount,
-                    'date' => $date,
-                    'planned_expense_id' => $planned->id,
-                    'occurrence_date' => $original,
-                    'category_id' => $planned->category_id,
-                    'organization_id' => $planned->organization_id,
-                    'person_id' => $planned->person_id,
-                    'financial_account_id' => $account,
-                ])
-                : Income::query()->create([
-                    'title' => $title,
-                    'amount' => $amount,
-                    'date' => $date,
-                    'type' => $planned->type,
-                    'planned_income_id' => $planned->id,
-                    'occurrence_date' => $original,
-                    'organization_id' => $planned->organization_id,
-                    'person_id' => $planned->person_id,
-                    'employment_id' => $planned->employment_id,
-                    'financial_account_id' => $account,
-                ]);
+                ? Expense::query()->create([...$columns, 'planned_expense_id' => $planned->id])
+                : Income::query()->create([...$columns, 'planned_income_id' => $planned->id]);
 
             if ($planned instanceof PlannedExpense && $payment instanceof Expense) {
                 $this->moveDocuments($planned, $current, $payment);

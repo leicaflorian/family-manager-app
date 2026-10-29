@@ -7,6 +7,7 @@ use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\User;
 use App\Services\Comparison;
+use App\Services\ExpenseCategoryPaths;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\App;
@@ -165,4 +166,22 @@ it('keeps the spending of a category whose parents loop in No category', functio
 
     expect($last['name'])->toBe('Senza categoria')->and($last['spent'])->toBe(7.0)
         ->and(round(collect($comparison['categories'])->sum('spent'), 2))->toBe($comparison['spent']);
+});
+
+it('walks the expense categories once for their paths and their main categories', function (): void {
+    insideBianchi(function (): void {
+        $home = ExpenseCategory::query()->create(['name' => 'Casa prova']);
+        $gas = ExpenseCategory::query()->create(['name' => 'Gas prova', 'parent_id' => $home->id]);
+        $first = ExpenseCategory::query()->create(['name' => 'Giro A']);
+        $second = ExpenseCategory::query()->create(['name' => 'Giro B', 'parent_id' => $first->id]);
+        $first->update(['parent_id' => $second->id]);
+
+        $tree = ExpenseCategoryPaths::walk(ExpenseCategory::query()->get());
+
+        expect($tree[$gas->id])->toBe(['path' => 'Casa prova › Gas prova', 'main' => $home->id])
+            ->and($tree[$home->id])->toBe(['path' => 'Casa prova', 'main' => $home->id])
+            ->and($tree)->not->toHaveKey($first->id)
+            ->and($tree)->not->toHaveKey($second->id)
+            ->and(ExpenseCategoryPaths::all()[$gas->id])->toBe('Casa prova › Gas prova');
+    });
 });

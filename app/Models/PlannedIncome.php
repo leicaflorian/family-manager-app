@@ -122,6 +122,14 @@ final class PlannedIncome extends FamilyModel
     }
 
     /**
+     * What to call it: its title, else the label of its type (for example *Salary*).
+     */
+    public function displayTitle(): string
+    {
+        return $this->title ?? $this->type->label();
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>

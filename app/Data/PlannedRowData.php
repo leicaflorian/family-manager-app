@@ -76,7 +76,7 @@ final class PlannedRowData extends Data
         return new self(
             kind: $planned instanceof PlannedExpense ? 'expense' : 'income',
             id: $planned->id,
-            title: $planned instanceof PlannedExpense ? $planned->title : $planned->title ?? $planned->type->label(),
+            title: $planned->displayTitle(),
             card: $card instanceof Model ? resolve(CardSummaries::class)->row($card, $today) : null,
             unit: $planned->interval_unit->value,
             interval: max(1, (int) $planned->interval),

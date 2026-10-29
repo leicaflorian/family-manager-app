@@ -24,8 +24,8 @@ use Illuminate\Support\Collection;
  */
 final class LoanSchedule
 {
-    /** The most instalments read from one loan, so a wrong count can never loop for ever. */
-    private const int MAX_INSTALLMENTS = 1200;
+    /** The most instalments read from one loan, so a wrong count can never loop for ever. {@see RefreshLoan} keeps to it too. */
+    public const int MAX_INSTALLMENTS = 1200;
 
     /**
      * Loan column to the column of its planned expense, for the values that follow the loan after the creation.

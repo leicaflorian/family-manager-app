@@ -24,9 +24,6 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final readonly class RefreshLoan
 {
-    /** The most instalments written on a loan, as many as {@see LoanSchedule} reads. */
-    private const int MAX_INSTALLMENTS = 1200;
-
     /**
      * @param  LoanSchedule  $schedule  The rules of the loans.
      */
@@ -117,7 +114,7 @@ final readonly class RefreshLoan
     private function columns(Loan $loan, LoanFigures $figures): array
     {
         // A count worked out from far apart dates can be past what the rules read: the loan keeps the one it has.
-        $count = $figures->installmentsCount !== null && $figures->installmentsCount > self::MAX_INSTALLMENTS
+        $count = $figures->installmentsCount !== null && $figures->installmentsCount > LoanSchedule::MAX_INSTALLMENTS
             ? $loan->installments_count
             : $figures->installmentsCount;
 

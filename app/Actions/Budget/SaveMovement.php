@@ -26,9 +26,6 @@ use InvalidArgumentException;
  */
 final readonly class SaveMovement
 {
-    /** The columns that an empty field takes from the planned item. */
-    private const array FROM_PLANNED = ['organization_id', 'financial_account_id', 'person_id'];
-
     public function __construct(private Occurrences $occurrences, private Deadlines $deadlines) {}
 
     /**
@@ -150,7 +147,7 @@ final readonly class SaveMovement
     }
 
     /**
-     * Fills the empty columns from the planned item.
+     * Fills the empty columns from the planned item, with what {@see PlannedKind::paymentColumns()} gives.
      *
      * @param  array<string, mixed>  $columns  what the form sent
      * @param  PlannedExpense|PlannedIncome  $planned  the planned item chosen
@@ -158,13 +155,9 @@ final readonly class SaveMovement
      */
     private function fill(array $columns, PlannedExpense|PlannedIncome $planned): array
     {
-        $own = $planned instanceof PlannedExpense
-            ? ['category_id' => $planned->category_id]
-            : ['employment_id' => $planned->employment_id, 'type' => $planned->type->value];
-
-        foreach ([...self::FROM_PLANNED, ...array_keys($own)] as $column) {
+        foreach (PlannedKind::paymentColumns($planned) as $column => $value) {
             if (($columns[$column] ?? null) === null || $columns[$column] === '') {
-                $columns[$column] = $own[$column] ?? $planned->getAttribute($column);
+                $columns[$column] = $value;
             }
         }
 

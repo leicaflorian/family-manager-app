@@ -48,6 +48,27 @@ final class PlannedKind
     }
 
     /**
+     * What a planned item gives the expense or income that pays it: the organization, the account and the holder,
+     * and the category of an expense or the employment and type of an income. *I paid it*, the form of a movement
+     * and its menu of planned items all take them from here.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     * @return array{organization_id: ?int, financial_account_id: ?int, person_id: ?int, category_id?: ?int, employment_id?: ?int, type?: string}
+     */
+    public static function paymentColumns(PlannedExpense|PlannedIncome $planned): array
+    {
+        $shared = [
+            'organization_id' => $planned->organization_id,
+            'financial_account_id' => $planned->financial_account_id,
+            'person_id' => $planned->person_id,
+        ];
+
+        return $planned instanceof PlannedExpense
+            ? [...$shared, 'category_id' => $planned->category_id]
+            : [...$shared, 'employment_id' => $planned->employment_id, 'type' => $planned->type->value];
+    }
+
+    /**
      * The card a planned item refers to: the first of the cards of a planned expense, the employment of an income.
      * The relations are read as loaded; `Deadlines::between()` loads them for a whole collection.
      *

@@ -6,6 +6,7 @@ namespace App\Data;
 
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Support\PlannedKind;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -46,19 +47,18 @@ final class PlannedChoiceData extends Data
      */
     public static function fromPlanned(PlannedExpense|PlannedIncome $planned): self
     {
-        $expense = $planned instanceof PlannedExpense ? $planned : null;
-        $income = $planned instanceof PlannedIncome ? $planned : null;
+        $columns = PlannedKind::paymentColumns($planned);
 
         return new self(
-            kind: $expense instanceof PlannedExpense ? 'expense' : 'income',
+            kind: $planned instanceof PlannedExpense ? 'expense' : 'income',
             value: (string) $planned->id,
-            label: $expense instanceof PlannedExpense ? $expense->title : $planned->title ?? $planned->type->label(),
-            category_id: self::text($expense?->category_id),
-            organization_id: self::text($planned->organization_id),
-            financial_account_id: self::text($planned->financial_account_id),
-            person_id: self::text($planned->person_id),
-            employment_id: self::text($income?->employment_id),
-            type: $income?->type->value,
+            label: $planned->displayTitle(),
+            category_id: self::text($columns['category_id'] ?? null),
+            organization_id: self::text($columns['organization_id']),
+            financial_account_id: self::text($columns['financial_account_id']),
+            person_id: self::text($columns['person_id']),
+            employment_id: self::text($columns['employment_id'] ?? null),
+            type: $columns['type'] ?? null,
         );
     }
 

@@ -208,6 +208,14 @@ final class PlannedExpense extends FamilyModel
     }
 
     /**
+     * What to call it: its title, which a planned expense always has. {@see PlannedIncome::displayTitle()} is the same for an income.
+     */
+    public function displayTitle(): string
+    {
+        return $this->title;
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
