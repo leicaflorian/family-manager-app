@@ -25,11 +25,17 @@ describe('FmBarChart', () => {
         render(FmBarChart, { props: { months: monthBars } });
 
         expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'See as a table' }),
+        ).toHaveAttribute('aria-pressed', 'false');
 
         await userEvent.click(
             screen.getByRole('button', { name: 'See as a table' }),
         );
 
+        expect(
+            screen.getByRole('button', { name: 'See as a chart' }),
+        ).toHaveAttribute('aria-pressed', 'true');
         const table = screen.getByRole('table');
         expect(within(table).getAllByRole('row')).toHaveLength(7);
         expect(within(table).getByText('1.284,20 €')).toBeInTheDocument();

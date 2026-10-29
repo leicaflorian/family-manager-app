@@ -119,6 +119,7 @@ final class PlannedController extends Controller
         Gate::authorize('delete', $planned);
 
         $planned->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Deleted.')]);
 
         return to_route('budget.planned.index');
     }

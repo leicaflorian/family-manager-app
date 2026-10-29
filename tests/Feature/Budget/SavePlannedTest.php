@@ -171,7 +171,10 @@ it('deletes a planned expense and leaves its payments without the link', functio
     $planned = savePlannedOf('Retta danza');
     $payments = insideBianchi(fn (): int => Expense::query()->where('planned_expense_id', $planned->id)->count());
 
-    $this->actingAs($this->marco)->delete("/budget/planned/expense/{$planned->id}")->assertRedirect('/budget/planned');
+    $this->actingAs($this->marco)->delete("/budget/planned/expense/{$planned->id}")
+        ->assertRedirect('/budget/planned')
+        ->assertInertiaFlash('toast.type', 'success')
+        ->assertInertiaFlash('toast.message', 'Deleted.');
 
     expect($payments)->toBeGreaterThan(0)
         ->and(insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Retta danza')->count()))->toBe(0)
