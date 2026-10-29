@@ -26,6 +26,14 @@ final class ChangeOccurrenceRequest extends FormRequest
     }
 
     /**
+     * A skipped due date keeps its address, so that saving it with no choice brings it back.
+     */
+    protected function findsSkipped(): bool
+    {
+        return true;
+    }
+
+    /**
      * The rules of the choices.
      *
      * @return array<string, ValidationRule|array<mixed>|string>

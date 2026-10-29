@@ -50,12 +50,21 @@ final readonly class Deadline
     }
 
     /**
+     * Whether an exception skips it: it is not paid and never late.
+     */
+    public function isSkipped(): bool
+    {
+        return $this->occurrence->skipped;
+    }
+
+    /**
      * Whether its day is over and nothing settles it: it is late from the day after, not during the day.
+     * A skipped due date is never late.
      *
      * @param  CarbonImmutable  $today  The day (and time) to look from.
      */
     public function isLate(CarbonImmutable $today): bool
     {
-        return ! $this->isPaid() && $this->occurrence->date->toDateString() < $today->toDateString();
+        return ! $this->isPaid() && ! $this->isSkipped() && $this->occurrence->date->toDateString() < $today->toDateString();
     }
 }

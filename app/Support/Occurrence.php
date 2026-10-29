@@ -18,6 +18,7 @@ final readonly class Occurrence
      * @param  bool  $estimated  Whether the amount is an estimate: no exception has changed it.
      * @param  ?float  $baseAmount  The amount of the planned item when an exception changed it, otherwise null.
      * @param  ?string  $notes  The notes of the exceptions of this date, joined by « · ».
+     * @param  bool  $skipped  Whether an exception skips it: only a lookup that asks for skipped due dates sees one.
      */
     public function __construct(
         public CarbonImmutable $date,
@@ -26,5 +27,6 @@ final readonly class Occurrence
         public bool $estimated,
         public ?float $baseAmount,
         public ?string $notes,
+        public bool $skipped = false,
     ) {}
 }

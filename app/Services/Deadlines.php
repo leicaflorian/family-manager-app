@@ -47,9 +47,10 @@ final readonly class Deadlines
      * @param  iterable<PlannedExpense|PlannedIncome>  $planned  The planned items to look at.
      * @param  CarbonImmutable  $from  The first day.
      * @param  CarbonImmutable  $to  The last day.
+     * @param  bool  $withSkipped  Whether the skipped due dates come too, flagged `skipped`.
      * @return list<Deadline>
      */
-    public function between(iterable $planned, CarbonImmutable $from, CarbonImmutable $to): array
+    public function between(iterable $planned, CarbonImmutable $from, CarbonImmutable $to, bool $withSkipped = false): array
     {
         $expenses = new Collection;
         $incomes = new Collection;
@@ -90,7 +91,7 @@ final readonly class Deadlines
 
             $account = $item->financialAccount ?? $default;
 
-            foreach ($this->occurrences->between($schedule, $from, $to) as $occurrence) {
+            foreach ($this->occurrences->between($schedule, $from, $to, $withSkipped) as $occurrence) {
                 $found[] = new Deadline(
                     $item,
                     $occurrence,
@@ -136,20 +137,46 @@ final readonly class Deadlines
      *
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
      * @param  CarbonImmutable  $originalDate  The date the rules give, before any exception moves it.
+     * @param  bool  $withSkipped  Whether a skipped due date is found too, flagged `skipped`: it keeps its address.
      *
      * @throws NotFoundHttpException if the day is not a due date of the planned item
      */
-    public function find(PlannedExpense|PlannedIncome $planned, CarbonImmutable $originalDate): Deadline
+    public function find(PlannedExpense|PlannedIncome $planned, CarbonImmutable $originalDate, bool $withSkipped = false): Deadline
     {
-        $day = $originalDate->toDateString();
+        $found = $this->findMany($planned, [$originalDate], $withSkipped);
 
-        foreach ($this->between([$planned], $originalDate->subYears(self::FIND_YEARS), $originalDate->addYears(self::FIND_YEARS)) as $deadline) {
-            if ($deadline->occurrence->originalDate->toDateString() === $day) {
-                return $deadline;
+        return $found[$originalDate->toDateString()] ?? throw new NotFoundHttpException;
+    }
+
+    /**
+     * The due dates of a planned item that the rules give on some days, skipped ones included, read at once.
+     * A day that is not a due date of the planned item is left out.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     * @param  list<CarbonImmutable>  $originalDates  The dates the rules give.
+     * @param  bool  $withSkipped  Whether the skipped due dates are found too, flagged `skipped`.
+     * @return array<string, Deadline> By original date, `yyyy-mm-dd`.
+     */
+    public function findMany(PlannedExpense|PlannedIncome $planned, array $originalDates, bool $withSkipped = true): array
+    {
+        if ($originalDates === []) {
+            return [];
+        }
+
+        $days = array_map(static fn (CarbonImmutable $date): string => $date->toDateString(), $originalDates);
+        $first = CarbonImmutable::parse(min($days), 'Europe/Rome');
+        $last = CarbonImmutable::parse(max($days), 'Europe/Rome');
+        $found = [];
+
+        foreach ($this->between([$planned], $first->subYears(self::FIND_YEARS), $last->addYears(self::FIND_YEARS), $withSkipped) as $deadline) {
+            $day = $deadline->occurrence->originalDate->toDateString();
+
+            if (in_array($day, $days, true)) {
+                $found[$day] = $deadline;
             }
         }
 
-        throw new NotFoundHttpException;
+        return $found;
     }
 
     /**
@@ -158,10 +185,11 @@ final readonly class Deadlines
      * @param  string  $kind  `expense` or `income`
      * @param  string  $id  The id of the planned item.
      * @param  string  $date  The day the rules give, `yyyy-mm-dd`.
+     * @param  bool  $withSkipped  Whether a skipped due date is found too, flagged `skipped`.
      *
      * @throws NotFoundHttpException if the planned item is not of the family or the day is not one of its due dates
      */
-    public function findByAddress(string $kind, string $id, string $date): Deadline
+    public function findByAddress(string $kind, string $id, string $date, bool $withSkipped = false): Deadline
     {
         $planned = PlannedKind::find($kind, $id);
         $day = CarbonImmutable::createFromFormat('!Y-m-d', $date, 'Europe/Rome');
@@ -171,7 +199,7 @@ final readonly class Deadlines
             throw new NotFoundHttpException;
         }
 
-        return $this->find($planned, $day);
+        return $this->find($planned, $day, $withSkipped);
     }
 
     /**

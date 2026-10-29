@@ -135,10 +135,7 @@ final readonly class PlannedSummaries
                 static fn (Deadline $deadline): DeadlineData => DeadlineData::fromDeadline($deadline, $today),
                 array_slice([...$late, ...$coming], 0, self::NEXT),
             ),
-            exceptions: array_values($planned->exceptions
-                ->sortByDesc(static fn ($exception): string => $exception->occurrence_date?->toDateString().sprintf('%010d', $exception->id))
-                ->map(ExceptionData::fromException(...))
-                ->all()),
+            exceptions: $this->exceptions($planned, $today),
             values: $this->values($planned, $default),
             payments: $this->paymentsByYear([$planned], $user),
             can_edit: $user->can('update', $planned),
@@ -188,6 +185,32 @@ final readonly class PlannedSummaries
             array_keys($years),
             $years,
         );
+    }
+
+    /**
+     * The exceptions, the latest due date first, each with the due date it changes (skipped ones included),
+     * all read with one lookup.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item, with its exceptions loaded
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return list<ExceptionData>
+     */
+    private function exceptions(PlannedExpense|PlannedIncome $planned, CarbonImmutable $today): array
+    {
+        $dates = array_values($planned->exceptions
+            ->map(static fn (PlannedExpenseException|PlannedIncomeException $exception): ?CarbonImmutable => $exception->occurrence_date)
+            ->filter()
+            ->all());
+        $deadlines = $this->deadlines->findMany($planned, $dates, withSkipped: true);
+
+        return array_values($planned->exceptions
+            ->sortByDesc(static fn (PlannedExpenseException|PlannedIncomeException $exception): string => $exception->occurrence_date?->toDateString().sprintf('%010d', $exception->id))
+            ->map(static function (PlannedExpenseException|PlannedIncomeException $exception) use ($deadlines, $today): ExceptionData {
+                $deadline = $deadlines[$exception->occurrence_date?->toDateString() ?? ''] ?? null;
+
+                return ExceptionData::fromException($exception, $deadline === null ? null : DeadlineData::fromDeadline($deadline, $today));
+            })
+            ->all());
     }
 
     /**

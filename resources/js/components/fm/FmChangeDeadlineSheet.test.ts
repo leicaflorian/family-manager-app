@@ -105,4 +105,26 @@ describe('FmChangeDeadlineSheet', () => {
             'Comprende la quota del saggio di Natale',
         );
     });
+
+    it('starts a skipped due date skipped, and turned off it sends no choice', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(FmChangeDeadlineSheet, {
+            ...props,
+            deadline: { ...props.deadline, skipped: true },
+        });
+        await screen.findByRole('dialog');
+
+        expect(screen.getByLabelText('Skip this due date')).toBeChecked();
+
+        await userEvent.click(screen.getByLabelText('Skip this due date'));
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(put.mock.calls[0]![1]).toMatchObject({
+            skip: false,
+            change_amount: false,
+            change_date: false,
+        });
+    });
 });

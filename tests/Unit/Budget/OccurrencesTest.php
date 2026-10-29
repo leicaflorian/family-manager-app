@@ -206,6 +206,20 @@ describe('between', function (): void {
         expect(occurrenceDates($schedule, '2026-01-01', '2026-03-31'))->toBe(['2026-01-31', '2026-03-31']);
     });
 
+    it('a skipped occurrence comes back flagged when asked for, on its own day and amount', function (): void {
+        $schedule = schedule(exceptions: [
+            scheduleException('2026-02-28', ExceptionType::Skip, notes: 'Vacanze'),
+            scheduleException('2026-02-28', ExceptionType::AmountOverride, amount: 75.5),
+        ]);
+        $list = (new Occurrences)->between($schedule, CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-03-31'), withSkipped: true);
+
+        expect(array_map(static fn (Occurrence $o): bool => $o->skipped, $list))->toBe([false, true, false])
+            ->and($list[1]->date->toDateString())->toBe('2026-02-28')
+            ->and($list[1]->amount)->toBe(100.0)
+            ->and($list[1]->baseAmount)->toBeNull()
+            ->and($list[1]->notes)->toBe('Vacanze');
+    });
+
     it('an amount override changes only that occurrence', function (): void {
         $schedule = schedule(exceptions: [scheduleException('2026-02-28', ExceptionType::AmountOverride, amount: 75.5)]);
         $list = (new Occurrences)->between($schedule, CarbonImmutable::parse('2026-01-01'), CarbonImmutable::parse('2026-03-31'));

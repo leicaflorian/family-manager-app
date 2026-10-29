@@ -119,7 +119,7 @@ export function comparisonComment(
 }
 
 /**
- * Says where a due date stands: when it falls, how late it is, or when it was paid.
+ * Says where a due date stands: skipped, when it falls, how late it is, or when it was paid.
  *
  * @param deadline - the due date
  * @param today - the moment taken as now, the clock if missing
@@ -130,6 +130,10 @@ export function deadlineStatus(
     today: Date = new Date(),
 ): string {
     const income = deadline.kind === 'income';
+
+    if (deadline.skipped && deadline.payment === null) {
+        return trans('Skipped');
+    }
 
     if (deadline.payment !== null) {
         return trans(income ? 'Received on :date' : 'Paid on :date', {
@@ -256,49 +260,6 @@ export function skippedMonthsText(months: number[]): string {
     );
 }
 
-/**
- * The due date that the exceptions of one day change, built from the planned
- * item: the sheet *Change this due date* needs it for a day that is not among
- * the next ones. The exceptions of the same day are gathered, as the server does.
- *
- * @param row - the planned item
- * @param exceptions - its exceptions
- * @param originalDate - the day the rules give, `yyyy-mm-dd`
- * @returns the due date, open (nothing says it is paid)
- */
-export function deadlineOfException(
-    row: App.Data.PlannedRowData,
-    exceptions: App.Data.ExceptionData[],
-    originalDate: string,
-): App.Data.DeadlineData {
-    const mine = exceptions.filter(
-        (exception) => exception.occurrence_date === originalDate,
-    );
-    const amount = mine.find((exception) => exception.amount_override !== null);
-    const moved = mine.find((exception) => exception.date_override !== null);
-
-    return {
-        kind: row.kind,
-        planned_id: row.id,
-        title: row.title,
-        planned_title: row.title,
-        date: moved?.date_override ?? originalDate,
-        original_date: originalDate,
-        amount: amount?.amount_override ?? row.amount,
-        base_amount: amount ? row.amount : null,
-        estimated: row.estimated,
-        notes: mine.find((exception) => exception.notes)?.notes ?? null,
-        late: false,
-        payment: null,
-        account_id: null,
-        account: row.account,
-        card: row.card,
-        income_type: null,
-        person: row.person,
-    };
-}
-
-/** The values of the form of a planned expense or income, as the server sends and receives them. */
 export interface PlannedFormValues {
     title: string;
     amount: number | string | null;

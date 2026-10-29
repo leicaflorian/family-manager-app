@@ -8,7 +8,12 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { accountOptions, danceDetail, lateDeadline } from '@/test/fixtures';
+import {
+    accountOptions,
+    danceDetail,
+    danceExceptions,
+    lateDeadline,
+} from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import PlannedItem from './PlannedItem.vue';
 
@@ -150,6 +155,28 @@ describe('A planned expense', () => {
         expect(
             within(sheet).getByText(/due on 05\/08\/2026/),
         ).toBeInTheDocument();
+        // The due date the server sends: it is skipped, so the choice starts on
+        expect(
+            within(sheet).getByLabelText('Skip this due date'),
+        ).toBeChecked();
+        expect(
+            within(sheet).getByRole('textbox', { name: 'Note' }),
+        ).toHaveValue('Vacanze');
+    });
+
+    it('has no pencil for an exception whose day is no longer a due date', () => {
+        renderPage(PlannedItem, {
+            ...props,
+            detail: {
+                ...danceDetail,
+                exceptions: [{ ...danceExceptions[1]!, deadline: null }],
+            },
+        });
+        const exceptions = screen.getByRole('region', { name: 'Exceptions' });
+
+        expect(
+            within(exceptions).queryByRole('button', { name: 'Edit' }),
+        ).not.toBeInTheDocument();
     });
 
     it('adds an exception to the first open due date', async () => {

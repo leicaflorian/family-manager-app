@@ -54,9 +54,10 @@ final class Occurrences
      * @param  Schedule  $schedule  The recurrence.
      * @param  CarbonImmutable  $from  The first day.
      * @param  CarbonImmutable  $to  The last day.
+     * @param  bool  $withSkipped  Whether the skipped ones come too, flagged `skipped`, so a skipped due date keeps its address.
      * @return list<Occurrence>
      */
-    public function between(Schedule $schedule, CarbonImmutable $from, CarbonImmutable $to): array
+    public function between(Schedule $schedule, CarbonImmutable $from, CarbonImmutable $to, bool $withSkipped = false): array
     {
         if (! $schedule->start instanceof CarbonImmutable) {
             return [];
@@ -67,7 +68,7 @@ final class Occurrences
         $found = [];
 
         foreach ($this->originalDates($schedule, $from, $to) as $original) {
-            $occurrence = $this->apply($schedule, $original);
+            $occurrence = $this->apply($schedule, $original, $withSkipped);
 
             if ($occurrence instanceof Occurrence) {
                 $day = $occurrence->date->toDateString();
@@ -189,9 +190,10 @@ final class Occurrences
      *
      * @param  Schedule  $schedule  The recurrence.
      * @param  CarbonImmutable  $original  The original date.
-     * @return ?Occurrence The occurrence, or null when it is skipped.
+     * @param  bool  $withSkipped  Whether a skipped date comes back, on its original day and amount, flagged `skipped`.
+     * @return ?Occurrence The occurrence, or null when it is skipped and skipped dates are not asked for.
      */
-    private function apply(Schedule $schedule, CarbonImmutable $original): ?Occurrence
+    private function apply(Schedule $schedule, CarbonImmutable $original, bool $withSkipped = false): ?Occurrence
     {
         $day = $original->toDateString();
         $list = array_values(array_filter(
@@ -199,15 +201,17 @@ final class Occurrences
             static fn (ScheduleException $exception): bool => $exception->occurrenceDate->toDateString() === $day,
         ));
 
-        if (array_any($list, static fn (ScheduleException $e): bool => $e->type === ExceptionType::Skip)) {
+        $skipped = array_any($list, static fn (ScheduleException $e): bool => $e->type === ExceptionType::Skip);
+
+        if ($skipped && ! $withSkipped) {
             return null;
         }
 
         $amount = null;
         $moved = null;
 
-        // The first exception of each kind that carries its value wins.
-        foreach ($list as $exception) {
+        // The first exception of each kind that carries its value wins; a skip wins over both.
+        foreach ($skipped ? [] : $list as $exception) {
             if ($exception->type === ExceptionType::AmountOverride && $exception->amount !== null) {
                 $amount ??= $exception->amount;
             }
@@ -229,6 +233,7 @@ final class Occurrences
             $schedule->estimated && $amount === null,
             $amount === null ? null : $schedule->amount,
             $notes === [] ? null : implode(' · ', $notes),
+            $skipped,
         );
     }
 

@@ -30,7 +30,6 @@ import FmValueList from '@/components/fm/FmValueList.vue';
 import { useFormat } from '@/composables/useFormat';
 import {
     capitalized,
-    deadlineOfException,
     deadlineStatus,
     deadlineUrls,
     recurrenceText,
@@ -125,21 +124,14 @@ function change(deadline: App.Data.DeadlineData): void {
 }
 
 /**
- * Opens the panel for the due date an exception changes.
+ * Opens the panel for the due date an exception changes, as the server sends it.
  *
- * @param exception - the exception
+ * @param exception - the exception, with its due date
  */
 function changeException(exception: App.Data.ExceptionData): void {
-    change(
-        detail.next.find(
-            (deadline) => deadline.original_date === exception.occurrence_date,
-        ) ??
-            deadlineOfException(
-                row.value,
-                detail.exceptions,
-                exception.occurrence_date,
-            ),
-    );
+    if (exception.deadline !== null) {
+        change(exception.deadline);
+    }
 }
 
 /**
@@ -316,7 +308,7 @@ const exceptionIcons = {
                             >
                         </span>
                         <button
-                            v-if="detail.can_edit"
+                            v-if="detail.can_edit && exception.deadline"
                             type="button"
                             :aria-label="$t('Edit')"
                             class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-ink-soft hover:bg-action-soft"

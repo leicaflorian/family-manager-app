@@ -196,3 +196,52 @@ function plannedOfFamily(User $user): PlannedExpense
 {
     return CurrentFamily::using($user->family_id, fn (): PlannedExpense => PlannedExpense::factory()->create(['family_id' => $user->family_id, 'start_date' => '2026-12-05']));
 }
+
+test('a skipped due date keeps its address and says it is not paid', function (): void {
+    $address = deadlineAddress('Retta danza', '2026-07-05');
+
+    $this->actingAs($this->marco)
+        ->get($address)
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('budget/Deadline')
+            ->where('deadline.skipped', true)
+            ->where('deadline.late', false)
+            ->where('deadline.payment', null)
+            ->where('deadline.original_date', '2026-07-05')
+            ->where('deadline.notes', 'Vacanze'));
+});
+
+test('skipping a due date leads back to its page, which says it is not paid', function (): void {
+    $address = deadlineAddress('Retta danza', '2027-01-05');
+
+    $this->actingAs($this->marco)
+        ->followingRedirects()
+        ->put("{$address}/exceptions", ['skip' => true])
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('budget/Deadline')
+            ->where('deadline.skipped', true));
+});
+
+test('saving a skipped due date with no choice brings it back', function (): void {
+    $address = deadlineAddress('Retta danza', '2026-07-05');
+
+    $this->actingAs($this->marco)
+        ->put("{$address}/exceptions", ['skip' => false, 'change_amount' => false, 'change_date' => false])
+        ->assertRedirect($address);
+
+    $this->get($address)->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('deadline.skipped', false)
+        ->where('deadline.late', true));
+});
+
+test('a skipped due date cannot be paid', function (): void {
+    $address = deadlineAddress('Retta danza', '2026-07-05');
+
+    $this->actingAs($this->marco)
+        ->post("{$address}/payment", ['date' => '2026-10-26', 'amount' => 45])
+        ->assertNotFound();
+
+    expect(insideBianchi(fn (): int => Expense::query()->where('occurrence_date', '2026-07-05')->count()))->toBe(0);
+});

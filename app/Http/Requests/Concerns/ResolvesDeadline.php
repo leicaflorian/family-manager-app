@@ -31,6 +31,14 @@ trait ResolvesDeadline
             throw new NotFoundHttpException;
         }
 
-        return $this->resolvedDeadline ??= resolve(Deadlines::class)->findByAddress($kind, $id, $date);
+        return $this->resolvedDeadline ??= resolve(Deadlines::class)->findByAddress($kind, $id, $date, $this->findsSkipped());
+    }
+
+    /**
+     * Whether the address may name a skipped due date. A request that cannot act on one (a payment) answers 404 to it.
+     */
+    protected function findsSkipped(): bool
+    {
+        return false;
     }
 }

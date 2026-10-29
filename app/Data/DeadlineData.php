@@ -32,6 +32,7 @@ final class DeadlineData extends Data
      * @param  bool  $estimated  whether the amount is an estimate
      * @param  string|null  $notes  the notes of the exceptions
      * @param  bool  $late  whether its day is over and nothing settles it
+     * @param  bool  $skipped  whether an exception skips it: it is not paid
      * @param  PaymentData|null  $payment  the payment that settles it
      * @param  int|null  $account_id  the account of the planned item, else the default account of the family
      * @param  string|null  $account  the name of that account
@@ -51,6 +52,7 @@ final class DeadlineData extends Data
         public readonly bool $estimated,
         public readonly ?string $notes,
         public readonly bool $late,
+        public readonly bool $skipped,
         public readonly ?PaymentData $payment,
         public readonly ?int $account_id,
         public readonly ?string $account,
@@ -90,6 +92,7 @@ final class DeadlineData extends Data
             estimated: $occurrence->estimated,
             notes: $occurrence->notes,
             late: $deadline->isLate($today),
+            skipped: $deadline->isSkipped(),
             payment: $payment === null ? null : PaymentData::fromMovement($payment),
             account_id: $account?->id,
             account: $account?->name,

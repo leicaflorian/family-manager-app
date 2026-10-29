@@ -32,14 +32,14 @@ const open = defineModel<boolean>('open', { default: false });
 const { euro, date } = useFormat();
 
 /**
- * The choices a due date already has: an amount other than the planned one, a
- * day other than the one of the rules, and its notes.
+ * The choices a due date already has: skipped, an amount other than the planned
+ * one, a day other than the one of the rules, and its notes.
  *
  * @returns the fields of the form
  */
 function initial() {
     return {
-        skip: false,
+        skip: deadline.skipped,
         change_amount: deadline.base_amount !== null,
         amount: formatAmount(deadline.amount),
         change_date: deadline.date !== deadline.original_date,

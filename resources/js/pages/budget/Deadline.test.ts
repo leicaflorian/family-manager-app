@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
     afterEach,
@@ -192,5 +192,27 @@ describe('A due date', () => {
         expect(
             screen.getByText('Comprende la quota del saggio di Natale'),
         ).toBeInTheDocument();
+    });
+
+    it('says a skipped due date is not paid and offers only to change it', async () => {
+        renderPage(Deadline, {
+            ...props,
+            deadline: { ...carDeadline, skipped: true, notes: 'Vacanze' },
+        });
+
+        expect(screen.getByText('Skipped')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'I paid it' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Change this due date' }),
+        );
+        const sheet = await screen.findByRole('dialog', {
+            name: 'Change this due date',
+        });
+        expect(
+            within(sheet).getByLabelText('Skip this due date'),
+        ).toBeChecked();
     });
 });

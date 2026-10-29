@@ -42,13 +42,13 @@ final class DeadlineController extends Controller
 
     /**
      * *A due date*, with the next ones of the same planned item and the accounts to pay with.
-     * With `?pay=1` the panel *I paid it* opens at once.
+     * With `?pay=1` the panel *I paid it* opens at once. A skipped due date has its page too, to bring it back.
      *
      * @throws NotFoundHttpException if the address is not a due date of the family
      */
     public function show(Request $request, string $kind, string $id, string $date, #[CurrentUser] User $user): Response
     {
-        $deadline = $this->deadlines->findByAddress($kind, $id, $date);
+        $deadline = $this->deadlines->findByAddress($kind, $id, $date, withSkipped: true);
         $planned = $deadline->planned;
         $today = CarbonImmutable::today('Europe/Rome');
         $after = $deadline->occurrence->date->addDay();

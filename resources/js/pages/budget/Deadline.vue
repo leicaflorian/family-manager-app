@@ -5,7 +5,8 @@
  * with *I paid it* (*It arrived* for an income) and *Change this due date*,
  * which open their panels, and below the next due dates of the same planned
  * expense or income. A paid due date has no buttons, and its line leads to the
- * movement that paid it. With `pay` the panel of
+ * movement that paid it. A skipped one says so and has only *Change this due
+ * date*, to bring it back. With `pay` the panel of
  * the payment is already open, as *Record payment* opens it.
  */
 import { Head, Link } from '@inertiajs/vue3';
@@ -53,8 +54,11 @@ const income = computed(() => deadline.kind === 'income');
 /** A payment settles it. */
 const paid = computed(() => deadline.payment !== null);
 
-/** The panel of the payment is open: at once when asked, unless it is already paid. */
-const paying = ref(pay && canPay && deadline.payment === null);
+/** It can be paid: nothing settles it and it is not skipped. */
+const payable = computed(() => !paid.value && !deadline.skipped);
+
+/** The panel of the payment is open: at once when asked, unless it is already paid or skipped. */
+const paying = ref(pay && canPay && payable.value);
 
 /** The panel that changes the due date is open. */
 const changing = ref(false);
@@ -86,12 +90,15 @@ const paymentHref = computed(() =>
           }),
 );
 
-/** The line under the amount: where it stands, the payment or the account. */
+/** The line under the amount: where it stands, the payment or the account (not for a skipped one, which is not paid). */
 const status = computed(() => {
     const payment = deadline.payment;
     const parts =
         payment === null
-            ? [deadlineStatus(deadline), deadline.account]
+            ? [
+                  deadlineStatus(deadline),
+                  deadline.skipped ? null : deadline.account,
+              ]
             : [deadlineStatus(deadline), euro(payment.amount), payment.account];
 
     return parts.filter((part) => part !== null && part !== '').join(' · ');
@@ -153,9 +160,12 @@ const status = computed(() => {
                     @click="changing = true"
                     >{{ $t('Change this due date') }}</FmButton
                 >
-                <FmButton v-if="canPay" :icon="Check" @click="paying = true">{{
-                    income ? $t('It arrived') : $t('I paid it')
-                }}</FmButton>
+                <FmButton
+                    v-if="canPay && payable"
+                    :icon="Check"
+                    @click="paying = true"
+                    >{{ income ? $t('It arrived') : $t('I paid it') }}</FmButton
+                >
             </div>
         </div>
 
@@ -171,7 +181,7 @@ const status = computed(() => {
         </FmCard>
 
         <FmPaySheet
-            v-if="canPay && !paid"
+            v-if="canPay && payable"
             v-model:open="paying"
             :deadline="deadline"
             :accounts="accounts"
