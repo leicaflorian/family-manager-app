@@ -4,7 +4,8 @@
  * stands (when it falls and with which account, or when and how it was paid),
  * with *I paid it* (*It arrived* for an income) and *Change this due date*,
  * which open their panels, and below the next due dates of the same planned
- * expense or income. A paid due date has no buttons. With `pay` the panel of
+ * expense or income. A paid due date has no buttons, and its line leads to the
+ * movement that paid it. With `pay` the panel of
  * the payment is already open, as *Record payment* opens it.
  */
 import { Head, Link } from '@inertiajs/vue3';
@@ -23,6 +24,7 @@ import { useFormat } from '@/composables/useFormat';
 import { deadlineStatus, deadlineUrls } from '@/lib/budget';
 import { dashboard } from '@/routes';
 import { show as showArea } from '@/routes/areas';
+import { show as showMovement } from '@/routes/budget/movements';
 import { show as showCard } from '@/routes/cards';
 
 const { deadline, canPay, canChange, pay } = defineProps<{
@@ -74,6 +76,16 @@ const cardHref = computed(() =>
         : showCard.url({ type: deadline.card.type, id: deadline.card.id }),
 );
 
+/** The page of the movement that settles the due date, if it is paid. */
+const paymentHref = computed(() =>
+    deadline.payment === null
+        ? null
+        : showMovement.url({
+              kind: deadline.payment.kind,
+              id: deadline.payment.id,
+          }),
+);
+
 /** The line under the amount: where it stands, the payment or the account. */
 const status = computed(() => {
     const payment = deadline.payment;
@@ -113,14 +125,19 @@ const status = computed(() => {
                         :income="income"
                     />
                 </span>
+                <Link
+                    v-if="paymentHref"
+                    :href="paymentHref"
+                    class="text-[15px] font-semibold text-paid"
+                    >{{ status }}</Link
+                >
                 <span
+                    v-else
                     class="text-[15px]"
                     :class="
                         deadline.late
                             ? 'font-semibold text-overdue'
-                            : paid
-                              ? 'font-semibold text-paid'
-                              : 'text-ink-soft'
+                            : 'text-ink-soft'
                     "
                     >{{ status }}</span
                 >

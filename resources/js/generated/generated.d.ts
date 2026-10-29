@@ -195,6 +195,15 @@ readonly spent: number,
 readonly planned: number,
 readonly current: boolean,
 };
+export type MonthSummaryData = {
+readonly month: string,
+readonly incomes: number,
+readonly salaries_in: number,
+readonly salaries_expected: number,
+readonly expenses: number,
+readonly payments: number,
+readonly balance: number,
+};
 export type MovementData = {
 readonly kind: string,
 readonly id: number,
@@ -306,6 +315,17 @@ readonly id: number,
 readonly first_name: string,
 readonly last_name: string,
 readonly initials: string,
+};
+export type PlannedChoiceData = {
+readonly kind: string,
+readonly value: string,
+readonly label: string,
+readonly category_id: string | null,
+readonly organization_id: string | null,
+readonly financial_account_id: string | null,
+readonly person_id: string | null,
+readonly employment_id: string | null,
+readonly type: string | null,
 };
 export type PlannedDetailData = {
 readonly row: App.Data.PlannedRowData,

@@ -1,6 +1,7 @@
 /**
  * Fake data for the tests of the pages, the data more than one file needs.
  */
+import type { MovementFormOptions } from '@/lib/budget';
 
 /** My account: Marco Bianchi, the only administrator. */
 export const account: App.Data.AccountData = {
@@ -804,4 +805,83 @@ export const newPlannedValues = {
     person_id: null,
     category_id: null,
     card: null,
+};
+
+/** The choices of the form of a movement of the Bianchi. */
+export const movementOptions: MovementFormOptions = {
+    accounts: accountOptions,
+    categories: [
+        { value: '8', label: 'Svago › Sport', help: null },
+        { value: '9', label: 'Salute', help: null },
+    ],
+    organizations: [
+        { value: '5', label: 'Scuola Passo a Due', help: null },
+        { value: '6', label: 'Studio Ferri', help: null },
+    ],
+    people: [
+        { value: '3', label: 'Laura Bianchi', help: null },
+        { value: '4', label: 'Giulia Bianchi', help: null },
+    ],
+    planned: [
+        {
+            kind: 'expense',
+            value: '4',
+            label: 'Retta danza',
+            category_id: '8',
+            organization_id: '5',
+            financial_account_id: '2',
+            person_id: '4',
+            employment_id: null,
+            type: null,
+        },
+        {
+            kind: 'income',
+            value: '2',
+            label: 'Stipendio di Laura',
+            category_id: null,
+            organization_id: '6',
+            financial_account_id: '1',
+            person_id: '3',
+            employment_id: '1',
+            type: 'salary',
+        },
+    ],
+    income_types: [
+        { value: 'salary', label: 'Stipendio', help: null },
+        { value: 'other', label: 'Altro', help: null },
+    ],
+};
+
+/** October 2026 as *Movements* sums it up. */
+export const octoberSummary: App.Data.MonthSummaryData = {
+    month: '2026-10',
+    incomes: 1720,
+    salaries_in: 1,
+    salaries_expected: 2,
+    expenses: 1284.2,
+    payments: 15,
+    balance: 435.8,
+};
+
+/** The salary of Laura received on 23/10/2026. */
+export const salaryMovement: App.Data.MovementData = {
+    ...danceMovement,
+    kind: 'income',
+    id: 12,
+    title: 'Stipendio di ottobre',
+    date: '2026-10-23',
+    amount: 1720,
+    account_id: 1,
+    account: 'Conto BPER',
+    category_id: null,
+    category: null,
+    icon: null,
+    color: null,
+    organization_id: 6,
+    organization: 'Comune di Bologna',
+    person_id: 3,
+    planned_id: 2,
+    occurrence_date: '2026-10-23',
+    type: 'salary',
+    employment_id: 1,
 };

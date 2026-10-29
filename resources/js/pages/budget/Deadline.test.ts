@@ -146,6 +146,24 @@ describe('A due date', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('links the paid line to the movement that paid it', () => {
+        renderPage(Deadline, { ...props, deadline: paidDeadline, next: [] });
+
+        expect(
+            screen.getByRole('link', {
+                name: 'Paid on 20/10 · 45,00 € · Carta Laura',
+            }),
+        ).toHaveAttribute('href', '/budget/movements/expense/31');
+    });
+
+    it('does not link the line of an open due date', () => {
+        renderPage(Deadline, props);
+
+        expect(
+            screen.queryByRole('link', { name: /^Due on/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('does not open the panel of a paid due date', () => {
         renderPage(Deadline, {
             ...props,

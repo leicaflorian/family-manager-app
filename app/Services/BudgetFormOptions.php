@@ -6,12 +6,15 @@ namespace App\Services;
 
 use App\Cards\CardTypes;
 use App\Data\OptionData;
+use App\Data\PlannedChoiceData;
 use App\Enums\FinancialAccountStatus;
 use App\Enums\IncomeType;
 use App\Models\Employment;
 use App\Models\FinancialAccount;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\PlannedExpense;
+use App\Models\PlannedIncome;
 use App\Support\ModelId;
 use App\Support\PlannedPreset;
 use Illuminate\Database\Eloquent\Model;
@@ -44,6 +47,24 @@ final class BudgetFormOptions
     }
 
     /**
+     * The choices of the form of a movement, an expense or an income: the lists of both kinds, because the first
+     * choice of the form is which one it is.
+     *
+     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, planned: list<PlannedChoiceData>, income_types: list<OptionData>}
+     */
+    public static function forMovement(): array
+    {
+        return [
+            'accounts' => self::accounts(),
+            'categories' => self::categories(),
+            'organizations' => self::organizations(),
+            'people' => self::people(),
+            'planned' => self::planned(),
+            'income_types' => OptionData::list(IncomeType::options()),
+        ];
+    }
+
+    /**
      * The accounts to pay with: the active ones, the default first.
      *
      * @return list<OptionData>
@@ -54,6 +75,19 @@ final class BudgetFormOptions
             FinancialAccount::query()->where('status', FinancialAccountStatus::Active)->orderByDesc('is_default')->orderBy('name')->get(),
             static fn (FinancialAccount $account): string => $account->name,
         );
+    }
+
+    /**
+     * The planned expenses and incomes, by title, each with what a movement takes from it.
+     *
+     * @return list<PlannedChoiceData>
+     */
+    private static function planned(): array
+    {
+        return [
+            ...PlannedExpense::query()->orderBy('title')->get()->map(PlannedChoiceData::fromPlanned(...))->all(),
+            ...PlannedIncome::query()->orderBy('title')->get()->map(PlannedChoiceData::fromPlanned(...))->all(),
+        ];
     }
 
     /**

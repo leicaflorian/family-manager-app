@@ -5,6 +5,7 @@
 import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import { exceptions, payment, show } from '@/routes/budget/deadlines';
+import { index as movementsIndex } from '@/routes/budget/movements';
 import { daysFromToday, formatDate, formatEuro, relativeDays } from './format';
 import { listNames } from './names';
 
@@ -326,4 +327,64 @@ export interface PlannedFormOptions {
     cards: App.Data.OptionData[];
     employments: App.Data.OptionData[];
     income_types: App.Data.OptionData[];
+}
+
+/** The choices of the form of a movement (`BudgetFormOptions::forMovement()`). */
+export interface MovementFormOptions {
+    accounts: App.Data.OptionData[];
+    categories: App.Data.OptionData[];
+    organizations: App.Data.OptionData[];
+    people: App.Data.OptionData[];
+    planned: App.Data.PlannedChoiceData[];
+    income_types: App.Data.OptionData[];
+}
+
+/** What a new movement starts from: its kind, the planned item it settles and the day. */
+export interface MovementStart {
+    /** `expense` or `income`. */
+    kind: string;
+    /** The planned item, as text, or null. */
+    planned_id: string | null;
+    /** The day, `yyyy-mm-dd`. */
+    date: string;
+}
+
+/**
+ * The short name of the weekday of a date, as a list of movements shows it.
+ *
+ * @param date - `yyyy-mm-dd`
+ * @returns for example «sab» in Italian, «Sat» in English
+ */
+export function weekdayShort(date: string): string {
+    const [year, month, day] = date.split('-').map(Number);
+
+    return format(new Date(year, month - 1, day), 'ddd', getActiveLanguage());
+}
+
+/** What *Movements* shows: the month and, if chosen, the kind, the account and the movement open beside the list. */
+export interface MovementsQuery {
+    /** `yyyy-mm`. */
+    month: string;
+    /** `expense` or `income`, or null for both. */
+    kind?: string | null;
+    /** The id of the account, or null for all. */
+    account?: number | null;
+    /** The movement open beside the list, `kind:id`. */
+    movement?: string | null;
+}
+
+/**
+ * The address of *Movements* for a month and the filters in use. What is empty is left out.
+ *
+ * @param query - the month, the filters and the open movement
+ * @returns for example `/budget/movements?month=2026-10&kind=expense`
+ */
+export function movementsUrl(query: MovementsQuery): string {
+    return movementsIndex.url({
+        query: Object.fromEntries(
+            Object.entries(query).filter(
+                ([, value]) => value !== null && value !== undefined,
+            ),
+        ),
+    });
 }
