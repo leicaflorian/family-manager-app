@@ -388,7 +388,7 @@ describe('A card', () => {
             expect(screen.getByText('9 bills')).toBeInTheDocument();
         });
 
-        it('shows the pages of the documents, 10 at a time', () => {
+        it('shows the pages of the documents, 5 at a time', () => {
             renderPage(Card, {
                 card: {
                     ...luceDetail,

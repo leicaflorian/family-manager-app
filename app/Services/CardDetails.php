@@ -43,7 +43,7 @@ use LogicException;
 final readonly class CardDetails
 {
     /** How many documents a page of the card shows. */
-    private const int DOCUMENTS_PER_PAGE = 10;
+    private const int DOCUMENTS_PER_PAGE = 5;
 
     public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets) {}
 

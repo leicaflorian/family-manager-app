@@ -498,14 +498,14 @@ it('works out the figures of a saved loan with its saved last date and status, a
         ->assertJsonPath('props.loanFigures.total_to_pay', 1200);
 });
 
-test('a card shows its documents 10 at a time, with the addresses of the other pages', function (): void {
+test('a card shows its documents 5 at a time, with the addresses of the other pages', function (): void {
     $this->actingAs($this->marco);
     $linked = insideBianchi(fn (): int => DB::table('documentables')->where(['documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id])->count());
-    Document::factory()->for($this->marco->family)->count(12 - $linked)->create()
+    Document::factory()->for($this->marco->family)->count(7 - $linked)->create()
         ->each(fn (Document $document): bool => DB::table('documentables')->insert(['document_id' => $document->id, 'documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id]));
 
     $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->has('card.documents', 10)
+        ->has('card.documents', 5)
         ->where('card.documents_previous', null)
         ->where('card.documents_next', route('cards.show', [...$this->pandaUrl, 'documents_page' => 2])));
 

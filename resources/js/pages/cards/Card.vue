@@ -6,7 +6,7 @@
  * due date, the figures, the due dates to pay), the data of the card (the
  * person, the organization and the card it names open in a new tab) and the
  * cards it is linked to, with the + that adds a new one already linked (for an
- * `admin`); beside them its documents, 10 a page (with *Upload*, which opens
+ * `admin`); beside them its documents, 5 a page (with *Upload*, which opens
  * the panel with the zone for the files, and *Link*, open to a `member` too,
  * and beside each the buttons of `FmCardDocumentActions`), and under the
  * documents the planned expenses and the payments (`FmCardPayments`). *Link* opens the documents not yet linked, searched while
