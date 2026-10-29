@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Models\Document;
 use App\Models\DocumentCategory;
+use App\Models\Expense;
 use App\Models\Family;
+use App\Models\Income;
 use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\Person;
@@ -47,4 +49,17 @@ test('an admin can do everything', function (): void {
 
 test('a member does not open the invitations page', function (): void {
     $this->actingAs($this->member)->get(route('family.invitations.create'))->assertForbidden();
+});
+
+test('a member records a payment but cannot delete it', function (): void {
+    $expense = Expense::factory()->for($this->family)->create();
+    $income = Income::factory()->for($this->family)->create();
+
+    expect($this->member->can('create', Expense::class))->toBeTrue()
+        ->and($this->member->can('update', $expense))->toBeTrue()
+        ->and($this->member->can('delete', $expense))->toBeFalse()
+        ->and($this->member->can('create', Income::class))->toBeTrue()
+        ->and($this->member->can('update', $income))->toBeTrue()
+        ->and($this->member->can('delete', $income))->toBeFalse()
+        ->and($this->admin->can('delete', $expense))->toBeTrue();
 });
