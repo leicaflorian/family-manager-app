@@ -92,6 +92,25 @@ readonly color: string | null,
 readonly documents_count: number,
 readonly children: App.Data.CategoryData[],
 };
+export type DeadlineData = {
+readonly kind: string,
+readonly planned_id: number,
+readonly title: string,
+readonly planned_title: string,
+readonly date: string,
+readonly original_date: string,
+readonly amount: number,
+readonly base_amount: number | null,
+readonly estimated: boolean,
+readonly notes: string | null,
+readonly late: boolean,
+readonly payment: App.Data.PaymentData | null,
+readonly account_id: number | null,
+readonly account: string | null,
+readonly card: App.Data.CardData | null,
+readonly income_type: string | null,
+readonly person: string | null,
+};
 export type DocumentData = {
 readonly id: number,
 readonly title: string,
@@ -162,6 +181,36 @@ readonly type: string,
 readonly label: string,
 readonly options: App.Data.OptionData[],
 };
+export type MonthBarData = {
+readonly month: string,
+readonly spent: number,
+readonly planned: number,
+readonly current: boolean,
+};
+export type MovementData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly date: string,
+readonly amount: number,
+readonly fee_amount: number | null,
+readonly account_id: number | null,
+readonly account: string | null,
+readonly category_id: number | null,
+readonly category: string | null,
+readonly icon: string | null,
+readonly color: string | null,
+readonly organization_id: number | null,
+readonly organization: string | null,
+readonly person_id: number | null,
+readonly planned_id: number | null,
+readonly occurrence_date: string | null,
+readonly type: string | null,
+readonly employment_id: number | null,
+readonly documents: App.Data.DocumentData[],
+readonly can_edit: boolean,
+readonly can_delete: boolean,
+};
 export type OptionData = {
 readonly value: string,
 readonly label: string,
@@ -187,6 +236,19 @@ readonly website: string | null,
 readonly notes: string | null,
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+};
+export type PaymentData = {
+readonly kind: string,
+readonly id: number,
+readonly date: string,
+readonly amount: number,
+readonly account: string | null,
+};
+export type PaymentYearData = {
+readonly year: number,
+readonly total: number,
+readonly count: number,
+readonly payments: App.Data.MovementData[],
 };
 export type PendingFileData = {
 readonly id: number,

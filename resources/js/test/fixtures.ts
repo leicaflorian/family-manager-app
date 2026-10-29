@@ -471,3 +471,122 @@ export const pendingPayslip: App.Data.PendingFileData = {
     preview_url: '/files/12/preview',
     links: [],
 };
+
+/** The card of the dance lessons, as `DeadlineData` sends it. */
+export const danceEnrollmentRow: App.Data.CardData = {
+    type: 'enrollment',
+    id: 1,
+    type_label: 'Enrollment',
+    label: 'Danza Giulia',
+    area: 'school',
+    area_label: 'School and activities',
+    subtitle: '',
+    next_label: null,
+    next_date: null,
+    overdue: false,
+    closed: false,
+};
+
+/** The dance lessons of 05/12/2026: the amount is changed from 45 to 60 euros, with a note. */
+export const danceDeadline: App.Data.DeadlineData = {
+    kind: 'expense',
+    planned_id: 4,
+    title: 'Retta danza',
+    planned_title: 'Retta danza',
+    date: '2026-12-05',
+    original_date: '2026-12-05',
+    amount: 60,
+    base_amount: 45,
+    estimated: false,
+    notes: 'Comprende la quota del saggio di Natale',
+    late: false,
+    payment: null,
+    account_id: 2,
+    account: 'Carta Laura',
+    card: danceEnrollmentRow,
+    income_type: null,
+    person: 'Giulia',
+};
+
+/** The dance lessons of 05/11/2026, already paid on 20/10. */
+export const paidDeadline: App.Data.DeadlineData = {
+    ...danceDeadline,
+    date: '2026-11-05',
+    original_date: '2026-11-05',
+    amount: 45,
+    base_amount: null,
+    notes: null,
+    payment: {
+        kind: 'expense',
+        id: 31,
+        date: '2026-10-20',
+        amount: 45,
+        account: 'Carta Laura',
+    },
+};
+
+/** The September electricity bill: due on 23/10, late on 26/10. */
+export const lateDeadline: App.Data.DeadlineData = {
+    kind: 'expense',
+    planned_id: 7,
+    title: 'Bolletta luce di settembre',
+    planned_title: 'Luce',
+    date: '2026-10-23',
+    original_date: '2026-10-23',
+    amount: 71.3,
+    base_amount: null,
+    estimated: true,
+    notes: null,
+    late: true,
+    payment: null,
+    account_id: null,
+    account: null,
+    card: null,
+    income_type: null,
+    person: null,
+};
+
+/** The October salary of Marco, expected on 27/10/2026. */
+export const salaryDeadline: App.Data.DeadlineData = {
+    kind: 'income',
+    planned_id: 2,
+    title: 'Stipendio di Marco',
+    planned_title: 'Stipendio di Marco',
+    date: '2026-10-27',
+    original_date: '2026-10-27',
+    amount: 1850,
+    base_amount: null,
+    estimated: false,
+    notes: null,
+    late: false,
+    payment: null,
+    account_id: 1,
+    account: 'Conto BPER',
+    card: {
+        ...danceEnrollmentRow,
+        type: 'employment',
+        id: 3,
+        type_label: 'Employment',
+        label: 'Marco - Studio Rinaldi',
+        area: 'work',
+        area_label: 'Work',
+    },
+    income_type: 'salary',
+    person: 'Marco',
+};
+
+/** The accounts of the family as options of a choice. */
+export const accountOptions: App.Data.OptionData[] = [
+    { value: '1', label: 'Conto BPER', help: null },
+    { value: '2', label: 'Carta Laura', help: null },
+];
+
+/** The last six months of the chart, October 2026 in progress. */
+export const monthBars: App.Data.MonthBarData[] = [
+    { month: '2026-05', spent: 1488.4, planned: 1520, current: false },
+    { month: '2026-06', spent: 1602.1, planned: 1540, current: false },
+    { month: '2026-07', spent: 1710.3, planned: 1495, current: false },
+    { month: '2026-08', spent: 1395.8, planned: 1470, current: false },
+    { month: '2026-09', spent: 1655.2, planned: 1610, current: false },
+    { month: '2026-10', spent: 1284.2, planned: 1469.3, current: true },
+];
