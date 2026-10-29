@@ -282,7 +282,7 @@ function subtitle(movement: App.Data.MovementData): string {
                             :key="choice.value ?? 'all'"
                             type="button"
                             :aria-pressed="kind === choice.value"
-                            class="h-[34px] cursor-pointer rounded-[7px] border-0 bg-transparent px-3.5 text-[15px] text-ink-soft aria-pressed:bg-white aria-pressed:text-ink aria-pressed:shadow-[0_1px_3px_rgba(24,33,47,0.12)]"
+                            class="h-[38px] cursor-pointer rounded-[7px] border-0 bg-transparent px-3.5 text-[15px] text-ink-soft aria-pressed:bg-white aria-pressed:text-ink aria-pressed:shadow-[0_1px_3px_rgba(24,33,47,0.12)]"
                             @click="go({ kind: choice.value })"
                         >
                             {{ choice.label }}
@@ -295,7 +295,7 @@ function subtitle(movement: App.Data.MovementData): string {
                             :label="$t('Account')"
                             name="account"
                             :options="accounts"
-                            :classes="{ label: 'sr-only', outer: 'mb-0' }"
+                            :classes="{ label: 'sr-only', outer: 'mb-0!' }"
                         />
                     </div>
                 </div>
