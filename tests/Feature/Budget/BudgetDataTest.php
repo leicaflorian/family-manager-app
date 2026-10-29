@@ -7,9 +7,11 @@ use App\Data\MovementData;
 use App\Enums\Role;
 use App\Models\Expense;
 use App\Models\Family;
+use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Models\Utility;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
@@ -99,4 +101,29 @@ test('it builds the data of the due dates with a fixed number of queries', funct
 
     expect($threeMonthsDeadlines)->toBeGreaterThan($oneMonthDeadlines)
         ->and($threeMonths)->toBe($oneMonth);
+});
+
+/**
+ * Adds planned expenses, each on its own new utility with its own organization, to the Bianchi.
+ */
+function budgetDataAddCards(int $count): void
+{
+    insideBianchi(function () use ($count): void {
+        $family = Family::query()->where('name', 'Bianchi')->sole()->id;
+
+        for ($i = 0; $i < $count; $i++) {
+            $utility = Utility::factory()->create(['family_id' => $family, 'organization_id' => Organization::factory()->create(['family_id' => $family])->id]);
+            PlannedExpense::factory()->create(['family_id' => $family, 'title' => 'Extra '.$i, 'amount' => 10, 'start_date' => '2026-10-10', 'is_recurring' => false, 'utility_id' => $utility->id]);
+        }
+    });
+}
+
+test('it builds the data with the same number of queries however many distinct cards there are', function (): void {
+    budgetDataAddCards(1);
+    [$few] = budgetDataQueries('2026-10-01', '2026-10-31');
+    budgetDataAddCards(4);
+    [$many, $deadlines] = budgetDataQueries('2026-10-01', '2026-10-31');
+
+    expect($deadlines)->toBeGreaterThanOrEqual(5)
+        ->and($many)->toBe($few);
 });

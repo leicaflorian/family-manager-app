@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cards\CardType;
+use App\Cards\CardTypes;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\Income;
@@ -63,8 +65,8 @@ final readonly class Deadlines
         }
 
         // Everything `DeadlineData::fromDeadline` reads is loaded here, once per collection
-        $expenses->loadMissing(['exceptions', 'financialAccount', 'person', 'utility', 'insurancePolicy', 'loan', 'enrollment', 'home', 'vehicle', 'subscription']);
-        $incomes->loadMissing(['exceptions', 'financialAccount', 'person', 'employment']);
+        $expenses->loadMissing(['exceptions', 'financialAccount', 'person', ...$this->cardRelations(new PlannedExpense, ['utility', 'insurancePolicy', 'loan', 'enrollment', 'home', 'vehicle', 'subscription'])]);
+        $incomes->loadMissing(['exceptions', 'financialAccount', 'person', ...$this->cardRelations(new PlannedIncome, ['employment'])]);
 
         $payments = $this->groupBy(Expense::query()->with('financialAccount')->whereIn('planned_expense_id', $expenses->modelKeys())->orderBy('date')->get(), 'planned_expense_id')
             + $this->groupBy(Income::query()->with('financialAccount')->whereIn('planned_income_id', $incomes->modelKeys())->orderBy('date')->get(), 'planned_income_id', 'income');
@@ -89,6 +91,31 @@ final readonly class Deadlines
         usort($found, static fn (Deadline $a, Deadline $b): int => $a->occurrence->date <=> $b->occurrence->date);
 
         return $found;
+    }
+
+    /**
+     * The relations to the cards of a planned item, each with what the row of that card reads
+     * (`CardType::listRelations()`), so a new card type cannot bring back a query per card.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  A planned item, to find the card model of each relation.
+     * @param  list<string>  $relations  The relations of the planned item that lead to a card.
+     * @return list<string> For example `utility`, `utility.organization`.
+     */
+    private function cardRelations(PlannedExpense|PlannedIncome $planned, array $relations): array
+    {
+        $loads = [];
+
+        foreach ($relations as $relation) {
+            $loads[] = $relation;
+            $model = $planned->{$relation}()->getRelated()::class;
+            $type = array_find(CardTypes::all(), static fn (CardType $type): bool => $type->model() === $model);
+
+            foreach ($type?->listRelations() ?? [] as $nested) {
+                $loads[] = $relation.'.'.$nested;
+            }
+        }
+
+        return $loads;
     }
 
     /**
