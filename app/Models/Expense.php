@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property numeric $amount
  * @property CarbonImmutable|null $date
  * @property int|null $planned_expense_id
+ * @property CarbonImmutable|null $occurrence_date The original due date of the planned item that this payment settles
  * @property int|null $category_id
  * @property int|null $organization_id
  * @property int|null $financial_account_id
@@ -48,7 +49,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'amount', 'date', 'planned_expense_id', 'category_id', 'organization_id', 'financial_account_id', 'person_id', 'fee_amount', 'notes'])]
+#[Fillable(['title', 'amount', 'date', 'planned_expense_id', 'occurrence_date', 'category_id', 'organization_id', 'financial_account_id', 'person_id', 'fee_amount', 'notes'])]
 final class Expense extends FamilyModel
 {
     use HasDocuments;
@@ -116,6 +117,7 @@ final class Expense extends FamilyModel
         return [
             'amount' => 'decimal:2',
             'date' => 'date',
+            'occurrence_date' => 'date',
             'fee_amount' => 'decimal:2',
         ];
     }

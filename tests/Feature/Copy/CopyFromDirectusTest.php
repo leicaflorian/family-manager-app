@@ -133,6 +133,15 @@ test('a file missing in the uploads is listed, with its storage when it is not l
     $this->actingAs($laura)->get(route('files.show', $contract))->assertNotFound();
 });
 
+it('fills the occurrence of the copied expenses', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    $expense = DB::table('expenses')->where('title', 'Retta danza di ottobre')->sole();
+
+    expect($expense->planned_expense_id)->not->toBeNull()
+        ->and($expense->occurrence_date)->toBe('2026-10-05');
+});
+
 test('a second copy without --replace stops and duplicates nothing', function (): void {
     $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
 

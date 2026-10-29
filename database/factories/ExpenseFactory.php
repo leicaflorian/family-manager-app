@@ -25,6 +25,7 @@ final class ExpenseFactory extends Factory
             'title' => 'Spesa '.fake()->word(),
             'amount' => fake()->randomFloat(2, 5, 300),
             'date' => fake()->dateTimeBetween('-6 months'),
+            'occurrence_date' => null,
         ];
     }
 }

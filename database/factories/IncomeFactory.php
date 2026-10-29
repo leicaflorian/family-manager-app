@@ -26,6 +26,7 @@ final class IncomeFactory extends Factory
             'title' => 'Stipendio',
             'amount' => fake()->randomFloat(2, 1200, 2500),
             'date' => fake()->dateTimeBetween('-6 months'),
+            'occurrence_date' => null,
             'type' => IncomeType::Salary,
         ];
     }

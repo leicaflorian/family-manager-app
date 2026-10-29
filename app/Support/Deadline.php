@@ -1,0 +1,58 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Support;
+
+use App\Models\Expense;
+use App\Models\Income;
+use App\Models\PlannedExpense;
+use App\Models\PlannedIncome;
+use Carbon\CarbonImmutable;
+
+/**
+ * One due date of a planned expense or income, with the payment that settles it, if there is one.
+ */
+final readonly class Deadline
+{
+    /**
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item the due date belongs to.
+     * @param  Occurrence  $occurrence  The due date, with its exceptions applied.
+     * @param  Expense|Income|null  $payment  The expense or income that settles it, null while it is open.
+     * @param  string  $title  What to call it: the title of the document to pay, else the one of the planned item.
+     */
+    public function __construct(
+        public PlannedExpense|PlannedIncome $planned,
+        public Occurrence $occurrence,
+        public Expense|Income|null $payment,
+        public string $title,
+    ) {}
+
+    /**
+     * Whether it is a due date of an expense or of an income.
+     *
+     * @return string `expense` or `income`
+     */
+    public function kind(): string
+    {
+        return $this->planned instanceof PlannedExpense ? 'expense' : 'income';
+    }
+
+    /**
+     * Whether a payment settles it.
+     */
+    public function isPaid(): bool
+    {
+        return $this->payment !== null;
+    }
+
+    /**
+     * Whether its day is over and nothing settles it: it is late from the day after, not during the day.
+     *
+     * @param  CarbonImmutable  $today  The day (and time) to look from.
+     */
+    public function isLate(CarbonImmutable $today): bool
+    {
+        return ! $this->isPaid() && $this->occurrence->date->toDateString() < $today->toDateString();
+    }
+}
