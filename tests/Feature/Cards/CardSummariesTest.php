@@ -261,7 +261,7 @@ test('it reads the amounts due of an area with the same queries however many car
         foreach (['Rifiuti', 'Telefono'] as $title) {
             $utility = Utility::query()->create(['type' => UtilityType::WasteTax, 'home_id' => $home->id]);
             // With an account like the others: a planned expense without one reads the default account, once per type
-            PlannedExpense::query()->create(['title' => $title, 'amount' => 20, 'start_date' => '2026-11-01', 'utility_id' => $utility->id, 'financial_account_id' => DefaultAccount::id()]);
+            PlannedExpense::factory()->forCard($utility)->create(['family_id' => $home->family_id, 'title' => $title, 'amount' => 20, 'start_date' => '2026-11-01', 'financial_account_id' => DefaultAccount::id()]);
         }
 
         expect($count())->toBe($before);

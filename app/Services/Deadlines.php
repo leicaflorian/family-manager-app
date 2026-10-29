@@ -19,6 +19,8 @@ use App\Support\PlannedKind;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -65,7 +67,7 @@ final readonly class Deadlines
         }
 
         // Everything `DeadlineData::fromDeadline` reads is loaded here, once per collection
-        $expenses->loadMissing(['exceptions', 'financialAccount', 'person', ...$this->cardRelations(new PlannedExpense, ['utility', 'insurancePolicy', 'loan', 'enrollment', 'home', 'vehicle', 'subscription'])]);
+        $expenses->loadMissing(['exceptions', 'financialAccount', 'person', 'card' => $this->withCardRelations(...)]);
         $incomes->loadMissing(['exceptions', 'financialAccount', 'person', ...$this->cardRelations(new PlannedIncome, ['employment'])]);
 
         $payments = $this->groupBy(Expense::query()->with('financialAccount')->whereIn('planned_expense_id', $expenses->modelKeys())->orderBy('date')->get(), 'planned_expense_id')
@@ -102,6 +104,24 @@ final readonly class Deadlines
         usort($found, static fn (Deadline $a, Deadline $b): int => $a->occurrence->date <=> $b->occurrence->date);
 
         return $found;
+    }
+
+    /**
+     * Loads with the card of a planned expense what the row of its type reads (`CardType::listRelations()`), so a
+     * new card type cannot bring back a query per card.
+     *
+     * @param  Relation<*, *, *>  $card  The relation to the card, a `MorphTo`.
+     */
+    private function withCardRelations(Relation $card): void
+    {
+        if (! $card instanceof MorphTo) {
+            return;
+        }
+
+        $card->morphWith(array_merge(...array_map(
+            static fn (CardType $type): array => [$type->model() => $type->listRelations()],
+            CardTypes::all(),
+        )));
     }
 
     /**

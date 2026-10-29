@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property string|null $card_type The type of card the expenses of the category refer to
  * @property-read Collection<int, ExpenseCategory> $children
  * @property-read int|null $children_count
  * @property-read Family $family

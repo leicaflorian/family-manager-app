@@ -69,15 +69,15 @@ final class PlannedKind
     }
 
     /**
-     * The card a planned item refers to: the first of the cards of a planned expense, the employment of an income.
-     * The relations are read as loaded; `Deadlines::between()` loads them for a whole collection.
+     * The card a planned item refers to: the card of a planned expense, the employment of an income. The relations
+     * are read as loaded; `Deadlines::between()` loads them for a whole collection.
      *
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
      */
     public static function card(PlannedExpense|PlannedIncome $planned): ?Model
     {
         return $planned instanceof PlannedExpense
-            ? ($planned->utility ?? $planned->insurancePolicy ?? $planned->loan ?? $planned->enrollment ?? $planned->home ?? $planned->vehicle ?? $planned->subscription)
+            ? $planned->card
             : $planned->employment;
     }
 

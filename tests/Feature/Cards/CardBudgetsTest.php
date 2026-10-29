@@ -244,8 +244,8 @@ it('has no budget for a card without payments', function (): void {
 it('never counts a planned expense of another family', function (): void {
     $rossi = registerFamily('Rossi', 'rossi@example.com');
     $luce = insideBianchi(luce(...));
-    CurrentFamily::using($rossi->family_id, fn () => PlannedExpense::factory()->create([
-        'family_id' => $rossi->family_id, 'title' => 'Furto', 'amount' => 999, 'utility_id' => $luce->id, 'start_date' => '2026-10-01',
+    CurrentFamily::using($rossi->family_id, fn () => PlannedExpense::factory()->forCard($luce)->create([
+        'family_id' => $rossi->family_id, 'title' => 'Furto', 'amount' => 999, 'start_date' => '2026-10-01',
     ]));
 
     $budget = budgetOf(luce(...));
@@ -320,8 +320,8 @@ it('offers incomes on a job without a planned income', function (): void {
 it('reads the figures from the planned item still running', function (): void {
     insideBianchi(function (): void {
         $policy = InsurancePolicy::query()->sole();
-        PlannedExpense::query()->where('insurance_policy_id', $policy->id)->update(['end_date' => '2026-01-01']);
-        PlannedExpense::query()->create(['title' => 'Assicurazione auto 2026', 'amount' => 450, 'start_date' => '2026-11-21', 'interval_unit' => 'year', 'insurance_policy_id' => $policy->id]);
+        PlannedExpense::query()->whereMorphedTo('card', $policy)->update(['end_date' => '2026-01-01']);
+        PlannedExpense::factory()->forCard($policy)->create(['family_id' => $policy->family_id, 'title' => 'Assicurazione auto 2026', 'amount' => 450, 'start_date' => '2026-11-21', 'interval_unit' => 'year']);
     });
 
     $budget = budgetOf(fn (): InsurancePolicy => InsurancePolicy::query()->sole());

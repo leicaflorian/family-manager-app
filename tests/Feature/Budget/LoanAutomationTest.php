@@ -51,7 +51,7 @@ function loanAutoPanda(array $attributes = []): Loan
 /** The planned expense of the instalment of a loan. */
 function loanAutoExpense(Loan $loan): PlannedExpense
 {
-    return PlannedExpense::query()->where('loan_id', $loan->id)->sole();
+    return PlannedExpense::query()->whereMorphedTo('card', $loan)->sole();
 }
 
 it('works out the figures when a loan is saved', function (): void {
@@ -71,7 +71,7 @@ it('creates the planned expense of the instalment', function (): void {
     insideBianchi(function (): void {
         $category = ExpenseCategory::factory()->create(['family_id' => loanAutoFamily()]);
         $older = Loan::factory()->create(['family_id' => loanAutoFamily(), 'name' => 'Mutuo casa']);
-        PlannedExpense::factory()->create(['family_id' => loanAutoFamily(), 'loan_id' => $older->id, 'category_id' => $category->id]);
+        PlannedExpense::factory()->forCard($older)->create(['family_id' => loanAutoFamily(), 'category_id' => $category->id]);
         $default = FinancialAccount::factory()->create(['family_id' => loanAutoFamily(), 'is_default' => true]);
         $findomestic = Organization::factory()->create(['family_id' => loanAutoFamily()]);
         $marco = Person::factory()->create(['family_id' => loanAutoFamily()]);

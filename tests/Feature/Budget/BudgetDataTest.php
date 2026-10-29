@@ -114,7 +114,7 @@ function budgetDataAddCards(int $count): void
 
         for ($i = 0; $i < $count; $i++) {
             $utility = Utility::factory()->create(['family_id' => $family, 'organization_id' => Organization::factory()->create(['family_id' => $family])->id]);
-            PlannedExpense::factory()->create(['family_id' => $family, 'title' => 'Extra '.$i, 'amount' => 10, 'start_date' => '2026-10-10', 'is_recurring' => false, 'utility_id' => $utility->id]);
+            PlannedExpense::factory()->forCard($utility)->create(['family_id' => $family, 'title' => 'Extra '.$i, 'amount' => 10, 'start_date' => '2026-10-10', 'is_recurring' => false]);
         }
     });
 }

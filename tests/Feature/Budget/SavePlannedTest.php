@@ -90,7 +90,7 @@ it('links the card of Refers to', function (): void {
         ->post('/budget/planned/expense', savePlannedValues(['card' => "utility:{$utility->id}"]))
         ->assertRedirect();
 
-    expect(savePlannedOf('Palestra')->utility_id)->toBe($utility->id);
+    expect(savePlannedOf('Palestra'))->card_type->toBe('utility')->card_id->toBe($utility->id);
 });
 
 it('moves the card when Refers to changes and clears it when emptied', function (): void {
@@ -100,10 +100,10 @@ it('moves the card when Refers to changes and clears it when emptied', function 
 
     $this->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'card' => "utility:{$utility->id}"]))->assertRedirect();
     $moved = savePlannedOf('Retta danza');
-    expect($moved->utility_id)->toBe($utility->id)->and($moved->enrollment_id)->toBeNull();
+    expect($moved->card_type)->toBe('utility')->and($moved->card_id)->toBe($utility->id);
 
     $this->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'card' => null]))->assertRedirect();
-    expect(savePlannedOf('Retta danza')->utility_id)->toBeNull();
+    expect(savePlannedOf('Retta danza'))->card_type->toBeNull()->card_id->toBeNull();
 });
 
 it('refuses a card of another family in Refers to', function (): void {

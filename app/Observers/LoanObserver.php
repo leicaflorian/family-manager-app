@@ -99,7 +99,7 @@ final readonly class LoanObserver
      */
     private function create(Loan $loan): bool
     {
-        $category = PlannedExpense::query()->whereNotNull('loan_id')->whereNotNull('category_id')->latest('id')->value('category_id');
+        $category = PlannedExpense::query()->where('card_type', (new Loan)->getMorphClass())->whereNotNull('category_id')->latest('id')->value('category_id');
         $columns = $this->schedule->plannedExpense($loan, is_numeric($category) ? (int) $category : null, DefaultAccount::id());
 
         if ($columns === null) {

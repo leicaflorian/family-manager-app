@@ -26,7 +26,7 @@ use InvalidArgumentException;
  */
 final class PlannedPreset
 {
-    /** The cards a planned expense can refer to, by the name of their type; each is a column `<type>_id` of the planned expense. */
+    /** The cards a planned expense can refer to, by the name of their type (the `card_type` of the planned expense). */
     public const array CARD_TYPES = ['utility', 'insurance_policy', 'loan', 'enrollment', 'home', 'vehicle', 'subscription'];
 
     /**

@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * A loan or a mortgage (`loans`).
@@ -101,11 +101,11 @@ final class Loan extends FamilyModel
     /**
      * The planned expenses of its instalments: the one created for the loan, and any linked by hand.
      *
-     * @return HasMany<PlannedExpense, $this>
+     * @return MorphMany<PlannedExpense, $this>
      */
-    public function plannedExpenses(): HasMany
+    public function plannedExpenses(): MorphMany
     {
-        return $this->hasMany(PlannedExpense::class);
+        return $this->morphMany(PlannedExpense::class, 'card');
     }
 
     /**

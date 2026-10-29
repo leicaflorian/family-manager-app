@@ -100,8 +100,8 @@ final class SavePlannedRequest extends FormRequest
     }
 
     /**
-     * The columns to write: the validated fields, and for an expense the column of the card of *Refers to* with the
-     * columns of the other cards emptied.
+     * The columns to write: the validated fields, and for an expense the card of *Refers to* as the pair
+     * `card_type`, `card_id` (both empty without one).
      *
      * @return array<string, mixed>
      */
@@ -122,13 +122,7 @@ final class SavePlannedRequest extends FormRequest
 
         $card = PlannedPreset::link($this->input('card'));
 
-        return [
-            ...$columns,
-            ...array_combine(
-                array_map(static fn (string $type): string => "{$type}_id", PlannedPreset::CARD_TYPES),
-                array_map(static fn (string $type): ?int => $card !== null && $card['type'] === $type ? $card['id'] : null, PlannedPreset::CARD_TYPES),
-            ),
-        ];
+        return [...$columns, 'card_type' => $card['type'] ?? null, 'card_id' => $card['id'] ?? null];
     }
 
     /**

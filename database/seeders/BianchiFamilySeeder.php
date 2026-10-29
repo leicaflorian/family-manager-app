@@ -361,32 +361,32 @@ final class BianchiFamilySeeder extends Seeder
     private function createPlannedExpenses(): void
     {
         // The loan made the planned expense of its instalment by itself, without a category.
-        $panda = PlannedExpense::query()->where('loan_id', $this->records['Finanziamento Panda']->id)->sole();
+        $panda = PlannedExpense::query()->whereMorphedTo('card', $this->records['Finanziamento Panda'])->sole();
         $panda->update(['category_id' => $this->categoryId('Prestiti e finanziamenti')]);
         $this->plannedExpenses['Finanziamento Panda'] = $panda;
 
         $this->plan('Gas', 55, '2026-10-30', [
-            'category_id' => $this->categoryId('Bollette e utenze › Gas'), 'utility_id' => $this->records['Gas - Enel']->id,
+            'category_id' => $this->categoryId('Bollette e utenze › Gas'), 'card_type' => 'utility', 'card_id' => $this->records['Gas - Enel']->id,
             'organization_id' => $this->organizations['Enel Energia']->id, 'is_estimated' => true,
         ], [[ExceptionType::AmountOverride, '2026-10-30', 84.20, null, 'Bolletta gas di settembre']]);
         $this->plan('Acqua', 38, '2026-10-31', [
-            'category_id' => $this->categoryId('Bollette e utenze › Acqua'), 'utility_id' => $this->records['Acqua - Hera']->id,
+            'category_id' => $this->categoryId('Bollette e utenze › Acqua'), 'card_type' => 'utility', 'card_id' => $this->records['Acqua - Hera']->id,
             'organization_id' => $this->organizations['Hera']->id, 'is_estimated' => true, 'interval' => 2,
         ], [[ExceptionType::AmountOverride, '2026-10-31', 37.90, null, 'Bolletta acqua']]);
         $this->plan('Spesa', 320, '2026-10-01', ['category_id' => $this->categoryId('Spesa'), 'is_estimated' => true, 'person_id' => null]);
-        $this->plan('Carburante', 80, '2026-10-01', ['category_id' => $this->categoryId('Auto'), 'vehicle_id' => $this->records['Fiat Panda']->id, 'is_estimated' => true]);
+        $this->plan('Carburante', 80, '2026-10-01', ['category_id' => $this->categoryId('Auto'), 'card_type' => 'vehicle', 'card_id' => $this->records['Fiat Panda']->id, 'is_estimated' => true]);
         $this->plan('Internet - Fastweb', 29.90, '2026-10-03', [
-            'category_id' => $this->categoryId('Bollette e utenze'), 'utility_id' => $this->records['Internet - Fastweb']->id,
+            'category_id' => $this->categoryId('Bollette e utenze'), 'card_type' => 'utility', 'card_id' => $this->records['Internet - Fastweb']->id,
             'organization_id' => $this->organizations['Fastweb']->id,
         ]);
         $this->plan('Netflix', 13.99, '2026-11-04', [
-            'category_id' => $this->categoryId('Svago'), 'subscription_id' => $this->records['Netflix']->id,
+            'category_id' => $this->categoryId('Svago'), 'card_type' => 'subscription', 'card_id' => $this->records['Netflix']->id,
             'organization_id' => $this->organizations['Netflix']->id, 'financial_account_id' => $this->records['Carta Laura']->id,
             'person_id' => $this->people['Laura']->id,
         ]);
         // The 23rd pays the bill of the month before. The one of October (due 23/11) arrives early, with its amount.
         $this->plan('Luce', 72, '2026-01-23', [
-            'category_id' => $this->categoryId('Bollette e utenze › Luce'), 'utility_id' => $this->records['Luce - Edison']->id,
+            'category_id' => $this->categoryId('Bollette e utenze › Luce'), 'card_type' => 'utility', 'card_id' => $this->records['Luce - Edison']->id,
             'organization_id' => $this->organizations['Edison']->id, 'is_estimated' => true,
         ], [
             [ExceptionType::AmountOverride, '2026-10-23', 71.30, null, 'Bolletta luce di settembre'],
@@ -394,15 +394,15 @@ final class BianchiFamilySeeder extends Seeder
             [ExceptionType::AmountOverride, '2026-11-23', 62.40, null, 'Bolletta luce di ottobre'],
         ]);
         $this->plan('Mutuo casa', 612, '2018-06-15', [
-            'category_id' => $this->categoryId('Casa e affitto'), 'loan_id' => $this->records['Mutuo casa']->id,
+            'category_id' => $this->categoryId('Casa e affitto'), 'card_type' => 'loan', 'card_id' => $this->records['Mutuo casa']->id,
             'organization_id' => $this->organizations['BPER Banca']->id, 'end_date' => '2041-06-15',
         ]);
         $this->plan('Assicurazione auto', 418, '2025-11-21', [
-            'category_id' => $this->categoryId('Polizze e assicurazioni'), 'insurance_policy_id' => $this->records['RC auto Panda - UnipolSai']->id,
+            'category_id' => $this->categoryId('Polizze e assicurazioni'), 'card_type' => 'insurance_policy', 'card_id' => $this->records['RC auto Panda - UnipolSai']->id,
             'organization_id' => $this->organizations['UnipolSai']->id, 'interval_unit' => IntervalUnit::Year,
         ]);
         $this->plan('Retta danza', 45, '2025-09-05', [
-            'category_id' => $this->categoryId('Scuola e attività › Sport'), 'enrollment_id' => $this->records['Danza Giulia']->id,
+            'category_id' => $this->categoryId('Scuola e attività › Sport'), 'card_type' => 'enrollment', 'card_id' => $this->records['Danza Giulia']->id,
             'organization_id' => $this->organizations['Scuola Passo a Due']->id, 'financial_account_id' => $this->records['Carta Laura']->id,
             'person_id' => $this->people['Giulia']->id,
         ], [
@@ -413,7 +413,7 @@ final class BianchiFamilySeeder extends Seeder
             [ExceptionType::Skip, '2027-08-05', null, null, 'Vacanze'],
         ]);
         $this->plan('Bollo auto', 198, '2026-01-31', [
-            'category_id' => $this->categoryId('Auto'), 'vehicle_id' => $this->records['Fiat Panda']->id, 'interval_unit' => IntervalUnit::Year,
+            'category_id' => $this->categoryId('Auto'), 'card_type' => 'vehicle', 'card_id' => $this->records['Fiat Panda']->id, 'interval_unit' => IntervalUnit::Year,
         ]);
     }
 

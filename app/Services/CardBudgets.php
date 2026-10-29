@@ -50,17 +50,8 @@ final readonly class CardBudgets
     /** How many days ahead an open due date is shown as *To pay*. */
     private const int DUE_DAYS = 30;
 
-    /** The column of a planned expense (of a planned income for an employment) that names a card of each model. */
-    private const array COLUMNS = [
-        Utility::class => 'utility_id',
-        InsurancePolicy::class => 'insurance_policy_id',
-        Loan::class => 'loan_id',
-        Enrollment::class => 'enrollment_id',
-        Home::class => 'home_id',
-        Vehicle::class => 'vehicle_id',
-        Subscription::class => 'subscription_id',
-        Employment::class => 'employment_id',
-    ];
+    /** The models of the cards a planned expense refers to with its pair `card_type`, `card_id`. */
+    private const array PLANNED_CARDS = [Utility::class, InsurancePolicy::class, Loan::class, Enrollment::class, Home::class, Vehicle::class, Subscription::class];
 
     public function __construct(
         private Deadlines $deadlines,
@@ -104,20 +95,22 @@ final readonly class CardBudgets
      */
     public function due(CardType $type, iterable $cards, CarbonImmutable $today): array
     {
-        $column = self::COLUMNS[$type->model()] ?? null;
         $ids = [];
 
         foreach ($cards as $card) {
             $ids[] = ModelId::of($card);
         }
 
-        if ($column === null || $ids === []) {
+        $income = $type->model() === Employment::class;
+
+        if ($ids === [] || (! $income && ! in_array($type->model(), self::PLANNED_CARDS, true))) {
             return [];
         }
 
-        $planned = $type->model() === Employment::class
+        $column = $income ? 'employment_id' : 'card_id';
+        $planned = $income
             ? PlannedIncome::query()->whereIn($column, $ids)->get()->all()
-            : PlannedExpense::query()->whereIn($column, $ids)->get()->all();
+            : PlannedExpense::query()->where('card_type', $type->type())->whereIn($column, $ids)->get()->all();
         $due = [];
 
         foreach ($this->deadlines->unpaidUntil($planned, $today->addDays(self::DUE_DAYS), $today) as $deadline) {
@@ -204,7 +197,7 @@ final readonly class CardBudgets
      */
     private function policy(InsurancePolicy $policy, User $user, CarbonImmutable $today): CardBudgetData
     {
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('insurance_policy_id', $policy->id));
+        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $policy));
         $first = $this->running($planned, $today);
 
         return $this->budget($planned, $user, $today,
@@ -226,7 +219,7 @@ final readonly class CardBudgets
      */
     private function utility(Utility $utility, User $user, CarbonImmutable $today): CardBudgetData
     {
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('utility_id', $utility->id));
+        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $utility));
         $first = $this->running($planned, $today);
         $numbers = fn (array $found, array $payments): array => [
             ...($first === null ? [] : [new CardNumberData(__('Planned'), $this->amountOf($first), hint: $this->perUnit($first))]),
@@ -254,7 +247,7 @@ final readonly class CardBudgets
      */
     private function loan(Loan $loan, User $user, CarbonImmutable $today): CardBudgetData
     {
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('loan_id', $loan->id));
+        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $loan));
         $first = $this->running($planned, $today);
         $total = $loan->total_to_pay === null ? null : round((float) $loan->total_to_pay, 2);
         $left = $loan->residual_amount === null ? null : round((float) $loan->residual_amount, 2);
@@ -294,7 +287,7 @@ final readonly class CardBudgets
      */
     private function subscription(Subscription $subscription, User $user, CarbonImmutable $today): CardBudgetData
     {
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('subscription_id', $subscription->id));
+        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $subscription));
         $first = $this->running($planned, $today);
 
         return $this->budget($planned, $user, $today,
@@ -320,7 +313,7 @@ final readonly class CardBudgets
      */
     private function enrollment(Enrollment $enrollment, User $user, CarbonImmutable $today): CardBudgetData
     {
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('enrollment_id', $enrollment->id));
+        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $enrollment));
         $first = $this->running($planned, $today);
         $start = $today->setDate($today->month >= 9 ? $today->year : $today->year - 1, 9, 1)->startOfDay();
         $end = $start->addYear()->subDay()->toDateString();
@@ -382,8 +375,9 @@ final readonly class CardBudgets
      */
     private function vehicle(Vehicle $vehicle, User $user, CarbonImmutable $today): CardBudgetData
     {
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('vehicle_id', $vehicle->id)
-            ->orWhereIn('insurance_policy_id', InsurancePolicy::query()->where('vehicle_id', $vehicle->id)->select('id')));
+        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $vehicle)
+            ->orWhere(fn (Builder $policies): Builder => $policies->where('card_type', (new InsurancePolicy)->getMorphClass())
+                ->whereIn('card_id', InsurancePolicy::query()->where('vehicle_id', $vehicle->id)->select('id'))));
 
         return $this->budget($planned, $user, $today,
             nextLabel: __('Next due date'),
@@ -403,8 +397,8 @@ final readonly class CardBudgets
     private function home(Home $home, User $user, CarbonImmutable $today): CardBudgetData
     {
         $utilities = Utility::query()->where('home_id', $home->id)->get();
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->where('home_id', $home->id)
-            ->orWhereIn('utility_id', $utilities->modelKeys()));
+        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $home)
+            ->orWhere(fn (Builder $bills): Builder => $bills->where('card_type', (new Utility)->getMorphClass())->whereIn('card_id', $utilities->modelKeys())));
         $names = $utilities->map(static fn (Utility $utility): string => mb_strtolower($utility->type->label()))->implode(', ');
 
         return $this->budget($planned, $user, $today,

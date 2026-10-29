@@ -80,11 +80,16 @@ final class LoanPlanObserver
         }
 
         CurrentFamily::using($model->family_id, function () use ($model): void {
+            $loan = (new Loan)->getMorphClass();
             $loanIds = $model instanceof PlannedExpense
-                ? [$model->loan_id, $model->getOriginal('loan_id')]
+                ? [
+                    $model->card_type === $loan ? $model->card_id : null,
+                    $model->getOriginal('card_type') === $loan ? $model->getOriginal('card_id') : null,
+                ]
                 : PlannedExpense::query()
                     ->whereKey([$model->planned_expense_id, $model->getOriginal('planned_expense_id')])
-                    ->pluck('loan_id')
+                    ->where('card_type', $loan)
+                    ->pluck('card_id')
                     ->all();
 
             $loanIds = array_values(array_unique(array_filter($loanIds, is_int(...))));

@@ -132,19 +132,21 @@ describe('the budget of the Bianchi family on 26/10/2026', function (): void {
         insideBianchi(function (): void {
             $today = CarbonImmutable::today('Europe/Rome');
             $active = PlannedExpense::query()->where(fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $today))->get();
-            // The card each planned expense is linked to; the groceries belong to no card.
+            // The type of card each planned expense is linked to; the groceries belong to no card.
             $cards = [
-                'Gas' => 'utility_id', 'Acqua' => 'utility_id', 'Spesa' => null, 'Carburante' => 'vehicle_id',
-                'Internet - Fastweb' => 'utility_id', 'Netflix' => 'subscription_id', 'Luce' => 'utility_id',
-                'Finanziamento Panda' => 'loan_id', 'Mutuo casa' => 'loan_id', 'Assicurazione auto' => 'insurance_policy_id',
-                'Retta danza' => 'enrollment_id', 'Bollo auto' => 'vehicle_id',
+                'Gas' => 'utility', 'Acqua' => 'utility', 'Spesa' => null, 'Carburante' => 'vehicle',
+                'Internet - Fastweb' => 'utility', 'Netflix' => 'subscription', 'Luce' => 'utility',
+                'Finanziamento Panda' => 'loan', 'Mutuo casa' => 'loan', 'Assicurazione auto' => 'insurance_policy',
+                'Retta danza' => 'enrollment', 'Bollo auto' => 'vehicle',
             ];
 
             expect($active)->toHaveCount(12)
                 ->and($active->pluck('title')->sort()->values()->all())->toBe(collect(array_keys($cards))->sort()->values()->all());
 
-            foreach ($cards as $title => $column) {
-                expect($active->firstWhere('title', $title)?->getAttribute($column ?? 'id'))->not->toBeNull();
+            foreach ($cards as $title => $type) {
+                $planned = $active->firstWhere('title', $title);
+                expect($planned?->card_type)->toBe($type)
+                    ->and($planned?->card === null)->toBe($type === null);
             }
 
             $incomes = PlannedIncome::query()->get();
