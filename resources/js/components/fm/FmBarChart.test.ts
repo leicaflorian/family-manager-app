@@ -27,7 +27,7 @@ describe('FmBarChart', () => {
         expect(screen.queryByRole('table')).not.toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'See as a table' }),
-        ).toHaveAttribute('aria-pressed', 'false');
+        ).not.toHaveAttribute('aria-pressed');
 
         await userEvent.click(
             screen.getByRole('button', { name: 'See as a table' }),
@@ -35,7 +35,7 @@ describe('FmBarChart', () => {
 
         expect(
             screen.getByRole('button', { name: 'See as a chart' }),
-        ).toHaveAttribute('aria-pressed', 'true');
+        ).not.toHaveAttribute('aria-pressed');
         const table = screen.getByRole('table');
         expect(within(table).getAllByRole('row')).toHaveLength(7);
         expect(within(table).getByText('1.284,20 €')).toBeInTheDocument();

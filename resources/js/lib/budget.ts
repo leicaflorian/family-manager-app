@@ -260,6 +260,7 @@ export function skippedMonthsText(months: number[]): string {
     );
 }
 
+/** The values of the form of a planned expense or income, as the server sends and receives them. */
 export interface PlannedFormValues {
     title: string;
     amount: number | string | null;

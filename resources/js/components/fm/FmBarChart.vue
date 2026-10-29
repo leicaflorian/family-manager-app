@@ -256,7 +256,6 @@ const description = computed(() =>
 
         <button
             type="button"
-            :aria-pressed="asTable"
             class="cursor-pointer self-start border-0 bg-transparent p-0 text-[15px] font-semibold text-action hover:text-action-dark"
             @click="asTable = !asTable"
         >
