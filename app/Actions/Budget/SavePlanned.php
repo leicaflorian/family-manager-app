@@ -8,14 +8,20 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\DefaultAccount;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
  * Saves a planned expense or income, new or changed. A planned item without an account takes the default account of
- * the family, as the payments do.
+ * the family, as the payments do. When a change moves its due dates, its payments and exceptions move with them.
  */
 final readonly class SavePlanned
 {
+    /** The columns that decide the due dates. */
+    private const array SCHEDULE = ['start_date', 'interval', 'interval_unit', 'is_recurring'];
+
+    public function __construct(private FillOccurrenceDates $occurrenceDates) {}
+
     /**
      * Creates the planned item, or changes the one given.
      *
@@ -33,9 +39,15 @@ final readonly class SavePlanned
         }
 
         if ($planned instanceof PlannedExpense || $planned instanceof PlannedIncome) {
-            $planned->update($columns);
+            return DB::transaction(function () use ($planned, $columns): PlannedExpense|PlannedIncome {
+                $planned->update($columns);
 
-            return $planned;
+                if ($planned->wasChanged(self::SCHEDULE)) {
+                    $this->occurrenceDates->remap($planned);
+                }
+
+                return $planned;
+            });
         }
 
         return match ($kind) {

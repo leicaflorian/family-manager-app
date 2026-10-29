@@ -13,7 +13,9 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Models\Utility;
+use App\Services\Deadlines;
 use App\Support\CurrentFamily;
+use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
@@ -226,4 +228,39 @@ it('keeps the account when a change does not send one, and uses the default when
 
     $this->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'financial_account_id' => null]))->assertRedirect();
     expect(savePlannedOf('Retta danza')->financial_account_id)->toBe($default);
+});
+
+it('moves the payments and the exceptions with the due dates when the schedule changes', function (): void {
+    $planned = savePlannedOf('Retta danza');
+
+    $this->actingAs($this->marco)
+        ->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'amount' => 45, 'start_date' => '2025-09-10', 'financial_account_id' => $planned->financial_account_id]))
+        ->assertRedirect();
+
+    $today = CarbonImmutable::today('Europe/Rome');
+    $deadlines = insideBianchi(fn (): array => resolve(Deadlines::class)->between([savePlannedOf('Retta danza')], CarbonImmutable::parse('2025-09-01'), CarbonImmutable::parse('2026-11-30')));
+    $byDay = [];
+
+    foreach ($deadlines as $deadline) {
+        $byDay[$deadline->occurrence->originalDate->toDateString()] = $deadline;
+    }
+
+    expect(array_filter($deadlines, static fn (Deadline $deadline): bool => $deadline->isLate($today)))->toBe([])
+        ->and($byDay['2026-10-10']->payment?->title)->toBe('Retta di ottobre')
+        ->and($byDay['2026-11-10']->payment?->title)->toBe('Retta di novembre')
+        ->and($byDay['2025-09-10']->isPaid())->toBeTrue()
+        ->and($byDay)->not->toHaveKey('2026-07-10')
+        ->and($byDay)->not->toHaveKey('2026-08-10')
+        ->and(insideBianchi(fn (): int => Expense::query()->where('planned_expense_id', $planned->id)->whereDay('occurrence_date', 5)->count()))->toBe(0);
+});
+
+it('leaves the payments alone when the schedule does not change', function (): void {
+    $planned = savePlannedOf('Retta danza');
+    $before = insideBianchi(fn (): array => Expense::query()->where('planned_expense_id', $planned->id)->orderBy('id')->pluck('occurrence_date')->map(fn ($date): ?string => $date?->toDateString())->all());
+
+    $this->actingAs($this->marco)
+        ->put("/budget/planned/expense/{$planned->id}", savePlannedValues(['title' => 'Retta danza', 'amount' => 50, 'start_date' => '2025-09-05']))
+        ->assertRedirect();
+
+    expect(insideBianchi(fn (): array => Expense::query()->where('planned_expense_id', $planned->id)->orderBy('id')->pluck('occurrence_date')->map(fn ($date): ?string => $date?->toDateString())->all()))->toBe($before);
 });
