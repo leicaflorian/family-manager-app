@@ -1140,12 +1140,27 @@ export const loanFields: App.Data.CardFieldData[] = [
         false,
     ],
     ['start_date', 'Start', 'date', false],
-].map(([column, label, kind, required]) => ({
-    column: String(column),
-    label: String(label),
-    kind: String(kind),
-    required: required === true,
-    options: [],
-    show_when: {},
-    label_when: {},
-}));
+]
+    .map(([column, label, kind, required]): App.Data.CardFieldData => ({
+        column: String(column),
+        label: String(label),
+        kind: String(kind),
+        required: required === true,
+        options: [],
+        show_when: {},
+        label_when: {},
+    }))
+    .concat([
+        {
+            column: 'status',
+            label: 'Status',
+            kind: 'choice',
+            required: true,
+            options: [
+                { value: 'active', label: 'Active', help: null },
+                { value: 'paid_off', label: 'Paid off', help: null },
+            ],
+            show_when: {},
+            label_when: {},
+        },
+    ]);

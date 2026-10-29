@@ -24,6 +24,7 @@ use App\Services\FileStore;
 use App\Support\LoanTerms;
 use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -173,7 +174,7 @@ final class CardController extends Controller
      * @param  Request  $request  the request with the values of the form in `figures`
      * @param  CardType  $type  the type of the card
      * @param  Model|null  $card  the loan to change, or null for a new one
-     * @return array{loanFigures?: OptionalProp}
+     * @return array{loanFigures?: OptionalProp|Closure}
      */
     private function loanFigures(Request $request, CardType $type, ?Model $card): array
     {
@@ -181,15 +182,49 @@ final class CardController extends Controller
             return [];
         }
 
-        return ['loanFigures' => Inertia::optional(function () use ($request, $card): LoanFiguresData {
-            $figures = $this->loans->preview(
-                $card instanceof Loan ? $card : null,
-                LoanTerms::fromForm($request->array('figures')),
-                CarbonImmutable::today('Europe/Rome'),
-            );
+        if (! $card instanceof Loan) {
+            return ['loanFigures' => Inertia::optional(fn (): LoanFiguresData => $this->previewLoan($request, null))];
+        }
 
-            return new LoanFiguresData($figures->totalToPay, $figures->cost);
-        })];
+        // Plain value, so the page opens with the saved figures; a reload asking for them gets the live ones
+        return ['loanFigures' => fn (): LoanFiguresData => $this->isAskedFor($request)
+            ? $this->previewLoan($request, $card)
+            : new LoanFiguresData($this->amount($card->total_to_pay), $this->amount($card->cost))];
+    }
+
+    /**
+     * The live figures of the values written in the form of a loan. For a saved loan, what the form does not
+     * write (the status, the last date) is the saved one, as saving leaves it.
+     *
+     * @param  Request  $request  the request with the values in `figures`
+     * @param  Loan|null  $saved  the loan being changed, or null for a new one
+     */
+    private function previewLoan(Request $request, ?Loan $saved): LoanFiguresData
+    {
+        $kept = $saved instanceof Loan ? ['status' => $saved->status, 'end_date' => $saved->end_date] : [];
+        $figures = $this->loans->preview($saved, LoanTerms::fromForm([...$kept, ...$request->array('figures')]), CarbonImmutable::today('Europe/Rome'));
+
+        return new LoanFiguresData($figures->totalToPay, $figures->cost);
+    }
+
+    /**
+     * Whether the request is a partial reload that asks for the loan figures.
+     *
+     * @param  Request  $request  the request
+     */
+    private function isAskedFor(Request $request): bool
+    {
+        return in_array('loanFigures', explode(',', (string) $request->header('X-Inertia-Partial-Data')), true);
+    }
+
+    /**
+     * A saved amount as a number.
+     *
+     * @param  mixed  $value  the column of the model
+     */
+    private function amount(mixed $value): ?float
+    {
+        return is_numeric($value) ? (float) $value : null;
     }
 
     /**

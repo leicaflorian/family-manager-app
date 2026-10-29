@@ -13,9 +13,8 @@
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';
-import { watchDebounced } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
 import { isEmpty } from '@/lib/forms';
@@ -102,33 +101,47 @@ const LOAN_COLUMNS = [
     'installment_amount',
     'final_installment_amount',
     'start_date',
+    'end_date',
+    'status',
 ];
 
 /** The column of the field the figures of a loan are written under. */
 const FIGURES_AFTER = 'installment_amount';
 
-// The address stays that of the page, so a reload does not leave the form
-watchDebounced(
+/** The wait, in ms, after the last change before the figures are asked for. */
+const FIGURES_DELAY = 300;
+
+/** The pending request for the figures, if the person changed something not long ago. */
+let pending: ReturnType<typeof setTimeout> | undefined;
+
+/** Asks the server for the figures of the values written now; the address stays that of the page. */
+function askFigures(): void {
+    router.reload({
+        only: ['loanFigures'],
+        data: {
+            figures: Object.fromEntries(
+                LOAN_COLUMNS.filter((column) => !isEmpty(data[column])).map(
+                    (column) => [column, data[column]],
+                ),
+            ),
+        } as RequestPayload,
+        preserveUrl: true,
+    });
+}
+
+watch(
     () => LOAN_COLUMNS.map((column) => data[column]),
     () => {
-        if (loanFigures === undefined) {
-            return;
-        }
+        clearTimeout(pending);
 
-        router.reload({
-            only: ['loanFigures'],
-            data: {
-                figures: Object.fromEntries(
-                    LOAN_COLUMNS.filter((column) => !isEmpty(data[column])).map(
-                        (column) => [column, data[column]],
-                    ),
-                ),
-            } as RequestPayload,
-            preserveUrl: true,
-        });
+        if (loanFigures !== undefined) {
+            pending = setTimeout(askFigures, FIGURES_DELAY);
+        }
     },
-    { debounce: 300 },
 );
+
+// A request still waiting must not go out once the form is gone
+onBeforeUnmount(() => clearTimeout(pending));
 
 /** What the person tried to save with something missing: the errors found. */
 const missing = ref<Record<string, string>>({});

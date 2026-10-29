@@ -20,6 +20,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
+use Tests\TestCase;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -376,7 +377,7 @@ test('it answers 404 and saves nothing when a document to link or unlink is of a
  * @param  string  $url  The address of the form.
  * @param  array<string, mixed>  $figures  The values written in the form.
  */
-function loanFiguresReload(mixed $test, string $url, array $figures): mixed
+function loanFiguresReload(TestCase $test, string $url, array $figures): mixed
 {
     return $test->getJson($url.(str_contains($url, '?') ? '&' : '?').http_build_query(['figures' => $figures]), [
         'X-Inertia' => 'true',
@@ -443,4 +444,35 @@ it('answers 404 for the figures of a loan of another family', function (): void 
     $this->actingAs($this->marco);
 
     loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), [])->assertNotFound();
+});
+
+it('opens the edit page of a loan with its saved total and cost', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::factory()->create([
+        'family_id' => $this->marco->family_id,
+        'total_amount' => 1100,
+        'installments_count' => 12,
+        'installment_amount' => 100,
+        'start_date' => '2026-01-05',
+    ]));
+
+    $this->get(route('cards.edit', ['type' => 'loan', 'id' => $loan->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('loanFigures.total_to_pay', 1200)
+        ->where('loanFigures.cost', 100));
+    $this->get(route('cards.edit', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->missing('loanFigures'));
+});
+
+it('works out the figures of a saved loan with its saved last date and status, as saving does', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::factory()->create([
+        'family_id' => $this->marco->family_id,
+        'total_amount' => 1100,
+        'installments_count' => 12,
+        'installment_amount' => 100,
+        'start_date' => '2026-01-05',
+    ]));
+
+    // The count is left out: the saved last date (05/12/2026) gives it back
+    loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), ['total_amount' => '1100', 'installment_amount' => '100', 'start_date' => '2026-01-05'])
+        ->assertJsonPath('props.loanFigures.total_to_pay', 1200);
 });

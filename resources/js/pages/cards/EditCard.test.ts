@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
     healthCard,
     loanFields,
+    pandaRow,
     policyBudget,
     policyDetail,
     policyFields,
@@ -368,6 +369,25 @@ describe('Edit a card', () => {
 
         expect(screen.getByText('Total to pay')).toBeInTheDocument();
         expect(screen.getByText('1.200,00 €')).toBeInTheDocument();
+    });
+
+    it('writes the saved total to pay and cost as soon as a loan opens', () => {
+        renderPage(EditCard, {
+            type: {
+                type: 'loan',
+                label: 'Loan',
+                description: '',
+                area: 'banks',
+                area_label: 'Banks',
+            },
+            fields: loanFields,
+            values: { name: 'Finanziamento TV' },
+            card: pandaRow,
+            loanFigures: { total_to_pay: 1200, cost: 100 },
+        });
+
+        expect(screen.getByText('1.200,00 €')).toBeInTheDocument();
+        expect(screen.getByText('100,00 €')).toBeInTheDocument();
     });
 
     it('waits for the first figures of a new loan, as dashes', () => {

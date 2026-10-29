@@ -216,6 +216,52 @@ describe('FmCardForm', () => {
             );
         });
 
+        it('asks again when the status changes, and sends it', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            renderPage(FmCardForm, {
+                fields: loanFields,
+                values: { ...loanValues, status: 'active' },
+                loanFigures: null,
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Paid off' }),
+            );
+            await vi.advanceTimersByTimeAsync(400);
+
+            expect(reload).toHaveBeenCalledTimes(1);
+            expect(reload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: {
+                        figures: expect.objectContaining({
+                            status: 'paid_off',
+                        }),
+                    },
+                }),
+            );
+        });
+
+        it('does not ask after the form is gone', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            const view = renderPage(FmCardForm, {
+                fields: loanFields,
+                values: loanValues,
+                loanFigures: null,
+            });
+
+            await fireEvent.update(screen.getByLabelText('Instalment'), '105');
+            view.unmount();
+            await vi.advanceTimersByTimeAsync(400);
+
+            expect(reload).not.toHaveBeenCalled();
+        });
+
         it('writes the figures that arrived under the instalment', () => {
             renderPage(FmCardForm, {
                 fields: loanFields,
