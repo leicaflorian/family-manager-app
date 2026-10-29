@@ -31,6 +31,27 @@ readonly type: string,
 readonly label: string,
 readonly href: string,
 };
+export type CardBudgetData = {
+readonly kind: string,
+readonly next: App.Data.DeadlineData | null,
+readonly next_label: string,
+readonly installment_number: number | null,
+readonly installments_count: number | null,
+readonly installments_paid: number | null,
+readonly paid_amount: number | null,
+readonly left_amount: number | null,
+readonly numbers: App.Data.CardNumberData[],
+readonly due_label: string | null,
+readonly due: App.Data.DeadlineData[],
+readonly planned_label: string | null,
+readonly planned: App.Data.PlannedRowData[],
+readonly can_add_planned: boolean,
+readonly payments_label: string | null,
+readonly payments_more: string,
+readonly payments: App.Data.PaymentYearData[],
+readonly pay: App.Data.DeadlineData[],
+readonly can_pay: boolean,
+};
 export type CardData = {
 readonly type: string,
 readonly id: number,
@@ -43,6 +64,8 @@ readonly next_label: string | null,
 readonly next_date: string | null,
 readonly overdue: boolean,
 readonly closed: boolean,
+readonly due_amount: number | null,
+readonly due_late: boolean,
 };
 export type CardDateData = {
 readonly label: string,
@@ -61,6 +84,7 @@ readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 readonly can_delete_documents: boolean,
+readonly budget: App.Data.CardBudgetData | null,
 };
 export type CardFieldData = {
 readonly column: string,
@@ -70,6 +94,13 @@ readonly required: boolean,
 readonly options: App.Data.OptionData[],
 readonly show_when: Record<string, string[]>,
 readonly label_when: Record<string, Record<string, string>>,
+};
+export type CardNumberData = {
+readonly label: string,
+readonly amount: number | null,
+readonly count: number | null,
+readonly hint: string | null,
+readonly hint_amount: number | null,
 };
 export type CardTypeData = {
 readonly type: string,

@@ -255,6 +255,8 @@ export const pandaRow: App.Data.CardData = {
     next_date: '2027-01-09',
     overdue: false,
     closed: false,
+    due_amount: null,
+    due_late: false,
 };
 
 /** The description of a policy, as the form receives it. */
@@ -450,6 +452,7 @@ export const policyDetail: App.Data.CardDetailData = {
     can_edit: true,
     can_delete: true,
     can_delete_documents: true,
+    budget: null,
 };
 
 /** The nine areas with their active cards, as the sidebar receives them. */
@@ -486,6 +489,8 @@ export const danceEnrollmentRow: App.Data.CardData = {
     next_date: null,
     overdue: false,
     closed: false,
+    due_amount: null,
+    due_late: false,
 };
 
 /** The dance lessons of 05/12/2026: the amount is changed from 45 to 60 euros, with a note. */
@@ -948,6 +953,176 @@ export const octoberComparison: App.Data.ComparisonData = {
             original_date: '2026-10-30',
             amount: 84.2,
             late: false,
+        },
+    ],
+};
+
+/** The electricity of the Bianchis, as a row. */
+export const luceRow: App.Data.CardData = edison;
+
+/** The planned expense of the electricity: 72 € a month, estimated, on the 23rd. */
+export const lucePlanned: App.Data.PlannedRowData = {
+    ...gasRow,
+    id: 7,
+    title: 'Luce',
+    card: edison,
+    start_date: '2026-01-23',
+    next_date: '2026-11-06',
+    amount: 72,
+    icon: 'zap',
+};
+
+/** The October bill, moved to 06/11 with its amount. */
+export const luceOctober: App.Data.DeadlineData = {
+    ...lateDeadline,
+    title: 'Bolletta luce di ottobre',
+    date: '2026-11-06',
+    original_date: '2026-11-23',
+    amount: 62.4,
+    base_amount: 72,
+    late: false,
+    account_id: 1,
+    account: 'Conto BPER',
+    card: edison,
+};
+
+/**
+ * A bill of the electricity paid from the Conto BPER.
+ *
+ * @param id - the id of the expense
+ * @param title - its title
+ * @param date - the day it was paid
+ * @param amount - the amount paid
+ * @returns the movement, as `MovementData` sends it
+ */
+export function luceBill(
+    id: number,
+    title: string,
+    date: string,
+    amount: number,
+): App.Data.MovementData {
+    return {
+        ...danceMovement,
+        id,
+        title,
+        date,
+        amount,
+        account_id: 1,
+        account: 'Conto BPER',
+        category: 'Luce',
+        icon: 'zap',
+        color: '#F76B15',
+        planned_id: 7,
+        occurrence_date: date,
+    };
+}
+
+/** The payments of the electricity by year: three bills of 2026 and one of 2025. */
+export const lucePayments: App.Data.PaymentYearData[] = [
+    {
+        year: 2026,
+        total: 642.1,
+        count: 3,
+        payments: [
+            luceBill(41, 'Bolletta luce di agosto', '2026-09-23', 68.9),
+            luceBill(40, 'Bolletta luce di luglio', '2026-08-22', 74.2),
+            luceBill(39, 'Bolletta luce di giugno', '2026-07-23', 61.5),
+        ],
+    },
+    {
+        year: 2025,
+        total: 82.3,
+        count: 1,
+        payments: [
+            luceBill(30, 'Bolletta luce di novembre', '2025-12-23', 82.3),
+        ],
+    },
+];
+
+/** What the page of the electricity shows of its payments on 26/10/2026. */
+export const luceBudget: App.Data.CardBudgetData = {
+    kind: 'expense',
+    next: null,
+    next_label: '',
+    installment_number: null,
+    installments_count: null,
+    installments_paid: null,
+    paid_amount: null,
+    left_amount: null,
+    numbers: [
+        {
+            label: 'Planned',
+            amount: 72,
+            count: null,
+            hint: 'per month, estimated',
+            hint_amount: null,
+        },
+        {
+            label: 'Paid in 2026',
+            amount: 642.1,
+            count: null,
+            hint: '9 bills',
+            hint_amount: null,
+        },
+    ],
+    due_label: 'To pay',
+    due: [{ ...lateDeadline, card: edison }, luceOctober],
+    planned_label: 'Expected expenses',
+    planned: [lucePlanned],
+    can_add_planned: true,
+    payments_label: 'Bills paid',
+    payments_more: 'See all the bills, year by year',
+    payments: lucePayments,
+    pay: [{ ...lateDeadline, card: edison }],
+    can_pay: true,
+};
+
+/** The policy of the Panda with its renewal, its premium and the premium paid in 2025. */
+export const policyBudget: App.Data.CardBudgetData = {
+    ...luceBudget,
+    next: {
+        ...danceDeadline,
+        planned_id: 12,
+        title: 'Assicurazione auto',
+        planned_title: 'Assicurazione auto',
+        date: '2026-11-21',
+        original_date: '2026-11-21',
+        amount: 418,
+        base_amount: null,
+        notes: null,
+        account: 'Conto BPER',
+        card: policyDetail.card,
+    },
+    next_label: 'Renewal',
+    numbers: [
+        {
+            label: 'Premium',
+            amount: 418,
+            count: null,
+            hint: 'every year',
+            hint_amount: null,
+        },
+    ],
+    due_label: null,
+    due: [],
+    planned: [
+        {
+            ...lucePlanned,
+            id: 12,
+            title: 'Assicurazione auto',
+            unit: 'year',
+            start_date: '2025-11-21',
+            estimated: false,
+        },
+    ],
+    payments_label: 'Premiums paid',
+    payments_more: 'See all the premiums, year by year',
+    payments: [
+        {
+            year: 2025,
+            total: 418,
+            count: 1,
+            payments: [luceBill(20, 'Assicurazione auto', '2025-11-21', 418)],
         },
     ],
 };

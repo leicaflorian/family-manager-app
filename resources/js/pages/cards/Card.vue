@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /**
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
- * menu (Delete, for an `admin`, after asking); then the notices, the dates,
- * the data of the card (the person, the organization and the card it names
+ * menu (Delete, for an `admin`, after asking); then the notices, the
+ * payments of the card around its dates and data (`FmCardBudget`: the next
+ * due date, the figures, the due dates to pay, the planned expenses and the
+ * payments), the data of the card (the person, the organization and the card it names
  * open in a new tab), its documents (with *Upload*, which opens the panel
  * with the zone for the files, and *Link*, open to a
  * `member` too, and beside each the buttons of `FmCardDocumentActions`) and
@@ -18,6 +20,7 @@ import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
+import FmCardBudget from '@/components/fm/FmCardBudget.vue';
 import FmCardHeader from '@/components/fm/FmCardHeader.vue';
 import FmCardDocumentActions from '@/components/fm/FmCardDocumentActions.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
@@ -130,20 +133,18 @@ function link(id: number): void {
             class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
-                <div
-                    v-if="card.dates.length > 0"
-                    class="grid grid-cols-2 gap-3"
-                >
-                    <FmDateTile
-                        v-for="date in card.dates"
-                        :key="date.label"
-                        :date="date"
-                    />
-                </div>
-
-                <FmCard v-if="card.values.length > 0" :title="$t('Data')">
-                    <FmValueList :values="card.values" new-tab />
-                </FmCard>
+                <FmCardBudget :budget="card.budget" :card="address">
+                    <template v-if="card.dates.length > 0" #tiles>
+                        <FmDateTile
+                            v-for="date in card.dates"
+                            :key="date.label"
+                            :date="date"
+                        />
+                    </template>
+                    <FmCard v-if="card.values.length > 0" :title="$t('Data')">
+                        <FmValueList :values="card.values" new-tab />
+                    </FmCard>
+                </FmCardBudget>
 
                 <FmCard
                     v-if="card.related.length > 0 || card.addable.length > 0"

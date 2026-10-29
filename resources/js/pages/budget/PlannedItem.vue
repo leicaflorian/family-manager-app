@@ -11,7 +11,6 @@ import {
     CalendarClock,
     CalendarX2,
     CircleDollarSign,
-    Paperclip,
     Pencil,
     Plus,
     Repeat,
@@ -24,6 +23,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import type { RowTone } from '@/components/fm/FmRow.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
@@ -34,7 +34,6 @@ import {
     deadlineStatus,
     deadlineUrls,
     recurrenceText,
-    shortDate,
     skippedMonthsText,
 } from '@/lib/budget';
 import type { RecurrenceUnit } from '@/lib/budget';
@@ -361,45 +360,7 @@ const exceptionIcons = {
                             >{{ $t('Record payment') }}</FmButton
                         >
                     </template>
-                    <template v-for="year in detail.payments" :key="year.year">
-                        <div
-                            class="flex items-center justify-between bg-canvas px-4 py-2 text-[15px] font-bold"
-                        >
-                            <span>{{ year.year }}</span>
-                            <span>{{ euro(year.total) }}</span>
-                        </div>
-                        <div
-                            v-for="payment in year.payments"
-                            :key="`${payment.kind}-${payment.id}`"
-                            class="flex items-center gap-3 px-4 py-3"
-                        >
-                            <span
-                                class="w-11 shrink-0 text-[15px] font-semibold"
-                                >{{ shortDate(payment.date) }}</span
-                            >
-                            <span class="flex min-w-0 grow flex-col gap-0.5">
-                                <span
-                                    class="truncate text-[15px] font-semibold"
-                                    >{{ payment.title }}</span
-                                >
-                                <span
-                                    v-if="payment.account"
-                                    class="truncate text-[13px] text-ink-soft"
-                                    >{{ payment.account }}</span
-                                >
-                            </span>
-                            <FmIcon
-                                v-if="payment.documents.length > 0"
-                                :icon="Paperclip"
-                                :size="18"
-                                :label="$t('Receipt attached')"
-                                class="text-ink-soft"
-                            />
-                            <span class="shrink-0 text-[15px] font-bold">{{
-                                euro(payment.amount)
-                            }}</span>
-                        </div>
-                    </template>
+                    <FmPaymentYears :years="detail.payments" />
                     <p
                         v-if="detail.payments.length === 0"
                         class="m-0 px-4 py-3 text-[15px] text-ink-soft"

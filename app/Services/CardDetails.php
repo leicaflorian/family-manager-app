@@ -36,24 +36,27 @@ use LogicException;
 
 /**
  * Everything the page of one card needs: its detail, as the person reads it,
- * and the data of its form, both built from the description of the card type.
+ * with its payments ({@see CardBudgets}), and the data of its form, both built
+ * from the description of the card type.
  */
 final readonly class CardDetails
 {
-    public function __construct(private CardSummaries $summaries, private DocumentRows $documents) {}
+    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets) {}
 
     /**
      * The detail of a card.
      *
      * @param  Model  $card  a record of one of the 13 models
      * @param  User  $user  whoever looks at the card
+     * @param  CarbonImmutable|null  $today  today in Rome, the clock's if missing
      *
      * @throws InvalidArgumentException if the record is not a card
      */
-    public function of(Model $card, User $user): CardDetailData
+    public function of(Model $card, User $user, ?CarbonImmutable $today = null): CardDetailData
     {
+        $today ??= CarbonImmutable::today('Europe/Rome');
         $type = CardTypes::for($card);
-        $row = $this->summaries->row($card);
+        $row = $this->summaries->row($card, $today);
 
         return new CardDetailData(
             card: $row,
@@ -67,6 +70,7 @@ final readonly class CardDetails
             can_edit: Gate::forUser($user)->allows('update', $card),
             can_delete: Gate::forUser($user)->allows('delete', $card),
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
+            budget: $this->budgets->of($card, $user, $today),
         );
     }
 

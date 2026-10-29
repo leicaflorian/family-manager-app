@@ -17,6 +17,7 @@ const {
     label,
     small = false,
     plain = false,
+    text = false,
     icon,
 } = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
@@ -27,6 +28,8 @@ const {
     small?: boolean;
     /** The ⋯ button without a background until hovered, as the plain buttons beside a row. */
     plain?: boolean;
+    /** A text button with the label beside the icon, as *Record payment* beside a title. */
+    text?: boolean;
 }>();
 
 defineSlots<{
@@ -40,6 +43,14 @@ defineSlots<{
     <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger as-child>
             <FmButton
+                v-if="text"
+                variant="text"
+                inline
+                :icon="icon ?? Ellipsis"
+                >{{ label ?? $t('More actions') }}</FmButton
+            >
+            <FmButton
+                v-else
                 :variant="plain ? 'text' : 'soft'"
                 :icon="icon ?? Ellipsis"
                 :label="label ?? $t('More actions')"

@@ -1,7 +1,7 @@
-import { screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
-import { allAreas, cardTypes, homeArea } from '@/test/fixtures';
+import { allAreas, cardTypes, homeArea, luceRow } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Area from './Area.vue';
 
@@ -73,5 +73,27 @@ describe('Area', () => {
         expect(
             screen.getByText('No cards in this area yet'),
         ).toBeInTheDocument();
+    });
+
+    it('shows the amount due beside a card, red when late', () => {
+        renderPage(Area, {
+            area: {
+                ...homeArea,
+                cards: [
+                    { ...homeArea.cards[0] },
+                    { ...luceRow, due_amount: 71.3, due_late: true },
+                ],
+            },
+            types: cardTypes.slice(0, 2),
+            canCreate: false,
+        });
+
+        const luce = screen.getByRole('link', { name: /Luce - Edison/ });
+        expect(within(luce).getByText('71,30 €')).toHaveClass('text-overdue');
+        expect(
+            within(
+                screen.getByRole('link', { name: /Casa di via Roma/ }),
+            ).queryByText(/€/),
+        ).not.toBeInTheDocument();
     });
 });

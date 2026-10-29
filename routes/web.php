@@ -10,6 +10,7 @@ use App\Http\Controllers\Budget\MovementController;
 use App\Http\Controllers\Budget\PlannedController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
+use App\Http\Controllers\CardPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FileController;
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('cards/{type}', [CardController::class, 'store'])->name('cards.store');
         Route::get('cards/{type}/{id}', [CardController::class, 'show'])->name('cards.show')->whereNumber('id');
         Route::get('cards/{type}/{id}/edit', [CardController::class, 'edit'])->name('cards.edit')->whereNumber('id');
+        Route::get('cards/{type}/{id}/payments', [CardPaymentController::class, 'show'])->name('cards.payments')->whereNumber('id');
         Route::put('cards/{type}/{id}', [CardController::class, 'update'])->name('cards.update')->whereNumber('id');
         Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy')->whereNumber('id');
         Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store')->whereNumber('id');

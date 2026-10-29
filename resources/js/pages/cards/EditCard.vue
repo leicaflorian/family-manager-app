@@ -6,6 +6,8 @@
  * documents: the ones linked and the files to add, sent with the card, after
  * which *Upload* opens to file them; the documents chosen in *Link* and those
  * marked to unlink go with the card too, and change only when it is saved.
+ * On the computer, below them, the planned expenses and the payments of the
+ * card (`FmCardPayments`), as the board *Modifica-pc*.
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -14,6 +16,7 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCardFiles from '@/components/fm/FmCardFiles.vue';
+import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardForm from '@/components/fm/FmCardForm.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
@@ -33,6 +36,7 @@ const {
     linkableNext = null,
     linkableSearch = '',
     hasLinkable = false,
+    budget = null,
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -54,6 +58,8 @@ const {
     linkableSearch?: string;
     /** At least one document of the family can be linked. */
     hasLinkable?: boolean;
+    /** The planned expenses and the payments of the card to change; none for a new one. */
+    budget?: App.Data.CardBudgetData | null;
 }>();
 
 /** The form is being sent. */
@@ -141,19 +147,31 @@ function save(data: Record<string, unknown>): void {
         <div
             class="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start"
         >
-            <FmCardFiles
-                v-model:files="files"
-                v-model:link="link"
-                v-model:unlink="unlink"
-                :documents="documents"
-                :card="card ? { type: card.type, id: card.id } : undefined"
-                :can-delete="canDeleteDocuments"
-                :errors="fileErrors"
-                :linkable="linkable"
-                :linkable-next="linkableNext"
-                :linkable-search="linkableSearch"
-                :has-linkable="hasLinkable"
-            />
+            <div class="flex min-w-0 flex-col gap-6">
+                <FmCardFiles
+                    v-model:files="files"
+                    v-model:link="link"
+                    v-model:unlink="unlink"
+                    :documents="documents"
+                    :card="card ? { type: card.type, id: card.id } : undefined"
+                    :can-delete="canDeleteDocuments"
+                    :errors="fileErrors"
+                    :linkable="linkable"
+                    :linkable-next="linkableNext"
+                    :linkable-search="linkableSearch"
+                    :has-linkable="hasLinkable"
+                />
+                <div
+                    v-if="card && budget"
+                    data-testid="card-payments"
+                    class="hidden flex-col gap-5 lg:flex"
+                >
+                    <FmCardPayments
+                        :budget="budget"
+                        :card="{ type: card.type, id: card.id }"
+                    />
+                </div>
+            </div>
             <div class="rounded-3xl bg-white p-5 lg:p-7">
                 <FmCardForm
                     :fields="fields"

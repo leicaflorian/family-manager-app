@@ -2,7 +2,13 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { healthCard, policyDetail } from '@/test/fixtures';
+import {
+    healthCard,
+    luceBudget,
+    luceRow,
+    policyBudget,
+    policyDetail,
+} from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Card from './Card.vue';
 
@@ -353,5 +359,55 @@ describe('A card', () => {
             '/cards/insurance_policy/1',
             expect.anything(),
         );
+    });
+
+    describe('with its payments', () => {
+        const luceDetail: App.Data.CardDetailData = {
+            ...policyDetail,
+            card: luceRow,
+            heading: 'Electricity · Casa di via Roma',
+            dates: [],
+            budget: luceBudget,
+        };
+
+        it('shows the sections of the electricity in the order of the board', () => {
+            renderPage(Card, { card: luceDetail, linkable: [] });
+
+            expect(
+                screen
+                    .getAllByRole('heading', { level: 2 })
+                    .map((heading) => heading.textContent?.trim()),
+            ).toEqual([
+                'To pay',
+                'Data',
+                'Expected expenses',
+                'Bills paid',
+                'Linked to',
+                'Documents',
+            ]);
+            expect(screen.getByText('9 bills')).toBeInTheDocument();
+        });
+
+        it('adds a planned expense already linked to the card', () => {
+            renderPage(Card, { card: luceDetail, linkable: [] });
+
+            expect(screen.getByRole('link', { name: 'Add' })).toHaveAttribute(
+                'href',
+                '/budget/planned/expense/create?card=utility%3A3',
+            );
+        });
+
+        it('keeps the date tiles beside the figures', () => {
+            renderPage(Card, {
+                card: { ...policyDetail, budget: policyBudget },
+                linkable: [],
+            });
+
+            expect(screen.getByText('Premium')).toBeInTheDocument();
+            expect(screen.getByText('20/11/2026')).toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: /Renewal/ }),
+            ).toBeInTheDocument();
+        });
     });
 });

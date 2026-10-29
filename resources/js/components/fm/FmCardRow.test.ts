@@ -52,4 +52,21 @@ describe('FmCardRow', () => {
             'opacity-60',
         );
     });
+
+    it('shows on the right the amount due, red when late', () => {
+        render(FmCardRow, {
+            props: { card: { ...pandaRow, due_amount: 71.3, due_late: true } },
+        });
+
+        const amount = screen.getByText('71,30 €');
+        expect(amount).toHaveClass('text-overdue');
+    });
+
+    it('shows the amount due in the colour of the text when it is not late', () => {
+        render(FmCardRow, {
+            props: { card: { ...pandaRow, due_amount: 84.2 } },
+        });
+
+        expect(screen.getByText('84,20 €')).not.toHaveClass('text-overdue');
+    });
 });

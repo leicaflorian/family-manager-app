@@ -1,8 +1,13 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { healthCard, policyDetail, policyFields } from '@/test/fixtures';
+import {
+    healthCard,
+    policyBudget,
+    policyDetail,
+    policyFields,
+} from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import EditCard from './EditCard.vue';
 
@@ -309,5 +314,39 @@ describe('Edit a card', () => {
                 ),
             ).toBeInTheDocument();
         });
+    });
+
+    it('shows beside the form, on the computer, the planned expenses and the payments of the card', () => {
+        renderPage(EditCard, {
+            type,
+            fields: policyFields,
+            values: { title: 'RC auto Panda', type: 'car' },
+            card: policyDetail.card,
+            budget: policyBudget,
+        });
+
+        const column = screen.getByTestId('card-payments');
+        expect(column).toHaveClass('hidden', 'lg:flex');
+        expect(
+            within(column).getByRole('heading', { name: 'Expected expenses' }),
+        ).toBeInTheDocument();
+        expect(
+            within(column).getByRole('heading', { name: 'Premiums paid' }),
+        ).toBeInTheDocument();
+        // the planned expense and the premium paid
+        expect(within(column).getAllByText('Assicurazione auto')).toHaveLength(
+            2,
+        );
+    });
+
+    it('has no column for a new card', () => {
+        renderPage(EditCard, {
+            type,
+            fields: policyFields,
+            values: {},
+            card: null,
+        });
+
+        expect(screen.queryByTestId('card-payments')).not.toBeInTheDocument();
     });
 });

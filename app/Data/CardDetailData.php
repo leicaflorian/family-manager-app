@@ -9,8 +9,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * The page of one card: its heading, dates, notices, data, linked cards and
- * documents.
+ * The page of one card: its heading, dates, notices, data, linked cards,
+ * documents and payments.
  */
 #[TypeScript]
 final class CardDetailData extends Data
@@ -27,6 +27,7 @@ final class CardDetailData extends Data
      * @param  bool  $can_edit  whether whoever looks can edit the card
      * @param  bool  $can_delete  whether whoever looks can delete the card
      * @param  bool  $can_delete_documents  whether whoever looks can delete the documents of the card
+     * @param  CardBudgetData|null  $budget  the payments of the card, null for the types without any
      */
     public function __construct(
         public readonly CardData $card,
@@ -45,5 +46,6 @@ final class CardDetailData extends Data
         public readonly bool $can_edit,
         public readonly bool $can_delete,
         public readonly bool $can_delete_documents,
+        public readonly ?CardBudgetData $budget = null,
     ) {}
 }

@@ -14,10 +14,12 @@ use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
 use App\Models\User;
 use App\Queries\DocumentRows;
+use App\Services\CardBudgets;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use App\Services\FileStore;
 use App\Support\PresetLink;
+use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +43,7 @@ final class CardController extends Controller
         private readonly CardDetails $details,
         private readonly CardSummaries $summaries,
         private readonly DocumentRows $documents,
+        private readonly CardBudgets $budgets,
     ) {}
 
     /**
@@ -101,7 +104,8 @@ final class CardController extends Controller
 
     /**
      * *Edit card*: the form with the data of the card, its documents, whether
-     * they can be deleted and the documents that can be linked.
+     * they can be deleted, the documents that can be linked and, for the column
+     * beside the form on the computer, its payments.
      */
     public function edit(Request $request, string $type, string $id, #[CurrentUser] User $user): Response
     {
@@ -116,6 +120,7 @@ final class CardController extends Controller
             'card' => $row,
             'documents' => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
             'canDeleteDocuments' => $user->can('deleteAny', Document::class),
+            'budget' => $this->budgets->of($card, $user, CarbonImmutable::today('Europe/Rome')),
             ...$this->linkable($request, ['not_record' => ['type' => $description->type(), 'id' => $row->id]]),
         ]);
     }
