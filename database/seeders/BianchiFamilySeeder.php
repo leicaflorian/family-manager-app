@@ -121,6 +121,18 @@ final class BianchiFamilySeeder extends Seeder
         'Abbigliamento' => ['shirt', '#E35169'],
     ];
 
+    /** The card type the expenses of a main category refer to, by name; the others have none. */
+    private const array CATEGORY_CARDS = [
+        'Casa e affitto' => 'home',
+        'Bollette e utenze' => 'utility',
+        'Auto' => 'vehicle',
+        'Polizze e assicurazioni' => 'insurance_policy',
+        'Prestiti e finanziamenti' => 'loan',
+        'Salute' => 'health_event',
+        'Scuola e attività' => 'enrollment',
+        'Lavoro' => 'employment',
+    ];
+
     /** The months in Italian, for the titles of the payments. */
     private const array MONTHS = [
         1 => 'gennaio', 2 => 'febbraio', 3 => 'marzo', 4 => 'aprile', 5 => 'maggio', 6 => 'giugno',
@@ -331,7 +343,8 @@ final class BianchiFamilySeeder extends Seeder
     }
 
     /**
-     * The expense categories of the canvas: the Italian names of the board, an icon and the colour of their area.
+     * The expense categories of the canvas: the Italian names of the board, an icon, the colour of their area and the
+     * card type of their expenses.
      */
     private function createExpenseCategories(): void
     {
@@ -343,7 +356,7 @@ final class BianchiFamilySeeder extends Seeder
 
         foreach (self::CATEGORY_LOOKS as $name => [$icon, $color]) {
             $main = $this->categoryIn(ExpenseCategory::query()->orderBy('sort'), $name);
-            $main->update(['icon' => $icon, 'color' => $color]);
+            $main->update(['icon' => $icon, 'color' => $color, 'card_type' => self::CATEGORY_CARDS[$name] ?? null]);
 
             foreach ($main->children as $child) {
                 $child->update(['icon' => self::SUBCATEGORY_ICONS[$child->name] ?? $icon, 'color' => $color]);

@@ -1,8 +1,21 @@
-<script setup lang="ts">
+<script
+    setup
+    lang="ts"
+    generic="
+        T extends {
+            id: number;
+            name: string;
+            icon: string | null;
+            color: string | null;
+            children: T[];
+        }
+    "
+>
 /**
- * A level of the tree of the document categories: each category with the number
- * of its documents and, if it has any, the arrow that opens the subcategories.
- * It calls itself for the levels below.
+ * A level of the tree of the categories, of documents or of expenses: each
+ * category with, on the right, the number of its documents (or what the `after`
+ * slot shows) and, if it has any, the arrow that opens the subcategories. It
+ * calls itself for the levels below.
  */
 import { ChevronDown, ChevronRight } from '@lucide/vue';
 import { ref } from 'vue';
@@ -16,18 +29,26 @@ const {
     categories,
     level = 0,
     selectable = false,
+    mainOnly = false,
 } = defineProps<{
     /** The categories of this level. */
-    categories: App.Data.CategoryData[];
+    categories: T[];
     /** How deep this level is: 0 for the main ones. */
     level?: number;
     /** The categories are tapped to choose them (to edit them). */
     selectable?: boolean;
+    /** Only the main categories are tapped: the subcategories are just read. */
+    mainOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
     /** A category was tapped. */
-    select: [category: App.Data.CategoryData];
+    select: [category: T];
+}>();
+
+defineSlots<{
+    /** What is on the right of a category, in place of the number of its documents. */
+    after?: (props: { category: T }) => unknown;
 }>();
 
 /** The ids of the open categories. */
@@ -79,7 +100,7 @@ function toggle(id: number): void {
                 <FmRow
                     class="min-w-0 grow pl-1"
                     :title="category.name"
-                    :button="selectable"
+                    :button="selectable && !(mainOnly && level > 0)"
                     @click="emit('select', category)"
                 >
                     <template #before>
@@ -104,9 +125,13 @@ function toggle(id: number): void {
                         />
                     </template>
                     <template #after>
-                        <span class="text-[13px] font-normal text-ink-soft">{{
-                            category.documents_count
-                        }}</span>
+                        <slot name="after" :category="category">
+                            <span
+                                v-if="'documents_count' in category"
+                                class="text-[13px] font-normal text-ink-soft"
+                                >{{ category.documents_count }}</span
+                            >
+                        </slot>
                     </template>
                 </FmRow>
             </div>
@@ -115,8 +140,13 @@ function toggle(id: number): void {
                 :categories="category.children"
                 :level="level + 1"
                 :selectable="selectable"
+                :main-only="mainOnly"
                 @select="emit('select', $event)"
-            />
+            >
+                <template v-if="$slots.after" #after="{ category: child }">
+                    <slot name="after" :category="child" />
+                </template>
+            </FmCategoryTree>
         </li>
     </ul>
 </template>

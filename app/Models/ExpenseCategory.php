@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\ExpenseCategoryPaths;
 use Carbon\CarbonImmutable;
 use Database\Factories\ExpenseCategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -40,7 +41,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort'])]
+#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort', 'card_type'])]
 final class ExpenseCategory extends FamilyModel
 {
     /** @use HasFactory<ExpenseCategoryFactory> */
@@ -64,6 +65,47 @@ final class ExpenseCategory extends FamilyModel
     public function children(): HasMany
     {
         return $this->hasMany(ExpenseCategory::class, 'parent_id');
+    }
+
+    /**
+     * The card type the expenses of this category refer to: its own for a main category, the one of its main
+     * category for a subcategory.
+     *
+     * @return string|null a type of the morph map, for example `vehicle`, or null without a type
+     */
+    public function cardType(): ?string
+    {
+        $main = $this;
+
+        // Up to the main category; the visited ids stop a loop, should the data have one.
+        for ($seen = []; $main->parent_id !== null && $main->parent !== null && ! isset($seen[$main->id]); $main = $main->parent) {
+            $seen[$main->id] = true;
+        }
+
+        return $main->card_type;
+    }
+
+    /**
+     * The card type of every category of the current family, with the inheritance from the main category, in one
+     * query. A category without a type is left out.
+     *
+     * @return array<int, string> the types of the morph map, by id of the category
+     */
+    public static function cardTypes(): array
+    {
+        $categories = self::query()->get(['id', 'parent_id', 'name', 'card_type']);
+        $byId = $categories->keyBy('id');
+        $types = [];
+
+        foreach (ExpenseCategoryPaths::walk($categories) as $id => ['main' => $main]) {
+            $type = $byId->get($main)?->card_type;
+
+            if ($type !== null) {
+                $types[$id] = $type;
+            }
+        }
+
+        return $types;
     }
 
     /**

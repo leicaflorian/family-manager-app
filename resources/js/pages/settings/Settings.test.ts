@@ -6,7 +6,11 @@ import Settings from './Settings.vue';
 
 describe('Settings', () => {
     it('leads to my account and to the categories', () => {
-        renderPage(Settings, { account, mainCategories: 10 });
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+        });
 
         expect(
             screen.getByRole('heading', { name: 'Settings' }),
@@ -21,10 +25,18 @@ describe('Settings', () => {
             screen.getByRole('link', { name: /Document categories/ }),
         ).toHaveAttribute('href', '/settings/categories');
         expect(screen.getByText('10 main categories')).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: /Expense categories/ }),
+        ).toHaveAttribute('href', '/settings/expense-categories');
+        expect(screen.getByText('13 main categories')).toBeInTheDocument();
     });
 
     it('writes the singular for one main category', () => {
-        renderPage(Settings, { account, mainCategories: 1 });
+        renderPage(Settings, {
+            account,
+            mainCategories: 1,
+            mainExpenseCategories: 13,
+        });
 
         expect(screen.getByText('1 main category')).toBeInTheDocument();
     });

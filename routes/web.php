@@ -13,6 +13,7 @@ use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InvitationController;
@@ -103,6 +104,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['categories' => 'category'])
             ->names('categories');
+        Route::get('settings/expense-categories', [ExpenseCategoryController::class, 'index'])->name('expense-categories.index');
+        Route::patch('settings/expense-categories/{category}', [ExpenseCategoryController::class, 'update'])->name('expense-categories.update');
 
         Route::get('files/{file}', [FileController::class, 'show'])->name('files.show');
         Route::get('files/{file}/preview', [FileController::class, 'preview'])->name('files.preview');

@@ -128,6 +128,26 @@ describe('the budget of the Bianchi family on 26/10/2026', function (): void {
         });
     });
 
+    it('links the expense categories to their cards', function (): void {
+        insideBianchi(function (): void {
+            $cards = ExpenseCategory::query()->whereNull('parent_id')->pluck('card_type', 'name')->all();
+
+            expect($cards)->toMatchArray([
+                'Casa e affitto' => 'home',
+                'Bollette e utenze' => 'utility',
+                'Auto' => 'vehicle',
+                'Polizze e assicurazioni' => 'insurance_policy',
+                'Prestiti e finanziamenti' => 'loan',
+                'Salute' => 'health_event',
+                'Scuola e attività' => 'enrollment',
+                'Lavoro' => 'employment',
+                'Spesa' => null,
+                'Svago' => null,
+            ])
+                ->and(ExpenseCategory::query()->where('name', 'Luce')->sole()->card_type)->toBeNull();
+        });
+    });
+
     it('has the planned expenses and incomes of the canvas', function (): void {
         insideBianchi(function (): void {
             $today = CarbonImmutable::today('Europe/Rome');

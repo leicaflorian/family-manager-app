@@ -213,6 +213,16 @@ readonly date_override: string | null,
 readonly notes: string | null,
 readonly deadline: App.Data.DeadlineData | null,
 };
+export type ExpenseCategoryData = {
+readonly id: number,
+readonly name: string,
+readonly parent_id: number | null,
+readonly icon: string | null,
+readonly color: string | null,
+readonly card_type: string | null,
+readonly card_label: string | null,
+readonly children: App.Data.ExpenseCategoryData[],
+};
 export type FamilyData = {
 readonly name: string,
 };
