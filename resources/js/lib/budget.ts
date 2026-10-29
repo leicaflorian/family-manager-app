@@ -108,12 +108,11 @@ export function comparisonComment(
     }
 
     if (lateTitle !== null) {
-        // The title is a name of a planned expense («Luce»): it reads in the middle of the sentence
-        parts.push(
-            trans(':title late', {
-                title: lateTitle.charAt(0).toLowerCase() + lateTitle.slice(1),
-            }),
-        );
+        // A name like «Luce» reads in the middle of the sentence; an acronym like «IMU» keeps its capitals
+        const title = /^\p{Lu}\p{Ll}/u.test(lateTitle)
+            ? lateTitle.charAt(0).toLowerCase() + lateTitle.slice(1)
+            : lateTitle;
+        parts.push(trans(':title late', { title }));
     }
 
     return parts.join(' · ');

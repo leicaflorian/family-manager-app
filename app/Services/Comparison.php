@@ -45,19 +45,20 @@ final readonly class Comparison
         $deadlines = $this->deadlines->between(PlannedExpense::query()->get(), $chartFrom, $to);
         $expenses = Expense::query()->whereBetween('date', [$chartFrom->toDateString(), $to->toDateString()])->get(['id', 'amount', 'date', 'category_id']);
 
-        $monthDeadlines = array_values(array_filter($deadlines, static fn (Deadline $deadline): bool => $deadline->occurrence->date->format('Y-m') === $month));
+        $monthDeadlines = $this->deadlinesOf($deadlines, $month);
         $monthExpenses = $expenses->filter(static fn (Expense $expense): bool => $expense->date?->format('Y-m') === $month);
-        $incomeDeadlines = $this->deadlines->between(PlannedIncome::query()->get(), $from, $to);
+        $bars = $this->months($from, $today, $deadlines, $expenses);
 
         return new ComparisonData(
-            month: $from->format('Y-m'),
-            planned: $this->sum(array_map(static fn (Deadline $deadline): float => $deadline->occurrence->amount, $monthDeadlines)),
-            spent: $this->sum($monthExpenses->map(static fn (Expense $expense): float => (float) $expense->amount)->values()->all()),
+            month: $month,
+            // The month asked is the last bar of the chart: its totals are computed once
+            planned: $bars[self::MONTHS - 1]->planned,
+            spent: $bars[self::MONTHS - 1]->spent,
             incomes: $this->sum(Income::query()->whereBetween('date', [$from->toDateString(), $to->toDateString()])->get(['id', 'amount'])->map(static fn (Income $income): float => (float) $income->amount)->values()->all()),
-            incomes_planned: $this->sum(array_map(static fn (Deadline $deadline): float => $deadline->occurrence->amount, $incomeDeadlines)),
+            incomes_planned: $this->total($this->deadlines->between(PlannedIncome::query()->get(), $from, $to)),
             days_left: $from->isSameMonth($today) ? (int) $today->startOfDay()->diffInDays($today->endOfMonth()->startOfDay()) : null,
             categories: $this->categories($monthDeadlines, $monthExpenses, $today),
-            months: $this->months($from, $today, $deadlines, $expenses),
+            months: $bars,
             unpaid: $this->unpaid($monthDeadlines, $today),
         );
     }
@@ -104,7 +105,7 @@ final readonly class Comparison
                 icon: $category?->icon,
                 color: $category?->color,
                 spent: $this->sum(array_map(static fn (Expense $expense): float => (float) $expense->amount, $rows[$id]['expenses'] ?? [])),
-                planned: $this->sum(array_map(static fn (Deadline $deadline): float => $deadline->occurrence->amount, $planned)),
+                planned: $this->total($planned),
                 estimated: $planned !== [] && array_all($planned, static fn (Deadline $deadline): bool => $deadline->occurrence->estimated),
                 late_title: $late?->planned->title,
             );
@@ -126,17 +127,23 @@ final readonly class Comparison
         $seen = [];
 
         while ($id !== null && ! isset($seen[$id])) {
-            $seen[$id] = true;
-            $parent = $categories->get($id)?->parent_id;
+            $category = $categories->get($id);
 
-            if ($parent === null || ! $categories->has($parent)) {
-                return $categories->has($id) ? $id : 0;
+            if ($category === null) {
+                return 0;
             }
 
-            $id = $parent;
+            $seen[$id] = true;
+
+            if ($category->parent_id === null) {
+                return $id;
+            }
+
+            $id = $category->parent_id;
         }
 
-        return $id ?? 0;
+        // A missing parent or a loop: the spending stays in the total, under «No category»
+        return 0;
     }
 
     /**
@@ -157,10 +164,7 @@ final readonly class Comparison
             $bars[] = new MonthBarData(
                 month: $month,
                 spent: $this->sum($expenses->filter(static fn (Expense $expense): bool => $expense->date?->format('Y-m') === $month)->map(static fn (Expense $expense): float => (float) $expense->amount)->values()->all()),
-                planned: $this->sum(array_values(array_map(
-                    static fn (Deadline $deadline): float => $deadline->occurrence->amount,
-                    array_filter($deadlines, static fn (Deadline $deadline): bool => $deadline->occurrence->date->format('Y-m') === $month),
-                ))),
+                planned: $this->total($this->deadlinesOf($deadlines, $month)),
                 current: $month === $today->format('Y-m'),
             );
         }
@@ -182,6 +186,28 @@ final readonly class Comparison
         usort($open, static fn (Deadline $a, Deadline $b): int => $b->isLate($today) <=> $a->isLate($today));
 
         return array_map(static fn (Deadline $deadline): DeadlineData => DeadlineData::fromDeadline($deadline, $today), $open);
+    }
+
+    /**
+     * The due dates that fall in a month.
+     *
+     * @param  list<Deadline>  $deadlines  The due dates.
+     * @param  string  $month  The month, `yyyy-mm`.
+     * @return list<Deadline>
+     */
+    private function deadlinesOf(array $deadlines, string $month): array
+    {
+        return array_values(array_filter($deadlines, static fn (Deadline $deadline): bool => $deadline->occurrence->date->format('Y-m') === $month));
+    }
+
+    /**
+     * What some due dates add up to.
+     *
+     * @param  list<Deadline>  $deadlines  The due dates.
+     */
+    private function total(array $deadlines): float
+    {
+        return $this->sum(array_map(static fn (Deadline $deadline): float => $deadline->occurrence->amount, $deadlines));
     }
 
     /**

@@ -14,7 +14,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class CategoryComparisonData extends Data
 {
     /**
-     * @param  string  $name  the name of the main category, or «Uncategorised» for the expenses without one
+     * @param  string  $name  the name of the main category, or «No category» for the expenses without one
      * @param  string|null  $icon  the Lucide icon of the category
      * @param  string|null  $color  the colour of the category
      * @param  float  $spent  what was spent in the month, subcategories included

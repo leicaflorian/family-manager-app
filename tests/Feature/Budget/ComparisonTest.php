@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\Role;
 use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\User;
 use App\Services\Comparison;
 use Carbon\CarbonImmutable;
@@ -149,4 +150,19 @@ it('is computed by the Comparison service for a day in the month', function (): 
     $data = insideBianchi(fn () => resolve(Comparison::class)->of($today->startOfMonth(), $today));
 
     expect($data->planned)->toBe(1469.3)->and($data->days_left)->toBe(5);
+});
+
+it('keeps the spending of a category whose parents loop in No category', function (): void {
+    insideBianchi(function (): void {
+        $first = ExpenseCategory::query()->create(['name' => 'Giro A']);
+        $second = ExpenseCategory::query()->create(['name' => 'Giro B', 'parent_id' => $first->id]);
+        $first->update(['parent_id' => $second->id]);
+        Expense::query()->create(['title' => 'Misteri', 'date' => '2026-10-11', 'amount' => 7, 'category_id' => $second->id]);
+    });
+
+    $comparison = comparisonOf('2026-10')['comparison'];
+    $last = collect($comparison['categories'])->last();
+
+    expect($last['name'])->toBe('Senza categoria')->and($last['spent'])->toBe(7.0)
+        ->and(round(collect($comparison['categories'])->sum('spent'), 2))->toBe($comparison['spent']);
 });

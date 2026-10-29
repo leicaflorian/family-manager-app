@@ -130,10 +130,14 @@ describe('Comparison', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('shows the incomes only on the computer', () => {
+    it('shows only two numbers on the phone', () => {
         renderPage(Comparison, props);
 
-        expect(screen.queryByText('Incomes')).not.toBeInTheDocument();
+        expect(screen.queryByText('Income')).not.toBeInTheDocument();
+        expect(screen.queryByText('1.720,00 €')).not.toBeInTheDocument();
+        expect(
+            screen.queryByText(/3\.570,00 € planned/),
+        ).not.toBeInTheDocument();
     });
 
     it('goes to another month', async () => {
