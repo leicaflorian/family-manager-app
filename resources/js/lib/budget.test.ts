@@ -2,10 +2,16 @@ import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
 import { createApp } from 'vue';
 import { i18nOptions } from './i18n';
 import { afterEach, describe, expect, it } from 'vite-plus/test';
-import { lateDeadline, paidDeadline, salaryDeadline } from '@/test/fixtures';
+import {
+    danceDeadline,
+    lateDeadline,
+    paidDeadline,
+    salaryDeadline,
+} from '@/test/fixtures';
 import {
     comparisonComment,
     deadlineStatus,
+    deadlineUrls,
     monthName,
     recurrenceText,
 } from './budget';
@@ -149,5 +155,26 @@ describe('monthName', () => {
         expect(monthName('2026-10')).toBe('October 2026');
         await speak('it');
         expect(monthName('2026-10')).toBe('Ottobre 2026');
+    });
+});
+
+describe('deadlineUrls', () => {
+    it('gives the addresses of a due date from its original day', () => {
+        expect(deadlineUrls(danceDeadline)).toEqual({
+            show: '/budget/planned/expense/4/occurrences/2026-12-05',
+            payment: '/budget/planned/expense/4/occurrences/2026-12-05/payment',
+            exceptions:
+                '/budget/planned/expense/4/occurrences/2026-12-05/exceptions',
+        });
+    });
+
+    it('keeps the original day when an exception moved the due date', () => {
+        expect(
+            deadlineUrls({
+                ...salaryDeadline,
+                date: '2026-10-30',
+                original_date: '2026-10-27',
+            }).show,
+        ).toBe('/budget/planned/income/2/occurrences/2026-10-27');
     });
 });

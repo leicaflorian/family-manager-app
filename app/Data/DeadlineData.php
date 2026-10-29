@@ -31,7 +31,7 @@ final class DeadlineData extends Data
      * @param  string|null  $notes  the notes of the exceptions
      * @param  bool  $late  whether its day is over and nothing settles it
      * @param  PaymentData|null  $payment  the payment that settles it
-     * @param  int|null  $account_id  the account of the planned item
+     * @param  int|null  $account_id  the account of the planned item, else the default account of the family
      * @param  string|null  $account  the name of that account
      * @param  CardData|null  $card  the card the planned expense belongs to, for example the policy
      * @param  string|null  $income_type  the type of an income, for example `salary`
@@ -62,6 +62,8 @@ final class DeadlineData extends Data
      *
      * It reads the account, the person and the card of the planned item and the account of the payment:
      * `Deadlines::between()` and `find()` load them for the whole collection, so a list does not query once per row.
+     * The account is the one of the planned item or, when it has none, the default account of the family, so that
+     * *I paid it* starts from it.
      *
      * @param  Deadline  $deadline  the due date
      * @param  CarbonImmutable  $today  today in Rome
@@ -71,6 +73,7 @@ final class DeadlineData extends Data
         $planned = $deadline->planned;
         $occurrence = $deadline->occurrence;
         $payment = $deadline->payment;
+        $account = $deadline->account;
         $card = $planned instanceof PlannedExpense
             ? ($planned->utility ?? $planned->insurancePolicy ?? $planned->loan ?? $planned->enrollment ?? $planned->home ?? $planned->vehicle ?? $planned->subscription)
             : $planned->employment;
@@ -88,8 +91,8 @@ final class DeadlineData extends Data
             notes: $occurrence->notes,
             late: $deadline->isLate($today),
             payment: $payment === null ? null : PaymentData::fromMovement($payment),
-            account_id: $planned->financial_account_id,
-            account: $planned->financialAccount?->name,
+            account_id: $account?->id,
+            account: $account?->name,
             card: $card === null ? null : resolve(CardSummaries::class)->row($card, $today),
             income_type: $planned instanceof PlannedIncome ? $planned->type->value : null,
             person: $planned->person?->first_name,

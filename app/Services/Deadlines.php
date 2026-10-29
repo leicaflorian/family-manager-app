@@ -13,6 +13,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\CurrentFamily;
 use App\Support\Deadline;
+use App\Support\DefaultAccount;
 use App\Support\Occurrence;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
@@ -72,11 +73,21 @@ final readonly class Deadlines
             + $this->groupBy(Income::query()->with('financialAccount')->whereIn('planned_income_id', $incomes->modelKeys())->orderBy('date')->get(), 'planned_income_id', 'income');
         $documents = $this->groupBy(Document::query()->whereIn('planned_expense_id', $expenses->modelKeys())->get(), 'planned_expense_id');
 
+        // The default account is looked up once for the whole collection, and only if some planned item has no account
+        $default = null;
+        $defaultLoaded = false;
         $found = [];
 
         foreach ([...$expenses->all(), ...$incomes->all()] as $item) {
             $key = $this->key($item);
             $schedule = Schedule::of($item);
+
+            if ($item->financialAccount === null && ! $defaultLoaded) {
+                $default = DefaultAccount::model();
+                $defaultLoaded = true;
+            }
+
+            $account = $item->financialAccount ?? $default;
 
             foreach ($this->occurrences->between($schedule, $from, $to) as $occurrence) {
                 $found[] = new Deadline(
@@ -84,6 +95,7 @@ final readonly class Deadlines
                     $occurrence,
                     $this->payment($schedule, $occurrence, $payments[$key] ?? []),
                     $this->title($item, $schedule, $occurrence, $documents[$key] ?? []),
+                    $account,
                 );
             }
         }

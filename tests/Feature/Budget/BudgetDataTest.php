@@ -127,3 +127,16 @@ test('it builds the data with the same number of queries however many distinct c
     expect($deadlines)->toBeGreaterThanOrEqual(5)
         ->and($many)->toBe($few);
 });
+
+test('it falls back to the default account when the planned item has none', function (): void {
+    $data = insideBianchi(function (): DeadlineData {
+        $planned = PlannedExpense::query()->where('title', 'Assicurazione auto')->sole();
+        $planned->update(['financial_account_id' => null]);
+        $deadline = resolve(Deadlines::class)->find($planned->refresh(), CarbonImmutable::parse('2026-11-21', 'Europe/Rome'));
+
+        return DeadlineData::fromDeadline($deadline, CarbonImmutable::today('Europe/Rome'));
+    });
+
+    expect($data->account)->toBe('Conto BPER')
+        ->and($data->account_id)->toBeInt();
+});

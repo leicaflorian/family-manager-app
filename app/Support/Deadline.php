@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\Expense;
+use App\Models\FinancialAccount;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
@@ -20,12 +21,14 @@ final readonly class Deadline
      * @param  Occurrence  $occurrence  The due date, with its exceptions applied.
      * @param  Expense|Income|null  $payment  The expense or income that settles it, null while it is open.
      * @param  string  $title  What to call it: the title of the document to pay, else the one of the planned item.
+     * @param  FinancialAccount|null  $account  The account to pay with: the one of the planned item, else the default account of the family.
      */
     public function __construct(
         public PlannedExpense|PlannedIncome $planned,
         public Occurrence $occurrence,
         public Expense|Income|null $payment,
         public string $title,
+        public ?FinancialAccount $account = null,
     ) {}
 
     /**

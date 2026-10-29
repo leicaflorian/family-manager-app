@@ -4,6 +4,7 @@
  */
 import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
+import { exceptions, payment, show } from '@/routes/budget/deadlines';
 import { daysFromToday, formatDate, formatEuro, relativeDays } from './format';
 
 /** The unit of a recurrence. */
@@ -200,4 +201,29 @@ export function longMonth(month: string): string {
  */
 export function shortMonth(month: string): string {
     return capitalized(monthPart(month, 'MMM'));
+}
+
+/**
+ * The addresses of a due date: its page, *I paid it* and *Change this due date*.
+ * The day in them is the one the rules give, not the one an exception moved it to.
+ *
+ * @param deadline - the due date
+ * @returns the address of the page and the two it sends its forms to
+ */
+export function deadlineUrls(deadline: App.Data.DeadlineData): {
+    show: string;
+    payment: string;
+    exceptions: string;
+} {
+    const args = {
+        kind: deadline.kind,
+        id: deadline.planned_id,
+        date: deadline.original_date,
+    };
+
+    return {
+        show: show.url(args),
+        payment: payment.url(args),
+        exceptions: exceptions.url(args),
+    };
 }

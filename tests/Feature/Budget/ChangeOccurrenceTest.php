@@ -119,7 +119,8 @@ function changeRequest(User $user, PlannedExpense $planned): ChangeOccurrenceReq
     $request->setUserResolver(fn (): User => $user);
     $route = new Route('POST', '/x', []);
     $route->bind($request);
-    $route->setParameter('planned', $planned);
+    $route->setParameter('kind', 'expense');
+    $route->setParameter('id', (string) $planned->id);
     $request->setRouteResolver(static fn (): Route => $route);
 
     return $request;

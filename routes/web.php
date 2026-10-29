@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\Budget\DeadlineController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CategoryController;
@@ -45,6 +46,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy')->whereNumber('id');
         Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store')->whereNumber('id');
         Route::delete('cards/{type}/{id}/documents/{document}', [CardDocumentController::class, 'destroy'])->name('cards.documents.destroy')->whereNumber('id');
+
+        Route::prefix('budget/planned/{kind}/{id}/occurrences/{date}')
+            ->where(['kind' => 'expense|income', 'id' => '[0-9]+', 'date' => '[0-9]{4}-[0-9]{2}-[0-9]{2}'])
+            ->name('budget.deadlines.')
+            ->group(function (): void {
+                Route::get('', [DeadlineController::class, 'show'])->name('show');
+                Route::post('payment', [DeadlineController::class, 'payment'])->name('payment');
+                Route::put('exceptions', [DeadlineController::class, 'exceptions'])->name('exceptions');
+            });
 
         Route::get('family/invite', [InvitationController::class, 'create'])->name('family.invitations.create');
         Route::post('family/invitations', [InvitationController::class, 'store'])->name('family.invitations.store');

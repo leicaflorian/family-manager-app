@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Budget;
 
-use App\Models\PlannedExpense;
-use App\Models\PlannedIncome;
+use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,13 +15,19 @@ use Illuminate\Foundation\Http\FormRequest;
 final class ChangeOccurrenceRequest extends FormRequest
 {
     /**
-     * Whoever may update the planned item, which is the `admin` only. The planned item comes from the route parameter `planned`.
+     * Whoever may update the planned item, which is the `admin` only. The planned item comes from the route
+     * parameters `kind` and `id`: a wrong one answers 404 before anyone is refused.
      */
     public function authorize(): bool
     {
-        $planned = $this->route('planned');
+        $kind = $this->route('kind');
+        $id = $this->route('id');
 
-        return ($planned instanceof PlannedExpense || $planned instanceof PlannedIncome) && (bool) $this->user()?->can('update', $planned);
+        if (! is_string($kind) || ! is_string($id)) {
+            return false;
+        }
+
+        return (bool) $this->user()?->can('update', PlannedKind::find($kind, $id));
     }
 
     /**

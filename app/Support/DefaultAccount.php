@@ -19,12 +19,20 @@ final class DefaultAccount
      */
     public static function id(): ?int
     {
-        $id = FinancialAccount::query()
+        return self::model()?->id;
+    }
+
+    /**
+     * The default account of the current family.
+     *
+     * @return ?FinancialAccount Null when the family has none.
+     */
+    public static function model(): ?FinancialAccount
+    {
+        return FinancialAccount::query()
             ->where('is_default', true)
             ->where('status', FinancialAccountStatus::Active)
             ->orderBy('id')
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+            ->first();
     }
 }
