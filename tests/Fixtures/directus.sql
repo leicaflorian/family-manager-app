@@ -109,10 +109,22 @@ CREATE TABLE planned_expenses (
     is_recurring tinyint(1) NULL,
     `interval` int NULL,
     interval_unit varchar(255) NULL,
-    start_date date NULL
+    start_date date NULL,
+    utility int unsigned NULL,
+    vehicle int unsigned NULL
 );
-INSERT INTO planned_expenses (id, title, amount, is_recurring, `interval`, interval_unit, start_date) VALUES
-    (1, 'Retta danza', 80.00, 1, 1, 'month', '2026-09-05');
+INSERT INTO planned_expenses (id, title, amount, is_recurring, `interval`, interval_unit, start_date, utility, vehicle) VALUES
+    (1, 'Retta danza', 80.00, 1, 1, 'month', '2026-09-05', NULL, NULL),
+    (2, 'Bollo auto', 210.00, 1, 12, 'month', '2026-01-31', NULL, 9),
+    (3, 'Luce e auto', 60.00, 1, 1, 'month', '2026-09-10', 2, 9);
+
+CREATE TABLE vehicles (
+    id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name varchar(255) NULL,
+    status varchar(255) NULL
+);
+INSERT INTO vehicles (id, name, status) VALUES
+    (9, 'Panda', 'active');
 
 CREATE TABLE expenses (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
