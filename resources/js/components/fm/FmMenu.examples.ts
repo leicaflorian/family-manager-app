@@ -2,7 +2,7 @@
  * The cases of `FmMenu` for the component catalogue: the ⋯ button with a few
  * entries, and the plain one with an entry that deletes.
  */
-import { Download, Pencil, Trash2 } from '@lucide/vue';
+import { Download, ExternalLink, Pencil, Trash2 } from '@lucide/vue';
 import { h } from 'vue';
 import { defineExamples } from '@/catalog/examples';
 import FmMenu from './FmMenu.vue';
@@ -40,6 +40,15 @@ export default defineExamples(FmMenu, [
                     FmMenuItem,
                     { icon: Pencil, href: '/documents/5/edit' },
                     () => 'Edit',
+                ),
+                h(
+                    FmMenuItem,
+                    {
+                        icon: ExternalLink,
+                        href: '/documents/5/file',
+                        external: true,
+                    },
+                    () => 'Open in a new tab',
                 ),
                 h(FmMenuItem, { icon: Trash2, danger: true }, () => 'Delete'),
             ],

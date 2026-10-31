@@ -137,7 +137,7 @@ The circle of a person: their photo or, without one, the initials on a colour.
 <FmAvatar initials="GB" name="Giulia Bianchi" :size="32" />
 
 <!-- With a photo -->
-<FmAvatar initials="MB" name="Marco Bianchi" photo="/images/marco.jpg" />
+<FmAvatar initials="MB" name="Marco Bianchi" photo="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%208%208%22%3E%3Crect%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%232f6fed%22%2F%3E%3Ccircle%20cx%3D%224%22%20cy%3D%223%22%20r%3D%221.5%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%221.5%22%20y%3D%225%22%20width%3D%225%22%20height%3D%223%22%20rx%3D%221.5%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" />
 ```
 
 ### Used by
@@ -684,7 +684,7 @@ whoever uses it, so the list and the page keep their own.
 <FmOrganizationMark :types="types" name="Edison" />
 
 <!-- With a logo -->
-<FmOrganizationMark :types="types" name="BPER Banca" logo="/images/bper.png" />
+<FmOrganizationMark :types="types" name="BPER Banca" logo="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%208%208%22%3E%3Crect%20width%3D%228%22%20height%3D%228%22%20fill%3D%22%232f6fed%22%2F%3E%3Ccircle%20cx%3D%224%22%20cy%3D%223%22%20r%3D%221.5%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%221.5%22%20y%3D%225%22%20width%3D%225%22%20height%3D%223%22%20rx%3D%221.5%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" />
 ```
 
 ### Used by
@@ -947,6 +947,35 @@ and `download`).
 ### Slots
 
 - `default`
+
+### Examples
+
+```vue
+<!-- Plain -->
+<FmMenuItem>
+    Rename
+</FmMenuItem>
+
+<!-- With an icon -->
+<FmMenuItem :icon="icon">
+    Edit
+</FmMenuItem>
+
+<!-- Link -->
+<FmMenuItem :icon="icon" href="/documents/5/file" download>
+    Download
+</FmMenuItem>
+
+<!-- New tab -->
+<FmMenuItem :icon="icon" href="/documents/5/file" external>
+    Open in a new tab
+</FmMenuItem>
+
+<!-- Danger -->
+<FmMenuItem :icon="icon" danger>
+    Delete
+</FmMenuItem>
+```
 
 ### Used by
 
