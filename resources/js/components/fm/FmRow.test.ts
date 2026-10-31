@@ -28,6 +28,16 @@ describe('FmRow', () => {
         expect(end).toHaveClass('whitespace-pre');
     });
 
+    it('keeps the hidden whole title inside the row, so it does not make the panel around a list scroll', () => {
+        render(FmRow, {
+            props: { title: 'Polizza RC auto 2026', href: '/cards/1' },
+        });
+
+        // The sr-only title is absolute: without a positioned row it is placed
+        // against the panel, below the scrolled list, and makes the panel taller
+        expect(screen.getByRole('link')).toHaveClass('relative');
+    });
+
     it('keeps the subtitle on one line, cut at its end', () => {
         render(FmRow, {
             props: {
