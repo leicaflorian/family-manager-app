@@ -7,9 +7,9 @@
  */
 import { Plus } from '@lucide/vue';
 import { deadlineUrls } from '@/lib/budget';
-import FmButton from './FmButton.vue';
 import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
+import FmSectionLink from './FmSectionLink.vue';
 
 const { deadlines, label } = defineProps<{
     /** The oldest open due date of each planned item. */
@@ -30,13 +30,11 @@ function payUrl(deadline: App.Data.DeadlineData): string {
 </script>
 
 <template>
-    <FmButton
+    <FmSectionLink
         v-if="deadlines.length === 1"
-        variant="text"
-        inline
         :icon="Plus"
         :href="payUrl(deadlines[0])"
-        >{{ label }}</FmButton
+        >{{ label }}</FmSectionLink
     >
     <FmMenu v-else-if="deadlines.length > 1" :label="label" :icon="Plus" text>
         <FmMenuItem

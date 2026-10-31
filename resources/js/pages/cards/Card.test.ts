@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen, waitFor } from '@testing-library/vue';
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
@@ -138,6 +138,22 @@ describe('A card', () => {
             'Record payment',
         ]) {
             expect(screen.queryByText(text)).not.toBeInTheDocument();
+        }
+    });
+
+    it('has the documents as a section, with Link document and Upload as plain links', () => {
+        renderPage(Card, {
+            card: policyDetail,
+            linkable: [],
+            hasLinkable: true,
+        });
+
+        const documents = screen.getByRole('region', { name: 'Documents' });
+        for (const name of ['Link document', 'Upload']) {
+            expect(within(documents).getByRole('button', { name })).toHaveClass(
+                'font-normal',
+                'hover:underline',
+            );
         }
     });
 

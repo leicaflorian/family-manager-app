@@ -25,6 +25,7 @@ import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmRow from '@/components/fm/FmRow.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import type { RowTone } from '@/components/fm/FmRow.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import { useFormat } from '@/composables/useFormat';
@@ -276,11 +277,10 @@ const exceptionIcons = {
 
                 <FmCard :title="$t('Exceptions')" list>
                     <template v-if="detail.can_edit && firstOpen" #actions>
-                        <FmButton
-                            variant="text"
+                        <FmSectionLink
                             :icon="Plus"
                             @click="change(firstOpen)"
-                            >{{ $t('Add') }}</FmButton
+                            >{{ $t('Add') }}</FmSectionLink
                         >
                     </template>
                     <div
@@ -345,11 +345,10 @@ const exceptionIcons = {
 
                 <FmCard :title="$t('Payments')" list>
                     <template v-if="detail.can_pay && firstOpen" #actions>
-                        <FmButton
-                            variant="text"
+                        <FmSectionLink
                             :icon="Plus"
                             :href="`${deadlineUrls(firstOpen).show}?pay=1`"
-                            >{{ $t('Record payment') }}</FmButton
+                            >{{ $t('Record payment') }}</FmSectionLink
                         >
                     </template>
                     <FmPaymentYears :years="detail.payments" />

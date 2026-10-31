@@ -17,12 +17,12 @@ import { computed } from 'vue';
 import { create as createMovement } from '@/routes/budget/movements';
 import { create, show as showPlanned } from '@/routes/budget/planned';
 import { payments as cardPayments } from '@/routes/cards';
-import FmButton from './FmButton.vue';
 import FmCard from './FmCard.vue';
 import FmPager from './FmPager.vue';
 import FmPayButton from './FmPayButton.vue';
 import FmPaymentYears from './FmPaymentYears.vue';
 import FmPlannedRow from './FmPlannedRow.vue';
+import FmSectionLink from './FmSectionLink.vue';
 
 const { budget, card } = defineProps<{
     /** The payments of the card. */
@@ -52,9 +52,9 @@ const addExpenseUrl = computed(
 <template>
     <FmCard v-if="budget.planned_label" :title="budget.planned_label" list>
         <template v-if="budget.can_add_planned" #actions>
-            <FmButton variant="text" inline :icon="Plus" :href="addUrl">{{
+            <FmSectionLink :icon="Plus" :href="addUrl">{{
                 $t('Add')
-            }}</FmButton>
+            }}</FmSectionLink>
         </template>
         <FmPlannedRow
             v-for="row in budget.planned"
@@ -79,13 +79,9 @@ const addExpenseUrl = computed(
                 />
             </template>
             <template v-else-if="budget.can_add_expense" #actions>
-                <FmButton
-                    variant="text"
-                    inline
-                    :icon="Plus"
-                    :href="addExpenseUrl"
-                    >{{ $t('Add expense') }}</FmButton
-                >
+                <FmSectionLink :icon="Plus" :href="addExpenseUrl">{{
+                    $t('Add expense')
+                }}</FmSectionLink>
             </template>
             <p
                 v-if="

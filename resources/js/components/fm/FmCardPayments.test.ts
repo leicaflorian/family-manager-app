@@ -233,12 +233,12 @@ describe('FmCardPayments', () => {
         });
 
         const expenses = screen.getByRole('region', { name: 'Expenses' });
-        expect(
-            within(expenses).getByRole('link', { name: 'Add expense' }),
-        ).toHaveAttribute(
+        const add = within(expenses).getByRole('link', { name: 'Add expense' });
+        expect(add).toHaveAttribute(
             'href',
             '/budget/movements/create?card=belonging%3A5',
         );
+        expect(add).toHaveClass('font-normal', 'hover:underline');
         expect(
             within(expenses).getByText('No payments recorded.'),
         ).toBeInTheDocument();

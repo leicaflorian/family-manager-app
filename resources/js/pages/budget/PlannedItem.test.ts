@@ -227,6 +227,21 @@ describe('A planned expense', () => {
         );
     });
 
+    it('has the links beside the titles as plain links, not buttons', () => {
+        renderPage(PlannedItem, props);
+
+        for (const name of ['Payments', 'Exceptions']) {
+            const section = screen.getByRole('region', { name });
+            const link = within(section).getByText(
+                name === 'Payments' ? 'Record payment' : 'Add',
+            );
+            expect(link.closest('a, button')).toHaveClass(
+                'font-normal',
+                'hover:underline',
+            );
+        }
+    });
+
     it('has no Edit, Add or Record payment for a member who cannot', () => {
         renderPage(PlannedItem, {
             ...props,

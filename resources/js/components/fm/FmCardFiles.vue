@@ -12,7 +12,6 @@
 import { Link2, X } from '@lucide/vue';
 import { onBeforeUnmount, ref, useId, watch } from 'vue';
 import { cn } from '@/lib/utils';
-import FmButton from './FmButton.vue';
 import FmCardDocumentActions from './FmCardDocumentActions.vue';
 import FmDocumentRow from './FmDocumentRow.vue';
 import FmFileDrop from './FmFileDrop.vue';
@@ -21,6 +20,7 @@ import FmIcon from './FmIcon.vue';
 import FmLinkDocumentSheet from './FmLinkDocumentSheet.vue';
 import FmNotice from './FmNotice.vue';
 import FmRow from './FmRow.vue';
+import FmSectionLink from './FmSectionLink.vue';
 
 const {
     documents = [],
@@ -155,13 +155,11 @@ function keep(id: number): void {
             <h2 :id="titleId" class="m-0 text-base font-bold">
                 {{ $t('Documents') }}
             </h2>
-            <FmButton
+            <FmSectionLink
                 v-if="hasLinkable"
-                variant="text"
-                inline
                 :icon="Link2"
                 @click="linking = true"
-                >{{ $t('Link document') }}</FmButton
+                >{{ $t('Link document') }}</FmSectionLink
             >
         </div>
         <FmFileDrop

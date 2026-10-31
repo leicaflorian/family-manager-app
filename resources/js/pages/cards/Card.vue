@@ -18,7 +18,6 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmActions from '@/components/fm/FmActions.vue';
-import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCardBudget from '@/components/fm/FmCardBudget.vue';
 import FmCardHeader from '@/components/fm/FmCardHeader.vue';
@@ -32,6 +31,7 @@ import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmPager from '@/components/fm/FmPager.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import type { Action } from '@/lib/actions';
@@ -177,33 +177,19 @@ function link(id: number): void {
                 </FmCard>
             </div>
 
-            <section class="flex min-w-0 flex-col gap-2">
-                <div class="flex items-center justify-between gap-3">
-                    <h2 class="m-0 text-[17px] font-bold">
-                        {{ $t('Documents') }}
-                    </h2>
-                    <div class="flex gap-4">
-                        <FmButton
+            <div class="flex min-w-0 flex-col gap-2">
+                <FmCard :title="$t('Documents')" list>
+                    <template #actions>
+                        <FmSectionLink
                             v-if="hasLinkable"
-                            variant="text"
-                            inline
                             :icon="Link2"
                             @click="linking = true"
-                            >{{ $t('Link document') }}</FmButton
+                            >{{ $t('Link document') }}</FmSectionLink
                         >
-                        <FmButton
-                            variant="text"
-                            inline
-                            :icon="Plus"
-                            @click="uploading = true"
-                            >{{ $t('Upload') }}</FmButton
-                        >
-                    </div>
-                </div>
-                <div
-                    v-auto-animate
-                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
-                >
+                        <FmSectionLink :icon="Plus" @click="uploading = true">{{
+                            $t('Upload')
+                        }}</FmSectionLink>
+                    </template>
                     <div
                         v-for="document in card.documents"
                         :key="document.id"
@@ -226,7 +212,7 @@ function link(id: number): void {
                     >
                         {{ $t('No documents yet.') }}
                     </p>
-                </div>
+                </FmCard>
                 <FmPager
                     :previous="card.documents_previous"
                     :next="card.documents_next"
@@ -236,7 +222,7 @@ function link(id: number): void {
                 <div v-if="card.budget" class="mt-3 flex flex-col gap-5">
                     <FmCardPayments :budget="card.budget" :card="address" />
                 </div>
-            </section>
+            </div>
         </div>
 
         <FmUploadSheet v-model:open="uploading" :link="address" />
