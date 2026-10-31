@@ -3,6 +3,8 @@
  * An entry of `FmMenu`: an action, a page of the app (`href`), an address
  * opened in a new tab (`href` and `external`) or a file to download (`href`
  * and `download`).
+ *
+ * @group navigation
  */
 import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';

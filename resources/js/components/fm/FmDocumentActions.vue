@@ -5,6 +5,8 @@
  * buttons while they fit, and *Open in a new tab* and *Share* in the ⋯ menu.
  * In the panel beside the list *Download* is an icon and the rest is in the
  * menu.
+ *
+ * @group files
  */
 import { Download, ExternalLink, Pencil, Share2, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';

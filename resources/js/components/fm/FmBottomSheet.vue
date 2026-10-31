@@ -4,6 +4,8 @@
  * and filters. On the computer it is a window in the middle. It closes with the
  * handle, with the ×, with Esc and by tapping outside; while it is open the focus
  * stays inside.
+ *
+ * @group panels
  */
 import { X } from '@lucide/vue';
 import {

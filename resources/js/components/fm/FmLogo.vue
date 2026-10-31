@@ -2,6 +2,8 @@
 /**
  * The Family Manager logo: the roof and the family, white on the light blue square.
  * The white version, without the square, goes on the blue panel of the sign-in pages.
+ *
+ * @group basics
  */
 const { size = 36, white = false } = defineProps<{
     /** The side in pixels. */

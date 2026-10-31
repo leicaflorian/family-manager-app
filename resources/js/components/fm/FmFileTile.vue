@@ -2,6 +2,8 @@
 /**
  * The small sheet that stands for a file in front of its row: a document of
  * the family, or a file chosen and not saved yet.
+ *
+ * @group files
  */
 import { FileText } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';

@@ -10,6 +10,8 @@
  * (a partial reload) 300 ms after the amounts or the start stop changing. The same form creates and
  * edits every type of card: the page gives the fields and the values, and gets
  * them back with `submit`.
+ *
+ * @group forms
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';

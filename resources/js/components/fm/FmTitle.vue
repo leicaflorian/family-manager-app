@@ -5,6 +5,8 @@
  * page. Above it, the link back to the page it comes from, with that page's
  * name, always 20 px above the title like on the pages of a person and an
  * organization.
+ *
+ * @group basics
  */
 import FmBackLink from './FmBackLink.vue';
 

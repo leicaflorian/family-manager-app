@@ -2,6 +2,8 @@
 /**
  * The top of *People* and *Organizations*: the title *Family* with the name of
  * the family, the actions of the page and the two views, each with how many.
+ *
+ * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';

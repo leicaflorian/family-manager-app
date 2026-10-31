@@ -2,6 +2,8 @@
 /**
  * The search box with the magnifying glass: in *Documents* and in the panel
  * that links a document to a card. What it does with the text is up to the page.
+ *
+ * @group forms
  */
 import { Search } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';

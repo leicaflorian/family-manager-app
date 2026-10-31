@@ -3,6 +3,8 @@
  * The filters of *Documents*: category, person, organization, status and the
  * expiring ones. Every change is sent at once; the page reloads the list. The
  * category, the person and the organization are found by typing.
+ *
+ * @group forms
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';

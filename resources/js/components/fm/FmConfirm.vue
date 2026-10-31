@@ -4,6 +4,8 @@
  * mistake: the question, what happens, *Cancel* and the button that confirms.
  * `FmConfirmDelete` uses it to delete; the form of a document, to remove a
  * saved link.
+ *
+ * @group basics
  */
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';

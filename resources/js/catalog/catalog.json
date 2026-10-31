@@ -1,0 +1,2163 @@
+[
+  {
+    "name": "FmActions",
+    "path": "resources/js/components/fm/FmActions.vue",
+    "description": "The actions of a page, beside its title: the first three as buttons, fewer\nwhen the room is short, down to none, and the others in the ⋯ menu. An\naction with `confirm` asks in the panel from below before deleting, from the\nbutton and from the menu alike.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "actions",
+        "type": "Action[]",
+        "required": true,
+        "default": null,
+        "description": "The actions, the most frequent first: the last ones go in the menu first."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmDocumentActions.vue",
+      "pages/Area.vue",
+      "pages/Areas.vue",
+      "pages/cards/Card.vue",
+      "pages/family/Organization.vue",
+      "pages/family/Organizations.vue",
+      "pages/family/People.vue",
+      "pages/family/Person.vue",
+      "pages/settings/Categories.vue"
+    ]
+  },
+  {
+    "name": "FmActiveFilter",
+    "path": "resources/js/components/fm/FmActiveFilter.vue",
+    "description": "A chosen filter, above a list: it is removed with the ×.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The filter, for example «Laura» or «Work and income»."
+      },
+      {
+        "name": "removeLabel",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "What the × says to a screen reader, when it does not remove a filter."
+      }
+    ],
+    "events": [
+      "remove"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmDocumentForm.vue",
+      "pages/documents/Documents.vue"
+    ]
+  },
+  {
+    "name": "FmAvatar",
+    "path": "resources/js/components/fm/FmAvatar.vue",
+    "description": "The circle of a person: their photo or, without one, the initials on a colour.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "initials",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The initials, when the photo is missing."
+      },
+      {
+        "name": "photo",
+        "type": "string | null",
+        "required": false,
+        "default": "null",
+        "description": "The address of the photo."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "The name, for those who cannot see the photo."
+      },
+      {
+        "name": "size",
+        "type": "number",
+        "required": false,
+        "default": "48",
+        "description": "The side of the circle, in pixels."
+      },
+      {
+        "name": "color",
+        "type": "string",
+        "required": false,
+        "default": "cn(\"bg-action\")",
+        "description": "The class of the background colour of the initials."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmDocumentDetail.vue",
+      "components/fm/FmFaces.vue",
+      "pages/family/EditPerson.vue",
+      "pages/family/People.vue",
+      "pages/family/Person.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Settings.vue"
+    ]
+  },
+  {
+    "name": "FmBackLink",
+    "path": "resources/js/components/fm/FmBackLink.vue",
+    "description": "The link back to the page a page comes from, with a chevron and that page's\nname, above the title or the header of a page.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "href",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The address of the page it comes from."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The name of that page, the text of the link."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmTitle.vue",
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmBottomBar",
+    "path": "resources/js/components/fm/FmBottomBar.vue",
+    "description": "The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in\nthe middle, Documents and More. More opens a panel with Family, Settings and\nLog out, and stays marked when one of those pages is open.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "active",
+        "type": "Section",
+        "required": true,
+        "default": null,
+        "description": "The section of the page that is open."
+      },
+      {
+        "name": "items",
+        "type": "NavigationItems",
+        "required": true,
+        "default": null,
+        "description": "The navigation items."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "layouts/AppLayout.vue"
+    ]
+  },
+  {
+    "name": "FmBottomSheet",
+    "path": "resources/js/components/fm/FmBottomSheet.vue",
+    "description": "The panel that rises from the bottom over the darkened page, for short actions\nand filters. On the computer it is a window in the middle. It closes with the\nhandle, with the ×, with Esc and by tapping outside; while it is open the focus\nstays inside.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The title of the panel."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Open or closed."
+      }
+    ],
+    "events": [
+      "update:open"
+    ],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmBottomBar.vue",
+      "components/fm/FmConfirm.vue",
+      "components/fm/FmLinkDocumentSheet.vue",
+      "components/fm/FmUploadSheet.vue",
+      "pages/documents/Documents.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Categories.vue"
+    ]
+  },
+  {
+    "name": "FmButton",
+    "path": "resources/js/components/fm/FmButton.vue",
+    "description": "The button of the canvas, in five variants. Only one solid button per page:\nthe one done most often. With `href` it becomes an Inertia link.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "variant",
+        "type": "ButtonVariant",
+        "required": false,
+        "default": "\"solid\"",
+        "description": "The look: solid (blue), outline, soft (light blue), text, danger (red)."
+      },
+      {
+        "name": "type",
+        "type": "\"button\" | \"submit\"",
+        "required": false,
+        "default": "\"button\"",
+        "description": "The type of the button, when it is not a link."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The address: if there is one, the button is a link."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Disabled: it cannot be tapped."
+      },
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": false,
+        "default": null,
+        "description": "The icon before the text."
+      },
+      {
+        "name": "wide",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Full width, like the main button on the phone."
+      },
+      {
+        "name": "download",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `href`: a plain link that downloads the file, not an Inertia visit."
+      },
+      {
+        "name": "external",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `href`: a plain link that opens the address in a new tab."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Only the icon, square: this is the text shown on hover and said to screen\nreaders, and the text of the slot is left out."
+      },
+      {
+        "name": "small",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `label`: a smaller square, 40 px, as beside the title of a panel."
+      },
+      {
+        "name": "xsmall",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `label`: the smallest square, 30 px, as beside the tabs of a card."
+      },
+      {
+        "name": "plain",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `label`: no background until hovered, as beside a row."
+      },
+      {
+        "name": "inline",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "As tall as the line of a title beside it, with no box around the text,\nas *Upload* beside *Documents*. Meant for the text variant."
+      }
+    ],
+    "events": [
+      "click"
+    ],
+    "slots": [
+      "default"
+    ],
+    "types": [
+      "export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';"
+    ],
+    "usedBy": [
+      "components/dev/DevCases.vue",
+      "components/fm/FmActions.vue",
+      "components/fm/FmCardDocumentActions.vue",
+      "components/fm/FmCardFiles.vue",
+      "components/fm/FmCardForm.vue",
+      "components/fm/FmConfirm.vue",
+      "components/fm/FmDeleteButton.vue",
+      "components/fm/FmDocumentActions.vue",
+      "components/fm/FmDocumentDetail.vue",
+      "components/fm/FmDocumentForm.vue",
+      "components/fm/FmLinkDocumentSheet.vue",
+      "components/fm/FmMenu.vue",
+      "lib/actions.ts",
+      "pages/Area.vue",
+      "pages/Areas.vue",
+      "pages/Home.vue",
+      "pages/auth/AcceptInvitation.vue",
+      "pages/auth/ConfirmPassword.vue",
+      "pages/auth/ForgotPassword.vue",
+      "pages/auth/InvalidInvitation.vue",
+      "pages/auth/Login.vue",
+      "pages/auth/Register.vue",
+      "pages/auth/ResetPassword.vue",
+      "pages/auth/VerifyEmail.vue",
+      "pages/cards/Card.vue",
+      "pages/cards/EditCard.vue",
+      "pages/documents/Documents.vue",
+      "pages/documents/EditDocument.vue",
+      "pages/family/EditOrganization.vue",
+      "pages/family/EditPerson.vue",
+      "pages/family/InvitationSent.vue",
+      "pages/family/Invite.vue",
+      "pages/family/Organizations.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Categories.vue",
+      "pages/welcome/Welcome.vue"
+    ]
+  },
+  {
+    "name": "FmCard",
+    "path": "resources/js/components/fm/FmCard.vue",
+    "description": "The white card of the pages. With `list` it holds rows (`FmRow`) separated by\na line, without padding inside because the rows have their own. The buttons\nof the section go beside the title, in `actions`.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The title of the section, above the content."
+      },
+      {
+        "name": "list",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "It holds a list of rows."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "default",
+      "actions"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/Home.vue",
+      "pages/cards/Card.vue",
+      "pages/dev/Components.vue",
+      "pages/documents/Documents.vue",
+      "pages/family/Organization.vue",
+      "pages/family/People.vue",
+      "pages/family/Person.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Categories.vue",
+      "pages/settings/Settings.vue"
+    ]
+  },
+  {
+    "name": "FmCardDocumentActions",
+    "path": "resources/js/components/fm/FmCardDocumentActions.vue",
+    "description": "The buttons beside a document on the page of a card: *Open in a new tab*,\nalways in sight, and the ⋮ menu with *Edit* (the page of the document, as\nits row), *Unlink* and *Delete* (for an `admin`), each after asking. The\npage keeps its state, so in the form of the card what is written stays.\nIn the form (`inForm`) only the menu is left, where the room is short, with\n*Open the file* first, and the links open in a new tab, so the form stays;\nthere *Unlink* asks nothing and sends nothing, the form unlinks when saved.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "document",
+        "type": "App.Data.DocumentData",
+        "required": true,
+        "default": null,
+        "description": "The document linked to the card."
+      },
+      {
+        "name": "card",
+        "type": "{ type: string; id: number; }",
+        "required": true,
+        "default": null,
+        "description": "The address of the card in the routes: its type and its number."
+      },
+      {
+        "name": "canDelete",
+        "type": "boolean",
+        "required": true,
+        "default": null,
+        "description": "Whether whoever looks may delete the document."
+      },
+      {
+        "name": "inForm",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "In the form of the card: only the menu, its links in a new tab, and *Unlink* left to the form."
+      }
+    ],
+    "events": [
+      "unlink"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardFiles.vue",
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmCardFiles",
+    "path": "resources/js/components/fm/FmCardFiles.vue",
+    "description": "The documents of a card on grey, beside its form, as the file beside *Edit\nthe document*: *Link* beside the title, at the top the zone to add files,\nthen the files chosen and not saved yet, then the documents: those chosen\nin *Link*, and those already linked, with the menu of the card page. Every\nrow opens its file in a new tab, so the form is not left. Nothing is sent\nhere: the form sends the files with the card, and *Upload* opens to file\nthem; it links the documents chosen and unlinks those marked when saved,\nso until then a choice can be taken back.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "documents",
+        "type": "App.Data.DocumentData[]",
+        "required": false,
+        "default": "[]",
+        "description": "The documents already linked to the card; none for a new card."
+      },
+      {
+        "name": "card",
+        "type": "{ type: string; id: number; }",
+        "required": false,
+        "default": null,
+        "description": "The address of the card in the routes; none for a new card."
+      },
+      {
+        "name": "canDelete",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Whether whoever edits may delete the linked documents."
+      },
+      {
+        "name": "errors",
+        "type": "string[]",
+        "required": false,
+        "default": "[]",
+        "description": "Why the server refused some of the files."
+      },
+      {
+        "name": "linkable",
+        "type": "App.Data.DocumentData[]",
+        "required": false,
+        "default": "[]",
+        "description": "The pages loaded so far of the documents that can be linked, for *Link*."
+      },
+      {
+        "name": "linkableNext",
+        "type": "number | null",
+        "required": false,
+        "default": "null",
+        "description": "The number of the next page of `linkable`, null at the last one."
+      },
+      {
+        "name": "linkableSearch",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "The search that `linkable` answers."
+      },
+      {
+        "name": "hasLinkable",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "At least one document of the family can be linked."
+      },
+      {
+        "name": "files",
+        "type": "File[]",
+        "required": false,
+        "default": "[]",
+        "description": "The files chosen and not saved yet."
+      },
+      {
+        "name": "link",
+        "type": "App.Data.DocumentData[]",
+        "required": false,
+        "default": "[]",
+        "description": "The documents chosen in *Link*, linked when the card is saved."
+      },
+      {
+        "name": "unlink",
+        "type": "number[]",
+        "required": false,
+        "default": "[]",
+        "description": "The ids of the linked documents to unlink when the card is saved."
+      }
+    ],
+    "events": [
+      "update:files",
+      "update:link",
+      "update:unlink"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/cards/EditCard.vue"
+    ]
+  },
+  {
+    "name": "FmCardForm",
+    "path": "resources/js/components/fm/FmCardForm.vue",
+    "description": "The form of a card, built from the description the server gives\n(`CardFieldData`): each field becomes the FormKit Pro input of its kind, and\na field shows only when its `show_when` holds, for example the vehicle only\nfor a car policy, and its label can change with `label_when`, for example\nthe POD code of electricity that is a PDR code for gas. A hidden field is\nsent empty. The same form creates and\nedits every type of card: the page gives the fields and the values, and gets\nthem back with `submit`.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "fields",
+        "type": "App.Data.CardFieldData[]",
+        "required": true,
+        "default": null,
+        "description": "The description of the fields, in the order they are shown."
+      },
+      {
+        "name": "values",
+        "type": "Record<string, unknown>",
+        "required": true,
+        "default": null,
+        "description": "The values the form starts from, by column."
+      },
+      {
+        "name": "serverErrors",
+        "type": "Partial<Record<string, string>>",
+        "required": false,
+        "default": "{}",
+        "description": "The errors of the server, by column."
+      },
+      {
+        "name": "processing",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The form is being sent: the button waits."
+      }
+    ],
+    "events": [
+      "submit"
+    ],
+    "slots": [
+      "start"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/cards/EditCard.vue"
+    ]
+  },
+  {
+    "name": "FmCardHeader",
+    "path": "resources/js/components/fm/FmCardHeader.vue",
+    "description": "The coloured top of a card page, as on the board *Scheda*: «Area · Type»,\nthe name and the line of data. On the right, the `actions` slot holds\n*Edit* and the ⋯ menu.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "card",
+        "type": "App.Data.CardData",
+        "required": true,
+        "default": null,
+        "description": "The card."
+      },
+      {
+        "name": "heading",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The line of data below the name, for example «Plate GH 482 TK · Marco»."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "actions"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmCardRow",
+    "path": "resources/js/components/fm/FmCardRow.vue",
+    "description": "A card in a list: the icon of its type in the colour of its area, the name\nand below the subtitle or the next date («Inspection · in 75 days», red once\noverdue). It leads to the card; a closed card is grey.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "card",
+        "type": "App.Data.CardData",
+        "required": true,
+        "default": null,
+        "description": "The card, as a row of a list."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/Area.vue",
+      "pages/Areas.vue",
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmCategoryOption",
+    "path": "resources/js/components/fm/FmCategoryOption.vue",
+    "description": "A category in the open list of a menu, for the `option` slot of a FormKit\nautocomplete: the name alone, the subcategories indented under their main\ncategory. Screen readers read the path instead, as the closed field shows it,\nso that two «Other» stay different. A choice that is not a category («All»,\n«None») shows its label.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "option",
+        "type": "Pick<CategoryOption, \"label\"> & Partial<Pick<CategoryOption, \"name\" | \"depth\">>",
+        "required": true,
+        "default": null,
+        "description": "The option of the menu: a category, or a choice such as «All»."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmDocumentFilters.vue",
+      "components/fm/FmDocumentForm.vue"
+    ]
+  },
+  {
+    "name": "FmCategoryTree",
+    "path": "resources/js/components/fm/FmCategoryTree.vue",
+    "description": "A level of the tree of the document categories: each category with the number\nof its documents and, if it has any, the arrow that opens the subcategories.\nIt calls itself for the levels below.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "categories",
+        "type": "App.Data.CategoryData[]",
+        "required": true,
+        "default": null,
+        "description": "The categories of this level."
+      },
+      {
+        "name": "level",
+        "type": "number",
+        "required": false,
+        "default": "0",
+        "description": "How deep this level is: 0 for the main ones."
+      },
+      {
+        "name": "selectable",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The categories are tapped to choose them (to edit them)."
+      }
+    ],
+    "events": [
+      "select"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCategoryTree.vue",
+      "pages/settings/Categories.vue"
+    ]
+  },
+  {
+    "name": "FmConfirm",
+    "path": "resources/js/components/fm/FmConfirm.vue",
+    "description": "The panel from below that asks again before an action that is easy to do by\nmistake: the question, what happens, *Cancel* and the button that confirms.\n`FmConfirmDelete` uses it to delete; the form of a document, to remove a\nsaved link.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "question",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The title of the panel, for example «Delete this document?»."
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "What happens, under the title."
+      },
+      {
+        "name": "confirmLabel",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the button that confirms."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Open or closed."
+      }
+    ],
+    "events": [
+      "update:open",
+      "confirm"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardDocumentActions.vue",
+      "components/fm/FmConfirmDelete.vue",
+      "components/fm/FmDocumentForm.vue"
+    ]
+  },
+  {
+    "name": "FmConfirmDelete",
+    "path": "resources/js/components/fm/FmConfirmDelete.vue",
+    "description": "The panel from below that asks again before deleting: the question, what\nhappens, *Cancel* and the button that deletes. Opened by *Delete*, as a\nbutton (`FmDeleteButton`) or as an entry of a menu.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The address the deletion is sent to."
+      },
+      {
+        "name": "question",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The title of the panel, for example «Delete this document?»."
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "What happens, under the title."
+      },
+      {
+        "name": "confirmLabel",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the button that deletes."
+      },
+      {
+        "name": "preserveState",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The page stays as it is, as a form with what is written and not saved."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Open or closed."
+      }
+    ],
+    "events": [
+      "update:open"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmActions.vue",
+      "components/fm/FmCardDocumentActions.vue",
+      "components/fm/FmDeleteButton.vue",
+      "components/fm/FmDocumentActions.vue",
+      "pages/documents/EditDocument.vue"
+    ]
+  },
+  {
+    "name": "FmDateTile",
+    "path": "resources/js/components/fm/FmDateTile.vue",
+    "description": "A date of a card on its page: the label, the date as `15/10/2026` and below\nhow far it is from today. An expiring date already passed reads «Expired 3\ndays ago» in red.",
+    "group": "figures",
+    "props": [
+      {
+        "name": "date",
+        "type": "App.Data.CardDateData",
+        "required": true,
+        "default": null,
+        "description": "The date, with its label and whether it expires."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmDeleteButton",
+    "path": "resources/js/components/fm/FmDeleteButton.vue",
+    "description": "*Delete*, red, which asks again in the panel from below before deleting:\nthe question, what happens, *Cancel* and the button that deletes.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The address the deletion is sent to."
+      },
+      {
+        "name": "question",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The title of the panel, for example «Delete this document?»."
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "What happens, under the title."
+      },
+      {
+        "name": "confirmLabel",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the button that deletes."
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Only the bin, without the text, as in the panel beside the list."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": []
+  },
+  {
+    "name": "FmDocumentActions",
+    "path": "resources/js/components/fm/FmDocumentActions.vue",
+    "description": "The buttons of a document. On its own page they are `FmActions`: *Download*,\n*Edit* (light blue) and *Delete* (red, for an `admin`, after asking) as\nbuttons while they fit, and *Open in a new tab* and *Share* in the ⋯ menu.\nIn the panel beside the list *Download* is an icon and the rest is in the\nmenu.",
+    "group": "files",
+    "props": [
+      {
+        "name": "document",
+        "type": "App.Data.DocumentDetailData",
+        "required": true,
+        "default": null,
+        "description": "The document."
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel beside the list: *Download* as an icon, *Edit* in the menu."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmDocumentDetail.vue",
+      "pages/documents/Document.vue"
+    ]
+  },
+  {
+    "name": "FmDocumentDetail",
+    "path": "resources/js/components/fm/FmDocumentDetail.vue",
+    "description": "A document as the board *Un documento* shows it: the preview of the file on\ngrey and, beside it, its data, the linked records (one type at a time) and\nthe notes. On its own page the buttons are next to the title of the page; in\nthe panel beside the list it is one card, with the title, the date and the\nbuttons (`FmDocumentActions`) on top.\nUsed by *A document* and, on the computer, on the right of *Documents*.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "document",
+        "type": "App.Data.DocumentDetailData",
+        "required": true,
+        "default": null,
+        "description": "The document."
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel beside the list: one card, with the title and the date on top\nand, on their right, *Download* and the ⋯ menu, icons only."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/documents/Document.vue",
+      "pages/documents/Documents.vue"
+    ]
+  },
+  {
+    "name": "FmDocumentFilters",
+    "path": "resources/js/components/fm/FmDocumentFilters.vue",
+    "description": "The filters of *Documents*: category, person, organization, status and the\nexpiring ones. Every change is sent at once; the page reloads the list. The\ncategory, the person and the organization are found by typing.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "filters",
+        "type": "DocumentFilters",
+        "required": true,
+        "default": null,
+        "description": "The filters in use."
+      },
+      {
+        "name": "options",
+        "type": "DocumentFilterOptions",
+        "required": true,
+        "default": null,
+        "description": "The choices of the menus."
+      }
+    ],
+    "events": [
+      "change"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/documents/Documents.vue"
+    ]
+  },
+  {
+    "name": "FmDocumentForm",
+    "path": "resources/js/components/fm/FmDocumentForm.vue",
+    "description": "The form of a document, as the boards *Proposta* and *Modifica documento*:\nwhat it is, what kind and whose, who it is from, the dates, the status, the\ntags, the notes and the records it links to. The same in\n*Upload* and in *Edit a document*: the page gives the route and the values.\nThe category, the person and the organization are found by typing.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "action",
+        "type": "RouteDefinition<\"post\" | \"put\">",
+        "required": true,
+        "default": null,
+        "description": "Where the form is sent: a new document or a change."
+      },
+      {
+        "name": "initial",
+        "type": "DocumentFormValues",
+        "required": true,
+        "default": null,
+        "description": "The values the form starts from."
+      },
+      {
+        "name": "extra",
+        "type": "Record<string, string | number>",
+        "required": false,
+        "default": "{}",
+        "description": "Data sent with the fields, for example the `file_id` of a new document."
+      },
+      {
+        "name": "options",
+        "type": "DocumentFormOptions",
+        "required": true,
+        "default": null,
+        "description": "The choices of the menus."
+      },
+      {
+        "name": "submitLabel",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the button that sends."
+      },
+      {
+        "name": "cancelLabel",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The text of the button that gives up, if there is one."
+      }
+    ],
+    "events": [
+      "cancel"
+    ],
+    "slots": [
+      "start"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/documents/EditDocument.vue",
+      "pages/documents/Upload.vue"
+    ]
+  },
+  {
+    "name": "FmDocumentRow",
+    "path": "resources/js/components/fm/FmDocumentRow.vue",
+    "description": "A document in a list: the icon of the file, the title, what it is and whose,\nand on the right its date (or its expiry). With `expiry` the line below is\nthe expiry instead, red once passed and orange while it is ahead, as at the\ntop of *A person*.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "document",
+        "type": "App.Data.DocumentData",
+        "required": true,
+        "default": null,
+        "description": "The document."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Where the row leads; without it the row is not a link."
+      },
+      {
+        "name": "external",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `href`: the row opens the address in a new tab."
+      },
+      {
+        "name": "expiry",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The line below is the expiry, with its colour."
+      },
+      {
+        "name": "dateless",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "No date on the right, nor the arrow, where the room is short."
+      },
+      {
+        "name": "today",
+        "type": "string",
+        "required": false,
+        "default": "isoDate()",
+        "description": "The date of today, ISO: tells a passed expiry from one ahead."
+      },
+      {
+        "name": "current",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The document is the one open beside the list."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardFiles.vue",
+      "pages/Home.vue",
+      "pages/cards/Card.vue",
+      "pages/documents/Documents.vue",
+      "pages/family/Organization.vue",
+      "pages/family/Person.vue"
+    ]
+  },
+  {
+    "name": "FmEmpty",
+    "path": "resources/js/components/fm/FmEmpty.vue",
+    "description": "The card of a page or of a list still empty: an icon, what is missing and,\nbelow, what can be done.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": true,
+        "default": null,
+        "description": "The icon at the top."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "What is missing."
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The reason, or what will happen."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/Area.vue",
+      "pages/Areas.vue",
+      "pages/Home.vue",
+      "pages/dev/Components.vue",
+      "pages/documents/Documents.vue",
+      "pages/family/Organizations.vue"
+    ]
+  },
+  {
+    "name": "FmFaces",
+    "path": "resources/js/components/fm/FmFaces.vue",
+    "description": "The faces of the family, one over the other: the circles with the initials,\nas in the *Invitation accepted* board.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "people",
+        "type": "App.Data.PersonSummaryData[]",
+        "required": true,
+        "default": null,
+        "description": "The people to show."
+      },
+      {
+        "name": "size",
+        "type": "number",
+        "required": false,
+        "default": "48",
+        "description": "The side of each circle, in pixels."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/auth/AcceptInvitation.vue"
+    ]
+  },
+  {
+    "name": "FmFamilyViews",
+    "path": "resources/js/components/fm/FmFamilyViews.vue",
+    "description": "The top of *People* and *Organizations*: the title *Family* with the name of\nthe family, the actions of the page and the two views, each with how many.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "family",
+        "type": "App.Data.FamilySummaryData",
+        "required": true,
+        "default": null,
+        "description": "The family, with how many people and organizations it has."
+      },
+      {
+        "name": "current",
+        "type": "\"people\" | \"organizations\"",
+        "required": true,
+        "default": null,
+        "description": "The view open."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "actions"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/family/Organizations.vue",
+      "pages/family/People.vue"
+    ]
+  },
+  {
+    "name": "FmFileDrop",
+    "path": "resources/js/components/fm/FmFileDrop.vue",
+    "description": "The zone where the files of documents are dragged or chosen (PDF, JPG, PNG,\nHEIC, up to 25 MB each). It does not send them: it gives them to the page,\nwhich uploads them (*Upload*) or keeps them for later (*New card*).",
+    "group": "forms",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "required": false,
+        "default": "trans(\"Drag the files here, or choose them\")",
+        "description": "What the zone asks for."
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "A small zone, below a form, instead of the large one of an empty page."
+      },
+      {
+        "name": "processing",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The files are being sent: the zone says so."
+      }
+    ],
+    "events": [
+      "files"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardFiles.vue",
+      "components/fm/FmUploadSheet.vue",
+      "pages/documents/Upload.vue"
+    ]
+  },
+  {
+    "name": "FmFilePanel",
+    "path": "resources/js/components/fm/FmFilePanel.vue",
+    "description": "The file of a document on grey, as the boards *Un documento* and *Modifica\ndocumento* show it, with the proportions of an A4 sheet: the preview and,\nunder it, the name of the file. Used by the page of a document, by its panel\nbeside the list and by *Edit*, where *Change the file* follows the name.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "file",
+        "type": "App.Data.FileData",
+        "required": true,
+        "default": null,
+        "description": "The file."
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Smaller corners and padding, inside the card of the panel."
+      },
+      {
+        "name": "changeUrl",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Where the new file goes: with it, *Change the file* follows the name."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmDocumentDetail.vue",
+      "pages/documents/EditDocument.vue"
+    ]
+  },
+  {
+    "name": "FmFilePreview",
+    "path": "resources/js/components/fm/FmFilePreview.vue",
+    "description": "The preview of a file: the image the server made of it (a PDF, a HEIC\nphoto), an image as it is, and the placeholder for the files without a\npreview or whose image does not load. The image and the placeholder open\nthe file in another tab.",
+    "group": "files",
+    "props": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The address that opens the file."
+      },
+      {
+        "name": "mimeType",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The real type of the file."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The original name."
+      },
+      {
+        "name": "previewUrl",
+        "type": "string | null",
+        "required": true,
+        "default": null,
+        "description": "The address of the preview image made by the server, `null` when the file has none."
+      },
+      {
+        "name": "fill",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Takes the height of the box around it instead of a fixed one."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmFilePanel.vue",
+      "pages/documents/Upload.vue"
+    ]
+  },
+  {
+    "name": "FmFileTile",
+    "path": "resources/js/components/fm/FmFileTile.vue",
+    "description": "The small sheet that stands for a file in front of its row: a document of\nthe family, or a file chosen and not saved yet.",
+    "group": "files",
+    "props": [],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardFiles.vue",
+      "components/fm/FmDocumentRow.vue",
+      "pages/Home.vue"
+    ]
+  },
+  {
+    "name": "FmHeader",
+    "path": "resources/js/components/fm/FmHeader.vue",
+    "description": "The big title of a sign-in page written by the page itself, when it depends\non the data («Hi, Rosa»): like the one of `AuthLayout`.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The title."
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The sentence below."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "layouts/AuthLayout.vue",
+      "pages/auth/AcceptInvitation.vue",
+      "pages/auth/InvalidInvitation.vue",
+      "pages/welcome/Welcome.vue"
+    ]
+  },
+  {
+    "name": "FmIcon",
+    "path": "resources/js/components/fm/FmIcon.vue",
+    "description": "A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.\nWithout a label it is only decoration and screen reader users do not hear it.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": true,
+        "default": null,
+        "description": "The icon, imported from `@lucide/vue`."
+      },
+      {
+        "name": "size",
+        "type": "number",
+        "required": false,
+        "default": "24",
+        "description": "The side in pixels."
+      },
+      {
+        "name": "stroke",
+        "type": "number",
+        "required": false,
+        "default": "2",
+        "description": "The width of the stroke."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "What the icon says, when there is no text next to it."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmActiveFilter.vue",
+      "components/fm/FmBackLink.vue",
+      "components/fm/FmBottomBar.vue",
+      "components/fm/FmBottomSheet.vue",
+      "components/fm/FmButton.vue",
+      "components/fm/FmCardFiles.vue",
+      "components/fm/FmCardHeader.vue",
+      "components/fm/FmCardRow.vue",
+      "components/fm/FmCategoryTree.vue",
+      "components/fm/FmDocumentDetail.vue",
+      "components/fm/FmEmpty.vue",
+      "components/fm/FmFileDrop.vue",
+      "components/fm/FmFileTile.vue",
+      "components/fm/FmMenuItem.vue",
+      "components/fm/FmNewTabLink.vue",
+      "components/fm/FmNotice.vue",
+      "components/fm/FmOrganizationMark.vue",
+      "components/fm/FmPasswordField.vue",
+      "components/fm/FmRow.vue",
+      "components/fm/FmSearchField.vue",
+      "components/fm/FmSidebar.vue",
+      "layouts/AuthLayout.vue",
+      "pages/Area.vue",
+      "pages/Areas.vue",
+      "pages/cards/EditCard.vue",
+      "pages/cards/NewCard.vue",
+      "pages/documents/Documents.vue",
+      "pages/documents/Upload.vue",
+      "pages/family/EditOrganization.vue",
+      "pages/family/EditPerson.vue",
+      "pages/family/Organization.vue",
+      "pages/family/Organizations.vue",
+      "pages/family/People.vue",
+      "pages/family/Person.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Settings.vue"
+    ]
+  },
+  {
+    "name": "FmImagePanel",
+    "path": "resources/js/components/fm/FmImagePanel.vue",
+    "description": "The photo of a person or the logo of an organization on grey, beside its\nform, as the file beside *Edit the document*. Under it *Add* or *Change*\nopens the picker and *Remove* takes it away. Nothing is sent here: the\nchosen file and the removal go to the form, which saves them with the rest.\nWhat to draw is up to the default slot, which gets the image to show.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "image",
+        "type": "string | null",
+        "required": true,
+        "default": null,
+        "description": "The address of the saved image, or null without one."
+      },
+      {
+        "name": "addLabel",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The button without an image, for example «Add a photo»."
+      },
+      {
+        "name": "changeLabel",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The button with an image, for example «Change the photo»."
+      },
+      {
+        "name": "error",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The error of the image, from the server."
+      },
+      {
+        "name": "file",
+        "type": "File | null",
+        "required": false,
+        "default": "null",
+        "description": "The image chosen and not saved yet."
+      },
+      {
+        "name": "removed",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The saved image is to be removed."
+      }
+    ],
+    "events": [
+      "update:file",
+      "update:removed"
+    ],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/family/EditOrganization.vue",
+      "pages/family/EditPerson.vue"
+    ]
+  },
+  {
+    "name": "FmLinkDocumentSheet",
+    "path": "resources/js/components/fm/FmLinkDocumentSheet.vue",
+    "description": "*Link a document*: the panel with the documents of the family that can be\nlinked to a card, searched while typing, 15 at a time with the next ones\nloaded at the end of the list, each with ↗ to open it in a new tab. It\nonly says which document was chosen: the page of the card links it at\nonce, its form when it is saved. Its props come from the page and are\nreloaded without the rest of it, keeping the address.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "linkable",
+        "type": "App.Data.DocumentData[]",
+        "required": true,
+        "default": null,
+        "description": "The pages loaded so far of the documents that can be linked and match the search."
+      },
+      {
+        "name": "linkableNext",
+        "type": "number | null",
+        "required": false,
+        "default": "null",
+        "description": "The number of the next page of `linkable`, null at the last one."
+      },
+      {
+        "name": "linkableSearch",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "The search that `linkable` answers."
+      },
+      {
+        "name": "hidden",
+        "type": "number[]",
+        "required": false,
+        "default": "[]",
+        "description": "The ids of the documents not to offer, as already chosen."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel is open."
+      }
+    ],
+    "events": [
+      "update:open",
+      "pick"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardFiles.vue",
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmLinkedRecords",
+    "path": "resources/js/components/fm/FmLinkedRecords.vue",
+    "description": "*Links* of *A person* and *An organization*: the records that name them, one\ntype at a time, with a tab for each type and how many records it has.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "groups",
+        "type": "App.Data.LinkGroupData[]",
+        "required": true,
+        "default": null,
+        "description": "The records, grouped by type."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/family/Organization.vue",
+      "pages/family/Person.vue"
+    ]
+  },
+  {
+    "name": "FmLogo",
+    "path": "resources/js/components/fm/FmLogo.vue",
+    "description": "The Family Manager logo: the roof and the family, white on the light blue square.\nThe white version, without the square, goes on the blue panel of the sign-in pages.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "required": false,
+        "default": "36",
+        "description": "The side in pixels."
+      },
+      {
+        "name": "white",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Only the white drawing, without the square."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmSidebar.vue",
+      "layouts/AuthLayout.vue"
+    ]
+  },
+  {
+    "name": "FmMenu",
+    "path": "resources/js/components/fm/FmMenu.vue",
+    "description": "The ⋯ button that opens a small menu of the less frequent actions, so that\na title next to it keeps its room. The entries are `FmMenuItem`.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The text of the button for screen readers; «More actions» if missing."
+      },
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": false,
+        "default": null,
+        "description": "The icon of the button; the ⋯ if missing."
+      },
+      {
+        "name": "small",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The smaller ⋯ button, 40 px, as beside the title of a panel."
+      },
+      {
+        "name": "plain",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The ⋯ button without a background until hovered, as the plain buttons beside a row."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmActions.vue",
+      "components/fm/FmCardDocumentActions.vue",
+      "components/fm/FmDocumentActions.vue",
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmMenuItem",
+    "path": "resources/js/components/fm/FmMenuItem.vue",
+    "description": "An entry of `FmMenu`: an action, a page of the app (`href`), an address\nopened in a new tab (`href` and `external`) or a file to download (`href`\nand `download`).",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": false,
+        "default": null,
+        "description": "The icon before the text."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The address: if there is one, the entry is a link."
+      },
+      {
+        "name": "external",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `href`: a plain link that opens the address in a new tab."
+      },
+      {
+        "name": "download",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `href`: a plain link that downloads the file."
+      },
+      {
+        "name": "danger",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Red, for the entry that deletes."
+      }
+    ],
+    "events": [
+      "select"
+    ],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmActions.vue",
+      "components/fm/FmCardDocumentActions.vue",
+      "components/fm/FmDocumentActions.vue",
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmNewTabLink",
+    "path": "resources/js/components/fm/FmNewTabLink.vue",
+    "description": "A link that opens its address in a new tab, with the ↗ icon beside the\ntext: the person, the organization or the card a card names, so the card\nstays open behind.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "href",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The address to open."
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the link, for example «Studio Ferri»."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmNotice",
+    "path": "resources/js/components/fm/FmNotice.vue",
+    "description": "A message inside the page, with its icon: some information, something done\n(green), something that needs attention (orange).",
+    "group": "basics",
+    "props": [
+      {
+        "name": "tone",
+        "type": "NoticeTone",
+        "required": false,
+        "default": "\"info\"",
+        "description": "Information, done or warning."
+      },
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": false,
+        "default": null,
+        "description": "An icon other than the one of the tone."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "default"
+    ],
+    "types": [
+      "export type NoticeTone = 'info' | 'ok' | 'warning';"
+    ],
+    "usedBy": [
+      "components/fm/FmCardFiles.vue",
+      "components/fm/FmUploadSheet.vue",
+      "pages/auth/ForgotPassword.vue",
+      "pages/auth/Login.vue",
+      "pages/auth/VerifyEmail.vue",
+      "pages/cards/Card.vue",
+      "pages/documents/Upload.vue",
+      "pages/family/InvitationSent.vue",
+      "pages/family/Invite.vue",
+      "pages/family/People.vue",
+      "pages/family/Person.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Categories.vue"
+    ]
+  },
+  {
+    "name": "FmOrganizationMark",
+    "path": "resources/js/components/fm/FmOrganizationMark.vue",
+    "description": "The mark of an organization: its logo or, without one, the icon of its\ntype. The size, the corners and the background come from the `class` of\nwhoever uses it, so the list and the page keep their own.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "types",
+        "type": "readonly string[]",
+        "required": true,
+        "default": null,
+        "description": "The values of its types, for the icon."
+      },
+      {
+        "name": "logo",
+        "type": "string | null",
+        "required": false,
+        "default": "null",
+        "description": "The address of the logo."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "The name, for those who cannot see the logo."
+      },
+      {
+        "name": "iconSize",
+        "type": "number",
+        "required": false,
+        "default": "20",
+        "description": "The side of the icon, in pixels."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/family/EditOrganization.vue",
+      "pages/family/Organization.vue",
+      "pages/family/Organizations.vue"
+    ]
+  },
+  {
+    "name": "FmPasswordField",
+    "path": "resources/js/components/fm/FmPasswordField.vue",
+    "description": "The password field with the eye to see it, as in the sign-in boards.\nIt is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text above the field."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The name of the field in the form."
+      },
+      {
+        "name": "help",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The hint below the field, for example «At least 10 characters»."
+      },
+      {
+        "name": "errors",
+        "type": "string[]",
+        "required": false,
+        "default": "[]",
+        "description": "The errors that come from the server."
+      },
+      {
+        "name": "autocomplete",
+        "type": "string",
+        "required": false,
+        "default": "\"current-password\"",
+        "description": "The hint for the browser: `current-password` or `new-password`."
+      },
+      {
+        "name": "modelValue",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "The password written."
+      }
+    ],
+    "events": [
+      "update:modelValue"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/auth/AcceptInvitation.vue",
+      "pages/auth/ConfirmPassword.vue",
+      "pages/auth/Login.vue",
+      "pages/auth/Register.vue",
+      "pages/auth/ResetPassword.vue",
+      "pages/settings/Account.vue"
+    ]
+  },
+  {
+    "name": "FmRow",
+    "path": "resources/js/components/fm/FmRow.vue",
+    "description": "A list row of the canvas: in front the dot of the area or an icon, then the\ntitle and the subtitle, each on one line (the title cut in the middle, so\nits end shows), on the right an amount or a date. With `href` the whole\nrow is a link (with `external`, a plain link that opens in a new tab), and\nwith nothing on the right it shows the arrow. With `button` it is a button,\nfor the rows that open a panel.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The main text."
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The second line: when, or why it needs attention."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The address the row opens."
+      },
+      {
+        "name": "external",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "With `href`: a plain link that opens the address in a new tab."
+      },
+      {
+        "name": "area",
+        "type": "Area",
+        "required": false,
+        "default": null,
+        "description": "The area, for the coloured dot in front."
+      },
+      {
+        "name": "tone",
+        "type": "RowTone",
+        "required": false,
+        "default": "\"normal\"",
+        "description": "The colour of the subtitle."
+      },
+      {
+        "name": "button",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The row is a button: it sends `click`."
+      },
+      {
+        "name": "current",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The row is the one open now, as the document shown beside the list."
+      },
+      {
+        "name": "arrow",
+        "type": "boolean",
+        "required": false,
+        "default": "true",
+        "description": "The arrow of a link with nothing on the right; off where buttons follow."
+      }
+    ],
+    "events": [
+      "click"
+    ],
+    "slots": [
+      "before",
+      "after"
+    ],
+    "types": [
+      "export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';"
+    ],
+    "usedBy": [
+      "components/fm/FmBottomBar.vue",
+      "components/fm/FmCardFiles.vue",
+      "components/fm/FmCardRow.vue",
+      "components/fm/FmCategoryTree.vue",
+      "components/fm/FmDocumentRow.vue",
+      "components/fm/FmLinkDocumentSheet.vue",
+      "components/fm/FmLinkedRecords.vue",
+      "pages/Home.vue",
+      "pages/dev/Components.vue",
+      "pages/family/Organizations.vue",
+      "pages/family/People.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Settings.vue",
+      "pages/welcome/Welcome.vue"
+    ]
+  },
+  {
+    "name": "FmSearchField",
+    "path": "resources/js/components/fm/FmSearchField.vue",
+    "description": "The search box with the magnifying glass: in *Documents* and in the panel\nthat links a document to a card. What it does with the text is up to the page.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "What is searched: the name of the box and the text shown while it is empty."
+      },
+      {
+        "name": "modelValue",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text typed."
+      }
+    ],
+    "events": [
+      "update:modelValue"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmLinkDocumentSheet.vue",
+      "pages/dev/Components.vue",
+      "pages/documents/Documents.vue"
+    ]
+  },
+  {
+    "name": "FmSidebar",
+    "path": "resources/js/components/fm/FmSidebar.vue",
+    "description": "The sidebar of the computer (from 1024 px): the logo and the family, Upload,\nthe sections with the areas under *Areas*, and at the bottom *My account*,\nwhich opens Settings and Log out.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "active",
+        "type": "Section",
+        "required": true,
+        "default": null,
+        "description": "The section of the page that is open."
+      },
+      {
+        "name": "path",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The path of the page, for example `/areas/home`, to mark its area."
+      },
+      {
+        "name": "items",
+        "type": "NavigationItems",
+        "required": true,
+        "default": null,
+        "description": "The navigation items."
+      },
+      {
+        "name": "areas",
+        "type": "App.Data.AreaCountData[]",
+        "required": true,
+        "default": null,
+        "description": "The areas with their active cards, in order."
+      },
+      {
+        "name": "family",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The name of the family, for example «Bianchi»."
+      },
+      {
+        "name": "user",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The name of who is signed in."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "layouts/AppLayout.vue"
+    ]
+  },
+  {
+    "name": "FmTitle",
+    "path": "resources/js/components/fm/FmTitle.vue",
+    "description": "The title at the top of a page: 28 px on the phone, 32 px on the computer, with\nthe sentence below and, on the right and centred on them, the actions of the\npage. Above it, the link back to the page it comes from, with that page's\nname, always 20 px above the title like on the pages of a person and an\norganization.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The title of the page."
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The sentence below the title."
+      },
+      {
+        "name": "back",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The address of the page it comes from."
+      },
+      {
+        "name": "backLabel",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The name of the page it comes from, the text of the link back."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "actions"
+    ],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmFamilyViews.vue",
+      "pages/Area.vue",
+      "pages/Areas.vue",
+      "pages/cards/EditCard.vue",
+      "pages/cards/NewCard.vue",
+      "pages/dev/Components.vue",
+      "pages/documents/Document.vue",
+      "pages/documents/Documents.vue",
+      "pages/documents/EditDocument.vue",
+      "pages/documents/Upload.vue",
+      "pages/family/EditOrganization.vue",
+      "pages/family/EditPerson.vue",
+      "pages/family/InvitationSent.vue",
+      "pages/family/Invite.vue",
+      "pages/settings/Account.vue",
+      "pages/settings/Categories.vue",
+      "pages/settings/Settings.vue"
+    ]
+  },
+  {
+    "name": "FmUploadSheet",
+    "path": "resources/js/components/fm/FmUploadSheet.vue",
+    "description": "*Upload* of a card: the panel with the zone where the files of documents\nare dragged or chosen. They are sent at once, linked to the card, and\n*Upload* opens with the form of the first one; a file refused leaves the\npanel open, with the reason.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "link",
+        "type": "DocumentLink",
+        "required": true,
+        "default": null,
+        "description": "The card the files are linked to."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel is open."
+      }
+    ],
+    "events": [
+      "update:open"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/cards/Card.vue"
+    ]
+  }
+]

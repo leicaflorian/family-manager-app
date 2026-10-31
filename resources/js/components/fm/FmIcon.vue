@@ -2,6 +2,8 @@
 /**
  * A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
  * Without a label it is only decoration and screen reader users do not hear it.
+ *
+ * @group basics
  */
 import type { LucideIcon } from '@lucide/vue';
 

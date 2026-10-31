@@ -2,6 +2,8 @@
 /**
  * The big title of a sign-in page written by the page itself, when it depends
  * on the data («Hi, Rosa»): like the one of `AuthLayout`.
+ *
+ * @group navigation
  */
 const { title, subtitle } = defineProps<{
     /** The title. */

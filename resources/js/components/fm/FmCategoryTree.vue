@@ -16,6 +16,8 @@
  * category with, on the right, the number of its documents (or what the `after`
  * slot shows) and, if it has any, the arrow that opens the subcategories. It
  * calls itself for the levels below.
+ *
+ * @group forms
  */
 import { ChevronDown, ChevronRight } from '@lucide/vue';
 import { ref } from 'vue';

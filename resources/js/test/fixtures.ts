@@ -1271,3 +1271,21 @@ export const loanFields: App.Data.CardFieldData[] = [
             label_when: {},
         },
     ]);
+
+/** The choices of the form of a document, as *Upload* and *Edit a document* receive them. */
+export const documentFormOptions = {
+    categories: documentFilterOptions.categories,
+    people: documentFilterOptions.people,
+    organizations: documentFilterOptions.organizations,
+    links: [
+        {
+            type: 'employment',
+            label: 'Employments',
+            options: [
+                { value: '3', label: 'Laura - Comune di Bologna', help: null },
+            ],
+        },
+    ],
+    statuses: documentFilterOptions.statuses,
+    tags: ['salary', 'bills'],
+};

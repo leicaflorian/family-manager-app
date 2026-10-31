@@ -5,6 +5,8 @@
  * category. Screen readers read the path instead, as the closed field shows it,
  * so that two «Other» stay different. A choice that is not a category («All»,
  * «None») shows its label.
+ *
+ * @group forms
  */
 import type { CategoryOption } from '@/lib/categories';
 

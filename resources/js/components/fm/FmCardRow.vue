@@ -4,6 +4,8 @@
  * and below the subtitle or the next date («Inspection · in 75 days», red once
  * overdue). It leads to the card; a closed card is grey. In *An area* the
  * amount of an open due date of the next 30 days is on the right, red when late.
+ *
+ * @group rows
  */
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';

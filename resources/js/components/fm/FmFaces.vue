@@ -2,6 +2,8 @@
 /**
  * The faces of the family, one over the other: the circles with the initials,
  * as in the *Invitation accepted* board.
+ *
+ * @group basics
  */
 import { computed } from 'vue';
 import { listNames } from '@/lib/names';

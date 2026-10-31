@@ -2,6 +2,8 @@
 /**
  * *Delete*, red, which asks again in the panel from below before deleting:
  * the question, what happens, *Cancel* and the button that deletes.
+ *
+ * @group basics
  */
 import { Trash2 } from '@lucide/vue';
 import { ref } from 'vue';

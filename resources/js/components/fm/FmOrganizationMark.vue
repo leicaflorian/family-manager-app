@@ -3,6 +3,8 @@
  * The mark of an organization: its logo or, without one, the icon of its
  * type. The size, the corners and the background come from the `class` of
  * whoever uses it, so the list and the page keep their own.
+ *
+ * @group basics
  */
 import { organizationIcon } from '@/lib/family';
 import FmIcon from './FmIcon.vue';

@@ -10,7 +10,8 @@
         "types:check": "vue-tsc --noEmit",
         "test": "vp test",
         "types": "vue-tsc --noEmit",
-        "lint": "vp lint"
+        "lint": "vp lint",
+        "catalog": "vp test run resources/js/catalog/catalog.test.ts -u"
     },
     "dependencies": {
         "@formkit/auto-animate": "^0.10.0",
@@ -48,6 +49,8 @@
         "typescript": "^5.2.2",
         "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
         "vite-plus": "1.4.0",
+        "vue-component-meta": "3.3.13",
+        "vue-component-type-helpers": "3.3.13",
         "vue-tsc": "^3.3.13"
     },
     "optionalDependencies": {

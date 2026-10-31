@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /**
  * A chosen filter, above a list: it is removed with the ×.
+ *
+ * @group rows
  */
 import { X } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';

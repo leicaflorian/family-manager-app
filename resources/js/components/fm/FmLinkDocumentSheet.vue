@@ -6,6 +6,8 @@
  * only says which document was chosen: the page of the card links it at
  * once, its form when it is saved. Its props come from the page and are
  * reloaded without the rest of it, keeping the address.
+ *
+ * @group panels
  */
 import { router, WhenVisible } from '@inertiajs/vue3';
 import { Eye } from '@lucide/vue';

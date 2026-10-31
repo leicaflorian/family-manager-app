@@ -3,10 +3,9 @@ import { plugin as formkit } from '@formkit/vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { I18n, i18nVue } from 'laravel-vue-i18n';
 import formkitConfig from '@/formkit.config';
-import AppLayout from '@/layouts/AppLayout.vue';
-import AuthLayout from '@/layouts/AuthLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { i18nOptions } from '@/lib/i18n';
+import { pageLayout } from '@/lib/pageLayout';
 import { pageVisitOptions } from '@/lib/transitions';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
@@ -19,15 +18,7 @@ I18n.getSharedInstance(i18nOptions(lang));
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    layout: (name) => {
-        switch (true) {
-            case name.startsWith('auth/'):
-            case name.startsWith('welcome/'):
-                return AuthLayout;
-            default:
-                return AppLayout;
-        }
-    },
+    layout: pageLayout,
     withApp: (app) => {
         app.use(formkit, formkitConfig)
             .use(autoAnimatePlugin)

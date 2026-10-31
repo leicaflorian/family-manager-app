@@ -2,6 +2,8 @@
 /**
  * The ⋯ button that opens a small menu of the less frequent actions, so that
  * a title next to it keeps its room. The entries are `FmMenuItem`.
+ *
+ * @group navigation
  */
 import type { LucideIcon } from '@lucide/vue';
 import { Ellipsis } from '@lucide/vue';

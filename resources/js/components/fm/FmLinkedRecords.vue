@@ -2,6 +2,8 @@
 /**
  * *Links* of *A person* and *An organization*: the records that name them, one
  * type at a time, with a tab for each type and how many records it has.
+ *
+ * @group sections
  */
 import { computed, ref } from 'vue';
 import { show } from '@/routes/cards';

@@ -2,6 +2,8 @@
 /**
  * The card of a page or of a list still empty: an icon, what is missing and,
  * below, what can be done.
+ *
+ * @group basics
  */
 import type { LucideIcon } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';

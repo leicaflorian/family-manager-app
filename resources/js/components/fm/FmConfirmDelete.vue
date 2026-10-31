@@ -3,6 +3,8 @@
  * The panel from below that asks again before deleting: the question, what
  * happens, *Cancel* and the button that deletes. Opened by *Delete*, as a
  * button (`FmDeleteButton`) or as an entry of a menu.
+ *
+ * @group basics
  */
 import { router } from '@inertiajs/vue3';
 import FmConfirm from './FmConfirm.vue';

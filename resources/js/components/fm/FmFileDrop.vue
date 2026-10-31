@@ -3,6 +3,8 @@
  * The zone where the files of documents are dragged or chosen (PDF, JPG, PNG,
  * HEIC, up to 25 MB each). It does not send them: it gives them to the page,
  * which uploads them (*Upload*) or keeps them for later (*New card*).
+ *
+ * @group forms
  */
 import { FolderOpen, Upload as UploadIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';

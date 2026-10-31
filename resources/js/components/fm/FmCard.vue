@@ -4,6 +4,8 @@
  * a line, without padding inside because the rows have their own, and rows
  * that come and go are animated. The links of the section go beside the title,
  * in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
+ *
+ * @group basics
  */
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 

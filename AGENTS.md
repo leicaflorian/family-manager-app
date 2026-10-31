@@ -56,6 +56,11 @@ Regole del proprietario del 26/10/2026. Valgono per ogni riga, in PHP e in Vue.
 - Le classi di Tailwind scritte nel codice, fuori dal template (oggetti di varianti, `computed`, funzioni, valori predefiniti delle props, `lib/`), passano sempre da `cn(…)` di `resources/js/lib/utils.ts`, anche quando è una sola stringa: così l'editor le completa (`classFunctions` di Tailwind) e `vp check --fix` le ordina. Nel template basta `class` o `:class`. Fa eccezione `formkit.config.ts`, perché lì le classi le somma FormKit con le sue regole (`$reset`).
 - Campi di FormKit Pro (regola del proprietario, 27/10/2026): `dropdown` al posto di `select`, `datepicker` per le date (si vedono `gg/mm/aaaa`, arrivano al form `aaaa-mm-gg`, impostato in `formkit.config.ts`), `currency` per gli importi, `toggle` per un sì/no, `togglebuttons` per una scelta tra poche voci, `autocomplete` per un menu lungo che si cerca scrivendo (categoria, persona, ente: il `dropdown` di FormKit Pro 0.130 non ha la ricerca) e `taglist` per le etichette. I plugin che ne correggono il comportamento stanno in `resources/js/lib/formkit*.ts`, elencati in `formkit.config.ts`. Nei test si sceglie con `choose()`, `openMenu()` e `search()` di `resources/js/test/page.ts`, come fa la persona.
 - Le classi di un campo FormKit si aggiungono a quelle di `global` in `formkit.config.ts`, non le sostituiscono: per cambiarne una si comincia con `$reset`.
+- **Il catalogo dei componenti** (`resources/js/components/fm/CATALOG.md`, generato da `npm run catalog`): si legge prima di creare un componente in `components/fm/` o un pezzo di interfaccia dentro una pagina.
+    - Il test del catalogo (`resources/js/catalog/catalog.test.ts`) fallisce se un componente non ha il TSDoc, un `@group` tra quelli di `resources/js/catalog/groups.ts`, il `<Nome>.examples.ts` con almeno un caso (`defineExamples`) e il `<Nome>.test.ts` accanto, o se il catalogo non è aggiornato.
+    - Il test non lo controlla, ma la regola vale: se un componente fa già quasi la stessa cosa, lo si estende con una prop, una variante o uno slot e non lo si copia con un altro nome; una prop cambiata porta il suo caso nuovo in `.examples.ts` e il suo test; un componente nuovo si crea solo se nessuno di quelli esistenti va bene, e il perché si scrive nelle *Decisioni prese* del piano.
+    - Un componente che funziona solo dentro un altro (come `FmMenuItem` dentro `FmMenu`) ha i casi disegnati da un piccolo componente che gli mette intorno quello che gli serve (vedi `FmMenuItem.examples.ts`); un pannello o un foglio con la prop `open` parte con `open: false`, e la pagina mostra il tasto *Open*.
+    - Il catalogo legge i tipi dai file generati di Wayfinder, quindi `npm run catalog` si lancia in Sail, dove il plugin di Wayfinder funziona.
 
 ## Comandi
 
@@ -74,14 +79,15 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 | `./vendor/bin/sail npm run types` | Controllo dei tipi (vue-tsc) |
 | `./vendor/bin/sail npm run lint` | Oxlint |
 | `./vendor/bin/sail npx vp check --fix` | Formattazione e lint del frontend |
+| `./vendor/bin/sail npm run catalog` | Riscrive il catalogo dei componenti, `components/fm/CATALOG.md` |
 | `./vendor/bin/sail artisan directus:copy --family="…"` | Copia una famiglia da Directus (`--replace`, `--without-files`) |
 
-Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori, Rector senza modifiche proposte, build, tipi e lint senza errori, Pint pulito.
+Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori, Rector senza modifiche proposte, build, tipi e lint senza errori, Pint pulito, catalogo dei componenti aggiornato (`npm run catalog` non cambia niente).
 
 - Lo starter kit usa Vite+ (`vp`): build, lint (Oxlint), formattazione (Oxfmt) e test (Vitest) sono suoi, configurati in `vite.config.ts`.
 - npm: nel container di Sail c'è npm 11. npm 10.8 si fermava installando FormKit (`Cannot read properties of null (reading 'edgesOut')`): se serve npm fuori da Sail si usa `npx npm@11 install`.
 - La copia da Directus legge il Directus locale con la connessione `directus`, che apre ogni sessione in sola lettura: i dati di Directus sono quelli veri della famiglia del proprietario, e non se ne stampano i valori. Il suo test usa un Directus finto, `tests/Fixtures/directus.sql`, caricato nel database `testing_directus` della MySQL di Sail (l'utente di Sail può creare solo database che cominciano con `testing`).
-- In locale l'app è su http://localhost:8090 e MySQL su `localhost:3308`, perché la 80 e la 3306 del Mac sono già occupate da altri progetti (`APP_PORT` e `FORWARD_DB_PORT` nel `.env`). Mailpit è su http://localhost:8025.
+- In locale l'app è su http://localhost:8090 e MySQL su `localhost:3308`, perché la 80 e la 3306 del Mac sono già occupate da altri progetti (`APP_PORT` e `FORWARD_DB_PORT` nel `.env`). Mailpit è su http://localhost:8025. La pagina del catalogo dei componenti è su http://localhost:8090/dev/components (solo in locale).
 
 ## Pubblicazione
 

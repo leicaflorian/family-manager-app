@@ -5,6 +5,8 @@
  * tags, the notes and the records it links to. The same in
  * *Upload* and in *Edit a document*: the page gives the route and the values.
  * The category, the person and the organization are found by typing.
+ *
+ * @group forms
  */
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
