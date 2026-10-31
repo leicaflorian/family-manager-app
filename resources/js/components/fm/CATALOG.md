@@ -308,6 +308,7 @@ of the section go beside the title, in `actions`.
 
 - `pages/Home.vue`
 - `pages/cards/Card.vue`
+- `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organization.vue`
 - `pages/family/People.vue`
@@ -766,6 +767,7 @@ below, what can be done.
 - `pages/Area.vue`
 - `pages/Areas.vue`
 - `pages/Home.vue`
+- `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organizations.vue`
 
@@ -1321,6 +1323,7 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 - `components/fm/FmLinkDocumentSheet.vue`
 - `components/fm/FmLinkedRecords.vue`
 - `pages/Home.vue`
+- `pages/dev/Components.vue`
 - `pages/family/Organizations.vue`
 - `pages/family/People.vue`
 - `pages/settings/Account.vue`
@@ -1358,6 +1361,7 @@ that links a document to a card. What it does with the text is up to the page.
 ### Used by
 
 - `components/fm/FmLinkDocumentSheet.vue`
+- `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 
 ## FmSidebar
@@ -1413,6 +1417,7 @@ organization.
 - `pages/Areas.vue`
 - `pages/cards/EditCard.vue`
 - `pages/cards/NewCard.vue`
+- `pages/dev/Components.vue`
 - `pages/documents/Document.vue`
 - `pages/documents/Documents.vue`
 - `pages/documents/EditDocument.vue`
