@@ -36,36 +36,45 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmNewTabLink](#fmnewtablink) — A link that opens its address in a new tab, with the ↗ icon beside the text: the person, the organization or the card a card names, so the card stays open behind.
 - [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload, the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
 
+### Rows
+
+- [FmActiveFilter](#fmactivefilter) — A chosen filter, above a list: it is removed with the ×.
+- [FmCardRow](#fmcardrow) — A card in a list: the icon of its type in the colour of its area, the name and below the subtitle or the next date («Inspection · in 75 days», red once overdue).
+- [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
+- [FmRow](#fmrow) — A list row of the canvas: in front the dot of the area or an icon, then the title and the subtitle, each on one line (the title cut in the middle, so its end shows), on the right an amount or a date.
+
+### Forms
+
+- [FmCardForm](#fmcardform) — The form of a card, built from the description the server gives (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and a field shows only when its `show_when` holds, for example the vehicle only for a car policy, and its label can change with `label_when`, for example the POD code of electricity that is a PDR code for gas.
+- [FmCategoryOption](#fmcategoryoption) — A category in the open list of a menu, for the `option` slot of a FormKit autocomplete: the name alone, the subcategories indented under their main category.
+- [FmCategoryTree](#fmcategorytree) — A level of the tree of the document categories: each category with the number of its documents and, if it has any, the arrow that opens the subcategories.
+- [FmDocumentFilters](#fmdocumentfilters) — The filters of *Documents*: category, person, organization, status and the expiring ones.
+- [FmDocumentForm](#fmdocumentform) — The form of a document, as the boards *Proposta* and *Modifica documento*: what it is, what kind and whose, who it is from, the dates, the status, the tags, the notes and the records it links to.
+- [FmFileDrop](#fmfiledrop) — The zone where the files of documents are dragged or chosen (PDF, JPG, PNG, HEIC, up to 25 MB each).
+- [FmPasswordField](#fmpasswordfield) — The password field with the eye to see it, as in the sign-in boards.
+- [FmSearchField](#fmsearchfield) — The search box with the magnifying glass: in *Documents* and in the panel that links a document to a card.
+
 ### Figures
 
 - [FmDateTile](#fmdatetile) — A date of a card on its page: the label, the date as `15/10/2026` and below how far it is from today.
 
+### Files
+
+- [FmDocumentActions](#fmdocumentactions) — The buttons of a document.
+- [FmFilePreview](#fmfilepreview) — The preview of a file: the image the server made of it (a PDF, a HEIC photo), an image as it is, and the placeholder for the files without a preview or whose image does not load.
+- [FmFileTile](#fmfiletile) — The small sheet that stands for a file in front of its row: a document of the family, or a file chosen and not saved yet.
+
 ### Ungrouped
 
-- [FmActiveFilter](#fmactivefilter) — A chosen filter, above a list: it is removed with the ×.
 - [FmBottomSheet](#fmbottomsheet) — The panel that rises from the bottom over the darkened page, for short actions and filters.
 - [FmCardDocumentActions](#fmcarddocumentactions) — The buttons beside a document on the page of a card: *Open in a new tab*, always in sight, and the ⋮ menu with *Edit* (the page of the document, as its row), *Unlink* and *Delete* (for an `admin`), each after asking.
 - [FmCardFiles](#fmcardfiles) — The documents of a card on grey, beside its form, as the file beside *Edit the document*: *Link* beside the title, at the top the zone to add files, then the files chosen and not saved yet, then the documents: those chosen in *Link*, and those already linked, with the menu of the card page.
-- [FmCardForm](#fmcardform) — The form of a card, built from the description the server gives (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and a field shows only when its `show_when` holds, for example the vehicle only for a car policy, and its label can change with `label_when`, for example the POD code of electricity that is a PDR code for gas.
 - [FmCardHeader](#fmcardheader) — The coloured top of a card page, as on the board *Scheda*: «Area · Type», the name and the line of data.
-- [FmCardRow](#fmcardrow) — A card in a list: the icon of its type in the colour of its area, the name and below the subtitle or the next date («Inspection · in 75 days», red once overdue).
-- [FmCategoryOption](#fmcategoryoption) — A category in the open list of a menu, for the `option` slot of a FormKit autocomplete: the name alone, the subcategories indented under their main category.
-- [FmCategoryTree](#fmcategorytree) — A level of the tree of the document categories: each category with the number of its documents and, if it has any, the arrow that opens the subcategories.
-- [FmDocumentActions](#fmdocumentactions) — The buttons of a document.
 - [FmDocumentDetail](#fmdocumentdetail) — A document as the board *Un documento* shows it: the preview of the file on grey and, beside it, its data, the linked records (one type at a time) and the notes.
-- [FmDocumentFilters](#fmdocumentfilters) — The filters of *Documents*: category, person, organization, status and the expiring ones.
-- [FmDocumentForm](#fmdocumentform) — The form of a document, as the boards *Proposta* and *Modifica documento*: what it is, what kind and whose, who it is from, the dates, the status, the tags, the notes and the records it links to.
-- [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
-- [FmFileDrop](#fmfiledrop) — The zone where the files of documents are dragged or chosen (PDF, JPG, PNG, HEIC, up to 25 MB each).
 - [FmFilePanel](#fmfilepanel) — The file of a document on grey, as the boards *Un documento* and *Modifica documento* show it, with the proportions of an A4 sheet: the preview and, under it, the name of the file.
-- [FmFilePreview](#fmfilepreview) — The preview of a file: the image the server made of it (a PDF, a HEIC photo), an image as it is, and the placeholder for the files without a preview or whose image does not load.
-- [FmFileTile](#fmfiletile) — The small sheet that stands for a file in front of its row: a document of the family, or a file chosen and not saved yet.
 - [FmImagePanel](#fmimagepanel) — The photo of a person or the logo of an organization on grey, beside its form, as the file beside *Edit the document*.
 - [FmLinkDocumentSheet](#fmlinkdocumentsheet) — *Link a document*: the panel with the documents of the family that can be linked to a card, searched while typing, 15 at a time with the next ones loaded at the end of the list, each with ↗ to open it in a new tab.
 - [FmLinkedRecords](#fmlinkedrecords) — *Links* of *A person* and *An organization*: the records that name them, one type at a time, with a tab for each type and how many records it has.
-- [FmPasswordField](#fmpasswordfield) — The password field with the eye to see it, as in the sign-in boards.
-- [FmRow](#fmrow) — A list row of the canvas: in front the dot of the area or an icon, then the title and the subtitle, each on one line (the title cut in the middle, so its end shows), on the right an amount or a date.
-- [FmSearchField](#fmsearchfield) — The search box with the magnifying glass: in *Documents* and in the panel that links a document to a card.
 - [FmUploadSheet](#fmuploadsheet) — *Upload* of a card: the panel with the zone where the files of documents are dragged or chosen.
 
 ## FmActions
@@ -1049,6 +1058,532 @@ which opens Settings and Log out.
 
 - `layouts/AppLayout.vue`
 
+## FmActiveFilter
+
+`resources/js/components/fm/FmActiveFilter.vue`
+
+A chosen filter, above a list: it is removed with the ×.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | yes | — | The filter, for example «Laura» or «Work and income». |
+| `removeLabel` | `string` | no | — | What the × says to a screen reader, when it does not remove a filter. |
+
+### Events
+
+- `remove`
+
+### Examples
+
+```vue
+<!-- Person -->
+<FmActiveFilter label="Laura" />
+
+<!-- Long label -->
+<FmActiveFilter label="Lavoro › Buste paga › Altro" />
+```
+
+### Used by
+
+- `components/fm/FmDocumentForm.vue`
+- `pages/documents/Documents.vue`
+
+## FmCardRow
+
+`resources/js/components/fm/FmCardRow.vue`
+
+A card in a list: the icon of its type in the colour of its area, the name
+and below the subtitle or the next date («Inspection · in 75 days», red once
+overdue). It leads to the card; a closed card is grey.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `card` | `App.Data.CardData` | yes | — | The card, as a row of a list. |
+
+### Examples
+
+```vue
+<!-- Date ahead -->
+<FmCardRow :card="card" />
+
+<!-- Overdue -->
+<FmCardRow :card="card" />
+
+<!-- Subtitle only -->
+<FmCardRow :card="card" />
+
+<!-- Closed -->
+<FmCardRow :card="card" />
+```
+
+### Used by
+
+- `pages/Area.vue`
+- `pages/Areas.vue`
+- `pages/cards/Card.vue`
+
+## FmDocumentRow
+
+`resources/js/components/fm/FmDocumentRow.vue`
+
+A document in a list: the icon of the file, the title, what it is and whose,
+and on the right its date (or its expiry). With `expiry` the line below is
+the expiry instead, red once passed and orange while it is ahead, as at the
+top of *A person*.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `document` | `App.Data.DocumentData` | yes | — | The document. |
+| `href` | `string` | no | — | Where the row leads; without it the row is not a link. |
+| `external` | `boolean` | no | `false` | With `href`: the row opens the address in a new tab. |
+| `expiry` | `boolean` | no | `false` | The line below is the expiry, with its colour. |
+| `dateless` | `boolean` | no | `false` | No date on the right, nor the arrow, where the room is short. |
+| `today` | `string` | no | `isoDate()` | The date of today, ISO: tells a passed expiry from one ahead. |
+| `current` | `boolean` | no | `false` | The document is the one open beside the list. |
+
+### Examples
+
+```vue
+<!-- Link -->
+<FmDocumentRow :document="document" href="/documents/18" />
+
+<!-- Expiry ahead -->
+<FmDocumentRow :document="document" href="/documents/18" expiry />
+
+<!-- Expired -->
+<FmDocumentRow :document="document" href="/documents/18" expiry />
+
+<!-- Without date -->
+<FmDocumentRow :document="document" href="/documents/18" dateless />
+
+<!-- Current -->
+<FmDocumentRow :document="document" href="/documents/18" current />
+
+<!-- Long title -->
+<FmDocumentRow :document="document" href="/documents/19" />
+```
+
+### Used by
+
+- `components/fm/FmCardFiles.vue`
+- `pages/Home.vue`
+- `pages/cards/Card.vue`
+- `pages/documents/Documents.vue`
+- `pages/family/Organization.vue`
+- `pages/family/Person.vue`
+
+## FmRow
+
+`resources/js/components/fm/FmRow.vue`
+
+A list row of the canvas: in front the dot of the area or an icon, then the
+title and the subtitle, each on one line (the title cut in the middle, so
+its end shows), on the right an amount or a date. With `href` the whole
+row is a link (with `external`, a plain link that opens in a new tab), and
+with nothing on the right it shows the arrow. With `button` it is a button,
+for the rows that open a panel.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `title` | `string` | yes | — | The main text. |
+| `subtitle` | `string` | no | — | The second line: when, or why it needs attention. |
+| `href` | `string` | no | — | The address the row opens. |
+| `external` | `boolean` | no | `false` | With `href`: a plain link that opens the address in a new tab. |
+| `area` | `Area` | no | — | The area, for the coloured dot in front. |
+| `tone` | `RowTone` | no | `"normal"` | The colour of the subtitle. |
+| `button` | `boolean` | no | `false` | The row is a button: it sends `click`. |
+| `current` | `boolean` | no | `false` | The row is the one open now, as the document shown beside the list. |
+| `arrow` | `boolean` | no | `true` | The arrow of a link with nothing on the right; off where buttons follow. |
+
+### Events
+
+- `click`
+
+### Slots
+
+- `before`
+- `after`
+
+### Types
+
+```ts
+export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
+```
+
+### Examples
+
+```vue
+<!-- Link -->
+<FmRow title="Bolletta luce ottobre" subtitle="Scade il 15/11/2026" href="/cards/utility/1" />
+
+<!-- Overdue -->
+<FmRow title="Bolletta luce ottobre" subtitle="Scade il 15/11/2026" href="/cards/utility/1" tone="overdue" />
+
+<!-- Button -->
+<FmRow title="Carica un documento" button />
+
+<!-- Area dot -->
+<FmRow title="Assicurazione auto" subtitle="Scade il 03/02/2027" area="vehicles" />
+
+<!-- Long title -->
+<FmRow title="Contratto di locazione dell’appartamento di via Garibaldi 12, Milano - rinnovo 2026" subtitle="Scade il 31/12/2028" />
+
+<!-- With a value on the right -->
+<FmRow title="Bolletta luce ottobre" subtitle="Pagata">
+    <template #after>84,20 €</template>
+</FmRow>
+```
+
+### Used by
+
+- `components/fm/FmBottomBar.vue`
+- `components/fm/FmCardFiles.vue`
+- `components/fm/FmCardRow.vue`
+- `components/fm/FmCategoryTree.vue`
+- `components/fm/FmDocumentRow.vue`
+- `components/fm/FmLinkDocumentSheet.vue`
+- `components/fm/FmLinkedRecords.vue`
+- `pages/Home.vue`
+- `pages/dev/Components.vue`
+- `pages/family/Organizations.vue`
+- `pages/family/People.vue`
+- `pages/settings/Account.vue`
+- `pages/settings/Settings.vue`
+- `pages/welcome/Welcome.vue`
+
+## FmCardForm
+
+`resources/js/components/fm/FmCardForm.vue`
+
+The form of a card, built from the description the server gives
+(`CardFieldData`): each field becomes the FormKit Pro input of its kind, and
+a field shows only when its `show_when` holds, for example the vehicle only
+for a car policy, and its label can change with `label_when`, for example
+the POD code of electricity that is a PDR code for gas. A hidden field is
+sent empty. The same form creates and
+edits every type of card: the page gives the fields and the values, and gets
+them back with `submit`.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `fields` | `App.Data.CardFieldData[]` | yes | — | The description of the fields, in the order they are shown. |
+| `values` | `Record<string, unknown>` | yes | — | The values the form starts from, by column. |
+| `serverErrors` | `Partial<Record<string, string>>` | no | `{}` | The errors of the server, by column. |
+| `processing` | `boolean` | no | `false` | The form is being sent: the button waits. |
+
+### Events
+
+- `submit`
+
+### Slots
+
+- `start`
+
+### Examples
+
+```vue
+<!-- New -->
+<FmCardForm :fields="fields" :values="values" />
+
+<!-- Edit -->
+<FmCardForm :fields="fields" :values="values" />
+
+<!-- Label by type -->
+<FmCardForm :fields="fields" :values="values" />
+
+<!-- With an error -->
+<FmCardForm :fields="fields" :values="values" :serverErrors="serverErrors" />
+
+<!-- Processing -->
+<FmCardForm :fields="fields" :values="values" processing />
+```
+
+### Used by
+
+- `pages/cards/EditCard.vue`
+
+## FmCategoryOption
+
+`resources/js/components/fm/FmCategoryOption.vue`
+
+A category in the open list of a menu, for the `option` slot of a FormKit
+autocomplete: the name alone, the subcategories indented under their main
+category. Screen readers read the path instead, as the closed field shows it,
+so that two «Other» stay different. A choice that is not a category («All»,
+«None») shows its label.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `option` | `Pick<CategoryOption, "label"> & Partial<Pick<CategoryOption, "name" \| "depth">>` | yes | — | The option of the menu: a category, or a choice such as «All». |
+
+### Examples
+
+```vue
+<!-- Main category -->
+<FmCategoryOption :option="option" />
+
+<!-- Subcategory -->
+<FmCategoryOption :option="option" />
+
+<!-- Plain choice -->
+<FmCategoryOption :option="option" />
+```
+
+### Used by
+
+- `components/fm/FmDocumentFilters.vue`
+- `components/fm/FmDocumentForm.vue`
+
+## FmCategoryTree
+
+`resources/js/components/fm/FmCategoryTree.vue`
+
+A level of the tree of the document categories: each category with the number
+of its documents and, if it has any, the arrow that opens the subcategories.
+It calls itself for the levels below.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `categories` | `App.Data.CategoryData[]` | yes | — | The categories of this level. |
+| `level` | `number` | no | `0` | How deep this level is: 0 for the main ones. |
+| `selectable` | `boolean` | no | `false` | The categories are tapped to choose them (to edit them). |
+
+### Events
+
+- `select`
+
+### Examples
+
+```vue
+<!-- Tree -->
+<FmCategoryTree :categories="categories" />
+
+<!-- Selectable -->
+<FmCategoryTree :categories="categories" selectable />
+
+<!-- Empty -->
+<FmCategoryTree :categories="categories" />
+```
+
+### Used by
+
+- `components/fm/FmCategoryTree.vue`
+- `pages/settings/Categories.vue`
+
+## FmDocumentFilters
+
+`resources/js/components/fm/FmDocumentFilters.vue`
+
+The filters of *Documents*: category, person, organization, status and the
+expiring ones. Every change is sent at once; the page reloads the list. The
+category, the person and the organization are found by typing.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `filters` | `DocumentFilters` | yes | — | The filters in use. |
+| `options` | `DocumentFilterOptions` | yes | — | The choices of the menus. |
+
+### Events
+
+- `change`
+
+### Examples
+
+```vue
+<!-- No filter -->
+<FmDocumentFilters :filters="filters" :options="options" />
+
+<!-- Filters in use -->
+<FmDocumentFilters :filters="filters" :options="options" />
+
+<!-- Expiring -->
+<FmDocumentFilters :filters="filters" :options="options" />
+```
+
+### Used by
+
+- `pages/documents/Documents.vue`
+
+## FmDocumentForm
+
+`resources/js/components/fm/FmDocumentForm.vue`
+
+The form of a document, as the boards *Proposta* and *Modifica documento*:
+what it is, what kind and whose, who it is from, the dates, the status, the
+tags, the notes and the records it links to. The same in
+*Upload* and in *Edit a document*: the page gives the route and the values.
+The category, the person and the organization are found by typing.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `action` | `RouteDefinition<"post" \| "put">` | yes | — | Where the form is sent: a new document or a change. |
+| `initial` | `DocumentFormValues` | yes | — | The values the form starts from. |
+| `extra` | `Record<string, string \| number>` | no | `{}` | Data sent with the fields, for example the `file_id` of a new document. |
+| `options` | `DocumentFormOptions` | yes | — | The choices of the menus. |
+| `submitLabel` | `string` | yes | — | The text of the button that sends. |
+| `cancelLabel` | `string` | no | — | The text of the button that gives up, if there is one. |
+
+### Events
+
+- `cancel`
+
+### Slots
+
+- `start`
+
+### Examples
+
+```vue
+<!-- New -->
+<FmDocumentForm :action="action" :initial="initial" :extra="extra" :options="options" submitLabel="Save the document" />
+
+<!-- Edit -->
+<FmDocumentForm :action="action" :initial="initial" :options="options" submitLabel="Save" cancelLabel="Cancel" />
+```
+
+### Used by
+
+- `pages/documents/EditDocument.vue`
+- `pages/documents/Upload.vue`
+
+## FmFileDrop
+
+`resources/js/components/fm/FmFileDrop.vue`
+
+The zone where the files of documents are dragged or chosen (PDF, JPG, PNG,
+HEIC, up to 25 MB each). It does not send them: it gives them to the page,
+which uploads them (*Upload*) or keeps them for later (*New card*).
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | no | `trans("Drag the files here, or choose them")` | What the zone asks for. |
+| `compact` | `boolean` | no | `false` | A small zone, below a form, instead of the large one of an empty page. |
+| `processing` | `boolean` | no | `false` | The files are being sent: the zone says so. |
+
+### Events
+
+- `files`
+
+### Examples
+
+```vue
+<!-- Default -->
+<FmFileDrop />
+
+<!-- Compact -->
+<FmFileDrop compact />
+
+<!-- Custom label -->
+<FmFileDrop label="Add the payslip" />
+
+<!-- Processing -->
+<FmFileDrop processing />
+```
+
+### Used by
+
+- `components/fm/FmCardFiles.vue`
+- `components/fm/FmUploadSheet.vue`
+- `pages/documents/Upload.vue`
+
+## FmPasswordField
+
+`resources/js/components/fm/FmPasswordField.vue`
+
+The password field with the eye to see it, as in the sign-in boards.
+It is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | yes | — | The text above the field. |
+| `name` | `string` | yes | — | The name of the field in the form. |
+| `help` | `string` | no | — | The hint below the field, for example «At least 10 characters». |
+| `errors` | `string[]` | no | `[]` | The errors that come from the server. |
+| `autocomplete` | `string` | no | `"current-password"` | The hint for the browser: `current-password` or `new-password`. |
+| `modelValue` | `string` | no | `""` | The password written. |
+
+### Events
+
+- `update:modelValue`
+
+### Examples
+
+```vue
+<!-- Empty -->
+<FmPasswordField label="Password" name="password" />
+
+<!-- With a hint -->
+<FmPasswordField label="New password" name="new_password" help="At least 10 characters" autocomplete="new-password" />
+
+<!-- With an error -->
+<FmPasswordField label="Password" name="password_error" modelValue="sbagliata" :errors="errors" />
+```
+
+### Used by
+
+- `pages/auth/AcceptInvitation.vue`
+- `pages/auth/ConfirmPassword.vue`
+- `pages/auth/Login.vue`
+- `pages/auth/Register.vue`
+- `pages/auth/ResetPassword.vue`
+- `pages/settings/Account.vue`
+
+## FmSearchField
+
+`resources/js/components/fm/FmSearchField.vue`
+
+The search box with the magnifying glass: in *Documents* and in the panel
+that links a document to a card. What it does with the text is up to the page.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | yes | — | What is searched: the name of the box and the text shown while it is empty. |
+| `modelValue` | `string` | yes | — | The text typed. |
+
+### Events
+
+- `update:modelValue`
+
+### Examples
+
+```vue
+<!-- Empty -->
+<FmSearchField label="Search the documents" modelValue="" />
+
+<!-- Typed -->
+<FmSearchField label="Search the documents" modelValue="bolletta" />
+```
+
+### Used by
+
+- `components/fm/FmLinkDocumentSheet.vue`
+- `pages/dev/Components.vue`
+- `pages/documents/Documents.vue`
+
 ## FmDateTile
 
 `resources/js/components/fm/FmDateTile.vue`
@@ -1080,27 +1615,103 @@ days ago» in red.
 
 - `pages/cards/Card.vue`
 
-## FmActiveFilter
+## FmDocumentActions
 
-`resources/js/components/fm/FmActiveFilter.vue`
+`resources/js/components/fm/FmDocumentActions.vue`
 
-A chosen filter, above a list: it is removed with the ×.
+The buttons of a document. On its own page they are `FmActions`: *Download*,
+*Edit* (light blue) and *Delete* (red, for an `admin`, after asking) as
+buttons while they fit, and *Open in a new tab* and *Share* in the ⋯ menu.
+In the panel beside the list *Download* is an icon and the rest is in the
+menu.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `label` | `string` | yes | — | The filter, for example «Laura» or «Work and income». |
-| `removeLabel` | `string` | no | — | What the × says to a screen reader, when it does not remove a filter. |
+| `document` | `App.Data.DocumentDetailData` | yes | — | The document. |
+| `compact` | `boolean` | no | `false` | The panel beside the list: *Download* as an icon, *Edit* in the menu. |
 
-### Events
+### Examples
 
-- `remove`
+```vue
+<!-- Admin -->
+<FmDocumentActions :document="document" />
+
+<!-- Member -->
+<FmDocumentActions :document="document" />
+
+<!-- Read only -->
+<FmDocumentActions :document="document" />
+
+<!-- Compact -->
+<FmDocumentActions :document="document" compact />
+```
 
 ### Used by
 
-- `components/fm/FmDocumentForm.vue`
-- `pages/documents/Documents.vue`
+- `components/fm/FmDocumentDetail.vue`
+- `pages/documents/Document.vue`
+
+## FmFilePreview
+
+`resources/js/components/fm/FmFilePreview.vue`
+
+The preview of a file: the image the server made of it (a PDF, a HEIC
+photo), an image as it is, and the placeholder for the files without a
+preview or whose image does not load. The image and the placeholder open
+the file in another tab.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `url` | `string` | yes | — | The address that opens the file. |
+| `mimeType` | `string` | yes | — | The real type of the file. |
+| `name` | `string` | yes | — | The original name. |
+| `previewUrl` | `string \| null` | yes | — | The address of the preview image made by the server, `null` when the file has none. |
+| `fill` | `boolean` | no | `false` | Takes the height of the box around it instead of a fixed one. |
+
+### Examples
+
+```vue
+<!-- PDF preview -->
+<FmFilePreview url="/files/12" mimeType="application/pdf" name="Busta paga ottobre 2026.pdf" previewUrl="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22420%22%20height%3D%22560%22%20viewBox%3D%220%200%20420%20560%22%3E%3Crect%20width%3D%22420%22%20height%3D%22560%22%20fill%3D%22%23fff%22%20stroke%3D%22%23ccd%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2248%22%20width%3D%22220%22%20height%3D%2216%22%20fill%3D%22%2399a%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2296%22%20width%3D%22340%22%20height%3D%2210%22%20fill%3D%22%23ccd%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%22120%22%20width%3D%22300%22%20height%3D%2210%22%20fill%3D%22%23ccd%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%22144%22%20width%3D%22320%22%20height%3D%2210%22%20fill%3D%22%23ccd%22%2F%3E%3C%2Fsvg%3E" />
+
+<!-- Image -->
+<FmFilePreview url="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22420%22%20height%3D%22560%22%20viewBox%3D%220%200%20420%20560%22%3E%3Crect%20width%3D%22420%22%20height%3D%22560%22%20fill%3D%22%23fff%22%20stroke%3D%22%23ccd%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2248%22%20width%3D%22220%22%20height%3D%2216%22%20fill%3D%22%2399a%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%2296%22%20width%3D%22340%22%20height%3D%2210%22%20fill%3D%22%23ccd%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%22120%22%20width%3D%22300%22%20height%3D%2210%22%20fill%3D%22%23ccd%22%2F%3E%3Crect%20x%3D%2240%22%20y%3D%22144%22%20width%3D%22320%22%20height%3D%2210%22%20fill%3D%22%23ccd%22%2F%3E%3C%2Fsvg%3E" mimeType="image/svg+xml" name="Foto.svg" />
+
+<!-- No preview -->
+<FmFilePreview url="/files/13" mimeType="application/pdf" name="Contratto.pdf" />
+
+<!-- Image fails to load -->
+<FmFilePreview url="data:image/png;base64,broken" mimeType="image/png" name="Rotta.png" />
+```
+
+### Used by
+
+- `components/fm/FmFilePanel.vue`
+- `pages/documents/Upload.vue`
+
+## FmFileTile
+
+`resources/js/components/fm/FmFileTile.vue`
+
+The small sheet that stands for a file in front of its row: a document of
+the family, or a file chosen and not saved yet.
+
+### Examples
+
+```vue
+<!-- Default -->
+<FmFileTile />
+```
+
+### Used by
+
+- `components/fm/FmCardFiles.vue`
+- `components/fm/FmDocumentRow.vue`
+- `pages/Home.vue`
 
 ## FmBottomSheet
 
@@ -1205,40 +1816,6 @@ so until then a choice can be taken back.
 
 - `pages/cards/EditCard.vue`
 
-## FmCardForm
-
-`resources/js/components/fm/FmCardForm.vue`
-
-The form of a card, built from the description the server gives
-(`CardFieldData`): each field becomes the FormKit Pro input of its kind, and
-a field shows only when its `show_when` holds, for example the vehicle only
-for a car policy, and its label can change with `label_when`, for example
-the POD code of electricity that is a PDR code for gas. A hidden field is
-sent empty. The same form creates and
-edits every type of card: the page gives the fields and the values, and gets
-them back with `submit`.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `fields` | `App.Data.CardFieldData[]` | yes | — | The description of the fields, in the order they are shown. |
-| `values` | `Record<string, unknown>` | yes | — | The values the form starts from, by column. |
-| `serverErrors` | `Partial<Record<string, string>>` | no | `{}` | The errors of the server, by column. |
-| `processing` | `boolean` | no | `false` | The form is being sent: the button waits. |
-
-### Events
-
-- `submit`
-
-### Slots
-
-- `start`
-
-### Used by
-
-- `pages/cards/EditCard.vue`
-
 ## FmCardHeader
 
 `resources/js/components/fm/FmCardHeader.vue`
@@ -1261,94 +1838,6 @@ the name and the line of data. On the right, the `actions` slot holds
 ### Used by
 
 - `pages/cards/Card.vue`
-
-## FmCardRow
-
-`resources/js/components/fm/FmCardRow.vue`
-
-A card in a list: the icon of its type in the colour of its area, the name
-and below the subtitle or the next date («Inspection · in 75 days», red once
-overdue). It leads to the card; a closed card is grey.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `card` | `App.Data.CardData` | yes | — | The card, as a row of a list. |
-
-### Used by
-
-- `pages/Area.vue`
-- `pages/Areas.vue`
-- `pages/cards/Card.vue`
-
-## FmCategoryOption
-
-`resources/js/components/fm/FmCategoryOption.vue`
-
-A category in the open list of a menu, for the `option` slot of a FormKit
-autocomplete: the name alone, the subcategories indented under their main
-category. Screen readers read the path instead, as the closed field shows it,
-so that two «Other» stay different. A choice that is not a category («All»,
-«None») shows its label.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `option` | `Pick<CategoryOption, "label"> & Partial<Pick<CategoryOption, "name" \| "depth">>` | yes | — | The option of the menu: a category, or a choice such as «All». |
-
-### Used by
-
-- `components/fm/FmDocumentFilters.vue`
-- `components/fm/FmDocumentForm.vue`
-
-## FmCategoryTree
-
-`resources/js/components/fm/FmCategoryTree.vue`
-
-A level of the tree of the document categories: each category with the number
-of its documents and, if it has any, the arrow that opens the subcategories.
-It calls itself for the levels below.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `categories` | `App.Data.CategoryData[]` | yes | — | The categories of this level. |
-| `level` | `number` | no | `0` | How deep this level is: 0 for the main ones. |
-| `selectable` | `boolean` | no | `false` | The categories are tapped to choose them (to edit them). |
-
-### Events
-
-- `select`
-
-### Used by
-
-- `components/fm/FmCategoryTree.vue`
-- `pages/settings/Categories.vue`
-
-## FmDocumentActions
-
-`resources/js/components/fm/FmDocumentActions.vue`
-
-The buttons of a document. On its own page they are `FmActions`: *Download*,
-*Edit* (light blue) and *Delete* (red, for an `admin`, after asking) as
-buttons while they fit, and *Open in a new tab* and *Share* in the ⋯ menu.
-In the panel beside the list *Download* is an icon and the rest is in the
-menu.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `document` | `App.Data.DocumentDetailData` | yes | — | The document. |
-| `compact` | `boolean` | no | `false` | The panel beside the list: *Download* as an icon, *Edit* in the menu. |
-
-### Used by
-
-- `components/fm/FmDocumentDetail.vue`
-- `pages/documents/Document.vue`
 
 ## FmDocumentDetail
 
@@ -1373,119 +1862,6 @@ Used by *A document* and, on the computer, on the right of *Documents*.
 - `pages/documents/Document.vue`
 - `pages/documents/Documents.vue`
 
-## FmDocumentFilters
-
-`resources/js/components/fm/FmDocumentFilters.vue`
-
-The filters of *Documents*: category, person, organization, status and the
-expiring ones. Every change is sent at once; the page reloads the list. The
-category, the person and the organization are found by typing.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `filters` | `DocumentFilters` | yes | — | The filters in use. |
-| `options` | `DocumentFilterOptions` | yes | — | The choices of the menus. |
-
-### Events
-
-- `change`
-
-### Used by
-
-- `pages/documents/Documents.vue`
-
-## FmDocumentForm
-
-`resources/js/components/fm/FmDocumentForm.vue`
-
-The form of a document, as the boards *Proposta* and *Modifica documento*:
-what it is, what kind and whose, who it is from, the dates, the status, the
-tags, the notes and the records it links to. The same in
-*Upload* and in *Edit a document*: the page gives the route and the values.
-The category, the person and the organization are found by typing.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `action` | `RouteDefinition<"post" \| "put">` | yes | — | Where the form is sent: a new document or a change. |
-| `initial` | `DocumentFormValues` | yes | — | The values the form starts from. |
-| `extra` | `Record<string, string \| number>` | no | `{}` | Data sent with the fields, for example the `file_id` of a new document. |
-| `options` | `DocumentFormOptions` | yes | — | The choices of the menus. |
-| `submitLabel` | `string` | yes | — | The text of the button that sends. |
-| `cancelLabel` | `string` | no | — | The text of the button that gives up, if there is one. |
-
-### Events
-
-- `cancel`
-
-### Slots
-
-- `start`
-
-### Used by
-
-- `pages/documents/EditDocument.vue`
-- `pages/documents/Upload.vue`
-
-## FmDocumentRow
-
-`resources/js/components/fm/FmDocumentRow.vue`
-
-A document in a list: the icon of the file, the title, what it is and whose,
-and on the right its date (or its expiry). With `expiry` the line below is
-the expiry instead, red once passed and orange while it is ahead, as at the
-top of *A person*.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `document` | `App.Data.DocumentData` | yes | — | The document. |
-| `href` | `string` | no | — | Where the row leads; without it the row is not a link. |
-| `external` | `boolean` | no | `false` | With `href`: the row opens the address in a new tab. |
-| `expiry` | `boolean` | no | `false` | The line below is the expiry, with its colour. |
-| `dateless` | `boolean` | no | `false` | No date on the right, nor the arrow, where the room is short. |
-| `today` | `string` | no | `isoDate()` | The date of today, ISO: tells a passed expiry from one ahead. |
-| `current` | `boolean` | no | `false` | The document is the one open beside the list. |
-
-### Used by
-
-- `components/fm/FmCardFiles.vue`
-- `pages/Home.vue`
-- `pages/cards/Card.vue`
-- `pages/documents/Documents.vue`
-- `pages/family/Organization.vue`
-- `pages/family/Person.vue`
-
-## FmFileDrop
-
-`resources/js/components/fm/FmFileDrop.vue`
-
-The zone where the files of documents are dragged or chosen (PDF, JPG, PNG,
-HEIC, up to 25 MB each). It does not send them: it gives them to the page,
-which uploads them (*Upload*) or keeps them for later (*New card*).
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `label` | `string` | no | `trans("Drag the files here, or choose them")` | What the zone asks for. |
-| `compact` | `boolean` | no | `false` | A small zone, below a form, instead of the large one of an empty page. |
-| `processing` | `boolean` | no | `false` | The files are being sent: the zone says so. |
-
-### Events
-
-- `files`
-
-### Used by
-
-- `components/fm/FmCardFiles.vue`
-- `components/fm/FmUploadSheet.vue`
-- `pages/documents/Upload.vue`
-
 ## FmFilePanel
 
 `resources/js/components/fm/FmFilePanel.vue`
@@ -1507,43 +1883,6 @@ beside the list and by *Edit*, where *Change the file* follows the name.
 
 - `components/fm/FmDocumentDetail.vue`
 - `pages/documents/EditDocument.vue`
-
-## FmFilePreview
-
-`resources/js/components/fm/FmFilePreview.vue`
-
-The preview of a file: the image the server made of it (a PDF, a HEIC
-photo), an image as it is, and the placeholder for the files without a
-preview or whose image does not load. The image and the placeholder open
-the file in another tab.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `url` | `string` | yes | — | The address that opens the file. |
-| `mimeType` | `string` | yes | — | The real type of the file. |
-| `name` | `string` | yes | — | The original name. |
-| `previewUrl` | `string \| null` | yes | — | The address of the preview image made by the server, `null` when the file has none. |
-| `fill` | `boolean` | no | `false` | Takes the height of the box around it instead of a fixed one. |
-
-### Used by
-
-- `components/fm/FmFilePanel.vue`
-- `pages/documents/Upload.vue`
-
-## FmFileTile
-
-`resources/js/components/fm/FmFileTile.vue`
-
-The small sheet that stands for a file in front of its row: a document of
-the family, or a file chosen and not saved yet.
-
-### Used by
-
-- `components/fm/FmCardFiles.vue`
-- `components/fm/FmDocumentRow.vue`
-- `pages/Home.vue`
 
 ## FmImagePanel
 
@@ -1628,152 +1967,6 @@ type at a time, with a tab for each type and how many records it has.
 
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
-
-## FmPasswordField
-
-`resources/js/components/fm/FmPasswordField.vue`
-
-The password field with the eye to see it, as in the sign-in boards.
-It is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `label` | `string` | yes | — | The text above the field. |
-| `name` | `string` | yes | — | The name of the field in the form. |
-| `help` | `string` | no | — | The hint below the field, for example «At least 10 characters». |
-| `errors` | `string[]` | no | `[]` | The errors that come from the server. |
-| `autocomplete` | `string` | no | `"current-password"` | The hint for the browser: `current-password` or `new-password`. |
-| `modelValue` | `string` | no | `""` | The password written. |
-
-### Events
-
-- `update:modelValue`
-
-### Used by
-
-- `pages/auth/AcceptInvitation.vue`
-- `pages/auth/ConfirmPassword.vue`
-- `pages/auth/Login.vue`
-- `pages/auth/Register.vue`
-- `pages/auth/ResetPassword.vue`
-- `pages/settings/Account.vue`
-
-## FmRow
-
-`resources/js/components/fm/FmRow.vue`
-
-A list row of the canvas: in front the dot of the area or an icon, then the
-title and the subtitle, each on one line (the title cut in the middle, so
-its end shows), on the right an amount or a date. With `href` the whole
-row is a link (with `external`, a plain link that opens in a new tab), and
-with nothing on the right it shows the arrow. With `button` it is a button,
-for the rows that open a panel.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `title` | `string` | yes | — | The main text. |
-| `subtitle` | `string` | no | — | The second line: when, or why it needs attention. |
-| `href` | `string` | no | — | The address the row opens. |
-| `external` | `boolean` | no | `false` | With `href`: a plain link that opens the address in a new tab. |
-| `area` | `Area` | no | — | The area, for the coloured dot in front. |
-| `tone` | `RowTone` | no | `"normal"` | The colour of the subtitle. |
-| `button` | `boolean` | no | `false` | The row is a button: it sends `click`. |
-| `current` | `boolean` | no | `false` | The row is the one open now, as the document shown beside the list. |
-| `arrow` | `boolean` | no | `true` | The arrow of a link with nothing on the right; off where buttons follow. |
-
-### Events
-
-- `click`
-
-### Slots
-
-- `before`
-- `after`
-
-### Types
-
-```ts
-export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
-```
-
-### Examples
-
-```vue
-<!-- Link -->
-<FmRow title="Bolletta luce ottobre" subtitle="Scade il 15/11/2026" href="/cards/utility/1" />
-
-<!-- Overdue -->
-<FmRow title="Bolletta luce ottobre" subtitle="Scade il 15/11/2026" href="/cards/utility/1" tone="overdue" />
-
-<!-- Button -->
-<FmRow title="Carica un documento" button />
-
-<!-- Area dot -->
-<FmRow title="Assicurazione auto" subtitle="Scade il 03/02/2027" area="vehicles" />
-
-<!-- Long title -->
-<FmRow title="Contratto di locazione dell’appartamento di via Garibaldi 12, Milano - rinnovo 2026" subtitle="Scade il 31/12/2028" />
-
-<!-- With a value on the right -->
-<FmRow title="Bolletta luce ottobre" subtitle="Pagata">
-    <template #after>84,20 €</template>
-</FmRow>
-```
-
-### Used by
-
-- `components/fm/FmBottomBar.vue`
-- `components/fm/FmCardFiles.vue`
-- `components/fm/FmCardRow.vue`
-- `components/fm/FmCategoryTree.vue`
-- `components/fm/FmDocumentRow.vue`
-- `components/fm/FmLinkDocumentSheet.vue`
-- `components/fm/FmLinkedRecords.vue`
-- `pages/Home.vue`
-- `pages/dev/Components.vue`
-- `pages/family/Organizations.vue`
-- `pages/family/People.vue`
-- `pages/settings/Account.vue`
-- `pages/settings/Settings.vue`
-- `pages/welcome/Welcome.vue`
-
-## FmSearchField
-
-`resources/js/components/fm/FmSearchField.vue`
-
-The search box with the magnifying glass: in *Documents* and in the panel
-that links a document to a card. What it does with the text is up to the page.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `label` | `string` | yes | — | What is searched: the name of the box and the text shown while it is empty. |
-| `modelValue` | `string` | yes | — | The text typed. |
-
-### Events
-
-- `update:modelValue`
-
-### Examples
-
-```vue
-<!-- Empty -->
-<FmSearchField label="Search the documents" modelValue="" />
-
-<!-- Typed -->
-<FmSearchField label="Search the documents" modelValue="bolletta" />
-```
-
-### Used by
-
-- `components/fm/FmLinkDocumentSheet.vue`
-- `pages/dev/Components.vue`
-- `pages/documents/Documents.vue`
 
 ## FmUploadSheet
 

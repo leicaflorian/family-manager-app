@@ -3,6 +3,8 @@
  * A card in a list: the icon of its type in the colour of its area, the name
  * and below the subtitle or the next date («Inspection · in 75 days», red once
  * overdue). It leads to the card; a closed card is grey.
+ *
+ * @group rows
  */
 import { computed } from 'vue';
 import { areaOf, areaTile } from '@/lib/areas';

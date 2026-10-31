@@ -32,7 +32,7 @@
     "name": "FmActiveFilter",
     "path": "resources/js/components/fm/FmActiveFilter.vue",
     "description": "A chosen filter, above a list: it is removed with the ×.",
-    "group": null,
+    "group": "rows",
     "props": [
       {
         "name": "label",
@@ -539,7 +539,7 @@
     "name": "FmCardForm",
     "path": "resources/js/components/fm/FmCardForm.vue",
     "description": "The form of a card, built from the description the server gives\n(`CardFieldData`): each field becomes the FormKit Pro input of its kind, and\na field shows only when its `show_when` holds, for example the vehicle only\nfor a car policy, and its label can change with `label_when`, for example\nthe POD code of electricity that is a PDR code for gas. A hidden field is\nsent empty. The same form creates and\nedits every type of card: the page gives the fields and the values, and gets\nthem back with `submit`.",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "fields",
@@ -615,7 +615,7 @@
     "name": "FmCardRow",
     "path": "resources/js/components/fm/FmCardRow.vue",
     "description": "A card in a list: the icon of its type in the colour of its area, the name\nand below the subtitle or the next date («Inspection · in 75 days», red once\noverdue). It leads to the card; a closed card is grey.",
-    "group": null,
+    "group": "rows",
     "props": [
       {
         "name": "card",
@@ -638,7 +638,7 @@
     "name": "FmCategoryOption",
     "path": "resources/js/components/fm/FmCategoryOption.vue",
     "description": "A category in the open list of a menu, for the `option` slot of a FormKit\nautocomplete: the name alone, the subcategories indented under their main\ncategory. Screen readers read the path instead, as the closed field shows it,\nso that two «Other» stay different. A choice that is not a category («All»,\n«None») shows its label.",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "option",
@@ -660,7 +660,7 @@
     "name": "FmCategoryTree",
     "path": "resources/js/components/fm/FmCategoryTree.vue",
     "description": "A level of the tree of the document categories: each category with the number\nof its documents and, if it has any, the arrow that opens the subcategories.\nIt calls itself for the levels below.",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "categories",
@@ -875,7 +875,7 @@
     "name": "FmDocumentActions",
     "path": "resources/js/components/fm/FmDocumentActions.vue",
     "description": "The buttons of a document. On its own page they are `FmActions`: *Download*,\n*Edit* (light blue) and *Delete* (red, for an `admin`, after asking) as\nbuttons while they fit, and *Open in a new tab* and *Share* in the ⋯ menu.\nIn the panel beside the list *Download* is an icon and the rest is in the\nmenu.",
-    "group": null,
+    "group": "files",
     "props": [
       {
         "name": "document",
@@ -933,7 +933,7 @@
     "name": "FmDocumentFilters",
     "path": "resources/js/components/fm/FmDocumentFilters.vue",
     "description": "The filters of *Documents*: category, person, organization, status and the\nexpiring ones. Every change is sent at once; the page reloads the list. The\ncategory, the person and the organization are found by typing.",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "filters",
@@ -963,7 +963,7 @@
     "name": "FmDocumentForm",
     "path": "resources/js/components/fm/FmDocumentForm.vue",
     "description": "The form of a document, as the boards *Proposta* and *Modifica documento*:\nwhat it is, what kind and whose, who it is from, the dates, the status, the\ntags, the notes and the records it links to. The same in\n*Upload* and in *Edit a document*: the page gives the route and the values.\nThe category, the person and the organization are found by typing.",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "action",
@@ -1024,7 +1024,7 @@
     "name": "FmDocumentRow",
     "path": "resources/js/components/fm/FmDocumentRow.vue",
     "description": "A document in a list: the icon of the file, the title, what it is and whose,\nand on the right its date (or its expiry). With `expiry` the line below is\nthe expiry instead, red once passed and orange while it is ahead, as at the\ntop of *A person*.",
-    "group": null,
+    "group": "rows",
     "props": [
       {
         "name": "document",
@@ -1193,7 +1193,7 @@
     "name": "FmFileDrop",
     "path": "resources/js/components/fm/FmFileDrop.vue",
     "description": "The zone where the files of documents are dragged or chosen (PDF, JPG, PNG,\nHEIC, up to 25 MB each). It does not send them: it gives them to the page,\nwhich uploads them (*Upload*) or keeps them for later (*New card*).",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "label",
@@ -1268,7 +1268,7 @@
     "name": "FmFilePreview",
     "path": "resources/js/components/fm/FmFilePreview.vue",
     "description": "The preview of a file: the image the server made of it (a PDF, a HEIC\nphoto), an image as it is, and the placeholder for the files without a\npreview or whose image does not load. The image and the placeholder open\nthe file in another tab.",
-    "group": null,
+    "group": "files",
     "props": [
       {
         "name": "url",
@@ -1318,7 +1318,7 @@
     "name": "FmFileTile",
     "path": "resources/js/components/fm/FmFileTile.vue",
     "description": "The small sheet that stands for a file in front of its row: a document of\nthe family, or a file chosen and not saved yet.",
-    "group": null,
+    "group": "files",
     "props": [],
     "events": [],
     "slots": [],
@@ -1826,7 +1826,7 @@
     "name": "FmPasswordField",
     "path": "resources/js/components/fm/FmPasswordField.vue",
     "description": "The password field with the eye to see it, as in the sign-in boards.\nIt is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`.",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "label",
@@ -1889,7 +1889,7 @@
     "name": "FmRow",
     "path": "resources/js/components/fm/FmRow.vue",
     "description": "A list row of the canvas: in front the dot of the area or an icon, then the\ntitle and the subtitle, each on one line (the title cut in the middle, so\nits end shows), on the right an amount or a date. With `href` the whole\nrow is a link (with `external`, a plain link that opens in a new tab), and\nwith nothing on the right it shows the arrow. With `button` it is a button,\nfor the rows that open a panel.",
-    "group": null,
+    "group": "rows",
     "props": [
       {
         "name": "title",
@@ -1986,7 +1986,7 @@
     "name": "FmSearchField",
     "path": "resources/js/components/fm/FmSearchField.vue",
     "description": "The search box with the magnifying glass: in *Documents* and in the panel\nthat links a document to a card. What it does with the text is up to the page.",
-    "group": null,
+    "group": "forms",
     "props": [
       {
         "name": "label",

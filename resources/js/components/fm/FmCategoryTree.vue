@@ -3,6 +3,8 @@
  * A level of the tree of the document categories: each category with the number
  * of its documents and, if it has any, the arrow that opens the subcategories.
  * It calls itself for the levels below.
+ *
+ * @group forms
  */
 import { ChevronDown, ChevronRight } from '@lucide/vue';
 import { ref } from 'vue';

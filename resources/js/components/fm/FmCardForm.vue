@@ -8,6 +8,8 @@
  * sent empty. The same form creates and
  * edits every type of card: the page gives the fields and the values, and gets
  * them back with `submit`.
+ *
+ * @group forms
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref } from 'vue';

@@ -6,6 +6,8 @@
  * row is a link (with `external`, a plain link that opens in a new tab), and
  * with nothing on the right it shows the arrow. With `button` it is a button,
  * for the rows that open a panel.
+ *
+ * @group rows
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';

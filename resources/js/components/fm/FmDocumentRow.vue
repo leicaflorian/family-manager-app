@@ -4,6 +4,8 @@
  * and on the right its date (or its expiry). With `expiry` the line below is
  * the expiry instead, red once passed and orange while it is ahead, as at the
  * top of *A person*.
+ *
+ * @group rows
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';

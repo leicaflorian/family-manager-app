@@ -4,6 +4,8 @@
  * photo), an image as it is, and the placeholder for the files without a
  * preview or whose image does not load. The image and the placeholder open
  * the file in another tab.
+ *
+ * @group files
  */
 import { computed, ref, watch } from 'vue';
 import { previewKind } from '@/lib/files';

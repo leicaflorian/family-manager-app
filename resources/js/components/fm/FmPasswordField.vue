@@ -2,6 +2,8 @@
 /**
  * The password field with the eye to see it, as in the sign-in boards.
  * It is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`.
+ *
+ * @group forms
  */
 import { Eye, EyeOff } from '@lucide/vue';
 import { ref } from 'vue';
