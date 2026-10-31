@@ -56,6 +56,9 @@ The full list of commands, with the code rules, is in `AGENTS.md`. The most used
 | `./vendor/bin/sail npm run build` | Frontend build |
 | `./vendor/bin/sail artisan migrate:fresh --seed` | Rebuilds the database with the Bianchi family |
 | `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copies a family from Directus |
+| `./vendor/bin/sail npm run catalog` | Rewrites the component catalogue, `resources/js/components/fm/CATALOG.md` |
+
+The components of `resources/js/components/fm/` are listed, with their props and examples, in `CATALOG.md`, which is generated and never edited by hand: read it before writing a new component. Locally they can be tried on http://localhost:8090/dev/components (signed in; the page does not exist outside `APP_ENV=local`).
 
 ## Cards
 
