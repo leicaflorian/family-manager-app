@@ -582,5 +582,7 @@
     "Finish": "Completa",
     "Events": "Eventi",
     "Nothing happened yet.": "Non è ancora successo niente.",
+    "Open": "Apri",
+    "No cases for this component yet.": "Ancora nessun caso per questo componente.",
     "{1} +:count more|[2,*] +:count more": "{1} +:count altro|[2,*] +:count altri"
 }

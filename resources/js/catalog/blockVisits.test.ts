@@ -66,6 +66,13 @@ describe('blockVisits', () => {
         expect(log).toEqual([]);
     });
 
+    it('stops a path that only begins like the catalogue', () => {
+        router.get('/dev/componentsX');
+
+        expect(log).toEqual(['GET /dev/componentsX']);
+        expect(open).not.toHaveBeenCalled();
+    });
+
     it('stops listening once stopped', () => {
         stop();
         let prevented: boolean | null = null;

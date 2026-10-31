@@ -79,9 +79,14 @@ describe('DevCases', () => {
         ]);
     });
 
-    it('closes a panel when it sends update:open', async () => {
+    it('opens a panel with Open, and its own Cancel closes it', async () => {
         renderPage(DevCases, { name: 'FmConfirmDelete' });
 
+        expect(
+            screen.queryByRole('heading', { name: 'Delete this document?' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Open' }));
         await userEvent.click(
             await screen.findByRole('button', { name: 'Cancel' }),
         );
@@ -89,16 +94,55 @@ describe('DevCases', () => {
         expect(
             screen.queryByRole('heading', { name: 'Delete this document?' }),
         ).not.toBeInTheDocument();
+        expect(logLines()).toEqual(['Delete a document: update:open(false)']);
+    });
+
+    it('opens the panel again after Cancel', async () => {
+        renderPage(DevCases, { name: 'FmConfirmDelete' });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Cancel' }),
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+
+        expect(
+            await screen.findByRole('heading', {
+                name: 'Delete this document?',
+            }),
+        ).toBeInTheDocument();
+    });
+
+    it('has no Open button for a component without a panel', () => {
+        renderPage(DevCases, { name: 'FmRow' });
+
+        expect(
+            screen.queryByRole('button', { name: 'Open' }),
+        ).not.toBeInTheDocument();
     });
 
     it('stops the visit of a component and writes it in the log', async () => {
         renderPage(DevCases, { name: 'FmConfirmDelete' });
 
+        await userEvent.click(screen.getByRole('button', { name: 'Open' }));
         await userEvent.click(
             await screen.findByRole('button', { name: 'Delete the document' }),
         );
 
         expect(open).not.toHaveBeenCalled();
         expect(logLines()).toEqual(['DELETE /documents/3']);
+        // The visit never ends, so the panel stays open: its Cancel still closes it
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(
+            screen.queryByRole('heading', { name: 'Delete this document?' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('says so for a component without cases', () => {
+        renderPage(DevCases, { name: 'FmIcon' });
+
+        expect(
+            screen.getByText('No cases for this component yet.'),
+        ).toBeInTheDocument();
     });
 });

@@ -1,15 +1,15 @@
 /**
- * The case of `FmConfirmDelete` for the component catalogue: the panel open,
- * before deleting a document.
+ * The case of `FmConfirmDelete` for the component catalogue: the panel that
+ * asks before deleting a document, opened with *Open* on the catalogue page.
  */
 import { defineExamples } from '@/catalog/examples';
 import FmConfirmDelete from './FmConfirmDelete.vue';
 
 export default defineExamples(FmConfirmDelete, [
     {
-        name: 'Open',
+        name: 'Delete a document',
         props: {
-            open: true,
+            open: false,
             url: '/documents/3',
             question: 'Delete this document?',
             text: 'The file goes too, and the cards it is linked to lose it.',

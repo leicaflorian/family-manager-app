@@ -18,7 +18,10 @@ export function blockVisits(log: (entry: string) => void): () => void {
     return router.on('before', (event) => {
         const { method, url } = event.detail.visit;
 
-        if (url.pathname.startsWith(catalogue)) {
+        if (
+            url.pathname === catalogue ||
+            url.pathname.startsWith(`${catalogue}/`)
+        ) {
             return;
         }
 

@@ -247,6 +247,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 
 ### Used by
 
+- `components/dev/DevCases.vue`
 - `components/fm/FmActions.vue`
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmCardFiles.vue`
@@ -562,8 +563,8 @@ button (`FmDeleteButton`) or as an entry of a menu.
 ### Examples
 
 ```vue
-<!-- Open -->
-<FmConfirmDelete open url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" />
+<!-- Delete a document -->
+<FmConfirmDelete url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" />
 ```
 
 ### Used by
