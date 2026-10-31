@@ -29,18 +29,21 @@ globalThis.ResizeObserver ??= class {
 };
 
 // jsdom has no matchMedia, nor element.animate: auto-animate asks whether the
-// person wants less motion, and here the answer is yes, so it does not animate
-window.matchMedia ??= (query: string): MediaQueryList =>
-    ({
-        matches: query.includes('prefers-reduced-motion'),
-        media: query,
-        onchange: null,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-        dispatchEvent: () => false,
-    }) satisfies MediaQueryList;
+// person wants less motion, and here the answer is yes, so it does not animate.
+// The Node-only tests (`@vitest-environment node`) have no window at all.
+if (typeof window !== 'undefined') {
+    window.matchMedia ??= (query: string): MediaQueryList =>
+        ({
+            matches: query.includes('prefers-reduced-motion'),
+            media: query,
+            onchange: null,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            addListener: () => {},
+            removeListener: () => {},
+            dispatchEvent: () => false,
+        }) satisfies MediaQueryList;
+}
 
 // The tests read the texts in English, the language they are written in.
 config.global.plugins.push([i18nVue, i18nOptions('en')]);

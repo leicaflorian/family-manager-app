@@ -48,6 +48,7 @@
         "typescript": "^5.2.2",
         "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
         "vite-plus": "1.4.0",
+        "vue-component-meta": "3.3.13",
         "vue-tsc": "^3.3.13"
     },
     "optionalDependencies": {
