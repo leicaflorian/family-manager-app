@@ -3,7 +3,7 @@
     "name": "FmActions",
     "path": "resources/js/components/fm/FmActions.vue",
     "description": "The actions of a page, beside its title: the first three as buttons, fewer\nwhen the room is short, down to none, and the others in the ⋯ menu. An\naction with `confirm` asks in the panel from below before deleting, from the\nbutton and from the menu alike.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "actions",
@@ -63,7 +63,7 @@
     "name": "FmAvatar",
     "path": "resources/js/components/fm/FmAvatar.vue",
     "description": "The circle of a person: their photo or, without one, the initials on a colour.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "initials",
@@ -118,7 +118,7 @@
     "name": "FmBackLink",
     "path": "resources/js/components/fm/FmBackLink.vue",
     "description": "The link back to the page a page comes from, with a chevron and that page's\nname, above the title or the header of a page.",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "href",
@@ -147,7 +147,7 @@
     "name": "FmBottomBar",
     "path": "resources/js/components/fm/FmBottomBar.vue",
     "description": "The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in\nthe middle, Documents and More. More opens a panel with Family, Settings and\nLog out, and stays marked when one of those pages is open.",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "active",
@@ -213,7 +213,7 @@
     "name": "FmButton",
     "path": "resources/js/components/fm/FmButton.vue",
     "description": "The button of the canvas, in five variants. Only one solid button per page:\nthe one done most often. With `href` it becomes an Inertia link.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "variant",
@@ -359,7 +359,7 @@
     "name": "FmCard",
     "path": "resources/js/components/fm/FmCard.vue",
     "description": "The white card of the pages. With `list` it holds rows (`FmRow`) separated by\na line, without padding inside because the rows have their own. The buttons\nof the section go beside the title, in `actions`.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "title",
@@ -698,7 +698,7 @@
     "name": "FmConfirm",
     "path": "resources/js/components/fm/FmConfirm.vue",
     "description": "The panel from below that asks again before an action that is easy to do by\nmistake: the question, what happens, *Cancel* and the button that confirms.\n`FmConfirmDelete` uses it to delete; the form of a document, to remove a\nsaved link.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "question",
@@ -745,7 +745,7 @@
     "name": "FmConfirmDelete",
     "path": "resources/js/components/fm/FmConfirmDelete.vue",
     "description": "The panel from below that asks again before deleting: the question, what\nhappens, *Cancel* and the button that deletes. Opened by *Delete*, as a\nbutton (`FmDeleteButton`) or as an entry of a menu.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "url",
@@ -807,7 +807,7 @@
     "name": "FmDateTile",
     "path": "resources/js/components/fm/FmDateTile.vue",
     "description": "A date of a card on its page: the label, the date as `15/10/2026` and below\nhow far it is from today. An expiring date already passed reads «Expired 3\ndays ago» in red.",
-    "group": null,
+    "group": "figures",
     "props": [
       {
         "name": "date",
@@ -828,7 +828,7 @@
     "name": "FmDeleteButton",
     "path": "resources/js/components/fm/FmDeleteButton.vue",
     "description": "*Delete*, red, which asks again in the panel from below before deleting:\nthe question, what happens, *Cancel* and the button that deletes.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "url",
@@ -1092,7 +1092,7 @@
     "name": "FmEmpty",
     "path": "resources/js/components/fm/FmEmpty.vue",
     "description": "The card of a page or of a list still empty: an icon, what is missing and,\nbelow, what can be done.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "icon",
@@ -1134,7 +1134,7 @@
     "name": "FmFaces",
     "path": "resources/js/components/fm/FmFaces.vue",
     "description": "The faces of the family, one over the other: the circles with the initials,\nas in the *Invitation accepted* board.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "people",
@@ -1162,7 +1162,7 @@
     "name": "FmFamilyViews",
     "path": "resources/js/components/fm/FmFamilyViews.vue",
     "description": "The top of *People* and *Organizations*: the title *Family* with the name of\nthe family, the actions of the page and the two views, each with how many.",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "family",
@@ -1333,7 +1333,7 @@
     "name": "FmHeader",
     "path": "resources/js/components/fm/FmHeader.vue",
     "description": "The big title of a sign-in page written by the page itself, when it depends\non the data («Hi, Rosa»): like the one of `AuthLayout`.",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "title",
@@ -1364,7 +1364,7 @@
     "name": "FmIcon",
     "path": "resources/js/components/fm/FmIcon.vue",
     "description": "A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.\nWithout a label it is only decoration and screen reader users do not hear it.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "icon",
@@ -1578,7 +1578,7 @@
     "name": "FmLogo",
     "path": "resources/js/components/fm/FmLogo.vue",
     "description": "The Family Manager logo: the roof and the family, white on the light blue square.\nThe white version, without the square, goes on the blue panel of the sign-in pages.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "size",
@@ -1607,7 +1607,7 @@
     "name": "FmMenu",
     "path": "resources/js/components/fm/FmMenu.vue",
     "description": "The ⋯ button that opens a small menu of the less frequent actions, so that\na title next to it keeps its room. The entries are `FmMenuItem`.",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "label",
@@ -1654,7 +1654,7 @@
     "name": "FmMenuItem",
     "path": "resources/js/components/fm/FmMenuItem.vue",
     "description": "An entry of `FmMenu`: an action, a page of the app (`href`), an address\nopened in a new tab (`href` and `external`) or a file to download (`href`\nand `download`).",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "icon",
@@ -1710,7 +1710,7 @@
     "name": "FmNewTabLink",
     "path": "resources/js/components/fm/FmNewTabLink.vue",
     "description": "A link that opens its address in a new tab, with the ↗ icon beside the\ntext: the person, the organization or the card a card names, so the card\nstays open behind.",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "href",
@@ -1738,7 +1738,7 @@
     "name": "FmNotice",
     "path": "resources/js/components/fm/FmNotice.vue",
     "description": "A message inside the page, with its icon: some information, something done\n(green), something that needs attention (orange).",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "tone",
@@ -1782,7 +1782,7 @@
     "name": "FmOrganizationMark",
     "path": "resources/js/components/fm/FmOrganizationMark.vue",
     "description": "The mark of an organization: its logo or, without one, the icon of its\ntype. The size, the corners and the background come from the `class` of\nwhoever uses it, so the list and the page keep their own.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "types",
@@ -2018,7 +2018,7 @@
     "name": "FmSidebar",
     "path": "resources/js/components/fm/FmSidebar.vue",
     "description": "The sidebar of the computer (from 1024 px): the logo and the family, Upload,\nthe sections with the areas under *Areas*, and at the bottom *My account*,\nwhich opens Settings and Log out.",
-    "group": null,
+    "group": "navigation",
     "props": [
       {
         "name": "active",
@@ -2074,7 +2074,7 @@
     "name": "FmTitle",
     "path": "resources/js/components/fm/FmTitle.vue",
     "description": "The title at the top of a page: 28 px on the phone, 32 px on the computer, with\nthe sentence below and, on the right and centred on them, the actions of the\npage. Above it, the link back to the page it comes from, with that page's\nname, always 20 px above the title like on the pages of a person and an\norganization.",
-    "group": null,
+    "group": "basics",
     "props": [
       {
         "name": "title",

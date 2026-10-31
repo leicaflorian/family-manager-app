@@ -3,6 +3,8 @@
  * A link that opens its address in a new tab, with the ↗ icon beside the
  * text: the person, the organization or the card a card names, so the card
  * stays open behind.
+ *
+ * @group navigation
  */
 import { ExternalLink } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';

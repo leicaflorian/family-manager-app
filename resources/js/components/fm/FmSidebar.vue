@@ -3,6 +3,8 @@
  * The sidebar of the computer (from 1024 px): the logo and the family, Upload,
  * the sections with the areas under *Areas*, and at the bottom *My account*,
  * which opens Settings and Log out.
+ *
+ * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, LogOut, Plus } from '@lucide/vue';

@@ -8,16 +8,42 @@ Read this file before writing a component or a piece of interface in a page: if 
 
 ## Index
 
-### Ungrouped
+### Basics
 
 - [FmActions](#fmactions) — The actions of a page, beside its title: the first three as buttons, fewer when the room is short, down to none, and the others in the ⋯ menu.
-- [FmActiveFilter](#fmactivefilter) — A chosen filter, above a list: it is removed with the ×.
 - [FmAvatar](#fmavatar) — The circle of a person: their photo or, without one, the initials on a colour.
-- [FmBackLink](#fmbacklink) — The link back to the page a page comes from, with a chevron and that page's name, above the title or the header of a page.
-- [FmBottomBar](#fmbottombar) — The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in the middle, Documents and More.
-- [FmBottomSheet](#fmbottomsheet) — The panel that rises from the bottom over the darkened page, for short actions and filters.
 - [FmButton](#fmbutton) — The button of the canvas, in five variants.
 - [FmCard](#fmcard) — The white card of the pages.
+- [FmConfirm](#fmconfirm) — The panel from below that asks again before an action that is easy to do by mistake: the question, what happens, *Cancel* and the button that confirms.
+- [FmConfirmDelete](#fmconfirmdelete) — The panel from below that asks again before deleting: the question, what happens, *Cancel* and the button that deletes.
+- [FmDeleteButton](#fmdeletebutton) — *Delete*, red, which asks again in the panel from below before deleting: the question, what happens, *Cancel* and the button that deletes.
+- [FmEmpty](#fmempty) — The card of a page or of a list still empty: an icon, what is missing and, below, what can be done.
+- [FmFaces](#fmfaces) — The faces of the family, one over the other: the circles with the initials, as in the *Invitation accepted* board.
+- [FmIcon](#fmicon) — A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
+- [FmLogo](#fmlogo) — The Family Manager logo: the roof and the family, white on the light blue square.
+- [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange).
+- [FmOrganizationMark](#fmorganizationmark) — The mark of an organization: its logo or, without one, the icon of its type.
+- [FmTitle](#fmtitle) — The title at the top of a page: 28 px on the phone, 32 px on the computer, with the sentence below and, on the right and centred on them, the actions of the page.
+
+### Navigation
+
+- [FmBackLink](#fmbacklink) — The link back to the page a page comes from, with a chevron and that page's name, above the title or the header of a page.
+- [FmBottomBar](#fmbottombar) — The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in the middle, Documents and More.
+- [FmFamilyViews](#fmfamilyviews) — The top of *People* and *Organizations*: the title *Family* with the name of the family, the actions of the page and the two views, each with how many.
+- [FmHeader](#fmheader) — The big title of a sign-in page written by the page itself, when it depends on the data («Hi, Rosa»): like the one of `AuthLayout`.
+- [FmMenu](#fmmenu) — The ⋯ button that opens a small menu of the less frequent actions, so that a title next to it keeps its room.
+- [FmMenuItem](#fmmenuitem) — An entry of `FmMenu`: an action, a page of the app (`href`), an address opened in a new tab (`href` and `external`) or a file to download (`href` and `download`).
+- [FmNewTabLink](#fmnewtablink) — A link that opens its address in a new tab, with the ↗ icon beside the text: the person, the organization or the card a card names, so the card stays open behind.
+- [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload, the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
+
+### Figures
+
+- [FmDateTile](#fmdatetile) — A date of a card on its page: the label, the date as `15/10/2026` and below how far it is from today.
+
+### Ungrouped
+
+- [FmActiveFilter](#fmactivefilter) — A chosen filter, above a list: it is removed with the ×.
+- [FmBottomSheet](#fmbottomsheet) — The panel that rises from the bottom over the darkened page, for short actions and filters.
 - [FmCardDocumentActions](#fmcarddocumentactions) — The buttons beside a document on the page of a card: *Open in a new tab*, always in sight, and the ⋮ menu with *Edit* (the page of the document, as its row), *Unlink* and *Delete* (for an `admin`), each after asking.
 - [FmCardFiles](#fmcardfiles) — The documents of a card on grey, beside its form, as the file beside *Edit the document*: *Link* beside the title, at the top the zone to add files, then the files chosen and not saved yet, then the documents: those chosen in *Link*, and those already linked, with the menu of the card page.
 - [FmCardForm](#fmcardform) — The form of a card, built from the description the server gives (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and a field shows only when its `show_when` holds, for example the vehicle only for a car policy, and its label can change with `label_when`, for example the POD code of electricity that is a PDR code for gas.
@@ -25,38 +51,21 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmCardRow](#fmcardrow) — A card in a list: the icon of its type in the colour of its area, the name and below the subtitle or the next date («Inspection · in 75 days», red once overdue).
 - [FmCategoryOption](#fmcategoryoption) — A category in the open list of a menu, for the `option` slot of a FormKit autocomplete: the name alone, the subcategories indented under their main category.
 - [FmCategoryTree](#fmcategorytree) — A level of the tree of the document categories: each category with the number of its documents and, if it has any, the arrow that opens the subcategories.
-- [FmConfirm](#fmconfirm) — The panel from below that asks again before an action that is easy to do by mistake: the question, what happens, *Cancel* and the button that confirms.
-- [FmConfirmDelete](#fmconfirmdelete) — The panel from below that asks again before deleting: the question, what happens, *Cancel* and the button that deletes.
-- [FmDateTile](#fmdatetile) — A date of a card on its page: the label, the date as `15/10/2026` and below how far it is from today.
-- [FmDeleteButton](#fmdeletebutton) — *Delete*, red, which asks again in the panel from below before deleting: the question, what happens, *Cancel* and the button that deletes.
 - [FmDocumentActions](#fmdocumentactions) — The buttons of a document.
 - [FmDocumentDetail](#fmdocumentdetail) — A document as the board *Un documento* shows it: the preview of the file on grey and, beside it, its data, the linked records (one type at a time) and the notes.
 - [FmDocumentFilters](#fmdocumentfilters) — The filters of *Documents*: category, person, organization, status and the expiring ones.
 - [FmDocumentForm](#fmdocumentform) — The form of a document, as the boards *Proposta* and *Modifica documento*: what it is, what kind and whose, who it is from, the dates, the status, the tags, the notes and the records it links to.
 - [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
-- [FmEmpty](#fmempty) — The card of a page or of a list still empty: an icon, what is missing and, below, what can be done.
-- [FmFaces](#fmfaces) — The faces of the family, one over the other: the circles with the initials, as in the *Invitation accepted* board.
-- [FmFamilyViews](#fmfamilyviews) — The top of *People* and *Organizations*: the title *Family* with the name of the family, the actions of the page and the two views, each with how many.
 - [FmFileDrop](#fmfiledrop) — The zone where the files of documents are dragged or chosen (PDF, JPG, PNG, HEIC, up to 25 MB each).
 - [FmFilePanel](#fmfilepanel) — The file of a document on grey, as the boards *Un documento* and *Modifica documento* show it, with the proportions of an A4 sheet: the preview and, under it, the name of the file.
 - [FmFilePreview](#fmfilepreview) — The preview of a file: the image the server made of it (a PDF, a HEIC photo), an image as it is, and the placeholder for the files without a preview or whose image does not load.
 - [FmFileTile](#fmfiletile) — The small sheet that stands for a file in front of its row: a document of the family, or a file chosen and not saved yet.
-- [FmHeader](#fmheader) — The big title of a sign-in page written by the page itself, when it depends on the data («Hi, Rosa»): like the one of `AuthLayout`.
-- [FmIcon](#fmicon) — A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
 - [FmImagePanel](#fmimagepanel) — The photo of a person or the logo of an organization on grey, beside its form, as the file beside *Edit the document*.
 - [FmLinkDocumentSheet](#fmlinkdocumentsheet) — *Link a document*: the panel with the documents of the family that can be linked to a card, searched while typing, 15 at a time with the next ones loaded at the end of the list, each with ↗ to open it in a new tab.
 - [FmLinkedRecords](#fmlinkedrecords) — *Links* of *A person* and *An organization*: the records that name them, one type at a time, with a tab for each type and how many records it has.
-- [FmLogo](#fmlogo) — The Family Manager logo: the roof and the family, white on the light blue square.
-- [FmMenu](#fmmenu) — The ⋯ button that opens a small menu of the less frequent actions, so that a title next to it keeps its room.
-- [FmMenuItem](#fmmenuitem) — An entry of `FmMenu`: an action, a page of the app (`href`), an address opened in a new tab (`href` and `external`) or a file to download (`href` and `download`).
-- [FmNewTabLink](#fmnewtablink) — A link that opens its address in a new tab, with the ↗ icon beside the text: the person, the organization or the card a card names, so the card stays open behind.
-- [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange).
-- [FmOrganizationMark](#fmorganizationmark) — The mark of an organization: its logo or, without one, the icon of its type.
 - [FmPasswordField](#fmpasswordfield) — The password field with the eye to see it, as in the sign-in boards.
 - [FmRow](#fmrow) — A list row of the canvas: in front the dot of the area or an icon, then the title and the subtitle, each on one line (the title cut in the middle, so its end shows), on the right an amount or a date.
 - [FmSearchField](#fmsearchfield) — The search box with the magnifying glass: in *Documents* and in the panel that links a document to a card.
-- [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload, the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
-- [FmTitle](#fmtitle) — The title at the top of a page: 28 px on the phone, 32 px on the computer, with the sentence below and, on the right and centred on them, the actions of the page.
 - [FmUploadSheet](#fmuploadsheet) — *Upload* of a card: the panel with the zone where the files of documents are dragged or chosen.
 
 ## FmActions
@@ -74,6 +83,19 @@ button and from the menu alike.
 | --- | --- | --- | --- | --- |
 | `actions` | `Action[]` | yes | — | The actions, the most frequent first: the last ones go in the menu first. |
 
+### Examples
+
+```vue
+<!-- One action -->
+<FmActions :actions="actions" />
+
+<!-- Four actions -->
+<FmActions :actions="actions" />
+
+<!-- With a delete in the menu -->
+<FmActions :actions="actions" />
+```
+
 ### Used by
 
 - `components/fm/FmDocumentActions.vue`
@@ -85,28 +107,6 @@ button and from the menu alike.
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
 - `pages/settings/Categories.vue`
-
-## FmActiveFilter
-
-`resources/js/components/fm/FmActiveFilter.vue`
-
-A chosen filter, above a list: it is removed with the ×.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `label` | `string` | yes | — | The filter, for example «Laura» or «Work and income». |
-| `removeLabel` | `string` | no | — | What the × says to a screen reader, when it does not remove a filter. |
-
-### Events
-
-- `remove`
-
-### Used by
-
-- `components/fm/FmDocumentForm.vue`
-- `pages/documents/Documents.vue`
 
 ## FmAvatar
 
@@ -124,6 +124,22 @@ The circle of a person: their photo or, without one, the initials on a colour.
 | `size` | `number` | no | `48` | The side of the circle, in pixels. |
 | `color` | `string` | no | `cn("bg-action")` | The class of the background colour of the initials. |
 
+### Examples
+
+```vue
+<!-- Initials -->
+<FmAvatar initials="MB" name="Marco Bianchi" />
+
+<!-- Another colour -->
+<FmAvatar initials="LB" name="Laura Bianchi" color="bg-paid" />
+
+<!-- Small -->
+<FmAvatar initials="GB" name="Giulia Bianchi" :size="32" />
+
+<!-- With a photo -->
+<FmAvatar initials="MB" name="Marco Bianchi" photo="/images/marco.jpg" />
+```
+
 ### Used by
 
 - `components/fm/FmDocumentDetail.vue`
@@ -133,78 +149,6 @@ The circle of a person: their photo or, without one, the initials on a colour.
 - `pages/family/Person.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Settings.vue`
-
-## FmBackLink
-
-`resources/js/components/fm/FmBackLink.vue`
-
-The link back to the page a page comes from, with a chevron and that page's
-name, above the title or the header of a page.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `href` | `string` | yes | — | The address of the page it comes from. |
-| `label` | `string` | yes | — | The name of that page, the text of the link. |
-
-### Used by
-
-- `components/fm/FmTitle.vue`
-- `pages/cards/Card.vue`
-
-## FmBottomBar
-
-`resources/js/components/fm/FmBottomBar.vue`
-
-The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in
-the middle, Documents and More. More opens a panel with Family, Settings and
-Log out, and stays marked when one of those pages is open.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `active` | `Section` | yes | — | The section of the page that is open. |
-| `items` | `NavigationItems` | yes | — | The navigation items. |
-
-### Used by
-
-- `layouts/AppLayout.vue`
-
-## FmBottomSheet
-
-`resources/js/components/fm/FmBottomSheet.vue`
-
-The panel that rises from the bottom over the darkened page, for short actions
-and filters. On the computer it is a window in the middle. It closes with the
-handle, with the ×, with Esc and by tapping outside; while it is open the focus
-stays inside.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `title` | `string` | yes | — | The title of the panel. |
-| `open` | `boolean` | no | `false` | Open or closed. |
-
-### Events
-
-- `update:open`
-
-### Slots
-
-- `default`
-
-### Used by
-
-- `components/fm/FmBottomBar.vue`
-- `components/fm/FmConfirm.vue`
-- `components/fm/FmLinkDocumentSheet.vue`
-- `components/fm/FmUploadSheet.vue`
-- `pages/documents/Documents.vue`
-- `pages/settings/Account.vue`
-- `pages/settings/Categories.vue`
 
 ## FmButton
 
@@ -243,6 +187,48 @@ the one done most often. With `href` it becomes an Inertia link.
 
 ```ts
 export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
+```
+
+### Examples
+
+```vue
+<!-- Solid -->
+<FmButton variant="solid">
+    Save
+</FmButton>
+
+<!-- Outline -->
+<FmButton variant="outline">
+    Cancel
+</FmButton>
+
+<!-- Soft -->
+<FmButton variant="soft">
+    Add
+</FmButton>
+
+<!-- Text -->
+<FmButton variant="text">
+    Skip
+</FmButton>
+
+<!-- Danger -->
+<FmButton variant="danger" :icon="icon">
+    Delete
+</FmButton>
+
+<!-- With an icon, as a link -->
+<FmButton :icon="icon" href="/upload">
+    Upload a document
+</FmButton>
+
+<!-- Disabled -->
+<FmButton disabled>
+    Save
+</FmButton>
+
+<!-- Only the icon -->
+<FmButton variant="soft" :icon="icon" label="Add a person" />
 ```
 
 ### Used by
@@ -304,6 +290,26 @@ of the section go beside the title, in `actions`.
 - `default`
 - `actions`
 
+### Examples
+
+```vue
+<!-- Plain -->
+<FmCard>
+    Some text inside the card.
+</FmCard>
+
+<!-- With a title and a button -->
+<FmCard title="Payments">
+    Nothing to pay this month.
+    <template #actions>…</template>
+</FmCard>
+
+<!-- List of rows -->
+<FmCard title="Next deadlines" list>
+    …
+</FmCard>
+```
+
 ### Used by
 
 - `pages/Home.vue`
@@ -316,6 +322,790 @@ of the section go beside the title, in `actions`.
 - `pages/settings/Account.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/Settings.vue`
+
+## FmConfirm
+
+`resources/js/components/fm/FmConfirm.vue`
+
+The panel from below that asks again before an action that is easy to do by
+mistake: the question, what happens, *Cancel* and the button that confirms.
+`FmConfirmDelete` uses it to delete; the form of a document, to remove a
+saved link.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `question` | `string` | yes | — | The title of the panel, for example «Delete this document?». |
+| `text` | `string` | yes | — | What happens, under the title. |
+| `confirmLabel` | `string` | yes | — | The text of the button that confirms. |
+| `open` | `boolean` | no | `false` | Open or closed. |
+
+### Events
+
+- `update:open`
+- `confirm`
+
+### Examples
+
+```vue
+<!-- Remove a link -->
+<FmConfirm question="Remove this link?" text="The document stays, only the link goes away." confirmLabel="Remove the link" />
+```
+
+### Used by
+
+- `components/fm/FmCardDocumentActions.vue`
+- `components/fm/FmConfirmDelete.vue`
+- `components/fm/FmDocumentForm.vue`
+
+## FmConfirmDelete
+
+`resources/js/components/fm/FmConfirmDelete.vue`
+
+The panel from below that asks again before deleting: the question, what
+happens, *Cancel* and the button that deletes. Opened by *Delete*, as a
+button (`FmDeleteButton`) or as an entry of a menu.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `url` | `string` | yes | — | The address the deletion is sent to. |
+| `question` | `string` | yes | — | The title of the panel, for example «Delete this document?». |
+| `text` | `string` | yes | — | What happens, under the title. |
+| `confirmLabel` | `string` | yes | — | The text of the button that deletes. |
+| `preserveState` | `boolean` | no | `false` | The page stays as it is, as a form with what is written and not saved. |
+| `open` | `boolean` | no | `false` | Open or closed. |
+
+### Events
+
+- `update:open`
+
+### Examples
+
+```vue
+<!-- Delete a document -->
+<FmConfirmDelete url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" />
+```
+
+### Used by
+
+- `components/fm/FmActions.vue`
+- `components/fm/FmCardDocumentActions.vue`
+- `components/fm/FmDeleteButton.vue`
+- `components/fm/FmDocumentActions.vue`
+- `pages/documents/EditDocument.vue`
+
+## FmDeleteButton
+
+`resources/js/components/fm/FmDeleteButton.vue`
+
+*Delete*, red, which asks again in the panel from below before deleting:
+the question, what happens, *Cancel* and the button that deletes.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `url` | `string` | yes | — | The address the deletion is sent to. |
+| `question` | `string` | yes | — | The title of the panel, for example «Delete this document?». |
+| `text` | `string` | yes | — | What happens, under the title. |
+| `confirmLabel` | `string` | yes | — | The text of the button that deletes. |
+| `compact` | `boolean` | no | `false` | Only the bin, without the text, as in the panel beside the list. |
+
+### Examples
+
+```vue
+<!-- With the text -->
+<FmDeleteButton url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" />
+
+<!-- Compact -->
+<FmDeleteButton url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" compact />
+```
+
+## FmEmpty
+
+`resources/js/components/fm/FmEmpty.vue`
+
+The card of a page or of a list still empty: an icon, what is missing and,
+below, what can be done.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `icon` | `LucideIcon` | yes | — | The icon at the top. |
+| `title` | `string` | yes | — | What is missing. |
+| `text` | `string` | no | — | The reason, or what will happen. |
+
+### Slots
+
+- `default`
+
+### Examples
+
+```vue
+<!-- Title only -->
+<FmEmpty :icon="icon" title="No documents yet" />
+
+<!-- With the reason -->
+<FmEmpty :icon="icon" title="No documents yet" text="Upload the first one and it will appear here." />
+
+<!-- With a button -->
+<FmEmpty :icon="icon" title="No documents yet" text="Upload the first one and it will appear here.">
+    …
+</FmEmpty>
+```
+
+### Used by
+
+- `pages/Area.vue`
+- `pages/Areas.vue`
+- `pages/Home.vue`
+- `pages/dev/Components.vue`
+- `pages/documents/Documents.vue`
+- `pages/family/Organizations.vue`
+
+## FmFaces
+
+`resources/js/components/fm/FmFaces.vue`
+
+The faces of the family, one over the other: the circles with the initials,
+as in the *Invitation accepted* board.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `people` | `App.Data.PersonSummaryData[]` | yes | — | The people to show. |
+| `size` | `number` | no | `48` | The side of each circle, in pixels. |
+
+### Examples
+
+```vue
+<!-- The family -->
+<FmFaces :people="people" />
+
+<!-- Two people -->
+<FmFaces :people="people" />
+
+<!-- Small -->
+<FmFaces :people="people" :size="32" />
+```
+
+### Used by
+
+- `pages/auth/AcceptInvitation.vue`
+
+## FmIcon
+
+`resources/js/components/fm/FmIcon.vue`
+
+A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
+Without a label it is only decoration and screen reader users do not hear it.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `icon` | `LucideIcon` | yes | — | The icon, imported from `@lucide/vue`. |
+| `size` | `number` | no | `24` | The side in pixels. |
+| `stroke` | `number` | no | `2` | The width of the stroke. |
+| `label` | `string` | no | — | What the icon says, when there is no text next to it. |
+
+### Examples
+
+```vue
+<!-- Default -->
+<FmIcon :icon="icon" />
+
+<!-- Big and thin -->
+<FmIcon :icon="icon" :size="48" :stroke="1" />
+
+<!-- With a label -->
+<FmIcon :icon="icon" label="Document" />
+```
+
+### Used by
+
+- `components/fm/FmActiveFilter.vue`
+- `components/fm/FmBackLink.vue`
+- `components/fm/FmBottomBar.vue`
+- `components/fm/FmBottomSheet.vue`
+- `components/fm/FmButton.vue`
+- `components/fm/FmCardFiles.vue`
+- `components/fm/FmCardHeader.vue`
+- `components/fm/FmCardRow.vue`
+- `components/fm/FmCategoryTree.vue`
+- `components/fm/FmDocumentDetail.vue`
+- `components/fm/FmEmpty.vue`
+- `components/fm/FmFileDrop.vue`
+- `components/fm/FmFileTile.vue`
+- `components/fm/FmMenuItem.vue`
+- `components/fm/FmNewTabLink.vue`
+- `components/fm/FmNotice.vue`
+- `components/fm/FmOrganizationMark.vue`
+- `components/fm/FmPasswordField.vue`
+- `components/fm/FmRow.vue`
+- `components/fm/FmSearchField.vue`
+- `components/fm/FmSidebar.vue`
+- `layouts/AuthLayout.vue`
+- `pages/Area.vue`
+- `pages/Areas.vue`
+- `pages/cards/EditCard.vue`
+- `pages/cards/NewCard.vue`
+- `pages/documents/Documents.vue`
+- `pages/documents/Upload.vue`
+- `pages/family/EditOrganization.vue`
+- `pages/family/EditPerson.vue`
+- `pages/family/Organization.vue`
+- `pages/family/Organizations.vue`
+- `pages/family/People.vue`
+- `pages/family/Person.vue`
+- `pages/settings/Account.vue`
+- `pages/settings/Settings.vue`
+
+## FmLogo
+
+`resources/js/components/fm/FmLogo.vue`
+
+The Family Manager logo: the roof and the family, white on the light blue square.
+The white version, without the square, goes on the blue panel of the sign-in pages.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `size` | `number` | no | `36` | The side in pixels. |
+| `white` | `boolean` | no | `false` | Only the white drawing, without the square. |
+
+### Examples
+
+```vue
+<!-- Default -->
+<FmLogo />
+
+<!-- Big -->
+<FmLogo :size="72" />
+
+<!-- White -->
+<FmLogo white :size="72" />
+```
+
+### Used by
+
+- `components/fm/FmSidebar.vue`
+- `layouts/AuthLayout.vue`
+
+## FmNotice
+
+`resources/js/components/fm/FmNotice.vue`
+
+A message inside the page, with its icon: some information, something done
+(green), something that needs attention (orange).
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `tone` | `NoticeTone` | no | `"info"` | Information, done or warning. |
+| `icon` | `LucideIcon` | no | — | An icon other than the one of the tone. |
+
+### Slots
+
+- `default`
+
+### Types
+
+```ts
+export type NoticeTone = 'info' | 'ok' | 'warning';
+```
+
+### Examples
+
+```vue
+<!-- Information -->
+<FmNotice tone="info">
+    The files are kept for you, only the family sees them.
+</FmNotice>
+
+<!-- Done -->
+<FmNotice tone="ok">
+    We sent the invitation to laura@example.com.
+</FmNotice>
+
+<!-- Warning -->
+<FmNotice tone="warning">
+    This bill expired 3 days ago.
+</FmNotice>
+```
+
+### Used by
+
+- `components/fm/FmCardFiles.vue`
+- `components/fm/FmUploadSheet.vue`
+- `pages/auth/ForgotPassword.vue`
+- `pages/auth/Login.vue`
+- `pages/auth/VerifyEmail.vue`
+- `pages/cards/Card.vue`
+- `pages/documents/Upload.vue`
+- `pages/family/InvitationSent.vue`
+- `pages/family/Invite.vue`
+- `pages/family/People.vue`
+- `pages/family/Person.vue`
+- `pages/settings/Account.vue`
+- `pages/settings/Categories.vue`
+
+## FmOrganizationMark
+
+`resources/js/components/fm/FmOrganizationMark.vue`
+
+The mark of an organization: its logo or, without one, the icon of its
+type. The size, the corners and the background come from the `class` of
+whoever uses it, so the list and the page keep their own.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `types` | `readonly string[]` | yes | — | The values of its types, for the icon. |
+| `logo` | `string \| null` | no | `null` | The address of the logo. |
+| `name` | `string` | no | `""` | The name, for those who cannot see the logo. |
+| `iconSize` | `number` | no | `20` | The side of the icon, in pixels. |
+
+### Examples
+
+```vue
+<!-- Bank -->
+<FmOrganizationMark :types="types" name="BPER Banca" />
+
+<!-- Utility provider -->
+<FmOrganizationMark :types="types" name="Edison" />
+
+<!-- With a logo -->
+<FmOrganizationMark :types="types" name="BPER Banca" logo="/images/bper.png" />
+```
+
+### Used by
+
+- `pages/family/EditOrganization.vue`
+- `pages/family/Organization.vue`
+- `pages/family/Organizations.vue`
+
+## FmTitle
+
+`resources/js/components/fm/FmTitle.vue`
+
+The title at the top of a page: 28 px on the phone, 32 px on the computer, with
+the sentence below and, on the right and centred on them, the actions of the
+page. Above it, the link back to the page it comes from, with that page's
+name, always 20 px above the title like on the pages of a person and an
+organization.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `title` | `string` | yes | — | The title of the page. |
+| `subtitle` | `string` | no | — | The sentence below the title. |
+| `back` | `string` | no | — | The address of the page it comes from. |
+| `backLabel` | `string` | no | — | The name of the page it comes from, the text of the link back. |
+
+### Slots
+
+- `actions`
+
+### Examples
+
+```vue
+<!-- Title only -->
+<FmTitle title="Documents" />
+
+<!-- With a sentence -->
+<FmTitle title="Documents" subtitle="Everything the family keeps." />
+
+<!-- With the link back -->
+<FmTitle title="Bolletta luce ottobre" subtitle="Edison" back="/areas/home" backLabel="Home" />
+
+<!-- With buttons -->
+<FmTitle title="Documents">
+    <template #actions>…</template>
+</FmTitle>
+```
+
+### Used by
+
+- `components/fm/FmFamilyViews.vue`
+- `pages/Area.vue`
+- `pages/Areas.vue`
+- `pages/cards/EditCard.vue`
+- `pages/cards/NewCard.vue`
+- `pages/dev/Components.vue`
+- `pages/documents/Document.vue`
+- `pages/documents/Documents.vue`
+- `pages/documents/EditDocument.vue`
+- `pages/documents/Upload.vue`
+- `pages/family/EditOrganization.vue`
+- `pages/family/EditPerson.vue`
+- `pages/family/InvitationSent.vue`
+- `pages/family/Invite.vue`
+- `pages/settings/Account.vue`
+- `pages/settings/Categories.vue`
+- `pages/settings/Settings.vue`
+
+## FmBackLink
+
+`resources/js/components/fm/FmBackLink.vue`
+
+The link back to the page a page comes from, with a chevron and that page's
+name, above the title or the header of a page.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `href` | `string` | yes | — | The address of the page it comes from. |
+| `label` | `string` | yes | — | The name of that page, the text of the link. |
+
+### Examples
+
+```vue
+<!-- Short -->
+<FmBackLink href="/documents" label="Documents" />
+
+<!-- Long name -->
+<FmBackLink href="/cards/1" label="Contratto di locazione di via Garibaldi 12, Milano" />
+```
+
+### Used by
+
+- `components/fm/FmTitle.vue`
+- `pages/cards/Card.vue`
+
+## FmBottomBar
+
+`resources/js/components/fm/FmBottomBar.vue`
+
+The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in
+the middle, Documents and More. More opens a panel with Family, Settings and
+Log out, and stays marked when one of those pages is open.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `active` | `Section` | yes | — | The section of the page that is open. |
+| `items` | `NavigationItems` | yes | — | The navigation items. |
+
+### Examples
+
+```vue
+<!-- Home -->
+<FmBottomBar :items="items" active="home" />
+
+<!-- Documents -->
+<FmBottomBar :items="items" active="documents" />
+
+<!-- More is marked -->
+<FmBottomBar :items="items" active="family" />
+```
+
+### Used by
+
+- `layouts/AppLayout.vue`
+
+## FmFamilyViews
+
+`resources/js/components/fm/FmFamilyViews.vue`
+
+The top of *People* and *Organizations*: the title *Family* with the name of
+the family, the actions of the page and the two views, each with how many.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `family` | `App.Data.FamilySummaryData` | yes | — | The family, with how many people and organizations it has. |
+| `current` | `"people" \| "organizations"` | yes | — | The view open. |
+
+### Slots
+
+- `actions`
+
+### Examples
+
+```vue
+<!-- People -->
+<FmFamilyViews :family="family" current="people" />
+
+<!-- Organizations, with a button -->
+<FmFamilyViews :family="family" current="organizations">
+    <template #actions>…</template>
+</FmFamilyViews>
+```
+
+### Used by
+
+- `pages/family/Organizations.vue`
+- `pages/family/People.vue`
+
+## FmHeader
+
+`resources/js/components/fm/FmHeader.vue`
+
+The big title of a sign-in page written by the page itself, when it depends
+on the data («Hi, Rosa»): like the one of `AuthLayout`.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `title` | `string` | yes | — | The title. |
+| `subtitle` | `string` | no | — | The sentence below. |
+
+### Examples
+
+```vue
+<!-- Title only -->
+<FmHeader title="Hi, Rosa" />
+
+<!-- With a sentence -->
+<FmHeader title="Hi, Rosa" subtitle="Marco invited you to the Bianchi family." />
+```
+
+### Used by
+
+- `layouts/AuthLayout.vue`
+- `pages/auth/AcceptInvitation.vue`
+- `pages/auth/InvalidInvitation.vue`
+- `pages/welcome/Welcome.vue`
+
+## FmMenu
+
+`resources/js/components/fm/FmMenu.vue`
+
+The ⋯ button that opens a small menu of the less frequent actions, so that
+a title next to it keeps its room. The entries are `FmMenuItem`.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | no | — | The text of the button for screen readers; «More actions» if missing. |
+| `icon` | `LucideIcon` | no | — | The icon of the button; the ⋯ if missing. |
+| `small` | `boolean` | no | `false` | The smaller ⋯ button, 40 px, as beside the title of a panel. |
+| `plain` | `boolean` | no | `false` | The ⋯ button without a background until hovered, as the plain buttons beside a row. |
+
+### Slots
+
+- `default`
+
+### Examples
+
+```vue
+<!-- Few entries -->
+<FmMenu>
+    …
+</FmMenu>
+
+<!-- Plain, with a delete -->
+<FmMenu plain label="Actions of the document">
+    …
+</FmMenu>
+```
+
+### Used by
+
+- `components/fm/FmActions.vue`
+- `components/fm/FmCardDocumentActions.vue`
+- `components/fm/FmDocumentActions.vue`
+- `pages/cards/Card.vue`
+
+## FmMenuItem
+
+`resources/js/components/fm/FmMenuItem.vue`
+
+An entry of `FmMenu`: an action, a page of the app (`href`), an address
+opened in a new tab (`href` and `external`) or a file to download (`href`
+and `download`).
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `icon` | `LucideIcon` | no | — | The icon before the text. |
+| `href` | `string` | no | — | The address: if there is one, the entry is a link. |
+| `external` | `boolean` | no | `false` | With `href`: a plain link that opens the address in a new tab. |
+| `download` | `boolean` | no | `false` | With `href`: a plain link that downloads the file. |
+| `danger` | `boolean` | no | `false` | Red, for the entry that deletes. |
+
+### Events
+
+- `select`
+
+### Slots
+
+- `default`
+
+### Used by
+
+- `components/fm/FmActions.vue`
+- `components/fm/FmCardDocumentActions.vue`
+- `components/fm/FmDocumentActions.vue`
+- `pages/cards/Card.vue`
+
+## FmNewTabLink
+
+`resources/js/components/fm/FmNewTabLink.vue`
+
+A link that opens its address in a new tab, with the ↗ icon beside the
+text: the person, the organization or the card a card names, so the card
+stays open behind.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `href` | `string` | yes | — | The address to open. |
+| `text` | `string` | yes | — | The text of the link, for example «Studio Ferri». |
+
+### Examples
+
+```vue
+<!-- Organization -->
+<FmNewTabLink href="/organizations/1" text="Edison" />
+
+<!-- Person -->
+<FmNewTabLink href="/people/1" text="Marco Bianchi" />
+```
+
+### Used by
+
+- `pages/cards/Card.vue`
+
+## FmSidebar
+
+`resources/js/components/fm/FmSidebar.vue`
+
+The sidebar of the computer (from 1024 px): the logo and the family, Upload,
+the sections with the areas under *Areas*, and at the bottom *My account*,
+which opens Settings and Log out.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `active` | `Section` | yes | — | The section of the page that is open. |
+| `path` | `string` | yes | — | The path of the page, for example `/areas/home`, to mark its area. |
+| `items` | `NavigationItems` | yes | — | The navigation items. |
+| `areas` | `App.Data.AreaCountData[]` | yes | — | The areas with their active cards, in order. |
+| `family` | `string` | yes | — | The name of the family, for example «Bianchi». |
+| `user` | `string` | yes | — | The name of who is signed in. |
+
+### Examples
+
+```vue
+<!-- Home -->
+<FmSidebar :items="items" :areas="areas" family="Bianchi" user="Marco Bianchi" active="home" path="/" />
+
+<!-- Inside an area -->
+<FmSidebar :items="items" :areas="areas" family="Bianchi" user="Marco Bianchi" active="areas" path="/areas/home" />
+
+<!-- Settings -->
+<FmSidebar :items="items" :areas="areas" family="Bianchi" user="Marco Bianchi" active="settings" path="/settings" />
+```
+
+### Used by
+
+- `layouts/AppLayout.vue`
+
+## FmDateTile
+
+`resources/js/components/fm/FmDateTile.vue`
+
+A date of a card on its page: the label, the date as `15/10/2026` and below
+how far it is from today. An expiring date already passed reads «Expired 3
+days ago» in red.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `date` | `App.Data.CardDateData` | yes | — | The date, with its label and whether it expires. |
+
+### Examples
+
+```vue
+<!-- Expires soon -->
+<FmDateTile :date="date" />
+
+<!-- Expired -->
+<FmDateTile :date="date" />
+
+<!-- Does not expire -->
+<FmDateTile :date="date" />
+```
+
+### Used by
+
+- `pages/cards/Card.vue`
+
+## FmActiveFilter
+
+`resources/js/components/fm/FmActiveFilter.vue`
+
+A chosen filter, above a list: it is removed with the ×.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | yes | — | The filter, for example «Laura» or «Work and income». |
+| `removeLabel` | `string` | no | — | What the × says to a screen reader, when it does not remove a filter. |
+
+### Events
+
+- `remove`
+
+### Used by
+
+- `components/fm/FmDocumentForm.vue`
+- `pages/documents/Documents.vue`
+
+## FmBottomSheet
+
+`resources/js/components/fm/FmBottomSheet.vue`
+
+The panel that rises from the bottom over the darkened page, for short actions
+and filters. On the computer it is a window in the middle. It closes with the
+handle, with the ×, with Esc and by tapping outside; while it is open the focus
+stays inside.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `title` | `string` | yes | — | The title of the panel. |
+| `open` | `boolean` | no | `false` | Open or closed. |
+
+### Events
+
+- `update:open`
+
+### Slots
+
+- `default`
+
+### Used by
+
+- `components/fm/FmBottomBar.vue`
+- `components/fm/FmConfirm.vue`
+- `components/fm/FmLinkDocumentSheet.vue`
+- `components/fm/FmUploadSheet.vue`
+- `pages/documents/Documents.vue`
+- `pages/settings/Account.vue`
+- `pages/settings/Categories.vue`
 
 ## FmCardDocumentActions
 
@@ -509,108 +1299,6 @@ It calls itself for the levels below.
 - `components/fm/FmCategoryTree.vue`
 - `pages/settings/Categories.vue`
 
-## FmConfirm
-
-`resources/js/components/fm/FmConfirm.vue`
-
-The panel from below that asks again before an action that is easy to do by
-mistake: the question, what happens, *Cancel* and the button that confirms.
-`FmConfirmDelete` uses it to delete; the form of a document, to remove a
-saved link.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `question` | `string` | yes | — | The title of the panel, for example «Delete this document?». |
-| `text` | `string` | yes | — | What happens, under the title. |
-| `confirmLabel` | `string` | yes | — | The text of the button that confirms. |
-| `open` | `boolean` | no | `false` | Open or closed. |
-
-### Events
-
-- `update:open`
-- `confirm`
-
-### Used by
-
-- `components/fm/FmCardDocumentActions.vue`
-- `components/fm/FmConfirmDelete.vue`
-- `components/fm/FmDocumentForm.vue`
-
-## FmConfirmDelete
-
-`resources/js/components/fm/FmConfirmDelete.vue`
-
-The panel from below that asks again before deleting: the question, what
-happens, *Cancel* and the button that deletes. Opened by *Delete*, as a
-button (`FmDeleteButton`) or as an entry of a menu.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `url` | `string` | yes | — | The address the deletion is sent to. |
-| `question` | `string` | yes | — | The title of the panel, for example «Delete this document?». |
-| `text` | `string` | yes | — | What happens, under the title. |
-| `confirmLabel` | `string` | yes | — | The text of the button that deletes. |
-| `preserveState` | `boolean` | no | `false` | The page stays as it is, as a form with what is written and not saved. |
-| `open` | `boolean` | no | `false` | Open or closed. |
-
-### Events
-
-- `update:open`
-
-### Examples
-
-```vue
-<!-- Delete a document -->
-<FmConfirmDelete url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" />
-```
-
-### Used by
-
-- `components/fm/FmActions.vue`
-- `components/fm/FmCardDocumentActions.vue`
-- `components/fm/FmDeleteButton.vue`
-- `components/fm/FmDocumentActions.vue`
-- `pages/documents/EditDocument.vue`
-
-## FmDateTile
-
-`resources/js/components/fm/FmDateTile.vue`
-
-A date of a card on its page: the label, the date as `15/10/2026` and below
-how far it is from today. An expiring date already passed reads «Expired 3
-days ago» in red.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `date` | `App.Data.CardDateData` | yes | — | The date, with its label and whether it expires. |
-
-### Used by
-
-- `pages/cards/Card.vue`
-
-## FmDeleteButton
-
-`resources/js/components/fm/FmDeleteButton.vue`
-
-*Delete*, red, which asks again in the panel from below before deleting:
-the question, what happens, *Cancel* and the button that deletes.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `url` | `string` | yes | — | The address the deletion is sent to. |
-| `question` | `string` | yes | — | The title of the panel, for example «Delete this document?». |
-| `text` | `string` | yes | — | What happens, under the title. |
-| `confirmLabel` | `string` | yes | — | The text of the button that deletes. |
-| `compact` | `boolean` | no | `false` | Only the bin, without the text, as in the panel beside the list. |
-
 ## FmDocumentActions
 
 `resources/js/components/fm/FmDocumentActions.vue`
@@ -743,75 +1431,6 @@ top of *A person*.
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
 
-## FmEmpty
-
-`resources/js/components/fm/FmEmpty.vue`
-
-The card of a page or of a list still empty: an icon, what is missing and,
-below, what can be done.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `icon` | `LucideIcon` | yes | — | The icon at the top. |
-| `title` | `string` | yes | — | What is missing. |
-| `text` | `string` | no | — | The reason, or what will happen. |
-
-### Slots
-
-- `default`
-
-### Used by
-
-- `pages/Area.vue`
-- `pages/Areas.vue`
-- `pages/Home.vue`
-- `pages/dev/Components.vue`
-- `pages/documents/Documents.vue`
-- `pages/family/Organizations.vue`
-
-## FmFaces
-
-`resources/js/components/fm/FmFaces.vue`
-
-The faces of the family, one over the other: the circles with the initials,
-as in the *Invitation accepted* board.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `people` | `App.Data.PersonSummaryData[]` | yes | — | The people to show. |
-| `size` | `number` | no | `48` | The side of each circle, in pixels. |
-
-### Used by
-
-- `pages/auth/AcceptInvitation.vue`
-
-## FmFamilyViews
-
-`resources/js/components/fm/FmFamilyViews.vue`
-
-The top of *People* and *Organizations*: the title *Family* with the name of
-the family, the actions of the page and the two views, each with how many.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `family` | `App.Data.FamilySummaryData` | yes | — | The family, with how many people and organizations it has. |
-| `current` | `"people" \| "organizations"` | yes | — | The view open. |
-
-### Slots
-
-- `actions`
-
-### Used by
-
-- `pages/family/Organizations.vue`
-- `pages/family/People.vue`
-
 ## FmFileDrop
 
 `resources/js/components/fm/FmFileDrop.vue`
@@ -897,82 +1516,6 @@ the family, or a file chosen and not saved yet.
 - `components/fm/FmDocumentRow.vue`
 - `pages/Home.vue`
 
-## FmHeader
-
-`resources/js/components/fm/FmHeader.vue`
-
-The big title of a sign-in page written by the page itself, when it depends
-on the data («Hi, Rosa»): like the one of `AuthLayout`.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `title` | `string` | yes | — | The title. |
-| `subtitle` | `string` | no | — | The sentence below. |
-
-### Used by
-
-- `layouts/AuthLayout.vue`
-- `pages/auth/AcceptInvitation.vue`
-- `pages/auth/InvalidInvitation.vue`
-- `pages/welcome/Welcome.vue`
-
-## FmIcon
-
-`resources/js/components/fm/FmIcon.vue`
-
-A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
-Without a label it is only decoration and screen reader users do not hear it.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `icon` | `LucideIcon` | yes | — | The icon, imported from `@lucide/vue`. |
-| `size` | `number` | no | `24` | The side in pixels. |
-| `stroke` | `number` | no | `2` | The width of the stroke. |
-| `label` | `string` | no | — | What the icon says, when there is no text next to it. |
-
-### Used by
-
-- `components/fm/FmActiveFilter.vue`
-- `components/fm/FmBackLink.vue`
-- `components/fm/FmBottomBar.vue`
-- `components/fm/FmBottomSheet.vue`
-- `components/fm/FmButton.vue`
-- `components/fm/FmCardFiles.vue`
-- `components/fm/FmCardHeader.vue`
-- `components/fm/FmCardRow.vue`
-- `components/fm/FmCategoryTree.vue`
-- `components/fm/FmDocumentDetail.vue`
-- `components/fm/FmEmpty.vue`
-- `components/fm/FmFileDrop.vue`
-- `components/fm/FmFileTile.vue`
-- `components/fm/FmMenuItem.vue`
-- `components/fm/FmNewTabLink.vue`
-- `components/fm/FmNotice.vue`
-- `components/fm/FmOrganizationMark.vue`
-- `components/fm/FmPasswordField.vue`
-- `components/fm/FmRow.vue`
-- `components/fm/FmSearchField.vue`
-- `components/fm/FmSidebar.vue`
-- `layouts/AuthLayout.vue`
-- `pages/Area.vue`
-- `pages/Areas.vue`
-- `pages/cards/EditCard.vue`
-- `pages/cards/NewCard.vue`
-- `pages/documents/Documents.vue`
-- `pages/documents/Upload.vue`
-- `pages/family/EditOrganization.vue`
-- `pages/family/EditPerson.vue`
-- `pages/family/Organization.vue`
-- `pages/family/Organizations.vue`
-- `pages/family/People.vue`
-- `pages/family/Person.vue`
-- `pages/settings/Account.vue`
-- `pages/settings/Settings.vue`
-
 ## FmImagePanel
 
 `resources/js/components/fm/FmImagePanel.vue`
@@ -1056,167 +1599,6 @@ type at a time, with a tab for each type and how many records it has.
 
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
-
-## FmLogo
-
-`resources/js/components/fm/FmLogo.vue`
-
-The Family Manager logo: the roof and the family, white on the light blue square.
-The white version, without the square, goes on the blue panel of the sign-in pages.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `size` | `number` | no | `36` | The side in pixels. |
-| `white` | `boolean` | no | `false` | Only the white drawing, without the square. |
-
-### Used by
-
-- `components/fm/FmSidebar.vue`
-- `layouts/AuthLayout.vue`
-
-## FmMenu
-
-`resources/js/components/fm/FmMenu.vue`
-
-The ⋯ button that opens a small menu of the less frequent actions, so that
-a title next to it keeps its room. The entries are `FmMenuItem`.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `label` | `string` | no | — | The text of the button for screen readers; «More actions» if missing. |
-| `icon` | `LucideIcon` | no | — | The icon of the button; the ⋯ if missing. |
-| `small` | `boolean` | no | `false` | The smaller ⋯ button, 40 px, as beside the title of a panel. |
-| `plain` | `boolean` | no | `false` | The ⋯ button without a background until hovered, as the plain buttons beside a row. |
-
-### Slots
-
-- `default`
-
-### Used by
-
-- `components/fm/FmActions.vue`
-- `components/fm/FmCardDocumentActions.vue`
-- `components/fm/FmDocumentActions.vue`
-- `pages/cards/Card.vue`
-
-## FmMenuItem
-
-`resources/js/components/fm/FmMenuItem.vue`
-
-An entry of `FmMenu`: an action, a page of the app (`href`), an address
-opened in a new tab (`href` and `external`) or a file to download (`href`
-and `download`).
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `icon` | `LucideIcon` | no | — | The icon before the text. |
-| `href` | `string` | no | — | The address: if there is one, the entry is a link. |
-| `external` | `boolean` | no | `false` | With `href`: a plain link that opens the address in a new tab. |
-| `download` | `boolean` | no | `false` | With `href`: a plain link that downloads the file. |
-| `danger` | `boolean` | no | `false` | Red, for the entry that deletes. |
-
-### Events
-
-- `select`
-
-### Slots
-
-- `default`
-
-### Used by
-
-- `components/fm/FmActions.vue`
-- `components/fm/FmCardDocumentActions.vue`
-- `components/fm/FmDocumentActions.vue`
-- `pages/cards/Card.vue`
-
-## FmNewTabLink
-
-`resources/js/components/fm/FmNewTabLink.vue`
-
-A link that opens its address in a new tab, with the ↗ icon beside the
-text: the person, the organization or the card a card names, so the card
-stays open behind.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `href` | `string` | yes | — | The address to open. |
-| `text` | `string` | yes | — | The text of the link, for example «Studio Ferri». |
-
-### Used by
-
-- `pages/cards/Card.vue`
-
-## FmNotice
-
-`resources/js/components/fm/FmNotice.vue`
-
-A message inside the page, with its icon: some information, something done
-(green), something that needs attention (orange).
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `tone` | `NoticeTone` | no | `"info"` | Information, done or warning. |
-| `icon` | `LucideIcon` | no | — | An icon other than the one of the tone. |
-
-### Slots
-
-- `default`
-
-### Types
-
-```ts
-export type NoticeTone = 'info' | 'ok' | 'warning';
-```
-
-### Used by
-
-- `components/fm/FmCardFiles.vue`
-- `components/fm/FmUploadSheet.vue`
-- `pages/auth/ForgotPassword.vue`
-- `pages/auth/Login.vue`
-- `pages/auth/VerifyEmail.vue`
-- `pages/cards/Card.vue`
-- `pages/documents/Upload.vue`
-- `pages/family/InvitationSent.vue`
-- `pages/family/Invite.vue`
-- `pages/family/People.vue`
-- `pages/family/Person.vue`
-- `pages/settings/Account.vue`
-- `pages/settings/Categories.vue`
-
-## FmOrganizationMark
-
-`resources/js/components/fm/FmOrganizationMark.vue`
-
-The mark of an organization: its logo or, without one, the icon of its
-type. The size, the corners and the background come from the `class` of
-whoever uses it, so the list and the page keep their own.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `types` | `readonly string[]` | yes | — | The values of its types, for the icon. |
-| `logo` | `string \| null` | no | `null` | The address of the logo. |
-| `name` | `string` | no | `""` | The name, for those who cannot see the logo. |
-| `iconSize` | `number` | no | `20` | The side of the icon, in pixels. |
-
-### Used by
-
-- `pages/family/EditOrganization.vue`
-- `pages/family/Organization.vue`
-- `pages/family/Organizations.vue`
 
 ## FmPasswordField
 
@@ -1363,72 +1745,6 @@ that links a document to a card. What it does with the text is up to the page.
 - `components/fm/FmLinkDocumentSheet.vue`
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
-
-## FmSidebar
-
-`resources/js/components/fm/FmSidebar.vue`
-
-The sidebar of the computer (from 1024 px): the logo and the family, Upload,
-the sections with the areas under *Areas*, and at the bottom *My account*,
-which opens Settings and Log out.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `active` | `Section` | yes | — | The section of the page that is open. |
-| `path` | `string` | yes | — | The path of the page, for example `/areas/home`, to mark its area. |
-| `items` | `NavigationItems` | yes | — | The navigation items. |
-| `areas` | `App.Data.AreaCountData[]` | yes | — | The areas with their active cards, in order. |
-| `family` | `string` | yes | — | The name of the family, for example «Bianchi». |
-| `user` | `string` | yes | — | The name of who is signed in. |
-
-### Used by
-
-- `layouts/AppLayout.vue`
-
-## FmTitle
-
-`resources/js/components/fm/FmTitle.vue`
-
-The title at the top of a page: 28 px on the phone, 32 px on the computer, with
-the sentence below and, on the right and centred on them, the actions of the
-page. Above it, the link back to the page it comes from, with that page's
-name, always 20 px above the title like on the pages of a person and an
-organization.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `title` | `string` | yes | — | The title of the page. |
-| `subtitle` | `string` | no | — | The sentence below the title. |
-| `back` | `string` | no | — | The address of the page it comes from. |
-| `backLabel` | `string` | no | — | The name of the page it comes from, the text of the link back. |
-
-### Slots
-
-- `actions`
-
-### Used by
-
-- `components/fm/FmFamilyViews.vue`
-- `pages/Area.vue`
-- `pages/Areas.vue`
-- `pages/cards/EditCard.vue`
-- `pages/cards/NewCard.vue`
-- `pages/dev/Components.vue`
-- `pages/documents/Document.vue`
-- `pages/documents/Documents.vue`
-- `pages/documents/EditDocument.vue`
-- `pages/documents/Upload.vue`
-- `pages/family/EditOrganization.vue`
-- `pages/family/EditPerson.vue`
-- `pages/family/InvitationSent.vue`
-- `pages/family/Invite.vue`
-- `pages/settings/Account.vue`
-- `pages/settings/Categories.vue`
-- `pages/settings/Settings.vue`
 
 ## FmUploadSheet
 

@@ -139,7 +139,7 @@ describe('DevCases', () => {
     });
 
     it('says so for a component without cases', () => {
-        renderPage(DevCases, { name: 'FmIcon' });
+        renderPage(DevCases, { name: 'FmWithoutCases' });
 
         expect(
             screen.getByText('No cases for this component yet.'),

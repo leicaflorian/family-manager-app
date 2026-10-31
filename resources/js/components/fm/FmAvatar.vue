@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /**
  * The circle of a person: their photo or, without one, the initials on a colour.
+ *
+ * @group basics
  */
 import { cn } from '@/lib/utils';
 

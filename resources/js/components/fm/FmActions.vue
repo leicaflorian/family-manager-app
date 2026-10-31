@@ -4,6 +4,8 @@
  * when the room is short, down to none, and the others in the ⋯ menu. An
  * action with `confirm` asks in the panel from below before deleting, from the
  * button and from the menu alike.
+ *
+ * @group basics
  */
 import { Ellipsis } from '@lucide/vue';
 import { useResizeObserver } from '@vueuse/core';

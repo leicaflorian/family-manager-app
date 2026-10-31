@@ -2,6 +2,8 @@
 /**
  * The link back to the page a page comes from, with a chevron and that page's
  * name, above the title or the header of a page.
+ *
+ * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronLeft } from '@lucide/vue';

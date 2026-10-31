@@ -2,6 +2,8 @@
 /**
  * The button of the canvas, in five variants. Only one solid button per page:
  * the one done most often. With `href` it becomes an Inertia link.
+ *
+ * @group basics
  */
 import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';

@@ -2,6 +2,8 @@
 /**
  * A message inside the page, with its icon: some information, something done
  * (green), something that needs attention (orange).
+ *
+ * @group basics
  */
 import type { LucideIcon } from '@lucide/vue';
 import { CircleAlert, Info, MailCheck } from '@lucide/vue';

@@ -3,6 +3,8 @@
  * The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in
  * the middle, Documents and More. More opens a panel with Family, Settings and
  * Log out, and stays marked when one of those pages is open.
+ *
+ * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
 import { LogOut, Menu, Plus } from '@lucide/vue';

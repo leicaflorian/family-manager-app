@@ -3,6 +3,8 @@
  * The white card of the pages. With `list` it holds rows (`FmRow`) separated by
  * a line, without padding inside because the rows have their own. The buttons
  * of the section go beside the title, in `actions`.
+ *
+ * @group basics
  */
 const { title, list = false } = defineProps<{
     /** The title of the section, above the content. */

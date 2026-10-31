@@ -3,6 +3,8 @@
  * A date of a card on its page: the label, the date as `15/10/2026` and below
  * how far it is from today. An expiring date already passed reads «Expired 3
  * days ago» in red.
+ *
+ * @group figures
  */
 import { transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
