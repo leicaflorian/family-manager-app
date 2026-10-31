@@ -590,6 +590,7 @@ of rows.
 
 - `pages/Area.vue`
 - `pages/budget/Planned.vue`
+- `pages/dev/Components.vue`
 
 ## FmIcon
 
