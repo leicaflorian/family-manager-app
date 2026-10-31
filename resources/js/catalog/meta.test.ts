@@ -27,6 +27,13 @@ describe('parseDoc', () => {
         });
     });
 
+    it('gives no group when @group is empty, not the next tag', () => {
+        const source =
+            '<script setup lang="ts">\n/**\n * Shows x.\n *\n * @group\n * @deprecated\n */\n</script>';
+
+        expect(parseDoc(source).group).toBeNull();
+    });
+
     it('gives no group when the tag is missing', () => {
         const source =
             '<script setup lang="ts">\n/** A button of the canvas. */\n</script>';

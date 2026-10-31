@@ -1437,6 +1437,9 @@ reloaded without the rest of it, keeping the address.
 <!-- One already chosen -->
 <FmLinkDocumentSheet :linkable="linkable" :hidden="hidden" />
 
+<!-- Next page to load -->
+<FmLinkDocumentSheet :linkable="linkable" :linkableNext="2" />
+
 <!-- Searching -->
 <FmLinkDocumentSheet :linkable="linkable" linkableSearch="carta" />
 

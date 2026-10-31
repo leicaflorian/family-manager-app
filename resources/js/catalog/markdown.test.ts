@@ -27,6 +27,19 @@ function entry(fields: Partial<CatalogEntry> & { name: string }): CatalogEntry {
 }
 
 describe('snippet', () => {
+    it('binds a date by the name of the prop, so it never enters the file', () => {
+        expect(
+            snippet('FmRow', {
+                name: 'Row',
+                props: {
+                    title: 'Luce',
+                    expires_on: '2026-11-03',
+                    at: '2026-11-03T10:30:00',
+                },
+            }),
+        ).toBe('<FmRow title="Luce" :expires_on="expires_on" :at="at" />');
+    });
+
     it('writes a string prop as a plain attribute', () => {
         expect(
             snippet('FmRow', { name: 'Row', props: { title: 'Luce' } }),

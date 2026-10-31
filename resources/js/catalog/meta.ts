@@ -72,7 +72,7 @@ export function parseDoc(source: string): {
     const description = (firstTag === -1 ? lines : lines.slice(0, firstTag))
         .join('\n')
         .trim();
-    const group = /^@group\s+(\S+)/m.exec(lines.join('\n'));
+    const group = /^@group[ \t]+(\S+)/m.exec(lines.join('\n'));
 
     return { description, group: group?.[1] ?? null };
 }

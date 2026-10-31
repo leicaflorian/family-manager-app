@@ -12,6 +12,10 @@ import type { CatalogEntry, CatalogProp } from './meta';
 
 const indent = '    ';
 
+/** A date as `yyyy-mm-dd`, with an optional time. */
+const isoDate =
+    /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+
 /** The lines at the top of the catalogue: what it is and the rule of reuse. */
 const header = [
     '# Components of the canvas',
@@ -28,7 +32,8 @@ const header = [
  *
  * Strings are plain attributes, `true` a bare attribute, numbers bound
  * (`:count="3"`), objects and arrays bound by the name of the prop
- * (`:card="card"`); `false`, `null` and `undefined` are left out. A text slot
+ * (`:card="card"`), like a string that is a date (`:expires_on="expires_on"`),
+ * which depends on today; `false`, `null` and `undefined` are left out. A text slot
  * is written as it is, a function slot as `…`.
  *
  * @param name - The name of the component, as `FmRow`.
@@ -72,6 +77,11 @@ function attribute(prop: string, value: unknown): string | null {
 
     if (value === true) {
         return prop;
+    }
+
+    if (typeof value === 'string' && isoDate.test(value)) {
+        // Dates are computed from today: written, the file would change daily
+        return `:${prop}="${prop}"`;
     }
 
     if (typeof value === 'string') {

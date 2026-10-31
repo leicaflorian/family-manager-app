@@ -36,6 +36,10 @@ export default defineExamples(FmLinkDocumentSheet, [
         props: { open: false, linkable: documents, hidden: [18] },
     },
     {
+        name: 'Next page to load',
+        props: { open: false, linkable: documents, linkableNext: 2 },
+    },
+    {
         name: 'Searching',
         props: {
             open: false,
