@@ -246,6 +246,42 @@ test('an inspection of today at 23:30 in Rome is today', function (): void {
         ->and(agendaColumns($agenda['entries'], ['date', 'title', 'area']))->toBe([['date' => '2026-10-28', 'title' => 'Inspection', 'area' => 'vehicles']]);
 });
 
+test('at 00:30 in Rome the day is already the new one, though it is still yesterday in UTC', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-10-29 00:30', 'Europe/Rome'));
+    $marco = registerFamily();
+    insideFamilyOf($marco, function (): void {
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id(), 'status' => VehicleStatus::Active, 'inspection_due_date' => '2026-10-29', 'road_tax_due_date' => null]);
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id(), 'status' => VehicleStatus::Active, 'inspection_due_date' => '2026-10-28', 'road_tax_due_date' => null]);
+    });
+
+    $agenda = agendaFor($marco);
+    $dates = array_column($agenda['entries'], 'date');
+
+    // The page puts in the overdue group the deadlines before `from`
+    expect($agenda['from'])->toBe('2026-10-29')
+        ->and($dates)->toBe(['2026-10-28', '2026-10-29'])
+        ->and($dates[0] < $agenda['from'])->toBeTrue()
+        ->and($dates[1] < $agenda['from'])->toBeFalse();
+});
+
+test('of two payments of the same card on the same day only the lowest planned id merges with the deadline', function (): void {
+    $marco = boardFamily();
+    [$first, $second] = insideFamilyOf($marco, function (): array {
+        $policy = InsurancePolicy::query()->sole();
+        $first = PlannedExpense::query()->where('title', 'Rata RC auto')->sole();
+        $second = agendaPlanned($policy, 'Furto e incendio', 95.00, '2026-11-21', ['is_recurring' => false, 'id' => $first->id + 1000]);
+
+        return [$first, $second];
+    });
+
+    $found = array_values(array_filter(agendaFor($marco)['entries'], static fn (array $entry): bool => $entry['date'] === '2026-11-21'));
+
+    expect(agendaColumns($found, ['key', 'kind', 'title', 'amount']))->toBe([
+        ['key' => "payment:{$second->id}:2026-11-21", 'kind' => 'payment', 'title' => 'Furto e incendio', 'amount' => 95.0],
+        ['key' => "payment:{$first->id}:2026-11-21", 'kind' => 'payment', 'title' => 'Policy renewal', 'amount' => 418.0],
+    ])->and(array_unique(array_column($found, 'key')))->toHaveCount(2);
+});
+
 test('one month on 31/01/2027 ends on 28/02/2027', function (): void {
     expect(resolve(Agenda::class)->period(CarbonImmutable::parse('2027-01-31', 'Europe/Rome'), 1)->toDateString())->toBe('2027-02-28');
 

@@ -66,8 +66,15 @@ final readonly class Agenda
         foreach ($payments as $index => $payment) {
             $card = $payment->planned instanceof PlannedExpense ? PlannedKind::card($payment->planned) : null;
 
-            if ($card instanceof Model) {
-                $byCard[$this->sameCard($card, $payment->occurrence->date)] ??= $index;
+            if (! $card instanceof Model) {
+                continue;
+            }
+
+            $key = $this->sameCard($card, $payment->occurrence->date);
+
+            // The payment with the lowest planned id merges, whatever order the due dates come in
+            if (! isset($byCard[$key]) || $payment->planned->id < $payments[$byCard[$key]]->planned->id) {
+                $byCard[$key] = $index;
             }
         }
 
