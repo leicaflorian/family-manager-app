@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Cards\CardType;
 use App\Data\CardBudgetData;
 use App\Data\CardNumberData;
 use App\Data\DeadlineData;
@@ -31,7 +30,6 @@ use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Support\Deadline;
 use App\Support\DefaultAccount;
-use App\Support\ModelId;
 use App\Support\PaymentPage;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -51,12 +49,6 @@ final readonly class CardBudgets
 
     /** How many months ahead the due dates are read. */
     private const int MONTHS_AHEAD = 24;
-
-    /** How many days ahead an open due date is shown as *To pay*. */
-    private const int DUE_DAYS = 30;
-
-    /** The models of the cards a planned expense refers to with its pair `card_type`, `card_id`. */
-    private const array PLANNED_CARDS = [Utility::class, InsurancePolicy::class, Loan::class, Enrollment::class, Home::class, Vehicle::class, Subscription::class];
 
     /** How many payments a page of the card shows. */
     private const int PAYMENTS_PER_PAGE = 5;
@@ -117,109 +109,6 @@ final readonly class CardBudgets
     }
 
     /**
-     * For the rows of *An area*: the open due date of each card that is late or falls in the next 30 days, with one
-     * query of planned items per type, whatever the number of cards. The oldest one wins.
-     *
-     * @param  CardType  $type  the type of the cards
-     * @param  iterable<Model>  $cards  the cards of that type
-     * @param  CarbonImmutable  $today  today in Rome
-     * @return array<int, array{amount: float, late: bool}> by id of the card; the cards without one are missing
-     */
-    public function due(CardType $type, iterable $cards, CarbonImmutable $today): array
-    {
-        $ids = [];
-
-        foreach ($cards as $card) {
-            $ids[] = ModelId::of($card);
-        }
-
-        $income = $type->model() === Employment::class;
-
-        if ($ids === [] || (! $income && ! in_array($type->model(), self::PLANNED_CARDS, true))) {
-            return [];
-        }
-
-        $column = $income ? 'employment_id' : 'card_id';
-        $planned = $income
-            ? PlannedIncome::query()->whereIn($column, $ids)->get()->all()
-            : PlannedExpense::query()->where('card_type', $type->type())->whereIn($column, $ids)->get()->all();
-        $due = [];
-
-        foreach ($this->deadlines->unpaidUntil($planned, $today->addDays(self::DUE_DAYS), $today) as $deadline) {
-            $id = $deadline->planned->getAttribute($column);
-
-            if (is_int($id) && ! isset($due[$id])) {
-                $due[$id] = ['amount' => $deadline->occurrence->amount, 'late' => $deadline->isLate($today)];
-            }
-        }
-
-        return $due;
-    }
-
-    /**
-     * The words of the number of payments of a card in a year, as the payments of a utility count bills.
-     *
-     * @param  Model  $card  the card
-     * @param  int  $count  how many payments
-     * @return string for example «9 bills»
-     */
-    public function countText(Model $card, int $count): string
-    {
-        return match (true) {
-            $card instanceof Utility => trans_choice('{1} :count bill|[2,*] :count bills', $count),
-            $card instanceof InsurancePolicy => trans_choice('{1} :count premium|[2,*] :count premiums', $count),
-            $card instanceof Loan => trans_choice('{1} :count instalment|[2,*] :count instalments', $count),
-            $card instanceof Employment => trans_choice('{1} :count salary received|[2,*] :count salaries received', $count),
-            default => trans_choice('{1} :count payment|[2,*] :count payments', $count),
-        };
-    }
-
-    /**
-     * The figures of *Payments of a card*: what was paid this year, the average payment with what is planned, and
-     * the words of the number of payments of each year.
-     *
-     * @param  Model  $card  the card
-     * @param  CardBudgetData  $budget  its payments, from `of()`
-     * @param  CarbonImmutable  $today  today in Rome
-     * @return array{numbers: list<CardNumberData>, counts: array<int, string>}
-     */
-    public function paymentFigures(Model $card, CardBudgetData $budget, CarbonImmutable $today): array
-    {
-        $year = array_find($budget->payments, static fn (PaymentYearData $data): bool => $data->year === $today->year);
-        $planned = count($budget->planned) === 1 ? $budget->planned[0]->amount : null;
-        $bill = $card instanceof Utility;
-        $hint = match (true) {
-            $planned === null => $bill ? __('per bill') : __('per payment'),
-            $budget->kind === 'income' => __('per payment, :amount expected'),
-            default => $bill ? __('per bill, :amount planned') : __('per payment, :amount planned'),
-        };
-        $counts = [];
-
-        foreach ($budget->payments as $data) {
-            $counts[$data->year] = $this->countText($card, $data->count);
-        }
-
-        return [
-            'numbers' => [
-                ...$this->paidIn($card, $budget->payments, $today->year, $this->paidLabel($card, $today->year)),
-                ...($year === null || $year->count === 0 ? [] : [new CardNumberData(__('On average'), round($year->total / $year->count, 2), hint: $hint, hint_amount: $planned)]),
-            ],
-            'counts' => $counts,
-        ];
-    }
-
-    /**
-     * The label of what was paid (or received) in a year.
-     *
-     * @param  Model  $card  the card
-     * @param  int  $year  the year
-     */
-    private function paidLabel(Model $card, int $year): string
-    {
-        return $card instanceof Employment ? __('In :year', ['year' => $year]) : __('Paid in :year', ['year' => $year]);
-    }
-
-    /**
      * A policy: the renewal at the top, the premium, the planned expenses and the premiums paid.
      *
      * @param  InsurancePolicy  $policy  the policy
@@ -255,13 +144,13 @@ final readonly class CardBudgets
         $first = $this->running($planned, $today);
         $numbers = fn (array $found, array $payments): array => [
             ...($first === null ? [] : [new CardNumberData(__('Planned'), $this->amountOf($first), hint: $this->perUnit($first))]),
-            ...$this->paidIn($utility, $payments, $today->year, $this->paidLabel($utility, $today->year)),
+            ...CardPaymentFigures::paidIn($utility, $payments, $today->year, CardPaymentFigures::paidLabel($utility, $today->year)),
         ];
 
         return $this->budget($utility, $planned, $user, $today,
             numbers: $numbers,
             dueLabel: __('To pay'),
-            due: fn (array $found): array => $this->openUntil($found, $today->addDays(self::DUE_DAYS)),
+            due: fn (array $found): array => $this->openUntil($found, $today->addDays(CardDueDates::DUE_DAYS)),
             plannedLabel: __('Expected expenses'),
             paymentsLabel: __('Bills paid'),
             paymentsMore: __('See all the bills, year by year'),
@@ -326,7 +215,7 @@ final readonly class CardBudgets
             nextLabel: fn (array $payments): string => $payments === [] ? __('First payment') : __('Next payment'),
             numbers: fn (array $found): array => $first === null ? [] : [
                 new CardNumberData(__('Subscription fee'), $this->amountOf($first), hint: $this->every($first, withDay: false)),
-                $this->inYear($found, $today, __('In a year'), fn (int $count): string => trans_choice('{1} :count renewal|[2,*] :count renewals', $count)),
+                CardPaymentFigures::inYear($found, $today, __('In a year'), fn (int $count): string => trans_choice('{1} :count renewal|[2,*] :count renewals', $count)),
             ],
             plannedLabel: __('Expected expenses'),
             paymentsLabel: __('Payments'),
@@ -361,7 +250,7 @@ final readonly class CardBudgets
 
                 return [
                     new CardNumberData(__('Tuition fee'), $this->amountOf($first), hint: $this->perUnit($first)),
-                    new CardNumberData(__('This year'), $this->sum($inYear), hint: trans_choice('{1} :count fee|[2,*] :count fees', count($inYear))),
+                    new CardNumberData(__('This year'), CardPaymentFigures::sum($inYear), hint: trans_choice('{1} :count fee|[2,*] :count fees', count($inYear))),
                 ];
             },
             plannedLabel: __('Expected expenses'),
@@ -389,7 +278,7 @@ final readonly class CardBudgets
             nextLabel: __('Arriving'),
             numbers: fn (array $found, array $payments): array => [
                 ...($first === null ? [] : [new CardNumberData(__('Salary'), $this->amountOf($first), hint: $this->every($first, withDay: true))]),
-                ...$this->paidIn($employment, $payments, $today->year, $this->paidLabel($employment, $today->year)),
+                ...CardPaymentFigures::paidIn($employment, $payments, $today->year, CardPaymentFigures::paidLabel($employment, $today->year)),
             ],
             plannedLabel: __('Expected income'),
             paymentsLabel: __('Salaries received'),
@@ -414,7 +303,7 @@ final readonly class CardBudgets
 
         return $this->budget($vehicle, $planned, $user, $today,
             nextLabel: __('Next due date'),
-            numbers: fn (array $found): array => [$this->whatYouPay($found, $today)],
+            numbers: fn (array $found): array => [CardPaymentFigures::whatYouPay($found, $today)],
             paymentsLabel: __('Expenses'),
             paymentsMore: __('See all the expenses, year by year'),
         );
@@ -439,11 +328,11 @@ final readonly class CardBudgets
 
         return $this->budget($home, $planned, $user, $today,
             numbers: fn (array $found): array => [
-                $this->whatYouPay($found, $today),
+                CardPaymentFigures::whatYouPay($found, $today),
                 new CardNumberData(__('Utilities'), null, count: $utilities->count(), hint: $names === '' ? null : $names),
             ],
             dueLabel: __('Next due dates'),
-            due: fn (array $found): array => $this->openUntil($found, $today->addDays(self::DUE_DAYS)),
+            due: fn (array $found): array => $this->openUntil($found, $today->addDays(CardDueDates::DUE_DAYS)),
             paymentsLabel: __('Expenses'),
             paymentsMore: __('See all the expenses, year by year'),
         );
@@ -468,7 +357,7 @@ final readonly class CardBudgets
         $summary = $this->movements->month($today, null, $account->id, $user)['summary'];
         // Carbon follows the language of the app
         $month = $today->translatedFormat('F');
-        $last = $today->addDays(self::DUE_DAYS)->toDateString();
+        $last = $today->addDays(CardDueDates::DUE_DAYS)->toDateString();
 
         return $this->budget($account, $planned, $user, $today,
             numbers: [
@@ -648,60 +537,6 @@ final readonly class CardBudgets
         $last = $until->toDateString();
 
         return array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid() && $deadline->occurrence->date->toDateString() <= $last));
-    }
-
-    /**
-     * *What you pay*: the due dates of the next 12 months, exceptions applied.
-     *
-     * @param  list<Deadline>  $found  the due dates
-     * @param  CarbonImmutable  $today  today in Rome
-     */
-    private function whatYouPay(array $found, CarbonImmutable $today): CardNumberData
-    {
-        return $this->inYear($found, $today, __('What you pay'), static fn (int $count): string => __('in the next 12 months'));
-    }
-
-    /**
-     * A figure of the due dates of the next 12 months, from today to the same day a year later less one day.
-     *
-     * @param  list<Deadline>  $found  the due dates
-     * @param  CarbonImmutable  $today  today in Rome
-     * @param  string  $label  the label of the figure
-     * @param  callable(int): string  $hint  the line below, from the number of due dates
-     */
-    private function inYear(array $found, CarbonImmutable $today, string $label, callable $hint): CardNumberData
-    {
-        $first = $today->toDateString();
-        $last = $today->addYear()->subDay()->toDateString();
-        $inYear = array_filter($found, static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() >= $first && $deadline->occurrence->date->toDateString() <= $last);
-
-        return new CardNumberData($label, $this->sum($inYear), hint: $hint(count($inYear)));
-    }
-
-    /**
-     * The figure of what was paid in a year, with the number of payments; none when nothing was paid.
-     *
-     * @param  Model  $card  the card, for the words of the number
-     * @param  array<PaymentYearData>  $payments  the payments by year
-     * @param  int  $year  the year
-     * @param  string  $label  the label of the figure
-     * @return list<CardNumberData>
-     */
-    private function paidIn(Model $card, array $payments, int $year, string $label): array
-    {
-        $paid = array_find($payments, static fn (PaymentYearData $data): bool => $data->year === $year);
-
-        return [new CardNumberData($label, $paid->total ?? 0.0, hint: $this->countText($card, $paid->count ?? 0))];
-    }
-
-    /**
-     * The sum of the amounts of some due dates.
-     *
-     * @param  array<Deadline>  $deadlines  the due dates
-     */
-    private function sum(array $deadlines): float
-    {
-        return round(array_sum(array_map(static fn (Deadline $deadline): float => $deadline->occurrence->amount, $deadlines)), 2);
     }
 
     /**

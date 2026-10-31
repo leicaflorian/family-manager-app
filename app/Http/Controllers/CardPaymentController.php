@@ -8,6 +8,7 @@ use App\Cards\CardTypes;
 use App\Data\CardBudgetData;
 use App\Models\User;
 use App\Services\CardBudgets;
+use App\Services\CardPaymentFigures;
 use App\Services\CardSummaries;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -38,7 +39,8 @@ final class CardPaymentController extends Controller
         return Inertia::render('cards/CardPayments', [
             'card' => $this->summaries->row($card, $today),
             'budget' => $budget,
-            ...$this->budgets->paymentFigures($card, $budget, $today),
+            'numbers' => CardPaymentFigures::of($card, $budget, $today),
+            'counts' => CardPaymentFigures::counts($card, $budget),
         ]);
     }
 }

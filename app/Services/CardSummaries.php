@@ -106,8 +106,8 @@ final class CardSummaries
 
         foreach ($types as $type) {
             $cards = $type->model()::query()->with($type->listRelations())->get();
-            // Resolved here: CardBudgets reaches this class through PlannedSummaries
-            $due = $withDue ? resolve(CardBudgets::class)->due($type, $cards, $today) : [];
+            // Resolved here: Deadlines reaches this class through PlannedSummaries
+            $due = $withDue ? resolve(CardDueDates::class)->of($type, $cards, $today) : [];
 
             foreach ($cards as $card) {
                 $rows[$type->area()->value][] = $this->row($card, $today, $due[ModelId::of($card)] ?? null);
