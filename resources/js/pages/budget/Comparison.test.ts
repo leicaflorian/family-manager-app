@@ -38,6 +38,23 @@ describe('Comparison', () => {
         expect(spent).toHaveTextContent('185,10 € less');
     });
 
+    it('writes the spent in red when it is over the planned', () => {
+        renderPage(Comparison, {
+            comparison: { ...octoberComparison, spent: 1622.6 },
+        });
+
+        expect(screen.getByText('1.622,60 €')).toHaveClass('text-overdue');
+    });
+
+    it('writes the spent in the usual colour within the planned', () => {
+        renderPage(Comparison, props);
+
+        const spent = screen.getByText('Spent so far').parentElement!;
+        expect(within(spent).getByText('1.284,20 €')).not.toHaveClass(
+            'text-overdue',
+        );
+    });
+
     it('shows the incomes against the planned ones on the computer', () => {
         onComputer();
         renderPage(Comparison, props);

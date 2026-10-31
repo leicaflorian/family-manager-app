@@ -104,9 +104,16 @@ const tile = cn('flex flex-col gap-0.5 rounded-2xl bg-white p-3.5 lg:p-4');
                 <span class="text-[13px] text-ink-soft">{{
                     $t('Spent so far')
                 }}</span>
-                <span class="text-lg font-extrabold lg:text-xl">{{
-                    euro(comparison.spent)
-                }}</span>
+                <span
+                    :class="
+                        cn(
+                            'text-lg font-extrabold lg:text-xl',
+                            comparison.spent > comparison.planned &&
+                                'text-overdue',
+                        )
+                    "
+                    >{{ euro(comparison.spent) }}</span
+                >
                 <span class="text-[13px] text-ink-soft">{{ difference }}</span>
             </div>
             <div v-if="desktop" :class="tile">

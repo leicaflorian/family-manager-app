@@ -8,6 +8,7 @@
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { comparisonComment } from '@/lib/budget';
+import { cn } from '@/lib/utils';
 
 const {
     category,
@@ -41,6 +42,9 @@ const spentWidth = computed(() => `${(spent / scale.value) * 100}%`);
 
 /** Where the mark of the plan is, in percent. */
 const plannedLeft = computed(() => `${(planned / scale.value) * 100}%`);
+
+/** More was spent than planned: what goes over is drawn in red. */
+const over = computed((): boolean => spent > planned);
 </script>
 
 <template>
@@ -57,7 +61,10 @@ const plannedLeft = computed(() => `${(planned / scale.value) * 100}%`);
                 <span class="truncate">{{ category }}</span>
             </span>
             <span class="shrink-0 text-[13px] whitespace-nowrap text-ink-soft">
-                <strong class="text-base text-ink">{{ euro(spent) }}</strong>
+                <strong
+                    :class="cn('text-base', over ? 'text-overdue' : 'text-ink')"
+                    >{{ euro(spent) }}</strong
+                >
                 <span>{{
                     ' ' + $t('of :planned', { planned: euro(planned) })
                 }}</span>
@@ -76,6 +83,12 @@ const plannedLeft = computed(() => `${(planned / scale.value) * 100}%`);
             <span
                 class="absolute inset-y-0 left-0 rounded-full bg-action"
                 :style="{ width: spentWidth }"
+            />
+            <span
+                v-if="over"
+                data-over
+                class="absolute inset-y-0 right-0 rounded-full bg-overdue"
+                :style="{ left: plannedLeft }"
             />
             <span
                 v-if="planned > 0"
