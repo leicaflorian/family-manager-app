@@ -844,5 +844,9 @@
     "Nothing happened yet.": "Non è ancora successo niente.",
     "Open": "Apri",
     "No cases for this component yet.": "Ancora nessun caso per questo componente.",
-    "Used by (:count)": "Usato da (:count)"
+    "Used by (:count)": "Usato da (:count)",
+    "Policy renewal": "Rinnovo della polizza",
+    "Filing deadline": "Termine della pratica",
+    "End of the free trial": "Fine della prova gratuita",
+    "First instalment": "Prima rata"
 }
