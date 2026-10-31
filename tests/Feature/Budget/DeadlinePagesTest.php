@@ -187,8 +187,8 @@ test('the planned kind finds only the planned items of the family', function ():
     $found = insideBianchi(fn (): PlannedExpense|PlannedIncome => PlannedKind::find('expense', (string) $own->id));
 
     expect($found->is($own))->toBeTrue()
-        ->and(fn () => insideBianchi(fn (): PlannedExpense|PlannedIncome => PlannedKind::find('gift', '1')))->toThrow(NotFoundHttpException::class)
-        ->and(fn () => insideBianchi(fn (): PlannedExpense|PlannedIncome => PlannedKind::find('income', '99999')))->toThrow(ModelNotFoundException::class);
+        ->and(fn (): mixed => insideBianchi(fn (): PlannedExpense|PlannedIncome => PlannedKind::find('gift', '1')))->toThrow(NotFoundHttpException::class)
+        ->and(fn (): mixed => insideBianchi(fn (): PlannedExpense|PlannedIncome => PlannedKind::find('income', '99999')))->toThrow(ModelNotFoundException::class);
 });
 
 /** Makes a planned expense in the family of a user and returns it. */
