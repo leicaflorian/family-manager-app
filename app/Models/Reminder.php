@@ -8,6 +8,7 @@ use App\Enums\ReminderStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReminderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read ReminderGroup|null $reminderGroup
  *
  * @method static ReminderFactory factory($count = null, $state = [])
+ * @method static Builder<static>|Reminder automaticFor(string $field, string $morphType, array<int> $ids)
  * @method static Builder<static>|Reminder newModelQuery()
  * @method static Builder<static>|Reminder newQuery()
  * @method static Builder<static>|Reminder query()
@@ -65,6 +67,28 @@ final class Reminder extends FamilyModel
     public function reminderGroup(): BelongsTo
     {
         return $this->belongsTo(ReminderGroup::class);
+    }
+
+    /**
+     * The automatic reminders of a kind of deadline linked to some cards of a
+     * type. Each reminder comes once per card it is linked to, with that card's
+     * id as `card_id`, so a caller matches reminders and cards without a query
+     * for each card.
+     *
+     * @param  Builder<Reminder>  $query
+     * @param  string  $field  the `source_field`, like `documents.expiry_date`
+     * @param  string  $morphType  the morph alias of the cards, like `document`
+     * @param  list<int>  $ids  the ids of the cards
+     */
+    #[Scope]
+    protected function automaticFor(Builder $query, string $field, string $morphType, array $ids): void
+    {
+        $query->select('reminders.*', 'remindables.remindable_id as card_id')
+            ->join('remindables', 'remindables.reminder_id', '=', 'reminders.id')
+            ->where('reminders.is_automatic', true)
+            ->where('reminders.source_field', $field)
+            ->where('remindables.remindable_type', $morphType)
+            ->whereIn('remindables.remindable_id', $ids);
     }
 
     /**
