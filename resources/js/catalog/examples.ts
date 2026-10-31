@@ -44,7 +44,10 @@ export function defineExamples<C extends Component>(
  * @returns The cases of each component that has them, as `{ FmRow: … }`.
  */
 export function loadExamples(): Record<string, ComponentExamples> {
-    const files = import.meta.glob<ComponentExamples>(
+    // No type argument on the glob: Vitest keeps a transformed module in its
+    // file cache unless its source has the text `import.meta.glob(`, and with
+    // `glob<…>(` a new `.examples.ts` would stay unseen by the tests.
+    const files: Record<string, ComponentExamples> = import.meta.glob(
         '../components/fm/*.examples.ts',
         { eager: true, import: 'default' },
     );

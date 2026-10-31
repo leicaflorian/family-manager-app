@@ -580,5 +580,7 @@
     "Undo": "Annulla",
     "Waiting": "In attesa",
     "Finish": "Completa",
+    "Events": "Eventi",
+    "Nothing happened yet.": "Non è ancora successo niente.",
     "{1} +:count more|[2,*] +:count more": "{1} +:count altro|[2,*] +:count altri"
 }

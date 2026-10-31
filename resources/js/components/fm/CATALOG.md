@@ -559,6 +559,13 @@ button (`FmDeleteButton`) or as an entry of a menu.
 
 - `update:open`
 
+### Examples
+
+```vue
+<!-- Open -->
+<FmConfirmDelete open url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" />
+```
+
 ### Used by
 
 - `components/fm/FmActions.vue`
@@ -1336,6 +1343,16 @@ that links a document to a card. What it does with the text is up to the page.
 ### Events
 
 - `update:modelValue`
+
+### Examples
+
+```vue
+<!-- Empty -->
+<FmSearchField label="Search the documents" modelValue="" />
+
+<!-- Typed -->
+<FmSearchField label="Search the documents" modelValue="bolletta" />
+```
 
 ### Used by
 
