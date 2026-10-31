@@ -1289,3 +1289,112 @@ export const documentFormOptions = {
     statuses: documentFilterOptions.statuses,
     tags: ['salary', 'bills'],
 };
+
+/**
+ * Builds an entry of the Agenda as the server sends it.
+ *
+ * @param entry - the fields that differ from a payment of Marco in the home area
+ * @returns the entry, with the key and the address made from its kind and title
+ */
+function agendaEntry(
+    entry: Partial<App.Data.AgendaEntryData> &
+        Pick<App.Data.AgendaEntryData, 'date' | 'title'>,
+): App.Data.AgendaEntryData {
+    return {
+        key: `${entry.kind ?? 'payment'}:${entry.title}`,
+        kind: 'payment',
+        subtitle: '',
+        area: 'home',
+        person_id: 1,
+        person: 'Marco',
+        amount: null,
+        estimated: false,
+        reminder_done: false,
+        href: '/agenda',
+        ...entry,
+    };
+}
+
+/** The twelve entries of the Agenda of the Bianchi on 26/10/2026, with one month, as the board shows them. */
+export const agendaEntries: App.Data.AgendaEntryData[] = [
+    agendaEntry({
+        kind: 'deadline',
+        date: '2026-09-30',
+        title: 'Tessera sanitaria di Giulia',
+        area: 'general',
+        person_id: 3,
+        person: 'Giulia',
+    }),
+    agendaEntry({
+        kind: 'income',
+        date: '2026-10-27',
+        title: 'Stipendio di Marco',
+        area: 'work',
+        amount: 1850,
+    }),
+    agendaEntry({
+        date: '2026-10-30',
+        title: 'Bolletta gas',
+        amount: 84.2,
+    }),
+    agendaEntry({
+        date: '2026-10-31',
+        title: 'Bolletta acqua',
+        amount: 37.9,
+    }),
+    agendaEntry({
+        kind: 'deadline',
+        date: '2026-11-04',
+        title: 'End of the free trial',
+        area: 'subscriptions',
+        person_id: 2,
+        person: 'Laura',
+    }),
+    agendaEntry({
+        date: '2026-11-04',
+        title: 'Primo pagamento',
+        area: 'subscriptions',
+        person_id: 2,
+        person: 'Laura',
+        amount: 13.99,
+    }),
+    agendaEntry({
+        date: '2026-11-06',
+        title: 'Bolletta luce di ottobre',
+        amount: 62.4,
+    }),
+    agendaEntry({
+        date: '2026-11-10',
+        title: 'Rata 33 di 48',
+        area: 'banks',
+        amount: 189,
+    }),
+    agendaEntry({
+        kind: 'deadline',
+        date: '2026-11-14',
+        title: "Scade la carta d'identità",
+        area: 'general',
+        reminder_done: true,
+    }),
+    agendaEntry({
+        date: '2026-11-15',
+        title: 'Rata mutuo',
+        area: 'banks',
+        amount: 612,
+    }),
+    agendaEntry({
+        date: '2026-11-21',
+        title: 'Policy renewal',
+        area: 'insurance',
+        amount: 418,
+    }),
+    agendaEntry({
+        kind: 'income',
+        date: '2026-11-23',
+        title: 'Stipendio di Laura',
+        area: 'work',
+        person_id: 2,
+        person: 'Laura',
+        amount: 1720,
+    }),
+];
