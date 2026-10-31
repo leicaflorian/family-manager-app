@@ -83,6 +83,8 @@ export default defineConfig({
             'lang/**',
             '**/*.md',
             'resources/js/generated/**',
+            // Written by `npm run catalog` with JSON.stringify: the catalogue test compares it as it is
+            'resources/js/catalog/catalog.json',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
         ],

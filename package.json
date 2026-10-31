@@ -10,7 +10,8 @@
         "types:check": "vue-tsc --noEmit",
         "test": "vp test",
         "types": "vue-tsc --noEmit",
-        "lint": "vp lint"
+        "lint": "vp lint",
+        "catalog": "vp test run resources/js/catalog/catalog.test.ts -u"
     },
     "dependencies": {
         "@formkit/auto-animate": "^0.10.0",

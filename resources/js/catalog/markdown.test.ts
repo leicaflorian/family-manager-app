@@ -1,0 +1,262 @@
+import { h } from 'vue';
+import { describe, expect, it } from 'vite-plus/test';
+import FmRow from '@/components/fm/FmRow.vue';
+import type { ComponentExamples } from './examples';
+import { defineExamples } from './examples';
+import { renderCatalog, snippet } from './markdown';
+import type { CatalogEntry } from './meta';
+
+/**
+ * An entry of the catalogue with the given fields, the rest empty.
+ *
+ * @param fields - The fields that matter to the test.
+ * @returns The entry.
+ */
+function entry(fields: Partial<CatalogEntry> & { name: string }): CatalogEntry {
+    return {
+        path: `resources/js/components/fm/${fields.name}.vue`,
+        group: null,
+        description: '',
+        props: [],
+        events: [],
+        slots: [],
+        types: [],
+        usedBy: [],
+        ...fields,
+    };
+}
+
+describe('snippet', () => {
+    it('writes a string prop as a plain attribute', () => {
+        expect(
+            snippet('FmRow', { name: 'Row', props: { title: 'Luce' } }),
+        ).toBe('<FmRow title="Luce" />');
+    });
+
+    it('binds a number and writes true as a bare attribute', () => {
+        expect(
+            snippet('FmFaces', {
+                name: 'Faces',
+                props: { count: 3, button: true },
+            }),
+        ).toBe('<FmFaces :count="3" button />');
+    });
+
+    it('leaves out false, null and undefined', () => {
+        expect(
+            snippet('FmRow', {
+                name: 'Row',
+                props: {
+                    title: 'Luce',
+                    button: false,
+                    subtitle: null,
+                    href: undefined,
+                },
+            }),
+        ).toBe('<FmRow title="Luce" />');
+    });
+
+    it('binds an object or an array by the name of the prop', () => {
+        expect(
+            snippet('FmCardRow', {
+                name: 'Card',
+                props: { card: { id: 1 }, people: [1, 2] },
+            }),
+        ).toBe('<FmCardRow :card="card" :people="people" />');
+    });
+
+    it('writes the quotes of a string as entities', () => {
+        expect(
+            snippet('FmRow', { name: 'Row', props: { title: 'Il "Mutuo"' } }),
+        ).toBe('<FmRow title="Il &quot;Mutuo&quot;" />');
+    });
+
+    it('writes a text slot in its template, the default one without', () => {
+        expect(
+            snippet('FmRow', {
+                name: 'Row',
+                props: { title: 'Luce' },
+                slots: { default: 'Testo', actions: 'testo' },
+            }),
+        ).toBe(
+            [
+                '<FmRow title="Luce">',
+                '    Testo',
+                '    <template #actions>testo</template>',
+                '</FmRow>',
+            ].join('\n'),
+        );
+    });
+
+    it('writes a function slot as an ellipsis', () => {
+        expect(
+            snippet('FmRow', {
+                name: 'Row',
+                props: { title: 'Luce' },
+                slots: { actions: () => h('b', 'x') },
+            }),
+        ).toBe(
+            [
+                '<FmRow title="Luce">',
+                '    <template #actions>…</template>',
+                '</FmRow>',
+            ].join('\n'),
+        );
+    });
+});
+
+describe('renderCatalog', () => {
+    const row = entry({
+        name: 'FmRow',
+        group: 'rows',
+        description:
+            'A list row of the canvas: a title and a subtitle.\nWith `href` it is a link.',
+        props: [
+            {
+                name: 'title',
+                type: 'string',
+                required: true,
+                default: null,
+                description: 'The main text.',
+            },
+            {
+                name: 'tone',
+                type: "'normal' | 'overdue'",
+                required: false,
+                default: "'normal'",
+                description: 'The colour\nof the subtitle.',
+            },
+        ],
+        events: ['click'],
+        slots: ['before', 'after'],
+        types: ["export type RowTone = 'normal' | 'overdue';"],
+        usedBy: [
+            'components/fm/FmDocumentRow.vue',
+            'pages/settings/Account.vue',
+        ],
+    });
+    const button = entry({
+        name: 'FmButton',
+        group: 'basics',
+        description: 'A button of the canvas.',
+    });
+    const loose = entry({ name: 'FmLoose', group: 'nope' });
+    const examples: Record<string, ComponentExamples> = {
+        FmRow: defineExamples(FmRow, [
+            {
+                name: 'Link',
+                props: { title: 'Luce', href: '/cards/utility/1' },
+            },
+            { name: 'Button', props: { title: 'Carica', button: true } },
+        ]),
+    };
+    const markdown = renderCatalog([loose, row, button], examples);
+
+    it('says at the top that it is generated, what it leaves out and the reuse rule', () => {
+        const top = markdown.split('## Index')[0] ?? '';
+
+        expect(top).toContain('Generated by `npm run catalog`');
+        expect(top).toContain('`resources/js/components/ui/`');
+        expect(top).toContain(
+            'extend it with a prop, a variant or a slot instead of copying it',
+        );
+    });
+
+    it('indexes the components by group, in the order of the groups, with Ungrouped last', () => {
+        const index = markdown.split('## Index')[1]?.split('\n## ')[0] ?? '';
+
+        expect(index).toBe(
+            [
+                '',
+                '',
+                '### Basics',
+                '',
+                '- [FmButton](#fmbutton) — A button of the canvas.',
+                '',
+                '### Rows',
+                '',
+                '- [FmRow](#fmrow) — A list row of the canvas: a title and a subtitle.',
+                '',
+                '### Ungrouped',
+                '',
+                '- [FmLoose](#fmloose)',
+                '',
+            ].join('\n'),
+        );
+    });
+
+    it('writes each component with its sections', () => {
+        const section = markdown.split('\n## FmRow\n')[1]?.split('\n## ')[0];
+
+        expect(section).toBe(
+            [
+                '',
+                '`resources/js/components/fm/FmRow.vue`',
+                '',
+                'A list row of the canvas: a title and a subtitle.',
+                'With `href` it is a link.',
+                '',
+                '### Props',
+                '',
+                '| Name | Type | Required | Default | Description |',
+                '| --- | --- | --- | --- | --- |',
+                '| `title` | `string` | yes | — | The main text. |',
+                "| `tone` | `'normal' \\| 'overdue'` | no | `'normal'` | The colour of the subtitle. |",
+                '',
+                '### Events',
+                '',
+                '- `click`',
+                '',
+                '### Slots',
+                '',
+                '- `before`',
+                '- `after`',
+                '',
+                '### Types',
+                '',
+                '```ts',
+                "export type RowTone = 'normal' | 'overdue';",
+                '```',
+                '',
+                '### Examples',
+                '',
+                '```vue',
+                '<!-- Link -->',
+                '<FmRow title="Luce" href="/cards/utility/1" />',
+                '',
+                '<!-- Button -->',
+                '<FmRow title="Carica" button />',
+                '```',
+                '',
+                '### Used by',
+                '',
+                '- `components/fm/FmDocumentRow.vue`',
+                '- `pages/settings/Account.vue`',
+                '',
+            ].join('\n'),
+        );
+    });
+
+    it('leaves out the empty sections', () => {
+        const section =
+            markdown.split('\n## FmButton\n')[1]?.split('\n## ')[0] ?? '';
+
+        expect(section).toBe(
+            [
+                '',
+                '`resources/js/components/fm/FmButton.vue`',
+                '',
+                'A button of the canvas.',
+                '',
+            ].join('\n'),
+        );
+    });
+
+    it('writes the components in the order of the index and ends with one newline', () => {
+        const headings = markdown.match(/^## Fm\w+$/gm);
+
+        expect(headings).toEqual(['## FmButton', '## FmRow', '## FmLoose']);
+        expect(markdown.endsWith('\n')).toBe(true);
+        expect(markdown.endsWith('\n\n')).toBe(false);
+    });
+});
