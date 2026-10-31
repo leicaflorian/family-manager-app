@@ -4,7 +4,7 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vite-plus/test';
 import type { CatalogEntry } from './meta';
-import { parseDoc, readCatalog } from './meta';
+import { importsComponent, parseDoc, readCatalog } from './meta';
 
 describe('parseDoc', () => {
     it('reads the description and the group of the component', () => {
@@ -63,6 +63,54 @@ describe('parseDoc', () => {
     });
 });
 
+describe('importsComponent', () => {
+    it('counts an import of the component', () => {
+        expect(
+            importsComponent("import FmRow from './FmRow.vue';", 'FmRow'),
+        ).toBe(true);
+        expect(
+            importsComponent(
+                "import {\n    default as Row,\n} from '@/components/fm/FmRow.vue';",
+                'FmRow',
+            ),
+        ).toBe(true);
+    });
+
+    it('counts a dynamic import and an import for its side effects', () => {
+        expect(
+            importsComponent(
+                "const Row = defineAsyncComponent(() => import('./FmRow.vue'));",
+                'FmRow',
+            ),
+        ).toBe(true);
+        expect(importsComponent("import './FmRow.vue';", 'FmRow')).toBe(true);
+    });
+
+    it('does not count a mention in a comment or a string', () => {
+        expect(
+            importsComponent(
+                "/**\n * At the end of the import (`'./FmRow.vue'`).\n */",
+                'FmRow',
+            ),
+        ).toBe(false);
+        expect(
+            importsComponent(
+                "const path = 'components/fm/FmRow.vue';",
+                'FmRow',
+            ),
+        ).toBe(false);
+    });
+
+    it('does not count another component whose name ends the same', () => {
+        expect(
+            importsComponent(
+                "import FmCardRow from './FmCardRow.vue';",
+                'FmRow',
+            ),
+        ).toBe(false);
+    });
+});
+
 describe('readCatalog', () => {
     it('reads every component of the canvas', { timeout: 120_000 }, () => {
         const catalog = readCatalog(process.cwd());
@@ -106,6 +154,7 @@ describe('readCatalog', () => {
         expect(row.usedBy).toContain('components/fm/FmDocumentRow.vue');
         expect(row.usedBy).toContain('pages/settings/Account.vue');
         expect(row.usedBy).not.toContain('components/fm/FmRow.test.ts');
+        expect(row.usedBy).not.toContain('catalog/meta.ts');
         expect(row.usedBy).toEqual([...row.usedBy].sort());
 
         expect(entry('FmConfirm').events).toEqual(

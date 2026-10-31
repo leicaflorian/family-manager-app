@@ -146,8 +146,7 @@ function sourceFiles(root: string): { path: string; source: string }[] {
 }
 
 /**
- * The files that import a component, by its file name at the end of the
- * import (`'./FmRow.vue'`, `'@/components/fm/FmRow.vue'`).
+ * The files that import a component.
  *
  * @param name - The name of the component.
  * @param sources - The files to look in.
@@ -157,10 +156,30 @@ function usedBy(
     name: string,
     sources: { path: string; source: string }[],
 ): string[] {
-    const imports = new RegExp(`['"][^'"]*/${name}\\.vue['"]`);
-
     return sources
-        .filter(({ source }) => imports.test(source))
+        .filter(({ source }) => importsComponent(source, name))
         .map(({ path }) => path)
         .sort();
+}
+
+/**
+ * Whether a source imports a component, by its file name at the end of the
+ * path: a static import at the start of a line (with names, over more lines
+ * too, or only for its side effects) or a dynamic `import()` of the file. A
+ * mention of the file in a comment or in a string does not count.
+ *
+ * @param source - The source of a `.vue` or `.ts` file.
+ * @param name - The name of the component, as `FmRow`.
+ * @returns True when the source imports it.
+ */
+export function importsComponent(source: string, name: string): boolean {
+    const path = `['"](?:[^'"]*/)?${name}\\.vue['"]`;
+    // Anchored at the start of a line, so a comment line (` * …`) never matches
+    const staticImport = new RegExp(
+        `^\\s*import\\s+(?:[^'";]*?\\s+from\\s+)?${path}`,
+        'm',
+    );
+    const dynamicImport = new RegExp(`\\bimport\\(\\s*${path}\\s*\\)`);
+
+    return staticImport.test(source) || dynamicImport.test(source);
 }

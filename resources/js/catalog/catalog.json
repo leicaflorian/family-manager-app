@@ -1963,7 +1963,6 @@
       "export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';"
     ],
     "usedBy": [
-      "catalog/meta.ts",
       "components/fm/FmBottomBar.vue",
       "components/fm/FmCardFiles.vue",
       "components/fm/FmCardRow.vue",

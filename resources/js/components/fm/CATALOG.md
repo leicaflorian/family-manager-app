@@ -1305,7 +1305,6 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 
 ### Used by
 
-- `catalog/meta.ts`
 - `components/fm/FmBottomBar.vue`
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmCardRow.vue`
