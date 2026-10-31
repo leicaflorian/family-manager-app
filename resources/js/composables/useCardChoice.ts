@@ -32,13 +32,14 @@ export interface CardFillFields {
  * passes to another type, the card chosen before of a different type is
  * emptied; a card set together with the category, or a category without type,
  * keeps it. Choosing a card fills in the category, the holder and the
- * organization still empty from it; the card the form starts with fills nothing.
+ * organization still empty from it; the card the form starts with fills nothing
+ * by itself, `fillFrom` does it when the form asks.
  *
  * @param category - the id of the category chosen, empty or null for none
  * @param card - the card chosen, `type:id`, emptied when the category changes type
  * @param options - the cards, the types of the categories and the names of the types
  * @param fill - the fields a card chosen fills in while they are empty
- * @returns the label of the field and its choices
+ * @returns the label of the field, its choices and `fillFrom`, which fills the empty fields from a card
  */
 export function useCardChoice(
     category: MaybeRefOrGetter<string | null | undefined>,
@@ -48,6 +49,7 @@ export function useCardChoice(
 ): {
     label: ComputedRef<string>;
     choices: ComputedRef<App.Data.CardChoiceData[]>;
+    fillFrom: (value: string | null) => void;
 } {
     /** The card type of the category chosen, or null. */
     const type = computed((): string | null => {
@@ -105,8 +107,12 @@ export function useCardChoice(
         { flush: 'sync' },
     );
 
-    // The card the person chooses brings what it knows to the fields still empty
-    watch(card, (value) => {
+    /**
+     * Fills the fields still empty from what a card knows.
+     *
+     * @param value - the card, `type:id`, or null
+     */
+    function fillFrom(value: string | null): void {
         const chosen = options.cards.find((choice) => choice.value === value);
 
         if (!fill || !chosen) {
@@ -122,7 +128,10 @@ export function useCardChoice(
                 fill[field].value = chosen[field];
             }
         }
-    });
+    }
 
-    return { label, choices };
+    // The card the person chooses brings what it knows to the fields still empty
+    watch(card, fillFrom);
+
+    return { label, choices, fillFrom };
 }

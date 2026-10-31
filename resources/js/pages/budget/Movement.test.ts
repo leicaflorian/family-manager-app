@@ -116,6 +116,24 @@ describe('Movement', () => {
         expect(get).toHaveBeenCalledWith('/cards/health_event/2');
     });
 
+    it('starts a new expense from a card with its holder and organization', async () => {
+        renderPage(Movement, {
+            ...newExpense,
+            start: { ...newExpense.start, card: 'health_event:2' },
+        });
+        await settle();
+
+        expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
+            'Salute',
+        );
+        expect(screen.getByRole('combobox', { name: 'Holder' })).toHaveValue(
+            'Giulia Bianchi',
+        );
+        expect(
+            screen.getByRole('combobox', { name: 'Organization' }),
+        ).toHaveValue('Studio Ferri');
+    });
+
     it('names the card after the type of the category, offers only its cards and sends the one chosen', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Movement, newExpense);

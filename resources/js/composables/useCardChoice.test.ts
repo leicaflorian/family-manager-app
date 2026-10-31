@@ -186,4 +186,21 @@ describe('useCardChoice', () => {
         expect(fields.category_id.value).toBe('');
         expect(fields.person_id.value).toBeNull();
     });
+
+    it('fills the empty fields from a card when asked, as a new expense from a card does', () => {
+        const fields = emptyFields();
+        fields.person_id.value = '9';
+        const { fillFrom } = useCardChoice(
+            fields.category_id,
+            ref('utility:3'),
+            options,
+            fields,
+        );
+
+        fillFrom('utility:3');
+
+        expect(fields.category_id.value).toBe('11');
+        expect(fields.person_id.value).toBe('9');
+        expect(fields.organization_id.value).toBe('6');
+    });
 });
