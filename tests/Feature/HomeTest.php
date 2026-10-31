@@ -29,7 +29,8 @@ test('the Home of the Bianchis shows the documents expiring, the most urgent fir
         ->where('hasDocuments', true)
         ->where('expiring', fn ($documents): bool => collect($documents)->map(fn (array $document): string => $document['title'].' '.$document['expiry_date'])->all() === [
             'Tessera sanitaria 2026-10-20',
-            'Polizza RC auto 2026 2026-11-20',
+            "Carta d'identità 2026-11-14",
+            'Polizza RC auto 2026 2026-11-21',
             'Certificato medico sportivo 2026-12-11',
             'Scontrino TV Samsung 2026-12-20',
         ])
@@ -41,13 +42,13 @@ test('a document expiring in 60 days is there, one in 61 is not', function (): v
     $this->seed(BianchiFamilySeeder::class);
     $this->actingAs(User::query()->where('email', 'marco.bianchi@example.com')->sole());
 
-    // 21/10 + 60 days is 20/12: the TV receipt is in, the identity card (2027) is not.
+    // 21/10 + 60 days is 20/12: the TV receipt is in, Giulia's identity card (2027) is not.
     $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('expiring.3.title', 'Scontrino TV Samsung')
-        ->has('expiring', 4));
+        ->where('expiring.4.title', 'Scontrino TV Samsung')
+        ->has('expiring', 5));
 
     Date::setTestNow('2026-10-20 00:01:00');
-    $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('expiring', 3));
+    $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('expiring', 4));
 });
 
 test('without documents the Home invites to upload the first', function (): void {

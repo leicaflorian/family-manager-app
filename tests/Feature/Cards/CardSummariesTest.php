@@ -76,8 +76,8 @@ test('it builds the row of a card', function (): void {
             ->and($row->area_label)->toBe(Area::Vehicles->label())
             ->and($row->subtitle)->toBe('GH 482 TK')
             ->and($row->closed)->toBeFalse()
-            ->and($row->next_label)->toBeNull()
-            ->and($row->next_date)->toBeNull()
+            ->and($row->next_label)->toBe('Road tax')
+            ->and($row->next_date)->toBe('2027-01-31')
             ->and(summaries()->row(Vehicle::query()->sole())->id)->toBe($row->id);
     });
 });

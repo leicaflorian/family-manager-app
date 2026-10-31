@@ -60,7 +60,7 @@ test('the search ignores capitals and accents, in the title and in the notes', f
     insideBianchi(fn () => Document::query()->where('title', 'Contratto Edison')->sole()->update(['notes' => 'Offerta Luce Flex, prezzo bloccato']));
 
     expect(filtered(['search' => 'DANZA']))->toBe(['Iscrizione danza 2026/27'])
-        ->and(filtered(['search' => "carta d'identita"]))->toBe(["Carta d'identità"])
+        ->and(filtered(['search' => "carta d'identita"]))->toBe(["Carta d'identità", "Carta d'identità"])
         ->and(filtered(['search' => 'prezzo bloccato']))->toBe(['Contratto Edison']);
 });
 
@@ -72,6 +72,7 @@ test('the search takes % and _ as they are', function (): void {
 test('expiring gives the documents that expire within 60 days or have expired', function (): void {
     expect(filtered(['expiring' => true]))->toEqualCanonicalizing([
         'Tessera sanitaria',
+        "Carta d'identità",
         'Polizza RC auto 2026',
         'Certificato medico sportivo',
         'Scontrino TV Samsung',

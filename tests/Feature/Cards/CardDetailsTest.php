@@ -35,7 +35,7 @@ test('it shows the data of a policy with labels and links', function (): void {
     expect($values['Type']->text)->toBe('Car')
         ->and($values['Policyholder']->text)->toBe('Marco Bianchi')
         ->and($values['Policyholder']->href)->toBe(route('people.show', $this->policy->person_id))
-        ->and($values['Start']->text)->toBe('20/11/2025')
+        ->and($values['Start']->text)->toBe('21/11/2025')
         ->and($values->has('Policy number'))->toBeFalse();
 });
 

@@ -17,6 +17,7 @@ use App\Enums\IntervalUnit;
 use App\Enums\MaintenanceType;
 use App\Enums\OrganizationType;
 use App\Enums\PersonRole;
+use App\Enums\ReminderStatus;
 use App\Enums\Role;
 use App\Enums\SubscriptionType;
 use App\Enums\UtilityType;
@@ -40,6 +41,7 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Models\Reminder;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
@@ -238,7 +240,7 @@ final class BianchiFamilySeeder extends Seeder
         $home = Home::query()->create(['name' => 'Casa di via Roma', 'address' => 'Via Roma 12', 'city' => 'Bologna', 'country' => 'Italia', 'is_owned' => true]);
         $account = FinancialAccount::query()->create(['name' => 'Conto BPER', 'type' => FinancialAccountType::CheckingAccount, 'organization_id' => $this->organizations['BPER Banca']->id, 'person_id' => $this->people['Marco']->id, 'last_four_digits' => '4821', 'is_default' => true]);
         $lauraCard = FinancialAccount::query()->create(['name' => 'Carta Laura', 'type' => FinancialAccountType::Card, 'organization_id' => $this->organizations['BPER Banca']->id, 'person_id' => $this->people['Laura']->id, 'last_four_digits' => '0937']);
-        $panda = Vehicle::query()->create(['name' => 'Fiat Panda', 'brand' => 'Fiat', 'model' => 'Panda', 'plate_number' => 'GH 482 TK', 'registration_year' => 2019, 'is_owned' => true, 'person_id' => $this->people['Marco']->id]);
+        $panda = Vehicle::query()->create(['name' => 'Fiat Panda', 'brand' => 'Fiat', 'model' => 'Panda', 'plate_number' => 'GH 482 TK', 'registration_year' => 2019, 'road_tax_due_date' => '2027-01-31', 'is_owned' => true, 'person_id' => $this->people['Marco']->id]);
 
         $this->records = [
             'Casa di via Roma' => $home,
@@ -247,7 +249,7 @@ final class BianchiFamilySeeder extends Seeder
             'Acqua - Hera' => $this->utility(UtilityType::Water, 'Hera', $home),
             'Internet - Fastweb' => $this->utility(UtilityType::Internet, 'Fastweb', $home),
             'Fiat Panda' => $panda,
-            'RC auto Panda - UnipolSai' => InsurancePolicy::query()->create(['title' => 'RC auto Panda', 'type' => InsurancePolicyType::Car, 'organization_id' => $this->organizations['UnipolSai']->id, 'person_id' => $this->people['Marco']->id, 'vehicle_id' => $panda->id, 'start_date' => '2025-11-20', 'expiry_date' => '2026-11-20']),
+            'RC auto Panda - UnipolSai' => InsurancePolicy::query()->create(['title' => 'RC auto Panda', 'type' => InsurancePolicyType::Car, 'organization_id' => $this->organizations['UnipolSai']->id, 'person_id' => $this->people['Marco']->id, 'vehicle_id' => $panda->id, 'start_date' => '2025-11-21', 'expiry_date' => '2026-11-21']),
             'Conto BPER' => $account,
             'Mutuo casa' => Loan::query()->create(['name' => 'Mutuo casa', 'organization_id' => $this->organizations['BPER Banca']->id, 'person_id' => $this->people['Marco']->id, 'financial_account_id' => $account->id, 'start_date' => '2018-06-01']),
             // The loan works out its end, totals and instalments paid by itself, and creates its planned expense.
@@ -296,9 +298,10 @@ final class BianchiFamilySeeder extends Seeder
             ['Busta paga di settembre', 'Lavoro › Buste paga', 'Marco', 'Studio Rinaldi', '2026-09-27', null, ['Marco - Studio Rinaldi'], 'busta-paga-marco-settembre.pdf'],
             ['Iscrizione danza 2026/27', 'Scuola e attività', 'Giulia', 'Scuola Passo a Due', '2026-09-13', null, ['Danza Giulia'], 'iscrizione-danza.pdf'],
             ['Certificato medico sportivo', 'Salute', 'Giulia', 'Dott.ssa Neri', '2025-12-11', '2026-12-11', ['Visite di Giulia'], 'certificato-medico-sportivo.pdf'],
+            ["Carta d'identità", 'Anagrafica e pratiche', 'Marco', 'Comune di Bologna', '2016-11-14', '2026-11-14', [], 'carta-identita.png'],
             ["Carta d'identità", 'Anagrafica e pratiche', 'Giulia', 'Comune di Bologna', '2017-05-24', '2027-05-24', [], 'carta-identita.png'],
             ['Tessera sanitaria', 'Anagrafica e pratiche', 'Giulia', null, '2020-10-20', '2026-10-20', [], 'tessera-sanitaria.pdf'],
-            ['Polizza RC auto 2026', 'Assicurazioni e fondi', 'Marco', 'UnipolSai', '2025-11-20', '2026-11-20', ['RC auto Panda - UnipolSai', 'Fiat Panda'], 'polizza-rc-auto.pdf'],
+            ['Polizza RC auto 2026', 'Assicurazioni e fondi', 'Marco', 'UnipolSai', '2025-11-21', '2026-11-21', ['RC auto Panda - UnipolSai', 'Fiat Panda'], 'polizza-rc-auto.pdf'],
             ['Estratto conto di settembre', 'Banche e finanziamenti', null, 'BPER Banca', '2026-10-05', null, ['Conto BPER'], 'estratto-conto-settembre.pdf'],
             ['Contratto Findomestic', 'Banche e finanziamenti', 'Marco', 'Findomestic', '2024-03-01', null, ['Finanziamento Panda'], 'contratto-findomestic.pdf'],
             ['Scontrino TV Samsung', 'Acquisti, garanzie e abbonamenti › Garanzie e scontrini', null, null, '2024-12-20', '2026-12-20', ['TV Samsung'], 'scontrino-tv.png'],
@@ -318,6 +321,40 @@ final class BianchiFamilySeeder extends Seeder
 
             foreach ($records as $record) {
                 $document->morphedByMany($this->records[$record]::class, 'documentable')->attach($this->records[$record]);
+            }
+        }
+
+        $this->createReminders(Document::query()->where('title', "Carta d'identità")->where('person_id', $this->people['Marco']->id)->sole());
+    }
+
+    /**
+     * The reminders the Home and the Agenda show: Marco's identity card with its automatic reminder already done, and
+     * three open ones for the calendar (one by hand without a card, one by hand on the Panda, one automatic for its road tax).
+     *
+     * @param  Document  $identityCard  Marco's identity card
+     */
+    private function createReminders(Document $identityCard): void
+    {
+        $panda = $this->records['Fiat Panda'];
+        $reminders = [
+            [$identityCard, "Carta d'identità di Marco · scade il 14/11/2026", '2026-11-14', ReminderStatus::Done, 'Marco', true, 'documents.expiry_date'],
+            [null, 'Rinnovare il passaporto di Laura', '2026-11-12', ReminderStatus::Open, 'Laura', false, null],
+            [$panda, 'Prenotare il tagliando della Panda', '2026-11-18', ReminderStatus::Open, null, false, null],
+            [$panda, 'Pagare il bollo · Panda · scade il 31/01/2027 · manca la spesa prevista', '2027-01-31', ReminderStatus::Open, 'Marco', true, 'vehicles.road_tax_due_date'],
+        ];
+
+        foreach ($reminders as [$card, $title, $dueDate, $status, $person, $automatic, $field]) {
+            $reminder = Reminder::query()->create([
+                'title' => $title,
+                'due_date' => $dueDate,
+                'status' => $status,
+                'person_id' => $person === null ? null : $this->people[$person]->id,
+                'is_automatic' => $automatic,
+                'source_field' => $field,
+            ]);
+
+            if ($card !== null) {
+                DB::table('remindables')->insert(['reminder_id' => $reminder->id, 'remindable_type' => $card->getMorphClass(), 'remindable_id' => $card->id]);
             }
         }
     }

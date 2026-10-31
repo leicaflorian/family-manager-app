@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\FinancialAccountType;
 use App\Enums\MaintenanceType;
+use App\Enums\ReminderStatus;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
@@ -11,12 +12,14 @@ use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
 use App\Models\Income;
+use App\Models\InsurancePolicy;
 use App\Models\Loan;
 use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Models\Reminder;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -26,6 +29,7 @@ use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(fn () => Storage::fake('local'));
@@ -40,7 +44,7 @@ test('the seeder creates the Bianchi family as on the canvas, in Italian', funct
         expect(Person::query()->count())->toBe(3)
             ->and(User::query()->where('family_id', CurrentFamily::id())->count())->toBe(2)
             ->and(Organization::query()->count())->toBe(22)
-            ->and(Document::query()->count())->toBe(18)
+            ->and(Document::query()->count())->toBe(19)
             ->and($panda->documents()->pluck('title')->all())->toBe(['Polizza RC auto 2026'])
             ->and($document->category?->name)->toBe('Luce')
             ->and($document->organization?->name)->toBe('Edison')
@@ -56,7 +60,7 @@ test('run twice it duplicates nothing', function (): void {
     $this->seed(BianchiFamilySeeder::class);
 
     expect(Family::query()->count())->toBe(1)
-        ->and(Document::withoutGlobalScopes()->count())->toBe(18);
+        ->and(Document::withoutGlobalScopes()->count())->toBe(19);
 });
 
 test('the Bianchi accounts sign in with the test password', function (): void {
@@ -254,5 +258,61 @@ describe('the budget of the Bianchi family on 26/10/2026', function (): void {
                 ->and($panda->end_date?->toDateString())->toBe('2028-02-10')
                 ->and($panda->total_to_pay)->toBe('9072.00');
         });
+    });
+});
+
+test('Marco has an identity card expiring on 14/11/2026 with its automatic reminder done', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $card = Document::query()->where('title', "Carta d'identità")->whereHas('person', fn ($query) => $query->where('first_name', 'Marco'))->sole();
+        $reminder = Reminder::query()->where('source_field', 'documents.expiry_date')->where('due_date', '2026-11-14')->sole();
+
+        expect($card->expiry_date?->format('d/m/Y'))->toBe('14/11/2026')
+            ->and($reminder->is_automatic)->toBeTrue()
+            ->and($reminder->status)->toBe(ReminderStatus::Done)
+            ->and(DB::table('remindables')->where('reminder_id', $reminder->id)->where('remindable_type', $card->getMorphClass())->where('remindable_id', $card->id)->exists())->toBeTrue();
+    });
+});
+
+test('the RC auto Panda policy and its instalment fall on 21/11/2026', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $policy = InsurancePolicy::query()->where('title', 'RC auto Panda')->sole();
+        $document = Document::query()->where('title', 'Polizza RC auto 2026')->sole();
+        $plan = PlannedExpense::query()->where('title', 'Assicurazione auto')->sole();
+
+        expect($policy->start_date?->toDateString())->toBe('2025-11-21')
+            ->and($policy->expiry_date?->toDateString())->toBe('2026-11-21')
+            ->and($document->date?->toDateString())->toBe('2025-11-21')
+            ->and($document->expiry_date?->toDateString())->toBe('2026-11-21')
+            ->and($plan->start_date->toDateString())->toBe('2025-11-21');
+    });
+});
+
+test('there are open reminders for the calendar', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+        $passport = Reminder::query()->where('title', 'Rinnovare il passaporto di Laura')->sole();
+        $service = Reminder::query()->where('title', 'Prenotare il tagliando della Panda')->sole();
+        $tax = Reminder::query()->where('title', 'Pagare il bollo · Panda · scade il 31/01/2027 · manca la spesa prevista')->sole();
+        $linked = fn (Reminder $reminder): int => DB::table('remindables')->where('reminder_id', $reminder->id)->count();
+
+        expect($passport->status)->toBe(ReminderStatus::Open)
+            ->and($passport->is_automatic)->toBeFalse()
+            ->and($passport->person?->first_name)->toBe('Laura')
+            ->and($linked($passport))->toBe(0)
+            ->and($service->status)->toBe(ReminderStatus::Open)
+            ->and($service->is_automatic)->toBeFalse()
+            ->and(DB::table('remindables')->where('reminder_id', $service->id)->where('remindable_type', $panda->getMorphClass())->where('remindable_id', $panda->id)->exists())->toBeTrue()
+            ->and($tax->status)->toBe(ReminderStatus::Open)
+            ->and($tax->is_automatic)->toBeTrue()
+            ->and($tax->source_field)->toBe('vehicles.road_tax_due_date')
+            ->and($tax->due_date->toDateString())->toBe($panda->road_tax_due_date?->toDateString())
+            ->and($tax->due_date->toDateString())->toBe('2027-01-31')
+            ->and(DB::table('remindables')->where('reminder_id', $tax->id)->where('remindable_id', $panda->id)->exists())->toBeTrue();
     });
 });
