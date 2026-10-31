@@ -61,15 +61,15 @@ describe('FmCategoryTree', () => {
     });
 
     it('does not let the rows be tapped unless it is selectable', async () => {
-        const { emitted } = render(FmCategoryTree, { props: { categories } });
+        const tree = render(FmCategoryTree, { props: { categories } });
 
         await fireEvent.click(screen.getByText('Lavoro'));
 
-        expect(emitted()).not.toHaveProperty('select');
+        expect(tree.emitted()).not.toHaveProperty('select');
     });
 
     it('tells which category was tapped, also in a lower level', async () => {
-        const { emitted } = render(FmCategoryTree, {
+        const tree = render(FmCategoryTree, {
             props: { categories, selectable: true },
         });
 
@@ -79,7 +79,7 @@ describe('FmCategoryTree', () => {
         );
         await fireEvent.click(screen.getByText('Luce'));
 
-        expect(emitted().select).toEqual([
+        expect(tree.emitted().select).toEqual([
             [categories[1]],
             [categories[0]!.children[0]],
         ]);
