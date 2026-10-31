@@ -3,6 +3,8 @@
  * A planned expense or income in a list: the icon of its category, the name
  * with the card and how it repeats below, who it is for, the next due date with
  * the account, and the amount. It leads to *A planned expense*.
+ *
+ * @group rows
  */
 import { computed } from 'vue';
 import { colorTile } from '@/lib/areas';

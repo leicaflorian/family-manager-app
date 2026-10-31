@@ -2,6 +2,8 @@
 /**
  * The month chosen, with ‹ and › to go to the one before and after. The month
  * is written in the language of the page.
+ *
+ * @group navigation
  */
 import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';

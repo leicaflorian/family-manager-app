@@ -3,6 +3,8 @@
  * A folded part of a page, such as the closed cards or the planned expenses
  * that ended: a button with its title and, when opened, the content in a card
  * of rows.
+ *
+ * @group basics
  */
 import { ChevronDown } from '@lucide/vue';
 import { ref } from 'vue';

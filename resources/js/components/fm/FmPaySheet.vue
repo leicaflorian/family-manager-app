@@ -6,6 +6,8 @@
  * the person has one. For an income it also says what was expected and what
  * the income will be called. It sends the form to `action`; the page then
  * shows the due date as paid. On the phone it rises from the bottom.
+ *
+ * @group panels
  */
 import { router } from '@inertiajs/vue3';
 import { Paperclip } from '@lucide/vue';

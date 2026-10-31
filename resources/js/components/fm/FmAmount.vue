@@ -2,6 +2,8 @@
 /**
  * An amount of the budget: «84,20 €», an estimate as «~72,00 €», a changed
  * amount with the old one struck through, an income as «+1.720,00 €» in green.
+ *
+ * @group figures
  */
 import { useFormat } from '@/composables/useFormat';
 

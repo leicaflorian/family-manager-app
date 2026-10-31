@@ -2,6 +2,8 @@
 /**
  * The tabs at the top of the budget pages: *Movements*, *Planned and spent* and
  * *Planned expenses*. The one of the open page is marked.
+ *
+ * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';

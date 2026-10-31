@@ -4,6 +4,8 @@
  * the panel of *I paid it* on the oldest open due date. With several planned
  * items it first asks which one, in a menu; without an open due date it is
  * not there.
+ *
+ * @group basics
  */
 import { Plus } from '@lucide/vue';
 import { deadlineUrls } from '@/lib/budget';

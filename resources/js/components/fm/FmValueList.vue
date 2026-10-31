@@ -3,6 +3,8 @@
  * The lines of the box *Data* of a page: the label on the left, the value on
  * the right. A value that is a person, an organization or a card is a link;
  * `newTab` opens it in a new tab, so the page it comes from stays open.
+ *
+ * @group rows
  */
 import { Link } from '@inertiajs/vue3';
 import FmNewTabLink from './FmNewTabLink.vue';

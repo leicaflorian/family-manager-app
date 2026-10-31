@@ -2,6 +2,8 @@
 /**
  * *Previous* and *Next* under a list shown a page at a time (the documents,
  * the documents of a card); nothing when the list fits in one page.
+ *
+ * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
 

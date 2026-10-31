@@ -6,6 +6,8 @@
  * month for the hover and *See as a table* for those who read the numbers.
  * The spent is told by the bar and the planned by the mark, so the two are not
  * told apart by colour alone.
+ *
+ * @group figures
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';

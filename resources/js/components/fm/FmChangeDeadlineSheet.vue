@@ -4,6 +4,8 @@
  * planned expense. Three choices, more than one at a time: it is skipped
  * (which turns the other two off), it has another amount, it has another
  * date; and a note. It sends them to `action` as the server reads them.
+ *
+ * @group panels
  */
 import { router } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';

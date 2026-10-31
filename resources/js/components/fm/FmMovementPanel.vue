@@ -10,6 +10,8 @@
  * planned expense or income, or a card (also the one *Add expense* of a card
  * starts with), fills the fields still empty from it. Used beside
  * the list on the computer (`compact`) and on its own page on the phone.
+ *
+ * @group panels
  */
 import { router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';

@@ -2,6 +2,8 @@
 /**
  * A row of *By category*: the name, a bar with what was spent, a mark where the
  * plan reaches, the comment («193,40 € less») and «spent of planned».
+ *
+ * @group figures
  */
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';

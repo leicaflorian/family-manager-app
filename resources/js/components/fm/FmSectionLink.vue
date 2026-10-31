@@ -5,6 +5,8 @@
  * underlined on hover. With `href` it is an Inertia link, otherwise a button.
  * Every section uses it, so the links beside the titles look the same on
  * every page.
+ *
+ * @group navigation
  */
 import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';

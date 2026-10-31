@@ -3,6 +3,8 @@
  * The total to pay and the cost of a loan under its instalment in the form,
  * as the server works them out from what is written so far. A figure that
  * cannot be worked out yet is a dash.
+ *
+ * @group figures
  */
 import { useFormat } from '@/composables/useFormat';
 

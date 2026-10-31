@@ -3,6 +3,8 @@
  * A figure of the payments of a card, as a tile beside its dates: the label,
  * the amount (or the number, as *Utilities 4*) and the line below, where the
  * page writes the amount the server names with `:amount`.
+ *
+ * @group figures
  */
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';

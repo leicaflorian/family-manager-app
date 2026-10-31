@@ -6,6 +6,8 @@
  * the amount. *A planned expense* and the cards list them; on a card a page
  * of them, on *Payments of a card* every year, the older ones folded with the
  * whole dates; on both each payment leads to its page.
+ *
+ * @group sections
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronDown, Paperclip } from '@lucide/vue';

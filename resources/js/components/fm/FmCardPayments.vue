@@ -10,6 +10,8 @@
  * items of its own (a loan makes its instalment by itself). A card that only
  * has expenses linked to it (a belonging, a maintenance job, a filing, a
  * health event) offers *Add expense* instead.
+ *
+ * @group sections
  */
 import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';

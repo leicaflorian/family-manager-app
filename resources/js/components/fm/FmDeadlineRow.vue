@@ -3,6 +3,8 @@
  * A due date in a list: the dot of the area, the title, the card it belongs to
  * with its day (red when late) and on the right the amount. It leads to *A due
  * date*.
+ *
+ * @group rows
  */
 import { computed } from 'vue';
 import type { Area } from '@/lib/areas';

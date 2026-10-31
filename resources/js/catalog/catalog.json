@@ -20,6 +20,7 @@
       "components/fm/FmDocumentActions.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
+      "pages/budget/Planned.vue",
       "pages/cards/Card.vue",
       "pages/family/Organization.vue",
       "pages/family/Organizations.vue",
@@ -57,6 +58,54 @@
     "usedBy": [
       "components/fm/FmDocumentForm.vue",
       "pages/documents/Documents.vue"
+    ]
+  },
+  {
+    "name": "FmAmount",
+    "path": "resources/js/components/fm/FmAmount.vue",
+    "description": "An amount of the budget: «84,20 €», an estimate as «~72,00 €», a changed\namount with the old one struck through, an income as «+1.720,00 €» in green.",
+    "group": "figures",
+    "props": [
+      {
+        "name": "amount",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "The amount."
+      },
+      {
+        "name": "estimated",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The amount is an estimate."
+      },
+      {
+        "name": "base",
+        "type": "number | null",
+        "required": false,
+        "default": "null",
+        "description": "The amount before an exception changed it; it is shown struck through."
+      },
+      {
+        "name": "income",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The amount comes in: a plus and the colour of what is paid."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardBudget.vue",
+      "components/fm/FmChangeDeadlineSheet.vue",
+      "components/fm/FmDeadlineRow.vue",
+      "components/fm/FmPlannedRow.vue",
+      "pages/budget/Deadline.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/PlannedItem.vue"
     ]
   },
   {
@@ -140,13 +189,38 @@
     "types": [],
     "usedBy": [
       "components/fm/FmTitle.vue",
-      "pages/cards/Card.vue"
+      "pages/budget/Deadline.vue",
+      "pages/budget/Movement.vue",
+      "pages/budget/PlannedItem.vue",
+      "pages/cards/Card.vue",
+      "pages/cards/CardPayments.vue"
+    ]
+  },
+  {
+    "name": "FmBarChart",
+    "path": "resources/js/components/fm/FmBarChart.vue",
+    "description": "The chart *Expenses, the last 6 months*: for each month a bar with what was\nspent and a dark mark where the plan reaches, the month in progress named\nand its amount written above. Drawn in SVG, with a legend, a title on each\nmonth for the hover and *See as a table* for those who read the numbers.\nThe spent is told by the bar and the planned by the mark, so the two are not\ntold apart by colour alone.",
+    "group": "figures",
+    "props": [
+      {
+        "name": "months",
+        "type": "App.Data.MonthBarData[]",
+        "required": true,
+        "default": null,
+        "description": "The months, oldest first."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/Comparison.vue"
     ]
   },
   {
     "name": "FmBottomBar",
     "path": "resources/js/components/fm/FmBottomBar.vue",
-    "description": "The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in\nthe middle, Documents and More. More opens a panel with Family, Settings and\nLog out, and stays marked when one of those pages is open.",
+    "description": "The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in\nthe middle, Areas and More. More opens a panel with Documents, Family,\nSettings and Log out, and stays marked when one of those pages is open.",
     "group": "navigation",
     "props": [
       {
@@ -201,12 +275,38 @@
     "types": [],
     "usedBy": [
       "components/fm/FmBottomBar.vue",
+      "components/fm/FmChangeDeadlineSheet.vue",
       "components/fm/FmConfirm.vue",
       "components/fm/FmLinkDocumentSheet.vue",
+      "components/fm/FmPaySheet.vue",
       "components/fm/FmUploadSheet.vue",
       "pages/documents/Documents.vue",
       "pages/settings/Account.vue",
-      "pages/settings/Categories.vue"
+      "pages/settings/Categories.vue",
+      "pages/settings/ExpenseCategories.vue"
+    ]
+  },
+  {
+    "name": "FmBudgetTabs",
+    "path": "resources/js/components/fm/FmBudgetTabs.vue",
+    "description": "The tabs at the top of the budget pages: *Movements*, *Planned and spent* and\n*Planned expenses*. The one of the open page is marked.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "current",
+        "type": "BudgetPage",
+        "required": true,
+        "default": null,
+        "description": "The page that is open."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/Comparison.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/Planned.vue"
     ]
   },
   {
@@ -298,13 +398,6 @@
         "required": false,
         "default": "false",
         "description": "With `label`: no background until hovered, as beside a row."
-      },
-      {
-        "name": "inline",
-        "type": "boolean",
-        "required": false,
-        "default": "false",
-        "description": "As tall as the line of a title beside it, with no box around the text,\nas *Upload* beside *Documents*. Meant for the text variant."
       }
     ],
     "events": [
@@ -320,8 +413,8 @@
       "components/dev/DevCases.vue",
       "components/fm/FmActions.vue",
       "components/fm/FmCardDocumentActions.vue",
-      "components/fm/FmCardFiles.vue",
       "components/fm/FmCardForm.vue",
+      "components/fm/FmChangeDeadlineSheet.vue",
       "components/fm/FmConfirm.vue",
       "components/fm/FmDeleteButton.vue",
       "components/fm/FmDocumentActions.vue",
@@ -329,6 +422,8 @@
       "components/fm/FmDocumentForm.vue",
       "components/fm/FmLinkDocumentSheet.vue",
       "components/fm/FmMenu.vue",
+      "components/fm/FmMovementPanel.vue",
+      "components/fm/FmPaySheet.vue",
       "lib/actions.ts",
       "pages/Area.vue",
       "pages/Areas.vue",
@@ -341,7 +436,11 @@
       "pages/auth/Register.vue",
       "pages/auth/ResetPassword.vue",
       "pages/auth/VerifyEmail.vue",
-      "pages/cards/Card.vue",
+      "pages/budget/Deadline.vue",
+      "pages/budget/EditPlanned.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/Planned.vue",
+      "pages/budget/PlannedItem.vue",
       "pages/cards/EditCard.vue",
       "pages/documents/Documents.vue",
       "pages/documents/EditDocument.vue",
@@ -352,13 +451,14 @@
       "pages/family/Organizations.vue",
       "pages/settings/Account.vue",
       "pages/settings/Categories.vue",
+      "pages/settings/ExpenseCategories.vue",
       "pages/welcome/Welcome.vue"
     ]
   },
   {
     "name": "FmCard",
     "path": "resources/js/components/fm/FmCard.vue",
-    "description": "The white card of the pages. With `list` it holds rows (`FmRow`) separated by\na line, without padding inside because the rows have their own. The buttons\nof the section go beside the title, in `actions`.",
+    "description": "The white card of the pages. With `list` it holds rows (`FmRow`) separated by\na line, without padding inside because the rows have their own, and rows\nthat come and go are animated. The links of the section go beside the title,\nin `actions`, as `FmSectionLink` (or `FmMenu` with `text`).",
     "group": "basics",
     "props": [
       {
@@ -383,7 +483,14 @@
     ],
     "types": [],
     "usedBy": [
+      "components/fm/FmCardBudget.vue",
+      "components/fm/FmCardPayments.vue",
       "pages/Home.vue",
+      "pages/budget/Comparison.vue",
+      "pages/budget/Deadline.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/Planned.vue",
+      "pages/budget/PlannedItem.vue",
       "pages/cards/Card.vue",
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue",
@@ -392,7 +499,39 @@
       "pages/family/Person.vue",
       "pages/settings/Account.vue",
       "pages/settings/Categories.vue",
+      "pages/settings/ExpenseCategories.vue",
       "pages/settings/Settings.vue"
+    ]
+  },
+  {
+    "name": "FmCardBudget",
+    "path": "resources/js/components/fm/FmCardBudget.vue",
+    "description": "The payments on the page of a card, as the boards of the cards draw them:\nin the box at the top the oldest open due date (the renewal of a policy, the\nnext instalment of a loan, the salary coming in), which opens *A due date*\n(with *It arrived* open on a salary);\nthe figures, beside the dates of the card (`tiles`); how far a loan is paid;\nthe open due dates; then the data of the card (the default slot). The\nplanned expenses and their payments (`FmCardPayments`) the page shows under\nthe documents; without a budget only the tiles and the data remain.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "budget",
+        "type": "App.Data.CardBudgetData | null",
+        "required": true,
+        "default": null,
+        "description": "The payments of the card, null when none is sent."
+      },
+      {
+        "name": "card",
+        "type": "{ type: string; id: number; }",
+        "required": true,
+        "default": null,
+        "description": "The address of the card: its type and its number."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "tiles",
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/cards/Card.vue"
     ]
   },
   {
@@ -538,7 +677,7 @@
   {
     "name": "FmCardForm",
     "path": "resources/js/components/fm/FmCardForm.vue",
-    "description": "The form of a card, built from the description the server gives\n(`CardFieldData`): each field becomes the FormKit Pro input of its kind, and\na field shows only when its `show_when` holds, for example the vehicle only\nfor a car policy, and its label can change with `label_when`, for example\nthe POD code of electricity that is a PDR code for gas. A hidden field is\nsent empty. The same form creates and\nedits every type of card: the page gives the fields and the values, and gets\nthem back with `submit`.",
+    "description": "The form of a card, built from the description the server gives\n(`CardFieldData`): each field becomes the FormKit Pro input of its kind, and\na field shows only when its `show_when` holds, for example the vehicle only\nfor a car policy, and its label can change with `label_when`, for example\nthe POD code of electricity that is a PDR code for gas. A hidden field is\nsent empty. For a loan the page also gives `loanFigures`: under the instalment\nthe form shows the total to pay and the cost, which it asks the server for\n(a partial reload) 300 ms after the amounts or the start stop changing. The same form creates and\nedits every type of card: the page gives the fields and the values, and gets\nthem back with `submit`.",
     "group": "forms",
     "props": [
       {
@@ -568,6 +707,13 @@
         "required": false,
         "default": "false",
         "description": "The form is being sent: the button waits."
+      },
+      {
+        "name": "loanFigures",
+        "type": "App.Data.LoanFiguresData | null",
+        "required": false,
+        "default": "undefined",
+        "description": "The total to pay and the cost of a loan: null until the server answers, left out for any other card."
       }
     ],
     "events": [
@@ -612,9 +758,38 @@
     ]
   },
   {
+    "name": "FmCardPayments",
+    "path": "resources/js/components/fm/FmCardPayments.vue",
+    "description": "The planned expenses (or incomes) of a card and their payments, as the\nboards of the cards and the column beside *Edit card* show them: the rows of\nthe planned items, which open *A planned expense*, with *Add* for an\n`admin`; then the payments a page at a time (the server sends one page,\nwith the addresses of the others for the pager), each leading to its page,\nwith *Record payment* and the link to all of them, year by year. Without\na planned item it says to create it first, unless the card has no planned\nitems of its own (a loan makes its instalment by itself). A card that only\nhas expenses linked to it (a belonging, a maintenance job, a filing, a\nhealth event) offers *Add expense* instead.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "budget",
+        "type": "App.Data.CardBudgetData",
+        "required": true,
+        "default": null,
+        "description": "The payments of the card."
+      },
+      {
+        "name": "card",
+        "type": "{ type: string; id: number; }",
+        "required": true,
+        "default": null,
+        "description": "The address of the card: its type and its number."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/cards/Card.vue",
+      "pages/cards/EditCard.vue"
+    ]
+  },
+  {
     "name": "FmCardRow",
     "path": "resources/js/components/fm/FmCardRow.vue",
-    "description": "A card in a list: the icon of its type in the colour of its area, the name\nand below the subtitle or the next date («Inspection · in 75 days», red once\noverdue). It leads to the card; a closed card is grey.",
+    "description": "A card in a list: the icon of its type in the colour of its area, the name\nand below the subtitle or the next date («Inspection · in 75 days», red once\noverdue). It leads to the card; a closed card is grey. In *An area* the\namount of an open due date of the next 30 days is on the right, red when late.",
     "group": "rows",
     "props": [
       {
@@ -632,6 +807,62 @@
       "pages/Area.vue",
       "pages/Areas.vue",
       "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmCategoryBar",
+    "path": "resources/js/components/fm/FmCategoryBar.vue",
+    "description": "A row of *By category*: the name, a bar with what was spent, a mark where the\nplan reaches, the comment («193,40 € less») and «spent of planned».",
+    "group": "figures",
+    "props": [
+      {
+        "name": "category",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The name of the category."
+      },
+      {
+        "name": "spent",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "What was spent."
+      },
+      {
+        "name": "planned",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "What was planned."
+      },
+      {
+        "name": "estimated",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The plan is only an estimate."
+      },
+      {
+        "name": "lateTitle",
+        "type": "string | null",
+        "required": false,
+        "default": "null",
+        "description": "The title of a due date of the category that is late."
+      },
+      {
+        "name": "color",
+        "type": "string | null",
+        "required": false,
+        "default": "null",
+        "description": "The colour of the category, for example `#e35169`."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/Comparison.vue"
     ]
   },
   {
@@ -659,12 +890,12 @@
   {
     "name": "FmCategoryTree",
     "path": "resources/js/components/fm/FmCategoryTree.vue",
-    "description": "A level of the tree of the document categories: each category with the number\nof its documents and, if it has any, the arrow that opens the subcategories.\nIt calls itself for the levels below.",
+    "description": "A level of the tree of the categories, of documents or of expenses: each\ncategory with, on the right, the number of its documents (or what the `after`\nslot shows) and, if it has any, the arrow that opens the subcategories. It\ncalls itself for the levels below.",
     "group": "forms",
     "props": [
       {
         "name": "categories",
-        "type": "App.Data.CategoryData[]",
+        "type": "T[]",
         "required": true,
         "default": null,
         "description": "The categories of this level."
@@ -682,16 +913,65 @@
         "required": false,
         "default": "false",
         "description": "The categories are tapped to choose them (to edit them)."
+      },
+      {
+        "name": "mainOnly",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Only the main categories are tapped: the subcategories are just read."
       }
     ],
     "events": [
       "select"
     ],
-    "slots": [],
+    "slots": [
+      "after"
+    ],
     "types": [],
     "usedBy": [
       "components/fm/FmCategoryTree.vue",
-      "pages/settings/Categories.vue"
+      "pages/settings/Categories.vue",
+      "pages/settings/ExpenseCategories.vue"
+    ]
+  },
+  {
+    "name": "FmChangeDeadlineSheet",
+    "path": "resources/js/components/fm/FmChangeDeadlineSheet.vue",
+    "description": "*Change this due date*: the panel that changes one due date and not the\nplanned expense. Three choices, more than one at a time: it is skipped\n(which turns the other two off), it has another amount, it has another\ndate; and a note. It sends them to `action` as the server reads them.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "deadline",
+        "type": "App.Data.DeadlineData",
+        "required": true,
+        "default": null,
+        "description": "The due date to change."
+      },
+      {
+        "name": "action",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "Where the changes are sent (PUT)."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel is open."
+      }
+    ],
+    "events": [
+      "update:open",
+      "close"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/Deadline.vue",
+      "pages/budget/PlannedItem.vue"
     ]
   },
   {
@@ -825,6 +1105,36 @@
     ]
   },
   {
+    "name": "FmDeadlineRow",
+    "path": "resources/js/components/fm/FmDeadlineRow.vue",
+    "description": "A due date in a list: the dot of the area, the title, the card it belongs to\nwith its day (red when late) and on the right the amount. It leads to *A due\ndate*.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "deadline",
+        "type": "App.Data.DeadlineData",
+        "required": true,
+        "default": null,
+        "description": "The due date."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "*A due date*, where the row leads."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardBudget.vue",
+      "pages/budget/Comparison.vue",
+      "pages/budget/Deadline.vue"
+    ]
+  },
+  {
     "name": "FmDeleteButton",
     "path": "resources/js/components/fm/FmDeleteButton.vue",
     "description": "*Delete*, red, which asks again in the panel from below before deleting:\nthe question, what happens, *Cancel* and the button that deletes.",
@@ -869,7 +1179,10 @@
     "events": [],
     "slots": [],
     "types": [],
-    "usedBy": []
+    "usedBy": [
+      "components/fm/FmMovementPanel.vue",
+      "pages/budget/EditPlanned.vue"
+    ]
   },
   {
     "name": "FmDocumentActions",
@@ -1125,6 +1438,9 @@
       "pages/Area.vue",
       "pages/Areas.vue",
       "pages/Home.vue",
+      "pages/budget/Comparison.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/Planned.vue",
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue",
       "pages/family/Organizations.vue"
@@ -1330,6 +1646,30 @@
     ]
   },
   {
+    "name": "FmFold",
+    "path": "resources/js/components/fm/FmFold.vue",
+    "description": "A folded part of a page, such as the closed cards or the planned expenses\nthat ended: a button with its title and, when opened, the content in a card\nof rows.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the button, for example «Closed (2)»."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/Area.vue",
+      "pages/budget/Planned.vue"
+    ]
+  },
+  {
     "name": "FmHeader",
     "path": "resources/js/components/fm/FmHeader.vue",
     "description": "The big title of a sign-in page written by the page itself, when it depends\non the data («Hi, Rosa»): like the one of `AuthLayout`.",
@@ -1412,17 +1752,26 @@
       "components/fm/FmEmpty.vue",
       "components/fm/FmFileDrop.vue",
       "components/fm/FmFileTile.vue",
+      "components/fm/FmFold.vue",
       "components/fm/FmMenuItem.vue",
+      "components/fm/FmMonthSwitch.vue",
+      "components/fm/FmMovementPanel.vue",
       "components/fm/FmNewTabLink.vue",
       "components/fm/FmNotice.vue",
       "components/fm/FmOrganizationMark.vue",
       "components/fm/FmPasswordField.vue",
+      "components/fm/FmPaySheet.vue",
+      "components/fm/FmPaymentYears.vue",
+      "components/fm/FmPlannedRow.vue",
       "components/fm/FmRow.vue",
       "components/fm/FmSearchField.vue",
+      "components/fm/FmSectionLink.vue",
       "components/fm/FmSidebar.vue",
       "layouts/AuthLayout.vue",
-      "pages/Area.vue",
       "pages/Areas.vue",
+      "pages/budget/EditPlanned.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/PlannedItem.vue",
       "pages/cards/EditCard.vue",
       "pages/cards/NewCard.vue",
       "pages/documents/Documents.vue",
@@ -1575,6 +1924,27 @@
     ]
   },
   {
+    "name": "FmLoanFigures",
+    "path": "resources/js/components/fm/FmLoanFigures.vue",
+    "description": "The total to pay and the cost of a loan under its instalment in the form,\nas the server works them out from what is written so far. A figure that\ncannot be worked out yet is a dash.",
+    "group": "figures",
+    "props": [
+      {
+        "name": "figures",
+        "type": "App.Data.LoanFiguresData | null",
+        "required": true,
+        "default": null,
+        "description": "The figures from the server, or null until they come."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardForm.vue"
+    ]
+  },
+  {
     "name": "FmLogo",
     "path": "resources/js/components/fm/FmLogo.vue",
     "description": "The Family Manager logo: the roof and the family, white on the light blue square.\nThe white version, without the square, goes on the blue panel of the sign-in pages.",
@@ -1636,6 +2006,13 @@
         "required": false,
         "default": "false",
         "description": "The ⋯ button without a background until hovered, as the plain buttons beside a row."
+      },
+      {
+        "name": "text",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The label beside the icon, as the link beside a title (`FmSectionLink`), as *Record payment*."
       }
     ],
     "events": [],
@@ -1647,6 +2024,7 @@
       "components/fm/FmActions.vue",
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmDocumentActions.vue",
+      "components/fm/FmPayButton.vue",
       "pages/cards/Card.vue"
     ]
   },
@@ -1703,7 +2081,84 @@
       "components/fm/FmActions.vue",
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmDocumentActions.vue",
+      "components/fm/FmPayButton.vue",
       "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmMonthSwitch",
+    "path": "resources/js/components/fm/FmMonthSwitch.vue",
+    "description": "The month chosen, with ‹ and › to go to the one before and after. The month\nis written in the language of the page.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "month",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The month, `yyyy-mm`."
+      }
+    ],
+    "events": [
+      "change"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/Comparison.vue",
+      "pages/budget/Movements.vue"
+    ]
+  },
+  {
+    "name": "FmMovementPanel",
+    "path": "resources/js/components/fm/FmMovementPanel.vue",
+    "description": "The panel of a movement, as the board *Pagamenti-pc* draws it: the title,\nwhen it was paid (or received) and how much, the commission and the account,\nthe category and (for an expense) the card of its type, the organization,\nthe holder, the planned expense or income it\nsettles (and which of its due dates), and the documents linked to it, with\n*Delete*, *Cancel* and *Save*. Without a movement it is the form of a new\nexpense or income, which starts with the choice between the two. Choosing a\nplanned expense or income, or a card (also the one *Add expense* of a card\nstarts with), fills the fields still empty from it. Used beside\nthe list on the computer (`compact`) and on its own page on the phone.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "movement",
+        "type": "App.Data.MovementData | null",
+        "required": true,
+        "default": null,
+        "description": "The movement to show and change, or null for a new expense or income."
+      },
+      {
+        "name": "options",
+        "type": "MovementFormOptions",
+        "required": true,
+        "default": null,
+        "description": "The choices of the menus."
+      },
+      {
+        "name": "start",
+        "type": "MovementStart",
+        "required": true,
+        "default": null,
+        "description": "What a new movement starts from: the kind, the planned item and the day."
+      },
+      {
+        "name": "occurrences",
+        "type": "App.Data.OptionData[]",
+        "required": false,
+        "default": "[]",
+        "description": "The due dates of the planned item that the movement can settle."
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Beside the list on the computer: it has the × to close it."
+      }
+    ],
+    "events": [
+      "close"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/Movement.vue",
+      "pages/budget/Movements.vue"
     ]
   },
   {
@@ -1731,7 +2186,7 @@
     "slots": [],
     "types": [],
     "usedBy": [
-      "pages/cards/Card.vue"
+      "components/fm/FmValueList.vue"
     ]
   },
   {
@@ -1764,10 +2219,12 @@
     ],
     "usedBy": [
       "components/fm/FmCardFiles.vue",
+      "components/fm/FmPaySheet.vue",
       "components/fm/FmUploadSheet.vue",
       "pages/auth/ForgotPassword.vue",
       "pages/auth/Login.vue",
       "pages/auth/VerifyEmail.vue",
+      "pages/budget/Deadline.vue",
       "pages/cards/Card.vue",
       "pages/documents/Upload.vue",
       "pages/family/InvitationSent.vue",
@@ -1776,6 +2233,28 @@
       "pages/family/Person.vue",
       "pages/settings/Account.vue",
       "pages/settings/Categories.vue"
+    ]
+  },
+  {
+    "name": "FmNumberTile",
+    "path": "resources/js/components/fm/FmNumberTile.vue",
+    "description": "A figure of the payments of a card, as a tile beside its dates: the label,\nthe amount (or the number, as *Utilities 4*) and the line below, where the\npage writes the amount the server names with `:amount`.",
+    "group": "figures",
+    "props": [
+      {
+        "name": "number",
+        "type": "App.Data.CardNumberData",
+        "required": true,
+        "default": null,
+        "description": "The figure."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardBudget.vue",
+      "pages/cards/CardPayments.vue"
     ]
   },
   {
@@ -1820,6 +2299,43 @@
       "pages/family/EditOrganization.vue",
       "pages/family/Organization.vue",
       "pages/family/Organizations.vue"
+    ]
+  },
+  {
+    "name": "FmPager",
+    "path": "resources/js/components/fm/FmPager.vue",
+    "description": "*Previous* and *Next* under a list shown a page at a time (the documents,\nthe documents of a card); nothing when the list fits in one page.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "previous",
+        "type": "string | null",
+        "required": true,
+        "default": null,
+        "description": "The address of the previous page, null on the first."
+      },
+      {
+        "name": "next",
+        "type": "string | null",
+        "required": true,
+        "default": null,
+        "description": "The address of the next page, null on the last."
+      },
+      {
+        "name": "preserveScroll",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Keeps the scroll where it is, for a list inside a longer page."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardPayments.vue",
+      "pages/cards/Card.vue",
+      "pages/documents/Documents.vue"
     ]
   },
   {
@@ -1883,6 +2399,160 @@
       "pages/auth/Register.vue",
       "pages/auth/ResetPassword.vue",
       "pages/settings/Account.vue"
+    ]
+  },
+  {
+    "name": "FmPayButton",
+    "path": "resources/js/components/fm/FmPayButton.vue",
+    "description": "*Record payment* (or *Record income*) of a card: it opens *A due date* with\nthe panel of *I paid it* on the oldest open due date. With several planned\nitems it first asks which one, in a menu; without an open due date it is\nnot there.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "deadlines",
+        "type": "App.Data.DeadlineData[]",
+        "required": true,
+        "default": null,
+        "description": "The oldest open due date of each planned item."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the button, for example «Record payment»."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardPayments.vue",
+      "pages/cards/CardPayments.vue"
+    ]
+  },
+  {
+    "name": "FmPaySheet",
+    "path": "resources/js/components/fm/FmPaySheet.vue",
+    "description": "*I paid it* (for an income *It arrived*): the panel that records the payment\nof a due date. It asks when, how much and with what, starting from today,\nfrom the amount and from the account of the due date, and takes a receipt if\nthe person has one. For an income it also says what was expected and what\nthe income will be called. It sends the form to `action`; the page then\nshows the due date as paid. On the phone it rises from the bottom.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "deadline",
+        "type": "App.Data.DeadlineData",
+        "required": true,
+        "default": null,
+        "description": "The due date to settle."
+      },
+      {
+        "name": "accounts",
+        "type": "App.Data.OptionData[]",
+        "required": true,
+        "default": null,
+        "description": "The accounts of the family to choose from."
+      },
+      {
+        "name": "action",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "Where the payment is sent (POST)."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel is open."
+      }
+    ],
+    "events": [
+      "update:open",
+      "close"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/Deadline.vue"
+    ]
+  },
+  {
+    "name": "FmPaymentYears",
+    "path": "resources/js/components/fm/FmPaymentYears.vue",
+    "description": "The payments of the planned items of a page by year, the latest first: a\nline with the year (and, with `counts`, how many payments) and its total,\nthen each payment with its day, title, account, the clip of a receipt and\nthe amount. *A planned expense* and the cards list them; on a card a page\nof them, on *Payments of a card* every year, the older ones folded with the\nwhole dates; on both each payment leads to its page.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "years",
+        "type": "App.Data.PaymentYearData[]",
+        "required": true,
+        "default": null,
+        "description": "The payments by year, the latest year first."
+      },
+      {
+        "name": "counts",
+        "type": "Record<number, string> | null",
+        "required": false,
+        "default": "null",
+        "description": "The words of the number of payments of each year, for example «9 bills»."
+      },
+      {
+        "name": "folded",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The years after the first are folded, and their line opens them."
+      },
+      {
+        "name": "linked",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Each payment leads to its page."
+      },
+      {
+        "name": "fullDate",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Each payment shows the whole date, with the year."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardPayments.vue",
+      "pages/budget/PlannedItem.vue",
+      "pages/cards/CardPayments.vue"
+    ]
+  },
+  {
+    "name": "FmPlannedRow",
+    "path": "resources/js/components/fm/FmPlannedRow.vue",
+    "description": "A planned expense or income in a list: the icon of its category, the name\nwith the card and how it repeats below, who it is for, the next due date with\nthe account, and the amount. It leads to *A planned expense*.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "row",
+        "type": "App.Data.PlannedRowData",
+        "required": true,
+        "default": null,
+        "description": "The planned expense or income."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "*A planned expense*, where the row leads."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardPayments.vue",
+      "pages/budget/Planned.vue"
     ]
   },
   {
@@ -1970,10 +2640,15 @@
       "components/fm/FmCardFiles.vue",
       "components/fm/FmCardRow.vue",
       "components/fm/FmCategoryTree.vue",
+      "components/fm/FmDeadlineRow.vue",
       "components/fm/FmDocumentRow.vue",
       "components/fm/FmLinkDocumentSheet.vue",
       "components/fm/FmLinkedRecords.vue",
+      "components/fm/FmMovementPanel.vue",
+      "components/fm/FmPlannedRow.vue",
       "pages/Home.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/PlannedItem.vue",
       "pages/dev/Components.vue",
       "pages/family/Organizations.vue",
       "pages/family/People.vue",
@@ -2012,6 +2687,44 @@
       "components/fm/FmLinkDocumentSheet.vue",
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue"
+    ]
+  },
+  {
+    "name": "FmSectionLink",
+    "path": "resources/js/components/fm/FmSectionLink.vue",
+    "description": "The link beside the title of a section (`FmCard`), as *Upload*, *Add* or\n*Record payment*: blue text with its icon, normal weight, no box around it,\nunderlined on hover. With `href` it is an Inertia link, otherwise a button.\nEvery section uses it, so the links beside the titles look the same on\nevery page.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "href",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The address: if there is one, it is a link."
+      },
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": false,
+        "default": null,
+        "description": "The icon before the text."
+      }
+    ],
+    "events": [
+      "click"
+    ],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmCardFiles.vue",
+      "components/fm/FmCardPayments.vue",
+      "components/fm/FmMenu.vue",
+      "components/fm/FmPayButton.vue",
+      "pages/Home.vue",
+      "pages/budget/PlannedItem.vue",
+      "pages/cards/Card.vue"
     ]
   },
   {
@@ -2114,6 +2827,10 @@
       "components/fm/FmFamilyViews.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
+      "pages/budget/Comparison.vue",
+      "pages/budget/EditPlanned.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/Planned.vue",
       "pages/cards/EditCard.vue",
       "pages/cards/NewCard.vue",
       "pages/dev/Components.vue",
@@ -2127,6 +2844,7 @@
       "pages/family/Invite.vue",
       "pages/settings/Account.vue",
       "pages/settings/Categories.vue",
+      "pages/settings/ExpenseCategories.vue",
       "pages/settings/Settings.vue"
     ]
   },
@@ -2157,6 +2875,35 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmValueList",
+    "path": "resources/js/components/fm/FmValueList.vue",
+    "description": "The lines of the box *Data* of a page: the label on the left, the value on\nthe right. A value that is a person, an organization or a card is a link;\n`newTab` opens it in a new tab, so the page it comes from stays open.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "values",
+        "type": "App.Data.CardValueData[]",
+        "required": true,
+        "default": null,
+        "description": "The lines."
+      },
+      {
+        "name": "newTab",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "A link opens in a new tab."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/budget/PlannedItem.vue",
       "pages/cards/Card.vue"
     ]
   }

@@ -8,6 +8,8 @@
  * the open due dates; then the data of the card (the default slot). The
  * planned expenses and their payments (`FmCardPayments`) the page shows under
  * the documents; without a budget only the tiles and the data remain.
+ *
+ * @group sections
  */
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
