@@ -5,6 +5,8 @@
  * opens the picker and *Remove* takes it away. Nothing is sent here: the
  * chosen file and the removal go to the form, which saves them with the rest.
  * What to draw is up to the default slot, which gets the image to show.
+ *
+ * @group panels
  */
 import { onBeforeUnmount, ref, useTemplateRef, watch } from 'vue';
 import { IMAGE_FILE_TYPES } from '@/lib/files';

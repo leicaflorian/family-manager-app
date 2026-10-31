@@ -4,6 +4,8 @@
  * are dragged or chosen. They are sent at once, linked to the card, and
  * *Upload* opens with the form of the first one; a file refused leaves the
  * panel open, with the reason.
+ *
+ * @group panels
  */
 import type { DocumentLink } from '@/lib/documents';
 import { useFileUpload } from '@/composables/useFileUpload';

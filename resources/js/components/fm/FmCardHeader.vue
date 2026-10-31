@@ -3,6 +3,8 @@
  * The coloured top of a card page, as on the board *Scheda*: «Area · Type»,
  * the name and the line of data. On the right, the `actions` slot holds
  * *Edit* and the ⋯ menu.
+ *
+ * @group sections
  */
 import { computed } from 'vue';
 import { provideOnColor } from '@/composables/useOnColor';

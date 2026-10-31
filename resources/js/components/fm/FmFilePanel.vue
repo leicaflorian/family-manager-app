@@ -4,6 +4,8 @@
  * documento* show it, with the proportions of an A4 sheet: the preview and,
  * under it, the name of the file. Used by the page of a document, by its panel
  * beside the list and by *Edit*, where *Change the file* follows the name.
+ *
+ * @group panels
  */
 import { useForm } from '@inertiajs/vue3';
 import { useTemplateRef } from 'vue';

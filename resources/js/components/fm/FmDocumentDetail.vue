@@ -6,6 +6,8 @@
  * the panel beside the list it is one card, with the title, the date and the
  * buttons (`FmDocumentActions`) on top.
  * Used by *A document* and, on the computer, on the right of *Documents*.
+ *
+ * @group sections
  */
 import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';

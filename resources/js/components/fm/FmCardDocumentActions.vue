@@ -7,6 +7,8 @@
  * In the form (`inForm`) only the menu is left, where the room is short, with
  * *Open the file* first, and the links open in a new tab, so the form stays;
  * there *Unlink* asks nothing and sends nothing, the form unlinks when saved.
+ *
+ * @group sections
  */
 import { router } from '@inertiajs/vue3';
 import {

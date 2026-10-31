@@ -43,6 +43,14 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
 - [FmRow](#fmrow) — A list row of the canvas: in front the dot of the area or an icon, then the title and the subtitle, each on one line (the title cut in the middle, so its end shows), on the right an amount or a date.
 
+### Panels
+
+- [FmBottomSheet](#fmbottomsheet) — The panel that rises from the bottom over the darkened page, for short actions and filters.
+- [FmFilePanel](#fmfilepanel) — The file of a document on grey, as the boards *Un documento* and *Modifica documento* show it, with the proportions of an A4 sheet: the preview and, under it, the name of the file.
+- [FmImagePanel](#fmimagepanel) — The photo of a person or the logo of an organization on grey, beside its form, as the file beside *Edit the document*.
+- [FmLinkDocumentSheet](#fmlinkdocumentsheet) — *Link a document*: the panel with the documents of the family that can be linked to a card, searched while typing, 15 at a time with the next ones loaded at the end of the list, each with ↗ to open it in a new tab.
+- [FmUploadSheet](#fmuploadsheet) — *Upload* of a card: the panel with the zone where the files of documents are dragged or chosen.
+
 ### Forms
 
 - [FmCardForm](#fmcardform) — The form of a card, built from the description the server gives (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and a field shows only when its `show_when` holds, for example the vehicle only for a car policy, and its label can change with `label_when`, for example the POD code of electricity that is a PDR code for gas.
@@ -64,18 +72,13 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmFilePreview](#fmfilepreview) — The preview of a file: the image the server made of it (a PDF, a HEIC photo), an image as it is, and the placeholder for the files without a preview or whose image does not load.
 - [FmFileTile](#fmfiletile) — The small sheet that stands for a file in front of its row: a document of the family, or a file chosen and not saved yet.
 
-### Ungrouped
+### Page sections
 
-- [FmBottomSheet](#fmbottomsheet) — The panel that rises from the bottom over the darkened page, for short actions and filters.
 - [FmCardDocumentActions](#fmcarddocumentactions) — The buttons beside a document on the page of a card: *Open in a new tab*, always in sight, and the ⋮ menu with *Edit* (the page of the document, as its row), *Unlink* and *Delete* (for an `admin`), each after asking.
 - [FmCardFiles](#fmcardfiles) — The documents of a card on grey, beside its form, as the file beside *Edit the document*: *Link* beside the title, at the top the zone to add files, then the files chosen and not saved yet, then the documents: those chosen in *Link*, and those already linked, with the menu of the card page.
 - [FmCardHeader](#fmcardheader) — The coloured top of a card page, as on the board *Scheda*: «Area · Type», the name and the line of data.
 - [FmDocumentDetail](#fmdocumentdetail) — A document as the board *Un documento* shows it: the preview of the file on grey and, beside it, its data, the linked records (one type at a time) and the notes.
-- [FmFilePanel](#fmfilepanel) — The file of a document on grey, as the boards *Un documento* and *Modifica documento* show it, with the proportions of an A4 sheet: the preview and, under it, the name of the file.
-- [FmImagePanel](#fmimagepanel) — The photo of a person or the logo of an organization on grey, beside its form, as the file beside *Edit the document*.
-- [FmLinkDocumentSheet](#fmlinkdocumentsheet) — *Link a document*: the panel with the documents of the family that can be linked to a card, searched while typing, 15 at a time with the next ones loaded at the end of the list, each with ↗ to open it in a new tab.
 - [FmLinkedRecords](#fmlinkedrecords) — *Links* of *A person* and *An organization*: the records that name them, one type at a time, with a tab for each type and how many records it has.
-- [FmUploadSheet](#fmuploadsheet) — *Upload* of a card: the panel with the zone where the files of documents are dragged or chosen.
 
 ## FmActions
 
@@ -1259,6 +1262,224 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 - `pages/settings/Settings.vue`
 - `pages/welcome/Welcome.vue`
 
+## FmBottomSheet
+
+`resources/js/components/fm/FmBottomSheet.vue`
+
+The panel that rises from the bottom over the darkened page, for short actions
+and filters. On the computer it is a window in the middle. It closes with the
+handle, with the ×, with Esc and by tapping outside; while it is open the focus
+stays inside.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `title` | `string` | yes | — | The title of the panel. |
+| `open` | `boolean` | no | `false` | Open or closed. |
+
+### Events
+
+- `update:open`
+
+### Slots
+
+- `default`
+
+### Examples
+
+```vue
+<!-- Short content -->
+<FmBottomSheet title="Filters">
+    Choose what to show in the list.
+</FmBottomSheet>
+
+<!-- Long content -->
+<FmBottomSheet title="Rules of the house">
+    …
+</FmBottomSheet>
+```
+
+### Used by
+
+- `components/fm/FmBottomBar.vue`
+- `components/fm/FmConfirm.vue`
+- `components/fm/FmLinkDocumentSheet.vue`
+- `components/fm/FmUploadSheet.vue`
+- `pages/documents/Documents.vue`
+- `pages/settings/Account.vue`
+- `pages/settings/Categories.vue`
+
+## FmFilePanel
+
+`resources/js/components/fm/FmFilePanel.vue`
+
+The file of a document on grey, as the boards *Un documento* and *Modifica
+documento* show it, with the proportions of an A4 sheet: the preview and,
+under it, the name of the file. Used by the page of a document, by its panel
+beside the list and by *Edit*, where *Change the file* follows the name.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `file` | `App.Data.FileData` | yes | — | The file. |
+| `compact` | `boolean` | no | `false` | Smaller corners and padding, inside the card of the panel. |
+| `changeUrl` | `string` | no | — | Where the new file goes: with it, *Change the file* follows the name. |
+
+### Examples
+
+```vue
+<!-- Page -->
+<FmFilePanel :file="file" />
+
+<!-- Compact -->
+<FmFilePanel :file="file" compact />
+
+<!-- Change the file -->
+<FmFilePanel :file="file" changeUrl="/documents/5/file" />
+
+<!-- No preview -->
+<FmFilePanel :file="file" />
+```
+
+### Used by
+
+- `components/fm/FmDocumentDetail.vue`
+- `pages/documents/EditDocument.vue`
+
+## FmImagePanel
+
+`resources/js/components/fm/FmImagePanel.vue`
+
+The photo of a person or the logo of an organization on grey, beside its
+form, as the file beside *Edit the document*. Under it *Add* or *Change*
+opens the picker and *Remove* takes it away. Nothing is sent here: the
+chosen file and the removal go to the form, which saves them with the rest.
+What to draw is up to the default slot, which gets the image to show.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `image` | `string \| null` | yes | — | The address of the saved image, or null without one. |
+| `addLabel` | `string` | yes | — | The button without an image, for example «Add a photo». |
+| `changeLabel` | `string` | yes | — | The button with an image, for example «Change the photo». |
+| `error` | `string` | no | — | The error of the image, from the server. |
+| `file` | `File \| null` | no | `null` | The image chosen and not saved yet. |
+| `removed` | `boolean` | no | `false` | The saved image is to be removed. |
+
+### Events
+
+- `update:file`
+- `update:removed`
+
+### Slots
+
+- `default`
+
+### Examples
+
+```vue
+<!-- With a photo -->
+<FmImagePanel image="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22160%22%3E%3Crect%20width%3D%22160%22%20height%3D%22160%22%20fill%3D%22%238fb8de%22%2F%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2264%22%20r%3D%2228%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2236%22%20y%3D%22104%22%20width%3D%2288%22%20height%3D%2256%22%20rx%3D%2228%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E" addLabel="Add a photo" changeLabel="Change the photo">
+    …
+</FmImagePanel>
+
+<!-- Without a photo -->
+<FmImagePanel addLabel="Add a photo" changeLabel="Change the photo">
+    …
+</FmImagePanel>
+
+<!-- With an error -->
+<FmImagePanel addLabel="Add a logo" changeLabel="Change the logo" error="The image is too big.">
+    …
+</FmImagePanel>
+```
+
+### Used by
+
+- `pages/family/EditOrganization.vue`
+- `pages/family/EditPerson.vue`
+
+## FmLinkDocumentSheet
+
+`resources/js/components/fm/FmLinkDocumentSheet.vue`
+
+*Link a document*: the panel with the documents of the family that can be
+linked to a card, searched while typing, 15 at a time with the next ones
+loaded at the end of the list, each with ↗ to open it in a new tab. It
+only says which document was chosen: the page of the card links it at
+once, its form when it is saved. Its props come from the page and are
+reloaded without the rest of it, keeping the address.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `linkable` | `App.Data.DocumentData[]` | yes | — | The pages loaded so far of the documents that can be linked and match the search. |
+| `linkableNext` | `number \| null` | no | `null` | The number of the next page of `linkable`, null at the last one. |
+| `linkableSearch` | `string` | no | `""` | The search that `linkable` answers. |
+| `hidden` | `number[]` | no | `[]` | The ids of the documents not to offer, as already chosen. |
+| `open` | `boolean` | no | `false` | The panel is open. |
+
+### Events
+
+- `update:open`
+- `pick`
+
+### Examples
+
+```vue
+<!-- Documents -->
+<FmLinkDocumentSheet :linkable="linkable" />
+
+<!-- One already chosen -->
+<FmLinkDocumentSheet :linkable="linkable" :hidden="hidden" />
+
+<!-- Searching -->
+<FmLinkDocumentSheet :linkable="linkable" linkableSearch="carta" />
+
+<!-- Nothing found -->
+<FmLinkDocumentSheet :linkable="linkable" />
+```
+
+### Used by
+
+- `components/fm/FmCardFiles.vue`
+- `pages/cards/Card.vue`
+
+## FmUploadSheet
+
+`resources/js/components/fm/FmUploadSheet.vue`
+
+*Upload* of a card: the panel with the zone where the files of documents
+are dragged or chosen. They are sent at once, linked to the card, and
+*Upload* opens with the form of the first one; a file refused leaves the
+panel open, with the reason.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `link` | `DocumentLink` | yes | — | The card the files are linked to. |
+| `open` | `boolean` | no | `false` | The panel is open. |
+
+### Events
+
+- `update:open`
+
+### Examples
+
+```vue
+<!-- Upload to a card -->
+<FmUploadSheet :link="link" />
+```
+
+### Used by
+
+- `pages/cards/Card.vue`
+
 ## FmCardForm
 
 `resources/js/components/fm/FmCardForm.vue`
@@ -1713,40 +1934,6 @@ the family, or a file chosen and not saved yet.
 - `components/fm/FmDocumentRow.vue`
 - `pages/Home.vue`
 
-## FmBottomSheet
-
-`resources/js/components/fm/FmBottomSheet.vue`
-
-The panel that rises from the bottom over the darkened page, for short actions
-and filters. On the computer it is a window in the middle. It closes with the
-handle, with the ×, with Esc and by tapping outside; while it is open the focus
-stays inside.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `title` | `string` | yes | — | The title of the panel. |
-| `open` | `boolean` | no | `false` | Open or closed. |
-
-### Events
-
-- `update:open`
-
-### Slots
-
-- `default`
-
-### Used by
-
-- `components/fm/FmBottomBar.vue`
-- `components/fm/FmConfirm.vue`
-- `components/fm/FmLinkDocumentSheet.vue`
-- `components/fm/FmUploadSheet.vue`
-- `pages/documents/Documents.vue`
-- `pages/settings/Account.vue`
-- `pages/settings/Categories.vue`
-
 ## FmCardDocumentActions
 
 `resources/js/components/fm/FmCardDocumentActions.vue`
@@ -1771,6 +1958,19 @@ there *Unlink* asks nothing and sends nothing, the form unlinks when saved.
 ### Events
 
 - `unlink`
+
+### Examples
+
+```vue
+<!-- Administrator -->
+<FmCardDocumentActions :document="document" :card="card" canDelete />
+
+<!-- Member -->
+<FmCardDocumentActions :document="document" :card="card" />
+
+<!-- In the form -->
+<FmCardDocumentActions :document="document" :card="card" canDelete inForm />
+```
 
 ### Used by
 
@@ -1812,6 +2012,25 @@ so until then a choice can be taken back.
 - `update:link`
 - `update:unlink`
 
+### Examples
+
+```vue
+<!-- New card -->
+<FmCardFiles />
+
+<!-- Linked documents -->
+<FmCardFiles :documents="documents" :card="card" canDelete />
+
+<!-- Member -->
+<FmCardFiles :documents="documents" :card="card" />
+
+<!-- Documents to link -->
+<FmCardFiles :documents="documents" :card="card" hasLinkable :linkable="linkable" />
+
+<!-- Files refused -->
+<FmCardFiles :card="card" :errors="errors" />
+```
+
 ### Used by
 
 - `pages/cards/EditCard.vue`
@@ -1835,6 +2054,21 @@ the name and the line of data. On the right, the `actions` slot holds
 
 - `actions`
 
+### Examples
+
+```vue
+<!-- Vehicle -->
+<FmCardHeader :card="card" heading="Plate GH 482 TK · Marco" />
+
+<!-- Insurance with actions -->
+<FmCardHeader :card="card" heading="Car · policyholder Marco Bianchi">
+    <template #actions>…</template>
+</FmCardHeader>
+
+<!-- Long name -->
+<FmCardHeader :card="card" heading="Car · policyholder Marco Bianchi · expires 20/11/2026" />
+```
+
 ### Used by
 
 - `pages/cards/Card.vue`
@@ -1857,98 +2091,26 @@ Used by *A document* and, on the computer, on the right of *Documents*.
 | `document` | `App.Data.DocumentDetailData` | yes | — | The document. |
 | `compact` | `boolean` | no | `false` | The panel beside the list: one card, with the title and the date on top and, on their right, *Download* and the ⋯ menu, icons only. |
 
+### Examples
+
+```vue
+<!-- Page -->
+<FmDocumentDetail :document="document" />
+
+<!-- Beside the list -->
+<FmDocumentDetail :document="document" compact />
+
+<!-- Member -->
+<FmDocumentDetail :document="document" />
+
+<!-- Expired, bare -->
+<FmDocumentDetail :document="document" />
+```
+
 ### Used by
 
 - `pages/documents/Document.vue`
 - `pages/documents/Documents.vue`
-
-## FmFilePanel
-
-`resources/js/components/fm/FmFilePanel.vue`
-
-The file of a document on grey, as the boards *Un documento* and *Modifica
-documento* show it, with the proportions of an A4 sheet: the preview and,
-under it, the name of the file. Used by the page of a document, by its panel
-beside the list and by *Edit*, where *Change the file* follows the name.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `file` | `App.Data.FileData` | yes | — | The file. |
-| `compact` | `boolean` | no | `false` | Smaller corners and padding, inside the card of the panel. |
-| `changeUrl` | `string` | no | — | Where the new file goes: with it, *Change the file* follows the name. |
-
-### Used by
-
-- `components/fm/FmDocumentDetail.vue`
-- `pages/documents/EditDocument.vue`
-
-## FmImagePanel
-
-`resources/js/components/fm/FmImagePanel.vue`
-
-The photo of a person or the logo of an organization on grey, beside its
-form, as the file beside *Edit the document*. Under it *Add* or *Change*
-opens the picker and *Remove* takes it away. Nothing is sent here: the
-chosen file and the removal go to the form, which saves them with the rest.
-What to draw is up to the default slot, which gets the image to show.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `image` | `string \| null` | yes | — | The address of the saved image, or null without one. |
-| `addLabel` | `string` | yes | — | The button without an image, for example «Add a photo». |
-| `changeLabel` | `string` | yes | — | The button with an image, for example «Change the photo». |
-| `error` | `string` | no | — | The error of the image, from the server. |
-| `file` | `File \| null` | no | `null` | The image chosen and not saved yet. |
-| `removed` | `boolean` | no | `false` | The saved image is to be removed. |
-
-### Events
-
-- `update:file`
-- `update:removed`
-
-### Slots
-
-- `default`
-
-### Used by
-
-- `pages/family/EditOrganization.vue`
-- `pages/family/EditPerson.vue`
-
-## FmLinkDocumentSheet
-
-`resources/js/components/fm/FmLinkDocumentSheet.vue`
-
-*Link a document*: the panel with the documents of the family that can be
-linked to a card, searched while typing, 15 at a time with the next ones
-loaded at the end of the list, each with ↗ to open it in a new tab. It
-only says which document was chosen: the page of the card links it at
-once, its form when it is saved. Its props come from the page and are
-reloaded without the rest of it, keeping the address.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `linkable` | `App.Data.DocumentData[]` | yes | — | The pages loaded so far of the documents that can be linked and match the search. |
-| `linkableNext` | `number \| null` | no | `null` | The number of the next page of `linkable`, null at the last one. |
-| `linkableSearch` | `string` | no | `""` | The search that `linkable` answers. |
-| `hidden` | `number[]` | no | `[]` | The ids of the documents not to offer, as already chosen. |
-| `open` | `boolean` | no | `false` | The panel is open. |
-
-### Events
-
-- `update:open`
-- `pick`
-
-### Used by
-
-- `components/fm/FmCardFiles.vue`
-- `pages/cards/Card.vue`
 
 ## FmLinkedRecords
 
@@ -1963,31 +2125,20 @@ type at a time, with a tab for each type and how many records it has.
 | --- | --- | --- | --- | --- |
 | `groups` | `App.Data.LinkGroupData[]` | yes | — | The records, grouped by type. |
 
+### Examples
+
+```vue
+<!-- One type -->
+<FmLinkedRecords :groups="groups" />
+
+<!-- Several types -->
+<FmLinkedRecords :groups="groups" />
+
+<!-- No records -->
+<FmLinkedRecords :groups="groups" />
+```
+
 ### Used by
 
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
-
-## FmUploadSheet
-
-`resources/js/components/fm/FmUploadSheet.vue`
-
-*Upload* of a card: the panel with the zone where the files of documents
-are dragged or chosen. They are sent at once, linked to the card, and
-*Upload* opens with the form of the first one; a file refused leaves the
-panel open, with the reason.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `link` | `DocumentLink` | yes | — | The card the files are linked to. |
-| `open` | `boolean` | no | `false` | The panel is open. |
-
-### Events
-
-- `update:open`
-
-### Used by
-
-- `pages/cards/Card.vue`

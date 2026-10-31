@@ -8,6 +8,8 @@
  * here: the form sends the files with the card, and *Upload* opens to file
  * them; it links the documents chosen and unlinks those marked when saved,
  * so until then a choice can be taken back.
+ *
+ * @group sections
  */
 import { Link2, X } from '@lucide/vue';
 import { onBeforeUnmount, ref, useId, watch } from 'vue';
