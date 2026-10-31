@@ -7,6 +7,7 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\Dev\ComponentCatalogController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\HomeController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\PersonController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Middleware\LocalOnly;
 use App\Http\Middleware\RedirectToWelcome;
 use Illuminate\Support\Facades\Route;
 
@@ -74,5 +76,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::redirect('family', '/family/people')->name('family');
         Route::resource('family/people', PersonController::class)->parameters(['people' => 'person'])->names('people');
         Route::resource('family/organizations', OrganizationController::class)->names('organizations');
+
+        // The component catalogue: it exists only in the local environment.
+        Route::middleware(LocalOnly::class)->prefix('dev')->group(function (): void {
+            Route::get('components', [ComponentCatalogController::class, 'index'])->name('dev.components');
+            Route::get('components/{component}', [ComponentCatalogController::class, 'show'])
+                ->where('component', 'Fm[A-Za-z]+')
+                ->name('dev.components.show');
+        });
     });
 });
