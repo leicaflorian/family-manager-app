@@ -23,6 +23,7 @@ use Illuminate\Notifications\Notifiable;
  * @property int $id
  * @property int $family_id
  * @property Role $role
+ * @property array{months: int, person_id: int|null, hidden_areas: list<string>}|null $agenda_filters The filters of the Agenda: months, person_id and hidden_areas; null until the person changes them
  * @property string $name
  * @property string $email
  * @property CarbonImmutable|null $email_verified_at
@@ -98,6 +99,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => Role::class,
+            'agenda_filters' => 'array',
         ];
     }
 }

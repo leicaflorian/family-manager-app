@@ -44,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::middleware(RedirectToWelcome::class)->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
         Route::get('agenda', AgendaController::class)->name('agenda');
+        Route::put('agenda/filters', [AgendaController::class, 'filters'])->name('agenda.filters');
         Route::get('areas', [AreaController::class, 'index'])->name('areas');
         Route::get('areas/{area}', [AreaController::class, 'show'])->name('areas.show');
 
