@@ -12,6 +12,7 @@ import { ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
 import type { Area } from '@/lib/areas';
 import { areaFill } from '@/lib/areas';
+import { rowLink } from '@/lib/rows';
 import { splitTail } from '@/lib/text';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
@@ -84,8 +85,7 @@ const titleParts = computed(() => splitTail(title, 5));
         :class="
             cn(
                 'flex w-full items-center gap-3 border-0 bg-transparent px-4 py-3.5 text-left text-inherit no-underline',
-                (href || button) &&
-                    'cursor-pointer hover:bg-action-soft focus-visible:bg-action-soft focus-visible:outline-none',
+                (href || button) && rowLink,
                 current && 'bg-action-soft',
             )
         "

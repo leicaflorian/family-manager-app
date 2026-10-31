@@ -32,6 +32,7 @@ use App\Models\Vehicle;
 use App\Support\Deadline;
 use App\Support\DefaultAccount;
 use App\Support\ModelId;
+use App\Support\PaymentPage;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -56,6 +57,9 @@ final readonly class CardBudgets
 
     /** The models of the cards a planned expense refers to with its pair `card_type`, `card_id`. */
     private const array PLANNED_CARDS = [Utility::class, InsurancePolicy::class, Loan::class, Enrollment::class, Home::class, Vehicle::class, Subscription::class];
+
+    /** How many payments a page of the card shows. */
+    private const int PAYMENTS_PER_PAGE = 5;
 
     public function __construct(
         private Deadlines $deadlines,
@@ -91,6 +95,25 @@ final readonly class CardBudgets
             ),
             default => null,
         };
+    }
+
+    /**
+     * The payments of a card with only a page of them, as the card and the column beside its form show them. A page
+     * past the last one gives the first.
+     *
+     * @param  CardBudgetData  $budget  the payments of the card, from `of()`
+     * @param  int  $page  the page asked for, from 1
+     * @param  (Closure(int): string)|null  $address  the address of a page, from its number; null for no pager
+     */
+    public function page(CardBudgetData $budget, int $page, ?Closure $address = null): CardBudgetData
+    {
+        $found = PaymentPage::of($budget->payments, $page, self::PAYMENTS_PER_PAGE);
+
+        return $budget->withPayments(
+            $found['years'],
+            $address instanceof Closure && $found['page'] > 1 ? $address($found['page'] - 1) : null,
+            $address instanceof Closure && $found['next'] !== null ? $address($found['next']) : null,
+        );
     }
 
     /**

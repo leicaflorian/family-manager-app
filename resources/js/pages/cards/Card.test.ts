@@ -66,9 +66,7 @@ describe('A card', () => {
             screen.getByRole('heading', { name: 'Linked to' }),
         ).toBeInTheDocument();
         expect(screen.getByText('Nothing linked yet.')).toBeInTheDocument();
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Add a linked card' }),
-        );
+        await userEvent.click(screen.getByRole('button', { name: 'Add' }));
 
         expect(
             await screen.findByRole('menuitem', { name: 'Maintenance job' }),
@@ -94,7 +92,7 @@ describe('A card', () => {
             screen.queryByRole('heading', { name: 'Linked to' }),
         ).not.toBeInTheDocument();
         expect(
-            screen.queryByRole('button', { name: 'Add a linked card' }),
+            screen.queryByRole('button', { name: 'Add' }),
         ).not.toBeInTheDocument();
     });
 

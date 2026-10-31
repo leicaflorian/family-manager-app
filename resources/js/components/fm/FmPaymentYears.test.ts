@@ -18,23 +18,13 @@ describe('FmPaymentYears', () => {
         expect(screen.getByText('68,90 €')).toBeInTheDocument();
     });
 
-    it('shows only the latest payments of the latest year', () => {
-        renderPage(FmPaymentYears, { years: lucePayments, latest: 2 });
-
-        expect(screen.getByText('Bolletta luce di agosto')).toBeInTheDocument();
-        expect(screen.getByText('Bolletta luce di luglio')).toBeInTheDocument();
-        expect(
-            screen.queryByText('Bolletta luce di giugno'),
-        ).not.toBeInTheDocument();
-        expect(screen.queryByText('2025')).not.toBeInTheDocument();
-    });
-
     it('with the counts, folds the older years and leads each payment to its page', async () => {
         renderPage(FmPaymentYears, {
             years: lucePayments,
             counts: { 2026: '3 bills', 2025: '1 bill' },
             folded: true,
             linked: true,
+            fullDate: true,
         });
 
         expect(screen.getByText('3 bills')).toBeInTheDocument();
@@ -55,5 +45,17 @@ describe('FmPaymentYears', () => {
         expect(
             screen.getByText('Bolletta luce di novembre'),
         ).toBeInTheDocument();
+    });
+
+    it('leads each payment to its page keeping the short date', () => {
+        renderPage(FmPaymentYears, {
+            years: lucePayments,
+            linked: true,
+        });
+
+        expect(
+            screen.getByRole('link', { name: /Bolletta luce di agosto/ }),
+        ).toHaveAttribute('href', '/budget/movements/expense/41');
+        expect(screen.getByText('23/09')).toBeInTheDocument();
     });
 });

@@ -26,10 +26,18 @@ describe('FmCardPayments', () => {
         const paid = screen.getByRole('region', { name: 'Bills paid' });
         expect(within(paid).getByText('642,10 €')).toBeInTheDocument();
         expect(
-            within(paid).getByText('Bolletta luce di luglio'),
+            within(paid).getByRole('link', {
+                name: /Bolletta luce di luglio/,
+            }),
+        ).toHaveAttribute(
+            'href',
+            expect.stringMatching(/^\/budget\/movements\/expense\/\d+$/),
+        );
+        expect(
+            within(paid).getByText('Bolletta luce di novembre'),
         ).toBeInTheDocument();
         expect(
-            within(paid).queryByText('Bolletta luce di giugno'),
+            within(paid).queryByRole('navigation', { name: 'Pages' }),
         ).not.toBeInTheDocument();
         expect(
             within(paid).getByRole('link', { name: 'Record payment' }),
@@ -42,6 +50,25 @@ describe('FmCardPayments', () => {
                 name: 'See all the bills, year by year',
             }),
         ).toHaveAttribute('href', '/cards/utility/3/payments');
+    });
+
+    it('shows the payments a page at a time, with the pager of the documents', () => {
+        renderPage(FmCardPayments, {
+            budget: {
+                ...luceBudget,
+                payments_previous: '/cards/utility/3',
+                payments_next: '/cards/utility/3?payments_page=3',
+            },
+            card,
+        });
+
+        const pages = screen.getByRole('navigation', { name: 'Pages' });
+        expect(
+            within(pages).getByRole('link', { name: 'Previous' }),
+        ).toHaveAttribute('href', '/cards/utility/3');
+        expect(
+            within(pages).getByRole('link', { name: 'Next' }),
+        ).toHaveAttribute('href', '/cards/utility/3?payments_page=3');
     });
 
     it('asks to create the planned expense first', () => {

@@ -96,6 +96,7 @@ const note = computed((): string => {
                 :counts="counts"
                 folded
                 linked
+                full-date
             />
             <p v-else class="m-0 px-4 py-3 text-[15px] text-ink-soft">
                 {{ $t('No payments recorded.') }}

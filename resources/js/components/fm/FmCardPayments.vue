@@ -3,11 +3,13 @@
  * The planned expenses (or incomes) of a card and their payments, as the
  * boards of the cards and the column beside *Edit card* show them: the rows of
  * the planned items, which open *A planned expense*, with *Add* for an
- * `admin`; then the latest payments with *Record payment* and the link to all
- * of them, year by year. Without a planned item it says to create it first,
- * unless the card has no planned items of its own (a loan makes its instalment
- * by itself). A card that only has expenses linked to it (a belonging, a
- * maintenance job, a filing, a health event) offers *Add expense* instead.
+ * `admin`; then the payments a page at a time (the server sends one page,
+ * with the addresses of the others for the pager), each leading to its page,
+ * with *Record payment* and the link to all of them, year by year. Without
+ * a planned item it says to create it first, unless the card has no planned
+ * items of its own (a loan makes its instalment by itself). A card that only
+ * has expenses linked to it (a belonging, a maintenance job, a filing, a
+ * health event) offers *Add expense* instead.
  */
 import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
@@ -17,6 +19,7 @@ import { create, show as showPlanned } from '@/routes/budget/planned';
 import { payments as cardPayments } from '@/routes/cards';
 import FmButton from './FmButton.vue';
 import FmCard from './FmCard.vue';
+import FmPager from './FmPager.vue';
 import FmPayButton from './FmPayButton.vue';
 import FmPaymentYears from './FmPaymentYears.vue';
 import FmPlannedRow from './FmPlannedRow.vue';
@@ -27,9 +30,6 @@ const { budget, card } = defineProps<{
     /** The address of the card: its type and its number. */
     card: { type: string; id: number };
 }>();
-
-/** How many payments of the latest year the card shows. */
-const LATEST = 2;
 
 /** Whether the planned items are incomes, as the ones of an employment. */
 const income = computed(() => budget.kind === 'income');
@@ -107,12 +107,17 @@ const addExpenseUrl = computed(
             >
                 {{ $t('No payments recorded.') }}
             </p>
-            <FmPaymentYears v-else :years="budget.payments" :latest="LATEST" />
+            <FmPaymentYears v-else :years="budget.payments" linked />
         </FmCard>
+        <FmPager
+            :previous="budget.payments_previous"
+            :next="budget.payments_next"
+            preserve-scroll
+        />
         <Link
             v-if="budget.payments.length > 0"
             :href="cardPayments.url(card)"
-            class="px-1 text-sm font-semibold no-underline"
+            class="px-1 text-sm font-semibold underline underline-offset-2"
             >{{ budget.payments_more }}</Link
         >
     </div>

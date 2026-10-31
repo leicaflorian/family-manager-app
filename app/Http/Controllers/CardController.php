@@ -98,13 +98,13 @@ final class CardController extends Controller
     }
 
     /**
-     * *A card*: its detail, with the page of its documents in `documents_page`, and, for *Link a document*, a page of the documents
+     * *A card*: its detail, with the page of its documents in `documents_page` and of its payments in `payments_page`, and, for *Link a document*, a page of the documents
      * of the family not yet linked to it, found with `link_search`.
      */
     public function show(Request $request, string $type, string $id, #[CurrentUser] User $user): Response
     {
         $card = CardTypes::findOrFail($type)->findOrFail($id);
-        $detail = $this->details->of($card, $user, documentsPage: max(1, $request->integer('documents_page')));
+        $detail = $this->details->of($card, $user, documentsPage: max(1, $request->integer('documents_page')), paymentsPage: max(1, $request->integer('payments_page')));
 
         return Inertia::render('cards/Card', [
             'card' => $detail,
@@ -115,7 +115,7 @@ final class CardController extends Controller
     /**
      * *Edit card*: the form with the data of the card, its documents, whether
      * they can be deleted, the documents that can be linked and, for the column
-     * beside the form on the computer, its payments.
+     * beside the form on the computer, the first page of its payments.
      */
     public function edit(Request $request, string $type, string $id, #[CurrentUser] User $user): Response
     {
@@ -138,7 +138,11 @@ final class CardController extends Controller
             'card' => $row,
             'documents' => fn (): array => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
             'canDeleteDocuments' => $user->can('deleteAny', Document::class),
-            'budget' => fn (): ?CardBudgetData => $this->budgets->of($card, $user, CarbonImmutable::today('Europe/Rome')),
+            'budget' => function () use ($card, $user): ?CardBudgetData {
+                $budget = $this->budgets->of($card, $user, CarbonImmutable::today('Europe/Rome'));
+
+                return $budget instanceof CardBudgetData ? $this->budgets->page($budget, 1) : null;
+            },
             ...$this->linkable($request, ['not_record' => ['type' => $description->type(), 'id' => $row->id]]),
         ]);
     }

@@ -6,6 +6,7 @@ use App\Enums\ExceptionType;
 use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
+use App\Models\Expense;
 use App\Models\Family;
 use App\Models\File;
 use App\Models\Loan;
@@ -17,6 +18,7 @@ use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -513,6 +515,43 @@ test('a card shows its documents 5 at a time, with the addresses of the other pa
         ->has('card.documents', 2)
         ->where('card.documents_previous', route('cards.show', $this->pandaUrl))
         ->where('card.documents_next', null));
+});
+
+test('a card shows its payments 5 at a time, each pager keeping the page of the other list', function (): void {
+    $this->actingAs($this->marco);
+    insideBianchi(fn () => Expense::factory()->count(5)->create([
+        'family_id' => $this->marco->family_id,
+        'card_type' => 'vehicle',
+        'card_id' => $this->panda->id,
+        'date' => '2025-03-10',
+    ]));
+    $count = fn (array $years): int => array_sum(array_map(static fn (array $year): int => count($year['payments']), $years));
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('card.budget.payments', fn (Collection $years): bool => $count($years->toArray()) === 5)
+        ->where('card.budget.payments_previous', null)
+        ->where('card.budget.payments_next', route('cards.show', [...$this->pandaUrl, 'documents_page' => 2, 'payments_page' => 2])));
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'payments_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        // The 3 payments of the Panda of the seeder and the 5 added: 3 left after the first page
+        ->where('card.budget.payments', fn (Collection $years): bool => $count($years->toArray()) === 3)
+        ->where('card.budget.payments_previous', route('cards.show', $this->pandaUrl))
+        ->where('card.budget.payments_next', null)
+        ->where('card.documents_previous', null));
+});
+
+test('the column of payments beside the form shows the first page, without the pager', function (): void {
+    $this->actingAs($this->marco);
+    insideBianchi(fn () => Expense::factory()->count(5)->create([
+        'family_id' => $this->marco->family_id,
+        'card_type' => 'vehicle',
+        'card_id' => $this->panda->id,
+        'date' => '2025-03-10',
+    ]));
+
+    $this->get(route('cards.edit', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('budget.payments', fn (Collection $years): bool => array_sum(array_map(static fn (array $year): int => count($year['payments']), $years->toArray())) === 5)
+        ->where('budget.payments_next', null));
 });
 
 test('a page of documents past the last one shows the first', function (): void {

@@ -452,11 +452,11 @@ export const policyDetail: App.Data.CardDetailData = {
     related: [pandaRow],
     addable: [],
     documents: [healthCard],
+    documents_previous: null,
+    documents_next: null,
     can_edit: true,
     can_delete: true,
     can_delete_documents: true,
-    documents_previous: null,
-    documents_next: null,
     budget: null,
 };
 
@@ -1156,6 +1156,8 @@ export const luceBudget: App.Data.CardBudgetData = {
     pay: [{ ...lateDeadline, card: edison }],
     can_pay: true,
     can_add_expense: false,
+    payments_previous: null,
+    payments_next: null,
 };
 
 /** The policy of the Panda with its renewal, its premium and the premium paid in 2025. */

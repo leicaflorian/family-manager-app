@@ -11,7 +11,7 @@
 import { router } from '@inertiajs/vue3';
 import {
     EllipsisVertical,
-    ExternalLink,
+    Eye,
     FileText,
     Pencil,
     Trash2,
@@ -68,7 +68,7 @@ function unlink(): void {
         <FmButton
             v-if="!inForm"
             variant="text"
-            :icon="ExternalLink"
+            :icon="Eye"
             :label="$t('Open :title in a new tab', { title: document.title })"
             small
             plain

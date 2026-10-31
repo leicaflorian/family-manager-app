@@ -154,11 +154,7 @@ function link(id: number): void {
                     list
                 >
                     <template v-if="card.addable.length > 0" #actions>
-                        <FmMenu
-                            :icon="Plus"
-                            :label="$t('Add a linked card')"
-                            small
-                        >
+                        <FmMenu :icon="Plus" :label="$t('Add')" text>
                             <FmMenuItem
                                 v-for="entry in card.addable"
                                 :key="entry.type"

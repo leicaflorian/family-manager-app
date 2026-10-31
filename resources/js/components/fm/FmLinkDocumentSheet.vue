@@ -8,7 +8,7 @@
  * reloaded without the rest of it, keeping the address.
  */
 import { router, WhenVisible } from '@inertiajs/vue3';
-import { ExternalLink } from '@lucide/vue';
+import { Eye } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { documentSubtitle } from '@/lib/documents';
@@ -100,7 +100,7 @@ function pick(document: App.Data.DocumentData): void {
                     <FmButton
                         class="mr-1.5"
                         variant="text"
-                        :icon="ExternalLink"
+                        :icon="Eye"
                         :label="
                             $t('Open :title in a new tab', {
                                 title: document.title,

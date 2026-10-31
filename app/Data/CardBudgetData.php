@@ -37,6 +37,8 @@ final class CardBudgetData extends Data
      * @param  bool  $can_pay  whether whoever looks may record a payment, and the card has a planned item to pay
      * @param  bool  $can_add_expense  whether whoever looks may add an expense linked to the card, on the cards that only
      *                                 have expenses linked to them (a belonging, a maintenance job, a filing, a health event)
+     * @param  string|null  $payments_previous  the address of the previous page of the payments, null on the first or without pages
+     * @param  string|null  $payments_next  the address of the next page of the payments, null on the last or without pages
      */
     public function __construct(
         public readonly string $kind,
@@ -64,5 +66,42 @@ final class CardBudgetData extends Data
         public readonly array $pay,
         public readonly bool $can_pay,
         public readonly bool $can_add_expense,
+        public readonly ?string $payments_previous = null,
+        public readonly ?string $payments_next = null,
     ) {}
+
+    /**
+     * The same payments with only a page of them, and the addresses of the pages before and after it.
+     *
+     * @param  list<PaymentYearData>  $payments  the payments of the page, by year
+     * @param  string|null  $previous  the address of the previous page, null for none
+     * @param  string|null  $next  the address of the next page, null for none
+     */
+    public function withPayments(array $payments, ?string $previous, ?string $next): self
+    {
+        return new self(
+            kind: $this->kind,
+            next: $this->next,
+            next_label: $this->next_label,
+            installment_number: $this->installment_number,
+            installments_count: $this->installments_count,
+            installments_paid: $this->installments_paid,
+            paid_amount: $this->paid_amount,
+            left_amount: $this->left_amount,
+            numbers: $this->numbers,
+            due_label: $this->due_label,
+            due: $this->due,
+            planned_label: $this->planned_label,
+            planned: $this->planned,
+            can_add_planned: $this->can_add_planned,
+            payments_label: $this->payments_label,
+            payments_more: $this->payments_more,
+            payments: $payments,
+            pay: $this->pay,
+            can_pay: $this->can_pay,
+            can_add_expense: $this->can_add_expense,
+            payments_previous: $previous,
+            payments_next: $next,
+        );
+    }
 }

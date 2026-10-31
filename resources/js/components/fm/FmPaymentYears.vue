@@ -3,48 +3,39 @@
  * The payments of the planned items of a page by year, the latest first: a
  * line with the year (and, with `counts`, how many payments) and its total,
  * then each payment with its day, title, account, the clip of a receipt and
- * the amount. *A planned expense* and the cards list them; on a card only the
- * latest ones (`latest`), on *Payments of a card* every year, the older ones
- * folded, each payment leading to its page.
+ * the amount. *A planned expense* and the cards list them; on a card a page
+ * of them, on *Payments of a card* every year, the older ones folded with the
+ * whole dates; on both each payment leads to its page.
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronDown, Paperclip } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { shortDate } from '@/lib/budget';
+import { rowLink } from '@/lib/rows';
 import { show as showMovement } from '@/routes/budget/movements';
 import FmIcon from './FmIcon.vue';
 
 const {
     years,
-    latest = null,
     counts = null,
     folded = false,
     linked = false,
+    fullDate = false,
 } = defineProps<{
     /** The payments by year, the latest year first. */
     years: App.Data.PaymentYearData[];
-    /** Only the latest year, with at most this many payments. */
-    latest?: number | null;
     /** The words of the number of payments of each year, for example «9 bills». */
     counts?: Record<number, string> | null;
     /** The years after the first are folded, and their line opens them. */
     folded?: boolean;
-    /** Each payment leads to its page and shows the whole date. */
+    /** Each payment leads to its page. */
     linked?: boolean;
+    /** Each payment shows the whole date, with the year. */
+    fullDate?: boolean;
 }>();
 
 const { euro, date } = useFormat();
-
-/** The years shown, with the payments of each. */
-const shown = computed((): App.Data.PaymentYearData[] =>
-    latest === null
-        ? years
-        : years.slice(0, 1).map((year) => ({
-              ...year,
-              payments: year.payments.slice(0, latest),
-          })),
-);
 
 /** The folded years the person opened. */
 const opened = ref<number[]>([]);
@@ -73,7 +64,7 @@ function toggle(year: number): void {
 </script>
 
 <template>
-    <template v-for="(year, index) in shown" :key="year.year">
+    <template v-for="(year, index) in years" :key="year.year">
         <button
             v-if="folded && index > 0"
             type="button"
@@ -120,13 +111,13 @@ function toggle(year: number): void {
                         : undefined
                 "
                 class="flex items-center gap-3 px-4 py-3 text-ink no-underline"
-                :class="linked && 'hover:bg-canvas'"
+                :class="linked && rowLink"
             >
                 <span
                     class="shrink-0 text-[15px] font-semibold"
-                    :class="linked ? 'w-24' : 'w-11'"
+                    :class="fullDate ? 'w-24' : 'w-11'"
                     >{{
-                        linked ? date(payment.date) : shortDate(payment.date)
+                        fullDate ? date(payment.date) : shortDate(payment.date)
                     }}</span
                 >
                 <span class="flex min-w-0 grow flex-col gap-0.5">
