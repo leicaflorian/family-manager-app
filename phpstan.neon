@@ -11,3 +11,7 @@ parameters:
         - routes/
 
     level: 9
+
+    # Docker gets 8 GB but sees every core of the Mac: one worker per core runs it out of memory
+    parallel:
+        maximumNumberOfProcesses: 4

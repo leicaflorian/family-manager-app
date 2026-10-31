@@ -32,4 +32,6 @@ return RectorConfig::configure()
         earlyReturn: true,
     )
     ->withRules([DeclareStrictTypesRector::class])
-    ->withImportNames(importShortClasses: false, removeUnusedImports: true);
+    ->withImportNames(importShortClasses: false, removeUnusedImports: true)
+    // Docker gets 8 GB but sees every core of the Mac: one worker per core runs it out of memory
+    ->withParallel(maxNumberOfProcess: 4);

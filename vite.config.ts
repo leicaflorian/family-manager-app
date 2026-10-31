@@ -69,6 +69,8 @@ export default defineConfig({
         environment: 'jsdom',
         include: ['resources/js/**/*.test.ts'],
         setupFiles: ['resources/js/test/setup.ts'],
+        // Docker gets 8 GB but sees every core of the Mac: one worker per core runs it out of memory
+        maxWorkers: 4,
     },
     fmt: {
         printWidth: 80,
