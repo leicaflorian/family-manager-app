@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Cards\FieldKind;
+use App\Data\CardChoiceData;
 use App\Data\OptionData;
 use App\Data\PlannedChoiceData;
 use App\Enums\FinancialAccountStatus;
@@ -30,7 +33,7 @@ final class BudgetFormOptions
      * The choices of the form of a planned expense or income; the lists that do not belong to the kind are empty.
      *
      * @param  string  $kind  `expense` or `income`
-     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, cards: list<OptionData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, employments: list<OptionData>, income_types: list<OptionData>}
+     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, cards: list<CardChoiceData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, employments: list<OptionData>, income_types: list<OptionData>}
      */
     public static function for(string $kind): array
     {
@@ -53,7 +56,7 @@ final class BudgetFormOptions
      * The choices of the form of a movement, an expense or an income: the lists of both kinds, because the first
      * choice of the form is which one it is.
      *
-     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, planned: list<PlannedChoiceData>, cards: list<OptionData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, employments: list<OptionData>, income_types: list<OptionData>}
+     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, planned: list<PlannedChoiceData>, cards: list<CardChoiceData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, employments: list<OptionData>, income_types: list<OptionData>}
      */
     public static function forMovement(): array
     {
@@ -138,29 +141,58 @@ final class BudgetFormOptions
 
     /**
      * The cards an expense or a planned expense can refer to, of every type: for each type the open ones by name, then
-     * the closed ones. The value is `type:id`, the text «Type · name».
+     * the closed ones. The value is `type:id`, the text «Type · name»; each brings its holder, its organization and
+     * the category of its type, which the form fills in when the card is chosen.
      *
-     * @return list<OptionData>
+     * @return list<CardChoiceData>
      */
     private static function cards(): array
     {
         $options = [];
 
         foreach (CardTypes::all() as $type) {
+            $category = ExpenseCategory::firstOfCardType($type->type());
             $cards = $type->model()::query()->with($type->listRelations())->get()
                 ->map(static fn (Model $card): array => [
-                    (string) ModelId::of($card),
+                    $card,
                     method_exists($card, 'label') ? (string) $card->label() : '',
                     $type->isClosed($card),
                 ])
                 ->sort(static fn (array $a, array $b): int => ($a[2] <=> $b[2]) ?: strnatcasecmp($a[1], $b[1]));
 
-            foreach ($cards as [$id, $label]) {
-                $options[] = new OptionData("{$type->type()}:{$id}", "{$type->label()} · {$label}");
+            foreach ($cards as [$card, $label]) {
+                $options[] = new CardChoiceData(
+                    value: "{$type->type()}:".ModelId::of($card),
+                    label: "{$type->label()} · {$label}",
+                    person_id: self::fieldId($type, $card, FieldKind::Person),
+                    organization_id: self::fieldId($type, $card, FieldKind::Organization),
+                    category_id: $category === null ? null : (string) $category,
+                );
             }
         }
 
         return $options;
+    }
+
+    /**
+     * The id, as text, in the first field of a kind of a card: its holder or its organization.
+     *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card
+     * @param  FieldKind  $kind  `person` or `organization`
+     * @return string|null null when the type has no such field or the card leaves it empty
+     */
+    private static function fieldId(CardType $type, Model $card, FieldKind $kind): ?string
+    {
+        foreach ($type->fields() as $field) {
+            if ($field->kind === $kind) {
+                $id = $card->getAttribute($field->column);
+
+                return is_int($id) ? (string) $id : null;
+            }
+        }
+
+        return null;
     }
 
     /**

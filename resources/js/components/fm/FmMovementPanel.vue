@@ -7,7 +7,7 @@
  * settles (and which of its due dates), and the documents linked to it, with
  * *Delete*, *Cancel* and *Save*. Without a movement it is the form of a new
  * expense or income, which starts with the choice between the two. Choosing a
- * planned expense or income fills the fields still empty from it. Used beside
+ * planned expense or income, or a card, fills the fields still empty from it. Used beside
  * the list on the computer (`compact`) and on its own page on the phone.
  */
 import { router } from '@inertiajs/vue3';
@@ -97,11 +97,16 @@ const values = reactive({
     type: movement?.type ?? '',
 });
 
-/** The label and the choices of the card of an expense, by the type of the category. */
+/** The label and the choices of the card of an expense, by the type of the category; the card chosen fills the empty fields. */
 const { label: cardLabel, choices: cardChoices } = useCardChoice(
     () => values.category_id,
     toRef(values, 'card'),
     options,
+    {
+        category_id: toRef(values, 'category_id'),
+        person_id: toRef(values, 'person_id'),
+        organization_id: toRef(values, 'organization_id'),
+    },
 );
 
 /** The type a new income starts with, until a planned income says another. */

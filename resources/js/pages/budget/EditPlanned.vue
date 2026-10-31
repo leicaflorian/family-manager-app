@@ -4,12 +4,13 @@
  * `admin`): what it is, when it happens and how often, where it goes (who it
  * is for, the account, the category or the type, and for an expense the card
  * of the type of its category) and, for an income, the employment it comes
- * from. A new one can start already filled in from a card.
+ * from. A new one can start already filled in from a card, and the card
+ * chosen fills the category, the holder and the organization still empty.
  */
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, toRef } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -42,11 +43,16 @@ const card = computed<string | null>({
     },
 });
 
-/** The label and the choices of the card, by the type of the category. */
+/** The label and the choices of the card, by the type of the category; the card chosen fills the empty fields. */
 const { label: cardLabel, choices: cardChoices } = useCardChoice(
     () => form.category_id,
     card,
     options,
+    {
+        category_id: toRef(form, 'category_id'),
+        person_id: toRef(form, 'person_id'),
+        organization_id: toRef(form, 'organization_id'),
+    },
 );
 
 /** Whether it is an income. */

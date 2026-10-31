@@ -121,6 +121,25 @@ describe('Edit a planned expense', () => {
         );
     });
 
+    it('fills the empty category, holder and organization from the card chosen', async () => {
+        renderPage(EditPlanned, {
+            ...props,
+            values: { ...newPlannedValues, person_id: '3' },
+        });
+
+        await choose('Refers to', 'Utility · Luce - Edison');
+
+        expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
+            'Bollette e utenze',
+        );
+        expect(screen.getByRole('combobox', { name: 'Holder' })).toHaveValue(
+            'Laura Bianchi',
+        );
+        expect(screen.getByRole('combobox', { name: 'Utility' })).toHaveValue(
+            'Utility · Luce - Edison',
+        );
+    });
+
     it('asks for the title, the amount and the start before sending', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditPlanned, props);

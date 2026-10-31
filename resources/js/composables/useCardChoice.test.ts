@@ -1,13 +1,32 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { nextTick, ref } from 'vue';
+import type { Ref } from 'vue';
 import { useCardChoice } from './useCardChoice';
 
 /** The cards, categories and types as `BudgetFormOptions` sends them. */
 const options = {
     cards: [
-        { value: 'utility:3', label: 'Utility · Luce - Edison', help: null },
-        { value: 'vehicle:1', label: 'Vehicle · Panda', help: null },
-        { value: 'vehicle:2', label: 'Vehicle · Vespa', help: null },
+        {
+            value: 'utility:3',
+            label: 'Utility · Luce - Edison',
+            person_id: '3',
+            organization_id: '6',
+            category_id: '11',
+        },
+        {
+            value: 'vehicle:1',
+            label: 'Vehicle · Panda',
+            person_id: '4',
+            organization_id: null,
+            category_id: '10',
+        },
+        {
+            value: 'vehicle:2',
+            label: 'Vehicle · Vespa',
+            person_id: null,
+            organization_id: null,
+            category_id: '10',
+        },
     ],
     category_card_types: { '10': 'vehicle', '11': 'utility' },
     card_type_labels: { utility: 'Utility', vehicle: 'Vehicle' },
@@ -99,5 +118,72 @@ describe('useCardChoice', () => {
         await nextTick();
 
         expect(card.value).toBe('vehicle:2');
+    });
+
+    /**
+     * The fields a card fills in, empty.
+     *
+     * @returns the category, the holder and the organization
+     */
+    function emptyFields(): {
+        category_id: Ref<string | null>;
+        person_id: Ref<string | null>;
+        organization_id: Ref<string | null>;
+    } {
+        return {
+            category_id: ref<string | null>(''),
+            person_id: ref<string | null>(null),
+            organization_id: ref<string | null>(''),
+        };
+    }
+
+    it('fills the empty category, holder and organization from the card chosen', async () => {
+        const card = ref<string | null>(null);
+        const fields = emptyFields();
+        useCardChoice(fields.category_id, card, options, fields);
+
+        card.value = 'utility:3';
+        await nextTick();
+
+        expect(fields.category_id.value).toBe('11');
+        expect(fields.person_id.value).toBe('3');
+        expect(fields.organization_id.value).toBe('6');
+        expect(card.value).toBe('utility:3');
+    });
+
+    it('leaves the fields already filled in as they are', async () => {
+        const card = ref<string | null>(null);
+        const fields = emptyFields();
+        fields.person_id.value = '9';
+        fields.organization_id.value = '8';
+        useCardChoice(fields.category_id, card, options, fields);
+
+        card.value = 'utility:3';
+        await nextTick();
+
+        expect(fields.person_id.value).toBe('9');
+        expect(fields.organization_id.value).toBe('8');
+        expect(fields.category_id.value).toBe('11');
+    });
+
+    it('leaves empty what the card does not know', async () => {
+        const card = ref<string | null>(null);
+        const fields = emptyFields();
+        useCardChoice(fields.category_id, card, options, fields);
+
+        card.value = 'vehicle:2';
+        await nextTick();
+
+        expect(fields.person_id.value).toBeNull();
+        expect(fields.organization_id.value).toBe('');
+    });
+
+    it('fills nothing from the card the form starts with', async () => {
+        const fields = emptyFields();
+        useCardChoice(fields.category_id, ref('utility:3'), options, fields);
+        await nextTick();
+
+        expect(fields.category_id.value).toBe('');
+        expect(fields.person_id.value).toBeNull();
     });
 });

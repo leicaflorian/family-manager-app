@@ -55,6 +55,13 @@ readonly can_add_expense: boolean,
 readonly payments_previous: string | null,
 readonly payments_next: string | null,
 };
+export type CardChoiceData = {
+readonly value: string,
+readonly label: string,
+readonly person_id: string | null,
+readonly organization_id: string | null,
+readonly category_id: string | null,
+};
 export type CardData = {
 readonly type: string,
 readonly id: number,

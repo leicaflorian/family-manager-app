@@ -290,7 +290,7 @@ export interface PlannedFormOptions {
     categories: App.Data.OptionData[];
     organizations: App.Data.OptionData[];
     people: App.Data.OptionData[];
-    cards: App.Data.OptionData[];
+    cards: App.Data.CardChoiceData[];
     /** The card type of each category that has one, by the id of the category. */
     category_card_types: Record<string, string>;
     /** The name of each card type, by type. */
@@ -306,7 +306,7 @@ export interface MovementFormOptions {
     organizations: App.Data.OptionData[];
     people: App.Data.OptionData[];
     planned: App.Data.PlannedChoiceData[];
-    cards: App.Data.OptionData[];
+    cards: App.Data.CardChoiceData[];
     /** The card type of each category that has one, by the id of the category. */
     category_card_types: Record<string, string>;
     /** The name of each card type, by type. */

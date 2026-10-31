@@ -159,6 +159,26 @@ describe('Movement', () => {
         );
     });
 
+    it('fills the empty category, holder and organization from the card chosen', async () => {
+        renderPage(Movement, newExpense);
+
+        await choose('Organization', 'Studio Ferri');
+        await choose('Refers to', 'Enrollment · Danza Giulia');
+
+        expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
+            'Svago › Sport',
+        );
+        expect(screen.getByRole('combobox', { name: 'Holder' })).toHaveValue(
+            'Giulia Bianchi',
+        );
+        expect(
+            screen.getByRole('combobox', { name: 'Organization' }),
+        ).toHaveValue('Studio Ferri');
+        expect(
+            screen.getByRole('combobox', { name: 'Enrollment' }),
+        ).toHaveValue('Enrollment · Danza Giulia');
+    });
+
     it('takes the card of the planned expense chosen', async () => {
         renderPage(Movement, newExpense);
 
