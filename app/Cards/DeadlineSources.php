@@ -93,10 +93,11 @@ final class DeadlineSources
      * A loan that is not paid off, or whose last instalment is already behind.
      *
      * @param  Builder<Model>  $query  the query of loans
+     * @param  CarbonImmutable  $today  today in Rome
      */
-    private static function notPaidOffBeforeItsEnd(Builder $query): void
+    private static function notPaidOffBeforeItsEnd(Builder $query, CarbonImmutable $today): void
     {
-        $today = CarbonImmutable::today('Europe/Rome')->toDateString();
+        $today = $today->toDateString();
 
         $query->where(static function (Builder $loans) use ($today): void {
             $loans->where('status', '!=', LoanStatus::PaidOff->value)->orWhere('end_date', '<', $today);

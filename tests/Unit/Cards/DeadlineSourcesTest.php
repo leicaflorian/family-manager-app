@@ -61,7 +61,7 @@ function cardOf(DeadlineSource $source, array $attributes = []): Model
  */
 function foundBy(DeadlineSource $source): array
 {
-    return $source->query()->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
+    return $source->query(CarbonImmutable::today('Europe/Rome'))->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
 }
 
 /**
