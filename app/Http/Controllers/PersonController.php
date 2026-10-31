@@ -35,12 +35,8 @@ final class PersonController extends Controller
      */
     public function index(#[CurrentUser] User $user): Response
     {
-        $counts = $this->records->countByPerson();
-
         return Inertia::render('family/People', [
-            'people' => Person::query()->with(['user', 'photo'])->withCount('documents')->orderBy('id')->get()
-                ->map(static fn (Person $person): PersonData => PersonData::fromPerson($person, $user, $counts[$person->id] ?? 0))
-                ->values()->all(),
+            'people' => PersonData::ofFamily($user),
             'family' => FamilySummaryData::of($user),
             'canEdit' => $user->can('create', Person::class),
         ]);

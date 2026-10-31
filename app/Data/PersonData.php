@@ -6,6 +6,7 @@ namespace App\Data;
 
 use App\Models\Person;
 use App\Models\User;
+use App\Services\LinkedRecords;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -65,5 +66,20 @@ final class PersonData extends Data
             documents_count: $person->documents_count ?? 0,
             records_count: $records,
         );
+    }
+
+    /**
+     * The people of the current family, in the order they were added, with their documents and records counted.
+     *
+     * @param  User  $viewer  whoever is looking
+     * @return list<self>
+     */
+    public static function ofFamily(User $viewer): array
+    {
+        $counts = resolve(LinkedRecords::class)->countByPerson();
+
+        return array_values(Person::query()->with(['user', 'photo'])->withCount('documents')->orderBy('id')->get()
+            ->map(static fn (Person $person): self => self::fromPerson($person, $viewer, $counts[$person->id] ?? 0))
+            ->all());
     }
 }

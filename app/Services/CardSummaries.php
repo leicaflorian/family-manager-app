@@ -42,7 +42,7 @@ final class CardSummaries
             type: $type->type(),
             id: ModelId::of($card),
             type_label: $type->label(),
-            label: $this->labelOf($card),
+            label: $this->label($card),
             area: $type->area()->value,
             area_label: $type->area()->label(),
             subtitle: $type->subtitle($card),
@@ -138,7 +138,7 @@ final class CardSummaries
      *
      * @throws InvalidArgumentException if the model has no `label()`
      */
-    private function labelOf(Model $card): string
+    public function label(Model $card): string
     {
         return method_exists($card, 'label') ? (string) $card->label() : throw new InvalidArgumentException($card::class.' has no label().');
     }

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\Budget\ComparisonController;
 use App\Http\Controllers\Budget\DeadlineController;
@@ -42,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::middleware(RedirectToWelcome::class)->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
+        Route::get('agenda', AgendaController::class)->name('agenda');
         Route::get('areas', [AreaController::class, 'index'])->name('areas');
         Route::get('areas/{area}', [AreaController::class, 'show'])->name('areas.show');
 

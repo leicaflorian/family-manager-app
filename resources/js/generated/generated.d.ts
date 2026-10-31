@@ -14,6 +14,33 @@ readonly photo: string | null,
 readonly is_last_admin: boolean,
 readonly family: string,
 };
+export type AgendaData = {
+readonly entries: App.Data.AgendaEntryData[],
+readonly months: number,
+readonly from: string,
+readonly to: string,
+readonly people: App.Data.PersonData[],
+readonly filters: App.Data.AgendaFiltersData,
+};
+export type AgendaEntryData = {
+readonly key: string,
+readonly kind: string,
+readonly date: string,
+readonly title: string,
+readonly subtitle: string,
+readonly area: string,
+readonly person_id: number | null,
+readonly person: string | null,
+readonly amount: number | null,
+readonly estimated: boolean,
+readonly reminder_done: boolean,
+readonly href: string,
+};
+export type AgendaFiltersData = {
+readonly months: number,
+readonly person_id: number | null,
+readonly hidden_areas: string[],
+};
 export type AreaCountData = {
 readonly area: string,
 readonly label: string,
