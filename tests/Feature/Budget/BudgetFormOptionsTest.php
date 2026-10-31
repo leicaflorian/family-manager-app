@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Data\OptionData;
+use App\Data\CardChoiceData;
 use App\Enums\VehicleStatus;
 use App\Models\ExpenseCategory;
+use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\BudgetFormOptions;
 use Database\Seeders\BianchiFamilySeeder;
@@ -21,7 +22,7 @@ it('lists the cards of every type, the closed ones last', function (): void {
 
         return [BudgetFormOptions::for('expense')['cards'], $panda, $old, $bike];
     });
-    $values = collect($cards)->map(fn (OptionData $card): string => $card->value);
+    $values = collect($cards)->map(fn (CardChoiceData $card): string => $card->value);
     $types = $values->map(fn (string $value): string => explode(':', $value)[0])->unique()->values();
 
     expect($types->all())->toContain('belonging', 'health_event', 'financial_account', 'employment')
@@ -48,4 +49,20 @@ it('labels the card types', function (): void {
     expect($options['card_type_labels']['vehicle'])->toBe('Vehicle')
         ->and($options['card_type_labels'])->toHaveCount(13)
         ->and($options['cards'])->not->toBeEmpty();
+});
+
+it('tells the holder, the organization and the category of each card', function (): void {
+    [$cards, $panda, $car, $edison] = insideBianchi(fn (): array => [
+        BudgetFormOptions::forMovement()['cards'],
+        Vehicle::query()->where('name', 'Fiat Panda')->sole(),
+        ExpenseCategory::query()->where('name', 'Auto')->sole(),
+        Utility::query()->whereNotNull('organization_id')->firstOrFail(),
+    ]);
+    $choice = fn (string $value): ?CardChoiceData => collect($cards)->firstWhere('value', $value);
+
+    expect($panda->person_id)->not->toBeNull()
+        ->and($choice("vehicle:{$panda->id}")?->person_id)->toBe((string) $panda->person_id)
+        ->and($choice("vehicle:{$panda->id}")?->organization_id)->toBeNull()
+        ->and($choice("vehicle:{$panda->id}")?->category_id)->toBe((string) $car->id)
+        ->and($choice("utility:{$edison->id}")?->organization_id)->toBe((string) $edison->organization_id);
 });

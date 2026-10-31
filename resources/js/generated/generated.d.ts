@@ -53,6 +53,13 @@ readonly pay: App.Data.DeadlineData[],
 readonly can_pay: boolean,
 readonly can_add_expense: boolean,
 };
+export type CardChoiceData = {
+readonly value: string,
+readonly label: string,
+readonly person_id: string | null,
+readonly organization_id: string | null,
+readonly category_id: string | null,
+};
 export type CardData = {
 readonly type: string,
 readonly id: number,

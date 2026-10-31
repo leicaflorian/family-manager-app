@@ -1,15 +1,26 @@
 import { trans } from 'laravel-vue-i18n';
+import { isEmpty } from '@/lib/forms';
 import { computed, toValue, watch } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue';
 
 /** The choices of the card field, as `BudgetFormOptions` sends them. */
 export interface CardChoiceOptions {
-    /** Every card of the family, `type:id`. */
-    cards: App.Data.OptionData[];
+    /** Every card of the family, `type:id`, with its holder, organization and category. */
+    cards: App.Data.CardChoiceData[];
     /** The card type of each category that has one, by the id of the category (an empty list when none has). */
     category_card_types: Record<string, string>;
     /** The name of each card type, by type. */
     card_type_labels: Record<string, string>;
+}
+
+/** The fields of the form a card chosen fills in while they are empty. */
+export interface CardFillFields {
+    /** The category of the expense. */
+    category_id: Ref<string | null | undefined>;
+    /** The holder. */
+    person_id: Ref<string | null | undefined>;
+    /** The organization. */
+    organization_id: Ref<string | null | undefined>;
 }
 
 /**
@@ -20,20 +31,23 @@ export interface CardChoiceOptions {
  * already linked, or the one of the planned expense paid). When the category
  * passes to another type, the card chosen before of a different type is
  * emptied; a card set together with the category, or a category without type,
- * keeps it.
+ * keeps it. Choosing a card fills in the category, the holder and the
+ * organization still empty from it; the card the form starts with fills nothing.
  *
  * @param category - the id of the category chosen, empty or null for none
  * @param card - the card chosen, `type:id`, emptied when the category changes type
  * @param options - the cards, the types of the categories and the names of the types
+ * @param fill - the fields a card chosen fills in while they are empty
  * @returns the label of the field and its choices
  */
 export function useCardChoice(
     category: MaybeRefOrGetter<string | null | undefined>,
     card: Ref<string | null>,
     options: CardChoiceOptions,
+    fill?: CardFillFields,
 ): {
     label: ComputedRef<string>;
-    choices: ComputedRef<App.Data.OptionData[]>;
+    choices: ComputedRef<App.Data.CardChoiceData[]>;
 } {
     /** The card type of the category chosen, or null. */
     const type = computed((): string | null => {
@@ -58,7 +72,7 @@ export function useCardChoice(
      * The cards offered: those of the type of the category (every card without
      * one), followed by the card chosen when it is of another type.
      */
-    const choices = computed((): App.Data.OptionData[] => {
+    const choices = computed((): App.Data.CardChoiceData[] => {
         if (type.value === null) {
             return options.cards;
         }
@@ -90,6 +104,25 @@ export function useCardChoice(
         },
         { flush: 'sync' },
     );
+
+    // The card the person chooses brings what it knows to the fields still empty
+    watch(card, (value) => {
+        const chosen = options.cards.find((choice) => choice.value === value);
+
+        if (!fill || !chosen) {
+            return;
+        }
+
+        for (const field of [
+            'category_id',
+            'person_id',
+            'organization_id',
+        ] as const) {
+            if (isEmpty(fill[field].value) && chosen[field] !== null) {
+                fill[field].value = chosen[field];
+            }
+        }
+    });
 
     return { label, choices };
 }
