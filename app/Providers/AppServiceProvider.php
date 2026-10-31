@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Models\Document;
 use App\Models\FamilyModel;
 use App\Models\User;
-use App\Policies\DocumentPolicy;
+use App\Observers\LoanPlanObserver;
 use App\Policies\FamilyPolicy;
 use App\Support\CurrentFamily;
 use App\Support\Linkables;
@@ -28,6 +27,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // One per request (and per test): a family set by hand does not carry over to the next one
         $this->app->scoped(CurrentFamily::class);
+
+        // One per request too: the loan observer keeps it quiet while it writes the planned expense of a loan
+        $this->app->scoped(LoanPlanObserver::class);
     }
 
     /**
@@ -46,7 +48,8 @@ class AppServiceProvider extends ServiceProvider
     protected function configurePolicies(): void
     {
         Gate::guessPolicyNamesUsing(fn (string $class): array => match (true) {
-            $class === Document::class => [DocumentPolicy::class],
+            // A model with rules of its own has an `App\Policies\<Model>Policy`; the others share FamilyPolicy.
+            class_exists($own = 'App\\Policies\\'.class_basename($class).'Policy') && is_subclass_of($class, FamilyModel::class) => [$own],
             is_subclass_of($class, FamilyModel::class) => [FamilyPolicy::class],
             default => [],
         });

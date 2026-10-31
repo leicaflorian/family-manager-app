@@ -31,6 +31,12 @@ final class UtilityCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Utilities');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('Electricity, gas, water, internet, waste tax');

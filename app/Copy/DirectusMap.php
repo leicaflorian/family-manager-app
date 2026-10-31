@@ -72,6 +72,9 @@ final class DirectusMap
         'directus_users' => ['email' => 'email'],
     ];
 
+    /** The card types a planned expense had a column for in Directus, in the order the first one filled wins. */
+    private const array PLANNED_CARDS = ['home', 'utility', 'vehicle', 'insurance_policy', 'loan', 'enrollment', 'subscription'];
+
     /** The table of reminders' links. */
     private const string REMINDER_LINKS = 'reminders_related_to';
 
@@ -188,7 +191,29 @@ final class DirectusMap
             }
         }
 
-        return $copy;
+        return $table === 'planned_expenses' ? self::cardPair($copy) : $copy;
+    }
+
+    /**
+     * Replaces the seven card columns of a planned expense, already translated to new ids, with the morph pair.
+     * The first card filled wins; a card that was not copied counts as empty.
+     *
+     * @param  array<string, mixed>  $copy  the row with `<type>_id` columns
+     * @return array<string, mixed> the row with `card_type` and `card_id` instead
+     */
+    private static function cardPair(array $copy): array
+    {
+        $pair = ['card_type' => null, 'card_id' => null];
+
+        foreach (self::PLANNED_CARDS as $type) {
+            if ($pair['card_type'] === null && isset($copy["{$type}_id"])) {
+                $pair = ['card_type' => Linkables::typeOf(Linkables::TYPES[$type]), 'card_id' => $copy["{$type}_id"]];
+            }
+
+            unset($copy["{$type}_id"]);
+        }
+
+        return [...$copy, ...$pair];
     }
 
     /**

@@ -9,16 +9,21 @@ use App\Enums\Area;
 use App\Enums\BelongingStatus;
 use App\Enums\FilingStatus;
 use App\Enums\InsurancePolicyStatus;
+use App\Enums\UtilityType;
 use App\Enums\VehicleStatus;
 use App\Models\Belonging;
 use App\Models\Filing;
+use App\Models\Home;
 use App\Models\InsurancePolicy;
+use App\Models\PlannedExpense;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use App\Support\CurrentFamily;
+use App\Support\DefaultAccount;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -220,4 +225,45 @@ test('it does not count the cards of another family', function (): void {
     $counts = CurrentFamily::using($admin->family_id, fn (): array => summaries()->counts());
 
     expect(array_sum(array_map(fn (AreaCountData $area): int => $area->count, $counts)))->toBe(0);
+});
+
+test('it shows the amount due in the area rows', function (): void {
+    insideBianchi(function (): void {
+        $home = summaries()->area(Area::Home);
+        $luce = rowOf($home, 'Electricity - Edison');
+        $gas = rowOf($home, 'Gas - Enel Energia');
+
+        expect($luce->due_amount)->toBe(71.3)
+            ->and($luce->due_late)->toBeTrue()
+            ->and($gas->due_amount)->toBe(84.2)
+            ->and($gas->due_late)->toBeFalse()
+            // The home has no planned expense of its own: its utilities have theirs
+            ->and(rowOf($home, 'Casa di via Roma')->due_amount)->toBeNull()
+            ->and(rowOf($home, 'TV Samsung')->due_amount)->toBeNull()
+            ->and(summaries()->row(Utility::query()->whereRelation('organization', 'name', 'Edison')->sole())->due_amount)->toBeNull();
+    });
+});
+
+test('it reads the amounts due of an area with the same queries however many cards there are', function (): void {
+    insideBianchi(function (): void {
+        $count = function (): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            summaries()->area(Area::Home);
+            $queries = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $queries;
+        };
+        $before = $count();
+        $home = Home::query()->sole();
+
+        foreach (['Rifiuti', 'Telefono'] as $title) {
+            $utility = Utility::query()->create(['type' => UtilityType::WasteTax, 'home_id' => $home->id]);
+            // With an account like the others: a planned expense without one reads the default account, once per type
+            PlannedExpense::factory()->forCard($utility)->create(['family_id' => $home->family_id, 'title' => $title, 'amount' => 20, 'start_date' => '2026-11-01', 'financial_account_id' => DefaultAccount::id()]);
+        }
+
+        expect($count())->toBe($before);
+    });
 });

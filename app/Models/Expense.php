@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * A paid expense (`expenses`).
@@ -22,16 +24,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property numeric $amount
  * @property CarbonImmutable|null $date
  * @property int|null $planned_expense_id
+ * @property CarbonImmutable|null $occurrence_date The original due date of the planned item that this payment settles
  * @property int|null $category_id
  * @property int|null $organization_id
  * @property int|null $financial_account_id
  * @property int|null $person_id
+ * @property string|null $card_type
+ * @property int|null $card_id
  * @property numeric|null $fee_amount
  * @property string|null $notes
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read Model|null $card
  * @property-read ExpenseCategory|null $category
  * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
@@ -48,7 +54,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'amount', 'date', 'planned_expense_id', 'category_id', 'organization_id', 'financial_account_id', 'person_id', 'fee_amount', 'notes'])]
+#[Fillable(['title', 'amount', 'date', 'planned_expense_id', 'occurrence_date', 'category_id', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'fee_amount', 'notes'])]
 final class Expense extends FamilyModel
 {
     use HasDocuments;
@@ -107,6 +113,16 @@ final class Expense extends FamilyModel
     }
 
     /**
+     * The card it refers to (a vehicle for a parking, a home…), if any.
+     *
+     * @return MorphTo<Model, $this>
+     */
+    public function card(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
@@ -116,7 +132,9 @@ final class Expense extends FamilyModel
         return [
             'amount' => 'decimal:2',
             'date' => 'date',
+            'occurrence_date' => 'date',
             'fee_amount' => 'decimal:2',
+            'card_id' => 'integer',
         ];
     }
 

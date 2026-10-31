@@ -19,43 +19,55 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmDeleteButton](#fmdeletebutton) — *Delete*, red, which asks again in the panel from below before deleting: the question, what happens, *Cancel* and the button that deletes.
 - [FmEmpty](#fmempty) — The card of a page or of a list still empty: an icon, what is missing and, below, what can be done.
 - [FmFaces](#fmfaces) — The faces of the family, one over the other: the circles with the initials, as in the *Invitation accepted* board.
+- [FmFold](#fmfold) — A folded part of a page, such as the closed cards or the planned expenses that ended: a button with its title and, when opened, the content in a card of rows.
 - [FmIcon](#fmicon) — A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
 - [FmLogo](#fmlogo) — The Family Manager logo: the roof and the family, white on the light blue square.
 - [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange).
 - [FmOrganizationMark](#fmorganizationmark) — The mark of an organization: its logo or, without one, the icon of its type.
+- [FmPayButton](#fmpaybutton) — *Record payment* (or *Record income*) of a card: it opens *A due date* with the panel of *I paid it* on the oldest open due date.
 - [FmTitle](#fmtitle) — The title at the top of a page: 28 px on the phone, 32 px on the computer, with the sentence below and, on the right and centred on them, the actions of the page.
 
 ### Navigation
 
 - [FmBackLink](#fmbacklink) — The link back to the page a page comes from, with a chevron and that page's name, above the title or the header of a page.
-- [FmBottomBar](#fmbottombar) — The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in the middle, Documents and More.
+- [FmBottomBar](#fmbottombar) — The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in the middle, Areas and More.
+- [FmBudgetTabs](#fmbudgettabs) — The tabs at the top of the budget pages: *Movements*, *Planned and spent* and *Planned expenses*.
 - [FmFamilyViews](#fmfamilyviews) — The top of *People* and *Organizations*: the title *Family* with the name of the family, the actions of the page and the two views, each with how many.
 - [FmHeader](#fmheader) — The big title of a sign-in page written by the page itself, when it depends on the data («Hi, Rosa»): like the one of `AuthLayout`.
 - [FmMenu](#fmmenu) — The ⋯ button that opens a small menu of the less frequent actions, so that a title next to it keeps its room.
 - [FmMenuItem](#fmmenuitem) — An entry of `FmMenu`: an action, a page of the app (`href`), an address opened in a new tab (`href` and `external`) or a file to download (`href` and `download`).
+- [FmMonthSwitch](#fmmonthswitch) — The month chosen, with ‹ and › to go to the one before and after.
 - [FmNewTabLink](#fmnewtablink) — A link that opens its address in a new tab, with the ↗ icon beside the text: the person, the organization or the card a card names, so the card stays open behind.
+- [FmPager](#fmpager) — *Previous* and *Next* under a list shown a page at a time (the documents, the documents of a card); nothing when the list fits in one page.
+- [FmSectionLink](#fmsectionlink) — The link beside the title of a section (`FmCard`), as *Upload*, *Add* or *Record payment*: blue text with its icon, normal weight, no box around it, underlined on hover.
 - [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload, the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
 
 ### Rows
 
 - [FmActiveFilter](#fmactivefilter) — A chosen filter, above a list: it is removed with the ×.
 - [FmCardRow](#fmcardrow) — A card in a list: the icon of its type in the colour of its area, the name and below the subtitle or the next date («Inspection · in 75 days», red once overdue).
+- [FmDeadlineRow](#fmdeadlinerow) — A due date in a list: the dot of the area, the title, the card it belongs to with its day (red when late) and on the right the amount.
 - [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
+- [FmPlannedRow](#fmplannedrow) — A planned expense or income in a list: the icon of its category, the name with the card and how it repeats below, who it is for, the next due date with the account, and the amount.
 - [FmRow](#fmrow) — A list row of the canvas: in front the dot of the area or an icon, then the title and the subtitle, each on one line (the title cut in the middle, so its end shows), on the right an amount or a date.
+- [FmValueList](#fmvaluelist) — The lines of the box *Data* of a page: the label on the left, the value on the right.
 
 ### Panels
 
 - [FmBottomSheet](#fmbottomsheet) — The panel that rises from the bottom over the darkened page, for short actions and filters.
+- [FmChangeDeadlineSheet](#fmchangedeadlinesheet) — *Change this due date*: the panel that changes one due date and not the planned expense.
 - [FmFilePanel](#fmfilepanel) — The file of a document on grey, as the boards *Un documento* and *Modifica documento* show it, with the proportions of an A4 sheet: the preview and, under it, the name of the file.
 - [FmImagePanel](#fmimagepanel) — The photo of a person or the logo of an organization on grey, beside its form, as the file beside *Edit the document*.
 - [FmLinkDocumentSheet](#fmlinkdocumentsheet) — *Link a document*: the panel with the documents of the family that can be linked to a card, searched while typing, 15 at a time with the next ones loaded at the end of the list, each with ↗ to open it in a new tab.
+- [FmMovementPanel](#fmmovementpanel) — The panel of a movement, as the board *Pagamenti-pc* draws it: the title, when it was paid (or received) and how much, the commission and the account, the category and (for an expense) the card of its type, the organization, the holder, the planned expense or income it settles (and which of its due dates), and the documents linked to it, with *Delete*, *Cancel* and *Save*.
+- [FmPaySheet](#fmpaysheet) — *I paid it* (for an income *It arrived*): the panel that records the payment of a due date.
 - [FmUploadSheet](#fmuploadsheet) — *Upload* of a card: the panel with the zone where the files of documents are dragged or chosen.
 
 ### Forms
 
 - [FmCardForm](#fmcardform) — The form of a card, built from the description the server gives (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and a field shows only when its `show_when` holds, for example the vehicle only for a car policy, and its label can change with `label_when`, for example the POD code of electricity that is a PDR code for gas.
 - [FmCategoryOption](#fmcategoryoption) — A category in the open list of a menu, for the `option` slot of a FormKit autocomplete: the name alone, the subcategories indented under their main category.
-- [FmCategoryTree](#fmcategorytree) — A level of the tree of the document categories: each category with the number of its documents and, if it has any, the arrow that opens the subcategories.
+- [FmCategoryTree](#fmcategorytree) — A level of the tree of the categories, of documents or of expenses: each category with, on the right, the number of its documents (or what the `after` slot shows) and, if it has any, the arrow that opens the subcategories.
 - [FmDocumentFilters](#fmdocumentfilters) — The filters of *Documents*: category, person, organization, status and the expiring ones.
 - [FmDocumentForm](#fmdocumentform) — The form of a document, as the boards *Proposta* and *Modifica documento*: what it is, what kind and whose, who it is from, the dates, the status, the tags, the notes and the records it links to.
 - [FmFileDrop](#fmfiledrop) — The zone where the files of documents are dragged or chosen (PDF, JPG, PNG, HEIC, up to 25 MB each).
@@ -64,7 +76,12 @@ Read this file before writing a component or a piece of interface in a page: if 
 
 ### Figures
 
+- [FmAmount](#fmamount) — An amount of the budget: «84,20 €», an estimate as «~72,00 €», a changed amount with the old one struck through, an income as «+1.720,00 €» in green.
+- [FmBarChart](#fmbarchart) — The chart *Expenses, the last 6 months*: for each month a bar with what was spent and a dark mark where the plan reaches, the month in progress named and its amount written above.
+- [FmCategoryBar](#fmcategorybar) — A row of *By category*: the name, a bar with what was spent, a mark where the plan reaches, the comment («193,40 € less») and «spent of planned».
 - [FmDateTile](#fmdatetile) — A date of a card on its page: the label, the date as `15/10/2026` and below how far it is from today.
+- [FmLoanFigures](#fmloanfigures) — The total to pay and the cost of a loan under its instalment in the form, as the server works them out from what is written so far.
+- [FmNumberTile](#fmnumbertile) — A figure of the payments of a card, as a tile beside its dates: the label, the amount (or the number, as *Utilities 4*) and the line below, where the page writes the amount the server names with `:amount`.
 
 ### Files
 
@@ -74,11 +91,14 @@ Read this file before writing a component or a piece of interface in a page: if 
 
 ### Page sections
 
+- [FmCardBudget](#fmcardbudget) — The payments on the page of a card, as the boards of the cards draw them: in the box at the top the oldest open due date (the renewal of a policy, the next instalment of a loan, the salary coming in), which opens *A due date* (with *It arrived* open on a salary); the figures, beside the dates of the card (`tiles`); how far a loan is paid; the open due dates; then the data of the card (the default slot).
 - [FmCardDocumentActions](#fmcarddocumentactions) — The buttons beside a document on the page of a card: *Open in a new tab*, always in sight, and the ⋮ menu with *Edit* (the page of the document, as its row), *Unlink* and *Delete* (for an `admin`), each after asking.
 - [FmCardFiles](#fmcardfiles) — The documents of a card on grey, beside its form, as the file beside *Edit the document*: *Link* beside the title, at the top the zone to add files, then the files chosen and not saved yet, then the documents: those chosen in *Link*, and those already linked, with the menu of the card page.
 - [FmCardHeader](#fmcardheader) — The coloured top of a card page, as on the board *Scheda*: «Area · Type», the name and the line of data.
+- [FmCardPayments](#fmcardpayments) — The planned expenses (or incomes) of a card and their payments, as the boards of the cards and the column beside *Edit card* show them: the rows of the planned items, which open *A planned expense*, with *Add* for an `admin`; then the payments a page at a time (the server sends one page, with the addresses of the others for the pager), each leading to its page, with *Record payment* and the link to all of them, year by year.
 - [FmDocumentDetail](#fmdocumentdetail) — A document as the board *Un documento* shows it: the preview of the file on grey and, beside it, its data, the linked records (one type at a time) and the notes.
 - [FmLinkedRecords](#fmlinkedrecords) — *Links* of *A person* and *An organization*: the records that name them, one type at a time, with a tab for each type and how many records it has.
+- [FmPaymentYears](#fmpaymentyears) — The payments of the planned items of a page by year, the latest first: a line with the year (and, with `counts`, how many payments) and its total, then each payment with its day, title, account, the clip of a receipt and the amount.
 
 ## FmActions
 
@@ -113,6 +133,7 @@ button and from the menu alike.
 - `components/fm/FmDocumentActions.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
+- `pages/budget/Planned.vue`
 - `pages/cards/Card.vue`
 - `pages/family/Organization.vue`
 - `pages/family/Organizations.vue`
@@ -185,7 +206,6 @@ the one done most often. With `href` it becomes an Inertia link.
 | `small` | `boolean` | no | `false` | With `label`: a smaller square, 40 px, as beside the title of a panel. |
 | `xsmall` | `boolean` | no | `false` | With `label`: the smallest square, 30 px, as beside the tabs of a card. |
 | `plain` | `boolean` | no | `false` | With `label`: no background until hovered, as beside a row. |
-| `inline` | `boolean` | no | `false` | As tall as the line of a title beside it, with no box around the text, as *Upload* beside *Documents*. Meant for the text variant. |
 
 ### Events
 
@@ -248,8 +268,8 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/dev/DevCases.vue`
 - `components/fm/FmActions.vue`
 - `components/fm/FmCardDocumentActions.vue`
-- `components/fm/FmCardFiles.vue`
 - `components/fm/FmCardForm.vue`
+- `components/fm/FmChangeDeadlineSheet.vue`
 - `components/fm/FmConfirm.vue`
 - `components/fm/FmDeleteButton.vue`
 - `components/fm/FmDocumentActions.vue`
@@ -257,6 +277,8 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/fm/FmDocumentForm.vue`
 - `components/fm/FmLinkDocumentSheet.vue`
 - `components/fm/FmMenu.vue`
+- `components/fm/FmMovementPanel.vue`
+- `components/fm/FmPaySheet.vue`
 - `lib/actions.ts`
 - `pages/Area.vue`
 - `pages/Areas.vue`
@@ -269,7 +291,11 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/auth/Register.vue`
 - `pages/auth/ResetPassword.vue`
 - `pages/auth/VerifyEmail.vue`
-- `pages/cards/Card.vue`
+- `pages/budget/Deadline.vue`
+- `pages/budget/EditPlanned.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/Planned.vue`
+- `pages/budget/PlannedItem.vue`
 - `pages/cards/EditCard.vue`
 - `pages/documents/Documents.vue`
 - `pages/documents/EditDocument.vue`
@@ -280,6 +306,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/family/Organizations.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Categories.vue`
+- `pages/settings/ExpenseCategories.vue`
 - `pages/welcome/Welcome.vue`
 
 ## FmCard
@@ -287,8 +314,9 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 `resources/js/components/fm/FmCard.vue`
 
 The white card of the pages. With `list` it holds rows (`FmRow`) separated by
-a line, without padding inside because the rows have their own. The buttons
-of the section go beside the title, in `actions`.
+a line, without padding inside because the rows have their own, and rows
+that come and go are animated. The links of the section go beside the title,
+in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 
 ### Props
 
@@ -324,7 +352,14 @@ of the section go beside the title, in `actions`.
 
 ### Used by
 
+- `components/fm/FmCardBudget.vue`
+- `components/fm/FmCardPayments.vue`
 - `pages/Home.vue`
+- `pages/budget/Comparison.vue`
+- `pages/budget/Deadline.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/Planned.vue`
+- `pages/budget/PlannedItem.vue`
 - `pages/cards/Card.vue`
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
@@ -333,6 +368,7 @@ of the section go beside the title, in `actions`.
 - `pages/family/Person.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Categories.vue`
+- `pages/settings/ExpenseCategories.vue`
 - `pages/settings/Settings.vue`
 
 ## FmConfirm
@@ -436,6 +472,11 @@ the question, what happens, *Cancel* and the button that deletes.
 <FmDeleteButton url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" compact />
 ```
 
+### Used by
+
+- `components/fm/FmMovementPanel.vue`
+- `pages/budget/EditPlanned.vue`
+
 ## FmEmpty
 
 `resources/js/components/fm/FmEmpty.vue`
@@ -475,6 +516,9 @@ below, what can be done.
 - `pages/Area.vue`
 - `pages/Areas.vue`
 - `pages/Home.vue`
+- `pages/budget/Comparison.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/Planned.vue`
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organizations.vue`
@@ -509,6 +553,44 @@ as in the *Invitation accepted* board.
 ### Used by
 
 - `pages/auth/AcceptInvitation.vue`
+
+## FmFold
+
+`resources/js/components/fm/FmFold.vue`
+
+A folded part of a page, such as the closed cards or the planned expenses
+that ended: a button with its title and, when opened, the content in a card
+of rows.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | yes | — | The text of the button, for example «Closed (2)». |
+
+### Slots
+
+- `default`
+
+### Examples
+
+```vue
+<!-- Closed cards -->
+<FmFold label="Closed (2)">
+    Luce - Enel, Gas - Enel
+</FmFold>
+
+<!-- Ended expenses -->
+<FmFold label="Ended (1)">
+    Palestra Giulia
+</FmFold>
+```
+
+### Used by
+
+- `pages/Area.vue`
+- `pages/budget/Planned.vue`
+- `pages/dev/Components.vue`
 
 ## FmIcon
 
@@ -554,17 +636,26 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `components/fm/FmEmpty.vue`
 - `components/fm/FmFileDrop.vue`
 - `components/fm/FmFileTile.vue`
+- `components/fm/FmFold.vue`
 - `components/fm/FmMenuItem.vue`
+- `components/fm/FmMonthSwitch.vue`
+- `components/fm/FmMovementPanel.vue`
 - `components/fm/FmNewTabLink.vue`
 - `components/fm/FmNotice.vue`
 - `components/fm/FmOrganizationMark.vue`
 - `components/fm/FmPasswordField.vue`
+- `components/fm/FmPaySheet.vue`
+- `components/fm/FmPaymentYears.vue`
+- `components/fm/FmPlannedRow.vue`
 - `components/fm/FmRow.vue`
 - `components/fm/FmSearchField.vue`
+- `components/fm/FmSectionLink.vue`
 - `components/fm/FmSidebar.vue`
 - `layouts/AuthLayout.vue`
-- `pages/Area.vue`
 - `pages/Areas.vue`
+- `pages/budget/EditPlanned.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/PlannedItem.vue`
 - `pages/cards/EditCard.vue`
 - `pages/cards/NewCard.vue`
 - `pages/documents/Documents.vue`
@@ -656,10 +747,12 @@ export type NoticeTone = 'info' | 'ok' | 'warning';
 ### Used by
 
 - `components/fm/FmCardFiles.vue`
+- `components/fm/FmPaySheet.vue`
 - `components/fm/FmUploadSheet.vue`
 - `pages/auth/ForgotPassword.vue`
 - `pages/auth/Login.vue`
 - `pages/auth/VerifyEmail.vue`
+- `pages/budget/Deadline.vue`
 - `pages/cards/Card.vue`
 - `pages/documents/Upload.vue`
 - `pages/family/InvitationSent.vue`
@@ -704,6 +797,43 @@ whoever uses it, so the list and the page keep their own.
 - `pages/family/EditOrganization.vue`
 - `pages/family/Organization.vue`
 - `pages/family/Organizations.vue`
+
+## FmPayButton
+
+`resources/js/components/fm/FmPayButton.vue`
+
+*Record payment* (or *Record income*) of a card: it opens *A due date* with
+the panel of *I paid it* on the oldest open due date. With several planned
+items it first asks which one, in a menu; without an open due date it is
+not there.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `deadlines` | `App.Data.DeadlineData[]` | yes | — | The oldest open due date of each planned item. |
+| `label` | `string` | yes | — | The text of the button, for example «Record payment». |
+
+### Examples
+
+```vue
+<!-- One due date -->
+<FmPayButton :deadlines="deadlines" label="Record payment" />
+
+<!-- Several planned items -->
+<FmPayButton :deadlines="deadlines" label="Record payment" />
+
+<!-- Income -->
+<FmPayButton :deadlines="deadlines" label="Record income" />
+
+<!-- No open due date -->
+<FmPayButton :deadlines="deadlines" label="Record payment" />
+```
+
+### Used by
+
+- `components/fm/FmCardPayments.vue`
+- `pages/cards/CardPayments.vue`
 
 ## FmTitle
 
@@ -751,6 +881,10 @@ organization.
 - `components/fm/FmFamilyViews.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
+- `pages/budget/Comparison.vue`
+- `pages/budget/EditPlanned.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/Planned.vue`
 - `pages/cards/EditCard.vue`
 - `pages/cards/NewCard.vue`
 - `pages/dev/Components.vue`
@@ -764,6 +898,7 @@ organization.
 - `pages/family/Invite.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Categories.vue`
+- `pages/settings/ExpenseCategories.vue`
 - `pages/settings/Settings.vue`
 
 ## FmBackLink
@@ -793,15 +928,19 @@ name, above the title or the header of a page.
 ### Used by
 
 - `components/fm/FmTitle.vue`
+- `pages/budget/Deadline.vue`
+- `pages/budget/Movement.vue`
+- `pages/budget/PlannedItem.vue`
 - `pages/cards/Card.vue`
+- `pages/cards/CardPayments.vue`
 
 ## FmBottomBar
 
 `resources/js/components/fm/FmBottomBar.vue`
 
-The bottom bar of the phone (below 1024 px): Home, Areas, the + of Upload in
-the middle, Documents and More. More opens a panel with Family, Settings and
-Log out, and stays marked when one of those pages is open.
+The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in
+the middle, Areas and More. More opens a panel with Documents, Family,
+Settings and Log out, and stays marked when one of those pages is open.
 
 ### Props
 
@@ -826,6 +965,38 @@ Log out, and stays marked when one of those pages is open.
 ### Used by
 
 - `layouts/AppLayout.vue`
+
+## FmBudgetTabs
+
+`resources/js/components/fm/FmBudgetTabs.vue`
+
+The tabs at the top of the budget pages: *Movements*, *Planned and spent* and
+*Planned expenses*. The one of the open page is marked.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `current` | `BudgetPage` | yes | — | The page that is open. |
+
+### Examples
+
+```vue
+<!-- Movements -->
+<FmBudgetTabs current="movements" />
+
+<!-- Planned and spent -->
+<FmBudgetTabs current="comparison" />
+
+<!-- Planned expenses -->
+<FmBudgetTabs current="planned" />
+```
+
+### Used by
+
+- `pages/budget/Comparison.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/Planned.vue`
 
 ## FmFamilyViews
 
@@ -908,6 +1079,7 @@ a title next to it keeps its room. The entries are `FmMenuItem`.
 | `icon` | `LucideIcon` | no | — | The icon of the button; the ⋯ if missing. |
 | `small` | `boolean` | no | `false` | The smaller ⋯ button, 40 px, as beside the title of a panel. |
 | `plain` | `boolean` | no | `false` | The ⋯ button without a background until hovered, as the plain buttons beside a row. |
+| `text` | `boolean` | no | `false` | The label beside the icon, as the link beside a title (`FmSectionLink`), as *Record payment*. |
 
 ### Slots
 
@@ -932,6 +1104,7 @@ a title next to it keeps its room. The entries are `FmMenuItem`.
 - `components/fm/FmActions.vue`
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmDocumentActions.vue`
+- `components/fm/FmPayButton.vue`
 - `pages/cards/Card.vue`
 
 ## FmMenuItem
@@ -994,7 +1167,40 @@ and `download`).
 - `components/fm/FmActions.vue`
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmDocumentActions.vue`
+- `components/fm/FmPayButton.vue`
 - `pages/cards/Card.vue`
+
+## FmMonthSwitch
+
+`resources/js/components/fm/FmMonthSwitch.vue`
+
+The month chosen, with ‹ and › to go to the one before and after. The month
+is written in the language of the page.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `month` | `string` | yes | — | The month, `yyyy-mm`. |
+
+### Events
+
+- `change`
+
+### Examples
+
+```vue
+<!-- October -->
+<FmMonthSwitch month="2026-10" />
+
+<!-- January -->
+<FmMonthSwitch month="2027-01" />
+```
+
+### Used by
+
+- `pages/budget/Comparison.vue`
+- `pages/budget/Movements.vue`
 
 ## FmNewTabLink
 
@@ -1023,6 +1229,97 @@ stays open behind.
 
 ### Used by
 
+- `components/fm/FmValueList.vue`
+
+## FmPager
+
+`resources/js/components/fm/FmPager.vue`
+
+*Previous* and *Next* under a list shown a page at a time (the documents,
+the documents of a card); nothing when the list fits in one page.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `previous` | `string \| null` | yes | — | The address of the previous page, null on the first. |
+| `next` | `string \| null` | yes | — | The address of the next page, null on the last. |
+| `preserveScroll` | `boolean` | no | `false` | Keeps the scroll where it is, for a list inside a longer page. |
+
+### Examples
+
+```vue
+<!-- Middle page -->
+<FmPager previous="/budget?page=1" next="/budget?page=3" />
+
+<!-- First page -->
+<FmPager next="/budget?page=2" />
+
+<!-- Last page -->
+<FmPager previous="/budget?page=2" />
+
+<!-- Single page -->
+<FmPager />
+```
+
+### Used by
+
+- `components/fm/FmCardPayments.vue`
+- `pages/cards/Card.vue`
+- `pages/documents/Documents.vue`
+
+## FmSectionLink
+
+`resources/js/components/fm/FmSectionLink.vue`
+
+The link beside the title of a section (`FmCard`), as *Upload*, *Add* or
+*Record payment*: blue text with its icon, normal weight, no box around it,
+underlined on hover. With `href` it is an Inertia link, otherwise a button.
+Every section uses it, so the links beside the titles look the same on
+every page.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `href` | `string` | no | — | The address: if there is one, it is a link. |
+| `icon` | `LucideIcon` | no | — | The icon before the text. |
+
+### Events
+
+- `click`
+
+### Slots
+
+- `default`
+
+### Examples
+
+```vue
+<!-- Link -->
+<FmSectionLink href="/budget/planned">
+    See all the bills, year by year
+</FmSectionLink>
+
+<!-- With an icon -->
+<FmSectionLink href="/budget/planned/create" :icon="icon">
+    Add a planned expense
+</FmSectionLink>
+
+<!-- Button -->
+<FmSectionLink>
+    Show more
+</FmSectionLink>
+```
+
+### Used by
+
+- `components/fm/FmCardFiles.vue`
+- `components/fm/FmCardPayments.vue`
+- `components/fm/FmMenu.vue`
+- `components/fm/FmPayButton.vue`
+- `pages/Home.vue`
+- `pages/budget/PlannedItem.vue`
 - `pages/cards/Card.vue`
 
 ## FmSidebar
@@ -1099,7 +1396,8 @@ A chosen filter, above a list: it is removed with the ×.
 
 A card in a list: the icon of its type in the colour of its area, the name
 and below the subtitle or the next date («Inspection · in 75 days», red once
-overdue). It leads to the card; a closed card is grey.
+overdue). It leads to the card; a closed card is grey. In *An area* the
+amount of an open due date of the next 30 days is on the right, red when late.
 
 ### Props
 
@@ -1128,6 +1426,49 @@ overdue). It leads to the card; a closed card is grey.
 - `pages/Area.vue`
 - `pages/Areas.vue`
 - `pages/cards/Card.vue`
+
+## FmDeadlineRow
+
+`resources/js/components/fm/FmDeadlineRow.vue`
+
+A due date in a list: the dot of the area, the title, the card it belongs to
+with its day (red when late) and on the right the amount. It leads to *A due
+date*.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `deadline` | `App.Data.DeadlineData` | yes | — | The due date. |
+| `href` | `string` | yes | — | *A due date*, where the row leads. |
+
+### Examples
+
+```vue
+<!-- Upcoming -->
+<FmDeadlineRow :deadline="deadline" href="/budget/planned/expense/4/occurrences/2026-12-05" />
+
+<!-- Late and estimated -->
+<FmDeadlineRow :deadline="deadline" href="/budget/planned/expense/7/occurrences/2026-10-23" />
+
+<!-- Changed amount -->
+<FmDeadlineRow :deadline="deadline" href="/budget/planned/expense/4/occurrences/2026-12-05" />
+
+<!-- Paid -->
+<FmDeadlineRow :deadline="deadline" href="/budget/planned/expense/4/occurrences/2026-11-05" />
+
+<!-- Skipped -->
+<FmDeadlineRow :deadline="deadline" href="/budget/planned/expense/4/occurrences/2026-12-05" />
+
+<!-- Income -->
+<FmDeadlineRow :deadline="deadline" href="/budget/planned/income/2/occurrences/2026-10-27" />
+```
+
+### Used by
+
+- `components/fm/FmCardBudget.vue`
+- `pages/budget/Comparison.vue`
+- `pages/budget/Deadline.vue`
 
 ## FmDocumentRow
 
@@ -1180,6 +1521,45 @@ top of *A person*.
 - `pages/documents/Documents.vue`
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
+
+## FmPlannedRow
+
+`resources/js/components/fm/FmPlannedRow.vue`
+
+A planned expense or income in a list: the icon of its category, the name
+with the card and how it repeats below, who it is for, the next due date with
+the account, and the amount. It leads to *A planned expense*.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `row` | `App.Data.PlannedRowData` | yes | — | The planned expense or income. |
+| `href` | `string` | yes | — | *A planned expense*, where the row leads. |
+
+### Examples
+
+```vue
+<!-- Monthly with a card -->
+<FmPlannedRow :row="row" href="/budget/planned/expense/4" />
+
+<!-- Estimated -->
+<FmPlannedRow :row="row" href="/budget/planned/expense/9" />
+
+<!-- Without a card -->
+<FmPlannedRow :row="row" href="/budget/planned/expense/11" />
+
+<!-- Income -->
+<FmPlannedRow :row="row" href="/budget/planned/income/2" />
+
+<!-- Ended -->
+<FmPlannedRow :row="row" href="/budget/planned/expense/4" />
+```
+
+### Used by
+
+- `components/fm/FmCardPayments.vue`
+- `pages/budget/Planned.vue`
 
 ## FmRow
 
@@ -1251,16 +1631,54 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmCardRow.vue`
 - `components/fm/FmCategoryTree.vue`
+- `components/fm/FmDeadlineRow.vue`
 - `components/fm/FmDocumentRow.vue`
 - `components/fm/FmLinkDocumentSheet.vue`
 - `components/fm/FmLinkedRecords.vue`
+- `components/fm/FmMovementPanel.vue`
+- `components/fm/FmPlannedRow.vue`
 - `pages/Home.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/PlannedItem.vue`
 - `pages/dev/Components.vue`
 - `pages/family/Organizations.vue`
 - `pages/family/People.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Settings.vue`
 - `pages/welcome/Welcome.vue`
+
+## FmValueList
+
+`resources/js/components/fm/FmValueList.vue`
+
+The lines of the box *Data* of a page: the label on the left, the value on
+the right. A value that is a person, an organization or a card is a link;
+`newTab` opens it in a new tab, so the page it comes from stays open.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `values` | `App.Data.CardValueData[]` | yes | — | The lines. |
+| `newTab` | `boolean` | no | `false` | A link opens in a new tab. |
+
+### Examples
+
+```vue
+<!-- Plain -->
+<FmValueList :values="values" />
+
+<!-- With links -->
+<FmValueList :values="values" />
+
+<!-- Links in a new tab -->
+<FmValueList :values="values" newTab />
+```
+
+### Used by
+
+- `pages/budget/PlannedItem.vue`
+- `pages/cards/Card.vue`
 
 ## FmBottomSheet
 
@@ -1303,12 +1721,55 @@ stays inside.
 ### Used by
 
 - `components/fm/FmBottomBar.vue`
+- `components/fm/FmChangeDeadlineSheet.vue`
 - `components/fm/FmConfirm.vue`
 - `components/fm/FmLinkDocumentSheet.vue`
+- `components/fm/FmPaySheet.vue`
 - `components/fm/FmUploadSheet.vue`
 - `pages/documents/Documents.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Categories.vue`
+- `pages/settings/ExpenseCategories.vue`
+
+## FmChangeDeadlineSheet
+
+`resources/js/components/fm/FmChangeDeadlineSheet.vue`
+
+*Change this due date*: the panel that changes one due date and not the
+planned expense. Three choices, more than one at a time: it is skipped
+(which turns the other two off), it has another amount, it has another
+date; and a note. It sends them to `action` as the server reads them.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `deadline` | `App.Data.DeadlineData` | yes | — | The due date to change. |
+| `action` | `string` | yes | — | Where the changes are sent (PUT). |
+| `open` | `boolean` | no | `false` | The panel is open. |
+
+### Events
+
+- `update:open`
+- `close`
+
+### Examples
+
+```vue
+<!-- Changed amount and note -->
+<FmChangeDeadlineSheet :deadline="deadline" action="/budget/planned/expense/4/occurrences/2026-12-05" />
+
+<!-- Skipped -->
+<FmChangeDeadlineSheet :deadline="deadline" action="/budget/planned/expense/4/occurrences/2026-12-05" />
+
+<!-- Estimated and late -->
+<FmChangeDeadlineSheet :deadline="deadline" action="/budget/planned/expense/7/occurrences/2026-10-23" />
+```
+
+### Used by
+
+- `pages/budget/Deadline.vue`
+- `pages/budget/PlannedItem.vue`
 
 ## FmFilePanel
 
@@ -1452,6 +1913,107 @@ reloaded without the rest of it, keeping the address.
 - `components/fm/FmCardFiles.vue`
 - `pages/cards/Card.vue`
 
+## FmMovementPanel
+
+`resources/js/components/fm/FmMovementPanel.vue`
+
+The panel of a movement, as the board *Pagamenti-pc* draws it: the title,
+when it was paid (or received) and how much, the commission and the account,
+the category and (for an expense) the card of its type, the organization,
+the holder, the planned expense or income it
+settles (and which of its due dates), and the documents linked to it, with
+*Delete*, *Cancel* and *Save*. Without a movement it is the form of a new
+expense or income, which starts with the choice between the two. Choosing a
+planned expense or income, or a card (also the one *Add expense* of a card
+starts with), fills the fields still empty from it. Used beside
+the list on the computer (`compact`) and on its own page on the phone.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `movement` | `App.Data.MovementData \| null` | yes | — | The movement to show and change, or null for a new expense or income. |
+| `options` | `MovementFormOptions` | yes | — | The choices of the menus. |
+| `start` | `MovementStart` | yes | — | What a new movement starts from: the kind, the planned item and the day. |
+| `occurrences` | `App.Data.OptionData[]` | no | `[]` | The due dates of the planned item that the movement can settle. |
+| `compact` | `boolean` | no | `false` | Beside the list on the computer: it has the × to close it. |
+
+### Events
+
+- `close`
+
+### Examples
+
+```vue
+<!-- New expense -->
+<FmMovementPanel :options="options" :start="start" />
+
+<!-- New income -->
+<FmMovementPanel :options="options" :start="start" />
+
+<!-- Pay a planned item -->
+<FmMovementPanel :options="options" :start="start" :occurrences="occurrences" />
+
+<!-- Edit an expense -->
+<FmMovementPanel :movement="movement" :options="options" :start="start" />
+
+<!-- Edit an income -->
+<FmMovementPanel :movement="movement" :options="options" :start="start" />
+
+<!-- Member (cannot delete) -->
+<FmMovementPanel :movement="movement" :options="options" :start="start" compact />
+```
+
+### Used by
+
+- `pages/budget/Movement.vue`
+- `pages/budget/Movements.vue`
+
+## FmPaySheet
+
+`resources/js/components/fm/FmPaySheet.vue`
+
+*I paid it* (for an income *It arrived*): the panel that records the payment
+of a due date. It asks when, how much and with what, starting from today,
+from the amount and from the account of the due date, and takes a receipt if
+the person has one. For an income it also says what was expected and what
+the income will be called. It sends the form to `action`; the page then
+shows the due date as paid. On the phone it rises from the bottom.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `deadline` | `App.Data.DeadlineData` | yes | — | The due date to settle. |
+| `accounts` | `App.Data.OptionData[]` | yes | — | The accounts of the family to choose from. |
+| `action` | `string` | yes | — | Where the payment is sent (POST). |
+| `open` | `boolean` | no | `false` | The panel is open. |
+
+### Events
+
+- `update:open`
+- `close`
+
+### Examples
+
+```vue
+<!-- Expense -->
+<FmPaySheet :deadline="deadline" :accounts="accounts" action="/budget/planned/expense/4/occurrences/2026-12-05/pay" />
+
+<!-- Late estimate -->
+<FmPaySheet :deadline="deadline" :accounts="accounts" action="/budget/planned/expense/7/occurrences/2026-10-23/pay" />
+
+<!-- Salary -->
+<FmPaySheet :deadline="deadline" :accounts="accounts" action="/budget/planned/income/2/occurrences/2026-10-27/pay" />
+
+<!-- Other income -->
+<FmPaySheet :deadline="deadline" :accounts="accounts" action="/budget/planned/income/5/occurrences/2026-10-27/pay" />
+```
+
+### Used by
+
+- `pages/budget/Deadline.vue`
+
 ## FmUploadSheet
 
 `resources/js/components/fm/FmUploadSheet.vue`
@@ -1492,7 +2054,9 @@ The form of a card, built from the description the server gives
 a field shows only when its `show_when` holds, for example the vehicle only
 for a car policy, and its label can change with `label_when`, for example
 the POD code of electricity that is a PDR code for gas. A hidden field is
-sent empty. The same form creates and
+sent empty. For a loan the page also gives `loanFigures`: under the instalment
+the form shows the total to pay and the cost, which it asks the server for
+(a partial reload) 300 ms after the amounts or the start stop changing. The same form creates and
 edits every type of card: the page gives the fields and the values, and gets
 them back with `submit`.
 
@@ -1504,6 +2068,7 @@ them back with `submit`.
 | `values` | `Record<string, unknown>` | yes | — | The values the form starts from, by column. |
 | `serverErrors` | `Partial<Record<string, string>>` | no | `{}` | The errors of the server, by column. |
 | `processing` | `boolean` | no | `false` | The form is being sent: the button waits. |
+| `loanFigures` | `App.Data.LoanFiguresData \| null` | no | `undefined` | The total to pay and the cost of a loan: null until the server answers, left out for any other card. |
 
 ### Events
 
@@ -1574,21 +2139,27 @@ so that two «Other» stay different. A choice that is not a category («All»,
 
 `resources/js/components/fm/FmCategoryTree.vue`
 
-A level of the tree of the document categories: each category with the number
-of its documents and, if it has any, the arrow that opens the subcategories.
-It calls itself for the levels below.
+A level of the tree of the categories, of documents or of expenses: each
+category with, on the right, the number of its documents (or what the `after`
+slot shows) and, if it has any, the arrow that opens the subcategories. It
+calls itself for the levels below.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `categories` | `App.Data.CategoryData[]` | yes | — | The categories of this level. |
+| `categories` | `T[]` | yes | — | The categories of this level. |
 | `level` | `number` | no | `0` | How deep this level is: 0 for the main ones. |
 | `selectable` | `boolean` | no | `false` | The categories are tapped to choose them (to edit them). |
+| `mainOnly` | `boolean` | no | `false` | Only the main categories are tapped: the subcategories are just read. |
 
 ### Events
 
 - `select`
+
+### Slots
+
+- `after`
 
 ### Examples
 
@@ -1607,6 +2178,7 @@ It calls itself for the levels below.
 
 - `components/fm/FmCategoryTree.vue`
 - `pages/settings/Categories.vue`
+- `pages/settings/ExpenseCategories.vue`
 
 ## FmDocumentFilters
 
@@ -1808,6 +2380,123 @@ that links a document to a card. What it does with the text is up to the page.
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 
+## FmAmount
+
+`resources/js/components/fm/FmAmount.vue`
+
+An amount of the budget: «84,20 €», an estimate as «~72,00 €», a changed
+amount with the old one struck through, an income as «+1.720,00 €» in green.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `amount` | `number` | yes | — | The amount. |
+| `estimated` | `boolean` | no | `false` | The amount is an estimate. |
+| `base` | `number \| null` | no | `null` | The amount before an exception changed it; it is shown struck through. |
+| `income` | `boolean` | no | `false` | The amount comes in: a plus and the colour of what is paid. |
+
+### Examples
+
+```vue
+<!-- Expense -->
+<FmAmount :amount="84.2" />
+
+<!-- Estimated -->
+<FmAmount :amount="71.3" estimated />
+
+<!-- Changed from the planned -->
+<FmAmount :amount="62.4" :base="72" />
+
+<!-- Income -->
+<FmAmount :amount="1850" income />
+```
+
+### Used by
+
+- `components/fm/FmCardBudget.vue`
+- `components/fm/FmChangeDeadlineSheet.vue`
+- `components/fm/FmDeadlineRow.vue`
+- `components/fm/FmPlannedRow.vue`
+- `pages/budget/Deadline.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/PlannedItem.vue`
+
+## FmBarChart
+
+`resources/js/components/fm/FmBarChart.vue`
+
+The chart *Expenses, the last 6 months*: for each month a bar with what was
+spent and a dark mark where the plan reaches, the month in progress named
+and its amount written above. Drawn in SVG, with a legend, a title on each
+month for the hover and *See as a table* for those who read the numbers.
+The spent is told by the bar and the planned by the mark, so the two are not
+told apart by colour alone.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `months` | `App.Data.MonthBarData[]` | yes | — | The months, oldest first. |
+
+### Examples
+
+```vue
+<!-- Six months -->
+<FmBarChart :months="months" />
+
+<!-- Three months -->
+<FmBarChart :months="months" />
+
+<!-- Nothing spent -->
+<FmBarChart :months="months" />
+```
+
+### Used by
+
+- `pages/budget/Comparison.vue`
+
+## FmCategoryBar
+
+`resources/js/components/fm/FmCategoryBar.vue`
+
+A row of *By category*: the name, a bar with what was spent, a mark where the
+plan reaches, the comment («193,40 € less») and «spent of planned».
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `category` | `string` | yes | — | The name of the category. |
+| `spent` | `number` | yes | — | What was spent. |
+| `planned` | `number` | yes | — | What was planned. |
+| `estimated` | `boolean` | no | `false` | The plan is only an estimate. |
+| `lateTitle` | `string \| null` | no | `null` | The title of a due date of the category that is late. |
+| `color` | `string \| null` | no | `null` | The colour of the category, for example `#e35169`. |
+
+### Examples
+
+```vue
+<!-- As planned -->
+<FmCategoryBar category="Casa e affitto" :spent="612" :planned="612" color="#2563eb" />
+
+<!-- Estimated -->
+<FmCategoryBar category="Spesa" :spent="150.1" :planned="320" estimated color="#16a34a" />
+
+<!-- Late -->
+<FmCategoryBar category="Bollette e utenze" :spent="29.9" :planned="223.3" lateTitle="Luce" color="#e35169" />
+
+<!-- Over the plan -->
+<FmCategoryBar category="Svago" :spent="180" :planned="120" />
+
+<!-- Nothing planned -->
+<FmCategoryBar category="Salute" :spent="108.4" :planned="0" color="#d9467a" />
+```
+
+### Used by
+
+- `pages/budget/Comparison.vue`
+
 ## FmDateTile
 
 `resources/js/components/fm/FmDateTile.vue`
@@ -1838,6 +2527,72 @@ days ago» in red.
 ### Used by
 
 - `pages/cards/Card.vue`
+
+## FmLoanFigures
+
+`resources/js/components/fm/FmLoanFigures.vue`
+
+The total to pay and the cost of a loan under its instalment in the form,
+as the server works them out from what is written so far. A figure that
+cannot be worked out yet is a dash.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `figures` | `App.Data.LoanFiguresData \| null` | yes | — | The figures from the server, or null until they come. |
+
+### Examples
+
+```vue
+<!-- Complete -->
+<FmLoanFigures :figures="figures" />
+
+<!-- Without the cost -->
+<FmLoanFigures :figures="figures" />
+
+<!-- Not worked out -->
+<FmLoanFigures />
+```
+
+### Used by
+
+- `components/fm/FmCardForm.vue`
+
+## FmNumberTile
+
+`resources/js/components/fm/FmNumberTile.vue`
+
+A figure of the payments of a card, as a tile beside its dates: the label,
+the amount (or the number, as *Utilities 4*) and the line below, where the
+page writes the amount the server names with `:amount`.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `number` | `App.Data.CardNumberData` | yes | — | The figure. |
+
+### Examples
+
+```vue
+<!-- Amount with a hint -->
+<FmNumberTile :number="number" />
+
+<!-- Count -->
+<FmNumberTile :number="number" />
+
+<!-- Amount in the hint -->
+<FmNumberTile :number="number" />
+
+<!-- Without a hint -->
+<FmNumberTile :number="number" />
+```
+
+### Used by
+
+- `components/fm/FmCardBudget.vue`
+- `pages/cards/CardPayments.vue`
 
 ## FmDocumentActions
 
@@ -1936,6 +2691,54 @@ the family, or a file chosen and not saved yet.
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmDocumentRow.vue`
 - `pages/Home.vue`
+
+## FmCardBudget
+
+`resources/js/components/fm/FmCardBudget.vue`
+
+The payments on the page of a card, as the boards of the cards draw them:
+in the box at the top the oldest open due date (the renewal of a policy, the
+next instalment of a loan, the salary coming in), which opens *A due date*
+(with *It arrived* open on a salary);
+the figures, beside the dates of the card (`tiles`); how far a loan is paid;
+the open due dates; then the data of the card (the default slot). The
+planned expenses and their payments (`FmCardPayments`) the page shows under
+the documents; without a budget only the tiles and the data remain.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `budget` | `App.Data.CardBudgetData \| null` | yes | — | The payments of the card, null when none is sent. |
+| `card` | `{ type: string; id: number; }` | yes | — | The address of the card: its type and its number. |
+
+### Slots
+
+- `tiles`
+- `default`
+
+### Examples
+
+```vue
+<!-- Bills to pay -->
+<FmCardBudget :budget="budget" :card="card" />
+
+<!-- Renewal -->
+<FmCardBudget :budget="budget" :card="card" />
+
+<!-- Loan instalment -->
+<FmCardBudget :budget="budget" :card="card" />
+
+<!-- Member -->
+<FmCardBudget :budget="budget" :card="card" />
+
+<!-- No payments -->
+<FmCardBudget :card="card" />
+```
+
+### Used by
+
+- `pages/cards/Card.vue`
 
 ## FmCardDocumentActions
 
@@ -2076,6 +2879,49 @@ the name and the line of data. On the right, the `actions` slot holds
 
 - `pages/cards/Card.vue`
 
+## FmCardPayments
+
+`resources/js/components/fm/FmCardPayments.vue`
+
+The planned expenses (or incomes) of a card and their payments, as the
+boards of the cards and the column beside *Edit card* show them: the rows of
+the planned items, which open *A planned expense*, with *Add* for an
+`admin`; then the payments a page at a time (the server sends one page,
+with the addresses of the others for the pager), each leading to its page,
+with *Record payment* and the link to all of them, year by year. Without
+a planned item it says to create it first, unless the card has no planned
+items of its own (a loan makes its instalment by itself). A card that only
+has expenses linked to it (a belonging, a maintenance job, a filing, a
+health event) offers *Add expense* instead.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `budget` | `App.Data.CardBudgetData` | yes | — | The payments of the card. |
+| `card` | `{ type: string; id: number; }` | yes | — | The address of the card: its type and its number. |
+
+### Examples
+
+```vue
+<!-- Bills paid -->
+<FmCardPayments :budget="budget" :card="card" />
+
+<!-- Can add an expense -->
+<FmCardPayments :budget="budget" :card="card" />
+
+<!-- Income -->
+<FmCardPayments :budget="budget" :card="card" />
+
+<!-- Several pages -->
+<FmCardPayments :budget="budget" :card="card" />
+```
+
+### Used by
+
+- `pages/cards/Card.vue`
+- `pages/cards/EditCard.vue`
+
 ## FmDocumentDetail
 
 `resources/js/components/fm/FmDocumentDetail.vue`
@@ -2145,3 +2991,49 @@ type at a time, with a tab for each type and how many records it has.
 
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
+
+## FmPaymentYears
+
+`resources/js/components/fm/FmPaymentYears.vue`
+
+The payments of the planned items of a page by year, the latest first: a
+line with the year (and, with `counts`, how many payments) and its total,
+then each payment with its day, title, account, the clip of a receipt and
+the amount. *A planned expense* and the cards list them; on a card a page
+of them, on *Payments of a card* every year, the older ones folded with the
+whole dates; on both each payment leads to its page.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `years` | `App.Data.PaymentYearData[]` | yes | — | The payments by year, the latest year first. |
+| `counts` | `Record<number, string> \| null` | no | `null` | The words of the number of payments of each year, for example «9 bills». |
+| `folded` | `boolean` | no | `false` | The years after the first are folded, and their line opens them. |
+| `linked` | `boolean` | no | `false` | Each payment leads to its page. |
+| `fullDate` | `boolean` | no | `false` | Each payment shows the whole date, with the year. |
+
+### Examples
+
+```vue
+<!-- All open -->
+<FmPaymentYears :years="years" />
+
+<!-- Folded -->
+<FmPaymentYears :years="years" folded />
+
+<!-- With counts -->
+<FmPaymentYears :years="years" :counts="counts" />
+
+<!-- Linked, full date -->
+<FmPaymentYears :years="years" linked fullDate />
+
+<!-- Nothing paid -->
+<FmPaymentYears :years="years" />
+```
+
+### Used by
+
+- `components/fm/FmCardPayments.vue`
+- `pages/budget/PlannedItem.vue`
+- `pages/cards/CardPayments.vue`

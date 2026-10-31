@@ -112,9 +112,9 @@ describe('Home', () => {
         expect(within(waiting).getByText('117 KB')).toBeInTheDocument();
         expect(within(waiting).getByText('IMG_2041')).toBeInTheDocument();
         expect(within(waiting).getByText('1,2 MB')).toBeInTheDocument();
-        expect(
-            within(waiting).getByRole('link', { name: 'Finish' }),
-        ).toHaveAttribute('href', '/upload');
+        const finish = within(waiting).getByRole('link', { name: 'Finish' });
+        expect(finish).toHaveAttribute('href', '/upload');
+        expect(finish).toHaveClass('font-normal', 'hover:underline');
         expect(within(waiting).queryByText(/more/)).not.toBeInTheDocument();
     });
 

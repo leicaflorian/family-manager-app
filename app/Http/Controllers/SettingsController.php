@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Data\AccountData;
 use App\Models\DocumentCategory;
+use App\Models\ExpenseCategory;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
 use Inertia\Inertia;
@@ -17,13 +18,14 @@ use Inertia\Response;
 final class SettingsController extends Controller
 {
     /**
-     * The entries there are in this stage: my account and the categories.
+     * The entries there are in this stage: my account and the categories of documents and expenses.
      */
     public function __invoke(#[CurrentUser] User $user): Response
     {
         return Inertia::render('settings/Settings', [
             'account' => AccountData::fromUser($user),
             'mainCategories' => DocumentCategory::query()->whereNull('parent_id')->count(),
+            'mainExpenseCategories' => ExpenseCategory::query()->whereNull('parent_id')->count(),
         ]);
     }
 }

@@ -16,6 +16,7 @@ import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFileTile from '@/components/fm/FmFileTile.vue';
 import FmRow from '@/components/fm/FmRow.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import { formatLongDate, formatSize } from '@/lib/format';
 import { upload } from '@/routes';
 import { show } from '@/routes/documents';
@@ -64,9 +65,9 @@ const morePending = computed(() => pendingCount - pending.length);
 
         <FmCard v-if="pendingCount > 0" :title="$t('Waiting')" list>
             <template #actions>
-                <FmButton variant="text" small :href="upload().url">{{
+                <FmSectionLink :href="upload().url">{{
                     $t('Finish')
-                }}</FmButton>
+                }}</FmSectionLink>
             </template>
             <FmRow
                 v-for="file in pending"

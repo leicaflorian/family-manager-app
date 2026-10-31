@@ -28,7 +28,6 @@ const {
     small = false,
     xsmall = false,
     plain = false,
-    inline = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red). */
     variant?: ButtonVariant;
@@ -57,11 +56,6 @@ const {
     xsmall?: boolean;
     /** With `label`: no background until hovered, as beside a row. */
     plain?: boolean;
-    /**
-     * As tall as the line of a title beside it, with no box around the text,
-     * as *Upload* beside *Documents*. Meant for the text variant.
-     */
-    inline?: boolean;
 }>();
 
 defineEmits<{
@@ -96,8 +90,6 @@ const classes = computed((): string =>
         'disabled:cursor-not-allowed disabled:border-0 disabled:bg-edge disabled:text-ink-soft',
         styles[variant],
         wide && 'w-full',
-        inline &&
-            'h-auto rounded-md px-0 font-semibold hover:bg-transparent hover:underline',
         // Only the icon: the light grey square of the canvas
         label && 'size-11.5 border-0 bg-canvas px-0 hover:bg-divider',
         label && small && 'size-10',

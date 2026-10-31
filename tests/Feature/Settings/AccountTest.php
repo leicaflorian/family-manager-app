@@ -33,7 +33,8 @@ test('the settings index shows my account and the categories', function (): void
         ->component('settings/Settings')
         ->where('account.first_name', 'Marco')
         ->where('account.role', 'Administrator')
-        ->where('mainCategories', 10));
+        ->where('mainCategories', 10)
+        ->where('mainExpenseCategories', 12));
 });
 
 test('my account shows first name, last name, email and whether I am the last admin', function (): void {

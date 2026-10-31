@@ -156,7 +156,7 @@ describe('Components', () => {
         ).toBeInTheDocument();
     });
 
-    it('shows the chosen component: name, description, props, where it is used and its cases', () => {
+    it('shows the chosen component: name, description, props, where it is used and its cases', async () => {
         renderPage(Components, { selected: 'FmRow' });
 
         expect(
@@ -190,11 +190,16 @@ describe('Components', () => {
             'The colour of the subtitle.',
         ]);
 
-        const usedBy = screen
-            .getByRole('heading', { name: 'Used by' })
-            .closest('section')!;
-        expect(within(usedBy).getByText('pages/Areas.vue')).toBeInTheDocument();
-        expect(within(usedBy).getByText('pages/Home.vue')).toBeInTheDocument();
+        // Where it is used is folded until opened
+        const usedBy = screen.getByRole('button', { name: 'Used by (2)' });
+        expect(usedBy).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByText('pages/Areas.vue')).not.toBeInTheDocument();
+
+        await userEvent.click(usedBy);
+
+        expect(usedBy).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByText('pages/Areas.vue')).toBeInTheDocument();
+        expect(screen.getByText('pages/Home.vue')).toBeInTheDocument();
 
         // The cases of `DevCases`, from the real `FmRow.examples.ts`
         expect(

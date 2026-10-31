@@ -5,7 +5,7 @@
  * subscription) come with their stages.
  */
 import { Head } from '@inertiajs/vue3';
-import { FolderTree } from '@lucide/vue';
+import { FolderTree, Tags } from '@lucide/vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -13,12 +13,15 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { edit } from '@/routes/account';
 import { index } from '@/routes/categories';
+import { index as expenseCategories } from '@/routes/expense-categories';
 
-const { account, mainCategories } = defineProps<{
+const { account, mainCategories, mainExpenseCategories } = defineProps<{
     /** My account. */
     account: App.Data.AccountData;
     /** How many main document categories there are. */
     mainCategories: number;
+    /** How many main expense categories there are. */
+    mainExpenseCategories: number;
 }>();
 </script>
 
@@ -66,6 +69,24 @@ const { account, mainCategories } = defineProps<{
                         class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="FolderTree" :size="22" />
+                    </span>
+                </template>
+            </FmRow>
+            <FmRow
+                :title="$t('Expense categories')"
+                :subtitle="
+                    $tChoice(
+                        '{0} No main categories|{1} :count main category|[2,*] :count main categories',
+                        mainExpenseCategories,
+                    )
+                "
+                :href="expenseCategories().url"
+            >
+                <template #before>
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="Tags" :size="22" />
                     </span>
                 </template>
             </FmRow>

@@ -68,6 +68,27 @@ describe('parseDoc', () => {
             'A panel that comes up from the bottom,\nwith a title.\n\nOn wide screens it is a dialog.',
         );
     });
+
+    it('reads the TSDoc of a generic component, whose script tag spans lines', () => {
+        const source = [
+            '<script',
+            '    setup',
+            '    lang="ts"',
+            '    generic="T extends { id: number }"',
+            '>',
+            '/**',
+            ' * A level of the tree.',
+            ' *',
+            ' * @group forms',
+            ' */',
+            '</script>',
+        ].join('\n');
+
+        expect(parseDoc(source)).toEqual({
+            description: 'A level of the tree.',
+            group: 'forms',
+        });
+    });
 });
 
 describe('importsComponent', () => {

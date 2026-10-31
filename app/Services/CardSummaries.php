@@ -27,10 +27,11 @@ final class CardSummaries
      *
      * @param  Model  $card  a record of one of the 13 models
      * @param  CarbonImmutable|null  $today  today in Rome; read once for a whole list
+     * @param  array{amount: float, late: bool}|null  $due  the open due date of the card, in *An area*
      *
      * @throws InvalidArgumentException if the record is not a card
      */
-    public function row(Model $card, ?CarbonImmutable $today = null): CardData
+    public function row(Model $card, ?CarbonImmutable $today = null, ?array $due = null): CardData
     {
         $type = CardTypes::for($card);
         $today ??= CarbonImmutable::today('Europe/Rome');
@@ -49,6 +50,8 @@ final class CardSummaries
             next_date: $next['date'] ?? null,
             overdue: ! $closed && $this->hasPassedDeadline($type, $card, $today),
             closed: $closed,
+            due_amount: $due['amount'] ?? null,
+            due_late: $due['late'] ?? false,
         );
     }
 
@@ -80,11 +83,11 @@ final class CardSummaries
     }
 
     /**
-     * One area with its cards.
+     * One area with its cards, each with the amount of its open due date that is late or falls in the next 30 days.
      */
     public function area(Area $area): AreaData
     {
-        $rows = $this->rows(CardTypes::of($area));
+        $rows = $this->rows(CardTypes::of($area), withDue: true);
 
         return $this->areaData($area, $rows[$area->value] ?? []);
     }
@@ -93,16 +96,21 @@ final class CardSummaries
      * Reads the cards of some types, one query per type, grouped by area.
      *
      * @param  list<CardType>  $types
+     * @param  bool  $withDue  whether to read the open due dates too, with a few queries per type
      * @return array<string, list<CardData>>
      */
-    private function rows(array $types): array
+    private function rows(array $types, bool $withDue = false): array
     {
         $today = CarbonImmutable::today('Europe/Rome');
         $rows = [];
 
         foreach ($types as $type) {
-            foreach ($type->model()::query()->with($type->listRelations())->get() as $card) {
-                $rows[$type->area()->value][] = $this->row($card, $today);
+            $cards = $type->model()::query()->with($type->listRelations())->get();
+            // Resolved here: CardBudgets reaches this class through PlannedSummaries
+            $due = $withDue ? resolve(CardBudgets::class)->due($type, $cards, $today) : [];
+
+            foreach ($cards as $card) {
+                $rows[$type->area()->value][] = $this->row($card, $today, $due[ModelId::of($card)] ?? null);
             }
         }
 

@@ -33,21 +33,38 @@ describe('FmBottomBar', () => {
         ).toHaveAttribute('href', '/upload');
     });
 
-    it('has Documents next to the +', () => {
+    it('has Home, Budget, Upload, Areas and More, in this order', () => {
         bar('home');
 
-        expect(screen.getByRole('link', { name: 'Documents' })).toHaveAttribute(
+        const nav = screen.getByRole('navigation', { name: 'Sections' });
+        expect(
+            [...nav.querySelectorAll('a, button')].map(
+                (item) =>
+                    item.getAttribute('aria-label') ?? item.textContent?.trim(),
+            ),
+        ).toEqual(['Home', 'Budget', 'Upload a document', 'Areas', 'More']);
+        expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute(
             'href',
-            '/documents',
+            '/budget',
         );
     });
 
-    it('opens Family, Settings and Log out from More', async () => {
+    it('marks Budget on a page of the budget', () => {
+        bar('budget');
+
+        expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
+    it('opens Documents, Family, Settings and Log out from More', async () => {
         bar('home');
 
         await userEvent.click(screen.getByRole('button', { name: 'More' }));
 
         const sheet = screen.getByRole('dialog', { name: 'More' });
+        expect(sheet).toHaveTextContent('Documents');
         expect(sheet).toHaveTextContent('Family');
         expect(sheet).toHaveTextContent('Settings');
         expect(
@@ -56,6 +73,15 @@ describe('FmBottomBar', () => {
     });
 
     it('marks More on a page of More', () => {
+        bar('documents');
+
+        expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
+    it('marks More on Family too', () => {
         bar('family');
 
         expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute(

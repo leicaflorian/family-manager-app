@@ -2,18 +2,27 @@
 
 declare(strict_types=1);
 
+use App\Enums\ExceptionType;
 use App\Enums\Role;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
+use App\Models\Expense;
 use App\Models\Family;
 use App\Models\File;
+use App\Models\Loan;
+use App\Models\PlannedExpenseException;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
+use Tests\TestCase;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -46,6 +55,15 @@ test('the card types carry the name of their area in the current language', func
         ->component('Area')
         ->where('types.0.area', 'vehicles')
         ->where('types.0.area_label', 'Vehicles'));
+});
+
+test('the card types carry their name in the plural, for the groups of an area', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('areas.show', 'home'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('Area')
+        ->where('types.0.plural_label', 'Residences')
+        ->where('types.1.plural_label', 'Utilities'));
 });
 
 test('it lets only an admin create, edit and delete', function (): void {
@@ -363,3 +381,183 @@ test('it answers 404 and saves nothing when a document to link or unlink is of a
     expect(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda')
         ->and(DB::table('documentables')->where('document_id', $document->id)->exists())->toBeFalse();
 })->with(['link_documents', 'unlink_documents']);
+
+/**
+ * Asks only for the loan figures of a card form, as the form does while the person types.
+ *
+ * @param  string  $url  The address of the form.
+ * @param  array<string, mixed>  $figures  The values written in the form.
+ */
+function loanFiguresReload(TestCase $test, string $url, array $figures): mixed
+{
+    return $test->getJson($url.(str_contains($url, '?') ? '&' : '?').http_build_query(['figures' => $figures]), [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) resolve(HandleInertiaRequests::class)->version(Request::create('/')),
+        'X-Inertia-Partial-Component' => 'cards/EditCard',
+        'X-Inertia-Partial-Data' => 'loanFigures',
+    ]);
+}
+
+it('works out the totals of a loan from the values of the form', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::factory()->create([
+        'family_id' => $this->marco->family_id,
+        'name' => 'Prestito prova',
+        'total_amount' => 1100,
+        'installments_count' => 12,
+        'installment_amount' => 100,
+        'start_date' => '2026-01-05',
+    ]));
+    $form = ['total_amount' => '1100', 'installments_count' => '12', 'installment_amount' => '100', 'start_date' => '2026-01-05'];
+
+    loanFiguresReload($this, route('cards.create', ['card' => 'loan'], false), $form)
+        ->assertOk()
+        ->assertJsonPath('props.loanFigures.total_to_pay', 1200)
+        ->assertJsonPath('props.loanFigures.cost', 100);
+
+    insideBianchi(function () use ($loan): void {
+        $planned = $loan->plannedExpenses()->sole();
+        PlannedExpenseException::factory()->create([
+            'family_id' => $loan->family_id,
+            'planned_expense_id' => $planned->id,
+            'type' => ExceptionType::AmountOverride,
+            'occurrence_date' => '2026-03-05',
+            'amount_override' => 40,
+        ]);
+    });
+
+    loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), $form)
+        ->assertJsonPath('props.loanFigures.total_to_pay', 1140)
+        ->assertJsonPath('props.loanFigures.cost', 40);
+});
+
+it('works out only the loan figures when the form asks for them again', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::query()->firstOrFail());
+    DB::enableQueryLog();
+
+    $response = loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), ['total_amount' => '1100'])->assertOk();
+
+    $tables = array_map(static fn (array $query): string => $query['query'], DB::getQueryLog());
+    expect(array_keys($response->json('props')))->not->toContain('budget', 'documents', 'fields', 'values', 'type')
+        ->and(array_filter($tables, static fn (string $query): bool => (bool) preg_match('/from `(expenses|incomes|expense_categories)`/', $query)))->toBe([]);
+});
+
+it('answers null figures when the form of a loan is not complete', function (): void {
+    $this->actingAs($this->marco);
+
+    loanFiguresReload($this, route('cards.create', ['card' => 'loan'], false), ['installment_amount' => 'abc', 'start_date' => 'ieri'])
+        ->assertOk()
+        ->assertJsonPath('props.loanFigures', ['total_to_pay' => null, 'cost' => null]);
+});
+
+it('sends the loan figures only to a loan', function (): void {
+    $this->actingAs($this->marco);
+    $form = ['total_amount' => '1100', 'installments_count' => '12', 'installment_amount' => '100'];
+
+    loanFiguresReload($this, route('cards.create', ['card' => 'vehicle'], false), $form)->assertJsonMissingPath('props.loanFigures');
+    loanFiguresReload($this, route('cards.edit', $this->pandaUrl, false), $form)->assertJsonMissingPath('props.loanFigures');
+    // Not asked for, not worked out
+    $this->get(route('cards.create', ['card' => 'loan']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->missing('loanFigures'));
+});
+
+it('answers 404 for the figures of a loan of another family', function (): void {
+    $other = Family::factory()->create();
+    $loan = CurrentFamily::using($other->id, fn (): Loan => Loan::factory()->create(['family_id' => $other->id]));
+    $this->actingAs($this->marco);
+
+    loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), [])->assertNotFound();
+});
+
+it('opens the edit page of a loan with its saved total and cost', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::factory()->create([
+        'family_id' => $this->marco->family_id,
+        'total_amount' => 1100,
+        'installments_count' => 12,
+        'installment_amount' => 100,
+        'start_date' => '2026-01-05',
+    ]));
+
+    $this->get(route('cards.edit', ['type' => 'loan', 'id' => $loan->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('loanFigures.total_to_pay', 1200)
+        ->where('loanFigures.cost', 100));
+    $this->get(route('cards.edit', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->missing('loanFigures'));
+});
+
+it('works out the figures of a saved loan with its saved last date and status, as saving does', function (): void {
+    $this->actingAs($this->marco);
+    $loan = insideBianchi(fn (): Loan => Loan::factory()->create([
+        'family_id' => $this->marco->family_id,
+        'total_amount' => 1100,
+        'installments_count' => 12,
+        'installment_amount' => 100,
+        'start_date' => '2026-01-05',
+    ]));
+
+    // The count is left out: the saved last date (05/12/2026) gives it back
+    loanFiguresReload($this, route('cards.edit', ['type' => 'loan', 'id' => $loan->id], false), ['total_amount' => '1100', 'installment_amount' => '100', 'start_date' => '2026-01-05'])
+        ->assertJsonPath('props.loanFigures.total_to_pay', 1200);
+});
+
+test('a card shows its documents 5 at a time, with the addresses of the other pages', function (): void {
+    $this->actingAs($this->marco);
+    $linked = insideBianchi(fn (): int => DB::table('documentables')->where(['documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id])->count());
+    Document::factory()->for($this->marco->family)->count(7 - $linked)->create()
+        ->each(fn (Document $document): bool => DB::table('documentables')->insert(['document_id' => $document->id, 'documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id]));
+
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('card.documents', 5)
+        ->where('card.documents_previous', null)
+        ->where('card.documents_next', route('cards.show', [...$this->pandaUrl, 'documents_page' => 2])));
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('card.documents', 2)
+        ->where('card.documents_previous', route('cards.show', $this->pandaUrl))
+        ->where('card.documents_next', null));
+});
+
+test('a card shows its payments 5 at a time, each pager keeping the page of the other list', function (): void {
+    $this->actingAs($this->marco);
+    insideBianchi(fn () => Expense::factory()->count(5)->create([
+        'family_id' => $this->marco->family_id,
+        'card_type' => 'vehicle',
+        'card_id' => $this->panda->id,
+        'date' => '2025-03-10',
+    ]));
+    $count = fn (array $years): int => array_sum(array_map(static fn (array $year): int => count($year['payments']), $years));
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('card.budget.payments', fn (Collection $years): bool => $count($years->toArray()) === 5)
+        ->where('card.budget.payments_previous', null)
+        ->where('card.budget.payments_next', route('cards.show', [...$this->pandaUrl, 'documents_page' => 2, 'payments_page' => 2])));
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'payments_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        // The 3 payments of the Panda of the seeder and the 5 added: 3 left after the first page
+        ->where('card.budget.payments', fn (Collection $years): bool => $count($years->toArray()) === 3)
+        ->where('card.budget.payments_previous', route('cards.show', $this->pandaUrl))
+        ->where('card.budget.payments_next', null)
+        ->where('card.documents_previous', null));
+});
+
+test('the column of payments beside the form shows the first page, without the pager', function (): void {
+    $this->actingAs($this->marco);
+    insideBianchi(fn () => Expense::factory()->count(5)->create([
+        'family_id' => $this->marco->family_id,
+        'card_type' => 'vehicle',
+        'card_id' => $this->panda->id,
+        'date' => '2025-03-10',
+    ]));
+
+    $this->get(route('cards.edit', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('budget.payments', fn (Collection $years): bool => array_sum(array_map(static fn (array $year): int => count($year['payments']), $years->toArray())) === 5)
+        ->where('budget.payments_next', null));
+});
+
+test('a page of documents past the last one shows the first', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 5]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('card.documents.0.title', 'Polizza RC auto 2026')
+        ->where('card.documents_previous', null));
+});

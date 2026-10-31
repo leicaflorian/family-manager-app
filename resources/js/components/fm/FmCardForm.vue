@@ -5,23 +5,30 @@
  * a field shows only when its `show_when` holds, for example the vehicle only
  * for a car policy, and its label can change with `label_when`, for example
  * the POD code of electricity that is a PDR code for gas. A hidden field is
- * sent empty. The same form creates and
+ * sent empty. For a loan the page also gives `loanFigures`: under the instalment
+ * the form shows the total to pay and the cost, which it asks the server for
+ * (a partial reload) 300 ms after the amounts or the start stop changing. The same form creates and
  * edits every type of card: the page gives the fields and the values, and gets
  * them back with `submit`.
  *
  * @group forms
  */
+import type { RequestPayload } from '@inertiajs/core';
+import { router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
+import { isEmpty } from '@/lib/forms';
 import FmButton from './FmButton.vue';
+import FmLoanFigures from './FmLoanFigures.vue';
 
 const {
     fields,
     values,
     serverErrors = {},
     processing = false,
+    loanFigures = undefined,
 } = defineProps<{
     /** The description of the fields, in the order they are shown. */
     fields: App.Data.CardFieldData[];
@@ -31,6 +38,8 @@ const {
     serverErrors?: Partial<Record<string, string>>;
     /** The form is being sent: the button waits. */
     processing?: boolean;
+    /** The total to pay and the cost of a loan: null until the server answers, left out for any other card. */
+    loanFigures?: App.Data.LoanFiguresData | null;
 }>();
 
 const emit = defineEmits<{
@@ -87,6 +96,55 @@ const data = reactive<Record<string, unknown>>(
     ),
 );
 
+/** The columns of a loan that its total to pay and cost follow. */
+const LOAN_COLUMNS = [
+    'total_amount',
+    'installments_count',
+    'installment_amount',
+    'final_installment_amount',
+    'start_date',
+    'end_date',
+    'status',
+];
+
+/** The column of the field the figures of a loan are written under. */
+const FIGURES_AFTER = 'installment_amount';
+
+/** The wait, in ms, after the last change before the figures are asked for. */
+const FIGURES_DELAY = 300;
+
+/** The pending request for the figures, if the person changed something not long ago. */
+let pending: ReturnType<typeof setTimeout> | undefined;
+
+/** Asks the server for the figures of the values written now; the address stays that of the page. */
+function askFigures(): void {
+    router.reload({
+        only: ['loanFigures'],
+        data: {
+            figures: Object.fromEntries(
+                LOAN_COLUMNS.filter((column) => !isEmpty(data[column])).map(
+                    (column) => [column, data[column]],
+                ),
+            ),
+        } as RequestPayload,
+        preserveUrl: true,
+    });
+}
+
+watch(
+    () => LOAN_COLUMNS.map((column) => data[column]),
+    () => {
+        clearTimeout(pending);
+
+        if (loanFigures !== undefined) {
+            pending = setTimeout(askFigures, FIGURES_DELAY);
+        }
+    },
+);
+
+// A request still waiting must not go out once the form is gone
+onBeforeUnmount(() => clearTimeout(pending));
+
 /** What the person tried to save with something missing: the errors found. */
 const missing = ref<Record<string, string>>({});
 
@@ -142,16 +200,6 @@ function optionsOf(
         : options;
 }
 
-/**
- * Whether a value is empty: nothing written or chosen. Zero and "no" are values.
- *
- * @param value - the value of a field
- * @returns true if it is empty
- */
-function isEmpty(value: unknown): boolean {
-    return value === null || value === undefined || value === '';
-}
-
 /** Sends the values, if every shown field that is required has one. */
 function save(): void {
     missing.value = Object.fromEntries(
@@ -201,6 +249,12 @@ useSaveShortcut(save, () => !processing);
                 :errors="
                     errors(missing[field.column] ?? serverErrors[field.column])
                 "
+            />
+            <FmLoanFigures
+                v-if="
+                    loanFigures !== undefined && field.column === FIGURES_AFTER
+                "
+                :figures="loanFigures"
             />
         </template>
         <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">

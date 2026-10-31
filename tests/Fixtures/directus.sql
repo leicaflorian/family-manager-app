@@ -102,6 +102,40 @@ INSERT INTO documents (id, title, file, category, status, person, organization, 
     (14, 'Tessera sanitaria', 'aaaaaaaa-0000-0000-0000-000000000003', 4, 'active', 8, NULL, NULL, NULL, NULL),
     (15, 'Documento senza file', NULL, 4, 'active', NULL, NULL, NULL, NULL, NULL);
 
+CREATE TABLE planned_expenses (
+    id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    title varchar(255) NULL,
+    amount decimal(10,2) NULL,
+    is_recurring tinyint(1) NULL,
+    `interval` int NULL,
+    interval_unit varchar(255) NULL,
+    start_date date NULL,
+    utility int unsigned NULL,
+    vehicle int unsigned NULL
+);
+INSERT INTO planned_expenses (id, title, amount, is_recurring, `interval`, interval_unit, start_date, utility, vehicle) VALUES
+    (1, 'Retta danza', 80.00, 1, 1, 'month', '2026-09-05', NULL, NULL),
+    (2, 'Bollo auto', 210.00, 1, 12, 'month', '2026-01-31', NULL, 9),
+    (3, 'Luce e auto', 60.00, 1, 1, 'month', '2026-09-10', 2, 9);
+
+CREATE TABLE vehicles (
+    id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name varchar(255) NULL,
+    status varchar(255) NULL
+);
+INSERT INTO vehicles (id, name, status) VALUES
+    (9, 'Panda', 'active');
+
+CREATE TABLE expenses (
+    id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    title varchar(255) NULL,
+    amount decimal(10,2) NULL,
+    date date NULL,
+    planned_expense int unsigned NULL
+);
+INSERT INTO expenses (id, title, amount, date, planned_expense) VALUES
+    (1, 'Retta danza di ottobre', 80.00, '2026-10-20', 1);
+
 CREATE TABLE utilities (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
     type varchar(255) NULL,

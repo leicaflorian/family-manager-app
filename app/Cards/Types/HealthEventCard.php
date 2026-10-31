@@ -32,6 +32,12 @@ final class HealthEventCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Health events');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('A visit, a test, a vaccine');

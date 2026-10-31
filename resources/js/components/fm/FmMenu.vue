@@ -14,11 +14,13 @@ import {
     DropdownMenuTrigger,
 } from 'reka-ui';
 import FmButton from './FmButton.vue';
+import FmSectionLink from './FmSectionLink.vue';
 
 const {
     label,
     small = false,
     plain = false,
+    text = false,
     icon,
 } = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
@@ -29,6 +31,8 @@ const {
     small?: boolean;
     /** The ⋯ button without a background until hovered, as the plain buttons beside a row. */
     plain?: boolean;
+    /** The label beside the icon, as the link beside a title (`FmSectionLink`), as *Record payment*. */
+    text?: boolean;
 }>();
 
 defineSlots<{
@@ -41,7 +45,11 @@ defineSlots<{
     <!-- Not modal: an entry may open a panel, which takes the focus itself -->
     <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger as-child>
+            <FmSectionLink v-if="text" :icon="icon ?? Ellipsis">{{
+                label ?? $t('More actions')
+            }}</FmSectionLink>
             <FmButton
+                v-else
                 :variant="plain ? 'text' : 'soft'"
                 :icon="icon ?? Ellipsis"
                 :label="label ?? $t('More actions')"

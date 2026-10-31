@@ -1,13 +1,15 @@
 <script setup lang="ts">
 /**
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
- * menu (Delete, for an `admin`, after asking); then the notices, the dates,
- * the data of the card (the person, the organization and the card it names
- * open in a new tab), its documents (with *Upload*, which opens the panel
- * with the zone for the files, and *Link*, open to a
- * `member` too, and beside each the buttons of `FmCardDocumentActions`) and
- * the cards it is linked to, with the + that adds a new one already linked
- * (for an `admin`). *Link* opens the documents not yet linked, searched while
+ * menu (Delete, for an `admin`, after asking); then the notices, the
+ * payments of the card around its dates and data (`FmCardBudget`: the next
+ * due date, the figures, the due dates to pay), the data of the card (the
+ * person, the organization and the card it names open in a new tab) and the
+ * cards it is linked to, with the + that adds a new one already linked (for an
+ * `admin`); beside them its documents, 5 a page (with *Upload*, which opens
+ * the panel with the zone for the files, and *Link*, open to a `member` too,
+ * and beside each the buttons of `FmCardDocumentActions`), and under the
+ * documents the planned expenses and the payments (`FmCardPayments`). *Link* opens the documents not yet linked, searched while
  * typing, 15 at a time with the next ones loaded at the end of the list.
  */
 import { Head, router } from '@inertiajs/vue3';
@@ -16,9 +18,10 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmActions from '@/components/fm/FmActions.vue';
-import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
+import FmCardBudget from '@/components/fm/FmCardBudget.vue';
 import FmCardHeader from '@/components/fm/FmCardHeader.vue';
+import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardDocumentActions from '@/components/fm/FmCardDocumentActions.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
@@ -26,9 +29,11 @@ import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
-import FmNewTabLink from '@/components/fm/FmNewTabLink.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmPager from '@/components/fm/FmPager.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
+import FmValueList from '@/components/fm/FmValueList.vue';
 import type { Action } from '@/lib/actions';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
@@ -130,38 +135,18 @@ function link(id: number): void {
             class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
-                <div
-                    v-if="card.dates.length > 0"
-                    class="grid grid-cols-2 gap-3"
-                >
-                    <FmDateTile
-                        v-for="date in card.dates"
-                        :key="date.label"
-                        :date="date"
-                    />
-                </div>
-
-                <FmCard v-if="card.values.length > 0" :title="$t('Data')">
-                    <dl
-                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
-                    >
-                        <template
-                            v-for="value in card.values"
-                            :key="value.label"
-                        >
-                            <dt class="text-ink-soft">{{ value.label }}</dt>
-                            <dd class="m-0 font-semibold break-words">
-                                <FmNewTabLink
-                                    v-if="value.href"
-                                    class="hover:text-action"
-                                    :href="value.href"
-                                    :text="value.text"
-                                />
-                                <template v-else>{{ value.text }}</template>
-                            </dd>
-                        </template>
-                    </dl>
-                </FmCard>
+                <FmCardBudget :budget="card.budget" :card="address">
+                    <template v-if="card.dates.length > 0" #tiles>
+                        <FmDateTile
+                            v-for="date in card.dates"
+                            :key="date.label"
+                            :date="date"
+                        />
+                    </template>
+                    <FmCard v-if="card.values.length > 0" :title="$t('Data')">
+                        <FmValueList :values="card.values" new-tab />
+                    </FmCard>
+                </FmCardBudget>
 
                 <FmCard
                     v-if="card.related.length > 0 || card.addable.length > 0"
@@ -169,11 +154,7 @@ function link(id: number): void {
                     list
                 >
                     <template v-if="card.addable.length > 0" #actions>
-                        <FmMenu
-                            :icon="Plus"
-                            :label="$t('Add a linked card')"
-                            small
-                        >
+                        <FmMenu :icon="Plus" :label="$t('Add')" text>
                             <FmMenuItem
                                 v-for="entry in card.addable"
                                 :key="entry.type"
@@ -196,33 +177,19 @@ function link(id: number): void {
                 </FmCard>
             </div>
 
-            <section class="flex min-w-0 flex-col gap-2">
-                <div class="flex items-center justify-between gap-3">
-                    <h2 class="m-0 text-[17px] font-bold">
-                        {{ $t('Documents') }}
-                    </h2>
-                    <div class="flex gap-4">
-                        <FmButton
+            <div class="flex min-w-0 flex-col gap-2">
+                <FmCard :title="$t('Documents')" list>
+                    <template #actions>
+                        <FmSectionLink
                             v-if="hasLinkable"
-                            variant="text"
-                            inline
                             :icon="Link2"
                             @click="linking = true"
-                            >{{ $t('Link document') }}</FmButton
+                            >{{ $t('Link document') }}</FmSectionLink
                         >
-                        <FmButton
-                            variant="text"
-                            inline
-                            :icon="Plus"
-                            @click="uploading = true"
-                            >{{ $t('Upload') }}</FmButton
-                        >
-                    </div>
-                </div>
-                <div
-                    v-auto-animate
-                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
-                >
+                        <FmSectionLink :icon="Plus" @click="uploading = true">{{
+                            $t('Upload')
+                        }}</FmSectionLink>
+                    </template>
                     <div
                         v-for="document in card.documents"
                         :key="document.id"
@@ -245,8 +212,17 @@ function link(id: number): void {
                     >
                         {{ $t('No documents yet.') }}
                     </p>
+                </FmCard>
+                <FmPager
+                    :previous="card.documents_previous"
+                    :next="card.documents_next"
+                    preserve-scroll
+                />
+
+                <div v-if="card.budget" class="mt-3 flex flex-col gap-5">
+                    <FmCardPayments :budget="card.budget" :card="address" />
                 </div>
-            </section>
+            </div>
         </div>
 
         <FmUploadSheet v-model:open="uploading" :link="address" />

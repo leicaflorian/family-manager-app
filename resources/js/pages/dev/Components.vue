@@ -14,6 +14,7 @@ import { computed, ref } from 'vue';
 import DevCases from '@/components/dev/DevCases.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmFold from '@/components/fm/FmFold.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
@@ -214,19 +215,22 @@ const sections = computed((): Section[] => {
                         </div>
                     </FmCard>
 
-                    <FmCard
-                        :title="$t('Used by')"
-                        :list="entry.usedBy.length > 0"
+                    <FmFold
+                        v-if="entry.usedBy.length"
+                        :label="
+                            $t('Used by (:count)', {
+                                count: String(entry.usedBy.length),
+                            })
+                        "
                     >
                         <FmRow
                             v-for="file in entry.usedBy"
                             :key="file"
                             :title="file"
                         />
-                        <p
-                            v-if="!entry.usedBy.length"
-                            class="m-0 text-base text-ink-soft"
-                        >
+                    </FmFold>
+                    <FmCard v-else :title="$t('Used by')">
+                        <p class="m-0 text-base text-ink-soft">
                             {{ $t('Not used yet.') }}
                         </p>
                     </FmCard>

@@ -9,13 +9,28 @@ import {
     Settings,
     Shapes,
     Users,
+    Wallet,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { areas, dashboard, family, logout, settings, upload } from '@/routes';
+import {
+    areas,
+    budget,
+    dashboard,
+    family,
+    logout,
+    settings,
+    upload,
+} from '@/routes';
 import { index as documents } from '@/routes/documents';
 
 /** The sections of the app, to know which one to mark. */
-export type Section = 'home' | 'areas' | 'documents' | 'family' | 'settings';
+export type Section =
+    | 'home'
+    | 'areas'
+    | 'documents'
+    | 'budget'
+    | 'family'
+    | 'settings';
 
 /** An item of the navigation. */
 export type NavigationItem = {
@@ -31,7 +46,7 @@ export type NavigationItem = {
 
 /** All the items, with the addresses of Upload and of Log out. */
 export type NavigationItems = {
-    /** Home, Areas, Documents and Family, in this order. */
+    /** Home, Areas, Documents, Budget and Family, in this order. */
     sections: NavigationItem[];
     /** The settings, in the account menu or in More. */
     settings: NavigationItem;
@@ -66,6 +81,12 @@ export function navigationItems(): NavigationItems {
                 label: trans('Documents'),
                 href: documents().url,
                 icon: FileText,
+            },
+            {
+                section: 'budget',
+                label: trans('Budget'),
+                href: budget().url,
+                icon: Wallet,
             },
             {
                 section: 'family',

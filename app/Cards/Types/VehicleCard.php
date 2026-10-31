@@ -31,6 +31,12 @@ final class VehicleCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Vehicles');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('Car, motorbike, scooter');

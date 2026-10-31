@@ -32,6 +32,12 @@ final class SubscriptionCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Subscriptions');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('Streaming, software, cloud, domains');

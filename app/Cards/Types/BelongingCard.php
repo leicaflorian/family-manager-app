@@ -31,6 +31,12 @@ final class BelongingCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Items under warranty');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('An appliance, a phone, a computer');

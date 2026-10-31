@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Copy;
 
+use App\Actions\Budget\FillOccurrenceDates;
 use App\Enums\Role;
 use App\Services\FileStore;
+use App\Support\CurrentFamily;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +25,7 @@ use Throwable;
  * organizations use are copied; a file missing in the uploads keeps its row,
  * without content, and is listed. The accounts are those of the people:
  * administrators with a random password, who enter with *Forgot password*.
+ * Payments of a planned expense or income get the due date they settle at the end.
  */
 final class Copier
 {
@@ -59,7 +62,7 @@ final class Copier
     /** @var array<string, int> */
     private array $leftOut = [];
 
-    public function __construct(private readonly FileStore $files) {}
+    public function __construct(private readonly FileStore $files, private readonly FillOccurrenceDates $occurrenceDates) {}
 
     /**
      * Copies the family of Directus into the app, with the given name.
@@ -101,6 +104,7 @@ final class Copier
                 }
 
                 $this->writeDeferred();
+                CurrentFamily::using($familyId, $this->occurrenceDates->handle(...));
             } catch (Throwable $exception) {
                 $this->files->deleteFamily($familyId);
 

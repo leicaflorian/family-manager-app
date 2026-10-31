@@ -15,6 +15,7 @@ const Menu = defineComponent({
         label: { type: String, default: undefined },
         small: { type: Boolean, default: false },
         plain: { type: Boolean, default: false },
+        text: { type: Boolean, default: false },
         icon: { type: Function as PropType<LucideIcon>, default: undefined },
     },
     setup: (props) => () =>
@@ -24,6 +25,7 @@ const Menu = defineComponent({
                 label: props.label,
                 small: props.small,
                 plain: props.plain,
+                text: props.text,
                 icon: props.icon,
             },
             { default: () => h(FmMenuItem, null, () => 'Rename') },
@@ -74,5 +76,17 @@ describe('FmMenu', () => {
         const button = screen.getByRole('button', { name: 'Add' });
         expect(button.querySelector('.lucide-plus')).not.toBeNull();
         expect(button.querySelector('.lucide-ellipsis')).toBeNull();
+    });
+
+    it('with text, shows its label beside the icon, as a text button', async () => {
+        renderPage(Menu, { label: 'Record payment', icon: Plus, text: true });
+
+        const button = screen.getByRole('button', { name: 'Record payment' });
+        expect(button).toHaveTextContent('Record payment');
+        expect(button).toHaveClass('font-normal', 'hover:underline');
+        await userEvent.click(button);
+        expect(
+            await screen.findByRole('menuitem', { name: 'Rename' }),
+        ).toBeInTheDocument();
     });
 });

@@ -11,7 +11,7 @@ import { generateClasses } from '@formkit/themes';
 import { defaultConfig } from '@formkit/vue';
 import { chooseDateOnClick, markToday } from '@/lib/formkitDatepicker';
 import { DROPDOWNS, openOnTheSideWithRoom } from '@/lib/formkitDropdownSide';
-import { closeOnEmptyChoice } from '@/lib/formkitEmptyChoice';
+import { closeOnEmptyChoice, showEmptyChoice } from '@/lib/formkitEmptyChoice';
 import { toggleAsSwitch } from '@/lib/formkitSwitch';
 import { tabChoosesSuggestion } from '@/lib/formkitTagTab';
 
@@ -71,6 +71,7 @@ export default defaultConfig({
         keepDropdownList,
         toggleAsSwitch,
         closeOnEmptyChoice,
+        showEmptyChoice,
         chooseDateOnClick,
         markToday,
         tabChoosesSuggestion,
@@ -157,7 +158,7 @@ export default defaultConfig({
                 options:
                     '$reset m-0 flex list-none gap-1 rounded-[10px] bg-segment p-1',
                 option: '$reset min-w-0 flex-1',
-                input: '$reset h-[38px] w-full cursor-pointer rounded-[7px] px-2 text-[15px] text-ink-soft transition-[background-color,color,box-shadow] duration-150 ease-out aria-pressed:bg-white aria-pressed:text-ink aria-pressed:shadow-[0_1px_3px_rgba(24,33,47,0.12)] focus-visible:outline-2 focus-visible:outline-action motion-reduce:transition-none',
+                input: '$reset h-full min-h-[38px] w-full cursor-pointer rounded-[7px] px-2 text-[15px] leading-tight text-ink-soft transition-[background-color,color,box-shadow] duration-150 ease-out aria-pressed:bg-white aria-pressed:text-ink aria-pressed:shadow-[0_1px_3px_rgba(24,33,47,0.12)] focus-visible:outline-2 focus-visible:outline-action motion-reduce:transition-none',
             },
             // The checkboxes are plain, like «Stay signed in»; the choices (radio) stay boxes.
             // The box is drawn here, with the border and the corners of the fields;

@@ -30,6 +30,12 @@ final class HomeCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Residences');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('The home where you live, or a second home');

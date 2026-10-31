@@ -33,6 +33,12 @@ final class MaintenanceRecordCard extends CardType
     }
 
     /** {@inheritDoc} */
+    public function pluralLabel(): string
+    {
+        return __('Maintenance jobs');
+    }
+
+    /** {@inheritDoc} */
     public function description(): string
     {
         return __('A job: boiler, repair, car service');

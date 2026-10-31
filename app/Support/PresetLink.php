@@ -52,6 +52,18 @@ final class PresetLink
     }
 
     /**
+     * The pair of columns of a card as the forms send it, `<type>:<id>`.
+     *
+     * @param  string|null  $type  the type of the card (`card_type`)
+     * @param  int|null  $id  the id of the card (`card_id`)
+     * @return string|null the card as `<type>:<id>`, null when one of the two is empty
+     */
+    public static function key(?string $type, ?int $id): ?string
+    {
+        return $type === null || $id === null ? null : $type.':'.$id;
+    }
+
+    /**
      * The card a file of *Upload* was uploaded from, while it is still one of the family.
      *
      * @param  File  $file  the waiting file

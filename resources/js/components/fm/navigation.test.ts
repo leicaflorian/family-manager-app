@@ -22,4 +22,31 @@ describe('sectionOf', () => {
         expect(sectionOf('/settings', items)).toBe('settings');
         expect(sectionOf('/dashboard', items)).toBe('home');
     });
+
+    it('marks Budget on every page of the budget', () => {
+        for (const path of [
+            '/budget',
+            '/budget/movements',
+            '/budget/movements/expense/4',
+            '/budget/comparison',
+            '/budget/planned',
+            '/budget/planned/expense/3/occurrences/2026-11-05',
+        ]) {
+            expect(sectionOf(path, items)).toBe('budget');
+        }
+    });
+
+    it('lists Budget between Documents and Family', () => {
+        expect(items.sections.map((item) => item.section)).toEqual([
+            'home',
+            'areas',
+            'documents',
+            'budget',
+            'family',
+        ]);
+        expect(items.sections[3]).toMatchObject({
+            label: 'Budget',
+            href: '/budget',
+        });
+    });
 });

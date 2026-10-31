@@ -40,11 +40,12 @@ export type CatalogEntry = {
 
 const componentsDir = 'resources/js/components/fm';
 const sourcesDir = 'resources/js';
-const scriptTag = '<script setup lang="ts">';
+// A generic component writes its attributes on several lines.
+const scriptTag = /<script\b[^>]*\bsetup\b[^>]*>/;
 
 /**
  * The description and the `@group` of a component, from the first `/** … *\/`
- * block after `<script setup lang="ts">`.
+ * block after its `<script setup>` tag.
  *
  * @param source - The source of the `.vue` file.
  * @returns The description without the tags ('' without a TSDoc) and the group.
@@ -53,13 +54,12 @@ export function parseDoc(source: string): {
     description: string;
     group: string | null;
 } {
-    const script = source.indexOf(scriptTag);
-    const block =
-        script === -1
-            ? null
-            : /\/\*\*([\s\S]*?)\*\//.exec(
-                  source.slice(script + scriptTag.length),
-              );
+    const script = scriptTag.exec(source);
+    const block = script
+        ? /\/\*\*([\s\S]*?)\*\//.exec(
+              source.slice(script.index + script[0].length),
+          )
+        : null;
 
     if (!block) {
         return { description: '', group: null };

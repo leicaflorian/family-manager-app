@@ -1,8 +1,15 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { healthCard, policyDetail, policyFields } from '@/test/fixtures';
+import {
+    healthCard,
+    loanFields,
+    pandaRow,
+    policyBudget,
+    policyDetail,
+    policyFields,
+} from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import EditCard from './EditCard.vue';
 
@@ -14,6 +21,7 @@ describe('Edit a card', () => {
     const type: App.Data.CardTypeData = {
         type: 'insurance_policy',
         label: 'Insurance policy',
+        plural_label: 'Policies',
         description: '',
         area: 'insurance',
         area_label: 'Insurance',
@@ -309,5 +317,105 @@ describe('Edit a card', () => {
                 ),
             ).toBeInTheDocument();
         });
+    });
+
+    it('shows beside the form, on the computer, the planned expenses and the payments of the card', () => {
+        renderPage(EditCard, {
+            type,
+            fields: policyFields,
+            values: { title: 'RC auto Panda', type: 'car' },
+            card: policyDetail.card,
+            budget: policyBudget,
+        });
+
+        const column = screen.getByTestId('card-payments');
+        expect(column).toHaveClass('hidden', 'lg:flex');
+        expect(
+            within(column).getByRole('heading', { name: 'Expected expenses' }),
+        ).toBeInTheDocument();
+        expect(
+            within(column).getByRole('heading', { name: 'Premiums paid' }),
+        ).toBeInTheDocument();
+        // the planned expense and the premium paid
+        expect(within(column).getAllByText('Assicurazione auto')).toHaveLength(
+            2,
+        );
+    });
+
+    it('has no column for a new card', () => {
+        renderPage(EditCard, {
+            type,
+            fields: policyFields,
+            values: {},
+            card: null,
+        });
+
+        expect(screen.queryByTestId('card-payments')).not.toBeInTheDocument();
+    });
+
+    it('shows the total to pay and the cost under the instalment of a loan', () => {
+        renderPage(EditCard, {
+            type: {
+                type: 'loan',
+                label: 'Loan',
+                description: '',
+                area: 'banks',
+                area_label: 'Banks',
+            },
+            fields: loanFields,
+            values: { name: 'Finanziamento TV' },
+            card: null,
+            loanFigures: { total_to_pay: 1200, cost: 100 },
+        });
+
+        expect(screen.getByText('Total to pay')).toBeInTheDocument();
+        expect(screen.getByText('1.200,00 €')).toBeInTheDocument();
+    });
+
+    it('writes the saved total to pay and cost as soon as a loan opens', () => {
+        renderPage(EditCard, {
+            type: {
+                type: 'loan',
+                label: 'Loan',
+                description: '',
+                area: 'banks',
+                area_label: 'Banks',
+            },
+            fields: loanFields,
+            values: { name: 'Finanziamento TV' },
+            card: pandaRow,
+            loanFigures: { total_to_pay: 1200, cost: 100 },
+        });
+
+        expect(screen.getByText('1.200,00 €')).toBeInTheDocument();
+        expect(screen.getByText('100,00 €')).toBeInTheDocument();
+    });
+
+    it('waits for the first figures of a new loan, as dashes', () => {
+        renderPage(EditCard, {
+            type: {
+                type: 'loan',
+                label: 'Loan',
+                description: '',
+                area: 'banks',
+                area_label: 'Banks',
+            },
+            fields: loanFields,
+            values: {},
+            card: null,
+        });
+
+        expect(screen.getAllByText('—')).toHaveLength(2);
+    });
+
+    it('shows no figures for a card that is not a loan', () => {
+        renderPage(EditCard, {
+            type,
+            fields: policyFields,
+            values: {},
+            card: null,
+        });
+
+        expect(screen.queryByText('Total to pay')).not.toBeInTheDocument();
     });
 });

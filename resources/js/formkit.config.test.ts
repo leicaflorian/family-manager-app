@@ -190,7 +190,12 @@ describe('formkit.config', () => {
 
         const active = await screen.findByRole('button', { name: 'Active' });
         expect(active).toHaveAttribute('aria-pressed', 'true');
-        expect(active).toHaveClass('aria-pressed:bg-white', 'h-[38px]');
+        // A label on two lines makes every segment taller, centred, and the white one fills it
+        expect(active).toHaveClass(
+            'aria-pressed:bg-white',
+            'min-h-[38px]',
+            'h-full',
+        );
         expect(active.closest('ul')).toHaveClass('flex', 'bg-segment', 'p-1');
         expect(active.closest('li')).toHaveClass('flex-1');
 

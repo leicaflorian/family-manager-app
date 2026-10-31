@@ -2,11 +2,13 @@
 /**
  * A card in a list: the icon of its type in the colour of its area, the name
  * and below the subtitle or the next date («Inspection · in 75 days», red once
- * overdue). It leads to the card; a closed card is grey.
+ * overdue). It leads to the card; a closed card is grey. In *An area* the
+ * amount of an open due date of the next 30 days is on the right, red when late.
  *
  * @group rows
  */
 import { computed } from 'vue';
+import { useFormat } from '@/composables/useFormat';
 import { areaOf, areaTile } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { relativeDays } from '@/lib/format';
@@ -19,6 +21,8 @@ const { card } = defineProps<{
     /** The card, as a row of a list. */
     card: App.Data.CardData;
 }>();
+
+const { euro } = useFormat();
 
 /** The line below the name: the next date if there is one, else the subtitle. */
 const line = computed((): string | undefined => {
@@ -54,6 +58,13 @@ const tile = computed((): string => {
             <span :class="tile">
                 <FmIcon :icon="cardIcon(card.type)" :size="20" />
             </span>
+        </template>
+        <template v-if="card.due_amount !== null" #after>
+            <span
+                class="whitespace-nowrap"
+                :class="card.due_late ? 'text-overdue' : 'text-ink'"
+                >{{ euro(card.due_amount) }}</span
+            >
         </template>
     </FmRow>
 </template>

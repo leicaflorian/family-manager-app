@@ -1,8 +1,14 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen, waitFor } from '@testing-library/vue';
+import { fireEvent, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { healthCard, policyDetail } from '@/test/fixtures';
+import {
+    healthCard,
+    luceBudget,
+    luceRow,
+    policyBudget,
+    policyDetail,
+} from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Card from './Card.vue';
 
@@ -60,9 +66,7 @@ describe('A card', () => {
             screen.getByRole('heading', { name: 'Linked to' }),
         ).toBeInTheDocument();
         expect(screen.getByText('Nothing linked yet.')).toBeInTheDocument();
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Add a linked card' }),
-        );
+        await userEvent.click(screen.getByRole('button', { name: 'Add' }));
 
         expect(
             await screen.findByRole('menuitem', { name: 'Maintenance job' }),
@@ -88,7 +92,7 @@ describe('A card', () => {
             screen.queryByRole('heading', { name: 'Linked to' }),
         ).not.toBeInTheDocument();
         expect(
-            screen.queryByRole('button', { name: 'Add a linked card' }),
+            screen.queryByRole('button', { name: 'Add' }),
         ).not.toBeInTheDocument();
     });
 
@@ -134,6 +138,22 @@ describe('A card', () => {
             'Record payment',
         ]) {
             expect(screen.queryByText(text)).not.toBeInTheDocument();
+        }
+    });
+
+    it('has the documents as a section, with Link document and Upload as plain links', () => {
+        renderPage(Card, {
+            card: policyDetail,
+            linkable: [],
+            hasLinkable: true,
+        });
+
+        const documents = screen.getByRole('region', { name: 'Documents' });
+        for (const name of ['Link document', 'Upload']) {
+            expect(within(documents).getByRole('button', { name })).toHaveClass(
+                'font-normal',
+                'hover:underline',
+            );
         }
     });
 
@@ -353,5 +373,70 @@ describe('A card', () => {
             '/cards/insurance_policy/1',
             expect.anything(),
         );
+    });
+
+    describe('with its payments', () => {
+        const luceDetail: App.Data.CardDetailData = {
+            ...policyDetail,
+            card: luceRow,
+            heading: 'Electricity · Casa di via Roma',
+            dates: [],
+            budget: luceBudget,
+        };
+
+        it('shows the sections of the electricity in the order of the board', () => {
+            renderPage(Card, { card: luceDetail, linkable: [] });
+
+            expect(
+                screen
+                    .getAllByRole('heading', { level: 2 })
+                    .map((heading) => heading.textContent?.trim()),
+            ).toEqual([
+                'To pay',
+                'Data',
+                'Linked to',
+                'Documents',
+                'Expected expenses',
+                'Bills paid',
+            ]);
+            expect(screen.getByText('9 bills')).toBeInTheDocument();
+        });
+
+        it('shows the pages of the documents, 5 at a time', () => {
+            renderPage(Card, {
+                card: {
+                    ...luceDetail,
+                    documents_next: '/cards/utility/3?documents_page=2',
+                },
+                linkable: [],
+            });
+
+            expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute(
+                'href',
+                '/cards/utility/3?documents_page=2',
+            );
+        });
+
+        it('adds a planned expense already linked to the card', () => {
+            renderPage(Card, { card: luceDetail, linkable: [] });
+
+            expect(screen.getByRole('link', { name: 'Add' })).toHaveAttribute(
+                'href',
+                '/budget/planned/expense/create?card=utility%3A3',
+            );
+        });
+
+        it('keeps the date tiles beside the figures', () => {
+            renderPage(Card, {
+                card: { ...policyDetail, budget: policyBudget },
+                linkable: [],
+            });
+
+            expect(screen.getByText('Premium')).toBeInTheDocument();
+            expect(screen.getByText('20/11/2026')).toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: /Renewal/ }),
+            ).toBeInTheDocument();
+        });
     });
 });

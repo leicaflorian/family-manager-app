@@ -28,7 +28,8 @@ describe('AppLayout', () => {
             within(sidebar).getByRole('link', { name: 'Documents' }),
         ).toHaveAttribute('aria-current', 'page');
         expect(
-            within(bottom).getByRole('link', { name: 'Documents' }),
+            // Documents lives in More on the phone, which stays marked
+            within(bottom).getByRole('button', { name: 'More' }),
         ).toHaveAttribute('aria-current', 'page');
         expect(screen.getByText('Bianchi family')).toBeInTheDocument();
         expect(screen.getByRole('main')).toHaveTextContent('Documents');

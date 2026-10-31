@@ -133,6 +133,33 @@ test('a file missing in the uploads is listed, with its storage when it is not l
     $this->actingAs($laura)->get(route('files.show', $contract))->assertNotFound();
 });
 
+it('fills the occurrence of the copied expenses', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    $expense = DB::table('expenses')->where('title', 'Retta danza di ottobre')->sole();
+
+    expect($expense->planned_expense_id)->not->toBeNull()
+        ->and($expense->occurrence_date)->toBe('2026-10-05');
+});
+
+it('copies the card of a planned expense as a pair', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    $planned = DB::table('planned_expenses')->where('title', 'Bollo auto')->sole();
+
+    expect($planned->card_type)->toBe('vehicle')
+        ->and($planned->card_id)->toBe(DB::table('vehicles')->where('name', 'Panda')->value('id'));
+});
+
+it('keeps the first card of a planned expense with two', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    $planned = DB::table('planned_expenses')->where('title', 'Luce e auto')->sole();
+
+    expect($planned->card_type)->toBe('utility')
+        ->and($planned->card_id)->toBe(DB::table('utilities')->value('id'));
+});
+
 test('a second copy without --replace stops and duplicates nothing', function (): void {
     $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
 

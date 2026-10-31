@@ -11,6 +11,7 @@ import {
     Repeat,
     Shield,
 } from '@lucide/vue';
+import type { CSSProperties } from 'vue';
 import { cn } from './utils';
 
 /**
@@ -81,6 +82,42 @@ export const areaHeader: Record<Area, string> = {
  */
 export function areaOf(color: string | null): Area | undefined {
     return color !== null && color in areaFill ? (color as Area) : undefined;
+}
+
+/**
+ * The colour of its own of a category of expenses (`#0797B9`), or null for an
+ * area or no colour, which the classes of the areas colour.
+ *
+ * @param color - the value of `color`
+ * @returns the hex colour, or null
+ */
+function ownColor(color: string | null): string | null {
+    return color?.startsWith('#') ? color : null;
+}
+
+/**
+ * The style of an icon tile in a colour of its own: the icon in the colour,
+ * on a soft background of the same colour.
+ *
+ * @param color - the value of `color`, for example `#0797B9`
+ * @returns the inline style, empty when the colour is an area or missing
+ */
+export function colorTile(color: string | null): CSSProperties {
+    const own = ownColor(color);
+
+    return own === null ? {} : { color: own, backgroundColor: `${own}1f` };
+}
+
+/**
+ * The style of a dot in a colour of its own.
+ *
+ * @param color - the value of `color`, for example `#0797B9`
+ * @returns the inline style, empty when the colour is an area or missing
+ */
+export function colorFill(color: string | null): CSSProperties {
+    const own = ownColor(color);
+
+    return own === null ? {} : { backgroundColor: own };
 }
 
 /** The icon of each area, as on the board *Schede*. */
