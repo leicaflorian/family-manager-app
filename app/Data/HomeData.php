@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Data;
+
+use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+
+/**
+ * What the Home shows: what to pay in the next 30 days, the deadlines, the
+ * incomes on their way, the files waiting and how to begin.
+ */
+#[TypeScript]
+final class HomeData extends Data
+{
+    /**
+     * @param  string  $first_name  the first name of whoever signed in
+     * @param  string  $today  today in Rome, `yyyy-mm-dd`
+     * @param  float  $total  the sum of the payments to make, late ones included
+     * @param  int  $payments  how many payments
+     * @param  int  $late  how many of them are late
+     * @param  list<AgendaEntryData>  $entries  payments and deadlines, the late ones first, ten at most
+     * @param  bool  $more  whether there were more than ten
+     * @param  list<AgendaEntryData>  $incoming  the incomes of the next 30 days
+     * @param  list<PendingFileData>  $pending  the first files waiting for their document
+     * @param  int  $pending_count  how many files wait
+     * @param  list<ChecklistStepData>  $checklist  the steps of *To begin*; empty when all are done
+     */
+    public function __construct(
+        public readonly string $first_name,
+        public readonly string $today,
+        public readonly float $total,
+        public readonly int $payments,
+        public readonly int $late,
+        public readonly array $entries,
+        public readonly bool $more,
+        public readonly array $incoming,
+        public readonly array $pending,
+        public readonly int $pending_count,
+        public readonly array $checklist,
+    ) {}
+}

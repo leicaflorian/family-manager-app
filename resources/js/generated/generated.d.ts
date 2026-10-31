@@ -172,6 +172,11 @@ readonly color: string | null,
 readonly documents_count: number,
 readonly children: App.Data.CategoryData[],
 };
+export type ChecklistStepData = {
+readonly key: string,
+readonly done: boolean,
+readonly name: string | null,
+};
 export type ComparisonData = {
 readonly month: string,
 readonly planned: number,
@@ -278,6 +283,19 @@ readonly size: number,
 readonly url: string,
 readonly download_url: string,
 readonly preview_url: string | null,
+};
+export type HomeData = {
+readonly first_name: string,
+readonly today: string,
+readonly total: number,
+readonly payments: number,
+readonly late: number,
+readonly entries: App.Data.AgendaEntryData[],
+readonly more: boolean,
+readonly incoming: App.Data.AgendaEntryData[],
+readonly pending: App.Data.PendingFileData[],
+readonly pending_count: number,
+readonly checklist: App.Data.ChecklistStepData[],
 };
 export type InvitationData = {
 readonly first_name: string,
