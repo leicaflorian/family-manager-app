@@ -63,7 +63,7 @@ function screenWidth(computer: boolean): void {
 /** The rows of the list: the links to an entry. */
 function rows(): HTMLElement[] {
     return screen
-        .getAllByRole('link')
+        .queryAllByRole('link')
         .filter((link) => link.getAttribute('href') === '/agenda');
 }
 
@@ -184,5 +184,56 @@ describe('Agenda', () => {
                 'Payments show from today on: the late ones are on the Home.',
             ),
         ).toBeInTheDocument();
+    });
+
+    it('shows a way out when the filters hide every entry', async () => {
+        renderPage(
+            Agenda,
+            agenda({
+                filters: {
+                    months: 1,
+                    person_id: null,
+                    hidden_areas: agendaEntries.map((entry) => entry.area),
+                },
+            }),
+        );
+
+        expect(
+            screen.getByText('No entries with these filters'),
+        ).toBeInTheDocument();
+        expect(rows()).toHaveLength(0);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Clear filters' }),
+        );
+
+        expect(rows()).toHaveLength(12);
+    });
+
+    it('loads the period with a visit and saves nothing else', async () => {
+        screenWidth(true);
+        renderPage(Agenda, agenda());
+
+        await userEvent.click(screen.getByRole('radio', { name: '3 months' }));
+
+        expect(get).toHaveBeenCalledWith(
+            '/agenda',
+            { months: 3 },
+            expect.anything(),
+        );
+        expect(put).not.toHaveBeenCalled();
+    });
+
+    it('saves the person chosen', async () => {
+        screenWidth(true);
+        renderPage(Agenda, agenda());
+
+        await userEvent.click(screen.getByRole('radio', { name: /Laura/ }));
+
+        expect(put).toHaveBeenCalledWith(
+            '/agenda/filters',
+            expect.objectContaining({ person_id: 2 }),
+            expect.anything(),
+        );
     });
 });

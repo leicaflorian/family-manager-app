@@ -37,4 +37,12 @@ describe('FmCard', () => {
             screen.getByRole('button', { name: 'Add' }),
         );
     });
+
+    it('shows the title in red when the tone is overdue', () => {
+        render(FmCard, { props: { title: 'To sort out', tone: 'overdue' } });
+
+        expect(
+            screen.getByRole('heading', { name: 'To sort out' }),
+        ).toHaveClass('text-overdue');
+    });
 });

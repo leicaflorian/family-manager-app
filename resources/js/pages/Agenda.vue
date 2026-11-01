@@ -179,11 +179,23 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
             <template v-else>
                 <p class="m-0 text-[15px] text-ink-soft">{{ summaryText }}</p>
 
+                <div
+                    v-if="shown.length === 0"
+                    class="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-5"
+                >
+                    <span class="text-[15px]">{{
+                        $t('No entries with these filters')
+                    }}</span>
+                    <FmButton variant="soft" small @click="reset">{{
+                        $t('Clear filters')
+                    }}</FmButton>
+                </div>
+
                 <FmCard
                     v-for="group in groups"
                     :key="group.key"
                     :title="group.title"
-                    :class="group.overdue && '[&_h2]:text-overdue'"
+                    :tone="group.overdue ? 'overdue' : undefined"
                     list
                 >
                     <template v-if="group.outgoing !== null" #actions>

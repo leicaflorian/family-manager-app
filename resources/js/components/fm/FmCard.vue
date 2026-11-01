@@ -9,11 +9,17 @@
  */
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 
-const { title, list = false } = defineProps<{
+const {
+    title,
+    list = false,
+    tone = 'default',
+} = defineProps<{
     /** The title of the section, above the content. */
     title?: string;
     /** It holds a list of rows. */
     list?: boolean;
+    /** The colour of the title: `overdue` is red, for what is late. */
+    tone?: 'default' | 'overdue';
 }>();
 
 defineSlots<{
@@ -30,7 +36,13 @@ defineSlots<{
             v-if="title || $slots.actions"
             class="flex items-center justify-between gap-3"
         >
-            <h2 v-if="title" class="m-0 text-[17px] font-bold">{{ title }}</h2>
+            <h2
+                v-if="title"
+                class="m-0 text-[17px] font-bold"
+                :class="tone === 'overdue' && 'text-overdue'"
+            >
+                {{ title }}
+            </h2>
             <div v-if="$slots.actions" class="flex items-center gap-4">
                 <slot name="actions" />
             </div>

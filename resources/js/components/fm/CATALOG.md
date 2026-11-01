@@ -332,6 +332,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 | --- | --- | --- | --- | --- |
 | `title` | `string` | no | — | The title of the section, above the content. |
 | `list` | `boolean` | no | `false` | It holds a list of rows. |
+| `tone` | `"default" \| "overdue"` | no | `"default"` | The colour of the title: `overdue` is red, for what is late. |
 
 ### Slots
 
@@ -350,6 +351,11 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 <FmCard title="Payments">
     Nothing to pay this month.
     <template #actions>…</template>
+</FmCard>
+
+<!-- Overdue title -->
+<FmCard title="To sort out" tone="overdue">
+    Deadlines already passed.
 </FmCard>
 
 <!-- List of rows -->

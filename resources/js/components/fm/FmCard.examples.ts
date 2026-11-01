@@ -23,6 +23,11 @@ export default defineExamples(FmCard, [
         },
     },
     {
+        name: 'Overdue title',
+        props: { title: 'To sort out', tone: 'overdue' },
+        slots: { default: 'Deadlines already passed.' },
+    },
+    {
         name: 'List of rows',
         props: { title: 'Next deadlines', list: true },
         slots: {

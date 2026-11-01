@@ -589,6 +589,13 @@
         "required": false,
         "default": "false",
         "description": "It holds a list of rows."
+      },
+      {
+        "name": "tone",
+        "type": "\"default\" | \"overdue\"",
+        "required": false,
+        "default": "\"default\"",
+        "description": "The colour of the title: `overdue` is red, for what is late."
       }
     ],
     "events": [],

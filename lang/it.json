@@ -879,5 +879,6 @@
     "See the next 3 months": "Guarda i prossimi 3 mesi",
     ":amount outgoing": ":amount in uscita",
     "Deadlines passed in the last three months: renew them, or update the date on the card.": "Scadenze passate degli ultimi tre mesi: va fatto il rinnovo, o aggiornata la data sulla scheda.",
-    "Payments show from today on: the late ones are on the Home.": "I pagamenti compaiono da oggi in avanti: quelli già scaduti stanno in Home."
+    "Payments show from today on: the late ones are on the Home.": "I pagamenti compaiono da oggi in avanti: quelli già scaduti stanno in Home.",
+    "No entries with these filters": "Nessuna voce con questi filtri"
 }
