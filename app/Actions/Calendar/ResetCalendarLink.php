@@ -29,6 +29,7 @@ final class ResetCalendarLink
         Family::query()->whereKey($family->getKey())->update([
             'calendar_token' => Crypt::encryptString($token),
             'calendar_token_hash' => hash('sha256', $token),
+            'updated_at' => now(),
         ]);
         $family->refresh();
 

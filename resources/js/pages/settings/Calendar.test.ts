@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { fireEvent, screen, within } from '@testing-library/vue';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { renderPage, settle } from '@/test/page';
 import Calendar from './Calendar.vue';
 
@@ -17,6 +17,10 @@ const off: App.Data.CalendarSettingsData = {
 };
 
 describe('Settings, Calendar', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('turns the calendar on with the switch', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Calendar, { calendar: off });
@@ -70,7 +74,6 @@ describe('Settings, Calendar', () => {
 
     it('asks before changing the address', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
-        post.mockClear();
         renderPage(Calendar, { calendar: on });
 
         await fireEvent.click(
@@ -117,5 +120,57 @@ describe('Settings, Calendar', () => {
         expect(
             screen.queryByRole('button', { name: /Change the address/ }),
         ).not.toBeInTheDocument();
+    });
+
+    it('forgets that the address was copied when the address changes', async () => {
+        Object.assign(navigator, {
+            clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+        });
+        const view = renderPage(Calendar, { calendar: on });
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+        expect(await screen.findByText('Address copied')).toBeInTheDocument();
+
+        await view.rerender({
+            calendar: { ...on, url: 'http://localhost/calendar/new.ics' },
+        });
+
+        expect(screen.queryByText('Address copied')).not.toBeInTheDocument();
+    });
+
+    it('says so and selects the address when it cannot be copied', async () => {
+        Object.assign(navigator, {
+            clipboard: {
+                writeText: vi.fn().mockRejectedValue(new Error('no')),
+            },
+        });
+        renderPage(Calendar, { calendar: on });
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+        expect(
+            await screen.findByText(/Could not copy: select the address/),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Address copied')).not.toBeInTheDocument();
+        const input =
+            screen.getByLabelText<HTMLInputElement>('Calendar address');
+        expect(input.selectionStart).toBe(0);
+        expect(input.selectionEnd).toBe(input.value.length);
+    });
+
+    it('puts the switch back when the server refuses', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                setTimeout(() => options?.onError?.({}), 0);
+            });
+        renderPage(Calendar, { calendar: off });
+
+        await userEvent.click(screen.getByLabelText('Calendar on'));
+        await settle();
+
+        expect(post).toHaveBeenCalled();
+        await settle();
+        expect(screen.getByLabelText('Calendar on')).not.toBeChecked();
     });
 });

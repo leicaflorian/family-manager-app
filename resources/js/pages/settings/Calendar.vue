@@ -23,6 +23,8 @@ const { calendar } = defineProps<{
 /** The switch: follows the server, and asks it when the person moves it. */
 const enabled = ref(calendar.on);
 const copied = ref(false);
+/** The browser refused to copy: the address is selected for the person to copy by hand. */
+const copyFailed = ref(false);
 const confirmingReset = ref(false);
 
 watch(
@@ -32,15 +34,35 @@ watch(
     },
 );
 
+watch(
+    () => calendar.url,
+    () => {
+        copied.value = false;
+        copyFailed.value = false;
+    },
+);
+
+/** Puts the switch back to what the server says, when it refused the change. */
+function restoreSwitch(): void {
+    enabled.value = calendar.on;
+}
+
 watch(enabled, (value) => {
     if (value === calendar.on) {
         return;
     }
 
     if (value) {
-        router.post(store.url(), {}, { preserveScroll: true });
+        router.post(
+            store.url(),
+            {},
+            { preserveScroll: true, onError: restoreSwitch },
+        );
     } else {
-        router.delete(destroy.url(), { preserveScroll: true });
+        router.delete(destroy.url(), {
+            preserveScroll: true,
+            onError: restoreSwitch,
+        });
     }
 });
 
@@ -52,8 +74,17 @@ async function copy(): Promise<void> {
         return;
     }
 
-    await navigator.clipboard.writeText(calendar.url);
-    copied.value = true;
+    try {
+        await navigator.clipboard.writeText(calendar.url);
+        copied.value = true;
+        copyFailed.value = false;
+    } catch {
+        copied.value = false;
+        copyFailed.value = true;
+        document
+            .querySelector<HTMLInputElement>('input[name="address"]')
+            ?.select();
+    }
 }
 
 /**
@@ -106,6 +137,16 @@ function resetAddress(): void {
                             <span v-if="copied" role="status" class="text-sm">{{
                                 $t('Address copied')
                             }}</span>
+                            <span
+                                v-if="copyFailed"
+                                role="status"
+                                class="text-sm"
+                                >{{
+                                    $t(
+                                        'Could not copy: select the address and copy it.',
+                                    )
+                                }}</span
+                            >
                         </div>
                     </template>
                     <FmNotice v-else tone="warning">

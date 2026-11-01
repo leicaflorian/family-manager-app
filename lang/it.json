@@ -912,5 +912,6 @@
     "Don't download the file and import it: it would not update. Subscribe with the address.": "Non scaricare il file per importarlo: non si aggiornerebbe. Iscriviti con l'indirizzo.",
     "Change the address?": "Cambiare l'indirizzo?",
     "The old address stops working: whoever uses it has to add the new one.": "Il vecchio indirizzo smette di funzionare: chi lo usa deve aggiungere quello nuovo.",
-    "Change the address": "Cambia l'indirizzo"
+    "Change the address": "Cambia l'indirizzo",
+    "Could not copy: select the address and copy it.": "Non riesco a copiare: seleziona l'indirizzo e copialo."
 }

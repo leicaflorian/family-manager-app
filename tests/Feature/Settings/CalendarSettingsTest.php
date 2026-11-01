@@ -66,6 +66,15 @@ test('an admin changes the address and the old one stops working', function (): 
     $this->get(route('calendar.feed', ['token' => $new]))->assertOk();
 });
 
+test('changing the address updates the family\'s updated_at', function (): void {
+    $this->post(route('calendar.store'));
+    DB::table('families')->where('id', $this->marco->family_id)->update(['updated_at' => '2020-01-01 00:00:00']);
+
+    $this->post(route('calendar.reset'));
+
+    expect($this->marco->family->fresh()?->updated_at?->year)->toBeGreaterThan(2020);
+});
+
 test('changing the address of a calendar that is off answers 404', function (): void {
     $this->post(route('calendar.reset'))->assertNotFound();
 });
