@@ -70,7 +70,8 @@ function calendarEvents(string $ics): array
 
         foreach (explode("\r\n", trim($block)) as $line) {
             [$name, $value] = explode(':', $line, 2);
-            $fields[$name] = str_replace(['\n', '\,', '\;', '\\\\'], ["\n", ',', ';', '\\'], $value);
+            // One pass, so an escaped backslash before an «n» is not read as a line break
+            $fields[$name] = (string) preg_replace_callback('/\\\\([\\\\,;nN])/', static fn (array $match): string => strtolower($match[1]) === 'n' ? "\n" : $match[1], $value);
         }
 
         $events[$fields['UID']] = [
@@ -160,6 +161,28 @@ test('it answers text/calendar with no-store and noindex', function (): void {
         ->and($response->headers->get('Cache-Control'))->toContain('no-store')
         ->and($response->headers->get('X-Robots-Tag'))->toBe('noindex')
         ->and($response->getContent())->toStartWith("BEGIN:VCALENDAR\r\n");
+});
+
+test('a calendar poll leaves no session and no cookie', function (): void {
+    $token = turnOnCalendar(registerFamily());
+
+    $ok = readCalendar($token)->assertOk();
+    $notFound = readCalendar(Str::random(40))->assertNotFound();
+
+    expect($ok->headers->getCookies())->toBe([])
+        ->and($ok->headers->has('Set-Cookie'))->toBeFalse()
+        ->and($notFound->headers->getCookies())->toBe([])
+        ->and($notFound->headers->has('Set-Cookie'))->toBeFalse();
+});
+
+test('commas, semicolons, backslashes and line breaks of a reminder come back as they were', function (): void {
+    $marco = registerFamily();
+    $reminder = insideFamilyOf($marco, fn (): Reminder => Reminder::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'a, b; c\\', 'due_date' => '2026-11-10', 'status' => ReminderStatus::Open, 'person_id' => null, 'notes' => "first, line; here\\\nsecond line"]));
+
+    $event = calendarEventsOf(turnOnCalendar($marco))["reminder-{$reminder->id}@family-manager"];
+
+    expect($event['summary'])->toBe('a, b; c\\')
+        ->and($event['description'])->toBe("first, line; here\\\nsecond line\nOpen: ".route('agenda'));
 });
 
 test('the secret is never stored in clear', function (): void {

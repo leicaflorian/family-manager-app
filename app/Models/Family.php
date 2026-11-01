@@ -75,14 +75,6 @@ final class Family extends Model
     }
 
     /**
-     * Whether the family's calendar to subscribe to is on.
-     */
-    public function hasCalendar(): bool
-    {
-        return $this->calendar_token_hash !== null;
-    }
-
-    /**
      * The types of the columns.
      *
      * @return array<string, string>

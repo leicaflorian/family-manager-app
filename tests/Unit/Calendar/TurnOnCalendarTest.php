@@ -62,3 +62,10 @@ test('resetting the link gives another secret and keeps the language', function 
         ->and($family->calendar_token_hash)->toBe(hash('sha256', $second))
         ->and($family->calendar_locale)->toBe('it');
 });
+
+test('turning on takes only a language of the app', function (): void {
+    $family = Family::factory()->create();
+
+    expect(fn (): string => resolve(TurnOnCalendar::class)->handle($family, 'fr'))->toThrow(InvalidArgumentException::class);
+    expect($family->refresh()->calendar_token_hash)->toBeNull();
+});

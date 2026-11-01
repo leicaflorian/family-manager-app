@@ -28,7 +28,6 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\LocalOnly;
 use App\Http\Middleware\RedirectToWelcome;
-use App\Http\Middleware\SetLocale;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
@@ -39,11 +38,12 @@ Route::middleware('guest')->group(function (): void {
     Route::post('invitation/{token}', [InvitationLinkController::class, 'store'])->name('invitation.store');
 });
 
-// The family's calendar, read by calendar apps without signing in. It has the language saved with its secret, not
-// the browser's: without SetLocale a 404 here reads like one of an address that does not exist.
+// The family's calendar, read by calendar apps without signing in, every hour. Outside the web group: a poll opens
+// no session and sets no cookie, and without SetLocale a 404 here reads like one of an address that does not exist
+// (the calendar has the language saved with its secret, not the browser's).
 Route::get('calendar/{token}.ics', CalendarFeedController::class)
     ->middleware('throttle:60,1')
-    ->withoutMiddleware(SetLocale::class)
+    ->withoutMiddleware('web')
     ->name('calendar.feed');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
