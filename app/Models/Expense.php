@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\HasDocuments;
+use App\Observers\ExpenseRenewalObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\ExpenseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -55,6 +57,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'amount', 'date', 'planned_expense_id', 'occurrence_date', 'category_id', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'fee_amount', 'notes'])]
+#[ObservedBy(ExpenseRenewalObserver::class)]
 final class Expense extends FamilyModel
 {
     use HasDocuments;
