@@ -931,5 +931,11 @@
     "Was due yesterday, on :date": "Scaduto ieri, il :date",
     "Was due :count days ago, on :date": "Scaduto da :count giorni, il :date",
     "Reminder": "Promemoria",
-    "Overdue": "Scaduto"
+    "Overdue": "Scaduto",
+    "The notifications of the group are not a list.": "Le notifiche del gruppo non sono una lista.",
+    "Notification :number": "Notifica :number",
+    ":label: days must be a whole number, from 0 up (0 is the day of the deadline).": ":label: i giorni sono un numero intero, da 0 in su (0 è il giorno della scadenza).",
+    ":label: the recipient is missing. Choose Everybody or at least one person.": ":label: manca il destinatario. Scegli Tutti o almeno una persona.",
+    ":label: Everybody and specific people exclude each other. Choose Everybody or the people.": ":label: Tutti e le persone precise si escludono. Scegli Tutti oppure le persone.",
+    ":label: a recipient is not a person.": ":label: un destinatario non è una persona."
 }

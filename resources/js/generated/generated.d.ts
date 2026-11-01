@@ -500,6 +500,7 @@ readonly expires_on: string,
 namespace Enums {
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BelongingStatus = 'in_use' | 'disposed';
+export type Channel = 'app' | 'email' | 'both';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type EmploymentStatus = 'active' | 'ended';
 export type EnrollmentStatus = 'active' | 'ended';

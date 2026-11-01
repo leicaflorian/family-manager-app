@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Reminders;
 
+use App\Enums\Channel;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;

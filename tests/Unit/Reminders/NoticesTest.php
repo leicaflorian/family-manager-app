@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Enums\Channel;
 use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
-use App\Support\Reminders\Channel;
 use App\Support\Reminders\Delivery;
 use App\Support\Reminders\Notices;
 use App\Support\Reminders\NotificationRule;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\App;
 
 /**
  * A day in Rome.
@@ -50,7 +51,7 @@ function account(int $userId, int $personId): User
  */
 function savedRow(array $overrides = []): array
 {
-    return ['offset' => -7, 'channels' => 'both', 'recipients' => ['all'], ...$overrides];
+    return ['name' => 'A week before', 'days' => 7, 'timing' => 'before', 'channels' => 'both', 'recipients' => ['all'], ...$overrides];
 }
 
 /**
@@ -65,7 +66,7 @@ function noticeGroup(int $id, bool $default, array $types, int $offset): Reminde
         'id' => $id,
         'is_default' => $default,
         'deadline_types' => $types,
-        'notifications' => [savedRow(['offset' => $offset])],
+        'notifications' => [savedRow(['days' => abs($offset), 'timing' => $offset > 0 ? 'after' : 'before'])],
     ]);
 }
 
@@ -80,11 +81,64 @@ function offsets(array $rules): array
     return array_map(static fn (NotificationRule $rule): int => $rule->offset, $rules);
 }
 
+describe('checkNotifications', function (): void {
+    /**
+     * The message of the check of some notifications.
+     */
+    $message = static function (mixed $value): string {
+        try {
+            NotificationRule::check($value);
+        } catch (InvalidArgumentException $e) {
+            return $e->getMessage();
+        }
+
+        return '';
+    };
+
+    test('nothing, or not a list', function () use ($message): void {
+        expect(NotificationRule::check(null))->toBe([])
+            ->and($message(['a' => 1]))->toBe('The notifications of the group are not a list.')
+            ->and($message('x'))->toBe('The notifications of the group are not a list.');
+    });
+
+    test('the days are whole, from 0 up', function () use ($message): void {
+        expect($message([savedRow(['days' => -1])]))->toContain('days must be a whole number')
+            ->and($message([savedRow(['days' => 1.5])]))->toContain('days must be a whole number')
+            ->and($message([savedRow(['days' => null])]))->toContain('days must be a whole number');
+    });
+
+    test('the recipients', function () use ($message): void {
+        expect($message([savedRow(['recipients' => []])]))->toContain('the recipient is missing')
+            ->and($message([savedRow(['recipients' => ['all', 3]])]))->toContain('exclude each other')
+            ->and($message([savedRow(['recipients' => ['x']])]))->toContain('is not a person');
+    });
+
+    test('a row without a name is named by its position', function () use ($message): void {
+        expect($message([savedRow(['name' => '', 'recipients' => []])]))->toStartWith('Notification 1:')
+            ->and($message([savedRow(['recipients' => []])]))->toStartWith('«A week before»:');
+    });
+
+    test('the defaults of a valid row', function (): void {
+        expect(NotificationRule::check([['name' => '', 'days' => 0, 'timing' => 'after', 'channels' => 'zzz', 'recipients' => ['3', '3']]]))
+            ->toBe([['name' => 'Promemoria', 'days' => 0, 'timing' => 'before', 'channels' => 'both', 'recipients' => [3]]]);
+    });
+
+    test('the messages are in Italian too', function () use ($message): void {
+        App::setLocale('it');
+
+        expect($message([savedRow(['days' => -1])]))->toBe('«A week before»: i giorni sono un numero intero, da 0 in su (0 è il giorno della scadenza).')
+            ->and($message([savedRow(['name' => '', 'recipients' => []])]))->toBe('Notifica 1: manca il destinatario. Scegli Tutti o almeno una persona.')
+            ->and($message([savedRow(['recipients' => ['all', 3]])]))->toBe('«A week before»: Tutti e le persone precise si escludono. Scegli Tutti oppure le persone.')
+            ->and($message([savedRow(['recipients' => ['x']])]))->toBe('«A week before»: un destinatario non è una persona.')
+            ->and($message(['a' => 1]))->toBe('Le notifiche del gruppo non sono una lista.');
+    });
+});
+
 describe('notificationsOf', function (): void {
-    test('days before and after are an offset, ids as text become numbers', function (): void {
+    test('days before and after become an offset, ids as text become numbers', function (): void {
         $rules = NotificationRule::listOf([
             savedRow(),
-            savedRow(['offset' => 2, 'recipients' => ['1', 1, '3']]),
+            savedRow(['name' => 'After', 'days' => 2, 'timing' => 'after', 'recipients' => ['1', 1, '3']]),
         ]);
 
         expect($rules)->toEqual([rule(-7), rule(2, Channel::Both, [1, 3])]);
@@ -99,16 +153,20 @@ describe('notificationsOf', function (): void {
     test('a row that cannot be read is left out', function (): void {
         $rules = NotificationRule::listOf([
             savedRow(),
-            savedRow(['offset' => 'x']),
-            savedRow(['offset' => 1.5]),
+            savedRow(['days' => -1]),
+            savedRow(['days' => 'x']),
             savedRow(['recipients' => []]),
             savedRow(['recipients' => ['all', 3]]),
             savedRow(['recipients' => ['x']]),
             'not a row',
-            savedRow(['offset' => 1]),
+            savedRow(['days' => 1]),
         ]);
 
-        expect(offsets($rules))->toBe([-7, 1]);
+        expect(offsets($rules))->toBe([-7, -1]);
+    });
+
+    test('after only counts when there are days', function (): void {
+        expect(offsets(NotificationRule::listOf([savedRow(['days' => 0, 'timing' => 'after'])])))->toBe([0]);
     });
 });
 
