@@ -272,6 +272,7 @@ test('Marco has an identity card expiring on 14/11/2026 with its automatic remin
 
         expect($card->expiry_date?->format('d/m/Y'))->toBe('14/11/2026')
             ->and($reminder->is_automatic)->toBeTrue()
+            ->and($reminder->title)->toBe('Rinnovare il documento')
             ->and($reminder->status)->toBe(ReminderStatus::Done)
             ->and(DB::table('remindables')->where('reminder_id', $reminder->id)->where('remindable_type', $card->getMorphClass())->where('remindable_id', $card->id)->exists())->toBeTrue();
     });
@@ -348,5 +349,20 @@ test('there are reminders by hand with short titles, and the plumber has already
             ->and($plumber->due_date->toDateString())->toBe('2026-10-31')
             ->and($plumber->notifications_sent)->toBe(['2026-10-31:-7'])
             ->and(DB::table('remindables')->where('reminder_id', $plumber->id)->where('remindable_type', $home->getMorphClass())->where('remindable_id', $home->id)->exists())->toBeTrue();
+    });
+});
+
+test('Giulia\'s health card has one open automatic reminder on 20/10/2026', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $card = Document::query()->where('title', 'Tessera sanitaria')->sole();
+        $reminder = Reminder::query()->where('source_field', 'documents.expiry_date')->where('due_date', '2026-10-20')->sole();
+
+        expect($reminder->title)->toBe('Rinnovare il documento')
+            ->and($reminder->status)->toBe(ReminderStatus::Open)
+            ->and($reminder->is_automatic)->toBeTrue()
+            ->and($reminder->person?->first_name)->toBe('Giulia')
+            ->and(DB::table('remindables')->where('reminder_id', $reminder->id)->where('remindable_type', $card->getMorphClass())->where('remindable_id', $card->id)->count())->toBe(1);
     });
 });

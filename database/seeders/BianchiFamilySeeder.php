@@ -341,16 +341,10 @@ final class BianchiFamilySeeder extends Seeder
     {
         $this->createReminderGroups();
 
-        // Created before the sync, so the sync finds it by its key (field, card, date) and keeps it done.
-        $done = Reminder::query()->create([
-            'title' => 'Rinnovare il documento',
-            'due_date' => $identityCard->expiry_date?->toDateString(),
-            'status' => ReminderStatus::Done,
-            'person_id' => $this->people['Marco']->id,
-            'is_automatic' => true,
-            'source_field' => 'documents.expiry_date',
-        ]);
-        $done->link()->create(['remindable_type' => $identityCard->getMorphClass(), 'remindable_id' => $identityCard->id]);
+        // Both are created before the sync, so it finds them by their key (field, card, date) and keeps them.
+        $this->createAutomaticReminder($identityCard, 'Marco', ReminderStatus::Done);
+        // Giulia's health card expired on 20/10, so the sync would not make its reminder: it is the one born before that date.
+        $this->createAutomaticReminder(Document::query()->where('title', 'Tessera sanitaria')->sole(), 'Giulia', ReminderStatus::Open);
 
         $this->createReminderByHand('Rinnovare il passaporto di Laura', '2026-11-12', 'Laura', null, null);
         $this->createReminderByHand('Prenotare il tagliando della Panda', '2026-11-18', null, 'Fiat Panda', null);
@@ -358,6 +352,26 @@ final class BianchiFamilySeeder extends Seeder
         $this->createReminderByHand('Chiamare l\'idraulico per il preventivo del bagno', '2026-10-31', 'Laura', 'Casa di via Roma', ['2026-10-31:-7']);
 
         resolve(SyncReminders::class)->family(CarbonImmutable::today('Europe/Rome'));
+    }
+
+    /**
+     * Creates the automatic reminder of the expiry date of a document, linked to it.
+     *
+     * @param  Document  $document  the document
+     * @param  string  $person  the first name of the person it is for
+     * @param  ReminderStatus  $status  open or done
+     */
+    private function createAutomaticReminder(Document $document, string $person, ReminderStatus $status): void
+    {
+        $reminder = Reminder::query()->create([
+            'title' => 'Rinnovare il documento',
+            'due_date' => $document->expiry_date?->toDateString(),
+            'status' => $status,
+            'person_id' => $this->people[$person]->id,
+            'is_automatic' => true,
+            'source_field' => 'documents.expiry_date',
+        ]);
+        $reminder->link()->create(['remindable_type' => $document->getMorphClass(), 'remindable_id' => $document->id]);
     }
 
     /**
