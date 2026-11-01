@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Actions\Families\CreateFamily;
+use App\Actions\Reminders\SyncReminders;
 use App\Enums\DocumentStatus;
 use App\Enums\EnrollmentType;
 use App\Enums\ExceptionType;
@@ -42,6 +43,7 @@ use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\Reminder;
+use App\Models\ReminderGroup;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
@@ -240,7 +242,7 @@ final class BianchiFamilySeeder extends Seeder
         $home = Home::query()->create(['name' => 'Casa di via Roma', 'address' => 'Via Roma 12', 'city' => 'Bologna', 'country' => 'Italia', 'is_owned' => true]);
         $account = FinancialAccount::query()->create(['name' => 'Conto BPER', 'type' => FinancialAccountType::CheckingAccount, 'organization_id' => $this->organizations['BPER Banca']->id, 'person_id' => $this->people['Marco']->id, 'last_four_digits' => '4821', 'is_default' => true]);
         $lauraCard = FinancialAccount::query()->create(['name' => 'Carta Laura', 'type' => FinancialAccountType::Card, 'organization_id' => $this->organizations['BPER Banca']->id, 'person_id' => $this->people['Laura']->id, 'last_four_digits' => '0937']);
-        $panda = Vehicle::query()->create(['name' => 'Fiat Panda', 'brand' => 'Fiat', 'model' => 'Panda', 'plate_number' => 'GH 482 TK', 'registration_year' => 2019, 'road_tax_due_date' => '2027-01-31', 'is_owned' => true, 'person_id' => $this->people['Marco']->id]);
+        $panda = Vehicle::query()->create(['name' => 'Fiat Panda', 'brand' => 'Fiat', 'model' => 'Panda', 'plate_number' => 'GH 482 TK', 'registration_year' => 2019, 'road_tax_due_date' => '2027-01-31', 'inspection_due_date' => '2027-01-09', 'is_owned' => true, 'person_id' => $this->people['Marco']->id]);
 
         $this->records = [
             'Casa di via Roma' => $home,
@@ -328,35 +330,87 @@ final class BianchiFamilySeeder extends Seeder
     }
 
     /**
-     * The reminders the Home and the Agenda show: Marco's identity card with its automatic reminder already done, and
-     * three open ones for the calendar (one by hand without a card, one by hand on the Panda, one automatic for its road tax).
+     * The reminders of the Bianchis: three alert groups, Marco's identity card with its automatic reminder already
+     * done, and the reminders by hand (the passport of Laura, the service of the Panda, the plumber). The open
+     * automatic ones (road tax, inspection, policy, health card) come from the sync of the cards, run here for the
+     * whole family so they exist whether or not the seeder runs inside a transaction.
      *
      * @param  Document  $identityCard  Marco's identity card
      */
     private function createReminders(Document $identityCard): void
     {
-        $panda = $this->records['Fiat Panda'];
-        $reminders = [
-            [$identityCard, "Carta d'identità di Marco · scade il 14/11/2026", '2026-11-14', ReminderStatus::Done, 'Marco', true, 'documents.expiry_date'],
-            [null, 'Rinnovare il passaporto di Laura', '2026-11-12', ReminderStatus::Open, 'Laura', false, null],
-            [$panda, 'Prenotare il tagliando della Panda', '2026-11-18', ReminderStatus::Open, null, false, null],
-            [$panda, 'Pagare il bollo · Panda · scade il 31/01/2027 · manca la spesa prevista', '2027-01-31', ReminderStatus::Open, 'Marco', true, 'vehicles.road_tax_due_date'],
-        ];
+        $this->createReminderGroups();
 
-        foreach ($reminders as [$card, $title, $dueDate, $status, $person, $automatic, $field]) {
-            $reminder = Reminder::query()->create([
-                'title' => $title,
-                'due_date' => $dueDate,
-                'status' => $status,
-                'person_id' => $person === null ? null : $this->people[$person]->id,
-                'is_automatic' => $automatic,
-                'source_field' => $field,
-            ]);
+        // Created before the sync, so the sync finds it by its key (field, card, date) and keeps it done.
+        $done = Reminder::query()->create([
+            'title' => 'Rinnovare il documento',
+            'due_date' => $identityCard->expiry_date?->toDateString(),
+            'status' => ReminderStatus::Done,
+            'person_id' => $this->people['Marco']->id,
+            'is_automatic' => true,
+            'source_field' => 'documents.expiry_date',
+        ]);
+        $done->link()->create(['remindable_type' => $identityCard->getMorphClass(), 'remindable_id' => $identityCard->id]);
 
-            if ($card !== null) {
-                DB::table('remindables')->insert(['reminder_id' => $reminder->id, 'remindable_type' => $card->getMorphClass(), 'remindable_id' => $card->id]);
-            }
+        $this->createReminderByHand('Rinnovare il passaporto di Laura', '2026-11-12', 'Laura', null, null);
+        $this->createReminderByHand('Prenotare il tagliando della Panda', '2026-11-18', null, 'Fiat Panda', null);
+        // The notice of 24/10 (seven days before) has already gone out.
+        $this->createReminderByHand('Chiamare l\'idraulico per il preventivo del bagno', '2026-10-31', 'Laura', 'Casa di via Roma', ['2026-10-31:-7']);
+
+        resolve(SyncReminders::class)->family(CarbonImmutable::today('Europe/Rome'));
+    }
+
+    /**
+     * Creates an open reminder written by hand, linked to a record if it has one.
+     *
+     * @param  string  $title  what to do
+     * @param  string  $dueDate  `yyyy-mm-dd`
+     * @param  string|null  $person  the first name of the person it is for
+     * @param  string|null  $record  the key of the record it is about, in `$this->records`
+     * @param  list<string>|null  $sent  the notices already sent, as `date:offset`
+     */
+    private function createReminderByHand(string $title, string $dueDate, ?string $person, ?string $record, ?array $sent): void
+    {
+        $reminder = Reminder::query()->create([
+            'title' => $title,
+            'due_date' => $dueDate,
+            'status' => ReminderStatus::Open,
+            'person_id' => $person === null ? null : $this->people[$person]->id,
+            'is_automatic' => false,
+            'notifications_sent' => $sent,
+        ]);
+
+        if ($record !== null) {
+            $card = $this->records[$record];
+            $reminder->link()->create(['remindable_type' => $card->getMorphClass(), 'remindable_id' => $card->id]);
         }
+    }
+
+    /**
+     * The three alert groups, in the stored shape of Directus (days are positive, with their timing).
+     */
+    private function createReminderGroups(): void
+    {
+        $notice = static fn (int $days, string $channels): array => ['name' => 'Promemoria', 'days' => $days, 'timing' => 'before', 'channels' => $channels, 'recipients' => ['all']];
+
+        ReminderGroup::query()->create([
+            'name' => 'Veicoli',
+            'is_default' => false,
+            'deadline_types' => ['vehicles.road_tax_due_date', 'vehicles.inspection_due_date'],
+            'notifications' => [$notice(45, 'both'), $notice(15, 'both')],
+        ]);
+        ReminderGroup::query()->create([
+            'name' => 'Documenti e salute',
+            'is_default' => false,
+            'deadline_types' => ['documents.expiry_date', 'health_events.next_checkup_date'],
+            'notifications' => [$notice(90, 'email'), $notice(7, 'both'), $notice(1, 'both')],
+        ]);
+        ReminderGroup::query()->create([
+            'name' => 'Predefinito',
+            'is_default' => true,
+            'deadline_types' => [],
+            'notifications' => [$notice(7, 'app'), $notice(1, 'app'), $notice(0, 'app')],
+        ]);
     }
 
     /**

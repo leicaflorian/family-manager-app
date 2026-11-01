@@ -11,6 +11,7 @@ use App\Models\ExpenseCategory;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
+use App\Models\Home;
 use App\Models\Income;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
@@ -20,6 +21,7 @@ use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\Reminder;
+use App\Models\ReminderGroup;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -291,29 +293,60 @@ test('the RC auto Panda policy and its instalment fall on 21/11/2026', function 
     });
 });
 
-test('there are open reminders for the calendar', function (): void {
+test('the Bianchis have three reminder groups in the stored shape', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $notice = fn (int $days, string $channels): array => ['name' => 'Promemoria', 'days' => $days, 'timing' => 'before', 'channels' => $channels, 'recipients' => ['all']];
+        $groups = ReminderGroup::query()->orderBy('id')->get();
+
+        expect($groups->pluck('name')->all())->toBe(['Veicoli', 'Documenti e salute', 'Predefinito'])
+            ->and($groups->pluck('is_default')->all())->toBe([false, false, true])
+            ->and($groups[0]->deadline_types)->toBe(['vehicles.road_tax_due_date', 'vehicles.inspection_due_date'])
+            ->and($groups[0]->notifications)->toEqual([$notice(45, 'both'), $notice(15, 'both')])
+            ->and($groups[1]->deadline_types)->toBe(['documents.expiry_date', 'health_events.next_checkup_date'])
+            ->and($groups[1]->notifications)->toEqual([$notice(90, 'email'), $notice(7, 'both'), $notice(1, 'both')])
+            ->and($groups[2]->notifications)->toEqual([$notice(7, 'app'), $notice(1, 'app'), $notice(0, 'app')]);
+    });
+});
+
+test('the open automatic reminders come from the cards, and the Panda inspection is on 09/01/2027', function (): void {
     $this->seed(BianchiFamilySeeder::class);
 
     insideBianchi(function (): void {
         $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+        $open = Reminder::query()->where('is_automatic', true)->where('status', ReminderStatus::Open);
+        $find = fn (string $field, string $date): Reminder => (clone $open)->where('source_field', $field)->where('due_date', $date)->sole();
+
+        expect($panda->inspection_due_date?->toDateString())->toBe('2027-01-09')
+            ->and($find('vehicles.road_tax_due_date', '2027-01-31')->title)->toBe('Pagare il bollo')
+            ->and($find('vehicles.inspection_due_date', '2027-01-09')->title)->toBe('Fare la revisione')
+            ->and($find('insurance_policies.expiry_date', '2026-11-21')->title)->toBe('Rinnovare la polizza')
+            ->and((clone $open)->where('source_field', 'documents.expiry_date')->where('due_date', '2026-11-14')->exists())->toBeFalse()
+            ->and(Reminder::query()->where('source_field', 'documents.expiry_date')->where('due_date', '2026-11-14')->count())->toBe(1);
+    });
+});
+
+test('there are reminders by hand with short titles, and the plumber has already sent its notice', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+        $home = Home::query()->where('name', 'Casa di via Roma')->sole();
         $passport = Reminder::query()->where('title', 'Rinnovare il passaporto di Laura')->sole();
         $service = Reminder::query()->where('title', 'Prenotare il tagliando della Panda')->sole();
-        // Its title is the one the sync writes, since the Panda is saved after the seeder inserted it (the seeder is reworked later in the plan)
-        $tax = Reminder::query()->where('source_field', 'vehicles.road_tax_due_date')->where('due_date', '2027-01-31')->sole();
-        $linked = fn (Reminder $reminder): int => DB::table('remindables')->where('reminder_id', $reminder->id)->count();
+        $plumber = Reminder::query()->where('title', 'Chiamare l\'idraulico per il preventivo del bagno')->sole();
 
         expect($passport->status)->toBe(ReminderStatus::Open)
             ->and($passport->is_automatic)->toBeFalse()
             ->and($passport->person?->first_name)->toBe('Laura')
-            ->and($linked($passport))->toBe(0)
-            ->and($service->status)->toBe(ReminderStatus::Open)
+            ->and(DB::table('remindables')->where('reminder_id', $passport->id)->count())->toBe(0)
             ->and($service->is_automatic)->toBeFalse()
             ->and(DB::table('remindables')->where('reminder_id', $service->id)->where('remindable_type', $panda->getMorphClass())->where('remindable_id', $panda->id)->exists())->toBeTrue()
-            ->and($tax->status)->toBe(ReminderStatus::Open)
-            ->and($tax->is_automatic)->toBeTrue()
-            ->and($tax->source_field)->toBe('vehicles.road_tax_due_date')
-            ->and($tax->due_date->toDateString())->toBe($panda->road_tax_due_date?->toDateString())
-            ->and($tax->due_date->toDateString())->toBe('2027-01-31')
-            ->and(DB::table('remindables')->where('reminder_id', $tax->id)->where('remindable_id', $panda->id)->exists())->toBeTrue();
+            ->and($plumber->is_automatic)->toBeFalse()
+            ->and($plumber->person?->first_name)->toBe('Laura')
+            ->and($plumber->due_date->toDateString())->toBe('2026-10-31')
+            ->and($plumber->notifications_sent)->toBe(['2026-10-31:-7'])
+            ->and(DB::table('remindables')->where('reminder_id', $plumber->id)->where('remindable_type', $home->getMorphClass())->where('remindable_id', $home->id)->exists())->toBeTrue();
     });
 });
