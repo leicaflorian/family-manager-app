@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\CarbonImmutable;
 use Database\Factories\FamilyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $name
  * @property CarbonImmutable|null $welcomed_at
+ * @property string|null $calendar_token The secret of the calendar address, encrypted; null while the calendar is off
+ * @property string|null $calendar_token_hash The sha256 of the secret, to find the family from the address
+ * @property string|null $calendar_locale The language of the texts of the calendar, en or it: the one of the page it was turned on in
  * @property string|null $copied_from_directus_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
@@ -35,6 +39,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'welcomed_at'])]
+#[Hidden(['calendar_token', 'calendar_token_hash'])]
 final class Family extends Model
 {
     /** @use HasFactory<FamilyFactory> */
@@ -70,12 +75,23 @@ final class Family extends Model
     }
 
     /**
+     * Whether the family's calendar to subscribe to is on.
+     */
+    public function hasCalendar(): bool
+    {
+        return $this->calendar_token_hash !== null;
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
-        return ['welcomed_at' => 'datetime'];
+        return [
+            'welcomed_at' => 'datetime',
+            'calendar_token' => 'encrypted',
+        ];
     }
 }

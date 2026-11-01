@@ -892,5 +892,8 @@
     "Add the car, a policy or a subscription": "Aggiungi l'auto, una polizza o un abbonamento",
     "Every item is a card, with its deadlines": "Ogni cosa è una scheda, con le sue scadenze",
     "Invite :name": "Invita :name",
-    "So they get the alerts too": "Così ricevono gli avvisi anche loro"
+    "So they get the alerts too": "Così ricevono gli avvisi anche loro",
+    "Expected expense missing.": "Manca la spesa prevista.",
+    "For: :name": "Per: :name",
+    "Open: :url": "Apri: :url"
 }

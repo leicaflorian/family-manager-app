@@ -9,6 +9,7 @@ use App\Http\Controllers\Budget\ComparisonController;
 use App\Http\Controllers\Budget\DeadlineController;
 use App\Http\Controllers\Budget\MovementController;
 use App\Http\Controllers\Budget\PlannedController;
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\LocalOnly;
 use App\Http\Middleware\RedirectToWelcome;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
@@ -36,6 +38,13 @@ Route::middleware('guest')->group(function (): void {
     Route::get('invitation/{token}', [InvitationLinkController::class, 'show'])->name('invitation.show');
     Route::post('invitation/{token}', [InvitationLinkController::class, 'store'])->name('invitation.store');
 });
+
+// The family's calendar, read by calendar apps without signing in. It has the language saved with its secret, not
+// the browser's: without SetLocale a 404 here reads like one of an address that does not exist.
+Route::get('calendar/{token}.ics', CalendarFeedController::class)
+    ->middleware('throttle:60,1')
+    ->withoutMiddleware(SetLocale::class)
+    ->name('calendar.feed');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('welcome', [WelcomeController::class, 'show'])->name('welcome');

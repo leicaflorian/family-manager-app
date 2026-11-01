@@ -10,6 +10,7 @@ use App\Models\Document;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Models\Reminder;
 use App\Queries\CardDeadlines;
 use App\Support\CardDeadline;
 use App\Support\Deadline;
@@ -56,6 +57,39 @@ final readonly class Agenda
      */
     public function entries(CarbonImmutable $today, CarbonImmutable $until, int $deadlinesBack = 90, int $paymentsBack = 0): array
     {
+        return array_column($this->build($today, $until, $deadlinesBack, $paymentsBack), 'entry');
+    }
+
+    /**
+     * The entries up to a day, like `entries()`, without those of a deadline that has its automatic reminder, open
+     * or done: for the calendar, where the open reminder is the event and a done one leaves nothing. A payment merged
+     * with such a deadline goes too, because the reminder already stands for that day.
+     *
+     * @param  CarbonImmutable  $today  today in Rome
+     * @param  CarbonImmutable  $until  the last day, included
+     * @param  int  $deadlinesBack  how many days back the deadlines of cards and documents go
+     * @param  int  $paymentsBack  how many days back the payments and the incomes go: 0 from today
+     * @return list<AgendaEntryData>
+     */
+    public function entriesWithoutReminders(CarbonImmutable $today, CarbonImmutable $until, int $deadlinesBack = 90, int $paymentsBack = 0): array
+    {
+        return array_column(array_values(array_filter(
+            $this->build($today, $until, $deadlinesBack, $paymentsBack),
+            static fn (array $item): bool => ! $item['deadline']?->reminder instanceof Reminder,
+        )), 'entry');
+    }
+
+    /**
+     * The entries up to a day, by date and then by title, each with the deadline it shows, if any.
+     *
+     * @param  CarbonImmutable  $today  today in Rome
+     * @param  CarbonImmutable  $until  the last day, included
+     * @param  int  $deadlinesBack  how many days back the deadlines of cards and documents go
+     * @param  int  $paymentsBack  how many days back the payments and the incomes go: 0 from today
+     * @return list<array{entry: AgendaEntryData, deadline: CardDeadline|null}>
+     */
+    private function build(CarbonImmutable $today, CarbonImmutable $until, int $deadlinesBack, int $paymentsBack): array
+    {
         $today = $today->startOfDay();
         $payments = $this->openDueDates($today->subDays($paymentsBack), $until);
         $deadlines = $this->cardDeadlines->between($today->subDays($deadlinesBack), $until, $today);
@@ -85,22 +119,22 @@ final readonly class Agenda
             $index = $deadline->source->hasExpense ? ($byCard[$this->sameCard($deadline->card, $deadline->date)] ?? null) : null;
 
             if ($index === null || isset($merged[$index])) {
-                $entries[] = $this->deadlineEntry($deadline);
+                $entries[] = ['entry' => $this->deadlineEntry($deadline), 'deadline' => $deadline];
 
                 continue;
             }
 
             $merged[$index] = true;
-            $entries[] = $this->paymentEntry($payments[$index], $deadline);
+            $entries[] = ['entry' => $this->paymentEntry($payments[$index], $deadline), 'deadline' => $deadline];
         }
 
         foreach ($payments as $index => $payment) {
             if (! isset($merged[$index])) {
-                $entries[] = $this->paymentEntry($payment);
+                $entries[] = ['entry' => $this->paymentEntry($payment), 'deadline' => null];
             }
         }
 
-        usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
+        usort($entries, static fn (array $a, array $b): int => [$a['entry']->date, mb_strtolower($a['entry']->title)] <=> [$b['entry']->date, mb_strtolower($b['entry']->title)]);
 
         return $entries;
     }
