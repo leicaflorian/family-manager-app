@@ -937,5 +937,7 @@
     ":label: days must be a whole number, from 0 up (0 is the day of the deadline).": ":label: i giorni sono un numero intero, da 0 in su (0 è il giorno della scadenza).",
     ":label: the recipient is missing. Choose Everybody or at least one person.": ":label: manca il destinatario. Scegli Tutti o almeno una persona.",
     ":label: Everybody and specific people exclude each other. Choose Everybody or the people.": ":label: Tutti e le persone precise si escludono. Scegli Tutti oppure le persone.",
-    ":label: a recipient is not a person.": ":label: un destinatario non è una persona."
+    ":label: a recipient is not a person.": ":label: un destinatario non è una persona.",
+    "{1} :count reminder for today|[2,*] :count reminders for today": "{1} :count promemoria per oggi|[2,*] :count promemoria per oggi",
+    "I will mark it as done when it is sorted.": "Lo segno come fatto quando è sistemato."
 }
