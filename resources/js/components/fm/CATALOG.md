@@ -1417,6 +1417,7 @@ it is an estimate. The whole row leads to the entry.
 | --- | --- | --- | --- | --- |
 | `entry` | `App.Data.AgendaEntryData` | yes | — | The entry, as the server sends it. |
 | `layout` | `AgendaRowLayout` | no | `"agenda"` | The Agenda (the day on the left, the person) or the Home (the dot and the line below). |
+| `personAvatar` | `Pick<App.Data.PersonData, "initials" \| "photo">` | no | — | The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows. |
 
 ### Types
 
@@ -1429,6 +1430,9 @@ export type AgendaRowLayout = 'agenda' | 'home';
 ```vue
 <!-- Agenda, payment -->
 <FmAgendaRow :entry="entry" />
+
+<!-- Agenda, with initials -->
+<FmAgendaRow :entry="entry" :personAvatar="personAvatar" />
 
 <!-- Agenda, income -->
 <FmAgendaRow :entry="entry" />

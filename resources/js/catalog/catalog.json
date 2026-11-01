@@ -149,6 +149,13 @@
         "required": false,
         "default": "\"agenda\"",
         "description": "The Agenda (the day on the left, the person) or the Home (the dot and the line below)."
+      },
+      {
+        "name": "personAvatar",
+        "type": "Pick<App.Data.PersonData, \"initials\" | \"photo\">",
+        "required": false,
+        "default": null,
+        "description": "The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows."
       }
     ],
     "events": [],

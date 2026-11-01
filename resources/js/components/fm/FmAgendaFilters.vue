@@ -11,7 +11,7 @@
  */
 import { UsersRound } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, useId } from 'vue';
 import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { cn } from '@/lib/utils';
@@ -57,6 +57,9 @@ const emit = defineEmits<{
 
 /** The panel is open (only for `sheet`). */
 const open = defineModel<boolean>('open', { default: false });
+
+/** Makes the radio groups of this instance its own: a column and a sheet may both be on the page. */
+const id = useId();
 
 /** The periods the person can choose, in months. */
 const periods = [1, 3, 6, 12];
@@ -146,7 +149,7 @@ const chip = (chosen: boolean): string =>
                     >
                         <input
                             type="radio"
-                            name="period"
+                            :name="`period-${id}`"
                             class="absolute size-px opacity-0"
                             :checked="filters.months === months"
                             @change="emit('months', months)"
@@ -177,7 +180,7 @@ const chip = (chosen: boolean): string =>
                     >
                         <input
                             type="radio"
-                            name="person"
+                            :name="`person-${id}`"
                             class="absolute size-px opacity-0"
                             :checked="filters.person_id === null"
                             @change="emit('person', null)"
@@ -197,7 +200,7 @@ const chip = (chosen: boolean): string =>
                     >
                         <input
                             type="radio"
-                            name="person"
+                            :name="`person-${id}`"
                             class="absolute size-px opacity-0"
                             :checked="filters.person_id === person.id"
                             @change="emit('person', person.id)"

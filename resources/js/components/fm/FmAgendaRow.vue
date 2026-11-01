@@ -14,7 +14,7 @@ import { transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import type { Area } from '@/lib/areas';
-import { areaFill } from '@/lib/areas';
+import { areaFill, areaOf } from '@/lib/areas';
 import { shortMonth, weekdayShort } from '@/lib/budget';
 import { daysFromToday, relativeDays, toDate } from '@/lib/format';
 import { rowLink } from '@/lib/rows';
@@ -26,11 +26,17 @@ import FmRow from './FmRow.vue';
 /** Where the row is shown. */
 export type AgendaRowLayout = 'agenda' | 'home';
 
-const { entry, layout = 'agenda' } = defineProps<{
+const {
+    entry,
+    layout = 'agenda',
+    personAvatar,
+} = defineProps<{
     /** The entry, as the server sends it. */
     entry: App.Data.AgendaEntryData;
     /** The Agenda (the day on the left, the person) or the Home (the dot and the line below). */
     layout?: AgendaRowLayout;
+    /** The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows. */
+    personAvatar?: Pick<App.Data.PersonData, 'initials' | 'photo'>;
 }>();
 
 const { date } = useFormat();
@@ -76,6 +82,9 @@ const initial = computed(() =>
         .join('')
         .toUpperCase(),
 );
+
+/** The area, `general` if the server sends one this app does not know. */
+const area = computed((): Area => areaOf(entry.area) ?? 'general');
 </script>
 
 <template>
@@ -84,7 +93,7 @@ const initial = computed(() =>
         :title="entry.title"
         :subtitle="homeSubtitle"
         :href="entry.href"
-        :area="entry.area as Area"
+        :area="area"
         :tone="late ? 'overdue' : 'normal'"
         :arrow="false"
     >
@@ -127,21 +136,24 @@ const initial = computed(() =>
                 <span
                     data-dot
                     class="size-2.5 shrink-0 rounded-full"
-                    :class="areaFill[entry.area as Area]"
+                    :class="areaFill[area]"
                 />
                 <span v-if="entry.subtitle" class="truncate">{{
                     entry.subtitle
                 }}</span>
                 <FmAvatar
                     v-if="entry.person"
-                    :initials="initial"
-                    :name="entry.person"
+                    :initials="personAvatar?.initials ?? initial"
+                    :photo="personAvatar?.photo ?? null"
                     :size="18"
-                    :title="entry.person"
+                    aria-hidden="true"
                 />
-                <span v-if="entry.person" class="hidden shrink-0 lg:inline">{{
-                    entry.person
-                }}</span>
+                <!-- Said to screen readers always, seen only on the computer -->
+                <span
+                    v-if="entry.person"
+                    class="sr-only lg:not-sr-only lg:shrink-0"
+                    >{{ entry.person }}</span
+                >
             </span>
         </span>
         <span class="flex shrink-0 flex-col items-end gap-[3px]">

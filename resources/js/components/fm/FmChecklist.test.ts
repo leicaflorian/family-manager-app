@@ -32,10 +32,13 @@ describe('FmChecklist', () => {
     it('marks a step done with a tick and the text struck through', () => {
         render(FmChecklist, { props: { steps } });
 
+        expect(
+            screen.getByRole('link', { name: /Done.*The home bills/ }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: /Upload the first bill/ }),
+        ).not.toHaveAccessibleName(/Done/);
         expect(screen.getByTitle('The home bills')).toHaveClass('line-through');
-        expect(screen.getByTitle('Upload the first bill')).not.toHaveClass(
-            'line-through',
-        );
         expect(screen.getAllByText('Done')).toHaveLength(1);
     });
 });

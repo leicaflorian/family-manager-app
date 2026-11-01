@@ -89,7 +89,37 @@ describe('FmAgendaRow', () => {
             expect(link).toHaveTextContent('Gas - Enel');
             expect(link).toHaveTextContent('in 4 days');
             expect(link).toHaveTextContent('84,20 €');
-            expect(screen.getByTitle('Marco')).toHaveTextContent('M');
+            expect(screen.getByText('M')).toBeInTheDocument();
+            expect(screen.getByText('Marco')).toBeInTheDocument();
+        });
+
+        it('shows the initials of the person when the page gives them', () => {
+            render(FmAgendaRow, {
+                props: {
+                    entry: entry(),
+                    personAvatar: { initials: 'MB', photo: null },
+                },
+            });
+
+            expect(screen.getByText('MB')).toBeInTheDocument();
+            expect(screen.getByText('Marco')).toBeInTheDocument();
+        });
+
+        it('shows the photo of the person when there is one', () => {
+            const { container } = render(FmAgendaRow, {
+                props: {
+                    entry: entry(),
+                    personAvatar: {
+                        initials: 'MB',
+                        photo: '/photos/marco.jpg',
+                    },
+                },
+            });
+
+            expect(container.querySelector('img')).toHaveAttribute(
+                'src',
+                '/photos/marco.jpg',
+            );
         });
 
         it('writes an income with a plus', () => {

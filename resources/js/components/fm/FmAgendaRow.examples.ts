@@ -26,6 +26,13 @@ const payment: App.Data.AgendaEntryData = {
 export default defineExamples(FmAgendaRow, [
     { name: 'Agenda, payment', props: { entry: payment } },
     {
+        name: 'Agenda, with initials',
+        props: {
+            entry: payment,
+            personAvatar: { initials: 'MB', photo: null },
+        },
+    },
+    {
         name: 'Agenda, income',
         props: {
             entry: {
