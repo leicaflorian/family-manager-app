@@ -108,9 +108,12 @@ function setRecipients(value: unknown): void {
     const chosen = Array.isArray(value) ? (value as ('all' | number)[]) : [];
     const before = rule.value.recipients;
     const addedAll = chosen.includes('all') && !before.includes('all');
+    const people = chosen.filter((one) => one !== 'all');
 
+    // «Everyone» alone stays as it is: FormKit also echoes back the value we
+    // just wrote, and that must not empty the list
     patch({
-        recipients: addedAll ? ['all'] : chosen.filter((one) => one !== 'all'),
+        recipients: addedAll ? ['all'] : people.length === 0 ? chosen : people,
     });
 }
 </script>

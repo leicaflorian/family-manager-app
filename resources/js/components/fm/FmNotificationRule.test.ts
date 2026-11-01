@@ -1,4 +1,6 @@
 import { fireEvent, screen } from '@testing-library/vue';
+import type { PropType } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { describe, expect, it } from 'vite-plus/test';
 import type { NoticeRule, RulePerson } from '@/lib/reminders';
 import { choose, renderPage, settle } from '@/test/page';
@@ -22,6 +24,23 @@ function lastRule(emitted: Record<string, unknown[][]>): NoticeRule {
     const calls = emitted['update:modelValue']!;
 
     return calls[calls.length - 1]![0] as NoticeRule;
+}
+
+/** A form around the row that keeps the rule, as the page does with `v-model`. */
+const Host = defineComponent({
+    components: { FmNotificationRule },
+    props: { start: { type: Object as PropType<NoticeRule>, required: true } },
+    setup(props) {
+        const current = ref<NoticeRule>({ ...props.start });
+
+        return { current, people };
+    },
+    template: `<div><FmNotificationRule v-model="current" :people="people" /><output>{{ JSON.stringify(current.recipients) }}</output></div>`,
+});
+
+/** The recipients the form holds now. */
+function hostRecipients(): unknown {
+    return JSON.parse(document.querySelector('output')!.textContent!);
 }
 
 describe('FmNotificationRule', () => {
@@ -91,5 +110,29 @@ describe('FmNotificationRule', () => {
         );
 
         expect(view.emitted()).toHaveProperty('remove');
+    });
+
+    it('leaves only the person chosen when Everyone was selected', async () => {
+        renderPage(Host, { start: rule });
+
+        await userEvent.type(screen.getByLabelText('To whom'), 'Mar');
+        await userEvent.click(
+            await screen.findByRole('option', { name: 'Marco' }),
+        );
+        await settle();
+
+        expect(hostRecipients()).toEqual([1]);
+    });
+
+    it('leaves only Everyone when it is chosen after some people', async () => {
+        renderPage(Host, { start: { ...rule, recipients: [1, 2] } });
+
+        await userEvent.type(screen.getByLabelText('To whom'), 'Ever');
+        await userEvent.click(
+            await screen.findByRole('option', { name: 'Everyone' }),
+        );
+        await settle();
+
+        expect(hostRecipients()).toEqual(['all']);
     });
 });
