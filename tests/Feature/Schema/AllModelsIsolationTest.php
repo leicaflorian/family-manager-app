@@ -29,6 +29,7 @@ use App\Models\PlannedIncome;
 use App\Models\PlannedIncomeException;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
+use App\Models\ReminderNotice;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
@@ -47,7 +48,7 @@ dataset('family models', [
     MaintenanceRecord::class, ExpenseCategory::class, PlannedExpense::class,
     PlannedExpenseException::class, Expense::class, PlannedIncome::class,
     PlannedIncomeException::class, Income::class, Document::class,
-    ReminderGroup::class, Reminder::class, FamilySetting::class, Invitation::class,
+    ReminderGroup::class, Reminder::class, ReminderNotice::class, FamilySetting::class, Invitation::class,
 ]);
 
 test('a row of family A is not found from family B', function (string $class): void {

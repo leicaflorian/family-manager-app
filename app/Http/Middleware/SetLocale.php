@@ -24,9 +24,26 @@ final class SetLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
-        app()->setLocale($this->preferred($request));
+        $locale = $this->preferred($request);
+        app()->setLocale($locale);
+        $this->remember($request, $locale);
 
         return $next($request);
+    }
+
+    /**
+     * Saves the language in the account, for the email the morning round writes: one query, and only when it changed.
+     *
+     * @param  Request  $request  the request
+     * @param  string  $locale  the language chosen for it
+     */
+    private function remember(Request $request, string $locale): void
+    {
+        $user = $request->user();
+
+        if ($user !== null && $user->locale !== $locale) {
+            $user->forceFill(['locale' => $locale])->saveQuietly();
+        }
     }
 
     /**

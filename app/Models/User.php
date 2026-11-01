@@ -23,6 +23,7 @@ use Illuminate\Notifications\Notifiable;
  * @property int $id
  * @property int $family_id
  * @property Role $role
+ * @property string|null $locale The language of the account, saved from the browser; null until the first request
  * @property array{months: int, person_id: int|null, hidden_areas: list<string>}|null $agenda_filters The filters of the Agenda: months, person_id and hidden_areas; null until the person changes them
  * @property string $name
  * @property string $email
