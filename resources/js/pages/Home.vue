@@ -85,6 +85,11 @@ const steps = computed(() => home.checklist.map(toStep));
 
 /** Whether the family is still beginning: the incomes tell how they will show. */
 const beginning = computed(() => steps.value.length > 0);
+
+/** Whether the right column has something to show; without it the left one takes the whole width. */
+const hasRightColumn = computed(
+    () => home.incoming.length > 0 || beginning.value,
+);
 </script>
 
 <template>
@@ -130,7 +135,10 @@ const beginning = computed(() => steps.value.length > 0);
         </FmCard>
 
         <div class="grid gap-5 lg:grid-cols-5 lg:items-start lg:gap-6">
-            <div class="flex flex-col gap-5 lg:col-span-3">
+            <div
+                class="flex flex-col gap-5"
+                :class="hasRightColumn ? 'lg:col-span-3' : 'lg:col-span-5'"
+            >
                 <FmTotal
                     :total="home.total"
                     :payments="home.payments"
@@ -159,7 +167,7 @@ const beginning = computed(() => steps.value.length > 0);
             </div>
 
             <div
-                v-if="home.incoming.length > 0 || beginning"
+                v-if="hasRightColumn"
                 class="flex flex-col gap-5 lg:col-span-2"
                 :class="{ 'max-lg:hidden': home.incoming.length === 0 }"
             >

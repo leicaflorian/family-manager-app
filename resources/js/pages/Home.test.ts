@@ -1,5 +1,12 @@
 import { screen, within } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { agendaEntries, pendingPayslip } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Home from './Home.vue';
@@ -46,6 +53,15 @@ const newFamily: App.Data.HomeData = {
 };
 
 describe('Home', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('greets with the day and the first name', () => {
         renderPage(Home, { home });
 
@@ -69,7 +85,9 @@ describe('Home', () => {
         const rows = within(deadlines).getAllByRole('link');
         expect(rows).toHaveLength(10);
         expect(rows[0]).toHaveTextContent('Tessera sanitaria di Giulia');
-        expect(rows[0]).toHaveTextContent(/Late by \d+ days/);
+        expect(rows[0]).toHaveTextContent('Late by 26 days · 30/09/2026');
+        expect(rows[1]).toHaveTextContent('Bolletta gas');
+        expect(rows[1]).toHaveTextContent('in 4 days');
     });
 
     it('offers the Agenda only when there are more than the ones shown', () => {
