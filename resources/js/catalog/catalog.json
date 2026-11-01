@@ -128,7 +128,9 @@
       "export type AgendaFiltersVariant = 'sheet' | 'column';",
       "export type AgendaFilterPerson = Pick<"
     ],
-    "usedBy": []
+    "usedBy": [
+      "pages/Agenda.vue"
+    ]
   },
   {
     "name": "FmAgendaRow",
@@ -163,7 +165,9 @@
     "types": [
       "export type AgendaRowLayout = 'agenda' | 'home';"
     ],
-    "usedBy": []
+    "usedBy": [
+      "pages/Agenda.vue"
+    ]
   },
   {
     "name": "FmAmount",
@@ -328,7 +332,7 @@
   {
     "name": "FmBottomBar",
     "path": "resources/js/components/fm/FmBottomBar.vue",
-    "description": "The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in\nthe middle, Areas and More. More opens a panel with Documents, Family,\nSettings and Log out, and stays marked when one of those pages is open.",
+    "description": "The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in\nthe middle, Areas and More. More opens a panel with Agenda, Documents, Family,\nSettings and Log out, and stays marked when one of those pages is open.",
     "group": "navigation",
     "props": [
       {
@@ -535,6 +539,7 @@
       "components/fm/FmMovementPanel.vue",
       "components/fm/FmPaySheet.vue",
       "lib/actions.ts",
+      "pages/Agenda.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
       "pages/Home.vue",
@@ -596,6 +601,7 @@
       "components/fm/FmCardBudget.vue",
       "components/fm/FmCardPayments.vue",
       "components/fm/FmChecklist.vue",
+      "pages/Agenda.vue",
       "pages/Home.vue",
       "pages/budget/Comparison.vue",
       "pages/budget/Deadline.vue",
@@ -1567,6 +1573,7 @@
     ],
     "types": [],
     "usedBy": [
+      "pages/Agenda.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
       "pages/Home.vue",
@@ -2969,6 +2976,7 @@
     "types": [],
     "usedBy": [
       "components/fm/FmFamilyViews.vue",
+      "pages/Agenda.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
       "pages/budget/Comparison.vue",

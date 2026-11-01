@@ -870,5 +870,14 @@
     "Period": "Periodo",
     "{1} :count month|[2,*] :count months": "{1} :count mese|[2,*] :count mesi",
     "Tap an area to hide it; the number stays.": "Tocca un'area per nasconderla; il numero resta.",
-    "[0,1] Show :count entry|[2,*] Show :count entries": "[0,1] Mostra :count voce|[2,*] Mostra :count voci"
+    "[0,1] Show :count entry|[2,*] Show :count entries": "[0,1] Mostra :count voce|[2,*] Mostra :count voci",
+    "Agenda": "Agenda",
+    "What expires, month by month": "Cosa scade, mese per mese",
+    "{1} Next month|[2,*] Next :count months": "{1} Prossimo mese|[2,*] Prossimi :count mesi",
+    "{1} :count area off|[2,*] :count areas off": "{1} :count area spenta|[2,*] :count aree spente",
+    "{1} Nothing expiring in the next month|[2,*] Nothing expiring in the next :count months": "{1} Niente in scadenza nel prossimo mese|[2,*] Niente in scadenza nei prossimi :count mesi",
+    "See the next 3 months": "Guarda i prossimi 3 mesi",
+    ":amount outgoing": ":amount in uscita",
+    "Deadlines passed in the last three months: renew them, or update the date on the card.": "Scadenze passate degli ultimi tre mesi: va fatto il rinnovo, o aggiornata la data sulla scheda.",
+    "Payments show from today on: the late ones are on the Home.": "I pagamenti compaiono da oggi in avanti: quelli già scaduti stanno in Home."
 }

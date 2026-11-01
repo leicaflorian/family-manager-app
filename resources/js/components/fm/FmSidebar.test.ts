@@ -47,6 +47,21 @@ describe('FmSidebar', () => {
         expect(screen.getByText('Bianchi family')).toBeInTheDocument();
     });
 
+    it('has Agenda between Home and Areas, marked on its page', () => {
+        bar('agenda', '/agenda');
+
+        const nav = screen.getByRole('navigation', { name: 'Sections' });
+        const names = within(nav)
+            .getAllByRole('link')
+            .map((link) => link.textContent?.trim())
+            .filter((name) => ['Home', 'Agenda', 'Areas'].includes(name ?? ''));
+        expect(names).toEqual(['Home', 'Agenda', 'Areas']);
+        expect(screen.getByRole('link', { name: 'Agenda' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
     it('has Budget between Documents and Family, marked on its pages', () => {
         bar('budget', '/budget/comparison');
 

@@ -273,7 +273,7 @@ test('a member sees the agenda', function (): void {
 
     $this->actingAs($member)->get('/agenda')
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Agenda', false)->has('agenda.entries', 12));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Agenda')->has('agenda.entries', 12));
 });
 
 test('an account of the Rossi sees nothing of the Bianchi', function (): void {

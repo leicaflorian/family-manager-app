@@ -19,7 +19,7 @@ test('the pages receive the name of the family for the sidebar', function (): vo
 
 test('without signing in the pages of the app lead to Sign in', function (string $route): void {
     $this->get(route($route))->assertRedirect(route('login'));
-})->with(['areas', 'documents.index', 'family', 'upload', 'settings']);
+})->with(['agenda', 'areas', 'documents.index', 'family', 'upload', 'settings']);
 
 test('the pages receive the active cards of each area for the sidebar', function (): void {
     Storage::fake('local');

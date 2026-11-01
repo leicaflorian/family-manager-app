@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in
- * the middle, Areas and More. More opens a panel with Documents, Family,
+ * the middle, Areas and More. More opens a panel with Agenda, Documents, Family,
  * Settings and Log out, and stays marked when one of those pages is open.
  *
  * @group navigation
@@ -100,6 +100,7 @@ function itemClasses(marked: boolean): string {
                 v-for="item in inMore"
                 :key="item.section"
                 :title="item.label"
+                :subtitle="item.hint"
                 :href="item.href"
             >
                 <template #before>

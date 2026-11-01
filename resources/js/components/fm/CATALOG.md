@@ -287,6 +287,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/fm/FmMovementPanel.vue`
 - `components/fm/FmPaySheet.vue`
 - `lib/actions.ts`
+- `pages/Agenda.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
 - `pages/Home.vue`
@@ -362,6 +363,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 - `components/fm/FmCardBudget.vue`
 - `components/fm/FmCardPayments.vue`
 - `components/fm/FmChecklist.vue`
+- `pages/Agenda.vue`
 - `pages/Home.vue`
 - `pages/budget/Comparison.vue`
 - `pages/budget/Deadline.vue`
@@ -521,6 +523,7 @@ below, what can be done.
 
 ### Used by
 
+- `pages/Agenda.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
 - `pages/Home.vue`
@@ -889,6 +892,7 @@ organization.
 ### Used by
 
 - `components/fm/FmFamilyViews.vue`
+- `pages/Agenda.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
 - `pages/budget/Comparison.vue`
@@ -949,7 +953,7 @@ name, above the title or the header of a page.
 `resources/js/components/fm/FmBottomBar.vue`
 
 The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in
-the middle, Areas and More. More opens a panel with Documents, Family,
+the middle, Areas and More. More opens a panel with Agenda, Documents, Family,
 Settings and Log out, and stays marked when one of those pages is open.
 
 ### Props
@@ -1449,6 +1453,10 @@ export type AgendaRowLayout = 'agenda' | 'home';
 <!-- Home, late and estimated -->
 <FmAgendaRow :entry="entry" layout="home" />
 ```
+
+### Used by
+
+- `pages/Agenda.vue`
 
 ## FmCardRow
 
@@ -2162,6 +2170,10 @@ export type AgendaFilterPerson = Pick<
 <!-- Panel -->
 <FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :counts="counts" :shown="12" />
 ```
+
+### Used by
+
+- `pages/Agenda.vue`
 
 ## FmCardForm
 

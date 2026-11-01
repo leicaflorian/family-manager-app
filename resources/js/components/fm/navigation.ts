@@ -4,6 +4,7 @@
  */
 import type { LucideIcon } from '@lucide/vue';
 import {
+    CalendarRange,
     FileText,
     LayoutDashboard,
     Settings,
@@ -13,6 +14,7 @@ import {
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import {
+    agenda,
     areas,
     budget,
     dashboard,
@@ -26,6 +28,7 @@ import { index as documents } from '@/routes/documents';
 /** The sections of the app, to know which one to mark. */
 export type Section =
     | 'home'
+    | 'agenda'
     | 'areas'
     | 'documents'
     | 'budget'
@@ -42,11 +45,13 @@ export type NavigationItem = {
     href: string;
     /** The Lucide icon. */
     icon: LucideIcon;
+    /** A line below the label in More on the phone, if the item has one. */
+    hint?: string;
 };
 
 /** All the items, with the addresses of Upload and of Log out. */
 export type NavigationItems = {
-    /** Home, Areas, Documents, Budget and Family, in this order. */
+    /** Home, Agenda, Areas, Documents, Budget and Family, in this order. */
     sections: NavigationItem[];
     /** The settings, in the account menu or in More. */
     settings: NavigationItem;
@@ -69,6 +74,13 @@ export function navigationItems(): NavigationItems {
                 label: trans('Home'),
                 href: dashboard().url,
                 icon: LayoutDashboard,
+            },
+            {
+                section: 'agenda',
+                label: trans('Agenda'),
+                href: agenda().url,
+                icon: CalendarRange,
+                hint: trans('What expires, month by month'),
             },
             {
                 section: 'areas',

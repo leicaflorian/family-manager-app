@@ -36,15 +36,20 @@ describe('sectionOf', () => {
         }
     });
 
+    it('marks Agenda on its page', () => {
+        expect(sectionOf('/agenda', items)).toBe('agenda');
+    });
+
     it('lists Budget between Documents and Family', () => {
         expect(items.sections.map((item) => item.section)).toEqual([
             'home',
+            'agenda',
             'areas',
             'documents',
             'budget',
             'family',
         ]);
-        expect(items.sections[3]).toMatchObject({
+        expect(items.sections[4]).toMatchObject({
             label: 'Budget',
             href: '/budget',
         });

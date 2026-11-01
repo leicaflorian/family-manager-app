@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/vue';
+import { render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import FmBottomBar from './FmBottomBar.vue';
@@ -79,6 +79,23 @@ describe('FmBottomBar', () => {
             'aria-current',
             'page',
         );
+    });
+
+    it('has Agenda as the first item of More, with what it shows', async () => {
+        bar('agenda');
+
+        expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: 'More' }));
+
+        const sheet = screen.getByRole('dialog', { name: 'More' });
+        const links = within(sheet).getAllByRole('link');
+        expect(links[0]).toHaveTextContent('Agenda');
+        expect(links[0]).toHaveTextContent('What expires, month by month');
+        expect(links[0]).toHaveAttribute('href', '/agenda');
     });
 
     it('marks More on Family too', () => {
