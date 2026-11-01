@@ -18,6 +18,7 @@ use App\Support\Reminders\MorningItem;
 use App\Support\Reminders\Notices;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -47,41 +48,66 @@ final class SendMorningNotices
         /** @var array<int, list<MorningItem>> $emails */
         $emails = [];
 
-        foreach (Reminder::query()->open()->with('link.subject')->orderBy('id')->get() as $reminder) {
-            $deadline = CarbonImmutable::parse($reminder->due_date->toDateString(), $today->timezone);
-            $previous = array_values(array_map(strval(...), array_filter($reminder->notifications_sent ?? [], is_scalar(...))));
-            $due = Notices::due($deadline, Notices::rulesFor($reminder, $groups), $previous, $today);
+        try {
+            foreach (Reminder::query()->open()->with('link.subject')->orderBy('id')->get() as $reminder) {
+                $deadline = CarbonImmutable::parse($reminder->due_date->toDateString(), $today->timezone);
+                $previous = array_values(array_map(strval(...), array_filter($reminder->notifications_sent ?? [], is_scalar(...))));
+                $due = Notices::due($deadline, Notices::rulesFor($reminder, $groups), $previous, $today);
 
-            if ($due['send'] === [] && $due['sent'] === $previous) {
-                continue;
+                if ($due['send'] === [] && $due['sent'] === $previous) {
+                    continue;
+                }
+
+                // The closure only returns what it did: a retry after a deadlock must not add things twice.
+                $result = DB::transaction(function () use ($reminder, $due, $accounts, $deadline): array {
+                    $reminder->forceFill(['notifications_sent' => $due['sent']])->saveQuietly();
+                    $notices = 0;
+                    $mailed = [];
+
+                    foreach (Notices::deliveriesOf($due['send'], $accounts) as $delivery) {
+                        if ($delivery->app) {
+                            ReminderNotice::query()->create([
+                                'reminder_id' => $reminder->id,
+                                'user_id' => $delivery->user->id,
+                                'due_date' => $deadline->toDateString(),
+                                'offset' => $due['send'][0]->offset,
+                                'sent_at' => now(),
+                            ]);
+                            $notices++;
+                        }
+
+                        if ($delivery->email) {
+                            $mailed[] = $delivery->user->id;
+                        }
+                    }
+
+                    return ['notices' => $notices, 'mailed' => $mailed];
+                });
+
+                // Recorded only after the commit, so a mail is never queued for a rolled-back reminder.
+                $created += $result['notices'];
+
+                foreach ($result['mailed'] as $userId) {
+                    $emails[$userId][] = $this->item($reminder);
+                }
             }
-
-            DB::transaction(function () use ($reminder, $due, $accounts, $deadline, &$created, &$emails): void {
-                $reminder->forceFill(['notifications_sent' => $due['sent']])->saveQuietly();
-
-                if ($due['send'] === []) {
-                    return;
-                }
-
-                foreach (Notices::deliveriesOf($due['send'], $accounts) as $delivery) {
-                    if ($delivery->app) {
-                        ReminderNotice::query()->create([
-                            'reminder_id' => $reminder->id,
-                            'user_id' => $delivery->user->id,
-                            'due_date' => $deadline->toDateString(),
-                            'offset' => $due['send'][0]->offset,
-                            'sent_at' => now(),
-                        ]);
-                        $created++;
-                    }
-
-                    if ($delivery->email) {
-                        $emails[$delivery->user->id][] = $this->item($reminder);
-                    }
-                }
-            });
+        } finally {
+            // Reminders already committed are marked as sent, so their mails go out even if a later one fails.
+            $this->queueMails($accounts, $emails, $today);
         }
 
+        return $created;
+    }
+
+    /**
+     * Queues one mail for each account, with all its items, in the language of the account.
+     *
+     * @param  Collection<int, User>  $accounts  the accounts of the family
+     * @param  array<int, list<MorningItem>>  $emails  the items of each account, by user id
+     * @param  CarbonImmutable  $today  today in Rome
+     */
+    private function queueMails(Collection $accounts, array $emails, CarbonImmutable $today): void
+    {
         foreach ($emails as $userId => $items) {
             $user = $accounts->firstWhere('id', $userId);
 
@@ -89,8 +115,6 @@ final class SendMorningNotices
                 Mail::to($user)->locale($user->locale ?? config()->string('app.locale'))->queue(new MorningNoticesMail($user, $items, $today->toDateString()));
             }
         }
-
-        return $created;
     }
 
     /**

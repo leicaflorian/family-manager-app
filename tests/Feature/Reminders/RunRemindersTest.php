@@ -113,6 +113,33 @@ test('a family that fails does not stop the others', function (): void {
     Exceptions::assertReported(fn (RuntimeException $exception): bool => $exception->getMessage() === 'boom');
 });
 
+test('two reminders for the same account make one mail with both', function (): void {
+    Document::factory()->for($this->family)->create(['title' => 'Passport', 'expiry_date' => '2026-12-02']);
+
+    $this->artisan('reminders:run')->assertSuccessful();
+
+    Mail::assertQueued(MorningNoticesMail::class, 2);
+    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com') && count($mail->items) === 2);
+});
+
+test('a reminder that fails does not lose the mail of the ones before it', function (): void {
+    Exceptions::fake();
+    Document::factory()->for($this->family)->create(['title' => 'Passport', 'expiry_date' => '2026-12-02']);
+    // Sync runs first, so both reminders exist; the last one is the one that breaks.
+    ReminderNotice::creating(function (ReminderNotice $notice): void {
+        if ($notice->reminder_id === Reminder::query()->max('id')) {
+            throw new RuntimeException('boom');
+        }
+    });
+
+    $this->artisan('reminders:run')->assertFailed();
+
+    expect(ReminderNotice::query()->count())->toBe(2);
+    Mail::assertQueued(MorningNoticesMail::class, 2);
+    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com') && count($mail->items) === 1);
+    Exceptions::assertReported(fn (RuntimeException $exception): bool => $exception->getMessage() === 'boom');
+});
+
 test('nobody with an account: nothing sent and nothing marked', function (): void {
     User::query()->delete();
 
