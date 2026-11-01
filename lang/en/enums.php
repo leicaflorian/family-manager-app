@@ -22,6 +22,11 @@ return [
         'in_use' => 'In use',
         'disposed' => 'Disposed of',
     ],
+    'channel' => [
+        'app' => 'Only app',
+        'email' => 'Only email',
+        'both' => 'App and email',
+    ],
     'document_status' => [
         'active' => 'Active',
         'archived' => 'Archived',
