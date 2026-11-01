@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Models\Family;
 use App\Models\FamilyModel;
 use App\Models\User;
 
@@ -78,6 +79,17 @@ class FamilyPolicy
     public function delete(User $user, FamilyModel $model): bool
     {
         return $this->deleteAny($user) && $this->ofFamily($user, $model);
+    }
+
+    /**
+     * Turning the calendar of the family on, off or changing its address: only an `admin` of that family.
+     *
+     * @param  User  $user  whoever signed in
+     * @param  Family  $family  the family
+     */
+    public function manageCalendar(User $user, Family $family): bool
+    {
+        return $user->isAdmin() && $family->id === $user->family_id;
     }
 
     /**

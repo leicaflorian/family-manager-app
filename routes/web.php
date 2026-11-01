@@ -10,6 +10,7 @@ use App\Http\Controllers\Budget\DeadlineController;
 use App\Http\Controllers\Budget\MovementController;
 use App\Http\Controllers\Budget\PlannedController;
 use App\Http\Controllers\CalendarFeedController;
+use App\Http\Controllers\CalendarSettingsController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
@@ -114,6 +115,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::put('settings/account/password', [AccountController::class, 'password'])->middleware('throttle:6,1')->name('account.password');
         Route::post('settings/account/photo', [AccountController::class, 'photo'])->name('account.photo');
         Route::delete('settings/account', [AccountController::class, 'destroy'])->name('account.destroy');
+        Route::get('settings/calendar', [CalendarSettingsController::class, 'edit'])->name('calendar.edit');
+        Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
+        Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
+        Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
         Route::resource('settings/categories', CategoryController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['categories' => 'category'])

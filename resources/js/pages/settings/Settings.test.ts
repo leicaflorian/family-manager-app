@@ -21,6 +21,10 @@ describe('Settings', () => {
         expect(
             screen.getByText('Marco Bianchi · Administrator'),
         ).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /Calendar/ })).toHaveAttribute(
+            'href',
+            '/settings/calendar',
+        );
         expect(
             screen.getByRole('link', { name: /Document categories/ }),
         ).toHaveAttribute('href', '/settings/categories');

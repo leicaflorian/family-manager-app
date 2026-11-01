@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Family;
 use App\Models\FamilyModel;
 use App\Models\User;
 use App\Observers\LoanPlanObserver;
@@ -47,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configurePolicies(): void
     {
+        // The family itself is not a row of a family, so the guess below does not find its policy
+        Gate::policy(Family::class, FamilyPolicy::class);
+
         Gate::guessPolicyNamesUsing(fn (string $class): array => match (true) {
             // A model with rules of its own has an `App\Policies\<Model>Policy`; the others share FamilyPolicy.
             class_exists($own = 'App\\Policies\\'.class_basename($class).'Policy') && is_subclass_of($class, FamilyModel::class) => [$own],

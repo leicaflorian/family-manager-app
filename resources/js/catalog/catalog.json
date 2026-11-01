@@ -565,6 +565,7 @@
       "pages/family/Invite.vue",
       "pages/family/Organizations.vue",
       "pages/settings/Account.vue",
+      "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
       "pages/settings/ExpenseCategories.vue",
       "pages/welcome/Welcome.vue"
@@ -622,6 +623,7 @@
       "pages/family/People.vue",
       "pages/family/Person.vue",
       "pages/settings/Account.vue",
+      "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
       "pages/settings/ExpenseCategories.vue",
       "pages/settings/Settings.vue"
@@ -1165,7 +1167,8 @@
     "usedBy": [
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmConfirmDelete.vue",
-      "components/fm/FmDocumentForm.vue"
+      "components/fm/FmDocumentForm.vue",
+      "pages/settings/Calendar.vue"
     ]
   },
   {
@@ -2381,6 +2384,7 @@
       "pages/family/People.vue",
       "pages/family/Person.vue",
       "pages/settings/Account.vue",
+      "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue"
     ]
   },
@@ -3002,6 +3006,7 @@
       "pages/family/InvitationSent.vue",
       "pages/family/Invite.vue",
       "pages/settings/Account.vue",
+      "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
       "pages/settings/ExpenseCategories.vue",
       "pages/settings/Settings.vue"

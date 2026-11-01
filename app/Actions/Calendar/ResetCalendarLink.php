@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Calendar;
 
 use App\Models\Family;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
 /**
@@ -23,10 +24,13 @@ final class ResetCalendarLink
     {
         $token = Str::random(40);
 
-        $family->forceFill([
-            'calendar_token' => $token,
+        // Written by the query, not by `save()`: saving compares the new secret with the old one, decrypting it, and an
+        // old secret that cannot be decrypted any more (the `APP_KEY` changed) is exactly when it has to be replaced.
+        Family::query()->whereKey($family->getKey())->update([
+            'calendar_token' => Crypt::encryptString($token),
             'calendar_token_hash' => hash('sha256', $token),
-        ])->save();
+        ]);
+        $family->refresh();
 
         return $token;
     }

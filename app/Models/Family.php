@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Carbon\CarbonImmutable;
 use Database\Factories\FamilyFactory;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Crypt;
 
 /**
  * A family: every piece of data in the app belongs to one.
@@ -72,6 +74,27 @@ final class Family extends Model
     public function isWelcomed(): bool
     {
         return $this->welcomed_at !== null;
+    }
+
+    /**
+     * The secret of the calendar address, decrypted.
+     *
+     * @return string|null the secret; null while the calendar is off, or when it was encrypted with another `APP_KEY`
+     *                     and cannot be read any more (then the calendar is still on: `calendar_token_hash` is set)
+     */
+    public function calendarSecret(): ?string
+    {
+        $encrypted = $this->getAttributes()['calendar_token'] ?? null;
+
+        if (! is_string($encrypted)) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($encrypted);
+        } catch (DecryptException) {
+            return null;
+        }
     }
 
     /**

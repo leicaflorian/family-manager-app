@@ -5,13 +5,14 @@
  * subscription) come with their stages.
  */
 import { Head } from '@inertiajs/vue3';
-import { FolderTree, Tags } from '@lucide/vue';
+import { CalendarDays, FolderTree, Tags } from '@lucide/vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { edit } from '@/routes/account';
+import { edit as calendar } from '@/routes/calendar';
 import { index } from '@/routes/categories';
 import { index as expenseCategories } from '@/routes/expense-categories';
 
@@ -50,6 +51,19 @@ const { account, mainCategories, mainExpenseCategories } = defineProps<{
                         :photo="account.photo"
                         :name="`${account.first_name} ${account.last_name}`"
                     />
+                </template>
+            </FmRow>
+            <FmRow
+                :title="$t('Calendar')"
+                :subtitle="$t('Reminders and deadlines in Google Calendar')"
+                :href="calendar().url"
+            >
+                <template #before>
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="CalendarDays" :size="22" />
+                    </span>
                 </template>
             </FmRow>
         </FmCard>

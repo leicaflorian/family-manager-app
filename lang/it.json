@@ -895,5 +895,22 @@
     "So they get the alerts too": "Così ricevono gli avvisi anche loro",
     "Expected expense missing.": "Manca la spesa prevista.",
     "For: :name": "Per: :name",
-    "Open: :url": "Apri: :url"
+    "Open: :url": "Apri: :url",
+    "Calendar": "Calendario",
+    "Reminders and deadlines in Google Calendar": "Promemoria e scadenze in Google Calendar",
+    "Calendar on": "Calendario attivo",
+    "Anyone with the address can read the dates, so keep it for the family.": "Chiunque abbia l'indirizzo può leggere le date, quindi tienilo per la famiglia.",
+    "Calendar address": "Indirizzo del calendario",
+    "Copy": "Copia",
+    "Address copied": "Indirizzo copiato",
+    "The address can't be shown any more. Change it to get a new one.": "L'indirizzo non si può più mostrare. Cambialo per averne uno nuovo.",
+    "Change the address (the old one stops working)": "Cambia l'indirizzo (il vecchio smette di funzionare)",
+    "Add it to Google Calendar": "Aggiungilo a Google Calendar",
+    "In Google Calendar, next to «Other calendars», tap +, then «From URL».": "In Google Calendar, accanto a «Altri calendari», tocca +, poi «Da URL».",
+    "Paste the address and tap «Add calendar».": "Incolla l'indirizzo e tocca «Aggiungi calendario».",
+    "Google updates it by itself, even every few hours.": "Google lo aggiorna da solo, anche ogni poche ore.",
+    "Don't download the file and import it: it would not update. Subscribe with the address.": "Non scaricare il file per importarlo: non si aggiornerebbe. Iscriviti con l'indirizzo.",
+    "Change the address?": "Cambiare l'indirizzo?",
+    "The old address stops working: whoever uses it has to add the new one.": "Il vecchio indirizzo smette di funzionare: chi lo usa deve aggiungere quello nuovo.",
+    "Change the address": "Cambia l'indirizzo"
 }

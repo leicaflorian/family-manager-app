@@ -33,7 +33,7 @@ final readonly class TurnOnCalendar
             return $family->calendar_token;
         }
 
-        $family->forceFill(['calendar_locale' => $locale]);
+        $family->forceFill(['calendar_locale' => $locale])->save();
 
         return $this->reset->handle($family);
     }

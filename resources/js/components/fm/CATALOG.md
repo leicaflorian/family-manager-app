@@ -312,6 +312,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/family/Invite.vue`
 - `pages/family/Organizations.vue`
 - `pages/settings/Account.vue`
+- `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/ExpenseCategories.vue`
 - `pages/welcome/Welcome.vue`
@@ -382,6 +383,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
 - `pages/settings/Account.vue`
+- `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/ExpenseCategories.vue`
 - `pages/settings/Settings.vue`
@@ -421,6 +423,7 @@ saved link.
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmConfirmDelete.vue`
 - `components/fm/FmDocumentForm.vue`
+- `pages/settings/Calendar.vue`
 
 ## FmConfirmDelete
 
@@ -777,6 +780,7 @@ export type NoticeTone = 'info' | 'ok' | 'warning';
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
 - `pages/settings/Account.vue`
+- `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
 
 ## FmOrganizationMark
@@ -915,6 +919,7 @@ organization.
 - `pages/family/InvitationSent.vue`
 - `pages/family/Invite.vue`
 - `pages/settings/Account.vue`
+- `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/ExpenseCategories.vue`
 - `pages/settings/Settings.vue`
