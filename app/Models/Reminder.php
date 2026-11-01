@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A reminder, with the records it refers to (`reminders`).
@@ -32,11 +33,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read Family $family
+ * @property-read Remindable|null $link
  * @property-read Person|null $person
  * @property-read ReminderGroup|null $reminderGroup
  *
  * @method static ReminderFactory factory($count = null, $state = [])
  * @method static Builder<static>|Reminder automaticFor(string $field, string $morphType, array<int> $ids)
+ * @method static Builder<static>|Reminder open()
  * @method static Builder<static>|Reminder newModelQuery()
  * @method static Builder<static>|Reminder newQuery()
  * @method static Builder<static>|Reminder query()
@@ -57,6 +60,27 @@ final class Reminder extends FamilyModel
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /**
+     * The row of `remindables`: the one thing the reminder refers to.
+     *
+     * @return HasOne<Remindable, $this>
+     */
+    public function link(): HasOne
+    {
+        return $this->hasOne(Remindable::class);
+    }
+
+    /**
+     * The reminders still to do.
+     *
+     * @param  Builder<Reminder>  $query
+     */
+    #[Scope]
+    protected function open(Builder $query): void
+    {
+        $query->where('reminders.status', ReminderStatus::Open->value);
     }
 
     /**

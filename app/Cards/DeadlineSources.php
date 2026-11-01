@@ -40,21 +40,32 @@ final class DeadlineSources
     public static function all(): array
     {
         return [
-            new DeadlineSource('vehicles.road_tax_due_date', Vehicle::class, 'road_tax_due_date', [VehicleStatus::Active], null, __('Road tax'), 'person_id', true),
-            new DeadlineSource('vehicles.inspection_due_date', Vehicle::class, 'inspection_due_date', [VehicleStatus::Active], null, __('Inspection'), 'person_id', true),
+            new DeadlineSource('vehicles.road_tax_due_date', Vehicle::class, 'road_tax_due_date', [VehicleStatus::Active], null, __('Road tax'), 'person_id', true, title: 'Pay the road tax'),
+            new DeadlineSource('vehicles.inspection_due_date', Vehicle::class, 'inspection_due_date', [VehicleStatus::Active], null, __('Inspection'), 'person_id', true, title: 'Get the inspection done'),
             // Expired too: the policy turns expired by itself, the renewal stays to be done.
-            new DeadlineSource('insurance_policies.expiry_date', InsurancePolicy::class, 'expiry_date', [InsurancePolicyStatus::Active, InsurancePolicyStatus::Expired], null, __('Policy renewal'), 'person_id', true),
-            new DeadlineSource('belongings.warranty_expiry_date', Belonging::class, 'warranty_expiry_date', [BelongingStatus::InUse], null, __('End of warranty')),
+            new DeadlineSource('insurance_policies.expiry_date', InsurancePolicy::class, 'expiry_date', [InsurancePolicyStatus::Active, InsurancePolicyStatus::Expired], null, __('Policy renewal'), 'person_id', true, title: 'Renew the policy'),
+            new DeadlineSource('belongings.warranty_expiry_date', Belonging::class, 'warranty_expiry_date', [BelongingStatus::InUse], null, __('End of warranty'), title: 'End of the warranty'),
             // Expired too, like the policy; the row shows the title of the document.
-            new DeadlineSource('documents.expiry_date', Document::class, 'expiry_date', [DocumentStatus::Active, DocumentStatus::Expired], null, null, 'person_id'),
-            new DeadlineSource('filings.due_date', Filing::class, 'due_date', [FilingStatus::Draft], null, __('Filing deadline'), 'person_id'),
-            new DeadlineSource('health_events.next_checkup_date', HealthEvent::class, 'next_checkup_date', [], null, __('Next checkup'), 'person_id'),
-            new DeadlineSource('subscriptions.renewal_date', Subscription::class, 'renewal_date', [SubscriptionStatus::Active], self::withYearlyExpense(...), __('Renewal'), 'person_id'),
-            new DeadlineSource('subscriptions.trial_end_date', Subscription::class, 'trial_end_date', [SubscriptionStatus::Active], null, __('End of the free trial'), 'person_id'),
-            new DeadlineSource('loans.start_date', Loan::class, 'start_date', [LoanStatus::Active], null, __('First instalment'), 'person_id', true),
+            new DeadlineSource('documents.expiry_date', Document::class, 'expiry_date', [DocumentStatus::Active, DocumentStatus::Expired], null, null, 'person_id', title: 'Renew the document'),
+            new DeadlineSource('filings.due_date', Filing::class, 'due_date', [FilingStatus::Draft], null, __('Filing deadline'), 'person_id', title: 'Submit the filing'),
+            new DeadlineSource('health_events.next_checkup_date', HealthEvent::class, 'next_checkup_date', [], null, __('Next checkup'), 'person_id', title: 'Book the checkup'),
+            new DeadlineSource('subscriptions.renewal_date', Subscription::class, 'renewal_date', [SubscriptionStatus::Active], self::withYearlyExpense(...), __('Renewal'), 'person_id', title: 'Confirm the renewal', overdue: true),
+            new DeadlineSource('subscriptions.trial_end_date', Subscription::class, 'trial_end_date', [SubscriptionStatus::Active], null, __('End of the free trial'), 'person_id', title: 'End of the free trial'),
+            new DeadlineSource('loans.start_date', Loan::class, 'start_date', [LoanStatus::Active], null, __('First instalment'), 'person_id', true, title: 'First instalment'),
             // Paid off too, but only once the last instalment has passed: a loan closed by hand has nothing left to wait for.
-            new DeadlineSource('loans.end_date', Loan::class, 'end_date', [LoanStatus::Active, LoanStatus::PaidOff], self::notPaidOffBeforeItsEnd(...), __('Last instalment'), 'person_id', true),
+            new DeadlineSource('loans.end_date', Loan::class, 'end_date', [LoanStatus::Active, LoanStatus::PaidOff], self::notPaidOffBeforeItsEnd(...), __('Last instalment'), 'person_id', true, title: 'Last instalment'),
         ];
+    }
+
+    /**
+     * The kinds of deadline of the dates of a model.
+     *
+     * @param  class-string<Model>  $model  the model that holds the dates
+     * @return list<DeadlineSource>
+     */
+    public static function forModel(string $model): array
+    {
+        return array_values(array_filter(self::all(), static fn (DeadlineSource $source): bool => $source->model === $model));
     }
 
     /**

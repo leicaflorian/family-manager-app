@@ -7,6 +7,7 @@ namespace App\Cards;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Closure;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -26,6 +27,8 @@ final readonly class DeadlineSource
      * @param  string|null  $label  what expires, in English; null when the row shows the title of the document
      * @param  string|null  $personColumn  the column of the person it belongs to; null when it is nobody's
      * @param  bool  $hasExpense  whether a planned expense of the card pays this deadline (one row in the Agenda)
+     * @param  string  $title  what to do, in English (translated with `__()` where it is shown): the title of the reminder
+     * @param  bool  $overdue  whether the reminder is wanted also once the date has passed, because the date moves only when confirmed (the renewal of a subscription)
      */
     public function __construct(
         public string $field,
@@ -36,6 +39,8 @@ final readonly class DeadlineSource
         public ?string $label = null,
         public ?string $personColumn = null,
         public bool $hasExpense = false,
+        public string $title = '',
+        public bool $overdue = false,
     ) {}
 
     /**
@@ -58,5 +63,28 @@ final readonly class DeadlineSource
         }
 
         return $query;
+    }
+
+    /**
+     * The date of a card when it wants a reminder: the date is not empty, the
+     * status is an active one, the condition holds, and the date is today or
+     * later (or any date, for a kind that is overdue). It follows the rules of
+     * `query()` on the one card.
+     *
+     * @param  Model  $card  a card of the model of this kind
+     * @param  CarbonImmutable  $today  today in Rome, as the caller has it
+     * @return CarbonImmutable|null the date, or null when the card wants no reminder
+     */
+    public function wants(Model $card, CarbonImmutable $today): ?CarbonImmutable
+    {
+        $value = $card->getAttributes()[$this->column] ?? null;
+
+        if ($value === null || ! $this->query($today)->whereKey($card->getKey())->exists()) {
+            return null;
+        }
+
+        $date = CarbonImmutable::parse($value instanceof DateTimeInterface ? $value->format('Y-m-d') : substr(is_string($value) ? $value : '', 0, 10), $today->getTimezone());
+
+        return $this->overdue || $date->greaterThanOrEqualTo($today->startOfDay()) ? $date : null;
     }
 }

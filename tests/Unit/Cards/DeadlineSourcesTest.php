@@ -224,4 +224,97 @@ describe('the kinds of deadline', function (): void {
                 ->and($theirs->getKey())->not->toBe($mine->getKey());
         });
     });
+
+    test('every source has a title', function (): void {
+        $titles = array_map(fn (DeadlineSource $source): string => $source->title, DeadlineSources::all());
+        $italian = json_decode((string) file_get_contents(lang_path('it.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        expect($titles)->toBe([
+            'Pay the road tax', 'Get the inspection done', 'Renew the policy', 'End of the warranty',
+            'Renew the document', 'Submit the filing', 'Book the checkup', 'Confirm the renewal',
+            'End of the free trial', 'First instalment', 'Last instalment',
+        ]);
+
+        foreach ($titles as $title) {
+            expect($italian)->toHaveKey($title);
+            expect($italian[$title])->not->toBe('');
+        }
+
+        expect(array_map(fn (string $title): string => $italian[$title], $titles))->toBe([
+            'Pagare il bollo', 'Fare la revisione', 'Rinnovare la polizza', 'Fine della garanzia',
+            'Rinnovare il documento', 'Presentare la pratica', 'Prenotare il controllo', 'Confermare il rinnovo',
+            'Fine della prova gratuita', 'Prima rata', 'Ultima rata',
+        ]);
+    });
+
+    test('only the renewal is overdue', function (): void {
+        $overdue = array_map(fn (DeadlineSource $source): string => $source->field, array_filter(DeadlineSources::all(), fn (DeadlineSource $source): bool => $source->overdue));
+
+        expect(array_values($overdue))->toBe(['subscriptions.renewal_date']);
+    });
+
+    test('the sources of a model', function (): void {
+        expect(array_map(fn (DeadlineSource $source): string => $source->field, DeadlineSources::forModel(Subscription::class)))
+            ->toBe(['subscriptions.renewal_date', 'subscriptions.trial_end_date'])
+            ->and(DeadlineSources::forModel(PlannedExpense::class))->toBe([]);
+    });
+});
+
+describe('wants a reminder', function (): void {
+    test('every kind gives the date of its card', function (): void {
+        foreach (DeadlineSources::all() as $source) {
+            inNewFamily(function () use ($source): void {
+                $card = cardOf($source);
+                if ($source->field === 'subscriptions.renewal_date') {
+                    PlannedExpense::factory()->forCard($card)->create(['family_id' => CurrentFamily::id(), 'interval_unit' => IntervalUnit::Year]);
+                }
+
+                expect($source->wants($card, CarbonImmutable::today('Europe/Rome'))?->toDateString())->toBe('2026-12-01', $source->field)
+                    ->and($source->wants(cardOf($source, [$source->column => null]), CarbonImmutable::today('Europe/Rome')))->toBeNull($source->field);
+            });
+        }
+    });
+
+    test('a vehicle sold wants none', function (): void {
+        inNewFamily(function (): void {
+            $roadTax = source('vehicles.road_tax_due_date');
+
+            expect($roadTax->wants(cardOf($roadTax, ['status' => 'sold']), CarbonImmutable::today('Europe/Rome')))->toBeNull();
+        });
+    });
+
+    test('a subscription renews with a reminder only with a yearly fee', function (): void {
+        inNewFamily(function (): void {
+            $renewal = source('subscriptions.renewal_date');
+            $monthly = cardOf($renewal);
+            PlannedExpense::factory()->forCard($monthly)->create(['family_id' => CurrentFamily::id(), 'interval_unit' => IntervalUnit::Month]);
+
+            expect($renewal->wants($monthly, CarbonImmutable::today('Europe/Rome')))->toBeNull()
+                ->and($renewal->wants(cardOf($renewal), CarbonImmutable::today('Europe/Rome')))->toBeNull();
+        });
+    });
+
+    test('a loan paid off wants the last instalment only once it has passed', function (): void {
+        inNewFamily(function (): void {
+            $last = source('loans.end_date');
+            $today = CarbonImmutable::today('Europe/Rome');
+
+            expect($last->wants(cardOf($last, ['status' => LoanStatus::PaidOff, 'end_date' => '2020-03-01']), $today))->toBeNull()
+                ->and($last->wants(cardOf($last, ['status' => LoanStatus::PaidOff, 'end_date' => '2099-01-01']), $today))->toBeNull();
+        });
+    });
+
+    test('an inspection of yesterday wants none, a renewal of yesterday keeps its date', function (): void {
+        inNewFamily(function (): void {
+            $today = CarbonImmutable::today('Europe/Rome');
+            $inspection = source('vehicles.inspection_due_date');
+            $renewal = source('subscriptions.renewal_date');
+            $subscription = cardOf($renewal, ['renewal_date' => '2026-10-13']);
+            PlannedExpense::factory()->forCard($subscription)->create(['family_id' => CurrentFamily::id(), 'interval_unit' => IntervalUnit::Year]);
+
+            expect($inspection->wants(cardOf($inspection, ['inspection_due_date' => '2026-10-13']), $today))->toBeNull()
+                ->and($inspection->wants(cardOf($inspection, ['inspection_due_date' => '2026-10-14']), $today)?->toDateString())->toBe('2026-10-14')
+                ->and($renewal->wants($subscription, $today)?->toDateString())->toBe('2026-10-13');
+        });
+    });
 });
