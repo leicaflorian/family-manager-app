@@ -166,7 +166,8 @@
       "export type AgendaRowLayout = 'agenda' | 'home';"
     ],
     "usedBy": [
-      "pages/Agenda.vue"
+      "pages/Agenda.vue",
+      "pages/Home.vue"
     ]
   },
   {
@@ -542,7 +543,6 @@
       "pages/Agenda.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
-      "pages/Home.vue",
       "pages/auth/AcceptInvitation.vue",
       "pages/auth/ConfirmPassword.vue",
       "pages/auth/ForgotPassword.vue",
@@ -1117,7 +1117,9 @@
     "types": [
       "export type ChecklistStep = {"
     ],
-    "usedBy": []
+    "usedBy": [
+      "pages/Home.vue"
+    ]
   },
   {
     "name": "FmConfirm",
@@ -1539,7 +1541,6 @@
     "types": [],
     "usedBy": [
       "components/fm/FmCardFiles.vue",
-      "pages/Home.vue",
       "pages/cards/Card.vue",
       "pages/documents/Documents.vue",
       "pages/family/Organization.vue",
@@ -1583,7 +1584,6 @@
       "pages/Agenda.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
-      "pages/Home.vue",
       "pages/budget/Comparison.vue",
       "pages/budget/Movements.vue",
       "pages/budget/Planned.vue",
@@ -3038,7 +3038,9 @@
     "events": [],
     "slots": [],
     "types": [],
-    "usedBy": []
+    "usedBy": [
+      "pages/Home.vue"
+    ]
   },
   {
     "name": "FmUploadSheet",

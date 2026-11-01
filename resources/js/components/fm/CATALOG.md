@@ -290,7 +290,6 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/Agenda.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
-- `pages/Home.vue`
 - `pages/auth/AcceptInvitation.vue`
 - `pages/auth/ConfirmPassword.vue`
 - `pages/auth/ForgotPassword.vue`
@@ -532,7 +531,6 @@ below, what can be done.
 - `pages/Agenda.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
-- `pages/Home.vue`
 - `pages/budget/Comparison.vue`
 - `pages/budget/Movements.vue`
 - `pages/budget/Planned.vue`
@@ -1463,6 +1461,7 @@ export type AgendaRowLayout = 'agenda' | 'home';
 ### Used by
 
 - `pages/Agenda.vue`
+- `pages/Home.vue`
 
 ## FmCardRow
 
@@ -1590,7 +1589,6 @@ top of *A person*.
 ### Used by
 
 - `components/fm/FmCardFiles.vue`
-- `pages/Home.vue`
 - `pages/cards/Card.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organization.vue`
@@ -2764,6 +2762,10 @@ is due and how to begin.
 <FmTotal :total="0" :payments="0" :late="0" />
 ```
 
+### Used by
+
+- `pages/Home.vue`
+
 ## FmDocumentActions
 
 `resources/js/components/fm/FmDocumentActions.vue`
@@ -3121,6 +3123,10 @@ export type ChecklistStep = {
 <!-- One done -->
 <FmChecklist :steps="steps" />
 ```
+
+### Used by
+
+- `pages/Home.vue`
 
 ## FmDocumentDetail
 

@@ -880,5 +880,17 @@
     ":amount outgoing": ":amount in uscita",
     "Deadlines passed in the last three months: renew them, or update the date on the card.": "Scadenze passate degli ultimi tre mesi: va fatto il rinnovo, o aggiornata la data sulla scheda.",
     "Payments show from today on: the late ones are on the Home.": "I pagamenti compaiono da oggi in avanti: quelli già scaduti stanno in Home.",
-    "No entries with these filters": "Nessuna voce con questi filtri"
+    "No entries with these filters": "Nessuna voce con questi filtri",
+    "The deadlines": "Le scadenze",
+    "Incoming": "In arrivo",
+    "See everything in the Agenda": "Vedi tutto nell'Agenda",
+    "Salaries and other incomes show here when you add the card of a job.": "Gli stipendi e le altre entrate compaiono qui quando aggiungi la scheda di un lavoro.",
+    "The bills of the house": "Le bollette di casa",
+    "Electricity, gas, water and internet are already in the areas": "Luce, gas, acqua e internet sono già nelle aree",
+    "Upload the first bill": "Carica la prima bolletta",
+    "Take a photo or choose the PDF": "Fai una foto o scegli il PDF",
+    "Add the car, a policy or a subscription": "Aggiungi l'auto, una polizza o un abbonamento",
+    "Every item is a card, with its deadlines": "Ogni cosa è una scheda, con le sue scadenze",
+    "Invite :name": "Invita :name",
+    "So they get the alerts too": "Così ricevono gli avvisi anche loro"
 }

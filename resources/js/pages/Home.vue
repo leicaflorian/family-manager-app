@@ -1,55 +1,90 @@
 <script setup lang="ts">
 /**
- * The *Home*, for now with three sections: the files waiting for their
- * document (the first five, with *Finish* that opens *Upload*), the documents
- * expiring (within 60 days or already expired, the most urgent first) and the
- * last five uploaded. Without documents it invites to upload the first one; the
- * files waiting show anyway. The payments and the next deadline come with stage 3.
+ * The *Home*: the day and the greeting, the files waiting for their document
+ * (on top, only when there are some), the blue box with what to pay in the
+ * next 30 days and the list of the deadlines, the incomes on their way and,
+ * for a new family, *To begin*. One column on the phone, two from the
+ * computer: the box and the deadlines on the left, the incomes on the right.
+ * The recently uploaded documents, the mail and *Something is missing* come
+ * with their own items.
  */
 import { Head } from '@inertiajs/vue3';
-import { FileText } from '@lucide/vue';
-import { getActiveLanguage } from 'laravel-vue-i18n';
+import { getActiveLanguage, trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
-import FmButton from '@/components/fm/FmButton.vue';
+import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
+import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
 import FmCard from '@/components/fm/FmCard.vue';
-import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
-import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmChecklist from '@/components/fm/FmChecklist.vue';
 import FmFileTile from '@/components/fm/FmFileTile.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
+import FmTotal from '@/components/fm/FmTotal.vue';
 import { formatLongDate, formatSize } from '@/lib/format';
-import { upload } from '@/routes';
-import { show } from '@/routes/documents';
+import { agenda, areas, upload } from '@/routes';
+import { create as newCard } from '@/routes/cards';
+import { create as invite } from '@/routes/family/invitations';
 
-const {
-    firstName,
-    today,
-    expiring,
-    recent,
-    hasDocuments,
-    pending,
-    pendingCount,
-} = defineProps<{
-    /** The first name of whoever signed in. */
-    firstName: string;
-    /** The date of today on the server, ISO: tells the expired documents. */
-    today: string;
-    /** The documents expiring or expired, the most urgent first. */
-    expiring: App.Data.DocumentData[];
-    /** The last documents uploaded, the most recent first. */
-    recent: App.Data.DocumentData[];
-    /** The family has at least one document. */
-    hasDocuments: boolean;
-    /** The first files waiting for their document, the oldest first. */
-    pending: App.Data.PendingFileData[];
-    /** How many files wait in all, also beyond the ones in `pending`. */
-    pendingCount: number;
+const { home } = defineProps<{
+    /** What the Home shows, as the server sends it. */
+    home: App.Data.HomeData;
 }>();
 
-const day = computed(() => formatLongDate(today, getActiveLanguage()));
+const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
 
 /** The files waiting that the section does not show. */
-const morePending = computed(() => pendingCount - pending.length);
+const morePending = computed(() => home.pending_count - home.pending.length);
+
+/**
+ * The step of *To begin* for a step of the server: its text and where it leads.
+ *
+ * @param step - the step, with the name to invite for `invite`
+ * @returns the step for `FmChecklist`
+ */
+function toStep(step: App.Data.ChecklistStepData): ChecklistStep {
+    const done = step.done;
+
+    switch (step.key) {
+        case 'utilities':
+            return {
+                title: trans('The bills of the house'),
+                subtitle: trans(
+                    'Electricity, gas, water and internet are already in the areas',
+                ),
+                href: areas().url,
+                done,
+            };
+        case 'first_bill':
+            return {
+                title: trans('Upload the first bill'),
+                subtitle: trans('Take a photo or choose the PDF'),
+                href: upload().url,
+                done,
+            };
+        case 'card':
+            return {
+                title: trans('Add the car, a policy or a subscription'),
+                subtitle: trans('Every item is a card, with its deadlines'),
+                href: newCard().url,
+                done,
+            };
+        default:
+            return {
+                title:
+                    step.name === null
+                        ? trans('Invite a family member')
+                        : trans('Invite :name', { name: step.name }),
+                subtitle: trans('So they get the alerts too'),
+                href: invite().url,
+                done,
+            };
+    }
+}
+
+/** The steps of *To begin*; empty when all are done. */
+const steps = computed(() => home.checklist.map(toStep));
+
+/** Whether the family is still beginning: the incomes tell how they will show. */
+const beginning = computed(() => steps.value.length > 0);
 </script>
 
 <template>
@@ -59,18 +94,18 @@ const morePending = computed(() => pendingCount - pending.length);
         <div class="flex flex-col gap-1">
             <span class="text-sm text-ink-soft lg:text-[15px]">{{ day }}</span>
             <h1 class="m-0 text-[28px] font-extrabold lg:text-[32px]">
-                {{ $t('Hi, :name', { name: firstName }) }}
+                {{ $t('Hi, :name', { name: home.first_name }) }}
             </h1>
         </div>
 
-        <FmCard v-if="pendingCount > 0" :title="$t('Waiting')" list>
+        <FmCard v-if="home.pending_count > 0" :title="$t('Waiting')" list>
             <template #actions>
                 <FmSectionLink :href="upload().url">{{
                     $t('Finish')
                 }}</FmSectionLink>
             </template>
             <FmRow
-                v-for="file in pending"
+                v-for="file in home.pending"
                 :key="file.id"
                 :title="file.title"
                 :subtitle="formatSize(file.size)"
@@ -88,54 +123,68 @@ const morePending = computed(() => pendingCount - pending.length);
                     $tChoice(
                         '{1} +:count more|[2,*] +:count more',
                         morePending,
-                        {
-                            count: String(morePending),
-                        },
+                        { count: String(morePending) },
                     )
                 }}
             </p>
         </FmCard>
 
-        <FmEmpty
-            v-if="!hasDocuments"
-            :icon="FileText"
-            :title="$t('No documents, for now')"
-            :text="
-                $t(
-                    'Upload a bill, a payslip or the identity card: you will find them here, with their expiry.',
-                )
-            "
-        >
-            <FmButton :href="upload().url">{{
-                $t('Upload the first document')
-            }}</FmButton>
-        </FmEmpty>
+        <div class="grid gap-5 lg:grid-cols-5 lg:items-start lg:gap-6">
+            <div class="flex flex-col gap-5 lg:col-span-3">
+                <FmTotal
+                    :total="home.total"
+                    :payments="home.payments"
+                    :late="home.late"
+                />
 
-        <div v-else class="grid gap-5 lg:grid-cols-2 lg:items-start">
-            <FmCard :title="$t('Expiring')" :list="expiring.length > 0">
-                <FmDocumentRow
-                    v-for="document in expiring"
-                    :key="document.id"
-                    :document="document"
-                    :href="show.url(document.id)"
-                    :today="today"
-                    expiry
-                />
-                <p
-                    v-if="expiring.length === 0"
-                    class="m-0 text-[15px] text-ink-soft"
+                <FmCard
+                    v-if="home.entries.length > 0"
+                    :title="$t('The deadlines')"
+                    list
                 >
-                    {{ $t('Nothing expires in the next 60 days.') }}
-                </p>
-            </FmCard>
-            <FmCard :title="$t('Recently uploaded')" list>
-                <FmDocumentRow
-                    v-for="document in recent"
-                    :key="document.id"
-                    :document="document"
-                    :href="show.url(document.id)"
-                />
-            </FmCard>
+                    <FmAgendaRow
+                        v-for="entry in home.entries"
+                        :key="entry.key"
+                        :entry="entry"
+                        layout="home"
+                    />
+                    <template v-if="home.more" #actions>
+                        <FmSectionLink :href="agenda().url">{{
+                            $t('See everything in the Agenda')
+                        }}</FmSectionLink>
+                    </template>
+                </FmCard>
+
+                <FmChecklist v-if="beginning" :steps="steps" />
+            </div>
+
+            <div
+                v-if="home.incoming.length > 0 || beginning"
+                class="flex flex-col gap-5 lg:col-span-2"
+                :class="{ 'max-lg:hidden': home.incoming.length === 0 }"
+            >
+                <FmCard
+                    v-if="home.incoming.length > 0"
+                    :title="$t('Incoming')"
+                    list
+                >
+                    <FmAgendaRow
+                        v-for="entry in home.incoming"
+                        :key="entry.key"
+                        :entry="entry"
+                        layout="home"
+                    />
+                </FmCard>
+                <FmCard v-else :title="$t('Incoming')">
+                    <p class="m-0 text-[15px] text-ink-soft">
+                        {{
+                            $t(
+                                'Salaries and other incomes show here when you add the card of a job.',
+                            )
+                        }}
+                    </p>
+                </FmCard>
+            </div>
         </div>
     </div>
 </template>

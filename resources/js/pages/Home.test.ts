@@ -1,22 +1,8 @@
 import { screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { healthCard, pendingPayslip } from '@/test/fixtures';
+import { agendaEntries, pendingPayslip } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Home from './Home.vue';
-
-const policy = {
-    ...healthCard,
-    id: 20,
-    title: 'Polizza RC auto 2026',
-    expiry_date: '2026-11-20',
-};
-const bill = {
-    ...healthCard,
-    id: 1,
-    title: 'Bolletta luce di ottobre',
-    date: '2026-10-26',
-    expiry_date: null,
-};
 
 const photo = {
     ...pendingPayslip,
@@ -27,126 +13,169 @@ const photo = {
     url: '/files/13',
     title: 'IMG_2041',
 };
-const home = {
-    firstName: 'Marco',
+
+/** The Home of the Bianchi on 26/10/2026, as the server sends it. */
+const home: App.Data.HomeData = {
+    first_name: 'Marco',
     today: '2026-10-26',
-    expiring: [],
-    recent: [bill],
-    hasDocuments: true,
+    total: 1488.79,
+    payments: 8,
+    late: 1,
+    entries: agendaEntries.filter((entry) => entry.kind !== 'income'),
+    more: false,
+    incoming: agendaEntries.filter((entry) => entry.kind === 'income'),
+    pending: [],
+    pending_count: 0,
+    checklist: [],
+};
+
+/** The Home of a new family: nothing to pay, four steps to begin. */
+const newFamily: App.Data.HomeData = {
+    ...home,
+    total: 0,
+    payments: 0,
+    late: 0,
+    entries: [],
+    incoming: [],
+    checklist: [
+        { key: 'utilities', done: true, name: null },
+        { key: 'first_bill', done: false, name: null },
+        { key: 'card', done: false, name: null },
+        { key: 'invite', done: false, name: 'Laura' },
+    ],
 };
 
 describe('Home', () => {
-    it('greets with the day, then the documents expiring and the last uploaded', () => {
-        renderPage(Home, {
-            ...home,
-            expiring: [healthCard, policy],
-            pending: [],
-            pendingCount: 0,
-        });
+    it('greets with the day and the first name', () => {
+        renderPage(Home, { home });
 
         expect(screen.getByText('Monday 26 October 2026')).toBeInTheDocument();
         expect(
             screen.getByRole('heading', { name: 'Hi, Marco', level: 1 }),
         ).toBeInTheDocument();
-        const expiring = screen
-            .getByRole('heading', { name: 'Expiring' })
+    });
+
+    it('shows the total and the deadlines, the late one first', () => {
+        renderPage(Home, { home });
+
+        const total = screen.getByRole('region', {
+            name: 'To pay in the next 30 days',
+        });
+        expect(total).toHaveTextContent('1.488,79');
+        expect(total).toHaveTextContent('8 payments, one already late');
+        const deadlines = screen
+            .getByRole('heading', { name: 'The deadlines' })
             .closest('section') as HTMLElement;
-        const rows = within(expiring).getAllByRole('link');
-        expect(rows[0]).toHaveTextContent('Tessera sanitaria');
-        expect(within(rows[0]).getByText('Expired on 20/10/2026')).toHaveClass(
-            'text-overdue',
-        );
-        expect(within(rows[1]).getByText('Expires on 20/11/2026')).toHaveClass(
-            'text-warning',
-        );
-        const recent = screen
-            .getByRole('heading', { name: 'Recently uploaded' })
-            .closest('section') as HTMLElement;
+        const rows = within(deadlines).getAllByRole('link');
+        expect(rows).toHaveLength(10);
+        expect(rows[0]).toHaveTextContent('Tessera sanitaria di Giulia');
+        expect(rows[0]).toHaveTextContent(/Late by \d+ days/);
+    });
+
+    it('offers the Agenda only when there are more than the ones shown', () => {
+        const view = renderPage(Home, { home });
         expect(
-            within(recent).getByRole('link', {
-                name: /Bolletta luce di ottobre/,
+            screen.queryByRole('link', {
+                name: 'See everything in the Agenda',
             }),
-        ).toHaveAttribute('href', '/documents/1');
-    });
-
-    it('says so when nothing expires', () => {
-        renderPage(Home, { ...home, pending: [], pendingCount: 0 });
-
-        expect(
-            screen.getByText('Nothing expires in the next 60 days.'),
-        ).toBeInTheDocument();
-    });
-
-    it('without documents invites to upload the first', () => {
-        renderPage(Home, {
-            firstName: 'Marco',
-            today: '2026-10-26',
-            expiring: [],
-            recent: [],
-            hasDocuments: false,
-            pending: [],
-            pendingCount: 0,
-        });
-
-        expect(
-            screen.getByRole('link', { name: 'Upload the first document' }),
-        ).toHaveAttribute('href', '/upload');
-        expect(
-            screen.queryByRole('heading', { name: 'Expiring' }),
         ).not.toBeInTheDocument();
+        view.unmount();
+
+        renderPage(Home, { home: { ...home, more: true } });
+        expect(
+            screen.getByRole('link', { name: 'See everything in the Agenda' }),
+        ).toHaveAttribute('href', '/agenda');
     });
 
-    it('shows the files waiting, with their size, and Finish opens Upload', () => {
-        renderPage(Home, {
-            ...home,
-            pending: [pendingPayslip, photo],
-            pendingCount: 2,
-        });
+    it('shows the incomes on their way after the deadlines', () => {
+        renderPage(Home, { home });
 
+        const incoming = screen
+            .getByRole('heading', { name: 'Incoming' })
+            .closest('section') as HTMLElement;
+        expect(
+            within(incoming).getByText('Stipendio di Marco'),
+        ).toBeInTheDocument();
+        expect(
+            within(incoming).getByText('Stipendio di Laura'),
+        ).toBeInTheDocument();
+        const headings = screen
+            .getAllByRole('heading', { level: 2 })
+            .map((heading) => heading.textContent);
+        expect(headings.indexOf('Incoming')).toBeGreaterThan(
+            headings.indexOf('The deadlines'),
+        );
+    });
+
+    it('shows the files waiting on top, only when there are some', () => {
+        const view = renderPage(Home, { home });
+        expect(
+            screen.queryByRole('heading', { name: 'Waiting' }),
+        ).not.toBeInTheDocument();
+        view.unmount();
+
+        renderPage(Home, {
+            home: {
+                ...home,
+                pending: [pendingPayslip, photo],
+                pending_count: 7,
+            },
+        });
         const waiting = screen
             .getByRole('heading', { name: 'Waiting' })
             .closest('section') as HTMLElement;
         expect(
             within(waiting).getByText('Busta paga novembre 2026'),
         ).toBeInTheDocument();
-        expect(within(waiting).getByText('117 KB')).toBeInTheDocument();
-        expect(within(waiting).getByText('IMG_2041')).toBeInTheDocument();
         expect(within(waiting).getByText('1,2 MB')).toBeInTheDocument();
-        const finish = within(waiting).getByRole('link', { name: 'Finish' });
-        expect(finish).toHaveAttribute('href', '/upload');
-        expect(finish).toHaveClass('font-normal', 'hover:underline');
-        expect(within(waiting).queryByText(/more/)).not.toBeInTheDocument();
-    });
-
-    it('says how many more files wait beyond the ones shown', () => {
-        renderPage(Home, {
-            ...home,
-            pending: [pendingPayslip, photo],
-            pendingCount: 7,
-        });
-
-        expect(screen.getByText('+5 more')).toBeInTheDocument();
-    });
-
-    it('shows the files waiting even before the first document', () => {
-        renderPage(Home, {
-            ...home,
-            recent: [],
-            hasDocuments: false,
-            pending: [pendingPayslip],
-            pendingCount: 1,
-        });
-
+        expect(within(waiting).getByText('+5 more')).toBeInTheDocument();
         expect(
-            screen.getByRole('heading', { name: 'Waiting' }),
+            within(waiting).getByRole('link', { name: 'Finish' }),
+        ).toHaveAttribute('href', '/upload');
+        const headings = screen
+            .getAllByRole('heading', { level: 2 })
+            .map((heading) => heading.textContent);
+        expect(headings[0]).toBe('Waiting');
+    });
+
+    it('guides a new family: 0,00 €, the steps to begin and the empty incomes', () => {
+        renderPage(Home, { home: newFamily });
+
+        const total = screen.getByRole('region', {
+            name: 'To pay in the next 30 days',
+        });
+        expect(total).toHaveTextContent('0,00');
+        expect(
+            screen.queryByRole('heading', { name: 'The deadlines' }),
+        ).not.toBeInTheDocument();
+        const begin = screen
+            .getByRole('heading', { name: 'To begin' })
+            .closest('section') as HTMLElement;
+        const links = within(begin).getAllByRole('link');
+        expect(links.map((link) => link.getAttribute('href'))).toEqual([
+            '/areas',
+            '/upload',
+            '/cards/create',
+            '/family/invite',
+        ]);
+        expect(
+            within(begin).getByText('Take a photo or choose the PDF'),
+        ).toBeInTheDocument();
+        expect(
+            within(begin).getByRole('link', { name: /Invite Laura/ }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'Salaries and other incomes show here when you add the card of a job.',
+            ),
         ).toBeInTheDocument();
     });
 
-    it('without files waiting has no panel for them', () => {
-        renderPage(Home, { ...home, pending: [], pendingCount: 0 });
+    it('has no steps to begin once all are done', () => {
+        renderPage(Home, { home });
 
         expect(
-            screen.queryByRole('heading', { name: 'Waiting' }),
+            screen.queryByRole('heading', { name: 'To begin' }),
         ).not.toBeInTheDocument();
     });
 });
