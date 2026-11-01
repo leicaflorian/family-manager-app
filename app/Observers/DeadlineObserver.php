@@ -6,7 +6,9 @@ namespace App\Observers;
 
 use App\Actions\Reminders\SyncReminders;
 use App\Support\CurrentFamily;
+use App\Support\Reminders\Expiries;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -23,6 +25,26 @@ final readonly class DeadlineObserver
      * @param  SyncReminders  $sync  Writes the reminders.
      */
     public function __construct(private SyncReminders $sync) {}
+
+    /**
+     * The card is about to be saved: one that is already past its date takes its expired status now, so it is not
+     * saved active until the morning round.
+     *
+     * @param  Model  $card  the card
+     */
+    public function saving(Model $card): void
+    {
+        $expiry = Expiries::for($card::class);
+        $date = $expiry === null ? null : $card->getAttribute($expiry['column']);
+
+        if ($expiry === null || ! $date instanceof CarbonInterface || $card->getAttribute('status') !== $expiry['from']) {
+            return;
+        }
+
+        if ($date->toDateString() < CarbonImmutable::today('Europe/Rome')->toDateString()) {
+            $card->setAttribute('status', $expiry['to']);
+        }
+    }
 
     /**
      * The card was created or changed.
