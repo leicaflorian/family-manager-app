@@ -298,9 +298,16 @@ describe('wants a reminder', function (): void {
         inNewFamily(function (): void {
             $last = source('loans.end_date');
             $today = CarbonImmutable::today('Europe/Rome');
+            $passed = cardOf($last, ['status' => LoanStatus::PaidOff, 'end_date' => '2020-03-01']);
+            $future = cardOf($last, ['status' => LoanStatus::PaidOff, 'end_date' => '2099-01-01']);
+            $active = cardOf($last, ['end_date' => '2099-01-01']);
 
-            expect($last->wants(cardOf($last, ['status' => LoanStatus::PaidOff, 'end_date' => '2020-03-01']), $today))->toBeNull()
-                ->and($last->wants(cardOf($last, ['status' => LoanStatus::PaidOff, 'end_date' => '2099-01-01']), $today))->toBeNull();
+            // The query selects a paid-off loan only when its last instalment is behind.
+            expect($last->query($today)->pluck('id')->map(fn (mixed $id): int => (int) $id)->all())->toEqualCanonicalizing([$passed->getKey(), $active->getKey()])
+                // A passed date is before today, so no reminder; an active loan with a future date gets one.
+                ->and($last->wants($passed, $today))->toBeNull()
+                ->and($last->wants($future, $today))->toBeNull()
+                ->and($last->wants($active, $today)?->toDateString())->toBe('2099-01-01');
         });
     });
 
