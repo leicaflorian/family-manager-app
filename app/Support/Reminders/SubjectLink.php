@@ -6,6 +6,7 @@ namespace App\Support\Reminders;
 
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Models\Person;
 use App\Support\Linkables;
 use App\Support\ModelId;
 use Illuminate\Database\Eloquent\Model;
@@ -17,13 +18,23 @@ use Illuminate\Database\Eloquent\Model;
 final class SubjectLink
 {
     /**
-     * The record a written reminder can refer to: the ones a document can link to (the cards, the expenses, the incomes).
+     * The records a written reminder can refer to: a card, a document or a person.
      *
      * @return list<string> the morph aliases
      */
     public static function types(): array
     {
-        return array_keys(Linkables::WITH_DOCUMENTS);
+        return [...self::cardTypes(), 'document', 'person'];
+    }
+
+    /**
+     * The card types: the records a document links to, without the expenses and the incomes.
+     *
+     * @return list<string> the morph aliases
+     */
+    public static function cardTypes(): array
+    {
+        return array_values(array_diff(array_keys(Linkables::WITH_DOCUMENTS), ['expense', 'income']));
     }
 
     /**
@@ -51,6 +62,7 @@ final class SubjectLink
     public static function name(Model $subject): string
     {
         return match (true) {
+            $subject instanceof Person => trim("{$subject->first_name} {$subject->last_name}"),
             method_exists($subject, 'label') => (string) $subject->label(),
             isset($subject->title) => (string) $subject->title,
             default => '',
@@ -68,6 +80,7 @@ final class SubjectLink
     {
         return match (true) {
             CardTypes::find($type) instanceof CardType => route('cards.show', ['type' => $type, 'id' => ModelId::of($subject)], $absolute),
+            $type === 'person' => route('people.show', ['person' => ModelId::of($subject)], $absolute),
             $type === 'document' => route('documents.show', ['document' => ModelId::of($subject)], $absolute),
             default => null,
         };

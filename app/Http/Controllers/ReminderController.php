@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Reminders\SaveReminder;
+use App\Data\LinkGroupData;
 use App\Data\OptionData;
 use App\Data\RemindersPageData;
 use App\Http\Requests\Reminders\SaveReminderRequest;
+use App\Models\Document;
 use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
@@ -125,7 +127,31 @@ final class ReminderController extends Controller
             'remindable' => $remindable,
             'people' => BudgetFormOptions::people(),
             'groups' => ReminderGroup::query()->orderBy('name')->get()->map(static fn (ReminderGroup $group): OptionData => new OptionData((string) ModelId::of($group), $group->name))->all(),
-            'links' => resolve(DocumentLinks::class)->groups(),
+            'links' => $this->links(),
         ]);
+    }
+
+    /**
+     * The things a reminder can refer to, grouped by type: the cards, then the documents and the people.
+     *
+     * @return list<LinkGroupData>
+     */
+    private function links(): array
+    {
+        $cards = array_values(array_filter(
+            resolve(DocumentLinks::class)->groups(),
+            static fn (LinkGroupData $group): bool => in_array($group->type, SubjectLink::cardTypes(), true),
+        ));
+        $documents = [];
+
+        foreach (Document::query()->orderBy('title')->get() as $document) {
+            $documents[] = new OptionData((string) ModelId::of($document), $document->title);
+        }
+
+        return [
+            ...$cards,
+            ...($documents === [] ? [] : [new LinkGroupData('document', __('Documents'), $documents)]),
+            new LinkGroupData('person', __('People'), BudgetFormOptions::people()),
+        ];
     }
 }

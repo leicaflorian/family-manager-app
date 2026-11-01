@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\ReminderStatus;
 use App\Enums\Role;
+use App\Models\Document;
 use App\Models\Family;
 use App\Models\Person;
 use App\Models\Reminder;
@@ -279,4 +280,36 @@ test('a renewal that cannot be confirmed answers with an error on the status', f
     ]));
 
     $this->actingAs($this->marco)->post("/reminders/{$reminder->id}/done")->assertSessionHasErrors('status');
+});
+
+test('a reminder refers to a document or a person, and keeps it when it is saved again', function (): void {
+    $document = insideBianchi(fn (): Document => Document::query()->where('title', 'Tessera sanitaria')->sole());
+    $laura = insideBianchi(fn (): Person => Person::query()->where('first_name', 'Laura')->sole());
+    $reminder = handWrittenReminder();
+    $this->actingAs($this->marco);
+
+    $this->put("/reminders/{$reminder->id}", ['title' => 'Pagare il bollo', 'due_date' => '2026-11-20', 'remindable' => "document:{$document->id}"])->assertRedirect('/reminders');
+    $this->put("/reminders/{$reminder->id}", ['title' => 'Pagare il bollo 2', 'due_date' => '2026-11-20', 'remindable' => "document:{$document->id}"])->assertRedirect('/reminders');
+    $this->post('/reminders', ['title' => 'Per Laura', 'due_date' => '2026-12-01', 'remindable' => "person:{$laura->id}"])->assertRedirect('/reminders');
+
+    $row = collect(remindersPage($this->marco)['open'])->firstWhere('title', 'Per Laura');
+    $types = collect($this->get('/reminders/create')->viewData('page')['props']['links'])->pluck('type');
+
+    expect($row['subject']['type'])->toBe('person')
+        ->and($row['subject']['label'])->toBe('Laura Bianchi')
+        ->and($row['subject']['href'])->toBe("/family/people/{$laura->id}")
+        ->and(insideBianchi(fn (): ?string => Reminder::query()->findOrFail($reminder->id)->link?->remindable_type))->toBe('document')
+        ->and($types)->toContain('document', 'person')
+        ->and($types)->not->toContain('expense', 'income');
+});
+
+test('an expense is not something a reminder refers to', function (): void {
+    $this->actingAs($this->marco)->post('/reminders', ['title' => 'x', 'due_date' => '2026-12-01', 'remindable' => 'expense:1'])->assertSessionHasErrors('remindable');
+});
+
+test('the title of an automatic reminder is in the language of whoever looks', function (): void {
+    $page = $this->actingAs($this->marco)->withHeader('Accept-Language', 'it')->get('/reminders')->assertOk()->viewData('page')['props']['reminders'];
+    $health = collect($page['open'])->firstWhere('is_automatic', true);
+
+    expect($health['title'])->toBe('Rinnovare il documento');
 });
