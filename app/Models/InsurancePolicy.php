@@ -7,9 +7,11 @@ namespace App\Models;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\InsurancePolicyType;
 use App\Models\Concerns\HasDocuments;
+use App\Observers\DeadlineObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\InsurancePolicyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -53,6 +55,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'type', 'status', 'policy_number', 'organization_id', 'person_id', 'vehicle_id', 'employment_id', 'home_id', 'start_date', 'expiry_date', 'notes'])]
+#[ObservedBy(DeadlineObserver::class)]
 final class InsurancePolicy extends FamilyModel
 {
     use HasDocuments;

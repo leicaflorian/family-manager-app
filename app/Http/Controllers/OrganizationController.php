@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Files\ReplaceImage;
+use App\Actions\Reminders\ForgetRemindable;
 use App\Data\FamilySummaryData;
 use App\Data\OptionData;
 use App\Data\OrganizationData;
@@ -17,6 +18,7 @@ use App\Queries\DocumentRows;
 use App\Services\LinkedRecords;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -104,11 +106,14 @@ final class OrganizationController extends Controller
      * Deletes the organization (only an `admin`): its documents and records
      * stay, without the organization.
      */
-    public function destroy(Organization $organization): RedirectResponse
+    public function destroy(Organization $organization, ForgetRemindable $forget): RedirectResponse
     {
         Gate::authorize('delete', $organization);
 
-        $organization->delete();
+        DB::transaction(function () use ($organization, $forget): void {
+            $organization->delete();
+            $forget->handle($organization);
+        });
 
         return to_route('organizations.index');
     }

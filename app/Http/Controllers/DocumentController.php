@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Documents\ChangeFile;
+use App\Actions\Reminders\ForgetRemindable;
 use App\Data\DocumentData;
 use App\Data\DocumentDetailData;
 use App\Http\Requests\Documents\ChangeFileRequest;
@@ -143,13 +144,15 @@ final class DocumentController extends Controller
      * @param  Document  $document  the document
      * @param  FileStore  $store  where the files are kept
      */
-    public function destroy(Request $request, Document $document, FileStore $store): RedirectResponse
+    public function destroy(Request $request, Document $document, FileStore $store, ForgetRemindable $forget): RedirectResponse
     {
         Gate::authorize('delete', $document);
 
-        DB::transaction(function () use ($document, $store): void {
+        DB::transaction(function () use ($document, $store, $forget): void {
             $this->links->sync($document, []);
+            // The deleted document takes its open automatic reminders with it (DeadlineObserver) through their rows, so the rows go after.
             $document->delete();
+            $forget->handle($document);
             $store->delete($document->file);
         });
 

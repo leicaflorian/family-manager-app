@@ -6,9 +6,11 @@ namespace App\Models;
 
 use App\Enums\BelongingStatus;
 use App\Models\Concerns\HasDocuments;
+use App\Observers\DeadlineObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\BelongingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -50,6 +52,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'brand', 'model', 'home_id', 'organization_id', 'purchase_date', 'purchase_price', 'warranty_expiry_date', 'notes'])]
+#[ObservedBy(DeadlineObserver::class)]
 final class Belonging extends FamilyModel
 {
     use HasDocuments;

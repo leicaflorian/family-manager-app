@@ -6,9 +6,11 @@ namespace App\Models;
 
 use App\Enums\HealthEventType;
 use App\Models\Concerns\HasDocuments;
+use App\Observers\DeadlineObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\HealthEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -47,6 +49,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'type', 'person_id', 'organization_id', 'date', 'next_checkup_date', 'expense_id', 'outcome', 'notes'])]
+#[ObservedBy(DeadlineObserver::class)]
 final class HealthEvent extends FamilyModel
 {
     use HasDocuments;

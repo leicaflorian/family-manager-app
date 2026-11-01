@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\LoanStatus;
 use App\Models\Concerns\HasDocuments;
+use App\Observers\DeadlineObserver;
 use App\Observers\LoanObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\LoanFactory;
@@ -60,7 +61,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'status', 'organization_id', 'person_id', 'financial_account_id', 'total_amount', 'installments_count', 'installment_amount', 'final_installment_amount', 'total_to_pay', 'cost', 'installments_paid', 'installments_left', 'residual_amount', 'start_date', 'end_date', 'notes'])]
-#[ObservedBy(LoanObserver::class)]
+#[ObservedBy([LoanObserver::class, DeadlineObserver::class])]
 final class Loan extends FamilyModel
 {
     use HasDocuments;

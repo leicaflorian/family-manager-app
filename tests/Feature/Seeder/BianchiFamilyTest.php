@@ -298,7 +298,8 @@ test('there are open reminders for the calendar', function (): void {
         $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
         $passport = Reminder::query()->where('title', 'Rinnovare il passaporto di Laura')->sole();
         $service = Reminder::query()->where('title', 'Prenotare il tagliando della Panda')->sole();
-        $tax = Reminder::query()->where('title', 'Pagare il bollo · Panda · scade il 31/01/2027 · manca la spesa prevista')->sole();
+        // Its title is the one the sync writes, since the Panda is saved after the seeder inserted it (the seeder is reworked later in the plan)
+        $tax = Reminder::query()->where('source_field', 'vehicles.road_tax_due_date')->where('due_date', '2027-01-31')->sole();
         $linked = fn (Reminder $reminder): int => DB::table('remindables')->where('reminder_id', $reminder->id)->count();
 
         expect($passport->status)->toBe(ReminderStatus::Open)

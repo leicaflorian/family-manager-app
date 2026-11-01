@@ -233,8 +233,11 @@ test('a payment of 30 days ago is there, one of 31 is not; a deadline 12 months 
     $ids = insideFamilyOf($marco, function () use ($marco): array {
         $recent = agendaPlanned(null, 'Recent bill', 10, '2026-09-26', ['is_recurring' => false]);
         agendaPlanned(null, 'Old bill', 10, '2026-09-25', ['is_recurring' => false]);
-        $near = Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Passport in a year', 'status' => DocumentStatus::Active, 'person_id' => $marco->person->id, 'expiry_date' => '2027-10-26']);
-        Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Passport later', 'status' => DocumentStatus::Active, 'person_id' => $marco->person->id, 'expiry_date' => '2027-10-27']);
+        // Without events: no automatic reminder is born, so the feed shows the bare deadline
+        [$near] = Document::withoutEvents(fn (): array => [
+            Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Passport in a year', 'status' => DocumentStatus::Active, 'person_id' => $marco->person->id, 'expiry_date' => '2027-10-26']),
+            Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Passport later', 'status' => DocumentStatus::Active, 'person_id' => $marco->person->id, 'expiry_date' => '2027-10-27']),
+        ]);
 
         return ['recent' => $recent->id, 'near' => $near->id];
     });

@@ -7,9 +7,11 @@ namespace App\Models;
 use App\Enums\FilingStatus;
 use App\Enums\FilingType;
 use App\Models\Concerns\HasDocuments;
+use App\Observers\DeadlineObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\FilingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -47,6 +49,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @mixin \Eloquent
  */
 #[Fillable(['title', 'type', 'status', 'reference_year', 'person_id', 'organization_id', 'submission_date', 'due_date', 'notes'])]
+#[ObservedBy(DeadlineObserver::class)]
 final class Filing extends FamilyModel
 {
     use HasDocuments;

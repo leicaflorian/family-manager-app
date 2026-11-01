@@ -66,16 +66,15 @@ final readonly class DeadlineSource
     }
 
     /**
-     * The date of a card when it wants a reminder: the date is not empty, the
-     * status is an active one, the condition holds, and the date is today or
-     * later (or any date, for a kind that is overdue). It follows the rules of
-     * `query()` on the one card.
+     * The date of a card while it still has this deadline: the date is not
+     * empty, the status is an active one and the condition holds, whatever the
+     * date. It follows the rules of `query()` on the one card.
      *
      * @param  Model  $card  a card of the model of this kind
      * @param  CarbonImmutable  $today  today in Rome, as the caller has it
-     * @return CarbonImmutable|null the date, or null when the card wants no reminder
+     * @return CarbonImmutable|null the date, or null when the card has no such deadline
      */
-    public function wants(Model $card, CarbonImmutable $today): ?CarbonImmutable
+    public function current(Model $card, CarbonImmutable $today): ?CarbonImmutable
     {
         $value = $card->getAttributes()[$this->column] ?? null;
 
@@ -83,8 +82,22 @@ final readonly class DeadlineSource
             return null;
         }
 
-        $date = CarbonImmutable::parse($value instanceof DateTimeInterface ? $value->format('Y-m-d') : substr(is_string($value) ? $value : '', 0, 10), $today->getTimezone());
+        return CarbonImmutable::parse($value instanceof DateTimeInterface ? $value->format('Y-m-d') : substr(is_string($value) ? $value : '', 0, 10), $today->getTimezone());
+    }
 
-        return $this->overdue || $date->greaterThanOrEqualTo($today->startOfDay()) ? $date : null;
+    /**
+     * The date of a card when it wants a reminder: the card has the deadline
+     * (see `current()`) and the date is today or later (or any date, for a
+     * kind that is overdue).
+     *
+     * @param  Model  $card  a card of the model of this kind
+     * @param  CarbonImmutable  $today  today in Rome, as the caller has it
+     * @return CarbonImmutable|null the date, or null when the card wants no reminder
+     */
+    public function wants(Model $card, CarbonImmutable $today): ?CarbonImmutable
+    {
+        $date = $this->current($card, $today);
+
+        return $date instanceof CarbonImmutable && ($this->overdue || $date->greaterThanOrEqualTo($today->startOfDay())) ? $date : null;
     }
 }

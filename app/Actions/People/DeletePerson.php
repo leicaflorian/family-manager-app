@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\People;
 
+use App\Actions\Reminders\ForgetRemindable;
+use App\Actions\Reminders\SyncReminders;
 use App\Models\Person;
 use App\Support\Linkables;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,12 @@ final readonly class DeletePerson
     private const array OWNED = ['employment', 'health_event', 'enrollment'];
 
     /**
+     * @param  ForgetRemindable  $forget  Takes the person and their records out of the reminders.
+     * @param  SyncReminders  $reminders  Removes the open automatic reminders of the records the database deletes.
+     */
+    public function __construct(private ForgetRemindable $forget, private SyncReminders $reminders) {}
+
+    /**
      * Deletes the person. Their documents and the other records stay, without the person.
      *
      * @param  Person  $person  the person
@@ -36,13 +44,18 @@ final readonly class DeletePerson
             ]);
         }
 
-        DB::transaction(static function () use ($person): void {
+        DB::transaction(function () use ($person): void {
             foreach (self::OWNED as $type) {
-                $ids = Linkables::TYPES[$type]::query()->where('person_id', $person->id)->pluck('id');
-                DB::table('documentables')->where('documentable_type', $type)->whereIn('documentable_id', $ids)->delete();
+                // The database deletes these without events, so their reminders are taken care of here
+                foreach (Linkables::TYPES[$type]::query()->where('person_id', $person->id)->get() as $record) {
+                    DB::table('documentables')->where('documentable_type', $type)->where('documentable_id', $record->id)->delete();
+                    $this->reminders->forget($record);
+                    $this->forget->handle($record);
+                }
             }
 
             $person->delete();
+            $this->forget->handle($person);
         });
     }
 }

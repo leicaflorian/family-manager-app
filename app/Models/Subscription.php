@@ -7,9 +7,11 @@ namespace App\Models;
 use App\Enums\SubscriptionStatus;
 use App\Enums\SubscriptionType;
 use App\Models\Concerns\HasDocuments;
+use App\Observers\DeadlineObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\SubscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -52,6 +54,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'type', 'status', 'organization_id', 'account', 'financial_account_id', 'activation_date', 'renewal_date', 'is_auto_renew', 'trial_end_date', 'manage_url', 'notes', 'person_id'])]
+#[ObservedBy(DeadlineObserver::class)]
 final class Subscription extends FamilyModel
 {
     use HasDocuments;
