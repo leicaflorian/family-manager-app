@@ -79,9 +79,15 @@ The cards of a family (home, utilities, vehicles, insurance policies, loans and 
 
 ## Budget
 
-*Budget* has three tabs: *Movements* (the expenses and incomes of a month), *Planned and spent* (the due dates of the month against what was spent, by category, and the last six months) and *Planned expenses* (the expenses and incomes that repeat). The due dates are not stored: `App\Services\Occurrences` works them out from each planned expense or income and its exceptions, and `App\Services\Deadlines` joins them to the payments. A payment says which due date it settles in `occurrence_date` on `expenses` and `incomes`. *I paid it* (`RecordPayment`) and *Change this due date* (`ChangeOccurrence`) start from a due date; the cards show their own payments (`CardBudgets`). A loan works out its last instalment, total, cost and instalments paid by itself (`LoanSchedule`, `LoanObserver`), when it is saved and every night with `loans:refresh`. Rules and decisions are in the *Bilancio* note of the vault (`02 - Documentazione tecnica/App Laravel/`).
+*Budget* has three tabs: *Movements* (the expenses and incomes of a month), *Planned and spent* (the due dates of the month against what was spent, by category, and the last six months) and *Planned expenses* (the expenses and incomes that repeat). The due dates are not stored: `App\Services\Occurrences` works them out from each planned expense or income and its exceptions, and `App\Services\Deadlines` joins them to the payments. A payment says which due date it settles in `occurrence_date` on `expenses` and `incomes`. *I paid it* (`RecordPayment`) and *Change this due date* (`ChangeOccurrence`) start from a due date; the cards show their own due dates and payments (`CardDueDates`, `CardPaymentFigures`). A loan works out its last instalment, total, cost and instalments paid by itself (`LoanSchedule`, `LoanObserver`), when it is saved and every night with `loans:refresh`. Rules and decisions are in the *Bilancio* note of the vault (`02 - Documentazione tecnica/App Laravel/`).
 
 A family copied from Directus before the `occurrence_date` migration has payments without their due date, so its due dates look late: copy it again with `directus:copy --replace`, which fills them.
+
+## Home, Agenda and calendar
+
+The *Home*, the *Agenda* and the family's calendar read the same list: `App\Services\Agenda` joins the dates of the cards (`App\Cards\DeadlineSources`, read by `App\Queries\CardDeadlines`), the due dates of the planned expenses and incomes, and merges a payment with the card date of the same day. The *Home* takes its numbers from `App\Services\HomeSummary`. The Agenda filters (period, person, areas) are saved on the account (`users.agenda_filters`), so they are the same on the phone and the computer.
+
+The calendar to subscribe to is one secret link per family, `GET /calendar/<secret>.ics`, read without signing in (`App\Services\CalendarFeed`). An admin turns it on, off or changes it in *Settings → Calendar*; a member sees and copies it. The secret is stored encrypted (`families.calendar_token`) and found by its sha256 (`calendar_token_hash`); the texts of the events are in the language saved when it was turned on (`calendar_locale`). Every wrong link answers the same 404. The address is built with `APP_URL`, which online must be the public address. A card date with its automatic reminder is not an event: the open reminder is.
 
 ## Copy from Directus
 
@@ -89,4 +95,4 @@ A family copied from Directus before the `occurrence_date` migration has payment
 
 ## Documentation
 
-Analysis, plan and decisions are in the project's Obsidian vault, ToDo items *Nuova app per le famiglie in Laravel*, *Nuova app - base dell'app*, *Nuova app - le pagine delle schede* and *Nuova app - bilancio e pagamenti*. The approved screens are on the Claude Design board *Family Manager - app per le famiglie*.
+Analysis, plan and decisions are in the project's Obsidian vault, ToDo items *Nuova app per le famiglie in Laravel*, *Nuova app - base dell'app*, *Nuova app - le pagine delle schede*, *Nuova app - bilancio e pagamenti* and *Nuova app - Home e Agenda*. The approved screens are on the Claude Design board *Family Manager - app per le famiglie*.
