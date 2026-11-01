@@ -1,8 +1,8 @@
 import userEvent from '@testing-library/user-event';
-import { render, screen } from '@testing-library/vue';
+import { render, screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import type { ComponentProps } from 'vue-component-type-helpers';
-import { agendaAreas } from '@/test/fixtures';
+import { agendaAreas, agendaPeriods } from '@/test/fixtures';
 import FmAgendaFilters from './FmAgendaFilters.vue';
 
 const people = [
@@ -19,6 +19,7 @@ function props(
         filters: { months: 1, person_id: null, hidden_areas: [] },
         people,
         areas: agendaAreas,
+        periods: agendaPeriods,
         counts: { home: 3, work: 2, general: 2 },
         shown: 10,
         ...change,
@@ -120,5 +121,17 @@ describe('FmAgendaFilters', () => {
         });
 
         expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('offers the periods the server sends, and no others', () => {
+        render(FmAgendaFilters, { props: props({ periods: [1, 6] }) });
+
+        expect(
+            within(
+                screen.getByRole('radiogroup', { name: 'Period' }),
+            ).getAllByRole('radio'),
+        ).toHaveLength(2);
+        expect(screen.getByRole('radio', { name: '6 months' })).toBeVisible();
+        expect(screen.queryByRole('radio', { name: '3 months' })).toBeNull();
     });
 });

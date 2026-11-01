@@ -4,7 +4,7 @@
  * phone (opened with *Open* on the catalogue page).
  */
 import { defineExamples } from '@/catalog/examples';
-import { agendaAreas } from '@/test/fixtures';
+import { agendaAreas, agendaPeriods } from '@/test/fixtures';
 import FmAgendaFilters from './FmAgendaFilters.vue';
 
 const people = [
@@ -30,6 +30,7 @@ export default defineExamples(FmAgendaFilters, [
             filters: { months: 1, person_id: null, hidden_areas: [] },
             people,
             areas: agendaAreas,
+            periods: agendaPeriods,
             counts,
             shown: 12,
         },
@@ -41,6 +42,7 @@ export default defineExamples(FmAgendaFilters, [
             filters: { months: 3, person_id: 2, hidden_areas: ['work'] },
             people,
             areas: agendaAreas,
+            periods: agendaPeriods,
             counts,
             shown: 10,
         },
@@ -53,6 +55,7 @@ export default defineExamples(FmAgendaFilters, [
             filters: { months: 1, person_id: null, hidden_areas: [] },
             people,
             areas: agendaAreas,
+            periods: agendaPeriods,
             counts,
             shown: 12,
         },

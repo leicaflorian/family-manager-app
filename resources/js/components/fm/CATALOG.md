@@ -66,7 +66,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 
 ### Forms
 
-- [FmAgendaFilters](#fmagendafilters) — The filters of the *Agenda*: the period (1, 3, 6 or 12 months), the person and the areas.
+- [FmAgendaFilters](#fmagendafilters) — The filters of the *Agenda*: the period (the months the server offers), the person and the areas.
 - [FmCardForm](#fmcardform) — The form of a card, built from the description the server gives (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and a field shows only when its `show_when` holds, for example the vehicle only for a car policy, and its label can change with `label_when`, for example the POD code of electricity that is a PDR code for gas.
 - [FmCategoryOption](#fmcategoryoption) — A category in the open list of a menu, for the `option` slot of a FormKit autocomplete: the name alone, the subcategories indented under their main category.
 - [FmCategoryTree](#fmcategorytree) — A level of the tree of the categories, of documents or of expenses: each category with, on the right, the number of its documents (or what the `after` slot shows) and, if it has any, the arrow that opens the subcategories.
@@ -2133,7 +2133,7 @@ panel open, with the reason.
 
 `resources/js/components/fm/FmAgendaFilters.vue`
 
-The filters of the *Agenda*: the period (1, 3, 6 or 12 months), the person
+The filters of the *Agenda*: the period (the months the server offers), the person
 and the areas. An area is a button that turns it off: its name is struck
 through and its number stays, so the hidden entries stay counted. On the
 phone (`sheet`) they are a panel from below that ends with *Show 10
@@ -2148,6 +2148,7 @@ keeps the filters: the component only says what the person chose.
 | `filters` | `App.Data.AgendaFiltersData` | yes | — | The filters in use. |
 | `people` | `AgendaFilterPerson[]` | yes | — | The people of the family. |
 | `areas` | `App.Data.OptionData[]` | yes | — | The areas, in order, with the name the server gives them. |
+| `periods` | `number[]` | yes | — | The periods the person can choose, in months, as the server offers them. |
 | `counts` | `Record<string, number>` | yes | — | How many entries each area has for the person chosen, hidden areas too. |
 | `shown` | `number` | yes | — | How many entries the list shows with these filters. |
 | `open` | `boolean` | no | `false` | The panel is open (only for `sheet`). |
@@ -2171,13 +2172,13 @@ export type AgendaFilterPerson = Pick<
 
 ```vue
 <!-- Column -->
-<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :counts="counts" :shown="12" />
+<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="12" />
 
 <!-- Column, filtered -->
-<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :counts="counts" :shown="10" />
+<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="10" />
 
 <!-- Panel -->
-<FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :counts="counts" :shown="12" />
+<FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="12" />
 ```
 
 ### Used by

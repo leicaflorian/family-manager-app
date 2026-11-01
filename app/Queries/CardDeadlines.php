@@ -7,6 +7,7 @@ namespace App\Queries;
 use App\Cards\CardTypes;
 use App\Cards\DeadlineSource;
 use App\Cards\DeadlineSources;
+use App\Data\AgendaData;
 use App\Enums\ReminderStatus;
 use App\Models\Person;
 use App\Models\Reminder;
@@ -105,7 +106,7 @@ final class CardDeadlines
             }
         }
 
-        return 'general';
+        return AgendaData::GENERAL_AREA;
     }
 
     /**

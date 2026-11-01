@@ -40,7 +40,7 @@ afterEach(fn () => Date::setTestNow());
  */
 function turnOnCalendar(User $user, string $locale = 'en'): string
 {
-    return resolve(TurnOnCalendar::class)->handle($user->family, $locale);
+    return (string) resolve(TurnOnCalendar::class)->handle($user->family, $locale);
 }
 
 /**

@@ -79,7 +79,7 @@ final readonly class HomeSummary
     }
 
     /**
-     * The steps of *To begin*, or none when every one is done. Whoever cannot invite has no `invite` step.
+     * The steps of *To begin*, or none when every one is done. Whoever cannot create a card has no `card` step, and whoever cannot invite has no `invite` step.
      *
      * @param  User  $user  whoever signed in
      * @return list<ChecklistStepData>
@@ -89,8 +89,12 @@ final readonly class HomeSummary
         $steps = [
             new ChecklistStepData('utilities', Utility::query()->exists(), null),
             new ChecklistStepData('first_bill', Document::query()->exists(), null),
-            new ChecklistStepData('card', Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists(), null),
         ];
+
+        // Whoever cannot create a card would be sent to a page the policy forbids
+        if (Gate::forUser($user)->allows('create', Vehicle::class)) {
+            $steps[] = new ChecklistStepData('card', Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists(), null);
+        }
 
         if (Gate::forUser($user)->allows('create', Invitation::class)) {
             $steps[] = $this->inviteStep();

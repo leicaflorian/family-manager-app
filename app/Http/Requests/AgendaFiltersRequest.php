@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Data\AgendaData;
 use App\Data\AgendaFiltersData;
-use App\Enums\Area;
 use App\Rules\OfFamily;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,25 +16,12 @@ use Illuminate\Validation\Rule;
  */
 final class AgendaFiltersRequest extends FormRequest
 {
-    /** The area of the entries that belong to no card. */
-    public const string GENERAL_AREA = 'general';
-
     /**
      * Everyone who sees the Agenda keeps their own filters.
      */
     public function authorize(): bool
     {
         return $this->user() !== null;
-    }
-
-    /**
-     * The areas the Agenda shows: the ones of the cards, plus `general`.
-     *
-     * @return list<string>
-     */
-    public static function areas(): array
-    {
-        return [...array_map(static fn (Area $area): string => $area->value, Area::cases()), self::GENERAL_AREA];
     }
 
     /**
@@ -45,10 +32,10 @@ final class AgendaFiltersRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'months' => ['required', 'integer', Rule::in(AgendaRequest::MONTHS)],
+            'months' => ['required', 'integer', Rule::in(AgendaData::PERIODS)],
             'person_id' => ['nullable', 'integer', new OfFamily('people')],
             'hidden_areas' => ['present', 'array'],
-            'hidden_areas.*' => ['string', Rule::in(self::areas())],
+            'hidden_areas.*' => ['string', Rule::in(array_column(AgendaData::areas(), 'value'))],
         ];
     }
 

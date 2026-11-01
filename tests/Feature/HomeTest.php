@@ -263,12 +263,23 @@ test('invite is done once Laura accepts', function (): void {
     expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite'))->toBe(['key' => 'invite', 'done' => true, 'name' => null]);
 });
 
-test('a member has no invite step', function (): void {
+test('a member has no invite step and no card step', function (): void {
     $marco = registerFamily();
     insideFamilyOf($marco, fn () => Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Laura', 'role' => PersonRole::Parent, 'user_id' => null]));
     $member = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
 
-    expect(array_column(homeFor($member)['checklist'], 'key'))->toBe(['utilities', 'first_bill', 'card']);
+    expect(array_column(homeFor($member)['checklist'], 'key'))->toBe(['utilities', 'first_bill']);
+});
+
+test('the checklist of a member is gone when the steps he can do are done', function (): void {
+    $marco = registerFamily();
+    insideFamilyOf($marco, function (): void {
+        Utility::factory()->create(['family_id' => CurrentFamily::id()]);
+        Document::factory()->create(['family_id' => CurrentFamily::id()]);
+    });
+    $member = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
+
+    expect(homeFor($member)['checklist'])->toBe([]);
 });
 
 test('the checklist is gone when every step is done', function (): void {

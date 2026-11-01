@@ -21,16 +21,17 @@ final readonly class TurnOnCalendar
      *
      * @param  Family  $family  the family
      * @param  string  $locale  the language of the page it is turned on in, `en` or `it`
-     * @return string the secret
+     * @return string|null the secret; null when the calendar was already on and its secret cannot be read any more
      *
      * @throws InvalidArgumentException when the language is not one the app is translated into
      */
-    public function handle(Family $family, string $locale): string
+    public function handle(Family $family, string $locale): ?string
     {
         throw_unless(in_array($locale, SetLocale::LOCALES, true), InvalidArgumentException::class, "The calendar has no language {$locale}.");
 
-        if ($family->calendar_token !== null) {
-            return $family->calendar_token;
+        // The hash tells if it is on without decrypting, which throws after the `APP_KEY` changed
+        if ($family->calendar_token_hash !== null) {
+            return $family->calendarSecret();
         }
 
         $family->forceFill(['calendar_locale' => $locale])->save();

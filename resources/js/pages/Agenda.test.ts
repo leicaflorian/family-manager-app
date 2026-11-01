@@ -40,6 +40,7 @@ function agenda(
             people: peopleList,
             filters: { months: 1, person_id: null, hidden_areas: [] },
             areas,
+            periods: [1, 3, 6, 12],
             ...change,
         },
     };

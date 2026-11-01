@@ -15,6 +15,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 final class AgendaData extends Data
 {
+    /** The area of the entries that belong to no card: documents, people and payments of no card. */
+    public const string GENERAL_AREA = 'general';
+
+    /** The periods the Agenda offers, in months. */
+    public const array PERIODS = [1, 3, 6, 12];
+
     /**
      * @param  list<AgendaEntryData>  $entries  the entries, by date and then by title
      * @param  int  $months  the period asked, 1, 3, 6 or 12 months
@@ -23,6 +29,7 @@ final class AgendaData extends Data
      * @param  list<PersonData>  $people  the people of the family
      * @param  AgendaFiltersData  $filters  the filters
      * @param  list<OptionData>  $areas  the ten areas in the order of the board, with the names the Agenda gives them
+     * @param  list<int>  $periods  the periods the person can choose, in months
      */
     public function __construct(
         #[DataCollectionOf(AgendaEntryData::class)]
@@ -35,6 +42,7 @@ final class AgendaData extends Data
         public readonly AgendaFiltersData $filters,
         #[DataCollectionOf(OptionData::class)]
         public readonly array $areas,
+        public readonly array $periods = self::PERIODS,
     ) {}
 
     /**
@@ -47,7 +55,7 @@ final class AgendaData extends Data
     {
         return [
             ...array_map(static fn (Area $area): OptionData => new OptionData($area->value, $area->label()), Area::cases()),
-            new OptionData('general', __('People and documents')),
+            new OptionData(self::GENERAL_AREA, __('People and documents')),
         ];
     }
 }

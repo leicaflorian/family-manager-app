@@ -28,10 +28,10 @@ function spies(): {
  *
  * @param put - the spy on `router.put`
  */
-function finishSave(put: ReturnType<typeof vi.spyOn>): void {
-    const options = put.mock.calls[0]?.[2] as { onSuccess: () => void };
+function finishSave(put: ReturnType<typeof vi.spyOn>, index = 0): void {
+    const options = put.mock.calls[index]?.[2] as { onFinish: () => void };
 
-    options.onSuccess();
+    options.onFinish();
 }
 
 describe('useAgendaFilters', () => {
@@ -44,15 +44,22 @@ describe('useAgendaFilters', () => {
         expect(put).toHaveBeenLastCalledWith(
             '/agenda/filters',
             { months: 1, person_id: null, hidden_areas: ['work'] },
-            { preserveState: true, preserveScroll: true },
+            expect.objectContaining({
+                preserveState: true,
+                preserveScroll: true,
+            }),
         );
 
+        finishSave(put);
         toggleArea('work');
         expect(filters.value.hidden_areas).toEqual([]);
         expect(put).toHaveBeenLastCalledWith(
             '/agenda/filters',
             { months: 1, person_id: null, hidden_areas: [] },
-            { preserveState: true, preserveScroll: true },
+            expect.objectContaining({
+                preserveState: true,
+                preserveScroll: true,
+            }),
         );
     });
 
@@ -64,6 +71,7 @@ describe('useAgendaFilters', () => {
         expect(filters.value.person_id).toBe(2);
         expect(put.mock.calls[0]?.[1]).toMatchObject({ person_id: 2 });
 
+        finishSave(put);
         choosePerson(null);
         expect(filters.value.person_id).toBeNull();
     });
@@ -79,7 +87,10 @@ describe('useAgendaFilters', () => {
         expect(get).toHaveBeenCalledWith(
             '/agenda',
             { months: 3 },
-            { preserveState: true, preserveScroll: true },
+            expect.objectContaining({
+                preserveState: true,
+                preserveScroll: true,
+            }),
         );
     });
 
@@ -102,7 +113,10 @@ describe('useAgendaFilters', () => {
         expect(get).toHaveBeenCalledWith(
             '/agenda',
             { months: 1 },
-            { preserveState: true, preserveScroll: true },
+            expect.objectContaining({
+                preserveState: true,
+                preserveScroll: true,
+            }),
         );
     });
 
@@ -114,5 +128,49 @@ describe('useAgendaFilters', () => {
         finishSave(put);
 
         expect(get).not.toHaveBeenCalled();
+    });
+
+    it('never runs two visits at once: a period chosen during a save waits for it', () => {
+        const { put, get } = spies();
+        const { filters, toggleArea, chooseMonths } = useAgendaFilters(initial);
+
+        toggleArea('work');
+        chooseMonths(3);
+
+        expect(filters.value).toEqual({
+            months: 3,
+            person_id: null,
+            hidden_areas: ['work'],
+        });
+        expect(get).not.toHaveBeenCalled();
+
+        finishSave(put);
+
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(get).toHaveBeenCalledWith(
+            '/agenda',
+            { months: 3 },
+            expect.objectContaining({ preserveState: true }),
+        );
+    });
+
+    it('saves a change made during a period visit after it, with the new period', () => {
+        const { put, get } = spies();
+        const { toggleArea, chooseMonths } = useAgendaFilters(initial);
+
+        chooseMonths(3);
+        toggleArea('work');
+
+        expect(put).not.toHaveBeenCalled();
+
+        const options = get.mock.calls[0]?.[2] as { onFinish: () => void };
+        options.onFinish();
+
+        expect(put).toHaveBeenCalledTimes(1);
+        expect(put.mock.calls[0]?.[1]).toEqual({
+            months: 3,
+            person_id: null,
+            hidden_areas: ['work'],
+        });
     });
 });

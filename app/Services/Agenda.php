@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Cards\CardTypes;
+use App\Data\AgendaData;
 use App\Data\AgendaEntryData;
 use App\Models\Document;
 use App\Models\Person;
@@ -227,7 +228,7 @@ final readonly class Agenda
             date: $payment->occurrence->date->toDateString(),
             title: $deadline instanceof CardDeadline ? $this->deadlineTitle($deadline) : $payment->title,
             subtitle: $card instanceof Model ? $this->cards->label($card) : ($planned->organization->name ?? ''),
-            area: $card instanceof Model ? CardTypes::for($card)->area()->value : 'general',
+            area: $card instanceof Model ? CardTypes::for($card)->area()->value : AgendaData::GENERAL_AREA,
             person_id: $person?->id,
             person: $person?->first_name,
             amount: $payment->occurrence->amount,

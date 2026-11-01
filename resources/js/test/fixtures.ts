@@ -1400,6 +1400,9 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
 ];
 
 /** The ten areas of the Agenda, as the server sends them. */
+/** The periods the server offers, in months. */
+export const agendaPeriods: number[] = [1, 3, 6, 12];
+
 export const agendaAreas: App.Data.OptionData[] = [
     ['home', 'Home'],
     ['vehicles', 'Vehicles'],

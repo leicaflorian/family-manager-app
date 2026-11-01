@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Data\AgendaData;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,9 +13,6 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 final class AgendaRequest extends FormRequest
 {
-    /** The periods the Agenda offers, in months. */
-    public const array MONTHS = [1, 3, 6, 12];
-
     /** The period when the address asks for none, or for one the Agenda does not offer. */
     public const int DEFAULT_MONTHS = 1;
 
@@ -35,7 +33,7 @@ final class AgendaRequest extends FormRequest
     {
         $months = $this->query('months');
 
-        return is_string($months) && in_array($months, array_map(strval(...), self::MONTHS), true)
+        return is_string($months) && in_array($months, array_map(strval(...), AgendaData::PERIODS), true)
             ? (int) $months
             : null;
     }

@@ -7,6 +7,7 @@ use App\Actions\Calendar\TurnOffCalendar;
 use App\Actions\Calendar\TurnOnCalendar;
 use App\Models\Family;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -68,4 +69,15 @@ test('turning on takes only a language of the app', function (): void {
 
     expect(fn (): string => resolve(TurnOnCalendar::class)->handle($family, 'fr'))->toThrow(InvalidArgumentException::class);
     expect($family->refresh()->calendar_token_hash)->toBeNull();
+});
+
+test('turning on a calendar already on whose secret cannot be read returns null and changes nothing', function (): void {
+    $family = Family::factory()->create();
+    resolve(TurnOnCalendar::class)->handle($family, 'it');
+    $hash = $family->refresh()->calendar_token_hash;
+    DB::table('families')->where('id', $family->id)->update(['calendar_token' => 'encrypted-with-another-key']);
+
+    expect(resolve(TurnOnCalendar::class)->handle($family->refresh(), 'en'))->toBeNull()
+        ->and($family->refresh()->calendar_token_hash)->toBe($hash)
+        ->and($family->calendar_locale)->toBe('it');
 });

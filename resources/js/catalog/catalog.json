@@ -63,7 +63,7 @@
   {
     "name": "FmAgendaFilters",
     "path": "resources/js/components/fm/FmAgendaFilters.vue",
-    "description": "The filters of the *Agenda*: the period (1, 3, 6 or 12 months), the person\nand the areas. An area is a button that turns it off: its name is struck\nthrough and its number stays, so the hidden entries stay counted. On the\nphone (`sheet`) they are a panel from below that ends with *Show 10\nentries*; on the computer (`column`) a column beside the list. The page\nkeeps the filters: the component only says what the person chose.",
+    "description": "The filters of the *Agenda*: the period (the months the server offers), the person\nand the areas. An area is a button that turns it off: its name is struck\nthrough and its number stays, so the hidden entries stay counted. On the\nphone (`sheet`) they are a panel from below that ends with *Show 10\nentries*; on the computer (`column`) a column beside the list. The page\nkeeps the filters: the component only says what the person chose.",
     "group": "forms",
     "props": [
       {
@@ -93,6 +93,13 @@
         "required": true,
         "default": null,
         "description": "The areas, in order, with the name the server gives them."
+      },
+      {
+        "name": "periods",
+        "type": "number[]",
+        "required": true,
+        "default": null,
+        "description": "The periods the person can choose, in months, as the server offers them."
       },
       {
         "name": "counts",

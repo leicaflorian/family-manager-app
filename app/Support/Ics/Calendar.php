@@ -19,7 +19,9 @@ final class Calendar
      * The whole calendar. Events last one day (the end is the day after, excluded) and do not mark the day as busy.
      * The refresh interval is a hint: Apple and Outlook follow it, Google Calendar reads the feed when it wants.
      *
-     * @param  list<CalendarEvent>  $events
+     * @param  string  $name  the name the calendar shows in the app that subscribes to it
+     * @param  list<CalendarEvent>  $events  the events, one per reminder
+     * @return string the calendar, with `\r\n` line ends
      */
     public static function render(string $name, array $events): string
     {
@@ -57,6 +59,9 @@ final class Calendar
 
     /**
      * Commas, semicolons, backslashes and line breaks have a meaning in a text value.
+     *
+     * @param  string  $text  the text of the value
+     * @return string the text with its special characters escaped
      */
     public static function escapeText(string $text): string
     {
@@ -68,6 +73,9 @@ final class Calendar
 
     /**
      * A line longer than 75 bytes goes on in the next one, which starts with a space. Characters are never split.
+     *
+     * @param  string  $line  one content line
+     * @return string the line, folded with `\r\n` and a space where it goes on
      */
     public static function fold(string $line): string
     {

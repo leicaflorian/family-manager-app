@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The filters of the *Agenda*: the period (1, 3, 6 or 12 months), the person
+ * The filters of the *Agenda*: the period (the months the server offers), the person
  * and the areas. An area is a button that turns it off: its name is struck
  * through and its number stays, so the hidden entries stay counted. On the
  * phone (`sheet`) they are a panel from below that ends with *Show 10
@@ -38,6 +38,8 @@ const { variant = 'column', filters } = defineProps<{
     people: AgendaFilterPerson[];
     /** The areas, in order, with the name the server gives them. */
     areas: App.Data.OptionData[];
+    /** The periods the person can choose, in months, as the server offers them. */
+    periods: number[];
     /** How many entries each area has for the person chosen, hidden areas too. */
     counts: Record<string, number>;
     /** How many entries the list shows with these filters. */
@@ -60,9 +62,6 @@ const open = defineModel<boolean>('open', { default: false });
 
 /** Makes the radio groups of this instance its own: a column and a sheet may both be on the page. */
 const id = useId();
-
-/** The periods the person can choose, in months. */
-const periods = [1, 3, 6, 12];
 
 /** The panel on the phone, a plain box on the computer, with what each needs. */
 const wrapper = computed(() =>

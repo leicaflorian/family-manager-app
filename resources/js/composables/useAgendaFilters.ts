@@ -44,6 +44,51 @@ export function useAgendaFilters(
         hidden_areas: [...initial.hidden_areas],
     });
 
+    /** Visits waiting for the one on its way; each starts when the one before it finishes. */
+    const queue: Array<() => void> = [];
+    let busy = false;
+
+    /** Starts the next visit in the queue, or frees the line when there is none. */
+    function next(): void {
+        const start = queue.shift();
+
+        busy = start !== undefined;
+        start?.();
+    }
+
+    /**
+     * Runs a visit now, or after the ones already on their way. Inertia cancels a visit still on its way when
+     * another starts, which could leave the account with a period that the page does not show; so there is
+     * one visit at a time, and each reads the filters when it starts, so it sends the latest ones.
+     *
+     * @param start - starts the visit and calls `done` when it finishes
+     */
+    function enqueue(start: (done: () => void) => void): void {
+        queue.push(() => start(next));
+
+        if (!busy) {
+            next();
+        }
+    }
+
+    /** Saves the filters in use. */
+    function put(done: () => void): void {
+        router.put(
+            saveFilters().url,
+            { ...filters.value },
+            { ...stay, onFinish: done },
+        );
+    }
+
+    /** Loads the entries of the period in use. The server remembers the period on this visit. */
+    function get(done: () => void): void {
+        router.get(
+            agenda().url,
+            { months: filters.value.months },
+            { ...stay, onFinish: done },
+        );
+    }
+
     /**
      * Applies a change and saves the filters.
      *
@@ -51,18 +96,17 @@ export function useAgendaFilters(
      */
     function save(change: Partial<App.Data.AgendaFiltersData>): void {
         filters.value = { ...filters.value, ...change };
-        router.put(saveFilters().url, { ...filters.value }, stay);
+        enqueue(put);
     }
 
     /**
-     * Loads the entries of a period. The server remembers the period on this
-     * visit, so no other request is needed.
+     * Loads the entries of a period.
      *
      * @param months - 1, 3, 6 or 12
      */
     function visit(months: number): void {
         filters.value = { ...filters.value, months };
-        router.get(agenda().url, { months }, stay);
+        enqueue(get);
     }
 
     return {
@@ -79,23 +123,11 @@ export function useAgendaFilters(
             const months = filters.value.months;
 
             filters.value = { ...defaults, hidden_areas: [] };
-            router.put(
-                saveFilters().url,
-                { ...filters.value },
-                {
-                    ...stay,
-                    // One visit at a time: Inertia drops a visit still on its way when another starts.
-                    onSuccess: () => {
-                        if (months !== defaults.months) {
-                            router.get(
-                                agenda().url,
-                                { months: defaults.months },
-                                stay,
-                            );
-                        }
-                    },
-                },
-            );
+            enqueue(put);
+
+            if (months !== defaults.months) {
+                enqueue(get);
+            }
         },
     };
 }

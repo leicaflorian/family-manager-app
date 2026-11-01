@@ -292,3 +292,16 @@ test('the agenda sends the ten areas with their names, the documents one last', 
     expect(array_column($areas, 'value'))->toBe(['home', 'vehicles', 'insurance', 'banks', 'health', 'school', 'work', 'subscriptions', 'paperwork', 'general'])
         ->and(array_column($areas, 'label'))->toBe(['Home', 'Vehicles', 'Insurance', 'Banks and loans', 'Health', 'School and activities', 'Work', 'Subscriptions', 'Paperwork', 'People and documents']);
 });
+
+test('the agenda sends the periods it offers', function (): void {
+    expect(agendaFor(boardFamily())['periods'])->toBe([1, 3, 6, 12]);
+});
+
+test('the filters accept every area the agenda sends and nothing else', function (): void {
+    $marco = boardFamily();
+    $values = array_column(agendaFor($marco)['areas'], 'value');
+    $payload = fn (array $areas): array => ['months' => 1, 'person_id' => null, 'hidden_areas' => $areas];
+
+    $this->actingAs($marco)->put('/agenda/filters', $payload($values))->assertSessionHasNoErrors();
+    $this->actingAs($marco)->put('/agenda/filters', $payload(['nowhere']))->assertSessionHasErrors('hidden_areas.0');
+});
