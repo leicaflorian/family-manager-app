@@ -131,7 +131,7 @@ final class BudgetFormOptions
      *
      * @return list<OptionData>
      */
-    private static function people(): array
+    public static function people(): array
     {
         return self::options(
             Person::query()->orderBy('first_name')->orderBy('last_name')->get(),

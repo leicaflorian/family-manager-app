@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Reminders;
 
-use App\Cards\CardType;
-use App\Cards\CardTypes;
 use App\Cards\DeadlineSource;
 use App\Cards\DeadlineSources;
 use App\Mail\MorningNoticesMail;
@@ -16,6 +14,7 @@ use App\Models\User;
 use App\Support\CurrentFamily;
 use App\Support\Reminders\MorningItem;
 use App\Support\Reminders\Notices;
+use App\Support\Reminders\SubjectLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -131,28 +130,14 @@ final class SendMorningNotices
             $source instanceof DeadlineSource ? $source->title : $reminder->title,
             $source instanceof DeadlineSource,
             ! $reminder->is_automatic,
-            $subject instanceof Model ? $this->subjectName($subject) : null,
+            $subject instanceof Model ? SubjectLink::name($subject) : null,
             $reminder->due_date->toDateString(),
             $this->url($reminder, $subject),
         );
     }
 
     /**
-     * The name of a thing among the others: its `label()` (cards) or its title (documents).
-     *
-     * @param  Model  $subject  the record the reminder refers to
-     */
-    private function subjectName(Model $subject): string
-    {
-        return match (true) {
-            method_exists($subject, 'label') => (string) $subject->label(),
-            isset($subject->title) => (string) $subject->title,
-            default => '',
-        };
-    }
-
-    /**
-     * The page of the thing the reminder refers to: its card or document; without one, the Agenda.
+     * The page of the thing the reminder refers to: its card or document; without one, the reminders.
      *
      * @param  Reminder  $reminder  the reminder, with its link loaded
      * @param  Model|null  $subject  the record it refers to
@@ -161,11 +146,6 @@ final class SendMorningNotices
     {
         $type = $reminder->link?->remindable_type;
 
-        return match (true) {
-            ! $subject instanceof Model || $type === null => route('agenda'),
-            CardTypes::find($type) instanceof CardType => route('cards.show', ['type' => $type, 'id' => $subject->getKey()]),
-            $type === 'document' => route('documents.show', ['document' => $subject->getKey()]),
-            default => route('agenda'),
-        };
+        return ($subject instanceof Model && $type !== null ? SubjectLink::href($type, $subject, true) : null) ?? route('reminders.index');
     }
 }

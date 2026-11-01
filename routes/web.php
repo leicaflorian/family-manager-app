@@ -24,6 +24,8 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PersonController;
+use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
@@ -55,6 +57,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
         Route::get('agenda', AgendaController::class)->name('agenda');
         Route::put('agenda/filters', [AgendaController::class, 'filters'])->name('agenda.filters');
+        Route::resource('reminders', ReminderController::class)->except('show');
+        Route::post('reminders/{reminder}/done', [ReminderDoneController::class, 'store'])->name('reminders.done');
+        Route::delete('reminders/{reminder}/done', [ReminderDoneController::class, 'destroy'])->name('reminders.reopen');
         Route::get('areas', [AreaController::class, 'index'])->name('areas');
         Route::get('areas/{area}', [AreaController::class, 'show'])->name('areas.show');
 

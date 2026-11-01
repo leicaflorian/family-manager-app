@@ -491,6 +491,36 @@ readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
 };
+export type ReminderData = {
+readonly id: number,
+readonly title: string,
+readonly due_date: string,
+readonly status: App.Enums.ReminderStatus,
+readonly is_automatic: boolean,
+readonly subject: App.Data.ReminderSubjectData | null,
+readonly person: App.Data.ReminderPersonData | null,
+readonly group_id: number | null,
+readonly next_notice: string | null,
+readonly notice_sent: boolean,
+readonly missing_expense: boolean,
+readonly href: string,
+};
+export type ReminderPersonData = {
+readonly id: number,
+readonly name: string,
+};
+export type ReminderSubjectData = {
+readonly type: string,
+readonly id: number,
+readonly label: string,
+readonly href: string | null,
+};
+export type RemindersPageData = {
+readonly open: App.Data.ReminderData[],
+readonly done: App.Data.ReminderData[],
+readonly people: App.Data.OptionData[],
+readonly person_id: number | null,
+};
 export type SentInvitationData = {
 readonly email: string,
 readonly link: string,
