@@ -12,7 +12,7 @@ import { Plus, Receipt, Wallet } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import FmAmount from '@/components/fm/FmAmount.vue';
-import FmBudgetTabs from '@/components/fm/FmBudgetTabs.vue';
+import FmTabs from '@/components/fm/FmTabs.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -26,6 +26,7 @@ import type { MovementFormOptions } from '@/lib/budget';
 import { movementsUrl, weekdayShort } from '@/lib/budget';
 import { isoDate } from '@/lib/format';
 import { expenseIcon } from '@/lib/icons';
+import { budgetTabs } from '@/lib/budgetTabs';
 import { cn } from '@/lib/utils';
 import { create, show } from '@/routes/budget/movements';
 
@@ -204,7 +205,7 @@ function subtitle(movement: App.Data.MovementData): string {
                 }}</FmButton>
             </template>
         </FmTitle>
-        <FmBudgetTabs current="movements" />
+        <FmTabs :tabs="budgetTabs('movements')" :label="$t('Budget')" />
 
         <div
             :class="

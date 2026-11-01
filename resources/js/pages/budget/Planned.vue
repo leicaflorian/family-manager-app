@@ -8,7 +8,7 @@ import { Head } from '@inertiajs/vue3';
 import { Plus, Repeat } from '@lucide/vue';
 import { computed } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
-import FmBudgetTabs from '@/components/fm/FmBudgetTabs.vue';
+import FmTabs from '@/components/fm/FmTabs.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -16,6 +16,7 @@ import FmFold from '@/components/fm/FmFold.vue';
 import FmPlannedRow from '@/components/fm/FmPlannedRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
+import { budgetTabs } from '@/lib/budgetTabs';
 import { create, show } from '@/routes/budget/planned';
 
 const { expenses, incomes, ended, monthly_out, monthly_in, canEdit } =
@@ -77,7 +78,7 @@ const hasEstimate = computed(() =>
                 />
             </template>
         </FmTitle>
-        <FmBudgetTabs current="planned" />
+        <FmTabs :tabs="budgetTabs('planned')" :label="$t('Budget')" />
 
         <FmEmpty
             v-if="empty"

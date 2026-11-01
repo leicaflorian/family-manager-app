@@ -22,7 +22,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmFold](#fmfold) — A folded part of a page, such as the closed cards or the planned expenses that ended: a button with its title and, when opened, the content in a card of rows.
 - [FmIcon](#fmicon) — A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
 - [FmLogo](#fmlogo) — The Family Manager logo: the roof and the family, white on the light blue square.
-- [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange).
+- [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange) or that is late (red).
 - [FmOrganizationMark](#fmorganizationmark) — The mark of an organization: its logo or, without one, the icon of its type.
 - [FmPayButton](#fmpaybutton) — *Record payment* (or *Record income*) of a card: it opens *A due date* with the panel of *I paid it* on the oldest open due date.
 - [FmTitle](#fmtitle) — The title at the top of a page: 28 px on the phone, 32 px on the computer, with the sentence below and, on the right and centred on them, the actions of the page.
@@ -30,8 +30,8 @@ Read this file before writing a component or a piece of interface in a page: if 
 ### Navigation
 
 - [FmBackLink](#fmbacklink) — The link back to the page a page comes from, with a chevron and that page's name, above the title or the header of a page.
+- [FmBell](#fmbell) — The bell in the header: it leads to *Notices* and, when there are notices not yet seen, shows how many in a red dot (up to 99).
 - [FmBottomBar](#fmbottombar) — The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in the middle, Areas and More.
-- [FmBudgetTabs](#fmbudgettabs) — The tabs at the top of the budget pages: *Movements*, *Planned and spent* and *Planned expenses*.
 - [FmFamilyViews](#fmfamilyviews) — The top of *People* and *Organizations*: the title *Family* with the name of the family, the actions of the page and the two views, each with how many.
 - [FmHeader](#fmheader) — The big title of a sign-in page written by the page itself, when it depends on the data («Hi, Rosa»): like the one of `AuthLayout`.
 - [FmMenu](#fmmenu) — The ⋯ button that opens a small menu of the less frequent actions, so that a title next to it keeps its room.
@@ -41,6 +41,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmPager](#fmpager) — *Previous* and *Next* under a list shown a page at a time (the documents, the documents of a card); nothing when the list fits in one page.
 - [FmSectionLink](#fmsectionlink) — The link beside the title of a section (`FmCard`), as *Upload*, *Add* or *Record payment*: blue text with its icon, normal weight, no box around it, underlined on hover.
 - [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload, the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
+- [FmTabs](#fmtabs) — The tabs at the top of a set of pages (the three of the budget, *Deadlines* and *Reminders* of the Agenda).
 
 ### Rows
 
@@ -49,7 +50,9 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmCardRow](#fmcardrow) — A card in a list: the icon of its type in the colour of its area, the name and below the subtitle or the next date («Inspection · in 75 days», red once overdue).
 - [FmDeadlineRow](#fmdeadlinerow) — A due date in a list: the dot of the area, the title, the card it belongs to with its day (red when late) and on the right the amount.
 - [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
+- [FmNoticeRow](#fmnoticerow) — A notice of the bell in *Notices*: the icon with the colour of the area (grey once seen), what is due, the line of the deadline as the notice said it, when it went out and, if the reminder is late or done today, a label.
 - [FmPlannedRow](#fmplannedrow) — A planned expense or income in a list: the icon of its category, the name with the card and how it repeats below, who it is for, the next due date with the account, and the amount.
+- [FmReminderRow](#fmreminderrow) — A reminder in the list of *Reminders*: the circle *Mark as done*, the icon of the area, what to do, the thing it refers to (a link), who takes care of it, the day with how far it is (red if late) and the next notice.
 - [FmRow](#fmrow) — A list row of the canvas: in front the dot of the area or an icon, then the title and the subtitle, each on one line (the title cut in the middle, so its end shows), on the right an amount or a date.
 - [FmValueList](#fmvaluelist) — The lines of the box *Data* of a page: the label on the left, the value on the right.
 
@@ -73,6 +76,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmDocumentFilters](#fmdocumentfilters) — The filters of *Documents*: category, person, organization, status and the expiring ones.
 - [FmDocumentForm](#fmdocumentform) — The form of a document, as the boards *Proposta* and *Modifica documento*: what it is, what kind and whose, who it is from, the dates, the status, the tags, the notes and the records it links to.
 - [FmFileDrop](#fmfiledrop) — The zone where the files of documents are dragged or chosen (PDF, JPG, PNG, HEIC, up to 25 MB each).
+- [FmNotificationRule](#fmnotificationrule) — One notice of a group, as a row of the form of *Settings → Notices*: how many days, when (before, on the day, after), where it arrives, to whom, and *Remove this notice*.
 - [FmPasswordField](#fmpasswordfield) — The password field with the eye to see it, as in the sign-in boards.
 - [FmSearchField](#fmsearchfield) — The search box with the magnifying glass: in *Documents* and in the panel that links a document to a card.
 
@@ -103,6 +107,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmDocumentDetail](#fmdocumentdetail) — A document as the board *Un documento* shows it: the preview of the file on grey and, beside it, its data, the linked records (one type at a time) and the notes.
 - [FmLinkedRecords](#fmlinkedrecords) — *Links* of *A person* and *An organization*: the records that name them, one type at a time, with a tab for each type and how many records it has.
 - [FmPaymentYears](#fmpaymentyears) — The payments of the planned items of a page by year, the latest first: a line with the year (and, with `counts`, how many payments) and its total, then each payment with its day, title, account, the clip of a receipt and the amount.
+- [FmReminderGroup](#fmremindergroup) — The box of a group of notices in *Settings → Notices*: its name (with the label *Default* for the group of everything else), the kinds of deadline it covers in words and a line for each notice («45 days before · App and email · Everyone»).
 
 ## FmActions
 
@@ -183,6 +188,7 @@ The circle of a person: their photo or, without one, the initials on a colour.
 - `components/fm/FmAgendaRow.vue`
 - `components/fm/FmDocumentDetail.vue`
 - `components/fm/FmFaces.vue`
+- `components/fm/FmReminderRow.vue`
 - `pages/family/EditPerson.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
@@ -644,6 +650,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `components/fm/FmActiveFilter.vue`
 - `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmBackLink.vue`
+- `components/fm/FmBell.vue`
 - `components/fm/FmBottomBar.vue`
 - `components/fm/FmBottomSheet.vue`
 - `components/fm/FmButton.vue`
@@ -662,11 +669,14 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `components/fm/FmMovementPanel.vue`
 - `components/fm/FmNewTabLink.vue`
 - `components/fm/FmNotice.vue`
+- `components/fm/FmNoticeRow.vue`
+- `components/fm/FmNotificationRule.vue`
 - `components/fm/FmOrganizationMark.vue`
 - `components/fm/FmPasswordField.vue`
 - `components/fm/FmPaySheet.vue`
 - `components/fm/FmPaymentYears.vue`
 - `components/fm/FmPlannedRow.vue`
+- `components/fm/FmReminderRow.vue`
 - `components/fm/FmRow.vue`
 - `components/fm/FmSearchField.vue`
 - `components/fm/FmSectionLink.vue`
@@ -726,23 +736,27 @@ The white version, without the square, goes on the blue panel of the sign-in pag
 `resources/js/components/fm/FmNotice.vue`
 
 A message inside the page, with its icon: some information, something done
-(green), something that needs attention (orange).
+(green), something that needs attention (orange) or that is late (red). It
+can have a bold title above the text and, on the right, an action (a link or
+a button), as the notices at the top of a card.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `tone` | `NoticeTone` | no | `"info"` | Information, done or warning. |
+| `tone` | `NoticeTone` | no | `"info"` | Information, done, warning or danger. |
 | `icon` | `LucideIcon` | no | — | An icon other than the one of the tone. |
+| `title` | `string` | no | — | A line in bold above the text. |
 
 ### Slots
 
 - `default`
+- `action`
 
 ### Types
 
 ```ts
-export type NoticeTone = 'info' | 'ok' | 'warning';
+export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
 ```
 
 ### Examples
@@ -761,6 +775,17 @@ export type NoticeTone = 'info' | 'ok' | 'warning';
 <!-- Warning -->
 <FmNotice tone="warning">
     This bill expired 3 days ago.
+</FmNotice>
+
+<!-- Danger -->
+<FmNotice tone="danger">
+    The insurance expired 3 days ago.
+</FmNotice>
+
+<!-- With a title and an action -->
+<FmNotice tone="warning" title="Due in 26 days">
+    The reminder went out on 07/10.
+    <template #action><a href="#">Upload the new one</a></template>
 </FmNotice>
 ```
 
@@ -957,6 +982,33 @@ name, above the title or the header of a page.
 - `pages/cards/Card.vue`
 - `pages/cards/CardPayments.vue`
 
+## FmBell
+
+`resources/js/components/fm/FmBell.vue`
+
+The bell in the header: it leads to *Notices* and, when there are notices
+not yet seen, shows how many in a red dot (up to 99).
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `count` | `number` | yes | — | How many notices the person has not seen yet. |
+| `href` | `string` | no | `"/notices"` | Where the bell leads. |
+
+### Examples
+
+```vue
+<!-- Nothing new -->
+<FmBell :count="0" />
+
+<!-- Two new -->
+<FmBell :count="2" />
+
+<!-- Many -->
+<FmBell :count="120" />
+```
+
 ## FmBottomBar
 
 `resources/js/components/fm/FmBottomBar.vue`
@@ -988,38 +1040,6 @@ Settings and Log out, and stays marked when one of those pages is open.
 ### Used by
 
 - `layouts/AppLayout.vue`
-
-## FmBudgetTabs
-
-`resources/js/components/fm/FmBudgetTabs.vue`
-
-The tabs at the top of the budget pages: *Movements*, *Planned and spent* and
-*Planned expenses*. The one of the open page is marked.
-
-### Props
-
-| Name | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `current` | `BudgetPage` | yes | — | The page that is open. |
-
-### Examples
-
-```vue
-<!-- Movements -->
-<FmBudgetTabs current="movements" />
-
-<!-- Planned and spent -->
-<FmBudgetTabs current="comparison" />
-
-<!-- Planned expenses -->
-<FmBudgetTabs current="planned" />
-```
-
-### Used by
-
-- `pages/budget/Comparison.vue`
-- `pages/budget/Movements.vue`
-- `pages/budget/Planned.vue`
 
 ## FmFamilyViews
 
@@ -1381,6 +1401,44 @@ which opens Settings and Log out.
 
 - `layouts/AppLayout.vue`
 
+## FmTabs
+
+`resources/js/components/fm/FmTabs.vue`
+
+The tabs at the top of a set of pages (the three of the budget, *Deadlines*
+and *Reminders* of the Agenda). The page lists its tabs; the one of the open
+page is marked, and a tab can show a number after its name.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `tabs` | `Tab[]` | yes | — | The tabs, in order. |
+| `label` | `string` | yes | — | What the set of tabs is, for those who cannot see it: «Budget». |
+
+### Types
+
+```ts
+export type Tab = {
+```
+
+### Examples
+
+```vue
+<!-- Budget -->
+<FmTabs label="Budget" :tabs="tabs" />
+
+<!-- With a number -->
+<FmTabs label="Agenda" :tabs="tabs" />
+```
+
+### Used by
+
+- `lib/budgetTabs.ts`
+- `pages/budget/Comparison.vue`
+- `pages/budget/Movements.vue`
+- `pages/budget/Planned.vue`
+
 ## FmActiveFilter
 
 `resources/js/components/fm/FmActiveFilter.vue`
@@ -1599,6 +1657,38 @@ top of *A person*.
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
 
+## FmNoticeRow
+
+`resources/js/components/fm/FmNoticeRow.vue`
+
+A notice of the bell in *Notices*: the icon with the colour of the area (grey
+once seen), what is due, the line of the deadline as the notice said it, when
+it went out and, if the reminder is late or done today, a label. A dot marks
+a notice not yet seen. The whole row leads to the card or to *Reminders*.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `notice` | `NoticeItem` | yes | — | The notice, as the server sends it. |
+
+### Events
+
+- `open`
+
+### Examples
+
+```vue
+<!-- New -->
+<FmNoticeRow :notice="notice" />
+
+<!-- Seen, overdue -->
+<FmNoticeRow :notice="notice" />
+
+<!-- Seen, done -->
+<FmNoticeRow :notice="notice" />
+```
+
 ## FmPlannedRow
 
 `resources/js/components/fm/FmPlannedRow.vue`
@@ -1637,6 +1727,45 @@ the account, and the amount. It leads to *A planned expense*.
 
 - `components/fm/FmCardPayments.vue`
 - `pages/budget/Planned.vue`
+
+## FmReminderRow
+
+`resources/js/components/fm/FmReminderRow.vue`
+
+A reminder in the list of *Reminders*: the circle *Mark as done*, the icon
+of the area, what to do, the thing it refers to (a link), who takes care of
+it, the day with how far it is (red if late) and the next notice. A little
+hand marks a reminder written by hand, and a label says when the planned
+expense of the card is missing. A reminder that is done has *Reopen* instead
+of the circle.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `reminder` | `ReminderItem` | yes | — | The reminder, as the server sends it. |
+
+### Events
+
+- `done`
+- `open`
+- `reopen`
+
+### Examples
+
+```vue
+<!-- Written by hand -->
+<FmReminderRow :reminder="reminder" />
+
+<!-- Late -->
+<FmReminderRow :reminder="reminder" />
+
+<!-- Planned expense missing -->
+<FmReminderRow :reminder="reminder" />
+
+<!-- Done -->
+<FmReminderRow :reminder="reminder" />
+```
 
 ## FmRow
 
@@ -2441,6 +2570,40 @@ which uploads them (*Upload*) or keeps them for later (*New card*).
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmUploadSheet.vue`
 - `pages/documents/Upload.vue`
+
+## FmNotificationRule
+
+`resources/js/components/fm/FmNotificationRule.vue`
+
+One notice of a group, as a row of the form of *Settings → Notices*: how
+many days, when (before, on the day, after), where it arrives, to whom, and
+*Remove this notice*. «Everyone» and the people exclude each other. The row
+edits its rule through `v-model`, and `remove` asks the form to drop it.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `people` | `RulePerson[]` | yes | — | The people with an account, for «To whom». |
+| `modelValue` | `NoticeRule` | yes | — | The notice being edited. |
+
+### Events
+
+- `remove`
+- `update:modelValue`
+
+### Examples
+
+```vue
+<!-- Days before -->
+<FmNotificationRule :people="people" :modelValue="modelValue" />
+
+<!-- On the day, two people -->
+<FmNotificationRule :people="people" :modelValue="modelValue" />
+
+<!-- Days after, email -->
+<FmNotificationRule :people="people" :modelValue="modelValue" />
+```
 
 ## FmPasswordField
 
@@ -3249,3 +3412,37 @@ whole dates; on both each payment leads to its page.
 - `components/fm/FmCardPayments.vue`
 - `pages/budget/PlannedItem.vue`
 - `pages/cards/CardPayments.vue`
+
+## FmReminderGroup
+
+`resources/js/components/fm/FmReminderGroup.vue`
+
+The box of a group of notices in *Settings → Notices*: its name (with the
+label *Default* for the group of everything else), the kinds of deadline it
+covers in words and a line for each notice («45 days before · App and email ·
+Everyone»). Whoever can edit has the *Edit* button.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `group` | `ReminderGroupItem` | yes | — | The group. |
+| `people` | `RulePerson[]` | yes | — | The people with an account, to name the recipients. |
+| `canEdit` | `boolean` | yes | — | Whoever is looking can edit the group (an `admin`). |
+
+### Events
+
+- `edit`
+
+### Examples
+
+```vue
+<!-- With kinds -->
+<FmReminderGroup :group="group" :people="people" canEdit />
+
+<!-- Default -->
+<FmReminderGroup :group="group" :people="people" canEdit />
+
+<!-- Cannot edit -->
+<FmReminderGroup :group="group" :people="people" />
+```

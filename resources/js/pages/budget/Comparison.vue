@@ -13,7 +13,7 @@ import { ChartNoAxesColumn } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmBarChart from '@/components/fm/FmBarChart.vue';
-import FmBudgetTabs from '@/components/fm/FmBudgetTabs.vue';
+import FmTabs from '@/components/fm/FmTabs.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCategoryBar from '@/components/fm/FmCategoryBar.vue';
 import FmDeadlineRow from '@/components/fm/FmDeadlineRow.vue';
@@ -22,6 +22,7 @@ import FmMonthSwitch from '@/components/fm/FmMonthSwitch.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { comparisonComment, deadlineUrls, longMonth } from '@/lib/budget';
+import { budgetTabs } from '@/lib/budgetTabs';
 import { cn } from '@/lib/utils';
 import { comparison as comparisonRoute } from '@/routes/budget';
 
@@ -81,7 +82,7 @@ const tile = cn('flex flex-col gap-0.5 rounded-2xl bg-white p-3.5 lg:p-4');
 
     <div class="flex max-w-[1120px] flex-col gap-4">
         <FmTitle :title="$t('Budget')" />
-        <FmBudgetTabs current="comparison" />
+        <FmTabs :tabs="budgetTabs('comparison')" :label="$t('Budget')" />
 
         <FmMonthSwitch :month="comparison.month" @change="go" />
         <p v-if="daysLeft" class="m-0 text-[15px] text-ink-soft">

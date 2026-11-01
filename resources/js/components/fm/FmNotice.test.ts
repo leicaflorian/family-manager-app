@@ -27,4 +27,39 @@ describe('FmNotice', () => {
         });
         expect(screen.getByRole('status')).toHaveClass('text-warning');
     });
+
+    it('is red in the danger tone', () => {
+        render(FmNotice, {
+            props: { tone: 'danger' },
+            slots: { default: 'Expired 3 days ago' },
+        });
+
+        expect(screen.getByRole('status')).toHaveClass('text-overdue');
+    });
+
+    it('shows a title above the text', () => {
+        render(FmNotice, {
+            props: { tone: 'warning', title: 'Due in 26 days' },
+            slots: { default: 'We will remind you on 25/11.' },
+        });
+
+        expect(screen.getByText('Due in 26 days')).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent(
+            'We will remind you on 25/11.',
+        );
+    });
+
+    it('shows the action next to the text, as the person uses it', () => {
+        render(FmNotice, {
+            slots: {
+                default: 'The logbook is missing.',
+                action: '<a href="/documents/new">Upload it</a>',
+            },
+        });
+
+        expect(screen.getByRole('link', { name: 'Upload it' })).toHaveAttribute(
+            'href',
+            '/documents/new',
+        );
+    });
 });

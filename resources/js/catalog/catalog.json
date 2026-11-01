@@ -276,6 +276,7 @@
       "components/fm/FmAgendaRow.vue",
       "components/fm/FmDocumentDetail.vue",
       "components/fm/FmFaces.vue",
+      "components/fm/FmReminderRow.vue",
       "pages/family/EditPerson.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
@@ -336,6 +337,32 @@
     "usedBy": [
       "pages/budget/Comparison.vue"
     ]
+  },
+  {
+    "name": "FmBell",
+    "path": "resources/js/components/fm/FmBell.vue",
+    "description": "The bell in the header: it leads to *Notices* and, when there are notices\nnot yet seen, shows how many in a red dot (up to 99).",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "count",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "How many notices the person has not seen yet."
+      },
+      {
+        "name": "href",
+        "type": "string",
+        "required": false,
+        "default": "\"/notices\"",
+        "description": "Where the bell leads."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": []
   },
   {
     "name": "FmBottomBar",
@@ -405,29 +432,6 @@
       "pages/settings/Account.vue",
       "pages/settings/Categories.vue",
       "pages/settings/ExpenseCategories.vue"
-    ]
-  },
-  {
-    "name": "FmBudgetTabs",
-    "path": "resources/js/components/fm/FmBudgetTabs.vue",
-    "description": "The tabs at the top of the budget pages: *Movements*, *Planned and spent* and\n*Planned expenses*. The one of the open page is marked.",
-    "group": "navigation",
-    "props": [
-      {
-        "name": "current",
-        "type": "BudgetPage",
-        "required": true,
-        "default": null,
-        "description": "The page that is open."
-      }
-    ],
-    "events": [],
-    "slots": [],
-    "types": [],
-    "usedBy": [
-      "pages/budget/Comparison.vue",
-      "pages/budget/Movements.vue",
-      "pages/budget/Planned.vue"
     ]
   },
   {
@@ -1899,6 +1903,7 @@
       "components/fm/FmActiveFilter.vue",
       "components/fm/FmAgendaFilters.vue",
       "components/fm/FmBackLink.vue",
+      "components/fm/FmBell.vue",
       "components/fm/FmBottomBar.vue",
       "components/fm/FmBottomSheet.vue",
       "components/fm/FmButton.vue",
@@ -1917,11 +1922,14 @@
       "components/fm/FmMovementPanel.vue",
       "components/fm/FmNewTabLink.vue",
       "components/fm/FmNotice.vue",
+      "components/fm/FmNoticeRow.vue",
+      "components/fm/FmNotificationRule.vue",
       "components/fm/FmOrganizationMark.vue",
       "components/fm/FmPasswordField.vue",
       "components/fm/FmPaySheet.vue",
       "components/fm/FmPaymentYears.vue",
       "components/fm/FmPlannedRow.vue",
+      "components/fm/FmReminderRow.vue",
       "components/fm/FmRow.vue",
       "components/fm/FmSearchField.vue",
       "components/fm/FmSectionLink.vue",
@@ -2351,7 +2359,7 @@
   {
     "name": "FmNotice",
     "path": "resources/js/components/fm/FmNotice.vue",
-    "description": "A message inside the page, with its icon: some information, something done\n(green), something that needs attention (orange).",
+    "description": "A message inside the page, with its icon: some information, something done\n(green), something that needs attention (orange) or that is late (red). It\ncan have a bold title above the text and, on the right, an action (a link or\na button), as the notices at the top of a card.",
     "group": "basics",
     "props": [
       {
@@ -2359,7 +2367,7 @@
         "type": "NoticeTone",
         "required": false,
         "default": "\"info\"",
-        "description": "Information, done or warning."
+        "description": "Information, done, warning or danger."
       },
       {
         "name": "icon",
@@ -2367,14 +2375,22 @@
         "required": false,
         "default": null,
         "description": "An icon other than the one of the tone."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "A line in bold above the text."
       }
     ],
     "events": [],
     "slots": [
-      "default"
+      "default",
+      "action"
     ],
     "types": [
-      "export type NoticeTone = 'info' | 'ok' | 'warning';"
+      "export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';"
     ],
     "usedBy": [
       "components/fm/FmCardFiles.vue",
@@ -2394,6 +2410,56 @@
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue"
     ]
+  },
+  {
+    "name": "FmNoticeRow",
+    "path": "resources/js/components/fm/FmNoticeRow.vue",
+    "description": "A notice of the bell in *Notices*: the icon with the colour of the area (grey\nonce seen), what is due, the line of the deadline as the notice said it, when\nit went out and, if the reminder is late or done today, a label. A dot marks\na notice not yet seen. The whole row leads to the card or to *Reminders*.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "notice",
+        "type": "NoticeItem",
+        "required": true,
+        "default": null,
+        "description": "The notice, as the server sends it."
+      }
+    ],
+    "events": [
+      "open"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": []
+  },
+  {
+    "name": "FmNotificationRule",
+    "path": "resources/js/components/fm/FmNotificationRule.vue",
+    "description": "One notice of a group, as a row of the form of *Settings → Notices*: how\nmany days, when (before, on the day, after), where it arrives, to whom, and\n*Remove this notice*. «Everyone» and the people exclude each other. The row\nedits its rule through `v-model`, and `remove` asks the form to drop it.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "people",
+        "type": "RulePerson[]",
+        "required": true,
+        "default": null,
+        "description": "The people with an account, for «To whom»."
+      },
+      {
+        "name": "modelValue",
+        "type": "NoticeRule",
+        "required": true,
+        "default": null,
+        "description": "The notice being edited."
+      }
+    ],
+    "events": [
+      "remove",
+      "update:modelValue"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": []
   },
   {
     "name": "FmNumberTile",
@@ -2716,6 +2782,64 @@
     ]
   },
   {
+    "name": "FmReminderGroup",
+    "path": "resources/js/components/fm/FmReminderGroup.vue",
+    "description": "The box of a group of notices in *Settings → Notices*: its name (with the\nlabel *Default* for the group of everything else), the kinds of deadline it\ncovers in words and a line for each notice («45 days before · App and email ·\nEveryone»). Whoever can edit has the *Edit* button.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "group",
+        "type": "ReminderGroupItem",
+        "required": true,
+        "default": null,
+        "description": "The group."
+      },
+      {
+        "name": "people",
+        "type": "RulePerson[]",
+        "required": true,
+        "default": null,
+        "description": "The people with an account, to name the recipients."
+      },
+      {
+        "name": "canEdit",
+        "type": "boolean",
+        "required": true,
+        "default": null,
+        "description": "Whoever is looking can edit the group (an `admin`)."
+      }
+    ],
+    "events": [
+      "edit"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": []
+  },
+  {
+    "name": "FmReminderRow",
+    "path": "resources/js/components/fm/FmReminderRow.vue",
+    "description": "A reminder in the list of *Reminders*: the circle *Mark as done*, the icon\nof the area, what to do, the thing it refers to (a link), who takes care of\nit, the day with how far it is (red if late) and the next notice. A little\nhand marks a reminder written by hand, and a label says when the planned\nexpense of the card is missing. A reminder that is done has *Reopen* instead\nof the circle.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "reminder",
+        "type": "ReminderItem",
+        "required": true,
+        "default": null,
+        "description": "The reminder, as the server sends it."
+      }
+    ],
+    "events": [
+      "done",
+      "open",
+      "reopen"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": []
+  },
+  {
     "name": "FmRow",
     "path": "resources/js/components/fm/FmRow.vue",
     "description": "A list row of the canvas: in front the dot of the area or an icon, then the\ntitle and the subtitle, each on one line (the title cut in the middle, so\nits end shows), on the right an amount or a date. With `href` the whole\nrow is a link (with `external`, a plain link that opens in a new tab), and\nwith nothing on the right it shows the arrow. With `button` it is a button,\nfor the rows that open a panel.",
@@ -2950,6 +3074,39 @@
     "types": [],
     "usedBy": [
       "layouts/AppLayout.vue"
+    ]
+  },
+  {
+    "name": "FmTabs",
+    "path": "resources/js/components/fm/FmTabs.vue",
+    "description": "The tabs at the top of a set of pages (the three of the budget, *Deadlines*\nand *Reminders* of the Agenda). The page lists its tabs; the one of the open\npage is marked, and a tab can show a number after its name.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "tabs",
+        "type": "Tab[]",
+        "required": true,
+        "default": null,
+        "description": "The tabs, in order."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "What the set of tabs is, for those who cannot see it: «Budget»."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [
+      "export type Tab = {"
+    ],
+    "usedBy": [
+      "lib/budgetTabs.ts",
+      "pages/budget/Comparison.vue",
+      "pages/budget/Movements.vue",
+      "pages/budget/Planned.vue"
     ]
   },
   {
