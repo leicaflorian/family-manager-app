@@ -30,8 +30,8 @@ const stay = { preserveState: true, preserveScroll: true };
 
 /**
  * The filters of the Agenda. Every change is saved in the account with Inertia
- * (the page stays as it is) and applied at once; the period also loads the
- * entries of the new period, because the server calculates it.
+ * (the page stays as it is) and applied at once; the period is a visit to the
+ * Agenda, because the server calculates it and remembers it there.
  *
  * @param initial - the filters saved, as the server sends them
  * @returns the filters and the functions that change them
@@ -49,27 +49,53 @@ export function useAgendaFilters(
      *
      * @param change - the fields that change
      */
-    function update(change: Partial<App.Data.AgendaFiltersData>): void {
-        const months = filters.value.months;
-
+    function save(change: Partial<App.Data.AgendaFiltersData>): void {
         filters.value = { ...filters.value, ...change };
         router.put(saveFilters().url, { ...filters.value }, stay);
+    }
 
-        if (filters.value.months !== months) {
-            router.get(agenda().url, { months: filters.value.months }, stay);
-        }
+    /**
+     * Loads the entries of a period. The server remembers the period on this
+     * visit, so no other request is needed.
+     *
+     * @param months - 1, 3, 6 or 12
+     */
+    function visit(months: number): void {
+        filters.value = { ...filters.value, months };
+        router.get(agenda().url, { months }, stay);
     }
 
     return {
         filters,
         toggleArea: (area) =>
-            update({
+            save({
                 hidden_areas: filters.value.hidden_areas.includes(area)
                     ? filters.value.hidden_areas.filter((a) => a !== area)
                     : [...filters.value.hidden_areas, area],
             }),
-        choosePerson: (id) => update({ person_id: id }),
-        chooseMonths: (months) => update({ months }),
-        reset: () => update({ ...defaults, hidden_areas: [] }),
+        choosePerson: (id) => save({ person_id: id }),
+        chooseMonths: visit,
+        reset: () => {
+            const months = filters.value.months;
+
+            filters.value = { ...defaults, hidden_areas: [] };
+            router.put(
+                saveFilters().url,
+                { ...filters.value },
+                {
+                    ...stay,
+                    // One visit at a time: Inertia drops a visit still on its way when another starts.
+                    onSuccess: () => {
+                        if (months !== defaults.months) {
+                            router.get(
+                                agenda().url,
+                                { months: defaults.months },
+                                stay,
+                            );
+                        }
+                    },
+                },
+            );
+        },
     };
 }

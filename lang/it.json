@@ -851,13 +851,10 @@
     "Filing deadline": "Termine della pratica",
     "End of the free trial": "Fine della prova gratuita",
     "First instalment": "Prima rata",
-    "Household": "Casa",
-    "Insurances": "Assicurazioni",
-    "Paperwork": "Pratiche",
     "People and documents": "Persone e documenti",
     "To sort out": "Da sistemare",
     ":entries :period, from :from to :to": ":entries :period, dal :from al :to",
     "{1} :count entry|[2,*] :count entries": "{1} :count voce|[2,*] :count voci",
     "{1} in the next month|[2,*] in the next :count months": "{1} nel prossimo mese|[2,*] nei prossimi :count mesi",
-    "[0,1] :count hidden: :areas|[2,*] :count hidden: :areas": "[0,1] :count nascosta: :areas|[2,*] :count nascoste: :areas"
+    "{1} :count hidden: :areas|[2,*] :count hidden: :areas": "{1} :count nascosta: :areas|[2,*] :count nascoste: :areas"
 }

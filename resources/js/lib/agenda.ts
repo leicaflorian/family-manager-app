@@ -5,7 +5,6 @@
  * order; the pages do the rest.
  */
 import { trans, transChoice } from 'laravel-vue-i18n';
-import type { Area } from './areas';
 import { monthName, shortDate } from './budget';
 import { listNames } from './names';
 
@@ -22,43 +21,6 @@ export type AgendaGroup = {
     /** The entries, in the order the server sent them. */
     entries: App.Data.AgendaEntryData[];
 };
-
-/** The ten areas, in the order of the board. */
-export const agendaAreas: Area[] = [
-    'home',
-    'vehicles',
-    'insurance',
-    'banks',
-    'health',
-    'school',
-    'work',
-    'subscriptions',
-    'paperwork',
-    'general',
-];
-
-/**
- * The name of an area in the Agenda, in the language of the page.
- *
- * @param area - the area, for example `work`; `general` is the one of the documents
- * @returns for example «Work» or «People and documents»
- */
-export function agendaAreaLabel(area: string): string {
-    const labels: Record<Area, () => string> = {
-        home: () => trans('Household'),
-        vehicles: () => trans('Vehicles'),
-        insurance: () => trans('Insurances'),
-        banks: () => trans('Banks and loans'),
-        health: () => trans('Health'),
-        school: () => trans('School and activities'),
-        work: () => trans('Work'),
-        subscriptions: () => trans('Subscriptions'),
-        paperwork: () => trans('Paperwork'),
-        general: () => trans('People and documents'),
-    };
-
-    return (labels[area as Area] ?? labels.general)();
-}
 
 /**
  * Rounds a sum of amounts to the cent, so that `13.99 + 62.4` does not end in
@@ -90,6 +52,8 @@ export function groupByMonth(
         (entry) => entry.kind === 'deadline' && entry.date < today,
     );
 
+    const passed = new Set(overdue);
+
     if (overdue.length > 0) {
         groups.push({
             key: 'overdue',
@@ -101,7 +65,7 @@ export function groupByMonth(
     }
 
     for (const entry of entries) {
-        if (overdue.includes(entry)) {
+        if (passed.has(entry)) {
             continue;
         }
 
@@ -154,14 +118,16 @@ function ofPerson(
  *
  * @param entries - the entries of the period
  * @param personId - the person chosen, or null for the whole family
- * @returns the count of each of the ten areas, zero included
+ * @param areas - the areas the server sends, in order
+ * @returns the count of each area, zero included
  */
 export function areaCounts(
     entries: App.Data.AgendaEntryData[],
     personId: number | null,
+    areas: App.Data.OptionData[],
 ): Record<string, number> {
     const counts: Record<string, number> = Object.fromEntries(
-        agendaAreas.map((area) => [area, 0]),
+        areas.map((area) => [area.value, 0]),
     );
 
     for (const entry of ofPerson(entries, personId)) {
@@ -197,6 +163,7 @@ export function visibleEntries(
  * @param months - the length of the period, in months
  * @param from - the first day, `yyyy-mm-dd`
  * @param to - the last day, `yyyy-mm-dd`
+ * @param labels - the name of each area, by area, as the server sends them
  * @returns the sentence, in the language of the page
  */
 export function summary(
@@ -205,6 +172,7 @@ export function summary(
     months: number,
     from: string,
     to: string,
+    labels: Record<string, string>,
 ): string {
     const text = trans(':entries :period, from :from to :to', {
         entries: transChoice('{1} :count entry|[2,*] :count entries', visible, {
@@ -219,18 +187,19 @@ export function summary(
         to: shortDate(to),
     });
     const areas = Object.keys(hidden);
+    const count = Object.values(hidden).reduce((sum, n) => sum + n, 0);
 
-    if (areas.length === 0) {
+    // Areas turned off that have no entries hide nothing: there is nothing to say.
+    if (count === 0) {
         return text;
     }
 
-    const count = Object.values(hidden).reduce((sum, n) => sum + n, 0);
     const hiddenText = transChoice(
-        '[0,1] :count hidden: :areas|[2,*] :count hidden: :areas',
+        '{1} :count hidden: :areas|[2,*] :count hidden: :areas',
         count,
         {
             count: String(count),
-            areas: listNames(areas.map(agendaAreaLabel)),
+            areas: listNames(areas.map((area) => labels[area] ?? area)),
         },
     );
 

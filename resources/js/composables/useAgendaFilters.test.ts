@@ -23,6 +23,17 @@ function spies(): {
     };
 }
 
+/**
+ * Ends the save as Inertia does when the server answers.
+ *
+ * @param put - the spy on `router.put`
+ */
+function finishSave(put: ReturnType<typeof vi.spyOn>): void {
+    const options = put.mock.calls[0]?.[2] as { onSuccess: () => void };
+
+    options.onSuccess();
+}
+
 describe('useAgendaFilters', () => {
     it('turns an area off and on again, saving each time', () => {
         const { put } = spies();
@@ -57,14 +68,14 @@ describe('useAgendaFilters', () => {
         expect(filters.value.person_id).toBeNull();
     });
 
-    it('chooses the period and loads the entries of the new period', () => {
+    it('chooses the period with one visit to the agenda and no other request', () => {
         const { put, get } = spies();
         const { filters, chooseMonths } = useAgendaFilters(initial);
 
         chooseMonths(3);
 
         expect(filters.value.months).toBe(3);
-        expect(put.mock.calls[0]?.[1]).toMatchObject({ months: 3 });
+        expect(put).not.toHaveBeenCalled();
         expect(get).toHaveBeenCalledWith(
             '/agenda',
             { months: 3 },
@@ -72,7 +83,7 @@ describe('useAgendaFilters', () => {
         );
     });
 
-    it('goes back to the defaults', () => {
+    it('goes back to the defaults, and loads the period only when the save is done', () => {
         const { put, get } = spies();
         const { filters, reset } = useAgendaFilters({
             months: 6,
@@ -83,10 +94,11 @@ describe('useAgendaFilters', () => {
         reset();
 
         expect(filters.value).toEqual(initial);
-        expect(put).toHaveBeenLastCalledWith('/agenda/filters', initial, {
-            preserveState: true,
-            preserveScroll: true,
-        });
+        expect(put.mock.calls[0]?.[1]).toEqual(initial);
+        expect(get).not.toHaveBeenCalled();
+
+        finishSave(put);
+
         expect(get).toHaveBeenCalledWith(
             '/agenda',
             { months: 1 },
@@ -95,9 +107,11 @@ describe('useAgendaFilters', () => {
     });
 
     it('does not load the entries again when the period stays the same', () => {
-        const { get } = spies();
+        const { put, get } = spies();
 
-        useAgendaFilters(initial).reset();
+        const { reset } = useAgendaFilters(initial);
+        reset();
+        finishSave(put);
 
         expect(get).not.toHaveBeenCalled();
     });

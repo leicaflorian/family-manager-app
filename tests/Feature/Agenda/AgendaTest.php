@@ -285,3 +285,10 @@ test('an account of the Rossi sees nothing of the Bianchi', function (): void {
     expect($agenda['entries'])->toBe([])
         ->and(array_column($agenda['people'], 'last_name'))->toBe(['Rossi']);
 });
+
+test('the agenda sends the ten areas with their names, the documents one last', function (): void {
+    $areas = agendaFor(boardFamily())['areas'];
+
+    expect(array_column($areas, 'value'))->toBe(['home', 'vehicles', 'insurance', 'banks', 'health', 'school', 'work', 'subscriptions', 'paperwork', 'general'])
+        ->and(array_column($areas, 'label'))->toBe(['Home', 'Vehicles', 'Insurance', 'Banks and loans', 'Health', 'School and activities', 'Work', 'Subscriptions', 'Paperwork', 'People and documents']);
+});

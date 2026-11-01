@@ -1398,3 +1398,17 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         amount: 1720,
     }),
 ];
+
+/** The ten areas of the Agenda, as the server sends them. */
+export const agendaAreas: App.Data.OptionData[] = [
+    ['home', 'Home'],
+    ['vehicles', 'Vehicles'],
+    ['insurance', 'Insurance'],
+    ['banks', 'Banks and loans'],
+    ['health', 'Health'],
+    ['school', 'School and activities'],
+    ['work', 'Work'],
+    ['subscriptions', 'Subscriptions'],
+    ['paperwork', 'Paperwork'],
+    ['general', 'People and documents'],
+].map(([value, label]) => ({ value, label, help: null }));

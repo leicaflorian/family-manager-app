@@ -54,6 +54,7 @@ final class AgendaController extends Controller
                 to: $until->toDateString(),
                 people: PersonData::ofFamily($user),
                 filters: $shown,
+                areas: AgendaData::areas(),
             ),
         ]);
     }

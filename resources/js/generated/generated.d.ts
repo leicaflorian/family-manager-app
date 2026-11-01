@@ -21,6 +21,7 @@ readonly from: string,
 readonly to: string,
 readonly people: App.Data.PersonData[],
 readonly filters: App.Data.AgendaFiltersData,
+readonly areas: App.Data.OptionData[],
 };
 export type AgendaEntryData = {
 readonly key: string,

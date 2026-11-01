@@ -1,11 +1,14 @@
 import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
 import { createApp } from 'vue';
 import { beforeAll, describe, expect, it } from 'vite-plus/test';
-import { agendaEntries } from '@/test/fixtures';
+import { agendaAreas, agendaEntries } from '@/test/fixtures';
 import { areaCounts, groupByMonth, summary, visibleEntries } from './agenda';
 import { i18nOptions } from './i18n';
 
 const today = '2026-10-26';
+const labels = Object.fromEntries(
+    agendaAreas.map((area) => [area.value, area.label]),
+);
 const defaults: App.Data.AgendaFiltersData = {
     months: 1,
     person_id: null,
@@ -84,7 +87,7 @@ describe('groupByMonth', () => {
 
 describe('areaCounts', () => {
     it('counts the ten areas, the empty ones too', () => {
-        const counts = areaCounts(agendaEntries, null);
+        const counts = areaCounts(agendaEntries, null, agendaAreas);
 
         expect(Object.keys(counts)).toHaveLength(10);
         expect(counts).toEqual({
@@ -102,7 +105,7 @@ describe('areaCounts', () => {
     });
 
     it('counts the entries of the person chosen', () => {
-        expect(areaCounts(agendaEntries, 2).work).toBe(1);
+        expect(areaCounts(agendaEntries, 2, agendaAreas).work).toBe(1);
     });
 });
 
@@ -131,20 +134,35 @@ describe('visibleEntries', () => {
 
 describe('summary', () => {
     it('says how many entries, the period and what is hidden', () => {
-        expect(summary(10, { work: 2 }, 1, '2026-10-26', '2026-11-26')).toBe(
+        expect(
+            summary(10, { work: 2 }, 1, '2026-10-26', '2026-11-26', labels),
+        ).toBe(
             '10 entries in the next month, from 26/10 to 26/11 · 2 hidden: Work',
         );
     });
 
     it('has no hidden part when no area is turned off', () => {
-        expect(summary(12, {}, 3, '2026-10-26', '2027-01-26')).toBe(
+        expect(summary(12, {}, 3, '2026-10-26', '2027-01-26', labels)).toBe(
             '12 entries in the next 3 months, from 26/10 to 26/01',
         );
     });
 
+    it('says nothing about an area that is off but has no entries', () => {
+        expect(
+            summary(5, { work: 0 }, 1, '2026-10-26', '2026-11-26', labels),
+        ).toBe('5 entries in the next month, from 26/10 to 26/11');
+    });
+
     it('lists the names of the hidden areas', () => {
         expect(
-            summary(1, { work: 2, general: 1 }, 1, '2026-10-26', '2026-11-26'),
+            summary(
+                1,
+                { work: 2, general: 1 },
+                1,
+                '2026-10-26',
+                '2026-11-26',
+                labels,
+            ),
         ).toBe(
             '1 entry in the next month, from 26/10 to 26/11 · 3 hidden: Work and People and documents',
         );
@@ -153,7 +171,11 @@ describe('summary', () => {
     it('is written in Italian', async () => {
         await speak('it');
 
-        expect(summary(10, { work: 2 }, 1, '2026-10-26', '2026-11-26')).toBe(
+        expect(
+            summary(10, { work: 2 }, 1, '2026-10-26', '2026-11-26', {
+                work: 'Lavoro',
+            }),
+        ).toBe(
             '10 voci nel prossimo mese, dal 26/10 al 26/11 · 2 nascoste: Lavoro',
         );
 
