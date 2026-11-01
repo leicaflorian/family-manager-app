@@ -921,5 +921,15 @@
     "Renew the document": "Rinnovare il documento",
     "Submit the filing": "Presentare la pratica",
     "Book the checkup": "Prenotare il controllo",
-    "Confirm the renewal": "Confermare il rinnovo"
+    "Confirm the renewal": "Confermare il rinnovo",
+    "By today": "Entro oggi",
+    "By tomorrow": "Entro domani",
+    "By :date, in :count days": "Entro il :date, tra :count giorni",
+    "Due today": "Scade oggi",
+    "Due tomorrow": "Scade domani",
+    "Due in :count days, on :date": "Scade tra :count giorni, il :date",
+    "Was due yesterday, on :date": "Scaduto ieri, il :date",
+    "Was due :count days ago, on :date": "Scaduto da :count giorni, il :date",
+    "Reminder": "Promemoria",
+    "Overdue": "Scaduto"
 }
