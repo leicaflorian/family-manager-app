@@ -44,6 +44,10 @@ export default defineExamples(FmRow, [
         },
     },
     {
+        name: 'Done',
+        props: { title: 'Carica la prima bolletta', done: true },
+    },
+    {
         name: 'With a value on the right',
         props: { title: 'Bolletta luce ottobre', subtitle: 'Pagata' },
         slots: { after: '84,20 €' },

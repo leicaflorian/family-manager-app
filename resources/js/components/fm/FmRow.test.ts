@@ -177,4 +177,10 @@ describe('FmRow', () => {
             'text-overdue',
         );
     });
+
+    it('strikes the title through when the thing is done', () => {
+        render(FmRow, { props: { title: 'Upload a bill', done: true } });
+
+        expect(screen.getByTitle('Upload a bill')).toHaveClass('line-through');
+    });
 });

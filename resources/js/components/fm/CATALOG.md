@@ -45,6 +45,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 ### Rows
 
 - [FmActiveFilter](#fmactivefilter) — A chosen filter, above a list: it is removed with the ×.
+- [FmAgendaRow](#fmagendarow) — An entry of the Agenda, in two layouts.
 - [FmCardRow](#fmcardrow) — A card in a list: the icon of its type in the colour of its area, the name and below the subtitle or the next date («Inspection · in 75 days», red once overdue).
 - [FmDeadlineRow](#fmdeadlinerow) — A due date in a list: the dot of the area, the title, the card it belongs to with its day (red when late) and on the right the amount.
 - [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
@@ -65,6 +66,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 
 ### Forms
 
+- [FmAgendaFilters](#fmagendafilters) — The filters of the *Agenda*: the period (1, 3, 6 or 12 months), the person and the areas.
 - [FmCardForm](#fmcardform) — The form of a card, built from the description the server gives (`CardFieldData`): each field becomes the FormKit Pro input of its kind, and a field shows only when its `show_when` holds, for example the vehicle only for a car policy, and its label can change with `label_when`, for example the POD code of electricity that is a PDR code for gas.
 - [FmCategoryOption](#fmcategoryoption) — A category in the open list of a menu, for the `option` slot of a FormKit autocomplete: the name alone, the subcategories indented under their main category.
 - [FmCategoryTree](#fmcategorytree) — A level of the tree of the categories, of documents or of expenses: each category with, on the right, the number of its documents (or what the `after` slot shows) and, if it has any, the arrow that opens the subcategories.
@@ -82,6 +84,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmDateTile](#fmdatetile) — A date of a card on its page: the label, the date as `15/10/2026` and below how far it is from today.
 - [FmLoanFigures](#fmloanfigures) — The total to pay and the cost of a loan under its instalment in the form, as the server works them out from what is written so far.
 - [FmNumberTile](#fmnumbertile) — A figure of the payments of a card, as a tile beside its dates: the label, the amount (or the number, as *Utilities 4*) and the line below, where the page writes the amount the server names with `:amount`.
+- [FmTotal](#fmtotal) — The blue box of the Home, *To pay in the next 30 days*: the sum of the payments not yet made, and below how many they are, with the late ones («8 payments, one already late»).
 
 ### Files
 
@@ -96,6 +99,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmCardFiles](#fmcardfiles) — The documents of a card on grey, beside its form, as the file beside *Edit the document*: *Link* beside the title, at the top the zone to add files, then the files chosen and not saved yet, then the documents: those chosen in *Link*, and those already linked, with the menu of the card page.
 - [FmCardHeader](#fmcardheader) — The coloured top of a card page, as on the board *Scheda*: «Area · Type», the name and the line of data.
 - [FmCardPayments](#fmcardpayments) — The planned expenses (or incomes) of a card and their payments, as the boards of the cards and the column beside *Edit card* show them: the rows of the planned items, which open *A planned expense*, with *Add* for an `admin`; then the payments a page at a time (the server sends one page, with the addresses of the others for the pager), each leading to its page, with *Record payment* and the link to all of them, year by year.
+- [FmChecklist](#fmchecklist) — *To begin*, on the Home of a new family: the first steps, each a link to where it is done.
 - [FmDocumentDetail](#fmdocumentdetail) — A document as the board *Un documento* shows it: the preview of the file on grey and, beside it, its data, the linked records (one type at a time) and the notes.
 - [FmLinkedRecords](#fmlinkedrecords) — *Links* of *A person* and *An organization*: the records that name them, one type at a time, with a tab for each type and how many records it has.
 - [FmPaymentYears](#fmpaymentyears) — The payments of the planned items of a page by year, the latest first: a line with the year (and, with `counts`, how many payments) and its total, then each payment with its day, title, account, the clip of a receipt and the amount.
@@ -175,6 +179,8 @@ The circle of a person: their photo or, without one, the initials on a colour.
 
 ### Used by
 
+- `components/fm/FmAgendaFilters.vue`
+- `components/fm/FmAgendaRow.vue`
 - `components/fm/FmDocumentDetail.vue`
 - `components/fm/FmFaces.vue`
 - `pages/family/EditPerson.vue`
@@ -267,6 +273,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 
 - `components/dev/DevCases.vue`
 - `components/fm/FmActions.vue`
+- `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmCardForm.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
@@ -354,6 +361,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 
 - `components/fm/FmCardBudget.vue`
 - `components/fm/FmCardPayments.vue`
+- `components/fm/FmChecklist.vue`
 - `pages/Home.vue`
 - `pages/budget/Comparison.vue`
 - `pages/budget/Deadline.vue`
@@ -624,6 +632,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 ### Used by
 
 - `components/fm/FmActiveFilter.vue`
+- `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmBackLink.vue`
 - `components/fm/FmBottomBar.vue`
 - `components/fm/FmBottomSheet.vue`
@@ -632,6 +641,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `components/fm/FmCardHeader.vue`
 - `components/fm/FmCardRow.vue`
 - `components/fm/FmCategoryTree.vue`
+- `components/fm/FmChecklist.vue`
 - `components/fm/FmDocumentDetail.vue`
 - `components/fm/FmEmpty.vue`
 - `components/fm/FmFileDrop.vue`
@@ -1390,6 +1400,52 @@ A chosen filter, above a list: it is removed with the ×.
 - `components/fm/FmDocumentForm.vue`
 - `pages/documents/Documents.vue`
 
+## FmAgendaRow
+
+`resources/js/components/fm/FmAgendaRow.vue`
+
+An entry of the Agenda, in two layouts. In the Agenda (`agenda`): the day
+with its weekday, the title, below the card and the person, on the right the
+amount, how far it is and *Reminder done*. In the Home (`home`): the dot of
+the area, the title, below the card with how far it is («Gas - Enel · in 4
+days»), or «Late by 3 days · 23/10/2026» in red, and the amount, with «~» if
+it is an estimate. The whole row leads to the entry.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `entry` | `App.Data.AgendaEntryData` | yes | — | The entry, as the server sends it. |
+| `layout` | `AgendaRowLayout` | no | `"agenda"` | The Agenda (the day on the left, the person) or the Home (the dot and the line below). |
+
+### Types
+
+```ts
+export type AgendaRowLayout = 'agenda' | 'home';
+```
+
+### Examples
+
+```vue
+<!-- Agenda, payment -->
+<FmAgendaRow :entry="entry" />
+
+<!-- Agenda, income -->
+<FmAgendaRow :entry="entry" />
+
+<!-- Agenda, reminder done -->
+<FmAgendaRow :entry="entry" />
+
+<!-- Agenda, passed -->
+<FmAgendaRow :entry="entry" />
+
+<!-- Home, upcoming -->
+<FmAgendaRow :entry="entry" layout="home" />
+
+<!-- Home, late and estimated -->
+<FmAgendaRow :entry="entry" layout="home" />
+```
+
 ## FmCardRow
 
 `resources/js/components/fm/FmCardRow.vue`
@@ -1585,6 +1641,7 @@ for the rows that open a panel.
 | `button` | `boolean` | no | `false` | The row is a button: it sends `click`. |
 | `current` | `boolean` | no | `false` | The row is the one open now, as the document shown beside the list. |
 | `arrow` | `boolean` | no | `true` | The arrow of a link with nothing on the right; off where buttons follow. |
+| `done` | `boolean` | no | `false` | The thing the row names is done: the title is struck through and soft. |
 
 ### Events
 
@@ -1619,6 +1676,9 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 <!-- Long title -->
 <FmRow title="Contratto di locazione dell’appartamento di via Garibaldi 12, Milano - rinnovo 2026" subtitle="Scade il 31/12/2028" />
 
+<!-- Done -->
+<FmRow title="Carica la prima bolletta" done />
+
 <!-- With a value on the right -->
 <FmRow title="Bolletta luce ottobre" subtitle="Pagata">
     <template #after>84,20 €</template>
@@ -1627,10 +1687,12 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 
 ### Used by
 
+- `components/fm/FmAgendaRow.vue`
 - `components/fm/FmBottomBar.vue`
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmCardRow.vue`
 - `components/fm/FmCategoryTree.vue`
+- `components/fm/FmChecklist.vue`
 - `components/fm/FmDeadlineRow.vue`
 - `components/fm/FmDocumentRow.vue`
 - `components/fm/FmLinkDocumentSheet.vue`
@@ -1720,6 +1782,7 @@ stays inside.
 
 ### Used by
 
+- `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmBottomBar.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
 - `components/fm/FmConfirm.vue`
@@ -2044,6 +2107,57 @@ panel open, with the reason.
 ### Used by
 
 - `pages/cards/Card.vue`
+
+## FmAgendaFilters
+
+`resources/js/components/fm/FmAgendaFilters.vue`
+
+The filters of the *Agenda*: the period (1, 3, 6 or 12 months), the person
+and the areas. An area is a button that turns it off: its name is struck
+through and its number stays, so the hidden entries stay counted. On the
+phone (`sheet`) they are a panel from below that ends with *Show 10
+entries*; on the computer (`column`) a column beside the list. The page
+keeps the filters: the component only says what the person chose.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `variant` | `AgendaFiltersVariant` | no | `"column"` | A panel from below on the phone, a column on the computer. |
+| `filters` | `App.Data.AgendaFiltersData` | yes | — | The filters in use. |
+| `people` | `AgendaFilterPerson[]` | yes | — | The people of the family. |
+| `areas` | `App.Data.OptionData[]` | yes | — | The areas, in order, with the name the server gives them. |
+| `counts` | `Record<string, number>` | yes | — | How many entries each area has for the person chosen, hidden areas too. |
+| `shown` | `number` | yes | — | How many entries the list shows with these filters. |
+| `open` | `boolean` | no | `false` | The panel is open (only for `sheet`). |
+
+### Events
+
+- `update:open`
+- `months`
+- `person`
+- `area`
+- `reset`
+
+### Types
+
+```ts
+export type AgendaFiltersVariant = 'sheet' | 'column';
+export type AgendaFilterPerson = Pick<
+```
+
+### Examples
+
+```vue
+<!-- Column -->
+<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :counts="counts" :shown="12" />
+
+<!-- Column, filtered -->
+<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :counts="counts" :shown="10" />
+
+<!-- Panel -->
+<FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :counts="counts" :shown="12" />
+```
 
 ## FmCardForm
 
@@ -2414,6 +2528,7 @@ amount with the old one struck through, an income as «+1.720,00 €» in green.
 
 ### Used by
 
+- `components/fm/FmAgendaRow.vue`
 - `components/fm/FmCardBudget.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
 - `components/fm/FmDeadlineRow.vue`
@@ -2593,6 +2708,39 @@ page writes the amount the server names with `:amount`.
 
 - `components/fm/FmCardBudget.vue`
 - `pages/cards/CardPayments.vue`
+
+## FmTotal
+
+`resources/js/components/fm/FmTotal.vue`
+
+The blue box of the Home, *To pay in the next 30 days*: the sum of the
+payments not yet made, and below how many they are, with the late ones
+(«8 payments, one already late»). With nothing to pay it says that nothing
+is due and how to begin.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `total` | `number` | yes | — | The sum of the payments, in euros. |
+| `payments` | `number` | yes | — | How many payments make the sum. |
+| `late` | `number` | yes | — | How many of them are already late. |
+
+### Examples
+
+```vue
+<!-- One late -->
+<FmTotal :total="1488.79" :payments="8" :late="1" />
+
+<!-- None late -->
+<FmTotal :total="84.2" :payments="1" :late="0" />
+
+<!-- More late -->
+<FmTotal :total="640.5" :payments="5" :late="2" />
+
+<!-- Nothing to pay -->
+<FmTotal :total="0" :payments="0" :late="0" />
+```
 
 ## FmDocumentActions
 
@@ -2921,6 +3069,36 @@ health event) offers *Add expense* instead.
 
 - `pages/cards/Card.vue`
 - `pages/cards/EditCard.vue`
+
+## FmChecklist
+
+`resources/js/components/fm/FmChecklist.vue`
+
+*To begin*, on the Home of a new family: the first steps, each a link to
+where it is done. A step done has the green tick and its text struck through.
+The page decides which steps there are and when each is done.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `steps` | `ChecklistStep[]` | yes | — | The steps, in order. |
+
+### Types
+
+```ts
+export type ChecklistStep = {
+```
+
+### Examples
+
+```vue
+<!-- Nothing done -->
+<FmChecklist :steps="steps" />
+
+<!-- One done -->
+<FmChecklist :steps="steps" />
+```
 
 ## FmDocumentDetail
 

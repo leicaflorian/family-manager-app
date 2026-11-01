@@ -47,6 +47,7 @@ describe('the catalogue', () => {
                 'Button',
                 'Area dot',
                 'Long title',
+                'Done',
                 'With a value on the right',
             ],
         );

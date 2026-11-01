@@ -61,6 +61,104 @@
     ]
   },
   {
+    "name": "FmAgendaFilters",
+    "path": "resources/js/components/fm/FmAgendaFilters.vue",
+    "description": "The filters of the *Agenda*: the period (1, 3, 6 or 12 months), the person\nand the areas. An area is a button that turns it off: its name is struck\nthrough and its number stays, so the hidden entries stay counted. On the\nphone (`sheet`) they are a panel from below that ends with *Show 10\nentries*; on the computer (`column`) a column beside the list. The page\nkeeps the filters: the component only says what the person chose.",
+    "group": "forms",
+    "props": [
+      {
+        "name": "variant",
+        "type": "AgendaFiltersVariant",
+        "required": false,
+        "default": "\"column\"",
+        "description": "A panel from below on the phone, a column on the computer."
+      },
+      {
+        "name": "filters",
+        "type": "App.Data.AgendaFiltersData",
+        "required": true,
+        "default": null,
+        "description": "The filters in use."
+      },
+      {
+        "name": "people",
+        "type": "AgendaFilterPerson[]",
+        "required": true,
+        "default": null,
+        "description": "The people of the family."
+      },
+      {
+        "name": "areas",
+        "type": "App.Data.OptionData[]",
+        "required": true,
+        "default": null,
+        "description": "The areas, in order, with the name the server gives them."
+      },
+      {
+        "name": "counts",
+        "type": "Record<string, number>",
+        "required": true,
+        "default": null,
+        "description": "How many entries each area has for the person chosen, hidden areas too."
+      },
+      {
+        "name": "shown",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "How many entries the list shows with these filters."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel is open (only for `sheet`)."
+      }
+    ],
+    "events": [
+      "update:open",
+      "months",
+      "person",
+      "area",
+      "reset"
+    ],
+    "slots": [],
+    "types": [
+      "export type AgendaFiltersVariant = 'sheet' | 'column';",
+      "export type AgendaFilterPerson = Pick<"
+    ],
+    "usedBy": []
+  },
+  {
+    "name": "FmAgendaRow",
+    "path": "resources/js/components/fm/FmAgendaRow.vue",
+    "description": "An entry of the Agenda, in two layouts. In the Agenda (`agenda`): the day\nwith its weekday, the title, below the card and the person, on the right the\namount, how far it is and *Reminder done*. In the Home (`home`): the dot of\nthe area, the title, below the card with how far it is («Gas - Enel · in 4\ndays»), or «Late by 3 days · 23/10/2026» in red, and the amount, with «~» if\nit is an estimate. The whole row leads to the entry.",
+    "group": "rows",
+    "props": [
+      {
+        "name": "entry",
+        "type": "App.Data.AgendaEntryData",
+        "required": true,
+        "default": null,
+        "description": "The entry, as the server sends it."
+      },
+      {
+        "name": "layout",
+        "type": "AgendaRowLayout",
+        "required": false,
+        "default": "\"agenda\"",
+        "description": "The Agenda (the day on the left, the person) or the Home (the dot and the line below)."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [
+      "export type AgendaRowLayout = 'agenda' | 'home';"
+    ],
+    "usedBy": []
+  },
+  {
     "name": "FmAmount",
     "path": "resources/js/components/fm/FmAmount.vue",
     "description": "An amount of the budget: «84,20 €», an estimate as «~72,00 €», a changed\namount with the old one struck through, an income as «+1.720,00 €» in green.",
@@ -99,6 +197,7 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "components/fm/FmAgendaRow.vue",
       "components/fm/FmCardBudget.vue",
       "components/fm/FmChangeDeadlineSheet.vue",
       "components/fm/FmDeadlineRow.vue",
@@ -154,6 +253,8 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "components/fm/FmAgendaFilters.vue",
+      "components/fm/FmAgendaRow.vue",
       "components/fm/FmDocumentDetail.vue",
       "components/fm/FmFaces.vue",
       "pages/family/EditPerson.vue",
@@ -274,6 +375,7 @@
     ],
     "types": [],
     "usedBy": [
+      "components/fm/FmAgendaFilters.vue",
       "components/fm/FmBottomBar.vue",
       "components/fm/FmChangeDeadlineSheet.vue",
       "components/fm/FmConfirm.vue",
@@ -412,6 +514,7 @@
     "usedBy": [
       "components/dev/DevCases.vue",
       "components/fm/FmActions.vue",
+      "components/fm/FmAgendaFilters.vue",
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmCardForm.vue",
       "components/fm/FmChangeDeadlineSheet.vue",
@@ -485,6 +588,7 @@
     "usedBy": [
       "components/fm/FmCardBudget.vue",
       "components/fm/FmCardPayments.vue",
+      "components/fm/FmChecklist.vue",
       "pages/Home.vue",
       "pages/budget/Comparison.vue",
       "pages/budget/Deadline.vue",
@@ -973,6 +1077,27 @@
       "pages/budget/Deadline.vue",
       "pages/budget/PlannedItem.vue"
     ]
+  },
+  {
+    "name": "FmChecklist",
+    "path": "resources/js/components/fm/FmChecklist.vue",
+    "description": "*To begin*, on the Home of a new family: the first steps, each a link to\nwhere it is done. A step done has the green tick and its text struck through.\nThe page decides which steps there are and when each is done.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "steps",
+        "type": "ChecklistStep[]",
+        "required": true,
+        "default": null,
+        "description": "The steps, in order."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [
+      "export type ChecklistStep = {"
+    ],
+    "usedBy": []
   },
   {
     "name": "FmConfirm",
@@ -1741,6 +1866,7 @@
     "types": [],
     "usedBy": [
       "components/fm/FmActiveFilter.vue",
+      "components/fm/FmAgendaFilters.vue",
       "components/fm/FmBackLink.vue",
       "components/fm/FmBottomBar.vue",
       "components/fm/FmBottomSheet.vue",
@@ -1749,6 +1875,7 @@
       "components/fm/FmCardHeader.vue",
       "components/fm/FmCardRow.vue",
       "components/fm/FmCategoryTree.vue",
+      "components/fm/FmChecklist.vue",
       "components/fm/FmDocumentDetail.vue",
       "components/fm/FmEmpty.vue",
       "components/fm/FmFileDrop.vue",
@@ -2624,6 +2751,13 @@
         "required": false,
         "default": "true",
         "description": "The arrow of a link with nothing on the right; off where buttons follow."
+      },
+      {
+        "name": "done",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The thing the row names is done: the title is struck through and soft."
       }
     ],
     "events": [
@@ -2637,10 +2771,12 @@
       "export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';"
     ],
     "usedBy": [
+      "components/fm/FmAgendaRow.vue",
       "components/fm/FmBottomBar.vue",
       "components/fm/FmCardFiles.vue",
       "components/fm/FmCardRow.vue",
       "components/fm/FmCategoryTree.vue",
+      "components/fm/FmChecklist.vue",
       "components/fm/FmDeadlineRow.vue",
       "components/fm/FmDocumentRow.vue",
       "components/fm/FmLinkDocumentSheet.vue",
@@ -2848,6 +2984,39 @@
       "pages/settings/ExpenseCategories.vue",
       "pages/settings/Settings.vue"
     ]
+  },
+  {
+    "name": "FmTotal",
+    "path": "resources/js/components/fm/FmTotal.vue",
+    "description": "The blue box of the Home, *To pay in the next 30 days*: the sum of the\npayments not yet made, and below how many they are, with the late ones\n(«8 payments, one already late»). With nothing to pay it says that nothing\nis due and how to begin.",
+    "group": "figures",
+    "props": [
+      {
+        "name": "total",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "The sum of the payments, in euros."
+      },
+      {
+        "name": "payments",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "How many payments make the sum."
+      },
+      {
+        "name": "late",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "How many of them are already late."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": []
   },
   {
     "name": "FmUploadSheet",

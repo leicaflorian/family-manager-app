@@ -32,6 +32,7 @@ const {
     button = false,
     current = false,
     arrow = true,
+    done = false,
 } = defineProps<{
     /** The main text. */
     title: string;
@@ -51,6 +52,8 @@ const {
     current?: boolean;
     /** The arrow of a link with nothing on the right; off where buttons follow. */
     arrow?: boolean;
+    /** The thing the row names is done: the title is struck through and soft. */
+    done?: boolean;
 }>();
 
 defineEmits<{
@@ -74,6 +77,11 @@ const toneColor: Record<RowTone, string> = {
 
 /** The title in two: the beginning, cut where room is short, and its last 5 characters. */
 const titleParts = computed(() => splitTail(title, 5));
+
+/** The title of a thing done is struck through. */
+const titleTone = computed(() =>
+    done ? cn('text-ink-soft line-through') : cn('text-ink'),
+);
 </script>
 
 <template>
@@ -107,7 +115,8 @@ const titleParts = computed(() => splitTail(title, 5));
                  pieces are only seen; the whole title is what is read. -->
             <span
                 v-if="titleParts[1]"
-                class="flex min-w-0 text-base font-semibold whitespace-nowrap text-ink"
+                class="flex min-w-0 text-base font-semibold whitespace-nowrap"
+                :class="titleTone"
                 :title="title"
             >
                 <span class="sr-only">{{ title }}</span>
@@ -126,7 +135,8 @@ const titleParts = computed(() => splitTail(title, 5));
             </span>
             <span
                 v-else
-                class="truncate text-base font-semibold text-ink"
+                class="truncate text-base font-semibold"
+                :class="titleTone"
                 :title="title"
                 >{{ title }}</span
             >
