@@ -31,6 +31,7 @@ final class AgendaEntryData extends Data
      * @param  bool  $reminder_done  whether the automatic reminder of the deadline is done
      * @param  AgendaReminderData|null  $reminder  the automatic reminder of the deadline, null when there is none
      * @param  string  $href  the card or the document of a deadline; *A due date* with *I paid it* open for a payment or an income
+     * @param  string|null  $update_url  where *Update the date* and *Renewed* send the new date of a deadline; null for a payment, an income, or when whoever looks cannot edit the card
      */
     public function __construct(
         public readonly string $key,
@@ -48,5 +49,6 @@ final class AgendaEntryData extends Data
         public readonly bool $reminder_done,
         public readonly ?AgendaReminderData $reminder,
         public readonly string $href,
+        public readonly ?string $update_url = null,
     ) {}
 }

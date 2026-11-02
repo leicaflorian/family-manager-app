@@ -60,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
         Route::get('agenda', AgendaController::class)->name('agenda');
         Route::put('agenda/filters', [AgendaController::class, 'filters'])->name('agenda.filters');
+        Route::put('agenda/deadlines/{field}/{id}', [AgendaController::class, 'updateDeadline'])->name('agenda.deadlines.update');
         Route::resource('reminders', ReminderController::class)->except('show');
         Route::post('reminders/{reminder}/done', [ReminderDoneController::class, 'store'])->name('reminders.done');
         Route::delete('reminders/{reminder}/done', [ReminderDoneController::class, 'destroy'])->name('reminders.reopen');

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Agenda\SaveAgendaFilters;
+use App\Actions\Agenda\UpdateDeadline;
 use App\Data\AgendaData;
 use App\Data\AgendaFiltersData;
 use App\Data\PersonData;
+use App\Http\Requests\Agenda\UpdateDeadlineRequest;
 use App\Http\Requests\AgendaFiltersRequest;
 use App\Http\Requests\AgendaRequest;
 use App\Models\Reminder;
@@ -67,6 +69,25 @@ final class AgendaController extends Controller
     public function filters(AgendaFiltersRequest $request, #[CurrentUser] User $user, SaveAgendaFilters $save): RedirectResponse
     {
         $save->handle($user, $request->filters());
+
+        return back();
+    }
+
+    /**
+     * *Update the date* and *Renewed*: the new date of a passed deadline.
+     *
+     * @param  UpdateDeadlineRequest  $request  the card of the address and the new date
+     * @param  UpdateDeadline  $update  the action
+     */
+    public function updateDeadline(UpdateDeadlineRequest $request, UpdateDeadline $update): RedirectResponse
+    {
+        $update->handle(
+            $request->source(),
+            $request->card(),
+            CarbonImmutable::parse($request->string('date')->toString(), 'Europe/Rome'),
+            $request->boolean('renewed'),
+            CarbonImmutable::today('Europe/Rome'),
+        );
 
         return back();
     }

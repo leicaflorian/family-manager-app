@@ -25,6 +25,7 @@ use App\Support\Reminders\Notices;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The entries of a period, for the Agenda, the Home and the calendar: the
@@ -217,6 +218,7 @@ final readonly class Agenda
             href: $document
                 ? route('documents.show', $card)
                 : route('cards.show', ['type' => CardTypes::for($card)->type(), 'id' => ModelId::of($card)]),
+            update_url: Gate::allows('update', $card) ? route('agenda.deadlines.update', ['field' => $deadline->source->field, 'id' => ModelId::of($card)]) : null,
         );
     }
 
