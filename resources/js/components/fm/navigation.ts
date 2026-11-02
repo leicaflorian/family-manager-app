@@ -131,6 +131,11 @@ export function sectionOf(path: string, items: NavigationItems): Section {
         return 'areas';
     }
 
+    // The reminders are the second tab of the Agenda
+    if (path === '/reminders' || path.startsWith('/reminders/')) {
+        return 'agenda';
+    }
+
     const all = [...items.sections, items.settings];
     const found = all.find(
         (item) => path === item.href || path.startsWith(`${item.href}/`),

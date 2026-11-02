@@ -23,6 +23,16 @@ describe('sectionOf', () => {
         expect(sectionOf('/dashboard', items)).toBe('home');
     });
 
+    it('marks Agenda on the reminders, their tab', () => {
+        for (const path of [
+            '/reminders',
+            '/reminders/create',
+            '/reminders/4/edit',
+        ]) {
+            expect(sectionOf(path, items)).toBe('agenda');
+        }
+    });
+
     it('marks Budget on every page of the budget', () => {
         for (const path of [
             '/budget',
