@@ -180,3 +180,11 @@ test('unread_notices counts the unread notices of the account only', function ()
 test('unread_notices is 0 when logged out', function (): void {
     $this->get('/login')->assertInertia(fn ($page) => $page->where('unread_notices', 0));
 });
+
+test('a notice of an automatic reminder whose thing is gone leads to the list, which answers 200, not to the edit page', function (): void {
+    $notice = noticeFor($this->marco, [], ['is_automatic' => true, 'status' => ReminderStatus::Done]);
+
+    $row = collect(noticesPage($this->marco)['unread'])->firstWhere('id', $notice->id);
+
+    expect($row['href'])->toBe('/reminders');
+});

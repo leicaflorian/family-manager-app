@@ -371,3 +371,14 @@ test('the title of a reminder joins with its subject in one place', function ():
     expect(ReminderList::joinTitle('Renew the policy', 'RC auto Panda'))->toBe('Renew the policy · RC auto Panda')
         ->and(ReminderList::joinTitle('Call the plumber', null))->toBe('Call the plumber');
 });
+
+test('an automatic reminder whose thing is gone leads to the list, not to the edit page that refuses it', function (): void {
+    $id = insideBianchi(fn (): int => Reminder::factory()->create([
+        'family_id' => $this->marco->family_id, 'title' => 'Renew the document', 'is_automatic' => true,
+        'status' => ReminderStatus::Done, 'due_date' => '2026-09-01',
+    ])->id);
+
+    $row = collect(remindersPage($this->marco)['done'])->firstWhere('id', $id);
+
+    expect($row['href'])->toBe('/reminders');
+});

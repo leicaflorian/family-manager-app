@@ -27,13 +27,13 @@ test('one mail with three notices', function (): void {
     $user = User::factory()->for(Family::factory())->create();
     $mail = new MorningNoticesMail($user, [item('Renew the policy'), item('Pay the road tax', '2026-12-01'), item('Get the inspection done', '2026-11-20')], '2026-11-25');
 
-    $mail->assertHasSubject('3 reminders for today');
+    $mail->assertHasSubject('3 reminders coming up');
     $mail->assertSeeInHtml('Renew the policy');
     $mail->assertSeeInHtml('Due today');
     $mail->assertSeeInHtml('Due in 6 days, on 01/12/2026');
     $mail->assertSeeInHtml('Was due 5 days ago, on 20/11/2026');
     $mail->assertSeeInHtml('https://app.test/cards/vehicle/1');
-    $mail->assertSeeInHtml('I will mark it as done when it is sorted.');
+    $mail->assertSeeInHtml('Mark it as done when it is sorted.');
 });
 
 test('the subject of a single notice', function (): void {

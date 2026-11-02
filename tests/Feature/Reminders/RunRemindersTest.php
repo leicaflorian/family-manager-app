@@ -14,6 +14,7 @@ use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Mail;
@@ -171,4 +172,33 @@ test('--family and --date', function (): void {
     $this->artisan('reminders:run', ['--family' => $this->family->id, '--date' => '2026-11-25'])->assertSuccessful();
     expect(ReminderNotice::query()->count())->toBe(2)
         ->and($otherUser->id)->not->toBe($this->marcoUser->id);
+});
+
+test('a --family that is not an id, or a bad --date, fails with a message and runs nothing', function (): void {
+    $this->artisan('reminders:run', ['--family' => 'abc'])->expectsOutputToContain('--family')->assertFailed();
+    $this->artisan('reminders:run', ['--family' => '0'])->expectsOutputToContain('--family')->assertFailed();
+    $this->artisan('reminders:run', ['--date' => '25/11/2026'])->expectsOutputToContain('--date')->assertFailed();
+    $this->artisan('reminders:run', ['--date' => '2026-13-45'])->expectsOutputToContain('--date')->assertFailed();
+
+    expect(ReminderNotice::query()->count())->toBe(0);
+});
+
+test('a run that finds another one going stops with a message and sends nothing', function (): void {
+    $lock = Cache::lock('reminders:run', 60);
+    expect($lock->get())->toBeTrue();
+
+    $this->artisan('reminders:run')->expectsOutputToContain('already running')->assertSuccessful();
+    expect(ReminderNotice::query()->count())->toBe(0);
+
+    $lock->release();
+    $this->artisan('reminders:run')->assertSuccessful();
+    expect(ReminderNotice::query()->count())->toBe(2);
+});
+
+test('the lock is let go after a run, also one that fails', function (): void {
+    $this->artisan('reminders:run')->assertSuccessful();
+
+    $lock = Cache::lock('reminders:run', 60);
+    expect($lock->get())->toBeTrue();
+    $lock->release();
 });

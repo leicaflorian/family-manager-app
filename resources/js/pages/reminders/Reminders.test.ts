@@ -170,6 +170,32 @@ describe('Reminders', () => {
         ).toBeInTheDocument();
     });
 
+    it('counts the open reminders once on the tab after one is marked done and the server sends the list again', async () => {
+        post.mockImplementation((_url, _data, options) => {
+            options?.onSuccess?.(undefined as never);
+        });
+        const view = renderPage(Reminders, props());
+
+        const [circle] = within(
+            screen.getByRole('region', { name: 'Overdue' }),
+        ).getAllByRole('button', { name: 'Mark as done' });
+        await userEvent.click(circle!);
+        // The server answers with the list without the reminder and the family-wide count one lower.
+        await view.rerender(
+            props({
+                open: remindersPage.open.filter((item) => item.id !== 1),
+                open_total: remindersPage.open_total - 1,
+            }),
+        );
+
+        expect(
+            screen.getByRole('link', { name: 'Reminders 9' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'To do · 2' }),
+        ).toBeInTheDocument();
+    });
+
     it('shows the error of a renewal that cannot be confirmed', async () => {
         post.mockImplementation((_url, _data, options) => {
             options?.onError?.({ status: 'Confirm the renewal first.' });

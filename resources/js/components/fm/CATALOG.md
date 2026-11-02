@@ -750,7 +750,8 @@ The white version, without the square, goes on the blue panel of the sign-in pag
 A message inside the page, with its icon: some information, something done
 (green), something that needs attention (orange) or that is late (red). It
 can have a bold title above the text and, on the right, an action (a link or
-a button), as the notices at the top of a card.
+a button), as the notices at the top of a card. The danger tone is announced
+at once (`alert`), the others politely (`status`).
 
 ### Props
 

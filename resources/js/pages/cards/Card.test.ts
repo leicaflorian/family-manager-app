@@ -163,7 +163,8 @@ describe('A card', () => {
             linkable: [],
         });
 
-        const [soon, late] = screen.getAllByRole('status');
+        const [soon] = screen.getAllByRole('status');
+        const late = screen.getByRole('alert');
         expect(
             within(soon).getByText('Expires in 26 days'),
         ).toBeInTheDocument();

@@ -53,9 +53,9 @@ final class ExpectedDocuments
         $linked = $card->documents()->with('category')->get()->all();
         $missing = [];
 
-        foreach ($items as $name => $isMet) {
-            if (! $isMet($linked)) {
-                $missing[] = $name;
+        foreach ($items as $item) {
+            if (! $item['met']($linked)) {
+                $missing[] = $item['name'];
             }
         }
 
@@ -98,7 +98,7 @@ final class ExpectedDocuments
     /**
      * The registration document of an active vehicle.
      *
-     * @return array<string, Closure(array<int, Document>): bool> the test of each expected document, by name
+     * @return array<string, array{name: string, met: Closure(array<int, Document>): bool}> each expected document by a stable id (`account:12`, `job:5`), with its name and its test
      */
     private function ofVehicle(Vehicle $vehicle): array
     {
@@ -106,16 +106,19 @@ final class ExpectedDocuments
             return [];
         }
 
-        return [Translated::text('Vehicle registration document') => static fn ($documents): bool => array_any($documents,
-            static fn (Document $document): bool => self::titled($document, ['libretto', 'registration']),
-        )];
+        return ['registration' => [
+            'name' => Translated::text('Vehicle registration document'),
+            'met' => static fn ($documents): bool => array_any($documents,
+                static fn (Document $document): bool => self::titled($document, ['libretto', 'registration']),
+            ),
+        ]];
     }
 
     /**
      * The file of an ISEE in draft with a reference year A: the average balance of A-2 for each active account but the cards (dated in A-1
      * or later), the CU of A-1 for each active job, and the identity card of the applicant.
      *
-     * @return array<string, Closure(array<int, Document>): bool> the test of each expected document, by name
+     * @return array<string, array{name: string, met: Closure(array<int, Document>): bool}> each expected document by a stable id (`account:12`, `job:5`), with its name and its test
      */
     private function ofFiling(Filing $filing, CarbonImmutable $today): array
     {
@@ -128,26 +131,35 @@ final class ExpectedDocuments
         $items = [];
 
         foreach (FinancialAccount::query()->where('status', FinancialAccountStatus::Active)->where('type', '!=', FinancialAccountType::Card)->orderBy('id')->get() as $account) {
-            $items[Translated::text('Average balance :year of :account', ['year' => $year - 2, 'account' => $account->name])] = static fn ($documents): bool => array_any($documents,
-                static fn (Document $document): bool => self::titled($document, ['giacenza']) && $document->date instanceof CarbonImmutable && $document->date->year >= $year - 1,
-            );
+            $items["account:{$account->id}"] = [
+                'name' => Translated::text('Average balance :year of :account', ['year' => $year - 2, 'account' => $account->name]),
+                'met' => static fn ($documents): bool => array_any($documents,
+                    static fn (Document $document): bool => self::titled($document, ['giacenza']) && $document->date instanceof CarbonImmutable && $document->date->year >= $year - 1,
+                ),
+            ];
         }
 
         foreach (Employment::query()->with('person')->where('status', EmploymentStatus::Active)->orderBy('id')->get() as $job) {
-            $items[Translated::text('Annual income statement :year of :person', ['year' => $year - 1, 'person' => $job->person->first_name])] = static fn ($documents): bool => array_any($documents,
-                static fn (Document $document): bool => $document->person_id === $job->person_id
-                    && $document->date?->year === $year - 1
-                    && preg_match('/\bCU\b/i', $document->category->name ?? '') === 1,
-            );
+            $items["job:{$job->id}"] = [
+                'name' => Translated::text('Annual income statement :year of :person', ['year' => $year - 1, 'person' => $job->person->first_name]),
+                'met' => static fn ($documents): bool => array_any($documents,
+                    static fn (Document $document): bool => $document->person_id === $job->person_id
+                        && $document->date?->year === $year - 1
+                        && preg_match('/\bCU\b/i', $document->category->name ?? '') === 1,
+                ),
+            ];
         }
 
         if ($filing->person !== null) {
-            $items[Translated::text('Identity card of :person', ['person' => $filing->person->first_name])] = static fn ($documents): bool => array_any($documents,
-                static fn (Document $document): bool => $document->person_id === $filing->person_id
-                    && self::titled($document, ['identità', 'identity'])
-                    && $document->status !== DocumentStatus::Expired
-                    && ($document->expiry_date === null || $document->expiry_date->greaterThanOrEqualTo($today)),
-            );
+            $items["identity:{$filing->person_id}"] = [
+                'name' => Translated::text('Identity card of :person', ['person' => $filing->person->first_name]),
+                'met' => static fn ($documents): bool => array_any($documents,
+                    static fn (Document $document): bool => $document->person_id === $filing->person_id
+                        && self::titled($document, ['identità', 'identity'])
+                        && $document->status !== DocumentStatus::Expired
+                        && ($document->expiry_date === null || $document->expiry_date->greaterThanOrEqualTo($today)),
+                ),
+            ];
         }
 
         return $items;

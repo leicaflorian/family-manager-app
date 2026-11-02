@@ -3,7 +3,8 @@
  * A message inside the page, with its icon: some information, something done
  * (green), something that needs attention (orange) or that is late (red). It
  * can have a bold title above the text and, on the right, an action (a link or
- * a button), as the notices at the top of a card.
+ * a button), as the notices at the top of a card. The danger tone is announced
+ * at once (`alert`), the others politely (`status`).
  *
  * @group basics
  */
@@ -50,7 +51,7 @@ const styles: Record<NoticeTone, { classes: string; icon: LucideIcon }> = {
 
 <template>
     <div
-        role="status"
+        :role="tone === 'danger' ? 'alert' : 'status'"
         class="flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-sm leading-[1.45]"
         :class="styles[tone].classes"
     >

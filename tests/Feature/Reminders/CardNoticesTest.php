@@ -13,6 +13,7 @@ use App\Models\Filing;
 use App\Models\FinancialAccount;
 use App\Models\InsurancePolicy;
 use App\Models\Reminder;
+use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\CardDetails;
@@ -92,7 +93,12 @@ function noticeDance(?string $expiry = null): Enrollment
 test('the policy that expires in 26 days says when, when the reminder went out and what to do if the company changes', function (): void {
     app()->setLocale('it');
     $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('title', 'RC auto Panda')->sole());
-    insideBianchi(fn () => Reminder::query()->where('source_field', 'insurance_policies.expiry_date')->get()->each->update(['notifications_sent' => ['2026-11-21:-45']]));
+    insideBianchi(function (): void {
+        $reminder = Reminder::query()->where('source_field', 'insurance_policies.expiry_date')->sole();
+        // The day before is marked as sent too (skipped), but only one notice really went out.
+        $reminder->update(['notifications_sent' => ['2026-11-21:-60', '2026-11-21:-45']]);
+        ReminderNotice::factory()->create(['family_id' => $reminder->family_id, 'reminder_id' => $reminder->id, 'due_date' => '2026-11-21', 'offset' => -45, 'sent_at' => CarbonImmutable::parse('2026-10-07 06:00', 'Europe/Rome')]);
+    });
 
     $notice = cardNoticesOf($policy)[0];
 
@@ -219,7 +225,10 @@ test('the ISEE 2027 of Laura, as the board shows it, has 3 documents of 4 and mi
 test('the days that start with a vowel sound take l\' in Italian, in the date of the notices', function (): void {
     app()->setLocale('it');
     $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('title', 'RC auto Panda')->sole());
-    insideBianchi(fn () => Reminder::query()->where('source_field', 'insurance_policies.expiry_date')->get()->each->update(['notifications_sent' => ['2026-11-21:-10']]));
+    insideBianchi(function (): void {
+        $reminder = Reminder::query()->where('source_field', 'insurance_policies.expiry_date')->sole();
+        ReminderNotice::factory()->create(['family_id' => $reminder->family_id, 'reminder_id' => $reminder->id, 'due_date' => '2026-11-21', 'offset' => -10, 'sent_at' => CarbonImmutable::parse('2026-11-11 06:00', 'Europe/Rome')]);
+    });
 
     expect(cardNoticesOf($policy)[0]->text)->toStartWith("Il promemoria è partito l'11/11/2026.");
 });
@@ -243,4 +252,13 @@ test('the notices that the card types already showed are still there, as warning
         ->and($own[0]->tone)->toBe(NoticeTone::Warning)
         ->and($own[0]->text)->toStartWith('È il conto predefinito')
         ->and($details->notices[0]->text)->toStartWith('È il conto predefinito');
+});
+
+test('days marked as sent that nothing went out on are not told: without a real notice the sentence is left out', function (): void {
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('title', 'RC auto Panda')->sole());
+    insideBianchi(fn () => Reminder::query()->where('source_field', 'insurance_policies.expiry_date')->get()->each->update(['notifications_sent' => ['2026-11-21:-60']]));
+
+    $notice = cardNoticesOf($policy)[0];
+
+    expect($notice->text)->not->toContain('went out');
 });

@@ -2380,7 +2380,7 @@
   {
     "name": "FmNotice",
     "path": "resources/js/components/fm/FmNotice.vue",
-    "description": "A message inside the page, with its icon: some information, something done\n(green), something that needs attention (orange) or that is late (red). It\ncan have a bold title above the text and, on the right, an action (a link or\na button), as the notices at the top of a card.",
+    "description": "A message inside the page, with its icon: some information, something done\n(green), something that needs attention (orange) or that is late (red). It\ncan have a bold title above the text and, on the right, an action (a link or\na button), as the notices at the top of a card. The danger tone is announced\nat once (`alert`), the others politely (`status`).",
     "group": "basics",
     "props": [
       {

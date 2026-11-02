@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Enums\DocumentStatus;
+use App\Enums\EmploymentStatus;
 use App\Enums\VehicleStatus;
 use App\Models\Document;
 use App\Models\DocumentCategory;
+use App\Models\Employment;
 use App\Models\Filing;
+use App\Models\FinancialAccount;
 use App\Models\Person;
 use App\Models\Vehicle;
 use App\Services\Reminders\ExpectedDocuments;
@@ -127,5 +130,20 @@ test('missingFor lists what is missing in every active vehicle and open ISEE, wi
 
         expectedLinkedDocument($panda, ['title' => 'Libretto']);
         expect(collect(resolve(ExpectedDocuments::class)->missingFor($this->today))->where('card', 'Fiat Panda')->count())->toBe(0);
+    });
+});
+
+test('two accounts with the same name, or a person with two jobs, are two documents each', function (): void {
+    insideBianchi(function (): void {
+        $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
+        $account = FinancialAccount::query()->where('name', 'Conto BPER')->sole();
+        $job = Employment::query()->where('status', EmploymentStatus::Active)->firstOrFail();
+        $account->replicate()->save();
+        $job->replicate()->save();
+
+        $result = resolve(ExpectedDocuments::class)->for($filing, $this->today);
+
+        expect($result['expected'])->toBe(6)
+            ->and(array_count_values($result['missing'])['Average balance 2025 of Conto BPER'])->toBe(2);
     });
 });

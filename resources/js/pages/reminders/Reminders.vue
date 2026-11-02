@@ -151,12 +151,7 @@ function undo(item: ReminderItem): void {
                     variant="pill"
                     class="w-full sm:w-[340px]"
                     :label="$t('Agenda views')"
-                    :tabs="
-                        agendaTabs(
-                            'reminders',
-                            reminders.open_total - justDone.length,
-                        )
-                    "
+                    :tabs="agendaTabs('reminders', reminders.open_total)"
                 />
             </template>
             <template #actions>

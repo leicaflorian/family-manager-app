@@ -12,6 +12,7 @@ use App\Models\Filing;
 use App\Models\PlannedExpense;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
+use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Support\ItalianArticle;
 use App\Support\ModelId;
@@ -103,21 +104,15 @@ final readonly class CardNotices
     }
 
     /**
-     * When the first notice went out, or when the next one will.
+     * When the first notice really went out, or when the next one will. The keys of `notifications_sent` also hold the
+     * days skipped (a card created late, a server that was down), so the day comes from the notices that were sent.
      */
     private function noticeText(Reminder $reminder, CarbonImmutable $due, CarbonImmutable $today): ?string
     {
-        $prefix = $due->toDateString().':';
-        $sent = [];
+        $first = ReminderNotice::query()->where('reminder_id', $reminder->id)->whereDate('due_date', $due->toDateString())->oldest('sent_at')->first();
 
-        foreach ($reminder->notifications_sent ?? [] as $key) {
-            if (is_string($key) && str_starts_with($key, $prefix) && is_numeric($offset = substr($key, strlen($prefix)))) {
-                $sent[] = $due->addDays((int) $offset);
-            }
-        }
-
-        if ($sent !== []) {
-            return Translated::text('The reminder went out on :date.', ['date' => min($sent)->format('d/m/Y')]);
+        if ($first instanceof ReminderNotice) {
+            return Translated::text('The reminder went out on :date.', ['date' => $first->sent_at->setTimezone('Europe/Rome')->format('d/m/Y')]);
         }
 
         $next = Notices::next($reminder, Notices::rulesFor($reminder, ReminderGroup::query()->get()), $today);

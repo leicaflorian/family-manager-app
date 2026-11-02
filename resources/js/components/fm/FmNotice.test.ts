@@ -34,7 +34,8 @@ describe('FmNotice', () => {
             slots: { default: 'Expired 3 days ago' },
         });
 
-        expect(screen.getByRole('status')).toHaveClass('text-overdue');
+        expect(screen.getByRole('alert')).toHaveClass('text-overdue');
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
     });
 
     it('shows a title above the text', () => {

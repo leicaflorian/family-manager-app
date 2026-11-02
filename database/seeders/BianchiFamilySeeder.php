@@ -408,6 +408,9 @@ final class BianchiFamilySeeder extends Seeder
      */
     private function createReminderGroups(): void
     {
+        // The family comes with the starting groups; the canvas has its own, so they make room.
+        ReminderGroup::query()->delete();
+
         $notice = static fn (int $days, string $channels): array => ['name' => 'Promemoria', 'days' => $days, 'timing' => 'before', 'channels' => $channels, 'recipients' => ['all']];
 
         ReminderGroup::query()->create([

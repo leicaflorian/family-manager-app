@@ -87,7 +87,7 @@ final readonly class NoticeList
                     $reminder->due_date->lt($today) => 'expired',
                     default => null,
                 },
-                href: $reminder->is_automatic && $subject?->href !== null ? $subject->href : route('reminders.edit', $reminder, absolute: false),
+                href: $this->reminders->hrefOf($reminder, $subject),
             );
         })->all());
     }

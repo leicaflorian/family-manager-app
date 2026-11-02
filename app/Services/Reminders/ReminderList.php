@@ -86,7 +86,7 @@ final readonly class ReminderList
             next_notice: $next?->toDateString(),
             notice_sent: array_any($reminder->notifications_sent ?? [], static fn (mixed $key): bool => is_string($key) && str_starts_with($key, $prefix)),
             missing_expense: isset($missing[$reminder->id]),
-            href: $reminder->is_automatic && $subject?->href !== null ? $subject->href : route('reminders.edit', $reminder, absolute: false),
+            href: $this->hrefOf($reminder, $subject),
         );
     }
 
@@ -116,13 +116,20 @@ final readonly class ReminderList
     }
 
     /**
-     * The title of a reminder with the name of its thing, in the language of whoever looks.
+     * Where a reminder leads: the page of its thing for an automatic one, the edit page for one written by hand. An
+     * automatic reminder whose thing is gone has no edit page (the policy refuses it), so it falls back to the list.
+     * The one place for the pages and the bell.
      *
-     * @param  Reminder  $reminder  the reminder, with `link.subject` loaded
+     * @param  Reminder  $reminder  the reminder
+     * @param  ReminderSubjectData|null  $subject  its thing, null when it has none
      */
-    public function titleWithSubject(Reminder $reminder): string
+    public function hrefOf(Reminder $reminder, ?ReminderSubjectData $subject): string
     {
-        return self::joinTitle($this->titleOf($reminder), $this->subject($reminder->link)?->label);
+        return match (true) {
+            ! $reminder->is_automatic => route('reminders.edit', $reminder, absolute: false),
+            $subject?->href !== null => $subject->href,
+            default => route('reminders.index', absolute: false),
+        };
     }
 
     /**

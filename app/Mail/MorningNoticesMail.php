@@ -46,7 +46,7 @@ final class MorningNoticesMail extends Mailable
         $first = $this->items[0];
 
         if (count($this->items) > 1) {
-            return new Envelope(subject: trans_choice('{1} :count reminder for today|[2,*] :count reminders for today', count($this->items)));
+            return new Envelope(subject: trans_choice('{1} :count reminder coming up|[2,*] :count reminders coming up', count($this->items)));
         }
 
         $title = $this->title($first);

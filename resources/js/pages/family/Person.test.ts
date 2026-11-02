@@ -159,7 +159,8 @@ describe('A person', () => {
             { ...plumberReminder, due_date: '2026-10-31' },
         ]);
 
-        const [late, coming] = screen.getAllByRole('status');
+        const late = screen.getByRole('alert');
+        const [coming] = screen.getAllByRole('status');
         expect(late).toHaveClass('text-overdue');
         expect(
             within(late).getByText('Renew the health card'),

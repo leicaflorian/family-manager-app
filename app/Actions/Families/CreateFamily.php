@@ -11,9 +11,11 @@ use App\Models\ExpenseCategory;
 use App\Models\Family;
 use App\Models\FamilySetting;
 use App\Models\Person;
+use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Support\CurrentFamily;
 use App\Support\DefaultCategories;
+use App\Support\DefaultReminderGroups;
 use App\Support\Initials;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +26,7 @@ final class CreateFamily
 {
     /**
      * Creates in one transaction the family, the `admin` account, its person, the
-     * starting categories and the settings row.
+     * starting categories, the settings row and the alert groups.
      *
      * @param  string  $familyName  the name of the family (usually the last name)
      * @param  string  $firstName  the first name of whoever registers
@@ -58,6 +60,10 @@ final class CreateFamily
                 $this->createTree(DocumentCategory::class, DefaultCategories::documents(), DefaultCategories::documentLooks());
                 $this->createTree(ExpenseCategory::class, DefaultCategories::expenses());
                 FamilySetting::query()->create([]);
+
+                foreach (DefaultReminderGroups::all() as $group) {
+                    ReminderGroup::query()->create($group);
+                }
 
                 return $account;
             });

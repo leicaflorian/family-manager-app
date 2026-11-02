@@ -7,7 +7,7 @@
 {{ $line['when'] }} · [{{ __('Open') }}]({{ $line['url'] }})
 
 @endforeach
-{{ __('I will mark it as done when it is sorted.') }}
+{{ __('Mark it as done when it is sorted.') }}
 
 Family Manager
 </x-mail::message>
