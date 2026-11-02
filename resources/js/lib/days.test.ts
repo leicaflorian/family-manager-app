@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { addDays, addMonths, addYears } from './days';
+import { addDays, addMonths, addYears, endOfWeek } from './days';
 
 describe('addDays', () => {
     it('moves forward across the end of a month and of a year', () => {
@@ -37,5 +37,17 @@ describe('addYears', () => {
 
     it('turns the 29th of February into the 28th', () => {
         expect(addYears('2028-02-29', 1)).toBe('2029-02-28');
+    });
+});
+
+describe('endOfWeek', () => {
+    it('gives the Sunday that ends the week, which starts on Monday', () => {
+        expect(endOfWeek('2026-11-02')).toBe('2026-11-08');
+        expect(endOfWeek('2026-11-05')).toBe('2026-11-08');
+        expect(endOfWeek('2026-12-30')).toBe('2027-01-03');
+    });
+
+    it('gives the day itself on a Sunday', () => {
+        expect(endOfWeek('2026-11-08')).toBe('2026-11-08');
     });
 });

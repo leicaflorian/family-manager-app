@@ -225,12 +225,12 @@ describe('Edit a reminder', () => {
         ).toBeInTheDocument();
     });
 
-    it('is a panel beside the list of the reminders on the computer', () => {
+    it('is a panel beside the list of the reminders on the computer', async () => {
         screenWidth(true);
         renderPage(EditReminder, props);
 
         expect(
-            screen.getByRole('region', { name: 'Overdue' }),
+            await screen.findByRole('region', { name: 'Late' }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('heading', { name: 'New reminder' }),

@@ -6,7 +6,7 @@
  */
 import { trans } from 'laravel-vue-i18n';
 import { monthName, shortDate } from './budget';
-import { addDays } from './days';
+import { addDays, endOfWeek } from './days';
 
 /** A block of the list: the deadlines to sort out, a week, or one month. */
 export type AgendaGroup = {
@@ -41,20 +41,6 @@ export type AgendaTotals = {
  */
 function toCents(amount: number): number {
     return Math.round(amount * 100) / 100;
-}
-
-/**
- * The Sunday that ends the week of a day: weeks start on Monday.
- *
- * @param day - `yyyy-mm-dd`
- * @returns the Sunday, `yyyy-mm-dd`; the day itself if it is a Sunday
- */
-function sundayOf(day: string): string {
-    const [year, month, date] = day.split('-').map(Number);
-    // getUTCDay counts from Sunday (0): Monday is 1, Sunday is 7 here
-    const weekday = new Date(Date.UTC(year, month - 1, date)).getUTCDay() || 7;
-
-    return addDays(day, 7 - weekday);
 }
 
 /**
@@ -102,7 +88,7 @@ export function groupByWeek(
     to: string,
     months: number,
 ): AgendaGroup[] {
-    const sunday = sundayOf(today);
+    const sunday = endOfWeek(today);
     const nextSunday = addDays(sunday, 7);
     const groups: AgendaGroup[] = [];
 
@@ -173,7 +159,7 @@ export function agendaTotals(
     entries: App.Data.AgendaEntryData[],
     today: string,
 ): AgendaTotals {
-    const sunday = sundayOf(today);
+    const sunday = endOfWeek(today);
     const outgoing = entries.filter((entry) => entry.kind !== 'income');
     const week = outgoing.filter(
         (entry) => !isPassed(entry, today) && entry.date <= sunday,

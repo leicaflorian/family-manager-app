@@ -110,6 +110,16 @@ const romeDay = new Intl.DateTimeFormat('en-CA', {
 });
 
 /**
+ * Today on the calendar of Rome, as the server counts the days.
+ *
+ * @param now - the moment taken as now, the clock if missing
+ * @returns `yyyy-mm-dd`
+ */
+export function todayInRome(now: Date = new Date()): string {
+    return romeDay.format(now);
+}
+
+/**
  * Counts the calendar days from a day to another.
  *
  * @param from - the first day, `yyyy-mm-dd`

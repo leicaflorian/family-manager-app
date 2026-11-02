@@ -6,6 +6,7 @@ import {
     formatSize,
     isoDate,
     relativeDays,
+    todayInRome,
 } from './format';
 
 describe('formatEuro', () => {
@@ -72,5 +73,17 @@ describe('formatSize', () => {
         expect(formatSize(348_160)).toBe('340 KB');
         expect(formatSize(1_258_291)).toBe('1,2 MB');
         expect(formatSize(26_214_400)).toBe('25 MB');
+    });
+});
+
+describe('todayInRome', () => {
+    it('is the day on the calendar of Rome, whatever the clock of the computer', () => {
+        expect(todayInRome(new Date('2026-11-02T10:00:00+01:00'))).toBe(
+            '2026-11-02',
+        );
+        // 23:30 in London on the 1st is already the 2nd in Rome
+        expect(todayInRome(new Date('2026-11-01T23:30:00Z'))).toBe(
+            '2026-11-02',
+        );
     });
 });

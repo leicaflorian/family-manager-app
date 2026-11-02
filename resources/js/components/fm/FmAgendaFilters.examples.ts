@@ -1,7 +1,8 @@
 /**
  * The cases of `FmAgendaFilters` for the component catalogue: the toolbar of
  * the computer, also with a person and an area turned off, and the buttons of
- * the phone with their panel (opened with *Open* on the catalogue page).
+ * the phone with their panel (opened with *Open* on the catalogue page), and
+ * the same two for *Reminders*: the lists in place of the period, and the search.
  */
 import { defineExamples } from '@/catalog/examples';
 import { agendaAreas, agendaPeriods } from '@/test/fixtures';
@@ -20,6 +21,15 @@ const counts = {
     banks: 2,
     work: 2,
     subscriptions: 2,
+};
+
+/** The two lists of *Reminders*. */
+const views = {
+    label: 'Stato',
+    options: [
+        { value: 'open', label: 'Da fare · 17' },
+        { value: 'done', label: 'Fatti' },
+    ],
 };
 
 export default defineExamples(FmAgendaFilters, [
@@ -71,6 +81,35 @@ export default defineExamples(FmAgendaFilters, [
             periods: agendaPeriods,
             counts,
             shown: 10,
+        },
+    },
+    {
+        name: 'Toolbar of Reminders',
+        props: {
+            variant: 'toolbar',
+            filters: { person_id: null, hidden_areas: [] },
+            people,
+            areas: agendaAreas,
+            views,
+            view: 'open',
+            searchLabel: 'Cerca un promemoria',
+            search: '',
+            counts,
+            shown: 17,
+        },
+    },
+    {
+        name: 'Phone of Reminders',
+        props: {
+            variant: 'sheet',
+            open: false,
+            filters: { person_id: null, hidden_areas: [] },
+            people,
+            areas: agendaAreas,
+            views,
+            view: 'open',
+            counts,
+            shown: 17,
         },
     },
 ]);

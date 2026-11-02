@@ -70,3 +70,17 @@ export function addMonths(day: string, months: number): string {
 export function addYears(day: string, years: number): string {
     return addMonths(day, years * 12);
 }
+
+/**
+ * The Sunday that ends the week of a day: weeks start on Monday.
+ *
+ * @param day - `yyyy-mm-dd`
+ * @returns the Sunday, `yyyy-mm-dd`; the day itself if it is a Sunday
+ */
+export function endOfWeek(day: string): string {
+    const [year, month, date] = partsOf(day);
+    // getUTCDay counts from Sunday (0): Monday is 1, Sunday is 7 here
+    const weekday = new Date(Date.UTC(year, month - 1, date)).getUTCDay() || 7;
+
+    return addDays(day, 7 - weekday);
+}

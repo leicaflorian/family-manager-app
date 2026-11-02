@@ -201,4 +201,98 @@ describe('FmAgendaFilters', () => {
             expect(screen.queryByRole('dialog')).toBeNull();
         });
     });
+
+    describe('without the period, as in Reminders', () => {
+        /** The props of *Reminders*: the two lists in place of the period, and the search. */
+        const reminders = (
+            change: Partial<ComponentProps<typeof FmAgendaFilters>> = {},
+        ): ComponentProps<typeof FmAgendaFilters> =>
+            props({
+                periods: undefined,
+                views: {
+                    label: 'Status',
+                    options: [
+                        { value: 'open', label: 'To do · 3' },
+                        { value: 'done', label: 'Completed' },
+                    ],
+                },
+                view: 'open',
+                searchLabel: 'Search a reminder',
+                search: '',
+                ...change,
+            });
+
+        it('chooses the list in place of the period, on the computer', async () => {
+            const view = render(FmAgendaFilters, { props: reminders() });
+
+            expect(
+                screen.queryByRole('radiogroup', { name: 'Period' }),
+            ).toBeNull();
+            expect(
+                screen.getByRole('radio', { name: 'To do · 3' }),
+            ).toBeChecked();
+
+            await userEvent.click(
+                screen.getByRole('radio', { name: 'Completed' }),
+            );
+
+            expect(view.emitted()['update:view']).toEqual([['done']]);
+        });
+
+        it('searches while typing, on the computer', async () => {
+            const view = render(FmAgendaFilters, { props: reminders() });
+
+            await userEvent.type(
+                screen.getByRole('searchbox', { name: 'Search a reminder' }),
+                'a',
+            );
+
+            expect(view.emitted()['update:search']).toEqual([['a']]);
+        });
+
+        it('has no search without its label', () => {
+            render(FmAgendaFilters, {
+                props: reminders({ searchLabel: undefined }),
+            });
+
+            expect(screen.queryByRole('searchbox')).toBeNull();
+        });
+
+        it('shows the lists as buttons beside the person and the areas, on the phone', async () => {
+            const view = render(FmAgendaFilters, {
+                props: reminders({ variant: 'sheet', open: false }),
+            });
+
+            const group = screen.getByRole('group', { name: 'Filters' });
+            expect(
+                within(group)
+                    .getAllByRole('button')
+                    .map((button) => button.textContent?.trim()),
+            ).toEqual(['To do · 3', 'Completed', 'Everyone', 'All areas']);
+            expect(
+                within(group).getByRole('button', { name: 'To do · 3' }),
+            ).toHaveAttribute('aria-pressed', 'true');
+
+            await userEvent.click(
+                within(group).getByRole('button', { name: 'Completed' }),
+            );
+
+            expect(view.emitted()['update:view']).toEqual([['done']]);
+            expect(view.emitted()['update:open']).toBeUndefined();
+        });
+
+        it('leaves the period out of the panel', async () => {
+            render(FmAgendaFilters, {
+                props: reminders({ variant: 'sheet', open: true }),
+            });
+
+            const dialog = await screen.findByRole('dialog', {
+                name: 'Filter the agenda',
+            });
+            expect(within(dialog).queryByText('Period')).toBeNull();
+            expect(
+                within(dialog).getByRole('radiogroup', { name: 'Person' }),
+            ).toBeInTheDocument();
+        });
+    });
 });

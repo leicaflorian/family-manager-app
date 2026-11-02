@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vite-plus/test';
-import type { NoticeRule, RulePerson } from './reminders';
+import { router } from '@inertiajs/vue3';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import type { NoticeRule, ReminderItem, RulePerson } from './reminders';
 import {
     agendaTabs,
+    groupReminders,
+    matchesReminder,
     offsetsHint,
-    nextNoticeText,
+    postponeChoices,
+    postponeReminder,
+    reminderAreaCounts,
     recipientsSentence,
     ruleText,
     sentAtText,
@@ -58,20 +63,6 @@ describe('ruleText', () => {
     });
 });
 
-describe('nextNoticeText', () => {
-    it('says the first notice when none has gone yet', () => {
-        expect(nextNoticeText('2026-10-30', 0)).toBe('First notice on 30/10');
-    });
-
-    it('says the next notice when one has gone', () => {
-        expect(nextNoticeText('2026-10-30', 1)).toBe('Notice on 30/10');
-    });
-
-    it('says there is no other notice', () => {
-        expect(nextNoticeText(null, 2)).toBe('No other notice');
-    });
-});
-
 describe('sentAtText', () => {
     const today = new Date('2026-10-26T10:00:00+01:00');
 
@@ -118,36 +109,152 @@ describe('toReminderItem', () => {
             id: 7,
             title: 'Pay the road tax',
             due_date: '2026-11-20',
+            postponed_from: null,
             done: false,
             manual: true,
             area: 'vehicles',
             subject: { label: 'Fiat Panda', href: '/cards/vehicle/3' },
             person: { name: 'Marco', initials: 'MB', photo: null },
             next_notice_on: '2026-11-13',
-            notices_sent: 0,
             missing_planned_expense: true,
             href: '/reminders/7/edit',
+            edit_href: '/reminders/7/edit',
+            card_href: null,
+            can_delete: true,
         });
     });
 
-    it('marks a done one, an automatic one and a notice already sent', () => {
+    it('marks a done one, an automatic one, and one with nothing to refer to', () => {
         const item = toReminderItem({
             ...row,
             status: 'done' as App.Enums.ReminderStatus,
             is_automatic: true,
-            notice_sent: true,
             subject: null,
             person: null,
+            can_edit: false,
+            can_delete: false,
         });
 
         expect(item).toMatchObject({
             done: true,
             manual: false,
-            notices_sent: 1,
             subject: null,
             person: null,
-            area: null,
+            area: 'general',
+            edit_href: null,
+            card_href: null,
+            can_delete: false,
         });
+    });
+
+    it('opens the card of an automatic reminder, and keeps the day it was postponed from', () => {
+        const item = toReminderItem({
+            ...row,
+            is_automatic: true,
+            postponed_from: '2026-11-10',
+            can_edit: false,
+        });
+
+        expect(item).toMatchObject({
+            card_href: '/cards/vehicle/3',
+            postponed_from: '2026-11-10',
+            edit_href: null,
+        });
+    });
+
+    it('keeps the name of a thing without a page, without a link', () => {
+        const item = toReminderItem({
+            ...row,
+            subject: { ...row.subject!, href: null },
+        });
+
+        expect(item.subject).toEqual({ label: 'Fiat Panda', href: null });
+    });
+});
+
+describe('groupReminders', () => {
+    /** A reminder due on a day. */
+    const due = (id: number, day: string): ReminderItem => ({
+        ...toReminderItem(row),
+        id,
+        due_date: day,
+    });
+
+    it('splits late, this week (today to Sunday) and later, without the empty groups', () => {
+        const groups = groupReminders(
+            [
+                due(1, '2026-10-20'),
+                due(2, '2026-11-02'),
+                due(3, '2026-11-08'),
+                due(4, '2026-11-09'),
+                due(5, '2026-11-01'),
+            ],
+            '2026-11-02',
+        );
+
+        expect(
+            groups.map((group) => [
+                group.key,
+                group.items.map((item) => item.id),
+            ]),
+        ).toEqual([
+            ['late', [1, 5]],
+            ['week', [2, 3]],
+            ['later', [4]],
+        ]);
+        expect(groupReminders([due(4, '2026-12-01')], '2026-11-02')).toEqual([
+            expect.objectContaining({ key: 'later' }),
+        ]);
+    });
+});
+
+describe('matchesReminder', () => {
+    const item = toReminderItem({
+        ...row,
+        title: 'Rinnovare la tessera sanitaria',
+        subject: { ...row.subject!, label: 'Tessera di Giulia, già scaduta' },
+    });
+
+    it('finds the text in the title or in the thing, without capitals and accents', () => {
+        expect(matchesReminder(item, 'TESSERA')).toBe(true);
+        expect(matchesReminder(item, 'gia scaduta')).toBe(true);
+        expect(matchesReminder(item, '  giulia ')).toBe(true);
+        expect(matchesReminder(item, 'panda')).toBe(false);
+    });
+
+    it('lets everything through with nothing typed', () => {
+        expect(matchesReminder(item, '')).toBe(true);
+        expect(matchesReminder({ ...item, subject: null }, 'giulia')).toBe(
+            false,
+        );
+    });
+});
+
+describe('postponeChoices', () => {
+    it('offers tomorrow, a week and a month from today', () => {
+        expect(postponeChoices('2026-10-31')).toEqual([
+            { label: 'Tomorrow', to: '2026-11-01' },
+            { label: 'In a week', to: '2026-11-07' },
+            { label: 'In a month', to: '2026-11-30' },
+        ]);
+    });
+});
+
+describe('reminderAreaCounts', () => {
+    it('counts the reminders of each area, the areas without any at zero', () => {
+        const items = [
+            toReminderItem(row),
+            toReminderItem(row),
+            toReminderItem({ ...row, subject: null }),
+        ];
+
+        expect(
+            reminderAreaCounts(items, [
+                { value: 'vehicles', label: 'Vehicles', help: null },
+                { value: 'home', label: 'Home', help: null },
+                { value: 'general', label: 'People', help: null },
+            ]),
+        ).toEqual({ vehicles: 2, home: 0, general: 1 });
     });
 });
 
@@ -225,5 +332,24 @@ describe('toNoticeItem', () => {
     it('keeps done and no state as they are', () => {
         expect(toNoticeItem({ ...notice, state: 'done' }).state).toBe('done');
         expect(toNoticeItem({ ...notice, state: null }).state).toBeNull();
+    });
+});
+
+describe('postponeReminder', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('sends the new day to the reminder, leaving the page where it is', () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        const onSuccess = vi.fn();
+
+        postponeReminder(7, '2026-11-03', { onSuccess });
+
+        expect(post).toHaveBeenCalledWith(
+            '/reminders/7/postpone',
+            { to: '2026-11-03' },
+            { preserveScroll: true, onSuccess },
+        );
     });
 });

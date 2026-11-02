@@ -11,6 +11,11 @@
  * hidden entries stay counted. The page keeps the filters: the component only
  * says what the person chose.
  *
+ * *Reminders* has no period: in its place `views` chooses the list (*To do* and
+ * *Done*), a segmented control on the computer and two buttons beside the
+ * others on the phone, which choose without opening the panel; and with
+ * `searchLabel` the toolbar has a search box before the areas.
+ *
  * @group forms
  */
 import { ChevronDown, UsersRound } from '@lucide/vue';
@@ -30,9 +35,24 @@ import FmAvatar from './FmAvatar.vue';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
+import FmSearchField from './FmSearchField.vue';
 
 /** Where the filters are shown. */
 export type AgendaFiltersVariant = 'sheet' | 'toolbar';
+
+/** The filters in use: the period only where there is one. */
+export type AgendaFilterState = Pick<
+    App.Data.AgendaFiltersData,
+    'person_id' | 'hidden_areas'
+> & { months?: number };
+
+/** The lists the person chooses between, in place of the period, and the name of the choice. */
+export type AgendaFilterViews = {
+    /** The name of the choice, for example «Status». */
+    label: string;
+    /** The lists: the value the page knows them by and the text of the button. */
+    options: { value: string; label: string }[];
+};
 
 /** A person of the family the entries can be filtered by. */
 export type AgendaFilterPerson = Pick<
@@ -44,17 +64,24 @@ const {
     variant = 'toolbar',
     filters,
     people,
+    periods = [],
+    views,
+    searchLabel,
 } = defineProps<{
     /** A bar above the list on the computer, buttons and a panel from below on the phone. */
     variant?: AgendaFiltersVariant;
     /** The filters in use. */
-    filters: App.Data.AgendaFiltersData;
+    filters: AgendaFilterState;
     /** The people of the family. */
     people: AgendaFilterPerson[];
     /** The areas, in order, with the name the server gives them. */
     areas: App.Data.OptionData[];
-    /** The periods the person can choose, in months, as the server offers them. */
-    periods: number[];
+    /** The periods the person can choose, in months, as the server offers them; none, no period. */
+    periods?: number[];
+    /** The lists to choose between in place of the period, chosen with `v-model:view`. */
+    views?: AgendaFilterViews;
+    /** What is searched: with it the toolbar has a search box, filled with `v-model:search`. */
+    searchLabel?: string;
     /** How many entries each area has for the person chosen, hidden areas too. */
     counts: Record<string, number>;
     /** How many entries the list shows with these filters. */
@@ -75,10 +102,22 @@ const emit = defineEmits<{
 /** The panel is open (only for `sheet`). */
 const open = defineModel<boolean>('open', { default: false });
 
+/** The list chosen among `views`. */
+const view = defineModel<string>('view', { default: '' });
+
+/** The text typed in the search box. */
+const search = defineModel<string>('search', { default: '' });
+
+/** The period can be chosen. */
+const hasPeriod = computed(
+    () => periods.length > 0 && filters.months !== undefined,
+);
+
 /** Makes the radio groups of this instance its own: a toolbar and a sheet may both be on the page. */
 const id = useId();
 
 const [DefinePeriod, ReusePeriod] = createReusableTemplate();
+const [DefineViews, ReuseViews] = createReusableTemplate();
 const [DefinePeople, ReusePeople] = createReusableTemplate();
 const [DefineAreas, ReuseAreas] = createReusableTemplate();
 
@@ -150,6 +189,20 @@ function segment(chosen: boolean): string {
 }
 
 /**
+ * The border and the colours of a round button: of a person, or of a list on the phone.
+ *
+ * @param chosen - whether it is the one chosen
+ * @returns ringed in blue when chosen
+ */
+function ring(chosen: boolean): string {
+    return chosen
+        ? cn(
+              'border-[1.5px] border-action bg-action-soft font-bold text-action-dark',
+          )
+        : cn('border border-edge bg-white font-medium');
+}
+
+/**
  * The classes of the round button of a person.
  *
  * @param chosen - whether it is the person chosen
@@ -161,9 +214,20 @@ function pill(chosen: boolean): string {
         compact.value
             ? 'h-9 gap-[7px] pr-3.5 pl-[5px]'
             : 'h-10 gap-2 pr-3 pl-[7px]',
-        chosen
-            ? 'border-[1.5px] border-action bg-action-soft font-bold text-action-dark'
-            : 'border border-edge bg-white font-medium',
+        ring(chosen),
+    );
+}
+
+/**
+ * The classes of a button of a list on the phone.
+ *
+ * @param chosen - whether it is the list shown
+ * @returns ringed in blue when chosen, as the round button of a person
+ */
+function viewChip(chosen: boolean): string {
+    return cn(
+        'flex h-9 shrink-0 cursor-pointer items-center rounded-full pr-2.5 pl-3 text-sm whitespace-nowrap text-ink',
+        ring(chosen),
     );
 }
 
@@ -197,6 +261,30 @@ const chip = cn(
             </label>
         </div>
     </DefinePeriod>
+
+    <DefineViews>
+        <div
+            v-if="views"
+            role="radiogroup"
+            :aria-label="views.label"
+            class="flex gap-0.5 rounded-xl bg-divider p-[3px]"
+        >
+            <label
+                v-for="option in views.options"
+                :key="option.value"
+                :class="segment(view === option.value)"
+            >
+                <input
+                    type="radio"
+                    :name="`view-${id}`"
+                    class="absolute size-px opacity-0"
+                    :checked="view === option.value"
+                    @change="view = option.value"
+                />
+                {{ option.label }}
+            </label>
+        </div>
+    </DefineViews>
 
     <DefinePeople>
         <div
@@ -306,10 +394,22 @@ const chip = cn(
         v-if="variant === 'toolbar'"
         class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-white px-3 py-2.5"
     >
-        <ReusePeriod />
-        <span aria-hidden="true" class="h-6 w-px bg-[#E3E8EF]" />
+        <ReusePeriod v-if="hasPeriod" />
+        <ReuseViews v-else />
+        <span
+            v-if="hasPeriod || views"
+            aria-hidden="true"
+            class="h-6 w-px bg-[#E3E8EF]"
+        />
         <ReusePeople />
         <span class="grow" />
+        <FmSearchField
+            v-if="searchLabel"
+            v-model="search"
+            small
+            :label="searchLabel"
+            class="min-w-40 shrink basis-[220px]"
+        />
         <PopoverRoot>
             <PopoverTrigger :class="cn(chip, 'gap-2 rounded-[10px] px-3')">
                 {{ areasText }}
@@ -333,13 +433,26 @@ const chip = cn(
             :aria-label="$t('Filters')"
             class="-mx-4 flex gap-2 overflow-x-auto px-4"
         >
+            <template v-if="views">
+                <button
+                    v-for="option in views.options"
+                    :key="option.value"
+                    type="button"
+                    :aria-pressed="view === option.value"
+                    :class="viewChip(view === option.value)"
+                    @click="view = option.value"
+                >
+                    {{ option.label }}
+                </button>
+            </template>
             <button
+                v-if="hasPeriod"
                 type="button"
                 aria-haspopup="dialog"
                 :class="cn(chip, 'rounded-full pr-2.5 pl-3')"
                 @click="open = true"
             >
-                {{ periodText(filters.months)
+                {{ periodText(filters.months ?? 0)
                 }}<FmIcon
                     class="text-ink-soft"
                     :icon="ChevronDown"
@@ -398,7 +511,10 @@ const chip = cn(
                         {{ $t('Clear filters') }}
                     </button>
                 </div>
-                <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+                <fieldset
+                    v-if="hasPeriod"
+                    class="m-0 flex flex-col gap-2 border-0 p-0"
+                >
                     <legend class="mb-2 p-0 text-sm font-bold text-ink-soft">
                         {{ $t('Period') }}
                     </legend>

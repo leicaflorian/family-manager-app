@@ -64,7 +64,7 @@
   {
     "name": "FmAgendaFilters",
     "path": "resources/js/components/fm/FmAgendaFilters.vue",
-    "description": "The filters of the *Agenda*: the period (the months the server offers), the\nperson and the areas. On the computer (`toolbar`) they are a bar above the\nlist, as the board *Agenda-pc* draws it: the period as a segmented control,\nthe people as round buttons and, on the right, *All areas*, which opens the\nmenu of the areas. On the phone (`sheet`) three buttons say what is chosen\n(«1 month», «Everyone», «All areas») and each opens the panel from below with\nall the filters, which ends with *Show 10 entries*. An area is a button that\nturns it off: its name is struck through and its number stays, so the\nhidden entries stay counted. The page keeps the filters: the component only\nsays what the person chose.",
+    "description": "The filters of the *Agenda*: the period (the months the server offers), the\nperson and the areas. On the computer (`toolbar`) they are a bar above the\nlist, as the board *Agenda-pc* draws it: the period as a segmented control,\nthe people as round buttons and, on the right, *All areas*, which opens the\nmenu of the areas. On the phone (`sheet`) three buttons say what is chosen\n(«1 month», «Everyone», «All areas») and each opens the panel from below with\nall the filters, which ends with *Show 10 entries*. An area is a button that\nturns it off: its name is struck through and its number stays, so the\nhidden entries stay counted. The page keeps the filters: the component only\nsays what the person chose.\n\n*Reminders* has no period: in its place `views` chooses the list (*To do* and\n*Done*), a segmented control on the computer and two buttons beside the\nothers on the phone, which choose without opening the panel; and with\n`searchLabel` the toolbar has a search box before the areas.",
     "group": "forms",
     "props": [
       {
@@ -76,7 +76,7 @@
       },
       {
         "name": "filters",
-        "type": "App.Data.AgendaFiltersData",
+        "type": "AgendaFilterState",
         "required": true,
         "default": null,
         "description": "The filters in use."
@@ -98,9 +98,23 @@
       {
         "name": "periods",
         "type": "number[]",
-        "required": true,
+        "required": false,
+        "default": "[]",
+        "description": "The periods the person can choose, in months, as the server offers them; none, no period."
+      },
+      {
+        "name": "views",
+        "type": "AgendaFilterViews",
+        "required": false,
         "default": null,
-        "description": "The periods the person can choose, in months, as the server offers them."
+        "description": "The lists to choose between in place of the period, chosen with `v-model:view`."
+      },
+      {
+        "name": "searchLabel",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "What is searched: with it the toolbar has a search box, filled with `v-model:search`."
       },
       {
         "name": "counts",
@@ -122,10 +136,26 @@
         "required": false,
         "default": "false",
         "description": "The panel is open (only for `sheet`)."
+      },
+      {
+        "name": "view",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "The list chosen among `views`."
+      },
+      {
+        "name": "search",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "The text typed in the search box."
       }
     ],
     "events": [
       "update:open",
+      "update:view",
+      "update:search",
       "months",
       "person",
       "area",
@@ -134,10 +164,13 @@
     "slots": [],
     "types": [
       "export type AgendaFiltersVariant = 'sheet' | 'toolbar';",
+      "export type AgendaFilterState = Pick<",
+      "export type AgendaFilterViews = {",
       "export type AgendaFilterPerson = Pick<"
     ],
     "usedBy": [
-      "pages/Agenda.vue"
+      "pages/Agenda.vue",
+      "pages/reminders/Reminders.vue"
     ]
   },
   {
@@ -455,6 +488,7 @@
       "components/fm/FmDeadlineDateSheet.vue",
       "components/fm/FmLinkDocumentSheet.vue",
       "components/fm/FmPaySheet.vue",
+      "components/fm/FmPostponeSheet.vue",
       "components/fm/FmUploadSheet.vue",
       "pages/documents/Documents.vue",
       "pages/settings/Account.vue",
@@ -580,6 +614,7 @@
       "components/fm/FmMenu.vue",
       "components/fm/FmMovementPanel.vue",
       "components/fm/FmPaySheet.vue",
+      "components/fm/FmPostponeSheet.vue",
       "lib/actions.ts",
       "pages/Agenda.vue",
       "pages/Area.vue",
@@ -1279,7 +1314,8 @@
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmDeleteButton.vue",
       "components/fm/FmDocumentActions.vue",
-      "pages/documents/EditDocument.vue"
+      "pages/documents/EditDocument.vue",
+      "pages/reminders/Reminders.vue"
     ]
   },
   {
@@ -1997,6 +2033,7 @@
       "components/fm/FmFileDrop.vue",
       "components/fm/FmFileTile.vue",
       "components/fm/FmFold.vue",
+      "components/fm/FmMenu.vue",
       "components/fm/FmMenuItem.vue",
       "components/fm/FmMonthSwitch.vue",
       "components/fm/FmMovementPanel.vue",
@@ -2232,7 +2269,7 @@
   {
     "name": "FmMenu",
     "path": "resources/js/components/fm/FmMenu.vue",
-    "description": "The ⋯ button that opens a small menu of the less frequent actions, so that\na title next to it keeps its room. The entries are `FmMenuItem`.",
+    "description": "The ⋯ button that opens a small menu of the less frequent actions, so that\na title next to it keeps its room. The entries are `FmMenuItem`. With\n`text` or `outline` the button shows its label beside the icon, as\n*Record payment* beside a title or *Postpone* on a late reminder.",
     "group": "navigation",
     "props": [
       {
@@ -2269,6 +2306,13 @@
         "required": false,
         "default": "false",
         "description": "The label beside the icon, as the link beside a title (`FmSectionLink`), as *Record payment*."
+      },
+      {
+        "name": "outline",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The label beside the icon, in a white button with a grey border, as *Postpone* of a late reminder."
       }
     ],
     "events": [],
@@ -2281,6 +2325,7 @@
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmDocumentActions.vue",
       "components/fm/FmPayButton.vue",
+      "components/fm/FmReminderRow.vue",
       "pages/cards/Card.vue"
     ]
   },
@@ -2338,6 +2383,7 @@
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmDocumentActions.vue",
       "components/fm/FmPayButton.vue",
+      "components/fm/FmReminderRow.vue",
       "pages/cards/Card.vue"
     ]
   },
@@ -2883,6 +2929,36 @@
     ]
   },
   {
+    "name": "FmPostponeSheet",
+    "path": "resources/js/components/fm/FmPostponeSheet.vue",
+    "description": "*Choose a date…* of *Postpone*: the panel that moves a reminder to a day the\nperson picks, proposed tomorrow. The day must come after today; the message\nof the server shows under it otherwise.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "reminder",
+        "type": "Pick<ReminderItem, \"id\" | \"title\" | \"due_date\" | \"subject\">",
+        "required": true,
+        "default": null,
+        "description": "The reminder to postpone."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel is open."
+      }
+    ],
+    "events": [
+      "update:open"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/reminders/Reminders.vue"
+    ]
+  },
+  {
     "name": "FmReminderGroup",
     "path": "resources/js/components/fm/FmReminderGroup.vue",
     "description": "The box of a group of notices in *Settings → Notices*: its name (with the\nlabel *Default* for the group of everything else), the kinds of deadline it\ncovers in words and a line for each notice («45 days before · App and email ·\nEveryone»). Whoever can edit has the *Edit* button.",
@@ -2920,7 +2996,7 @@
   {
     "name": "FmReminderRow",
     "path": "resources/js/components/fm/FmReminderRow.vue",
-    "description": "A reminder in the list of *Reminders*: the circle *Mark as done*, the icon\nof the area, what to do, the thing it refers to (a link), who takes care of\nit, the day with how far it is (red if late) and the next notice. A little\nhand marks a reminder written by hand, and a label says when the planned\nexpense of the card is missing. A reminder that is done has *Reopen* instead\nof the circle.",
+    "description": "A reminder in the list of *Reminders*, as the boards *Promemoria* and\n*Promemoria-pc* draw it: the icon of the area, what to do (a link), below\nthe thing it refers to (or *Written by hand* for a reminder about nothing)\nand «From the deadline of 20/10» when it was postponed, who takes care of it\n(*Everyone* without a person), the day with its weekday («Wed 04/11», the\nwhole date in red once late) and how far it is, the next notice, and the\nactions: *Postpone* on a late reminder, the ⋯ menu on the others (postpone,\n*Edit*, *Open the card*, *Delete*), and the switch *Done*. A reminder that\nis done has *Reopen* instead. On a wide list the parts are columns; on a\nnarrow one (the phone, or the list beside the form of a reminder) the day\ngoes on the right of the title and the notice and the actions below.",
     "group": "rows",
     "props": [
       {
@@ -2928,13 +3004,22 @@
         "type": "ReminderItem",
         "required": true,
         "default": null,
-        "description": "The reminder, as the server sends it."
+        "description": "The reminder, as the list shows it."
+      },
+      {
+        "name": "pending",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The server is marking it done: the switch stays on meanwhile."
       }
     ],
     "events": [
       "done",
-      "open",
-      "reopen"
+      "delete",
+      "reopen",
+      "postpone",
+      "choose-date"
     ],
     "slots": [],
     "types": [],
@@ -3056,7 +3141,7 @@
   {
     "name": "FmSearchField",
     "path": "resources/js/components/fm/FmSearchField.vue",
-    "description": "The search box with the magnifying glass: in *Documents* and in the panel\nthat links a document to a card. What it does with the text is up to the page.",
+    "description": "The search box with the magnifying glass: in *Documents*, in the panel that\nlinks a document to a card and, `small`, in the toolbar of *Reminders*. What\nit does with the text is up to the page.",
     "group": "forms",
     "props": [
       {
@@ -3065,6 +3150,13 @@
         "required": true,
         "default": null,
         "description": "What is searched: the name of the box and the text shown while it is empty."
+      },
+      {
+        "name": "small",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "As high as the buttons of a toolbar, 36 px, with a smaller text."
       },
       {
         "name": "modelValue",
@@ -3080,6 +3172,7 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "components/fm/FmAgendaFilters.vue",
       "components/fm/FmLinkDocumentSheet.vue",
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue"

@@ -52,7 +52,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmDocumentRow](#fmdocumentrow) — A document in a list: the icon of the file, the title, what it is and whose, and on the right its date (or its expiry).
 - [FmNoticeRow](#fmnoticerow) — A notice of the bell in *Notices*: the icon with the colour of the area (grey once seen), what is due, the line of the deadline as the notice said it, when it went out and, if the reminder is late or done today, a label.
 - [FmPlannedRow](#fmplannedrow) — A planned expense or income in a list: the icon of its category, the name with the card and how it repeats below, who it is for, the next due date with the account, and the amount.
-- [FmReminderRow](#fmreminderrow) — A reminder in the list of *Reminders*: the circle *Mark as done*, the icon of the area, what to do, the thing it refers to (a link), who takes care of it, the day with how far it is (red if late) and the next notice.
+- [FmReminderRow](#fmreminderrow) — A reminder in the list of *Reminders*, as the boards *Promemoria* and *Promemoria-pc* draw it: the icon of the area, what to do (a link), below the thing it refers to (or *Written by hand* for a reminder about nothing) and «From the deadline of 20/10» when it was postponed, who takes care of it (*Everyone* without a person), the day with its weekday («Wed 04/11», the whole date in red once late) and how far it is, the next notice, and the actions: *Postpone* on a late reminder, the ⋯ menu on the others (postpone, *Edit*, *Open the card*, *Delete*), and the switch *Done*.
 - [FmRow](#fmrow) — A list row of the canvas: in front the dot of the area or an icon, then the title and the subtitle, each on one line (the title cut in the middle, so its end shows), on the right an amount or a date.
 - [FmValueList](#fmvaluelist) — The lines of the box *Data* of a page: the label on the left, the value on the right.
 
@@ -66,6 +66,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmLinkDocumentSheet](#fmlinkdocumentsheet) — *Link a document*: the panel with the documents of the family that can be linked to a card, searched while typing, 15 at a time with the next ones loaded at the end of the list, each with ↗ to open it in a new tab.
 - [FmMovementPanel](#fmmovementpanel) — The panel of a movement, as the board *Pagamenti-pc* draws it: the title, when it was paid (or received) and how much, the commission and the account, the category and (for an expense) the card of its type, the organization, the holder, the planned expense or income it settles (and which of its due dates), and the documents linked to it, with *Delete*, *Cancel* and *Save*.
 - [FmPaySheet](#fmpaysheet) — *I paid it* (for an income *It arrived*): the panel that records the payment of a due date.
+- [FmPostponeSheet](#fmpostponesheet) — *Choose a date…* of *Postpone*: the panel that moves a reminder to a day the person picks, proposed tomorrow.
 - [FmUploadSheet](#fmuploadsheet) — *Upload* of a card: the panel with the zone where the files of documents are dragged or chosen.
 
 ### Forms
@@ -79,7 +80,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmFileDrop](#fmfiledrop) — The zone where the files of documents are dragged or chosen (PDF, JPG, PNG, HEIC, up to 25 MB each).
 - [FmNotificationRule](#fmnotificationrule) — One notice of a group, as a row of the form of *Settings → Notices*: how many days, when (before, on the day, after), where it arrives, to whom, and *Remove this notice*.
 - [FmPasswordField](#fmpasswordfield) — The password field with the eye to see it, as in the sign-in boards.
-- [FmSearchField](#fmsearchfield) — The search box with the magnifying glass: in *Documents* and in the panel that links a document to a card.
+- [FmSearchField](#fmsearchfield) — The search box with the magnifying glass: in *Documents*, in the panel that links a document to a card and, `small`, in the toolbar of *Reminders*.
 
 ### Figures
 
@@ -296,6 +297,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/fm/FmMenu.vue`
 - `components/fm/FmMovementPanel.vue`
 - `components/fm/FmPaySheet.vue`
+- `components/fm/FmPostponeSheet.vue`
 - `lib/actions.ts`
 - `pages/Agenda.vue`
 - `pages/Area.vue`
@@ -489,6 +491,7 @@ button (`FmDeleteButton`) or as an entry of a menu.
 - `components/fm/FmDeleteButton.vue`
 - `components/fm/FmDocumentActions.vue`
 - `pages/documents/EditDocument.vue`
+- `pages/reminders/Reminders.vue`
 
 ## FmDeleteButton
 
@@ -690,6 +693,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `components/fm/FmFileDrop.vue`
 - `components/fm/FmFileTile.vue`
 - `components/fm/FmFold.vue`
+- `components/fm/FmMenu.vue`
 - `components/fm/FmMenuItem.vue`
 - `components/fm/FmMonthSwitch.vue`
 - `components/fm/FmMovementPanel.vue`
@@ -1157,7 +1161,9 @@ on the data («Hi, Rosa»): like the one of `AuthLayout`.
 `resources/js/components/fm/FmMenu.vue`
 
 The ⋯ button that opens a small menu of the less frequent actions, so that
-a title next to it keeps its room. The entries are `FmMenuItem`.
+a title next to it keeps its room. The entries are `FmMenuItem`. With
+`text` or `outline` the button shows its label beside the icon, as
+*Record payment* beside a title or *Postpone* on a late reminder.
 
 ### Props
 
@@ -1168,6 +1174,7 @@ a title next to it keeps its room. The entries are `FmMenuItem`.
 | `small` | `boolean` | no | `false` | The smaller ⋯ button, 40 px, as beside the title of a panel. |
 | `plain` | `boolean` | no | `false` | The ⋯ button without a background until hovered, as the plain buttons beside a row. |
 | `text` | `boolean` | no | `false` | The label beside the icon, as the link beside a title (`FmSectionLink`), as *Record payment*. |
+| `outline` | `boolean` | no | `false` | The label beside the icon, in a white button with a grey border, as *Postpone* of a late reminder. |
 
 ### Slots
 
@@ -1185,6 +1192,11 @@ a title next to it keeps its room. The entries are `FmMenuItem`.
 <FmMenu plain label="Actions of the document">
     …
 </FmMenu>
+
+<!-- Outlined, with its label -->
+<FmMenu outline label="Rimanda" :icon="icon">
+    …
+</FmMenu>
 ```
 
 ### Used by
@@ -1193,6 +1205,7 @@ a title next to it keeps its room. The entries are `FmMenuItem`.
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmDocumentActions.vue`
 - `components/fm/FmPayButton.vue`
+- `components/fm/FmReminderRow.vue`
 - `pages/cards/Card.vue`
 
 ## FmMenuItem
@@ -1256,6 +1269,7 @@ and `download`).
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmDocumentActions.vue`
 - `components/fm/FmPayButton.vue`
+- `components/fm/FmReminderRow.vue`
 - `pages/cards/Card.vue`
 
 ## FmMonthSwitch
@@ -1808,36 +1822,50 @@ the account, and the amount. It leads to *A planned expense*.
 
 `resources/js/components/fm/FmReminderRow.vue`
 
-A reminder in the list of *Reminders*: the circle *Mark as done*, the icon
-of the area, what to do, the thing it refers to (a link), who takes care of
-it, the day with how far it is (red if late) and the next notice. A little
-hand marks a reminder written by hand, and a label says when the planned
-expense of the card is missing. A reminder that is done has *Reopen* instead
-of the circle.
+A reminder in the list of *Reminders*, as the boards *Promemoria* and
+*Promemoria-pc* draw it: the icon of the area, what to do (a link), below
+the thing it refers to (or *Written by hand* for a reminder about nothing)
+and «From the deadline of 20/10» when it was postponed, who takes care of it
+(*Everyone* without a person), the day with its weekday («Wed 04/11», the
+whole date in red once late) and how far it is, the next notice, and the
+actions: *Postpone* on a late reminder, the ⋯ menu on the others (postpone,
+*Edit*, *Open the card*, *Delete*), and the switch *Done*. A reminder that
+is done has *Reopen* instead. On a wide list the parts are columns; on a
+narrow one (the phone, or the list beside the form of a reminder) the day
+goes on the right of the title and the notice and the actions below.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `reminder` | `ReminderItem` | yes | — | The reminder, as the server sends it. |
+| `reminder` | `ReminderItem` | yes | — | The reminder, as the list shows it. |
+| `pending` | `boolean` | no | `false` | The server is marking it done: the switch stays on meanwhile. |
 
 ### Events
 
 - `done`
-- `open`
+- `delete`
 - `reopen`
+- `postpone`
+- `choose-date`
 
 ### Examples
 
 ```vue
+<!-- Late, postponed -->
+<FmReminderRow :reminder="reminder" />
+
 <!-- Written by hand -->
 <FmReminderRow :reminder="reminder" />
 
-<!-- Late -->
+<!-- Written by hand, about nothing -->
 <FmReminderRow :reminder="reminder" />
 
-<!-- Planned expense missing -->
+<!-- For everyone, planned expense missing -->
 <FmReminderRow :reminder="reminder" />
+
+<!-- Being marked done -->
+<FmReminderRow :reminder="reminder" pending />
 
 <!-- Done -->
 <FmReminderRow :reminder="reminder" />
@@ -2032,6 +2060,7 @@ not saved does.
 - `components/fm/FmDeadlineDateSheet.vue`
 - `components/fm/FmLinkDocumentSheet.vue`
 - `components/fm/FmPaySheet.vue`
+- `components/fm/FmPostponeSheet.vue`
 - `components/fm/FmUploadSheet.vue`
 - `pages/documents/Documents.vue`
 - `pages/settings/Account.vue`
@@ -2356,6 +2385,36 @@ shows the due date as paid. On the phone it rises from the bottom.
 
 - `pages/budget/Deadline.vue`
 
+## FmPostponeSheet
+
+`resources/js/components/fm/FmPostponeSheet.vue`
+
+*Choose a date…* of *Postpone*: the panel that moves a reminder to a day the
+person picks, proposed tomorrow. The day must come after today; the message
+of the server shows under it otherwise.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `reminder` | `Pick<ReminderItem, "id" \| "title" \| "due_date" \| "subject">` | yes | — | The reminder to postpone. |
+| `open` | `boolean` | no | `false` | The panel is open. |
+
+### Events
+
+- `update:open`
+
+### Examples
+
+```vue
+<!-- Choose a date -->
+<FmPostponeSheet :reminder="reminder" />
+```
+
+### Used by
+
+- `pages/reminders/Reminders.vue`
+
 ## FmUploadSheet
 
 `resources/js/components/fm/FmUploadSheet.vue`
@@ -2402,22 +2461,33 @@ turns it off: its name is struck through and its number stays, so the
 hidden entries stay counted. The page keeps the filters: the component only
 says what the person chose.
 
+*Reminders* has no period: in its place `views` chooses the list (*To do* and
+*Done*), a segmented control on the computer and two buttons beside the
+others on the phone, which choose without opening the panel; and with
+`searchLabel` the toolbar has a search box before the areas.
+
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `variant` | `AgendaFiltersVariant` | no | `"toolbar"` | A bar above the list on the computer, buttons and a panel from below on the phone. |
-| `filters` | `App.Data.AgendaFiltersData` | yes | — | The filters in use. |
+| `filters` | `AgendaFilterState` | yes | — | The filters in use. |
 | `people` | `AgendaFilterPerson[]` | yes | — | The people of the family. |
 | `areas` | `App.Data.OptionData[]` | yes | — | The areas, in order, with the name the server gives them. |
-| `periods` | `number[]` | yes | — | The periods the person can choose, in months, as the server offers them. |
+| `periods` | `number[]` | no | `[]` | The periods the person can choose, in months, as the server offers them; none, no period. |
+| `views` | `AgendaFilterViews` | no | — | The lists to choose between in place of the period, chosen with `v-model:view`. |
+| `searchLabel` | `string` | no | — | What is searched: with it the toolbar has a search box, filled with `v-model:search`. |
 | `counts` | `Record<string, number>` | yes | — | How many entries each area has for the person chosen, hidden areas too. |
 | `shown` | `number` | yes | — | How many entries the list shows with these filters. |
 | `open` | `boolean` | no | `false` | The panel is open (only for `sheet`). |
+| `view` | `string` | no | `""` | The list chosen among `views`. |
+| `search` | `string` | no | `""` | The text typed in the search box. |
 
 ### Events
 
 - `update:open`
+- `update:view`
+- `update:search`
 - `months`
 - `person`
 - `area`
@@ -2427,6 +2497,8 @@ says what the person chose.
 
 ```ts
 export type AgendaFiltersVariant = 'sheet' | 'toolbar';
+export type AgendaFilterState = Pick<
+export type AgendaFilterViews = {
 export type AgendaFilterPerson = Pick<
 ```
 
@@ -2444,11 +2516,18 @@ export type AgendaFilterPerson = Pick<
 
 <!-- Phone, filtered -->
 <FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="10" />
+
+<!-- Toolbar of Reminders -->
+<FmAgendaFilters variant="toolbar" :filters="filters" :people="people" :areas="areas" :views="views" view="open" searchLabel="Cerca un promemoria" search="" :counts="counts" :shown="17" />
+
+<!-- Phone of Reminders -->
+<FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :views="views" view="open" :counts="counts" :shown="17" />
 ```
 
 ### Used by
 
 - `pages/Agenda.vue`
+- `pages/reminders/Reminders.vue`
 
 ## FmCardForm
 
@@ -2793,14 +2872,16 @@ It is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`
 
 `resources/js/components/fm/FmSearchField.vue`
 
-The search box with the magnifying glass: in *Documents* and in the panel
-that links a document to a card. What it does with the text is up to the page.
+The search box with the magnifying glass: in *Documents*, in the panel that
+links a document to a card and, `small`, in the toolbar of *Reminders*. What
+it does with the text is up to the page.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `label` | `string` | yes | — | What is searched: the name of the box and the text shown while it is empty. |
+| `small` | `boolean` | no | `false` | As high as the buttons of a toolbar, 36 px, with a smaller text. |
 | `modelValue` | `string` | yes | — | The text typed. |
 
 ### Events
@@ -2815,10 +2896,14 @@ that links a document to a card. What it does with the text is up to the page.
 
 <!-- Typed -->
 <FmSearchField label="Search the documents" modelValue="bolletta" />
+
+<!-- Small, in a toolbar -->
+<FmSearchField label="Search a reminder" modelValue="" small />
 ```
 
 ### Used by
 
+- `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmLinkDocumentSheet.vue`
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
