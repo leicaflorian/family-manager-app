@@ -161,6 +161,20 @@ INSERT INTO utilities_documents (utilities_id, documents_id) VALUES
     (2, 13),
     (2, 99);
 
+CREATE TABLE reminder_groups (
+    id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name varchar(255) NULL,
+    is_default tinyint(1) NULL,
+    deadline_types json NULL,
+    notifications json NULL,
+    settings json NULL
+);
+-- Recipients as Directus saves them: ids of people, some as text, or "all"
+INSERT INTO reminder_groups (id, name, is_default, deadline_types, notifications, settings) VALUES
+    (2, 'Predefinito', 1, '["vehicles.road_tax_due_date", "not_a_kind"]',
+     '[{"name": "Sollecito", "days": 7, "timing": "before", "channels": "both", "recipients": ["3"]}, {"name": "Ultimo avviso", "days": 0, "timing": "before", "channels": "app", "recipients": [3, 99]}, {"name": "Dopo", "days": 1, "timing": "after", "channels": "weird", "recipients": [99]}]',
+     '{}');
+
 CREATE TABLE reminders (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
     title varchar(255) NULL,
@@ -173,9 +187,9 @@ CREATE TABLE reminders (
     notifications_sent json NULL,
     notes text NULL
 );
-INSERT INTO reminders (id, title, due_date, status, person, is_automatic) VALUES
-    (5, 'Leggere il contatore', '2026-11-10', 'open', 5, 0),
-    (6, 'Revisione auto', '2026-12-01', 'open', NULL, 1);
+INSERT INTO reminders (id, title, due_date, status, person, is_automatic, reminder_group, notifications_sent) VALUES
+    (5, 'Leggere il contatore', '2026-11-10', 'open', 5, 0, 2, '["2026-11-10:-7"]'),
+    (6, 'Revisione auto', '2026-12-01', 'open', NULL, 1, NULL, NULL);
 
 CREATE TABLE reminders_related_to (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,

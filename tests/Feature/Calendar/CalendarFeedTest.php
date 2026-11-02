@@ -6,6 +6,7 @@ use App\Actions\Calendar\ResetCalendarLink;
 use App\Actions\Calendar\TurnOffCalendar;
 use App\Actions\Calendar\TurnOnCalendar;
 use App\Enums\DocumentStatus;
+use App\Enums\InsurancePolicyStatus;
 use App\Enums\ReminderStatus;
 use App\Models\Document;
 use App\Models\Expense;
@@ -122,6 +123,58 @@ function automaticReminder(Model $card, string $field, string $date, ReminderSta
     return $reminder;
 }
 
+/**
+ * A policy with its automatic reminder, without the observers, so nothing else is born with it.
+ *
+ * @param  string  $date  the expiry
+ */
+function policyWithReminder(string $date = '2026-11-21'): InsurancePolicy
+{
+    $policy = InsurancePolicy::withoutEvents(fn (): InsurancePolicy => InsurancePolicy::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'RC auto Panda - UnipolSai', 'status' => InsurancePolicyStatus::Active, 'expiry_date' => $date]));
+    $reminder = automaticReminder($policy, 'insurance_policies.expiry_date', $date, ReminderStatus::Open);
+    $reminder->forceFill(['title' => 'Renew the policy'])->saveQuietly();
+
+    return $policy;
+}
+
+test('the event of an automatic reminder has the three pieces of the title and the page of the reminders', function (): void {
+    $marco = registerFamily();
+    $policy = insideFamilyOf($marco, policyWithReminder(...));
+    $reminderId = insideFamilyOf($marco, fn (): int => Reminder::query()->sole()->id);
+
+    $event = calendarEventsOf(turnOnCalendar($marco))["reminder-{$reminderId}@family-manager"];
+
+    expect($event['summary'])->toBe('Renew the policy · RC auto Panda - UnipolSai')
+        ->and($event['date'])->toBe('20261121')
+        ->and($event['description'])->toBe("Expected expense missing.\nOpen: ".route('reminders.index'));
+
+    // With a planned expense in progress the line goes away
+    insideFamilyOf($marco, fn (): PlannedExpense => agendaPlanned($policy, 'Rata RC auto', 418.00, '2025-11-21'));
+    expect(calendarEventsOf(turnOnCalendar($marco))["reminder-{$reminderId}@family-manager"]['description'])->toBe('Open: '.route('reminders.index'));
+});
+
+test('the pieces of the title are in the language of the calendar', function (): void {
+    $marco = registerFamily();
+    insideFamilyOf($marco, policyWithReminder(...));
+    $reminderId = insideFamilyOf($marco, fn (): int => Reminder::query()->sole()->id);
+    $token = turnOnCalendar($marco, 'it');
+
+    $events = calendarEvents((string) test()->withHeader('Accept-Language', 'en')->get("/calendar/{$token}.ics")->assertOk()->getContent());
+
+    expect($events["reminder-{$reminderId}@family-manager"]['summary'])->toBe('Rinnovare la polizza · RC auto Panda - UnipolSai')
+        ->and($events["reminder-{$reminderId}@family-manager"]['description'])->toStartWith('Manca la spesa prevista.');
+});
+
+test('a reminder copied from Directus with the old title still loses its deadline and its missing note', function (): void {
+    $marco = registerFamily();
+    $reminder = insideFamilyOf($marco, fn (): Reminder => Reminder::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Rinnovo polizza · auto · UnipolSai · scade il 21/11/2026 · manca la spesa prevista', 'is_automatic' => true, 'source_field' => null, 'due_date' => '2026-11-21', 'status' => ReminderStatus::Open, 'person_id' => null, 'notes' => null]));
+
+    $event = calendarEventsOf(turnOnCalendar($marco))["reminder-{$reminder->id}@family-manager"];
+
+    expect($event['summary'])->toBe('Rinnovo polizza · auto · UnipolSai')
+        ->and($event['description'])->toBe("Expected expense missing.\nOpen: ".route('reminders.index'));
+});
+
 test('the five wrong cases answer 404 with the same body', function (): void {
     $marco = registerFamily();
     $token = turnOnCalendar($marco);
@@ -182,7 +235,7 @@ test('commas, semicolons, backslashes and line breaks of a reminder come back as
     $event = calendarEventsOf(turnOnCalendar($marco))["reminder-{$reminder->id}@family-manager"];
 
     expect($event['summary'])->toBe('a, b; c\\')
-        ->and($event['description'])->toBe("first, line; here\\\nsecond line\nOpen: ".route('agenda'));
+        ->and($event['description'])->toBe("first, line; here\\\nsecond line\nOpen: ".route('reminders.index'));
 });
 
 test('the secret is never stored in clear', function (): void {
@@ -213,7 +266,7 @@ test('an open reminder is an event, a done one is not', function (): void {
         ->and($events["reminder-{$open->id}@family-manager"])->toBe([
             'date' => '20270131',
             'summary' => 'Pagare il bollo · Panda',
-            'description' => "Expected expense missing.\nBring the booklet\nFor: Marco Bianchi\nOpen: ".route('agenda'),
+            'description' => "Expected expense missing.\nBring the booklet\nFor: Marco Bianchi\nOpen: ".route('reminders.index'),
         ]);
 });
 
@@ -224,7 +277,7 @@ test('an open reminder of long ago is still an event', function (): void {
     expect(calendarEventsOf(turnOnCalendar($marco))["reminder-{$old->id}@family-manager"])->toBe([
         'date' => '20250110',
         'summary' => 'Call the plumber',
-        'description' => 'Open: '.route('agenda'),
+        'description' => 'Open: '.route('reminders.index'),
     ]);
 });
 
@@ -298,7 +351,7 @@ test('the texts are in the language the calendar was turned on in', function ():
     $events = test()->withHeader('Accept-Language', 'en')->get("/calendar/{$token}.ics")->assertOk()->getContent();
     $events = calendarEvents((string) $events);
 
-    expect($events["reminder-{$reminder->id}@family-manager"]['description'])->toBe("Manca la spesa prevista.\nPer: Marco Bianchi\nApri: ".route('agenda'))
+    expect($events["reminder-{$reminder->id}@family-manager"]['description'])->toBe("Manca la spesa prevista.\nPer: Marco Bianchi\nApri: ".route('reminders.index'))
         ->and(array_column($events, 'summary'))->toContain("Bolletta gas · 84,20\u{a0}€")
         ->and(app()->getLocale())->toBe('en');
 });

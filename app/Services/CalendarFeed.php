@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Data\AgendaEntryData;
+use App\Data\ReminderSubjectData;
 use App\Enums\ReminderStatus;
 use App\Models\Person;
 use App\Models\Reminder;
+use App\Services\Reminders\MissingExpenses;
+use App\Services\Reminders\ReminderList;
 use App\Support\Ics\Calendar;
 use App\Support\Ics\CalendarEvent;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Number;
 
 /**
@@ -31,7 +35,7 @@ final readonly class CalendarFeed
     /** How many months ahead the entries of the Agenda go. */
     private const int MONTHS_AHEAD = 12;
 
-    public function __construct(private Agenda $agenda) {}
+    public function __construct(private Agenda $agenda, private ReminderList $reminders, private MissingExpenses $missing) {}
 
     /**
      * The events, the reminders first and then the entries of the Agenda by date.
@@ -48,8 +52,11 @@ final readonly class CalendarFeed
             paymentsBack: self::PAYMENTS_BACK,
         );
 
+        $reminders = $this->openReminders();
+        $missing = $this->missing->of(new EloquentCollection($reminders), $today);
+
         return [
-            ...array_map($this->reminderEvent(...), $this->openReminders()),
+            ...array_map(fn (Reminder $reminder): CalendarEvent => $this->reminderEvent($reminder, isset($missing[$reminder->id])), $reminders),
             ...array_map($this->entryEvent(...), $entries),
         ];
     }
@@ -61,37 +68,53 @@ final readonly class CalendarFeed
      */
     private function openReminders(): array
     {
-        return array_values(Reminder::query()
-            ->with('person')
+        $reminders = Reminder::query()
+            ->with(['person', 'link'])
             ->where('status', ReminderStatus::Open)
             ->oldest('due_date')
             ->orderBy('id')
-            ->get()
-            ->all());
+            ->get();
+        $this->reminders->loadSubjects($reminders);
+
+        return array_values($reminders->all());
     }
 
     /**
-     * The event of a reminder: its title without the deadline, and in the description the missing expense, the
-     * notes, who it is for and where to open it.
+     * The event of a reminder: its title, and in the description the missing expense, the notes, who it is for and
+     * where to open it. An automatic reminder is titled with what to do and the thing it is about, as the page does
+     * (the date is the day of the event); a title copied from Directus still has its deadline cut off.
      *
-     * @param  Reminder  $reminder  an open reminder
+     * @param  Reminder  $reminder  an open reminder, with `person` and `link.subject` loaded
+     * @param  bool  $missesExpense  whether its card has no planned expense in progress
      */
-    private function reminderEvent(Reminder $reminder): CalendarEvent
+    private function reminderEvent(Reminder $reminder, bool $missesExpense): CalendarEvent
     {
         $lines = [
-            Calendar::missesExpense($reminder->title) ? __('Expected expense missing.') : null,
+            $missesExpense || Calendar::missesExpense($reminder->title) ? __('Expected expense missing.') : null,
             $reminder->notes,
             $reminder->person instanceof Person ? __('For: :name', ['name' => "{$reminder->person->first_name} {$reminder->person->last_name}"]) : null,
-            // The Agenda until the reminders have a page of their own
-            __('Open: :url', ['url' => route('agenda')]),
+            __('Open: :url', ['url' => route('reminders.index')]),
         ];
 
         return new CalendarEvent(
             uid: "reminder-{$reminder->id}@family-manager",
             date: $reminder->due_date,
-            summary: Calendar::withoutDeadline($reminder->title),
+            summary: $this->reminderTitle($reminder),
             description: implode("\n", array_filter($lines, static fn (mixed $line): bool => is_string($line) && $line !== '')),
         );
+    }
+
+    /**
+     * The title of a reminder's event: what to do and the thing, or the written title without the old deadline.
+     *
+     * @param  Reminder  $reminder  the reminder, with `link.subject` loaded
+     */
+    private function reminderTitle(Reminder $reminder): string
+    {
+        $title = Calendar::withoutDeadline($this->reminders->titleOf($reminder));
+        $subject = $reminder->is_automatic ? $this->reminders->subject($reminder->link) : null;
+
+        return $subject instanceof ReminderSubjectData ? "{$title} · {$subject->label}" : $title;
     }
 
     /**

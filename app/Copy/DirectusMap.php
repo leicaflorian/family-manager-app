@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Copy;
 
 use App\Support\Linkables;
+use App\Support\Reminders\NotificationRule;
 use InvalidArgumentException;
 
 /**
@@ -191,7 +192,47 @@ final class DirectusMap
             }
         }
 
-        return $table === 'planned_expenses' ? self::cardPair($copy) : $copy;
+        return match ($table) {
+            'planned_expenses' => self::cardPair($copy),
+            'reminder_groups' => self::groupRecipients($copy, $newId),
+            default => $copy,
+        };
+    }
+
+    /**
+     * Replaces the Directus ids of the people in the recipients of a group's notifications with the new ids. A person
+     * that was not copied is dropped; `all` and the other fields stay as they are.
+     *
+     * @param  array<string, mixed>  $copy  the row of the group
+     * @param  callable(string, int|string): ?int  $newId  the new id of a row
+     * @return array<string, mixed> the row with the notifications as a JSON text
+     */
+    private static function groupRecipients(array $copy, callable $newId): array
+    {
+        $notifications = is_string($copy['notifications'] ?? null) ? json_decode($copy['notifications'], true) : ($copy['notifications'] ?? null);
+
+        if (! is_array($notifications)) {
+            return $copy;
+        }
+
+        foreach ($notifications as &$notification) {
+            if (! is_array($notification) || ! is_array($notification['recipients'] ?? null)) {
+                continue;
+            }
+
+            $recipients = array_values(array_filter(array_map(
+                static fn (mixed $recipient): int|string|null => match (true) {
+                    $recipient === NotificationRule::ALL => NotificationRule::ALL,
+                    is_int($recipient) || (is_string($recipient) && ctype_digit($recipient)) => $newId('people', $recipient),
+                    default => null,
+                },
+                $notification['recipients'],
+            ), static fn (int|string|null $recipient): bool => $recipient !== null));
+            // Nobody left reads as everybody, like a person without an account does when notices go out
+            $notification['recipients'] = $recipients === [] ? [NotificationRule::ALL] : $recipients;
+        }
+
+        return [...$copy, 'notifications' => json_encode($notifications, JSON_THROW_ON_ERROR)];
     }
 
     /**

@@ -2,11 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Enums\Channel;
 use App\Enums\Role;
+use App\Models\Reminder;
+use App\Models\ReminderGroup;
 use App\Models\User;
+use App\Support\CurrentFamily;
+use App\Support\Reminders\NotificationRule;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 
@@ -210,4 +216,45 @@ test('the copy stops when an email of the accounts is already in the app', funct
         ->run();
 
     expect(DB::table('families')->where('name', 'Verdi')->exists())->toBeFalse();
+});
+
+test('the groups, the notices sent and the links of the reminders are read by the app as Directus left them', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+    $family = (int) DB::table('families')->where('name', 'Verdi')->value('id');
+    $laura = (int) DB::table('people')->where('first_name', 'Laura')->value('id');
+    $utility = (int) DB::table('utilities')->value('id');
+
+    CurrentFamily::using($family, function () use ($laura, $utility): void {
+        $group = ReminderGroup::query()->sole();
+        $reminder = Reminder::query()->where('title', 'Leggere il contatore')->sole();
+        $rules = NotificationRule::listOf($group->notifications);
+
+        // The people of the recipients are those of the app, an id that was not copied is gone, nobody left is everybody, and an unknown channel is both
+        expect($group->name)->toBe('Predefinito')
+            ->and($group->is_default)->toBeTrue()
+            ->and($rules)->toHaveCount(3)
+            ->and(array_map(static fn (NotificationRule $rule): array => [$rule->offset, $rule->channels, $rule->people], $rules))
+            ->toBe([[-7, Channel::Both, [$laura]], [0, Channel::App, [$laura]], [1, Channel::Both, null]])
+            ->and($reminder->reminder_group_id)->toBe($group->id)
+            ->and($reminder->notifications_sent)->toBe(['2026-11-10:-7'])
+            ->and($reminder->link?->remindable_type)->toBe('utility')
+            ->and($reminder->link?->remindable_id)->toBe($utility);
+    });
+});
+
+test('after the copy a round does not send again the notices Directus marked, and sends the next one', function (): void {
+    Mail::fake();
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+    $family = DB::table('families')->where('name', 'Verdi')->value('id');
+
+    // Seven days before: the notice Directus marked as sent stays quiet
+    $this->artisan('reminders:run', ['--family' => $family, '--date' => '2026-11-03'])->expectsOutputToContain('Notices created: 0')->assertSuccessful()->run();
+    Mail::assertNothingQueued();
+
+    // The day itself: the notice of the day goes to Laura, who is the person of the group
+    $this->artisan('reminders:run', ['--family' => $family, '--date' => '2026-11-10'])->expectsOutputToContain('Notices created: 1')->assertSuccessful()->run();
+    $laura = User::query()->where('email', 'laura.verdi@example.com')->sole();
+
+    expect(DB::table('reminder_notices')->where('user_id', $laura->id)->count())->toBe(1);
+    expect(Reminder::query()->withoutGlobalScopes()->where('title', 'Leggere il contatore')->sole()->notifications_sent)->toBe(['2026-11-10:-7', '2026-11-10:0']);
 });
