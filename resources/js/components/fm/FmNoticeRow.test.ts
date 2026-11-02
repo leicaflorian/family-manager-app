@@ -17,7 +17,7 @@ const notice: NoticeItem = {
 
 describe('FmNoticeRow', () => {
     it('shows the title, the deadline and when it went out', () => {
-        render(FmNoticeRow, { props: { notice } });
+        render(FmNoticeRow, { props: { notice: { ...notice, read: true } } });
 
         expect(
             screen.getByRole('link', {
@@ -52,12 +52,30 @@ describe('FmNoticeRow', () => {
         expect(screen.getByText('Done')).toBeInTheDocument();
     });
 
-    it('sends open when it is tapped', async () => {
-        vi.spyOn(router, 'visit').mockImplementation(() => {});
-        const view = render(FmNoticeRow, { props: { notice } });
+    it('is one POST to the read address when a new notice is tapped', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(FmNoticeRow, { props: { notice, readHref: '/notices/1/read' } });
+
+        await fireEvent.click(screen.getByRole('button'));
+
+        expect(visit).toHaveBeenCalledTimes(1);
+        expect(visit.mock.calls[0]?.[0]).toBe('/notices/1/read');
+        expect(visit.mock.calls[0]?.[1]).toMatchObject({ method: 'post' });
+    });
+
+    it('is a plain link to the page when the notice was seen', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(FmNoticeRow, {
+            props: {
+                notice: { ...notice, read: true },
+                readHref: '/notices/1/read',
+            },
+        });
 
         await fireEvent.click(screen.getByRole('link'));
 
-        expect(view.emitted()).toHaveProperty('open');
+        expect(visit).toHaveBeenCalledTimes(1);
+        expect(visit.mock.calls[0]?.[0]).toBe('/cards/insurance/2');
+        expect(visit.mock.calls[0]?.[1]).not.toMatchObject({ method: 'post' });
     });
 });

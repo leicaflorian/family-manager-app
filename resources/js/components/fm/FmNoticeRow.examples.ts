@@ -19,7 +19,7 @@ const notice: NoticeItem = {
 };
 
 export default defineExamples(FmNoticeRow, [
-    { name: 'New', props: { notice } },
+    { name: 'New', props: { notice, readHref: '/notices/1/read' } },
     {
         name: 'Seen, overdue',
         props: {

@@ -33,7 +33,7 @@ final class NoticeController extends Controller
     }
 
     /**
-     * Marks one notice as read and goes to the card, the document or the reminder it is about.
+     * Marks one notice as read and goes to the card, the document or the reminder it is about (303, as the answer to a POST).
      *
      * @throws NotFoundHttpException if the notice is of another account: it does not exist for this one
      */
@@ -45,7 +45,7 @@ final class NoticeController extends Controller
         $notice->read_at ??= now();
         $notice->save();
 
-        return redirect($this->list->hrefOf($notice, CarbonImmutable::today('Europe/Rome')));
+        return redirect($this->list->hrefOf($notice, CarbonImmutable::today('Europe/Rome')), 303);
     }
 
     /**

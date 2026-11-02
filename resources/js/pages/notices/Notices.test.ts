@@ -16,7 +16,6 @@ import Notices from './Notices.vue';
 let post: MockInstance<typeof router.post>;
 
 beforeEach(() => {
-    vi.spyOn(router, 'visit').mockImplementation(() => {});
     post = vi.spyOn(router, 'post').mockImplementation(() => undefined);
 });
 
@@ -68,11 +67,11 @@ describe('Notices', () => {
         ).toBeInTheDocument();
         const news = screen.getByRole('region', { name: 'New notices' });
         expect(
-            within(news).getByRole('link', { name: /Pay the road tax/ }),
+            within(news).getByRole('button', { name: /Pay the road tax/ }),
         ).toBeInTheDocument();
         expect(
-            within(news).getByRole('link', { name: /Panda car insurance/ }),
-        ).toHaveAttribute('href', '/cards/insurance/2');
+            within(news).getByRole('button', { name: /Panda car insurance/ }),
+        ).toBeInTheDocument();
         const old = screen.getByRole('region', { name: 'Already seen' });
         expect(
             within(old).getByRole('link', { name: /Health card/ }),
@@ -106,19 +105,31 @@ describe('Notices', () => {
         ).toBeNull();
     });
 
-    it('marks a new notice as read when it is opened, and not a seen one', async () => {
+    it('opens a new notice with one visit, a POST to the read address', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Notices, { unread, seen });
 
         await userEvent.click(
-            screen.getByRole('link', { name: /Pay the road tax/ }),
+            screen.getByRole('button', { name: /Pay the road tax/ }),
         );
-        expect(post).toHaveBeenCalledWith('/notices/1/read');
 
-        post.mockClear();
+        expect(visit).toHaveBeenCalledTimes(1);
+        expect(visit.mock.calls[0]?.[0]).toBe('/notices/1/read');
+        expect(visit.mock.calls[0]?.[1]).toMatchObject({ method: 'post' });
+        expect(post).not.toHaveBeenCalled();
+    });
+
+    it('opens a seen notice with one GET to its page and no POST', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Notices, { unread, seen });
+
         await userEvent.click(
             screen.getByRole('link', { name: /Renew the ID card/ }),
         );
-        expect(post).not.toHaveBeenCalled();
+
+        expect(visit).toHaveBeenCalledTimes(1);
+        expect(visit.mock.calls[0]?.[0]).toBe('/reminders/1/edit');
+        expect(visit.mock.calls[0]?.[1]).not.toMatchObject({ method: 'post' });
     });
 
     it('says so when there are no notices at all', () => {

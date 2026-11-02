@@ -1697,23 +1697,22 @@ top of *A person*.
 A notice of the bell in *Notices*: the icon with the colour of the area (grey
 once seen), what is due, the line of the deadline as the notice said it, when
 it went out and, if the reminder is late or done today, a label. A dot marks
-a notice not yet seen. The whole row leads to the card or to *Reminders*.
+a notice not yet seen. The whole row leads to the card or to *Reminders*: a
+new notice does so with one POST to `readHref`, which marks it seen and
+sends the person on; a seen one is a plain link.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `notice` | `NoticeItem` | yes | — | The notice, as the server sends it. |
-
-### Events
-
-- `open`
+| `readHref` | `string` | no | — | Where a new notice is posted to be marked as seen; the server then redirects to the notice's `href`. |
 
 ### Examples
 
 ```vue
 <!-- New -->
-<FmNoticeRow :notice="notice" />
+<FmNoticeRow :notice="notice" readHref="/notices/1/read" />
 
 <!-- Seen, overdue -->
 <FmNoticeRow :notice="notice" />

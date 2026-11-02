@@ -120,7 +120,8 @@ test('marking one read sets the date and goes to its page', function (): void {
     $notice = noticeFor($this->marco);
 
     $this->actingAs($this->marco)->post("/notices/{$notice->id}/read")
-        ->assertRedirect("/reminders/{$notice->reminder_id}/edit");
+        ->assertRedirect("/reminders/{$notice->reminder_id}/edit")
+        ->assertStatus(303);
 
     expect(insideBianchi(fn (): bool => ReminderNotice::query()->findOrFail($notice->id)->read_at !== null))->toBeTrue();
 });

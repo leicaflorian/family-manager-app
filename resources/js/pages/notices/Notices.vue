@@ -3,7 +3,7 @@
  * *Notices*, the page of the bell: the notices not seen yet on top, then the
  * ones already seen, each with what is due, the words of the deadline of the
  * day it went out and, if the reminder is late or done, a label. A new notice
- * is marked as seen when it is opened, and *Mark all as read* does it for all.
+ * is marked as seen by the one visit that opens it, and *Mark all as read* does it for all.
  * The same notices arrive by email.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -36,17 +36,6 @@ const old = computed((): NoticeItem[] => seen.map(toNoticeItem));
 /** Marks every notice as read. */
 function markAll(): void {
     router.post(readAll.url(), {}, { preserveScroll: true });
-}
-
-/**
- * Marks a new notice as read: the row leads to its page, and the server marks it on the way.
- *
- * @param notice - the notice that was opened
- */
-function opened(notice: NoticeItem): void {
-    if (!notice.read) {
-        router.post(read.url(notice.id));
-    }
 }
 </script>
 
@@ -82,7 +71,7 @@ function opened(notice: NoticeItem): void {
                 v-for="notice in fresh"
                 :key="notice.id"
                 :notice="notice"
-                @open="opened(notice)"
+                :read-href="read.url(notice.id)"
             />
         </FmCard>
 
@@ -91,7 +80,7 @@ function opened(notice: NoticeItem): void {
                 v-for="notice in old"
                 :key="notice.id"
                 :notice="notice"
-                @open="opened(notice)"
+                :read-href="read.url(notice.id)"
             />
         </FmCard>
 

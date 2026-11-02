@@ -3,7 +3,9 @@
  * A notice of the bell in *Notices*: the icon with the colour of the area (grey
  * once seen), what is due, the line of the deadline as the notice said it, when
  * it went out and, if the reminder is late or done today, a label. A dot marks
- * a notice not yet seen. The whole row leads to the card or to *Reminders*.
+ * a notice not yet seen. The whole row leads to the card or to *Reminders*: a
+ * new notice does so with one POST to `readHref`, which marks it seen and
+ * sends the person on; a seen one is a plain link.
  *
  * @group rows
  */
@@ -17,15 +19,15 @@ import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
-const { notice } = defineProps<{
+const { notice, readHref } = defineProps<{
     /** The notice, as the server sends it. */
     notice: NoticeItem;
+    /** Where a new notice is posted to be marked as seen; the server then redirects to the notice's `href`. */
+    readHref?: string;
 }>();
 
-const emit = defineEmits<{
-    /** The row was tapped: the notice counts as seen. */
-    open: [];
-}>();
+/** Whether tapping the row must mark the notice as seen on the way. */
+const marks = computed((): boolean => !notice.read && readHref !== undefined);
 
 /** The classes of the icon tile: the area while new, grey once seen. */
 const tile = computed(() =>
@@ -40,14 +42,17 @@ const tile = computed(() =>
 
 <template>
     <Link
-        :href="notice.href"
+        :href="marks ? readHref! : notice.href"
+        :method="marks ? 'post' : 'get'"
+        :as="marks ? 'button' : 'a'"
         :class="
             cn(
-                'relative flex w-full items-center gap-3 px-4 py-3.5 text-inherit no-underline',
+                'relative flex w-full items-center gap-3 px-4 py-3.5 text-left text-inherit no-underline',
+                marks &&
+                    'cursor-pointer border-0 bg-transparent font-[inherit]',
                 rowLink,
             )
         "
-        @click="emit('open')"
     >
         <span :class="tile"
             ><FmIcon :icon="areaIcon(notice.area ?? 'general')" :size="20"

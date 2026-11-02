@@ -2427,7 +2427,7 @@
   {
     "name": "FmNoticeRow",
     "path": "resources/js/components/fm/FmNoticeRow.vue",
-    "description": "A notice of the bell in *Notices*: the icon with the colour of the area (grey\nonce seen), what is due, the line of the deadline as the notice said it, when\nit went out and, if the reminder is late or done today, a label. A dot marks\na notice not yet seen. The whole row leads to the card or to *Reminders*.",
+    "description": "A notice of the bell in *Notices*: the icon with the colour of the area (grey\nonce seen), what is due, the line of the deadline as the notice said it, when\nit went out and, if the reminder is late or done today, a label. A dot marks\na notice not yet seen. The whole row leads to the card or to *Reminders*: a\nnew notice does so with one POST to `readHref`, which marks it seen and\nsends the person on; a seen one is a plain link.",
     "group": "rows",
     "props": [
       {
@@ -2436,11 +2436,16 @@
         "required": true,
         "default": null,
         "description": "The notice, as the server sends it."
+      },
+      {
+        "name": "readHref",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "Where a new notice is posted to be marked as seen; the server then redirects to the notice's `href`."
       }
     ],
-    "events": [
-      "open"
-    ],
+    "events": [],
     "slots": [],
     "types": [],
     "usedBy": [
