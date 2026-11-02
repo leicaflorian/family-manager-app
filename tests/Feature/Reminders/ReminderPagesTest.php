@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\AgendaData;
 use App\Enums\ReminderStatus;
 use App\Enums\Role;
 use App\Models\Document;
@@ -91,6 +92,24 @@ test('the list is the board: the health card of Giulia is overdue with no more n
         ->and($health['person'])->toHaveKey('photo')
         ->and($plumber['subject']['href'])->toBe('/cards/home/'.$plumber['subject']['id'])
         ->and(collect($page['done'])->pluck('status')->unique()->all())->toBe(['done']);
+});
+
+test('the page sends the people with their circles and the areas, for the filters', function (): void {
+    $page = remindersPage($this->marco);
+
+    expect(array_column($page['people'], 'first_name'))->toBe(['Marco', 'Laura', 'Giulia'])
+        ->and($page['people'][0])->toHaveKeys(['id', 'initials', 'photo'])
+        ->and(array_column($page['areas'], 'value'))->toBe(array_column(AgendaData::areas(), 'value'));
+});
+
+test('each row says whether whoever looks may edit and delete it', function (): void {
+    $written = handWrittenReminder();
+    $automatic = openAutomaticReminder();
+    $row = static fn (User $user, Reminder $reminder): array => collect(remindersPage($user)['open'])->firstWhere('id', $reminder->id);
+
+    expect($row($this->marco, $written))->toMatchArray(['can_edit' => true, 'can_delete' => true])
+        ->and($row($this->member, $written))->toMatchArray(['can_edit' => true, 'can_delete' => false])
+        ->and($row($this->marco, $automatic))->toMatchArray(['can_edit' => false, 'can_delete' => false]);
 });
 
 test('Who filters the list', function (): void {

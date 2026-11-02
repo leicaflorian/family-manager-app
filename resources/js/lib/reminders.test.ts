@@ -108,6 +108,8 @@ const row: App.Data.ReminderData = {
     notice_sent: false,
     missing_expense: true,
     href: '/reminders/7/edit',
+    can_edit: true,
+    can_delete: true,
 };
 
 describe('toReminderItem', () => {

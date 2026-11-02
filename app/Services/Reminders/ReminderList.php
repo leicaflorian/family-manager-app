@@ -23,6 +23,7 @@ use App\Support\Reminders\SubjectLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The reminders of the family as the page shows them, with the data of every row read with a fixed number of queries.
@@ -89,6 +90,8 @@ final readonly class ReminderList
             notice_sent: array_any($reminder->notifications_sent ?? [], static fn (mixed $key): bool => is_string($key) && str_starts_with($key, $prefix)),
             missing_expense: isset($missing[$reminder->id]),
             href: $this->hrefOf($reminder, $subject),
+            can_edit: Gate::allows('update', $reminder),
+            can_delete: Gate::allows('delete', $reminder),
         );
     }
 

@@ -219,7 +219,7 @@ describe('Reminders', () => {
 
         expect(get).toHaveBeenCalledWith(
             '/reminders',
-            { person: '3' },
+            { person: '2' },
             expect.objectContaining({ preserveScroll: true }),
         );
     });

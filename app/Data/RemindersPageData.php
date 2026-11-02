@@ -16,9 +16,10 @@ final class RemindersPageData extends Data
     /**
      * @param  list<ReminderData>  $open  overdue first, then the coming ones, by date
      * @param  list<ReminderData>  $done  the most recent first
-     * @param  list<OptionData>  $people  the people of the family, for *Who*
+     * @param  list<PersonData>  $people  the people of the family, for the filter of the person
      * @param  int|null  $person_id  the person chosen in *Who*
      * @param  int  $open_total  how many reminders of the whole family are still to do, whatever the filter, for the tab
+     * @param  list<OptionData>  $areas  the areas in the order of the board, for the menu of the areas
      */
     public function __construct(
         public readonly array $open,
@@ -26,5 +27,6 @@ final class RemindersPageData extends Data
         public readonly array $people,
         public readonly ?int $person_id,
         public readonly int $open_total,
+        public readonly array $areas = [],
     ) {}
 }

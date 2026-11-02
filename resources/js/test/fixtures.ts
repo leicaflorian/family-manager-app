@@ -1461,6 +1461,8 @@ export const healthCardReminder: App.Data.ReminderData = {
     notice_sent: true,
     missing_expense: false,
     href: '/documents/4',
+    can_edit: false,
+    can_delete: false,
 };
 
 /** The plumber: a reminder written by hand, coming, for Laura. */
@@ -1484,6 +1486,8 @@ export const plumberReminder: App.Data.ReminderData = {
     notice_sent: true,
     missing_expense: false,
     href: '/reminders/2/edit',
+    can_edit: true,
+    can_delete: true,
 };
 
 /** The inspection of the Panda, made by the app, coming, for Marco. */
@@ -1507,6 +1511,8 @@ export const inspectionReminder: App.Data.ReminderData = {
     notice_sent: false,
     missing_expense: false,
     href: '/cards/vehicle/1',
+    can_edit: false,
+    can_delete: false,
 };
 
 /** A reminder already done. */
@@ -1524,6 +1530,8 @@ export const doneReminder: App.Data.ReminderData = {
     notice_sent: true,
     missing_expense: false,
     href: '/reminders/4/edit',
+    can_edit: true,
+    can_delete: true,
 };
 
 /** The people of the family as the menus of the reminders have them: the id as text. */
@@ -1537,9 +1545,10 @@ export const reminderPeople: App.Data.OptionData[] = [
 export const remindersPage: App.Data.RemindersPageData = {
     open: [healthCardReminder, plumberReminder, inspectionReminder],
     done: [doneReminder],
-    people: reminderPeople,
+    people: peopleList,
     person_id: null,
     open_total: 10,
+    areas: agendaAreas,
 };
 
 /** The alert groups of the form, with the people who get their notices. */

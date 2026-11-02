@@ -28,6 +28,8 @@ final class ReminderData extends Data
      * @param  bool  $notice_sent  whether a notice has already gone out for the current date
      * @param  bool  $missing_expense  whether the planned expense of its card is missing
      * @param  string  $href  the card or document of an automatic reminder; the form of a written one
+     * @param  bool  $can_edit  whether whoever looks may change it: a written one only
+     * @param  bool  $can_delete  whether whoever looks may delete it: a written one, by an `admin`
      */
     public function __construct(
         public readonly int $id,
@@ -43,5 +45,7 @@ final class ReminderData extends Data
         public readonly bool $notice_sent,
         public readonly bool $missing_expense,
         public readonly string $href,
+        public readonly bool $can_edit = false,
+        public readonly bool $can_delete = false,
     ) {}
 }

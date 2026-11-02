@@ -71,7 +71,12 @@ const finished = computed((): ReminderItem[] =>
 
 /** The choices of *Who*. */
 const people = computed(() =>
-    withNone(reminders.people).map((option) =>
+    withNone(
+        reminders.people.map((person) => ({
+            value: String(person.id),
+            label: person.first_name,
+        })),
+    ).map((option) =>
         option.value === ''
             ? { ...option, label: trans('Whole family') }
             : option,
