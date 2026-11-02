@@ -11,7 +11,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, defineAsyncComponent } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -22,7 +22,13 @@ import { errors } from '@/lib/errors';
 import { isEmpty, withMethod, withNone } from '@/lib/forms';
 import { offsetsHint, recipientsSentence } from '@/lib/reminders';
 import { destroy, index, store, update } from '@/routes/reminders';
-import Reminders from './Reminders.vue';
+
+/**
+ * The list of *Reminders* beside the form. It is a page of its own too, so it
+ * loads with import(): imported at the top it would become a shared piece of
+ * the build, and Laravel would not find the page *Reminders* any more.
+ */
+const Reminders = defineAsyncComponent(() => import('./Reminders.vue'));
 
 const {
     reminder,
