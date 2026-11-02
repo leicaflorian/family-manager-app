@@ -18,11 +18,13 @@ final class RemindersPageData extends Data
      * @param  list<ReminderData>  $done  the most recent first
      * @param  list<OptionData>  $people  the people of the family, for *Who*
      * @param  int|null  $person_id  the person chosen in *Who*
+     * @param  int  $open_total  how many reminders of the whole family are still to do, whatever the filter, for the tab
      */
     public function __construct(
         public readonly array $open,
         public readonly array $done,
         public readonly array $people,
         public readonly ?int $person_id,
+        public readonly int $open_total,
     ) {}
 }

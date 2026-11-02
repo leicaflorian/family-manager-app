@@ -24,9 +24,11 @@ import { agendaTabs, toReminderItem } from '@/lib/reminders';
 import { cn } from '@/lib/utils';
 import { create, done, index, reopen } from '@/routes/reminders';
 
-const { reminders } = defineProps<{
+const { reminders, embedded = false } = defineProps<{
     /** The open and the done reminders, the people for *Who* and the person chosen. */
     reminders: App.Data.RemindersPageData;
+    /** The list is shown beside the reminder form, which has the head of the page. */
+    embedded?: boolean;
 }>();
 
 /** Which list is shown. */
@@ -140,22 +142,29 @@ function undo(item: ReminderItem): void {
 </script>
 
 <template>
-    <Head :title="$t('Reminders')" />
+    <Head v-if="!embedded" :title="$t('Reminders')" />
 
     <div class="flex flex-col gap-5">
         <FmTitle :title="$t('Agenda')">
+            <template #beside>
+                <FmTabs
+                    variant="pill"
+                    class="w-full sm:w-[340px]"
+                    :label="$t('Agenda views')"
+                    :tabs="
+                        agendaTabs(
+                            'reminders',
+                            reminders.open_total - justDone.length,
+                        )
+                    "
+                />
+            </template>
             <template #actions>
                 <FmButton :icon="Plus" :href="create().url">{{
                     $t('New reminder')
                 }}</FmButton>
             </template>
         </FmTitle>
-        <FmTabs
-            variant="pill"
-            class="lg:w-[340px]"
-            :label="$t('Agenda views')"
-            :tabs="agendaTabs('reminders', open.length)"
-        />
 
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-2">
@@ -259,7 +268,7 @@ function undo(item: ReminderItem): void {
         <p class="m-0 text-sm text-ink-soft">
             {{
                 $t(
-                    'Reminders appear on their own from the dates of cards; the ones with a pencil are written by hand. Notices arrive to everyone in the family who has an account.',
+                    'Reminders appear on their own from the dates of cards; the ones with the icon are written by hand. Notices arrive to everyone in the family who has an account.',
                 )
             }}
         </p>

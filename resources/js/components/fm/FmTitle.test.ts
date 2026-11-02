@@ -19,6 +19,17 @@ describe('FmTitle', () => {
         ).toBeInTheDocument();
     });
 
+    it('can have something beside the title, on the same line', () => {
+        render(FmTitle, {
+            props: { title: 'Agenda' },
+            slots: { beside: '<nav aria-label="Views">Tabs</nav>' },
+        });
+
+        expect(
+            screen.getByRole('navigation', { name: 'Views' }),
+        ).toBeInTheDocument();
+    });
+
     it('has the link back to the page it comes from, above the title', () => {
         renderPage(FmTitle, {
             title: 'Edit the document',

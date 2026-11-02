@@ -54,7 +54,34 @@ describe('Reminders', () => {
             '/agenda',
         );
         expect(
-            screen.getByRole('link', { name: 'Reminders 3' }),
+            screen.getByRole('link', { name: 'Reminders 10' }),
+        ).toBeInTheDocument();
+    });
+
+    it('keeps the family-wide number on the tab whatever the filter', async () => {
+        renderPage(Reminders, props({ person_id: 3, open: [] }));
+
+        expect(
+            screen.getByRole('link', { name: 'Reminders 10' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'To do · 0' }),
+        ).toBeInTheDocument();
+    });
+
+    it('puts the tabs beside the title, and the footer sentence of the board', () => {
+        renderPage(Reminders, props());
+
+        expect(
+            screen.getByRole('heading', { name: 'Agenda' }).parentElement
+                ?.parentElement,
+        ).toContainElement(
+            screen.getByRole('navigation', { name: 'Agenda views' }),
+        );
+        expect(
+            screen.getByText(
+                'Reminders appear on their own from the dates of cards; the ones with the icon are written by hand. Notices arrive to everyone in the family who has an account.',
+            ),
         ).toBeInTheDocument();
     });
 

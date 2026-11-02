@@ -17,10 +17,12 @@ final class ReminderGroupChoiceData extends Data
      * @param  string  $value  the id of the group, as text
      * @param  string  $label  the name of the group
      * @param  list<string>  $recipients  the first names of the accounts that get a notice of the group
+     * @param  list<int>  $offsets  when it notifies, in days from the due date (negative before, 0 the day, positive after)
      */
     public function __construct(
         public readonly string $value,
         public readonly string $label,
         public readonly array $recipients,
+        public readonly array $offsets,
     ) {}
 }

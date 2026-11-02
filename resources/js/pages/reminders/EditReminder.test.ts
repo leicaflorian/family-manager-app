@@ -1,6 +1,6 @@
 import { getNode } from '@formkit/core';
 import { router } from '@inertiajs/vue3';
-import { screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
@@ -8,6 +8,7 @@ import {
     reminderGroups,
     reminderLinks,
     reminderPeople,
+    remindersPage,
 } from '@/test/fixtures';
 import { choose, renderPage, search, settle } from '@/test/page';
 import EditReminder from './EditReminder.vue';
@@ -18,11 +19,29 @@ const props = {
     people: reminderPeople,
     groups: reminderGroups,
     default_recipients: ['Marco', 'Laura'],
+    default_offsets: [-7, -1, 0],
+    can_delete: false,
+    reminders: remindersPage,
     links: reminderLinks,
 };
 
+/** Makes the page believe it is on a computer, or on a phone. */
+function screenWidth(computer: boolean): void {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+        matches:
+            query.includes('prefers-reduced-motion') ||
+            (computer && query.includes('min-width')),
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+    }));
+}
+
 afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('Edit a reminder', () => {
@@ -162,5 +181,83 @@ describe('Edit a reminder', () => {
             }),
             expect.anything(),
         );
+    });
+
+    it('says when the group notifies, and changes it with the group', async () => {
+        renderPage(EditReminder, props);
+
+        expect(
+            screen.getByText(
+                '7 days before, 1 day before, and on the day, until it is done.',
+            ),
+        ).toBeInTheDocument();
+
+        await choose('Notices', 'Only Laura');
+
+        expect(
+            screen.getByText('3 days before, until it is done.'),
+        ).toBeInTheDocument();
+    });
+
+    it('finds the person by typing', async () => {
+        renderPage(EditReminder, props);
+
+        const list = await search('Who takes care of it', 'Giu');
+
+        expect(
+            within(list).getByRole('option', { name: 'Giulia' }),
+        ).toBeInTheDocument();
+        expect(
+            within(list).queryByRole('option', { name: 'Marco' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('is the whole screen on the phone, without the list', () => {
+        screenWidth(false);
+        renderPage(EditReminder, props);
+
+        expect(
+            screen.queryByRole('region', { name: 'Overdue' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Save' }),
+        ).toBeInTheDocument();
+    });
+
+    it('is a panel beside the list of the reminders on the computer', () => {
+        screenWidth(true);
+        renderPage(EditReminder, props);
+
+        expect(
+            screen.getByRole('region', { name: 'Overdue' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { name: 'New reminder' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Save' }),
+        ).toBeInTheDocument();
+    });
+
+    it('offers Delete only when the server says it can be deleted', async () => {
+        renderPage(EditReminder, {
+            ...props,
+            reminder: plumberReminder,
+            can_delete: true,
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+        expect(
+            await screen.findByText('Delete this reminder?'),
+        ).toBeInTheDocument();
+    });
+
+    it('has no Delete for a member or on a new reminder', () => {
+        renderPage(EditReminder, { ...props, reminder: plumberReminder });
+
+        expect(
+            screen.queryByRole('button', { name: 'Delete' }),
+        ).not.toBeInTheDocument();
     });
 });

@@ -1345,7 +1345,8 @@
     "types": [],
     "usedBy": [
       "components/fm/FmMovementPanel.vue",
-      "pages/budget/EditPlanned.vue"
+      "pages/budget/EditPlanned.vue",
+      "pages/reminders/EditReminder.vue"
     ]
   },
   {
@@ -3165,7 +3166,8 @@
     ],
     "events": [],
     "slots": [
-      "actions"
+      "actions",
+      "beside"
     ],
     "types": [],
     "usedBy": [

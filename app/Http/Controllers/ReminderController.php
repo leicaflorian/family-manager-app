@@ -41,13 +41,19 @@ final class ReminderController extends Controller
      */
     public function index(Request $request): Response
     {
+        return Inertia::render('reminders/Reminders', ['reminders' => $this->page($request)]);
+    }
+
+    /**
+     * The lists of the page, filtered by `?person=` as the index does; the form shows them beside it.
+     */
+    private function page(Request $request): RemindersPageData
+    {
         $asked = $request->query('person');
         $personId = is_string($asked) && ctype_digit($asked) && Person::query()->whereKey((int) $asked)->exists() ? (int) $asked : null;
         $lists = $this->list->for(CarbonImmutable::today('Europe/Rome'), $personId);
 
-        return Inertia::render('reminders/Reminders', [
-            'reminders' => new RemindersPageData($lists['open'], $lists['done'], BudgetFormOptions::people(), $personId),
-        ]);
+        return new RemindersPageData($lists['open'], $lists['done'], BudgetFormOptions::people(), $personId, Reminder::query()->open()->count());
     }
 
     /**
@@ -59,7 +65,7 @@ final class ReminderController extends Controller
 
         $subject = SubjectLink::find($request->query('remindable'));
 
-        return $this->form(null, $subject === null ? null : $subject['type'].':'.$subject['id']);
+        return $this->form($request, null, $subject === null ? null : $subject['type'].':'.$subject['id']);
     }
 
     /**
@@ -75,13 +81,13 @@ final class ReminderController extends Controller
     /**
      * *Edit a reminder*: a written one only.
      */
-    public function edit(Reminder $reminder): Response
+    public function edit(Request $request, Reminder $reminder): Response
     {
         Gate::authorize('update', $reminder);
 
         $reminder->load('link');
 
-        return $this->form($reminder, $reminder->link === null ? null : $reminder->link->remindable_type.':'.$reminder->link->remindable_id);
+        return $this->form($request, $reminder, $reminder->link === null ? null : $reminder->link->remindable_type.':'.$reminder->link->remindable_id);
     }
 
     /**
@@ -109,10 +115,11 @@ final class ReminderController extends Controller
     /**
      * The form, empty or with a reminder.
      *
+     * @param  Request  $request  the request, for the filter of the list beside the form
      * @param  Reminder|null  $reminder  the reminder to change, null for a new one
      * @param  string|null  $remindable  the chosen thing as `type:id`
      */
-    private function form(?Reminder $reminder, ?string $remindable): Response
+    private function form(Request $request, ?Reminder $reminder, ?string $remindable): Response
     {
         $today = CarbonImmutable::today('Europe/Rome');
         $row = null;
@@ -130,8 +137,11 @@ final class ReminderController extends Controller
             'reminder' => $row,
             'remindable' => $remindable,
             'people' => BudgetFormOptions::people(),
-            'groups' => $groups->map(static fn (ReminderGroup $group): ReminderGroupChoiceData => new ReminderGroupChoiceData((string) ModelId::of($group), $group->name, $recipients->ofGroup($group)))->values()->all(),
+            'groups' => $groups->map(static fn (ReminderGroup $group): ReminderGroupChoiceData => new ReminderGroupChoiceData((string) ModelId::of($group), $group->name, $recipients->ofGroup($group), $recipients->offsetsOfGroup($group)))->values()->all(),
             'default_recipients' => $recipients->ofDefault($groups),
+            'default_offsets' => $recipients->offsetsOfDefault($groups),
+            'can_delete' => $reminder instanceof Reminder && Gate::allows('delete', $reminder),
+            'reminders' => $this->page($request),
             'links' => $this->links(),
         ]);
     }

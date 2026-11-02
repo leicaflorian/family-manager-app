@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import type { NoticeRule, RulePerson } from './reminders';
 import {
     agendaTabs,
+    offsetsHint,
     nextNoticeText,
     recipientsSentence,
     ruleText,
@@ -175,5 +176,18 @@ describe('recipientsSentence', () => {
         expect(recipientsSentence([])).toBe(
             'Notices arrive in the bell and by email to those with an account.',
         );
+    });
+});
+
+describe('offsetsHint', () => {
+    it('lists the notices from the earliest, until the reminder is done', () => {
+        expect(offsetsHint([-1, -7, 0])).toBe(
+            '7 days before, 1 day before, and on the day, until it is done.',
+        );
+        expect(offsetsHint([3])).toBe('3 days after, until it is done.');
+    });
+
+    it('says so when the group sends nothing', () => {
+        expect(offsetsHint([])).toBe('This group sends no notices.');
     });
 });

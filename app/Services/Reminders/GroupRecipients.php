@@ -61,6 +61,43 @@ final class GroupRecipients
     }
 
     /**
+     * When a group notifies: the offsets of its rules, from the earliest.
+     *
+     * @return list<int>
+     */
+    public function offsetsOfGroup(ReminderGroup $group): array
+    {
+        return $this->offsets(NotificationRule::listOf($group->notifications));
+    }
+
+    /**
+     * When the default group (or the fallback rules) notifies.
+     *
+     * @param  Collection<int, ReminderGroup>  $groups  the groups of the family
+     * @return list<int>
+     */
+    public function offsetsOfDefault(Collection $groups): array
+    {
+        $default = $groups->first(static fn (ReminderGroup $group): bool => $group->is_default);
+
+        return $default instanceof ReminderGroup ? $this->offsetsOfGroup($default) : $this->offsets(Notices::fallback());
+    }
+
+    /**
+     * The distinct offsets of some rules, the earliest first.
+     *
+     * @param  list<NotificationRule>  $rules  the rules
+     * @return list<int>
+     */
+    private function offsets(array $rules): array
+    {
+        $offsets = array_values(array_unique(array_map(static fn (NotificationRule $rule): int => $rule->offset, $rules)));
+        sort($offsets);
+
+        return $offsets;
+    }
+
+    /**
      * The accounts of the family, with their person, read once.
      *
      * @return Collection<int, User>

@@ -987,5 +987,10 @@
     "Reminders appear on their own from the dates of cards and documents, and you can write yours.": "I promemoria nascono da soli dalle date delle schede e dei documenti, e puoi scrivere i tuoi.",
     "Coming up": "Prossimi",
     "Nothing done yet": "Ancora niente di fatto",
-    "Reminders appear on their own from the dates of cards; the ones with a pencil are written by hand. Notices arrive to everyone in the family who has an account.": "I promemoria nascono da soli dalle date delle schede; quelli con la matita sono scritti a mano. Gli avvisi arrivano a tutti quelli della famiglia che hanno un account."
+    "Reminders appear on their own from the dates of cards; the ones with the icon are written by hand. Notices arrive to everyone in the family who has an account.": "I promemoria nascono da soli dalle date delle schede; quelli con l'icona sono scritti a mano. Gli avvisi arrivano a tutti quelli della famiglia che hanno un account.",
+    ":when, until it is done.": ":when, finché non è fatto.",
+    "This group sends no notices.": "Questo gruppo non manda avvisi.",
+    "Delete this reminder?": "Eliminare questo promemoria?",
+    "It will not come back.": "Non si potrà recuperare.",
+    "Delete the reminder": "Elimina il promemoria"
 }

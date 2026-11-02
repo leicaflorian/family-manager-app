@@ -334,3 +334,34 @@ test('the form tells who gets the notices of each group, and of the default one 
         ->and($groups->firstWhere('label', 'Veicoli')['recipients'])->toBe(['Marco', 'Laura', $this->member->name])
         ->and($props['default_recipients'])->toBe(['Marco', 'Laura', $this->member->name]);
 });
+
+test('the form says when each group notifies, as offsets from the day, and the default ones', function (): void {
+    $props = $this->actingAs($this->marco)->get('/reminders/create')->assertOk()->viewData('page')['props'];
+    $veicoli = collect($props['groups'])->firstWhere('label', 'Veicoli');
+
+    expect($veicoli['offsets'])->toBe([-45, -15])
+        ->and($props['default_offsets'])->toBe([-7, -1, 0]);
+});
+
+test('the form carries the list beside it and the family-wide open count', function (): void {
+    $reminder = handWrittenReminder();
+    $this->actingAs($this->marco);
+    $open = insideBianchi(fn (): int => Reminder::query()->where('status', ReminderStatus::Open)->count());
+
+    foreach (['/reminders/create', "/reminders/{$reminder->id}/edit", '/reminders'] as $url) {
+        $page = $this->get($url)->assertOk()->viewData('page')['props']['reminders'];
+        expect($page['open_total'])->toBe($open);
+    }
+
+    expect($this->get('/reminders/create')->viewData('page')['props']['reminders']['open'])->not->toBeEmpty();
+});
+
+test('only an admin can delete, and not an automatic reminder', function (): void {
+    $written = handWrittenReminder();
+    $automatic = openAutomaticReminder();
+
+    expect($this->actingAs($this->marco)->get("/reminders/{$written->id}/edit")->viewData('page')['props']['can_delete'])->toBeTrue()
+        ->and($this->actingAs($this->member)->get("/reminders/{$written->id}/edit")->viewData('page')['props']['can_delete'])->toBeFalse()
+        ->and($this->actingAs($this->marco)->get('/reminders/create')->viewData('page')['props']['can_delete'])->toBeFalse();
+    $this->actingAs($this->marco)->get("/reminders/{$automatic->id}/edit")->assertForbidden();
+});

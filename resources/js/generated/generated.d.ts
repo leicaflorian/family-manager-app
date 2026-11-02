@@ -510,6 +510,7 @@ export type ReminderGroupChoiceData = {
 readonly value: string,
 readonly label: string,
 readonly recipients: string[],
+readonly offsets: number[],
 };
 export type ReminderPersonData = {
 readonly id: number,
@@ -529,6 +530,7 @@ readonly open: App.Data.ReminderData[],
 readonly done: App.Data.ReminderData[],
 readonly people: App.Data.OptionData[],
 readonly person_id: number | null,
+readonly open_total: number,
 };
 export type SentInvitationData = {
 readonly email: string,

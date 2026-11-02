@@ -1511,12 +1511,23 @@ export const remindersPage: App.Data.RemindersPageData = {
     done: [doneReminder],
     people: reminderPeople,
     person_id: null,
+    open_total: 10,
 };
 
 /** The alert groups of the form, with the people who get their notices. */
 export const reminderGroups: App.Data.ReminderGroupChoiceData[] = [
-    { value: '5', label: 'Default', recipients: ['Marco', 'Laura'] },
-    { value: '6', label: 'Only Laura', recipients: ['Laura'] },
+    {
+        value: '5',
+        label: 'Default',
+        recipients: ['Marco', 'Laura'],
+        offsets: [-7, -1, 0],
+    },
+    {
+        value: '6',
+        label: 'Only Laura',
+        recipients: ['Laura'],
+        offsets: [-3],
+    },
 ];
 
 /** The things a reminder can refer to, as the controller groups them. */

@@ -503,6 +503,7 @@ the question, what happens, *Cancel* and the button that deletes.
 
 - `components/fm/FmMovementPanel.vue`
 - `pages/budget/EditPlanned.vue`
+- `pages/reminders/EditReminder.vue`
 
 ## FmEmpty
 
@@ -910,6 +911,7 @@ organization.
 ### Slots
 
 - `actions`
+- `beside`
 
 ### Examples
 
@@ -922,6 +924,11 @@ organization.
 
 <!-- With the link back -->
 <FmTitle title="Bolletta luce ottobre" subtitle="Edison" back="/areas/home" backLabel="Home" />
+
+<!-- With something beside -->
+<FmTitle title="Agenda">
+    <template #beside>…</template>
+</FmTitle>
 
 <!-- With buttons -->
 <FmTitle title="Documents">

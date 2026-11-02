@@ -24,6 +24,8 @@ const { title, subtitle, back, backLabel } = defineProps<{
 defineSlots<{
     /** The buttons on the right of the title, as `FmActions`. */
     actions?: () => unknown;
+    /** Something right of the title, on the same line: the tabs of the Agenda. */
+    beside?: () => unknown;
 }>();
 </script>
 
@@ -36,19 +38,24 @@ defineSlots<{
              leaves, at least 40 % of the row, and put in the ⋯ what does not fit -->
         <div class="flex items-center justify-between gap-4">
             <div
-                class="flex min-w-0 flex-col gap-1"
-                :class="$slots.actions && 'max-w-[60%] shrink-0'"
+                class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-3"
+                :class="
+                    $slots.actions && !$slots.beside && 'max-w-[60%] shrink-0'
+                "
             >
-                <h1
-                    class="m-0 text-[28px] leading-tight font-extrabold lg:text-[32px]"
-                >
-                    {{ title }}
-                </h1>
-                <span
-                    v-if="subtitle"
-                    class="text-sm text-ink-soft lg:text-[15px]"
-                    >{{ subtitle }}</span
-                >
+                <div class="flex min-w-0 flex-col gap-1">
+                    <h1
+                        class="m-0 text-[28px] leading-tight font-extrabold lg:text-[32px]"
+                    >
+                        {{ title }}
+                    </h1>
+                    <span
+                        v-if="subtitle"
+                        class="text-sm text-ink-soft lg:text-[15px]"
+                        >{{ subtitle }}</span
+                    >
+                </div>
+                <slot name="beside" />
             </div>
             <div
                 v-if="$slots.actions"

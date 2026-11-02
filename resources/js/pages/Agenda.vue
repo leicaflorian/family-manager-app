@@ -118,18 +118,20 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
     <Head :title="$t('Agenda')" />
 
     <FmTitle :title="$t('Agenda')">
+        <template #beside>
+            <FmTabs
+                variant="pill"
+                class="w-full sm:w-[340px]"
+                :label="$t('Agenda views')"
+                :tabs="agendaTabs('deadlines', agenda.open_reminders)"
+            />
+        </template>
         <template #actions>
             <FmButton variant="outline" :icon="Plus" :href="create().url">{{
                 $t('New reminder')
             }}</FmButton>
         </template>
     </FmTitle>
-    <FmTabs
-        variant="pill"
-        class="lg:w-[340px]"
-        :label="$t('Agenda views')"
-        :tabs="agendaTabs('deadlines', agenda.open_reminders)"
-    />
 
     <div class="grid gap-5 lg:grid-cols-[300px_1fr] lg:items-start">
         <FmAgendaFilters

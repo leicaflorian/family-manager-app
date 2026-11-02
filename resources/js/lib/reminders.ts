@@ -302,3 +302,30 @@ export function recipientsSentence(names: string[]): string {
         },
     );
 }
+
+/**
+ * When a group notifies, in words, for the hint under *Notices* of the form.
+ *
+ * @param offsets - the days from the due date, negative before, 0 the day, positive after
+ * @returns for example «7 days before and 1 day before, until it is done.»
+ */
+export function offsetsHint(offsets: number[]): string {
+    if (offsets.length === 0) {
+        return trans('This group sends no notices.');
+    }
+
+    const when = [...offsets]
+        .sort((a, b) => a - b)
+        .map((offset) =>
+            timingText(
+                Math.abs(offset),
+                offset > 0 ? 'after' : 'before',
+            ).toLocaleLowerCase(),
+        );
+
+    return trans(':when, until it is done.', {
+        when: new Intl.ListFormat(getActiveLanguage(), {
+            type: 'conjunction',
+        }).format(when),
+    });
+}

@@ -23,6 +23,18 @@ export default defineExamples(FmTitle, [
         },
     },
     {
+        name: 'With something beside',
+        props: { title: 'Agenda' },
+        slots: {
+            beside: () =>
+                h(
+                    'span',
+                    { class: 'rounded-xl bg-[#E6EAF0] px-4 py-2' },
+                    'Deadlines · Reminders',
+                ),
+        },
+    },
+    {
         name: 'With buttons',
         props: { title: 'Documents' },
         slots: {

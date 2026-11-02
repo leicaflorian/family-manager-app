@@ -2,38 +2,59 @@
 /**
  * *New reminder* and the change of one written by hand: what to do, the day,
  * who takes care of it, the thing it refers to (a card, a document or a person)
- * and the group of notices, with the people who get them. It is a window of
- * its own on the computer and the whole screen on the phone, with *Cancel* and
- * *Save* at the bottom.
+ * and the group of notices, with when it notifies and the people who get them.
+ * On the computer the form is a panel beside the list of the reminders; on the
+ * phone it is the whole screen, with *Cancel* and *Save* at the bottom. An
+ * `admin` can also delete a reminder written by hand.
  */
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
+import { useMediaQuery } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
+import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
 import { isEmpty, withMethod, withNone } from '@/lib/forms';
-import { recipientsSentence } from '@/lib/reminders';
-import { index, store, update } from '@/routes/reminders';
+import { offsetsHint, recipientsSentence } from '@/lib/reminders';
+import { destroy, index, store, update } from '@/routes/reminders';
+import Reminders from './Reminders.vue';
 
-const { reminder, remindable, groups, default_recipients, links } =
-    defineProps<{
-        /** The reminder to change, or null for a new one. */
-        reminder: App.Data.ReminderData | null;
-        /** The thing it refers to as `type:id`, or null. */
-        remindable: string | null;
-        /** The people of the family, for *Who takes care of it*. */
-        people: App.Data.OptionData[];
-        /** The groups of notices, each with the people who get them. */
-        groups: App.Data.ReminderGroupChoiceData[];
-        /** The people who get the notices of the default group, used when no group is chosen. */
-        default_recipients: string[];
-        /** The things a reminder can refer to, grouped by type. */
-        links: App.Data.LinkGroupData[];
-    }>();
+const {
+    reminder,
+    remindable,
+    groups,
+    default_recipients,
+    default_offsets,
+    links,
+    can_delete,
+    reminders,
+} = defineProps<{
+    /** The reminder to change, or null for a new one. */
+    reminder: App.Data.ReminderData | null;
+    /** The thing it refers to as `type:id`, or null. */
+    remindable: string | null;
+    /** The people of the family, for *Who takes care of it*. */
+    people: App.Data.OptionData[];
+    /** The groups of notices, each with the people who get them. */
+    groups: App.Data.ReminderGroupChoiceData[];
+    /** The people who get the notices of the default group, used when no group is chosen. */
+    default_recipients: string[];
+    /** When the default group notifies, in days from the due date. */
+    default_offsets: number[];
+    /** The things a reminder can refer to, grouped by type. */
+    links: App.Data.LinkGroupData[];
+    /** Whoever is looking can delete this reminder (an `admin`, and not an automatic one). */
+    can_delete: boolean;
+    /** The list of the reminders, shown beside the form on the computer. */
+    reminders: App.Data.RemindersPageData;
+}>();
+
+/** On the computer the form is a panel beside the list. */
+const desktop = useMediaQuery('(min-width: 1024px)');
 
 const form = useForm({
     title: reminder?.title ?? '',
@@ -74,6 +95,14 @@ const recipients = computed(
             ?.recipients ?? default_recipients,
 );
 
+/** When the group chosen notifies, or the default group when none is. */
+const hint = computed((): string =>
+    offsetsHint(
+        groups.find((group) => group.value === form.reminder_group_id)
+            ?.offsets ?? default_offsets,
+    ),
+);
+
 /** Sends the reminder if the title and the day are there. */
 function save(): void {
     form.clearErrors();
@@ -99,9 +128,13 @@ useSaveShortcut(save, () => !form.processing);
 <template>
     <Head :title="heading" />
 
-    <div class="mx-auto flex w-full max-w-[560px] flex-col gap-4">
+    <div
+        class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-start"
+        :class="!desktop && 'mx-auto w-full max-w-[560px]'"
+    >
+        <Reminders v-if="desktop" embedded :reminders="reminders" />
         <form
-            class="flex flex-col gap-3.5 rounded-3xl bg-white p-5 lg:p-7"
+            class="flex flex-col gap-3.5 rounded-3xl bg-white p-5 lg:sticky lg:top-6 lg:p-7"
             novalidate
             @submit.prevent="save"
         >
@@ -137,7 +170,8 @@ useSaveShortcut(save, () => !form.processing);
                 />
                 <FormKit
                     v-model="form.person_id"
-                    type="dropdown"
+                    type="autocomplete"
+                    open-on-click
                     name="person_id"
                     :label="$t('Who takes care of it')"
                     :options="withNone(people)"
@@ -160,11 +194,21 @@ useSaveShortcut(save, () => !form.processing);
                 name="reminder_group_id"
                 :label="$t('Notices')"
                 :options="groupChoices"
+                :help="hint"
                 :errors="errors(form.errors.reminder_group_id)"
             />
             <FmNotice>{{ recipientsSentence(recipients) }}</FmNotice>
 
-            <div class="flex gap-2.5 pt-2">
+            <div
+                class="sticky bottom-0 -mx-5 flex gap-2.5 bg-white px-5 pt-2 pb-1 lg:static lg:m-0 lg:p-0 lg:pt-2"
+            >
+                <FmDeleteButton
+                    v-if="can_delete && reminder"
+                    :url="destroy.url(reminder.id)"
+                    :question="$t('Delete this reminder?')"
+                    :text="$t('It will not come back.')"
+                    :confirm-label="$t('Delete the reminder')"
+                />
                 <FmButton variant="soft" :href="index().url" class="flex-1">{{
                     $t('Cancel')
                 }}</FmButton>
