@@ -7,6 +7,11 @@ declare(strict_types=1);
  * App\Enums\Concerns\HasLabel: the enum name in snake case, then the value.
  */
 return [
+    'agenda_reminder_state' => [
+        'open' => 'Reminder to do',
+        'late' => 'Reminder overdue',
+        'done' => 'Reminder done',
+    ],
     'area' => [
         'home' => 'Home',
         'vehicles' => 'Vehicles',

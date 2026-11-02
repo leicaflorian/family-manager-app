@@ -31,18 +31,25 @@ readonly kind: string,
 readonly date: string,
 readonly title: string,
 readonly subtitle: string,
+readonly name: string,
+readonly detail: string,
 readonly area: string,
 readonly person_id: number | null,
 readonly person: string | null,
 readonly amount: number | null,
 readonly estimated: boolean,
 readonly reminder_done: boolean,
+readonly reminder: App.Data.AgendaReminderData | null,
 readonly href: string,
 };
 export type AgendaFiltersData = {
 readonly months: number,
 readonly person_id: number | null,
 readonly hidden_areas: string[],
+};
+export type AgendaReminderData = {
+readonly state: App.Enums.AgendaReminderState,
+readonly next_notice: string | null,
 };
 export type AreaCountData = {
 readonly area: string,
@@ -587,6 +594,7 @@ readonly expires_on: string,
 };
 }
 namespace Enums {
+export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type Channel = 'app' | 'email' | 'both';

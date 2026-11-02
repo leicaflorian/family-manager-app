@@ -20,6 +20,9 @@ const payment: App.Data.AgendaEntryData = {
     amount: 84.2,
     estimated: false,
     reminder_done: false,
+    reminder: null,
+    name: 'Gas - Enel',
+    detail: 'Bolletta gas',
     href: '/budget/planned/expense/3/occurrences/2026-10-30',
 };
 
