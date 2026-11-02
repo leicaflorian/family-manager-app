@@ -64,15 +64,15 @@
   {
     "name": "FmAgendaFilters",
     "path": "resources/js/components/fm/FmAgendaFilters.vue",
-    "description": "The filters of the *Agenda*: the period (the months the server offers), the person\nand the areas. An area is a button that turns it off: its name is struck\nthrough and its number stays, so the hidden entries stay counted. On the\nphone (`sheet`) they are a panel from below that ends with *Show 10\nentries*; on the computer (`column`) a column beside the list. The page\nkeeps the filters: the component only says what the person chose.",
+    "description": "The filters of the *Agenda*: the period (the months the server offers), the\nperson and the areas. On the computer (`toolbar`) they are a bar above the\nlist, as the board *Agenda-pc* draws it: the period as a segmented control,\nthe people as round buttons and, on the right, *All areas*, which opens the\nmenu of the areas. On the phone (`sheet`) three buttons say what is chosen\n(«1 month», «Everyone», «All areas») and each opens the panel from below with\nall the filters, which ends with *Show 10 entries*. An area is a button that\nturns it off: its name is struck through and its number stays, so the\nhidden entries stay counted. The page keeps the filters: the component only\nsays what the person chose.",
     "group": "forms",
     "props": [
       {
         "name": "variant",
         "type": "AgendaFiltersVariant",
         "required": false,
-        "default": "\"column\"",
-        "description": "A panel from below on the phone, a column on the computer."
+        "default": "\"toolbar\"",
+        "description": "A bar above the list on the computer, buttons and a panel from below on the phone."
       },
       {
         "name": "filters",
@@ -133,7 +133,7 @@
     ],
     "slots": [],
     "types": [
-      "export type AgendaFiltersVariant = 'sheet' | 'column';",
+      "export type AgendaFiltersVariant = 'sheet' | 'toolbar';",
       "export type AgendaFilterPerson = Pick<"
     ],
     "usedBy": [
@@ -143,7 +143,7 @@
   {
     "name": "FmAgendaRow",
     "path": "resources/js/components/fm/FmAgendaRow.vue",
-    "description": "An entry of the Agenda, in two layouts. In the Agenda (`agenda`): the day\nwith its weekday, the title, below the card and the person, on the right the\namount, how far it is and *Reminder done*. In the Home (`home`): the dot of\nthe area, the title, below the card with how far it is («Gas - Enel · in 4\ndays»), or «Late by 3 days · 23/10/2026» in red, and the amount, with «~» if\nit is an estimate. The whole row leads to the entry.",
+    "description": "An entry of the Agenda, in two layouts. In the Agenda (`agenda`, the\nboards *Agenda* and *Agenda-pc*): the day with its weekday (the month, in\nred, once passed), the icon of the area, the thing in bold with the state\nof its reminder beside it (*Notice on 03/11*, *Reminder done*, *Reminder\nlate*), below what happens to it, then the person, how far it is\n(«tomorrow» highlighted) and the amount («—» for a deadline). With\n`actions` a passed deadline has *Update the date* and *Renewed*, outside\nthe link. In the Home (`home`): the dot of the area, the title, below the\ncard with how far it is («Gas - Enel · in 4 days»), or «Late by 3 days ·\n23/10/2026» in red, and the amount, with «~» if it is an estimate. The\nwhole row leads to the entry.",
     "group": "rows",
     "props": [
       {
@@ -166,9 +166,19 @@
         "required": false,
         "default": null,
         "description": "The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows."
+      },
+      {
+        "name": "actions",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline."
       }
     ],
-    "events": [],
+    "events": [
+      "update-date",
+      "renewed"
+    ],
     "slots": [],
     "types": [
       "export type AgendaRowLayout = 'agenda' | 'home';"
@@ -555,6 +565,7 @@
       "components/dev/DevCases.vue",
       "components/fm/FmActions.vue",
       "components/fm/FmAgendaFilters.vue",
+      "components/fm/FmAgendaRow.vue",
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmCardForm.vue",
       "components/fm/FmChangeDeadlineSheet.vue",
@@ -605,7 +616,7 @@
   {
     "name": "FmCard",
     "path": "resources/js/components/fm/FmCard.vue",
-    "description": "The white card of the pages. With `list` it holds rows (`FmRow`) separated by\na line, without padding inside because the rows have their own, and rows\nthat come and go are animated. The links of the section go beside the title,\nin `actions`, as `FmSectionLink` (or `FmMenu` with `text`).",
+    "description": "The white card of the pages. With `list` it holds rows (`FmRow`) separated by\na line, without padding inside because the rows have their own, and rows\nthat come and go are animated. The links of the section go beside the title,\nin `actions`, as `FmSectionLink` (or `FmMenu` with `text`). With the tone\n`overdue` the title is red with the alert icon and the card has a red ring;\na short explanation can go under the card, in `note`.",
     "group": "basics",
     "props": [
       {
@@ -627,13 +638,14 @@
         "type": "\"default\" | \"overdue\"",
         "required": false,
         "default": "\"default\"",
-        "description": "The colour of the title: `overdue` is red, for what is late."
+        "description": "The colour of the title and of the ring: `overdue` is red, for what is late."
       }
     ],
     "events": [],
     "slots": [
       "default",
-      "actions"
+      "actions",
+      "note"
     ],
     "types": [],
     "usedBy": [
@@ -1929,11 +1941,13 @@
     "usedBy": [
       "components/fm/FmActiveFilter.vue",
       "components/fm/FmAgendaFilters.vue",
+      "components/fm/FmAgendaRow.vue",
       "components/fm/FmBackLink.vue",
       "components/fm/FmBell.vue",
       "components/fm/FmBottomBar.vue",
       "components/fm/FmBottomSheet.vue",
       "components/fm/FmButton.vue",
+      "components/fm/FmCard.vue",
       "components/fm/FmCardFiles.vue",
       "components/fm/FmCardHeader.vue",
       "components/fm/FmCardRow.vue",

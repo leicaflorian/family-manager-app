@@ -106,72 +106,112 @@ describe('Agenda', () => {
         ).toHaveAttribute('href', '/reminders/create');
     });
 
-    it('puts To sort out on top with the line about the passed deadlines', () => {
+    it('sums up on the computer what is to sort out, this week and the whole period', () => {
+        screenWidth(true);
         renderPage(Agenda, agenda());
 
-        const [first] = screen.getAllByRole('heading', { level: 2 });
-        expect(first).toHaveTextContent('To sort out');
+        const tiles = screen.getByRole('list', { name: 'In short' });
+        const [overdue, week, period] = within(tiles).getAllByRole('listitem');
+        expect(overdue).toHaveTextContent('To sort out1passed deadline');
+        expect(week).toHaveTextContent(
+            'This week122,10 €2 entries, from 26/10 to 01/11',
+        );
+        expect(period).toHaveTextContent(
+            'Until 26/111.417,49 €10 outgoing entries in the next month',
+        );
+    });
+
+    it('sums up on the phone this week and the whole period', () => {
+        renderPage(Agenda, agenda());
+
+        const tiles = screen.getByRole('list', { name: 'In short' });
+        const items = within(tiles).getAllByRole('listitem');
+        expect(items.map((item) => item.textContent)).toEqual([
+            'This week122,10 €2 entries',
+            'Until 26/111.417,49 €10 outgoing entries',
+        ]);
+    });
+
+    it('puts To sort out on top, then this week, next week and the rest of the month', () => {
+        renderPage(Agenda, agenda());
+
+        expect(
+            screen
+                .getAllByRole('heading', { level: 2 })
+                .map((heading) => heading.textContent?.trim()),
+        ).toEqual([
+            'To sort out',
+            'This week',
+            'Next week',
+            'Later, until 26/11',
+        ]);
         expect(
             screen.getByText(
-                'Deadlines passed in the last three months: renew them, or update the date on the card.',
+                'A passed deadline stays here for three months, until you renew it or fix the date.',
             ),
         ).toBeInTheDocument();
-        expect(screen.getByText('October 2026')).toBeInTheDocument();
-        expect(screen.getByText('November 2026')).toBeInTheDocument();
         expect(rows()).toHaveLength(12);
     });
 
-    it('sums up the outgoing payments of each month', () => {
-        renderPage(Agenda, agenda());
-
-        expect(screen.getByText('122,10 € outgoing')).toBeInTheDocument();
-        expect(screen.getByText('1.295,39 € outgoing')).toBeInTheDocument();
-    });
-
-    it('turns an area off on the computer: the rows and the summary change', async () => {
-        screenWidth(true);
-        renderPage(Agenda, agenda());
-        expect(
-            screen.getByText(
-                /12 entries in the next month, from 26\/10 to 26\/11/,
-            ),
-        ).toBeInTheDocument();
-
-        await userEvent.click(screen.getByRole('button', { name: /Work/ }));
-
-        expect(rows()).toHaveLength(10);
-        expect(
-            screen.getByText(/10 entries in the next month.*2 hidden: Work/),
-        ).toBeInTheDocument();
-        expect(put).toHaveBeenCalled();
-    });
-
-    it('puts everything back with Clear filters', async () => {
-        screenWidth(true);
+    it('groups by month after next week when the period is longer', () => {
         renderPage(
             Agenda,
             agenda({
-                filters: { months: 1, person_id: null, hidden_areas: ['work'] },
+                months: 3,
+                to: '2027-01-26',
+                filters: { months: 3, person_id: null, hidden_areas: [] },
             }),
         );
-        expect(rows()).toHaveLength(10);
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Clear filters' }),
-        );
-
-        expect(rows()).toHaveLength(12);
-    });
-
-    it('opens the filters from the line of the phone', async () => {
-        renderPage(Agenda, agenda());
 
         expect(
-            screen.getByText('Next month · Whole family · All areas'),
+            screen.getByRole('heading', { level: 2, name: 'November 2026' }),
         ).toBeInTheDocument();
+    });
+
+    it('sums up the outgoing payments of each group', () => {
+        renderPage(Agenda, agenda());
+
+        expect(screen.getByText('122,10 € outgoing')).toBeInTheDocument();
+        expect(screen.getByText('76,39 € outgoing')).toBeInTheDocument();
+        expect(screen.getByText('1.219,00 € outgoing')).toBeInTheDocument();
+    });
+
+    it('offers to update the date or renew only the passed deadlines', () => {
+        renderPage(Agenda, agenda());
+
+        const overdue = screen.getByRole('region', { name: 'To sort out' });
+        expect(
+            within(overdue).getByRole('button', { name: 'Update the date' }),
+        ).toBeInTheDocument();
+        expect(
+            within(overdue).getByRole('button', { name: 'Renewed' }),
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: 'Renewed' })).toHaveLength(
+            1,
+        );
+    });
+
+    it('turns an area off on the computer from the menu of the areas', async () => {
+        screenWidth(true);
+        renderPage(Agenda, agenda());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'All areas' }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: /Work/ }),
+        );
+
+        expect(rows()).toHaveLength(10);
+        expect(put).toHaveBeenCalled();
+    });
+
+    it('opens the filters from the buttons of the phone', async () => {
+        renderPage(Agenda, agenda());
+
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-        await userEvent.click(screen.getByRole('button', { name: 'Change' }));
+        await userEvent.click(screen.getByRole('button', { name: '1 month' }));
 
         const sheet = screen.getByRole('dialog', { name: 'Filter the agenda' });
         expect(
@@ -195,16 +235,6 @@ describe('Agenda', () => {
             { months: 3 },
             expect.anything(),
         );
-    });
-
-    it('says in the end that late payments are in the Home', () => {
-        renderPage(Agenda, agenda());
-
-        expect(
-            screen.getByText(
-                'Payments show from today on: the late ones are on the Home.',
-            ),
-        ).toBeInTheDocument();
     });
 
     it('shows a way out when the filters hide every entry', async () => {

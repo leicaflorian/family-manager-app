@@ -41,6 +41,7 @@ readonly estimated: boolean,
 readonly reminder_done: boolean,
 readonly reminder: App.Data.AgendaReminderData | null,
 readonly href: string,
+readonly update_url: string | null,
 };
 export type AgendaFiltersData = {
 readonly months: number,

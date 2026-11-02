@@ -114,6 +114,18 @@ test('each entry names the thing first and, below, what happens to it', function
     ]);
 });
 
+test('a payment titled as its card does not say the name twice', function (): void {
+    $marco = boardFamily();
+    insideFamilyOf($marco, function (): void {
+        $netflix = Subscription::query()->where('name', 'Netflix')->sole();
+        PlannedExpense::query()->whereMorphedTo('card', $netflix)->update(['title' => 'Netflix']);
+    });
+
+    $netflix = collect(agendaFor($marco)['entries'])->first(static fn (array $entry): bool => $entry['kind'] === 'payment' && $entry['name'] === 'Netflix');
+
+    expect($netflix['detail'])->toBe('Payment');
+});
+
 test('a payment without a card is named by its title, with the organization below', function (): void {
     $marco = boardFamily();
     insideFamilyOf($marco, fn (): PlannedExpense => PlannedExpense::query()->create([

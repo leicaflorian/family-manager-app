@@ -244,7 +244,7 @@ final readonly class Agenda
             title: $title = $deadline instanceof CardDeadline ? $this->deadlineTitle($deadline) : $payment->title,
             subtitle: $subtitle = $card instanceof Model ? $this->cards->label($card) : ($planned->organization->name ?? ''),
             name: $card instanceof Model ? $subtitle : $title,
-            detail: $card instanceof Model ? $title : $subtitle,
+            detail: $card instanceof Model ? $this->paymentDetail($title, $subtitle, $kind) : $subtitle,
             area: $card instanceof Model ? CardTypes::for($card)->area()->value : AgendaData::GENERAL_AREA,
             person_id: $person?->id,
             person: $person?->first_name,
@@ -254,6 +254,22 @@ final readonly class Agenda
             reminder: $reminder,
             href: route('budget.deadlines.show', ['kind' => $payment->kind(), 'id' => $planned->id, 'date' => $originalDate]).'?pay=1',
         );
+    }
+
+    /**
+     * The line below the name of a payment of a card: its title, or what it is when the title only repeats the card's name («Netflix» paid to Netflix).
+     *
+     * @param  string  $title  the title of the payment
+     * @param  string  $name  the name of the card
+     * @param  'payment'|'income'  $kind  payment or income
+     */
+    private function paymentDetail(string $title, string $name, string $kind): string
+    {
+        if (mb_strtolower(trim($title)) !== mb_strtolower(trim($name))) {
+            return $title;
+        }
+
+        return $kind === 'payment' ? __('Payment') : __('Income entry');
     }
 
     /**

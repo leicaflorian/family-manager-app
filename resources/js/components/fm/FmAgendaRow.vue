@@ -1,35 +1,48 @@
 <script setup lang="ts">
 /**
- * An entry of the Agenda, in two layouts. In the Agenda (`agenda`): the day
- * with its weekday, the title, below the card and the person, on the right the
- * amount, how far it is and *Reminder done*. In the Home (`home`): the dot of
- * the area, the title, below the card with how far it is («Gas - Enel · in 4
- * days»), or «Late by 3 days · 23/10/2026» in red, and the amount, with «~» if
- * it is an estimate. The whole row leads to the entry.
+ * An entry of the Agenda, in two layouts. In the Agenda (`agenda`, the
+ * boards *Agenda* and *Agenda-pc*): the day with its weekday (the month, in
+ * red, once passed), the icon of the area, the thing in bold with the state
+ * of its reminder beside it (*Notice on 03/11*, *Reminder done*, *Reminder
+ * late*), below what happens to it, then the person, how far it is
+ * («tomorrow» highlighted) and the amount («—» for a deadline). With
+ * `actions` a passed deadline has *Update the date* and *Renewed*, outside
+ * the link. In the Home (`home`): the dot of the area, the title, below the
+ * card with how far it is («Gas - Enel · in 4 days»), or «Late by 3 days ·
+ * 23/10/2026» in red, and the amount, with «~» if it is an estimate. The
+ * whole row leads to the entry.
  *
  * @group rows
  */
+import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
-import { transChoice } from 'laravel-vue-i18n';
+import { Bell, CalendarDays, Check, ChevronRight } from '@lucide/vue';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import type { Area } from '@/lib/areas';
-import { areaFill, areaOf } from '@/lib/areas';
-import { shortMonth, weekdayShort } from '@/lib/budget';
+import { areaIcon, areaOf, areaTile } from '@/lib/areas';
+import { shortDate, shortMonth, weekdayShort } from '@/lib/budget';
 import { daysFromToday, relativeDays, toDate } from '@/lib/format';
 import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
 import FmAmount from './FmAmount.vue';
 import FmAvatar from './FmAvatar.vue';
+import FmButton from './FmButton.vue';
+import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
 
 /** Where the row is shown. */
 export type AgendaRowLayout = 'agenda' | 'home';
 
+/** The label of the reminder of an entry: its text, icon and colours. */
+type ReminderBadge = { text: string; icon: LucideIcon; tone: string };
+
 const {
     entry,
     layout = 'agenda',
     personAvatar,
+    actions = false,
 } = defineProps<{
     /** The entry, as the server sends it. */
     entry: App.Data.AgendaEntryData;
@@ -37,6 +50,15 @@ const {
     layout?: AgendaRowLayout;
     /** The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows. */
     personAvatar?: Pick<App.Data.PersonData, 'initials' | 'photo'>;
+    /** Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline. */
+    actions?: boolean;
+}>();
+
+const emit = defineEmits<{
+    /** *Update the date* was tapped. */
+    'update-date': [];
+    /** *Renewed* was tapped. */
+    renewed: [];
 }>();
 
 const { date } = useFormat();
@@ -60,6 +82,13 @@ const homeSubtitle = computed((): string =>
               .join(' · '),
 );
 
+/** The line under the thing: what happens, with the whole date once passed. */
+const detail = computed((): string =>
+    [entry.detail, late.value ? date(entry.date) : '']
+        .filter((part) => part !== '')
+        .join(' · '),
+);
+
 /** The day of the month, as the number on the left. */
 const day = computed(() => toDate(entry.date).getDate());
 
@@ -70,10 +99,54 @@ const dayLabel = computed((): string =>
         : weekdayShort(entry.date),
 );
 
-/** The colour of the day and of how far it is. */
-const tone = computed(() =>
-    late.value ? cn('text-overdue') : cn('text-ink-soft'),
+/** Today and tomorrow are highlighted, as a blue label. */
+const soon = computed((): boolean => {
+    const days = daysFromToday(entry.date);
+
+    return days === 0 || days === 1;
+});
+
+/** The colour of how far it is: a blue label when soon, red once passed. */
+const distanceClass = computed((): string =>
+    soon.value
+        ? cn(
+              'inline-flex h-6 items-center rounded-xl bg-action-soft px-2 text-xs font-semibold text-action-dark',
+          )
+        : late.value
+          ? cn('text-xs font-semibold text-overdue lg:text-sm')
+          : cn('text-xs text-ink-soft lg:text-sm'),
 );
+
+/** The label of the reminder of a deadline, if it says something. */
+const badge = computed((): ReminderBadge | null => {
+    const reminder = entry.reminder;
+
+    if (reminder === null) {
+        return null;
+    }
+
+    return reminder.state === 'done'
+        ? {
+              text: trans('Reminder done'),
+              icon: Check,
+              tone: cn('bg-paid/12 text-paid'),
+          }
+        : reminder.state === 'late'
+          ? {
+                text: trans('Reminder late'),
+                icon: Bell,
+                tone: cn('bg-overdue/10 text-overdue'),
+            }
+          : reminder.next_notice !== null
+            ? {
+                  text: trans('Notice on :date', {
+                      date: shortDate(reminder.next_notice),
+                  }),
+                  icon: Bell,
+                  tone: cn('bg-action-soft text-action-dark'),
+              }
+            : null;
+});
 
 /** The first letter of the first name, for the circle of the person. */
 const initial = computed(() =>
@@ -105,78 +178,131 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             />
         </template>
     </FmRow>
-    <Link
+    <div
         v-else
-        :href="entry.href"
-        :class="
-            cn(
-                'relative flex w-full items-center gap-2.5 py-3 pr-3.5 pl-2 text-inherit no-underline',
-                rowLink,
-            )
-        "
+        class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-4"
+        :class="actions && 'py-3 pr-3.5 pl-2 lg:px-4'"
     >
-        <span
-            class="flex w-10 shrink-0 flex-col items-center leading-[1.1]"
-            :class="tone"
+        <Link
+            :href="entry.href"
+            :class="
+                cn(
+                    'flex min-w-0 grow items-center gap-2.5 text-inherit no-underline lg:gap-x-4',
+                    !actions && 'py-3 pr-3.5 pl-2 lg:px-4',
+                    rowLink,
+                )
+            "
         >
             <span
-                class="text-xl font-extrabold"
-                :class="late ? undefined : 'text-ink'"
-                >{{ day }}</span
-            >
-            <span class="text-xs font-semibold">{{ dayLabel }}</span>
-        </span>
-        <span class="flex min-w-0 grow flex-col gap-[3px]">
-            <span class="truncate text-[15px] font-semibold">{{
-                entry.title
-            }}</span>
-            <span
-                class="flex min-w-0 items-center gap-1.5 text-[13px] text-ink-soft"
+                class="flex w-9 shrink-0 flex-col items-center leading-[1.1] lg:w-10"
             >
                 <span
-                    data-dot
-                    class="size-2.5 shrink-0 rounded-full"
-                    :class="areaFill[area]"
-                />
-                <span v-if="entry.subtitle" class="truncate">{{
-                    entry.subtitle
-                }}</span>
-                <FmAvatar
-                    v-if="entry.person"
-                    :initials="personAvatar?.initials ?? initial"
-                    :photo="personAvatar?.photo ?? null"
-                    :size="18"
-                    aria-hidden="true"
-                />
-                <!-- Said to screen readers always, seen only on the computer -->
+                    class="text-[19px] font-extrabold lg:text-xl"
+                    :class="late ? 'text-overdue' : 'text-ink'"
+                    >{{ day }}</span
+                >
                 <span
-                    v-if="entry.person"
-                    class="sr-only lg:not-sr-only lg:shrink-0"
-                    >{{ entry.person }}</span
+                    class="text-xs font-semibold"
+                    :class="late ? 'text-overdue' : 'text-ink-soft'"
+                    >{{ dayLabel }}</span
                 >
             </span>
-        </span>
-        <span class="flex shrink-0 flex-col items-end gap-[3px]">
             <span
-                v-if="entry.amount !== null"
-                class="text-[15px] font-bold whitespace-nowrap"
+                class="flex size-8 shrink-0 items-center justify-center rounded-[10px] lg:size-9"
+                :class="areaTile[area]"
             >
-                <FmAmount
-                    :amount="entry.amount"
-                    :estimated="entry.estimated"
-                    :income="entry.kind === 'income'"
-                />
+                <FmIcon :icon="areaIcon(area)" :size="20" />
             </span>
             <span
-                class="text-xs whitespace-nowrap"
-                :class="late ? 'font-semibold text-overdue' : 'text-ink-soft'"
-                >{{ relativeDays(entry.date) }}</span
+                class="flex min-w-0 grow flex-wrap items-center gap-x-2 gap-y-[3px] lg:gap-y-1"
             >
+                <span
+                    class="min-w-0 basis-full truncate text-[15px] font-semibold lg:basis-auto lg:text-base"
+                    >{{ entry.name }}</span
+                >
+                <span
+                    class="order-2 flex min-w-0 basis-full items-center gap-1.5 text-[13px] text-ink-soft lg:order-3 lg:text-sm"
+                >
+                    <span class="truncate">{{ detail }}</span>
+                    <FmAvatar
+                        v-if="entry.person"
+                        class="lg:hidden"
+                        :initials="personAvatar?.initials ?? initial"
+                        :photo="personAvatar?.photo ?? null"
+                        :size="18"
+                        aria-hidden="true"
+                    />
+                </span>
+                <span
+                    v-if="badge"
+                    class="order-3 mt-0.5 inline-flex h-6 shrink-0 items-center gap-[5px] rounded-xl px-2 text-xs font-semibold whitespace-nowrap lg:order-2 lg:mt-0"
+                    :class="badge.tone"
+                >
+                    <FmIcon :icon="badge.icon" :size="14" />{{ badge.text }}
+                </span>
+            </span>
+            <!-- Said to screen readers always, seen only on the computer -->
             <span
-                v-if="entry.reminder_done"
-                class="text-xs font-semibold text-paid"
-                >{{ $t('Reminder done') }}</span
+                class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-sm lg:text-[#4A5565]"
+            >
+                <template v-if="entry.person">
+                    <FmAvatar
+                        :initials="personAvatar?.initials ?? initial"
+                        :photo="personAvatar?.photo ?? null"
+                        :size="26"
+                        aria-hidden="true"
+                    />
+                    <span class="truncate">{{ entry.person }}</span>
+                </template>
+            </span>
+            <span
+                class="flex shrink-0 flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4"
+            >
+                <span class="order-2 flex lg:order-none lg:w-[104px]">
+                    <span class="whitespace-nowrap" :class="distanceClass">{{
+                        relativeDays(entry.date)
+                    }}</span>
+                </span>
+                <span
+                    v-if="!actions"
+                    class="order-1 flex justify-end lg:order-none lg:w-[110px]"
+                >
+                    <span
+                        v-if="entry.amount !== null"
+                        class="text-[15px] font-bold whitespace-nowrap tabular-nums lg:text-base"
+                    >
+                        <FmAmount
+                            :amount="entry.amount"
+                            :estimated="entry.estimated"
+                            :income="entry.kind === 'income'"
+                        />
+                    </span>
+                    <span v-else class="hidden text-sm text-[#8A94A3] lg:inline"
+                        >—</span
+                    >
+                </span>
+                <FmIcon
+                    v-if="!actions"
+                    class="hidden text-[#9AA6B6] lg:block"
+                    :icon="ChevronRight"
+                    :size="18"
+                />
+            </span>
+        </Link>
+        <span v-if="actions" class="flex gap-2 pl-[46px] lg:pl-0">
+            <FmButton
+                variant="outline"
+                class="grow lg:grow-0"
+                :icon="CalendarDays"
+                @click="emit('update-date')"
+                >{{ $t('Update the date') }}</FmButton
+            >
+            <FmButton
+                class="grow lg:grow-0"
+                :icon="Check"
+                @click="emit('renewed')"
+                >{{ $t('Renewed') }}</FmButton
             >
         </span>
-    </Link>
+    </div>
 </template>

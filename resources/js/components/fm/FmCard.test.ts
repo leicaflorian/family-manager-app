@@ -45,4 +45,33 @@ describe('FmCard', () => {
             screen.getByRole('heading', { name: 'To sort out' }),
         ).toHaveClass('text-overdue');
     });
+
+    it('rings the card in red and puts the alert icon before the title when the tone is overdue', () => {
+        const result = render(FmCard, {
+            props: { title: 'To sort out', tone: 'overdue', list: true },
+        });
+
+        expect(
+            screen
+                .getByRole('heading', { name: 'To sort out' })
+                .querySelector('svg'),
+        ).toBeInTheDocument();
+        expect(result.container.querySelector('[data-card]')).toHaveAttribute(
+            'data-tone',
+            'overdue',
+        );
+    });
+
+    it('shows the note under the card, outside of it', () => {
+        const result = render(FmCard, {
+            props: { title: 'To sort out', list: true },
+            slots: { default: '<p>Row</p>', note: 'Stays here three months.' },
+        });
+
+        const note = screen.getByText('Stays here three months.');
+        expect(note).toBeInTheDocument();
+        expect(
+            result.container.querySelector('[data-card]'),
+        ).not.toContainElement(note);
+    });
 });

@@ -1,7 +1,7 @@
 /**
- * The cases of `FmAgendaFilters` for the component catalogue: the column of
- * the computer, with a person and an area turned off, and the panel of the
- * phone (opened with *Open* on the catalogue page).
+ * The cases of `FmAgendaFilters` for the component catalogue: the toolbar of
+ * the computer, also with a person and an area turned off, and the buttons of
+ * the phone with their panel (opened with *Open* on the catalogue page).
  */
 import { defineExamples } from '@/catalog/examples';
 import { agendaAreas, agendaPeriods } from '@/test/fixtures';
@@ -24,9 +24,9 @@ const counts = {
 
 export default defineExamples(FmAgendaFilters, [
     {
-        name: 'Column',
+        name: 'Toolbar',
         props: {
-            variant: 'column',
+            variant: 'toolbar',
             filters: { months: 1, person_id: null, hidden_areas: [] },
             people,
             areas: agendaAreas,
@@ -36,9 +36,9 @@ export default defineExamples(FmAgendaFilters, [
         },
     },
     {
-        name: 'Column, filtered',
+        name: 'Toolbar, filtered',
         props: {
-            variant: 'column',
+            variant: 'toolbar',
             filters: { months: 3, person_id: 2, hidden_areas: ['work'] },
             people,
             areas: agendaAreas,
@@ -48,7 +48,7 @@ export default defineExamples(FmAgendaFilters, [
         },
     },
     {
-        name: 'Panel',
+        name: 'Phone',
         props: {
             variant: 'sheet',
             open: false,
@@ -58,6 +58,19 @@ export default defineExamples(FmAgendaFilters, [
             periods: agendaPeriods,
             counts,
             shown: 12,
+        },
+    },
+    {
+        name: 'Phone, filtered',
+        props: {
+            variant: 'sheet',
+            open: false,
+            filters: { months: 3, person_id: 2, hidden_areas: ['work'] },
+            people,
+            areas: agendaAreas,
+            periods: agendaPeriods,
+            counts,
+            shown: 10,
         },
     },
 ]);

@@ -281,6 +281,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/dev/DevCases.vue`
 - `components/fm/FmActions.vue`
 - `components/fm/FmAgendaFilters.vue`
+- `components/fm/FmAgendaRow.vue`
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmCardForm.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
@@ -334,7 +335,9 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 The white card of the pages. With `list` it holds rows (`FmRow`) separated by
 a line, without padding inside because the rows have their own, and rows
 that come and go are animated. The links of the section go beside the title,
-in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
+in `actions`, as `FmSectionLink` (or `FmMenu` with `text`). With the tone
+`overdue` the title is red with the alert icon and the card has a red ring;
+a short explanation can go under the card, in `note`.
 
 ### Props
 
@@ -342,12 +345,13 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 | --- | --- | --- | --- | --- |
 | `title` | `string` | no | — | The title of the section, above the content. |
 | `list` | `boolean` | no | `false` | It holds a list of rows. |
-| `tone` | `"default" \| "overdue"` | no | `"default"` | The colour of the title: `overdue` is red, for what is late. |
+| `tone` | `"default" \| "overdue"` | no | `"default"` | The colour of the title and of the ring: `overdue` is red, for what is late. |
 
 ### Slots
 
 - `default`
 - `actions`
+- `note`
 
 ### Examples
 
@@ -366,6 +370,12 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 <!-- Overdue title -->
 <FmCard title="To sort out" tone="overdue">
     Deadlines already passed.
+</FmCard>
+
+<!-- Overdue list with a note -->
+<FmCard title="To sort out" tone="overdue" list>
+    …
+    <template #note>A passed deadline stays here for three months, until you renew it or fix the date.</template>
 </FmCard>
 
 <!-- List of rows -->
@@ -661,11 +671,13 @@ Without a label it is only decoration and screen reader users do not hear it.
 
 - `components/fm/FmActiveFilter.vue`
 - `components/fm/FmAgendaFilters.vue`
+- `components/fm/FmAgendaRow.vue`
 - `components/fm/FmBackLink.vue`
 - `components/fm/FmBell.vue`
 - `components/fm/FmBottomBar.vue`
 - `components/fm/FmBottomSheet.vue`
 - `components/fm/FmButton.vue`
+- `components/fm/FmCard.vue`
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmCardHeader.vue`
 - `components/fm/FmCardRow.vue`
@@ -1517,12 +1529,17 @@ A chosen filter, above a list: it is removed with the ×.
 
 `resources/js/components/fm/FmAgendaRow.vue`
 
-An entry of the Agenda, in two layouts. In the Agenda (`agenda`): the day
-with its weekday, the title, below the card and the person, on the right the
-amount, how far it is and *Reminder done*. In the Home (`home`): the dot of
-the area, the title, below the card with how far it is («Gas - Enel · in 4
-days»), or «Late by 3 days · 23/10/2026» in red, and the amount, with «~» if
-it is an estimate. The whole row leads to the entry.
+An entry of the Agenda, in two layouts. In the Agenda (`agenda`, the
+boards *Agenda* and *Agenda-pc*): the day with its weekday (the month, in
+red, once passed), the icon of the area, the thing in bold with the state
+of its reminder beside it (*Notice on 03/11*, *Reminder done*, *Reminder
+late*), below what happens to it, then the person, how far it is
+(«tomorrow» highlighted) and the amount («—» for a deadline). With
+`actions` a passed deadline has *Update the date* and *Renewed*, outside
+the link. In the Home (`home`): the dot of the area, the title, below the
+card with how far it is («Gas - Enel · in 4 days»), or «Late by 3 days ·
+23/10/2026» in red, and the amount, with «~» if it is an estimate. The
+whole row leads to the entry.
 
 ### Props
 
@@ -1531,6 +1548,12 @@ it is an estimate. The whole row leads to the entry.
 | `entry` | `App.Data.AgendaEntryData` | yes | — | The entry, as the server sends it. |
 | `layout` | `AgendaRowLayout` | no | `"agenda"` | The Agenda (the day on the left, the person) or the Home (the dot and the line below). |
 | `personAvatar` | `Pick<App.Data.PersonData, "initials" \| "photo">` | no | — | The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows. |
+| `actions` | `boolean` | no | `false` | Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline. |
+
+### Events
+
+- `update-date`
+- `renewed`
 
 ### Types
 
@@ -1547,14 +1570,20 @@ export type AgendaRowLayout = 'agenda' | 'home';
 <!-- Agenda, with initials -->
 <FmAgendaRow :entry="entry" :personAvatar="personAvatar" />
 
+<!-- Agenda, tomorrow -->
+<FmAgendaRow :entry="entry" />
+
 <!-- Agenda, income -->
 <FmAgendaRow :entry="entry" />
+
+<!-- Agenda, notice coming -->
+<FmAgendaRow :entry="entry" :personAvatar="personAvatar" />
 
 <!-- Agenda, reminder done -->
 <FmAgendaRow :entry="entry" />
 
-<!-- Agenda, passed -->
-<FmAgendaRow :entry="entry" />
+<!-- Agenda, passed, to sort out -->
+<FmAgendaRow :entry="entry" :personAvatar="personAvatar" actions />
 
 <!-- Home, upcoming -->
 <FmAgendaRow :entry="entry" layout="home" />
@@ -2324,18 +2353,22 @@ panel open, with the reason.
 
 `resources/js/components/fm/FmAgendaFilters.vue`
 
-The filters of the *Agenda*: the period (the months the server offers), the person
-and the areas. An area is a button that turns it off: its name is struck
-through and its number stays, so the hidden entries stay counted. On the
-phone (`sheet`) they are a panel from below that ends with *Show 10
-entries*; on the computer (`column`) a column beside the list. The page
-keeps the filters: the component only says what the person chose.
+The filters of the *Agenda*: the period (the months the server offers), the
+person and the areas. On the computer (`toolbar`) they are a bar above the
+list, as the board *Agenda-pc* draws it: the period as a segmented control,
+the people as round buttons and, on the right, *All areas*, which opens the
+menu of the areas. On the phone (`sheet`) three buttons say what is chosen
+(«1 month», «Everyone», «All areas») and each opens the panel from below with
+all the filters, which ends with *Show 10 entries*. An area is a button that
+turns it off: its name is struck through and its number stays, so the
+hidden entries stay counted. The page keeps the filters: the component only
+says what the person chose.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `variant` | `AgendaFiltersVariant` | no | `"column"` | A panel from below on the phone, a column on the computer. |
+| `variant` | `AgendaFiltersVariant` | no | `"toolbar"` | A bar above the list on the computer, buttons and a panel from below on the phone. |
 | `filters` | `App.Data.AgendaFiltersData` | yes | — | The filters in use. |
 | `people` | `AgendaFilterPerson[]` | yes | — | The people of the family. |
 | `areas` | `App.Data.OptionData[]` | yes | — | The areas, in order, with the name the server gives them. |
@@ -2355,21 +2388,24 @@ keeps the filters: the component only says what the person chose.
 ### Types
 
 ```ts
-export type AgendaFiltersVariant = 'sheet' | 'column';
+export type AgendaFiltersVariant = 'sheet' | 'toolbar';
 export type AgendaFilterPerson = Pick<
 ```
 
 ### Examples
 
 ```vue
-<!-- Column -->
-<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="12" />
+<!-- Toolbar -->
+<FmAgendaFilters variant="toolbar" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="12" />
 
-<!-- Column, filtered -->
-<FmAgendaFilters variant="column" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="10" />
+<!-- Toolbar, filtered -->
+<FmAgendaFilters variant="toolbar" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="10" />
 
-<!-- Panel -->
+<!-- Phone -->
 <FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="12" />
+
+<!-- Phone, filtered -->
+<FmAgendaFilters variant="sheet" :filters="filters" :people="people" :areas="areas" :periods="periods" :counts="counts" :shown="10" />
 ```
 
 ### Used by
