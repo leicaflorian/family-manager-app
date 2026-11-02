@@ -128,6 +128,11 @@ return [
         'boiler_service' => 'Manutenzione caldaia',
         'other' => 'Altro',
     ],
+    'notice_tone' => [
+        'info' => 'Informazione',
+        'warning' => 'Attenzione',
+        'danger' => 'In ritardo',
+    ],
     'organization_type' => [
         'bank' => 'Banca o finanziaria',
         'insurance' => 'Assicurazione',

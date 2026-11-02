@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * What the Home shows: what to pay in the next 30 days, the deadlines, the
- * incomes on their way, the files waiting and how to begin.
+ * incomes on their way, the files waiting, what is missing and how to begin.
  */
 #[TypeScript]
 final class HomeData extends Data
@@ -26,6 +27,7 @@ final class HomeData extends Data
      * @param  list<PendingFileData>  $pending  the first files waiting for their document
      * @param  int  $pending_count  how many files wait
      * @param  list<ChecklistStepData>  $checklist  the steps of *To begin*; empty when all are done
+     * @param  list<MissingDocumentData>  $missing  the documents the cards expect and do not have; empty when nothing is missing
      */
     public function __construct(
         public readonly string $first_name,
@@ -39,5 +41,7 @@ final class HomeData extends Data
         public readonly array $pending,
         public readonly int $pending_count,
         public readonly array $checklist,
+        #[DataCollectionOf(MissingDocumentData::class)]
+        public readonly array $missing,
     ) {}
 }

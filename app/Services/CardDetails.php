@@ -23,8 +23,10 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Queries\DocumentRows;
+use App\Services\Reminders\CardNotices;
 use App\Support\Linkables;
 use App\Support\ModelId;
+use App\Support\Translated;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -47,7 +49,7 @@ final readonly class CardDetails
     /** How many documents a page of the card shows. */
     private const int DOCUMENTS_PER_PAGE = 5;
 
-    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets) {}
+    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices) {}
 
     /**
      * The detail of a card.
@@ -79,7 +81,7 @@ final readonly class CardDetails
             card: $row,
             heading: $this->heading($type, $card, $row),
             dates: $this->dates($type, $card),
-            notices: $type->notices($card),
+            notices: [...$type->notices($card), ...$this->notices->for($card, $today, $user)],
             values: $this->values($type, $card),
             related: $this->related($type, $card),
             addable: CardTypes::canCreate($user) ? $this->addable($type, $card) : [],
@@ -130,7 +132,7 @@ final readonly class CardDetails
             FieldKind::Text, FieldKind::Textarea, FieldKind::Number => is_scalar($value) ? (string) $value : null,
             FieldKind::Currency => is_numeric($value) ? (Number::currency((float) $value, 'EUR', 'it') ?: null) : null,
             FieldKind::Date => $this->day($value)?->format('d/m/Y'),
-            FieldKind::Toggle => $this->translated((bool) $value ? 'Yes' : 'No'),
+            FieldKind::Toggle => Translated::text((bool) $value ? 'Yes' : 'No'),
             FieldKind::Choice, FieldKind::Dropdown => $value instanceof BackedEnum && method_exists($value, 'label') ? (string) $value->label() : null,
             FieldKind::Person => is_int($value) ? $this->personName($value) : null,
             FieldKind::Organization => is_int($value) ? Organization::query()->find($value)?->name : null,
@@ -434,18 +436,6 @@ final readonly class CardDetails
     private function labelOf(Model $card): string
     {
         return method_exists($card, 'label') ? (string) $card->label() : throw new LogicException($card::class.' has no label().');
-    }
-
-    /**
-     * A translated text, always a string.
-     *
-     * @param  string  $key  the English text
-     */
-    private function translated(string $key): string
-    {
-        $text = __($key);
-
-        return is_string($text) ? $text : $key;
     }
 
     /**

@@ -121,7 +121,7 @@ export type CardDetailData = {
 readonly card: App.Data.CardData,
 readonly heading: string,
 readonly dates: App.Data.CardDateData[],
-readonly notices: string[],
+readonly notices: App.Data.CardNoticeData[],
 readonly values: App.Data.CardValueData[],
 readonly related: App.Data.CardData[],
 readonly addable: App.Data.CardAddData[],
@@ -141,6 +141,13 @@ readonly required: boolean,
 readonly options: App.Data.OptionData[],
 readonly show_when: Record<string, string[]>,
 readonly label_when: Record<string, Record<string, string>>,
+};
+export type CardNoticeData = {
+readonly tone: App.Enums.NoticeTone,
+readonly title: string,
+readonly text: string | null,
+readonly action_label: string | null,
+readonly action_href: string | null,
 };
 export type CardNumberData = {
 readonly label: string,
@@ -304,6 +311,7 @@ readonly incoming: App.Data.AgendaEntryData[],
 readonly pending: App.Data.PendingFileData[],
 readonly pending_count: number,
 readonly checklist: App.Data.ChecklistStepData[],
+readonly missing: App.Data.MissingDocumentData[],
 };
 export type InvitationData = {
 readonly first_name: string,
@@ -321,6 +329,11 @@ readonly options: App.Data.OptionData[],
 export type LoanFiguresData = {
 readonly total_to_pay: number | null,
 readonly cost: number | null,
+};
+export type MissingDocumentData = {
+readonly card: string,
+readonly href: string,
+readonly document: string,
 };
 export type MonthBarData = {
 readonly month: string,
@@ -593,6 +606,7 @@ export type IntervalUnit = 'week' | 'month' | 'year';
 export type LoanStatus = 'active' | 'paid_off';
 export type MaintenanceTarget = 'home' | 'belonging' | 'vehicle';
 export type MaintenanceType = 'service' | 'inspection' | 'repair' | 'boiler_service' | 'other';
+export type NoticeTone = 'info' | 'warning' | 'danger';
 export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'employer' | 'public_office' | 'school' | 'healthcare' | 'shop' | 'other';
 export type PersonRole = 'parent' | 'child' | 'other';
 export type ReminderStatus = 'open' | 'done';

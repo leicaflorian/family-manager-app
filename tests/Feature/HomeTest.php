@@ -3,11 +3,14 @@
 declare(strict_types=1);
 
 use App\Enums\ExceptionType;
+use App\Enums\FilingStatus;
+use App\Enums\FilingType;
 use App\Enums\PersonRole;
 use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\File;
+use App\Models\Filing;
 use App\Models\InsurancePolicy;
 use App\Models\Invitation;
 use App\Models\Person;
@@ -347,4 +350,25 @@ test('an account of the Rossi sees nothing of the Bianchi', function (): void {
         ->and($home['incoming'])->toBe([])
         ->and($home['pending_count'])->toBe(0)
         ->and(array_column($home['checklist'], 'done', 'key'))->toBe(['utilities' => false, 'first_bill' => false, 'card' => false, 'invite' => true]);
+});
+
+test('the Home says what is missing: the registration document of a vehicle and the file of an ISEE, and nothing once there is nothing', function (): void {
+    $marco = boardFamilyUpToDate();
+    [$panda, $isee] = insideFamilyOf($marco, fn (): array => [
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id(), 'name' => 'Fiat Panda']),
+        Filing::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'ISEE 2027', 'type' => FilingType::Isee, 'status' => FilingStatus::Draft, 'reference_year' => 2027, 'person_id' => null]),
+    ]);
+
+    $missing = collect(homeFor($marco)['missing']);
+
+    expect($missing->firstWhere('card', 'Fiat Panda'))->toBe(['card' => 'Fiat Panda', 'href' => '/upload?link=vehicle%3A'.$panda->id, 'document' => 'Vehicle registration document'])
+        ->and($missing->where('card', 'ISEE 2027')->pluck('document')->all())->toBe(['Annual income statement 2026 of Marco', 'Annual income statement 2026 of Laura']);
+
+    insideFamilyOf($marco, function () use ($panda, $isee): void {
+        $document = Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Libretto Panda']);
+        $document->morphedByMany(Vehicle::class, 'documentable')->attach($panda);
+        $isee->update(['status' => FilingStatus::Submitted]);
+    });
+
+    expect(homeFor($marco)['missing'])->toBe([]);
 });

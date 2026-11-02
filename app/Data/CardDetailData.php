@@ -19,7 +19,7 @@ final class CardDetailData extends Data
      * @param  CardData  $card  the row of the card
      * @param  string  $heading  the line under the name, for example «Car · 40/123456 · policyholder Marco»
      * @param  list<CardDateData>  $dates  the dates of the tiles
-     * @param  list<string>  $notices  the notices the saved data gives
+     * @param  list<CardNoticeData>  $notices  the notices of the card: what its data and its reminders say
      * @param  list<CardValueData>  $values  the data, without the empty fields
      * @param  list<CardData>  $related  the linked cards, in both directions
      * @param  list<CardAddData>  $addable  the cards whoever looks can add already linked to this one
@@ -36,6 +36,7 @@ final class CardDetailData extends Data
         public readonly string $heading,
         #[DataCollectionOf(CardDateData::class)]
         public readonly array $dates,
+        #[DataCollectionOf(CardNoticeData::class)]
         public readonly array $notices,
         #[DataCollectionOf(CardValueData::class)]
         public readonly array $values,

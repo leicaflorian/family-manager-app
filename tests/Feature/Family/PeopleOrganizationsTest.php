@@ -66,6 +66,18 @@ test('the page of Giulia shows the health card at the top, her personal document
         ->has('links.1.options', 1));
 });
 
+test('the page of a person lists their open reminders, the late one first', function (): void {
+    $this->get(route('people.show', bianchi('Giulia')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('reminders', 3)
+        ->where('reminders.0.title', 'Renew the document')
+        ->where('reminders.0.due_date', '2026-10-20')
+        ->where('reminders.0.subject.label', 'Tessera sanitaria')
+        ->where('reminders.0.status', 'open'));
+
+    $this->get(route('people.show', bianchi('Laura')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('reminders', fn ($reminders): bool => collect($reminders)->every(fn (array $reminder): bool => $reminder['status'] === 'open' && $reminder['person']['name'] === 'Laura')));
+});
+
 test('a person with an account is not deleted', function (): void {
     $laura = bianchi('Laura');
 

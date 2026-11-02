@@ -109,7 +109,15 @@ describe('A card', () => {
         renderPage(Card, {
             card: {
                 ...policyDetail,
-                notices: ['Expires in 26 days'],
+                notices: [
+                    {
+                        tone: 'warning',
+                        title: '',
+                        text: 'Expires in 26 days',
+                        action_label: null,
+                        action_href: null,
+                    },
+                ],
                 values: [
                     {
                         label: 'Vehicle',
@@ -126,6 +134,66 @@ describe('A card', () => {
         expect(panda).toHaveAttribute('href', '/cards/vehicle/1');
         expect(panda).toHaveAttribute('target', '_blank');
         expect(panda).toHaveClass('hover:text-action');
+    });
+
+    it('shows a notice with its title, its text and its action', () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                notices: [
+                    {
+                        tone: 'warning',
+                        title: 'Expires in 26 days',
+                        text: 'The reminder went out on 07/10/2026.',
+                        action_label: null,
+                        action_href: null,
+                    },
+                    {
+                        tone: 'danger',
+                        title: 'The certificate expired on 20/10/2026',
+                        text: null,
+                        action_label: 'Upload the new one',
+                        action_href: '/upload?link=policy%3A1',
+                    },
+                ],
+            },
+            linkable: [],
+        });
+
+        const [soon, late] = screen.getAllByRole('status');
+        expect(
+            within(soon).getByText('Expires in 26 days'),
+        ).toBeInTheDocument();
+        expect(
+            within(soon).getByText('The reminder went out on 07/10/2026.'),
+        ).toBeInTheDocument();
+        expect(within(soon).queryByRole('link')).not.toBeInTheDocument();
+        expect(late).toHaveClass('text-overdue');
+        expect(
+            within(late).getByRole('link', { name: 'Upload the new one' }),
+        ).toHaveAttribute('href', '/upload?link=policy%3A1');
+    });
+
+    it('shows a notice that is only a text without a title', () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                notices: [
+                    {
+                        tone: 'info',
+                        title: '',
+                        text: 'Only a text.',
+                        action_label: null,
+                        action_href: null,
+                    },
+                ],
+            },
+            linkable: [],
+        });
+
+        const [notice] = screen.getAllByRole('status');
+        expect(notice.querySelector('strong')).toBeNull();
+        expect(within(notice).getByText('Only a text.')).toBeInTheDocument();
     });
 
     it('shows nothing of the budget', () => {

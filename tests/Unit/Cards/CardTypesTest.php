@@ -9,6 +9,7 @@ use App\Cards\CardTypes;
 use App\Cards\FieldKind;
 use App\Enums\Area;
 use App\Enums\InsurancePolicyStatus;
+use App\Enums\NoticeTone;
 use App\Enums\UtilityType;
 use App\Models\FinancialAccount;
 use App\Models\Home;
@@ -280,10 +281,11 @@ test('it recognises a card by a piece of its data, and warns from the saved data
     expect(cardType('vehicle')->subtitle($vehicle))->toBe('GH 482 TK')
         ->and(cardType('home')->subtitle($home))->toBe('Via Roma 14, Bologna')
         ->and(cardType('financial_account')->notices($account))->toHaveCount(1)
-        ->and(cardType('financial_account')->notices($account)[0])->toStartWith('È il conto predefinito')
+        ->and(cardType('financial_account')->notices($account)[0]->text)->toStartWith('È il conto predefinito')
         ->and(cardType('financial_account')->notices($other))->toBe([])
-        ->and(cardType('maintenance_record')->notices($boiler)[0])->toStartWith('Vale per una cosa sola')
-        ->and(cardType('maintenance_record')->notices($boiler)[0])->toContain('Casa di via Roma')
+        ->and(cardType('financial_account')->notices($account)[0]->tone)->toBe(NoticeTone::Warning)
+        ->and(cardType('maintenance_record')->notices($boiler)[0]->text)->toStartWith('Vale per una cosa sola')
+        ->and(cardType('maintenance_record')->notices($boiler)[0]->text)->toContain('Casa di via Roma')
         ->and(cardType('vehicle')->notices($vehicle))->toBe([]);
 });
 

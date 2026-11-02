@@ -5,8 +5,10 @@
  * next 30 days and the list of the deadlines, the incomes on their way and,
  * for a new family, *To begin*. One column on the phone, two from the
  * computer: the box and the deadlines on the left, the incomes on the right.
- * The bell of the notices sits beside the greeting. The recently uploaded
- * documents, the mail and *Something is missing* come with their own items.
+ * *Something is missing* (on the right, only when a card lacks a document,
+ * with the page that uploads it) and the bell of the notices beside the
+ * greeting. The recently uploaded documents and the mail come with their own
+ * items.
  */
 import { Head, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
@@ -94,7 +96,8 @@ const beginning = computed(() => steps.value.length > 0);
 
 /** Whether the right column has something to show; without it the left one takes the whole width. */
 const hasRightColumn = computed(
-    () => home.incoming.length > 0 || beginning.value,
+    () =>
+        home.incoming.length > 0 || home.missing.length > 0 || beginning.value,
 );
 </script>
 
@@ -180,7 +183,10 @@ const hasRightColumn = computed(
             <div
                 v-if="hasRightColumn"
                 class="flex flex-col gap-5 lg:col-span-2"
-                :class="{ 'max-lg:hidden': home.incoming.length === 0 }"
+                :class="{
+                    'max-lg:hidden':
+                        home.incoming.length === 0 && home.missing.length === 0,
+                }"
             >
                 <FmCard
                     v-if="home.incoming.length > 0"
@@ -202,6 +208,20 @@ const hasRightColumn = computed(
                             )
                         }}
                     </p>
+                </FmCard>
+                <FmCard
+                    v-if="home.missing.length > 0"
+                    :title="$t('Something is missing')"
+                    list
+                >
+                    <FmRow
+                        v-for="item in home.missing"
+                        :key="`${item.href}|${item.document}`"
+                        :title="item.document"
+                        :subtitle="item.card"
+                        :href="item.href"
+                        tone="warning"
+                    />
                 </FmCard>
             </div>
         </div>

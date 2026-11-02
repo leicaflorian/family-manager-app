@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
- * *A person*: at the top the documents expiring, then the personal documents
+ * *A person*: at the top their open reminders (the late ones in red, with the
+ * link to *Reminders*) and the documents expiring, then the personal documents
  * (linked to no record) and the records that name them; on the side their
  * data and the other documents. An `admin` edits them and deletes a person
  * without an account.
  */
 import { Head, Link } from '@inertiajs/vue3';
 import { ChevronLeft, Pencil, Trash2, UserX } from '@lucide/vue';
-import { trans } from 'laravel-vue-i18n';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmActions from '@/components/fm/FmActions.vue';
@@ -18,26 +19,51 @@ import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import { accountText, personSubtitle } from '@/lib/family';
+import { daysFromToday, relativeDays } from '@/lib/format';
 import { show as showDocument } from '@/routes/documents';
+import { index as remindersIndex } from '@/routes/reminders';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/people';
 
-const { person, expiring, personal, documents, links } = defineProps<{
-    /** The person. */
-    person: App.Data.PersonDetailData;
-    /** Their documents expiring within 60 days or already expired, the first to expire first. */
-    expiring: App.Data.DocumentData[];
-    /** Their documents linked to no record, such as the identity card. */
-    personal: App.Data.DocumentData[];
-    /** Their documents linked to a record. */
-    documents: App.Data.DocumentData[];
-    /** The records that name them, by type. */
-    links: App.Data.LinkGroupData[];
-}>();
+const { person, reminders, expiring, personal, documents, links } =
+    defineProps<{
+        /** The person. */
+        person: App.Data.PersonDetailData;
+        /** Their open reminders, the late ones first. */
+        reminders: App.Data.ReminderData[];
+        /** Their documents expiring within 60 days or already expired, the first to expire first. */
+        expiring: App.Data.DocumentData[];
+        /** Their documents linked to no record, such as the identity card. */
+        personal: App.Data.DocumentData[];
+        /** Their documents linked to a record. */
+        documents: App.Data.DocumentData[];
+        /** The records that name them, by type. */
+        links: App.Data.LinkGroupData[];
+    }>();
 
 const { date } = useFormat();
 
 const name = computed(() => `${person.first_name} ${person.last_name}`);
+
+/**
+ * How far the day of a reminder is: «overdue by 26 days» when it is passed.
+ *
+ * @param reminder - an open reminder
+ * @returns the sentence, with the name of the thing it refers to in front
+ */
+function reminderText(reminder: App.Data.ReminderData): string {
+    const days = daysFromToday(reminder.due_date);
+    const when =
+        days < 0
+            ? transChoice(
+                  '{1} overdue by :count day|[2,*] overdue by :count days',
+                  -days,
+                  { count: String(-days) },
+              )
+            : relativeDays(reminder.due_date);
+
+    return [reminder.subject?.label, when].filter(Boolean).join(' · ');
+}
 
 /** *Edit* and *Delete*, for an `admin` and a person without an account. */
 const actions = computed((): Action[] => [
@@ -112,6 +138,26 @@ const actions = computed((): Action[] => [
             class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
+                <FmNotice
+                    v-for="reminder in reminders"
+                    :key="reminder.id"
+                    :tone="
+                        daysFromToday(reminder.due_date) < 0 ? 'danger' : 'info'
+                    "
+                    :title="reminder.title"
+                >
+                    {{ reminderText(reminder) }}
+                    <template #action>
+                        <Link
+                            :href="
+                                remindersIndex({ query: { person: person.id } })
+                                    .url
+                            "
+                            class="no-underline"
+                            >{{ $t('Reminders') }}</Link
+                        >
+                    </template>
+                </FmNotice>
                 <FmCard v-if="expiring.length > 0" :title="$t('Expiring')" list>
                     <FmDocumentRow
                         v-for="document in expiring"

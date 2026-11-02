@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Cards;
 
+use App\Data\CardNoticeData;
 use App\Enums\Area;
 use App\Support\Linkables;
 use BackedEnum;
@@ -146,7 +147,7 @@ abstract class CardType
      * The notices the saved data gives, shown above the data of the card.
      *
      * @param  Model  $card  a card of this type
-     * @return list<string>
+     * @return list<CardNoticeData>
      *
      * @throws InvalidArgumentException if the card is of another type
      */

@@ -43,6 +43,7 @@ const home: App.Data.HomeData = {
     pending: [],
     pending_count: 0,
     checklist: [],
+    missing: [],
 };
 
 /** The Home of a new family: nothing to pay, four steps to begin. */
@@ -223,5 +224,55 @@ describe('Home', () => {
         expect(
             screen.queryByRole('heading', { name: 'To begin' }),
         ).not.toBeInTheDocument();
+    });
+
+    it('says what is missing only when something is', () => {
+        const view = renderPage(Home, { home });
+        expect(
+            screen.queryByRole('heading', { name: 'Something is missing' }),
+        ).not.toBeInTheDocument();
+        view.unmount();
+
+        renderPage(Home, {
+            home: {
+                ...home,
+                missing: [
+                    {
+                        card: 'Fiat Panda',
+                        href: '/upload?link=vehicle%3A1',
+                        document: 'Vehicle registration document',
+                    },
+                ],
+            },
+        });
+
+        const missing = screen
+            .getByRole('heading', { name: 'Something is missing' })
+            .closest('section') as HTMLElement;
+        const row = within(missing).getByRole('link', {
+            name: /Vehicle registration document/,
+        });
+        expect(row).toHaveAttribute('href', '/upload?link=vehicle%3A1');
+        expect(within(missing).getByText('Fiat Panda')).toBeInTheDocument();
+    });
+
+    it('keeps the right column for what is missing even without incomes', () => {
+        renderPage(Home, {
+            home: {
+                ...home,
+                incoming: [],
+                missing: [
+                    {
+                        card: 'Fiat Panda',
+                        href: '/upload?link=vehicle%3A1',
+                        document: 'Vehicle registration document',
+                    },
+                ],
+            },
+        });
+
+        expect(
+            screen.getByRole('heading', { name: 'Something is missing' }),
+        ).toBeInTheDocument();
     });
 });

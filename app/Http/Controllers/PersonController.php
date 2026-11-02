@@ -16,6 +16,8 @@ use App\Models\Person;
 use App\Models\User;
 use App\Queries\DocumentRows;
 use App\Services\LinkedRecords;
+use App\Services\Reminders\ReminderList;
+use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -28,7 +30,7 @@ use Inertia\Response;
  */
 final class PersonController extends Controller
 {
-    public function __construct(private readonly LinkedRecords $records) {}
+    public function __construct(private readonly LinkedRecords $records, private readonly ReminderList $reminders) {}
 
     /**
      * *People*: the people of the family, in the order they were added.
@@ -66,7 +68,7 @@ final class PersonController extends Controller
     /**
      * *A person*: at the top the documents expiring, then the personal
      * documents (linked to no record), the records that name them and the
-     * other documents.
+     * other documents; above them their open reminders.
      */
     public function show(Person $person, DocumentRows $rows, #[CurrentUser] User $user): Response
     {
@@ -78,6 +80,7 @@ final class PersonController extends Controller
             'personal' => $rows->of([...$theirs, 'linked' => false]),
             'documents' => $rows->of([...$theirs, 'linked' => true]),
             'links' => $this->records->ofPerson($person),
+            'reminders' => $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'],
         ]);
     }
 

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /**
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
- * menu (Delete, for an `admin`, after asking); then the notices, the
+ * menu (Delete, for an `admin`, after asking); then the notices (the deadline
+ * near or past, the missing planned expense, the documents that expire or are
+ * missing, each with its action if it has one), the
  * payments of the card around its dates and data (`FmCardBudget`: the next
  * due date, the figures, the due dates to pay), the data of the card (the
  * person, the organization and the card it names open in a new tab) and the
@@ -12,7 +14,7 @@
  * documents the planned expenses and the payments (`FmCardPayments`). *Link* opens the documents not yet linked, searched while
  * typing, 15 at a time with the next ones loaded at the end of the list.
  */
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Link2, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -127,9 +129,19 @@ function link(id: number): void {
             </template>
         </FmCardHeader>
 
-        <FmNotice v-for="notice in card.notices" :key="notice" tone="warning">{{
-            notice
-        }}</FmNotice>
+        <FmNotice
+            v-for="notice in card.notices"
+            :key="`${notice.title}|${notice.text}`"
+            :tone="notice.tone"
+            :title="notice.title || undefined"
+        >
+            {{ notice.text }}
+            <template v-if="notice.action_label && notice.action_href" #action>
+                <Link :href="notice.action_href" class="no-underline">{{
+                    notice.action_label
+                }}</Link>
+            </template>
+        </FmNotice>
 
         <div
             class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"

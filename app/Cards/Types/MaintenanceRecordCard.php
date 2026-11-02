@@ -8,6 +8,7 @@ use App\Cards\CardDate;
 use App\Cards\CardField;
 use App\Cards\CardType;
 use App\Cards\FieldKind;
+use App\Data\CardNoticeData;
 use App\Enums\Area;
 use App\Enums\MaintenanceTarget;
 use App\Enums\MaintenanceType;
@@ -98,9 +99,9 @@ final class MaintenanceRecordCard extends CardType
         $record = $this->card($card, MaintenanceRecord::class);
         $thing = $record->home ?? $record->belonging ?? $record->vehicle;
 
-        return [$thing === null
+        return [CardNoticeData::warning($thing === null
             ? __('Applies to one thing only. A job is linked to a home, a belonging or a vehicle.')
-            : __('Applies to one thing only. A job is linked to a home, a belonging or a vehicle: this one to :name.', ['name' => $thing->label()])];
+            : __('Applies to one thing only. A job is linked to a home, a belonging or a vehicle: this one to :name.', ['name' => $thing->label()]))];
     }
 
     /** {@inheritDoc} */

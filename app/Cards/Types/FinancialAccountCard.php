@@ -7,6 +7,7 @@ namespace App\Cards\Types;
 use App\Cards\CardField;
 use App\Cards\CardType;
 use App\Cards\FieldKind;
+use App\Data\CardNoticeData;
 use App\Enums\Area;
 use App\Enums\FinancialAccountStatus;
 use App\Enums\FinancialAccountType;
@@ -92,7 +93,7 @@ final class FinancialAccountCard extends CardType
     public function notices(Model $card): array
     {
         return $this->card($card, FinancialAccount::class)->is_default
-            ? [__('It is the default account. Full IBANs, card numbers and codes are not saved here.')]
+            ? [CardNoticeData::warning(__('It is the default account. Full IBANs, card numbers and codes are not saved here.'))]
             : [];
     }
 

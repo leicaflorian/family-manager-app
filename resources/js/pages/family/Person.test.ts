@@ -1,7 +1,19 @@
-import { screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
-import { healthCard, personDetail } from '@/test/fixtures';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
+import {
+    healthCard,
+    healthCardReminder,
+    personDetail,
+    plumberReminder,
+} from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
 import { renderPage } from '@/test/page';
 import Person from './Person.vue';
@@ -15,9 +27,13 @@ const links: App.Data.LinkGroupData[] = [
 ];
 
 /** *A person* for Giulia, with the health card expired. */
-function renderGiulia(person: App.Data.PersonDetailData = personDetail): void {
+function renderGiulia(
+    person: App.Data.PersonDetailData = personDetail,
+    reminders: App.Data.ReminderData[] = [],
+): void {
     renderPage(Person, {
         person,
+        reminders,
         expiring: [healthCard],
         personal: [healthCard],
         documents: [
@@ -33,6 +49,15 @@ function renderGiulia(person: App.Data.PersonDetailData = personDetail): void {
 }
 
 describe('A person', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('shows the person, the health card at the top, her documents and her records', () => {
         renderGiulia();
 
@@ -114,5 +139,37 @@ describe('A person', () => {
         expect(
             screen.getByRole('img', { name: 'Giulia Bianchi' }),
         ).toHaveAttribute('src', '/files/40');
+    });
+
+    it('shows no reminder box without open reminders', () => {
+        renderGiulia();
+
+        expect(
+            screen.queryByRole('link', { name: 'Reminders' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('shows the open reminders at the top, the late one in red, with the link to Reminders', () => {
+        renderGiulia(personDetail, [
+            healthCardReminder,
+            { ...plumberReminder, due_date: '2026-10-31' },
+        ]);
+
+        const [late, coming] = screen.getAllByRole('status');
+        expect(late).toHaveClass('text-overdue');
+        expect(
+            within(late).getByText('Renew the health card'),
+        ).toBeInTheDocument();
+        expect(
+            within(late).getByText(/Tessera sanitaria di Giulia/),
+        ).toBeInTheDocument();
+        expect(
+            within(late).getByText(/overdue by 26 days/),
+        ).toBeInTheDocument();
+        expect(
+            within(late).getByRole('link', { name: 'Reminders' }),
+        ).toHaveAttribute('href', '/reminders?person=3');
+        expect(coming).not.toHaveClass('text-overdue');
+        expect(within(coming).getByText(/in 5 days/)).toBeInTheDocument();
     });
 });

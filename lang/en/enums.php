@@ -128,6 +128,11 @@ return [
         'boiler_service' => 'Boiler service',
         'other' => 'Other',
     ],
+    'notice_tone' => [
+        'info' => 'Information',
+        'warning' => 'Warning',
+        'danger' => 'Late',
+    ],
     'organization_type' => [
         'bank' => 'Bank or lender',
         'insurance' => 'Insurance',

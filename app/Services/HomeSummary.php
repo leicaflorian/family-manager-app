@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Data\AgendaEntryData;
 use App\Data\ChecklistStepData;
 use App\Data\HomeData;
+use App\Data\MissingDocumentData;
 use App\Data\PendingFileData;
 use App\Enums\PersonRole;
 use App\Models\Document;
@@ -18,6 +19,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
+use App\Services\Reminders\ExpectedDocuments;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Gate;
 
@@ -40,7 +42,7 @@ final readonly class HomeSummary
     /** How many files *Waiting* shows. */
     private const int PENDING = 5;
 
-    public function __construct(private Agenda $agenda) {}
+    public function __construct(private Agenda $agenda, private ExpectedDocuments $expected) {}
 
     /**
      * The data of the Home of an account.
@@ -75,6 +77,7 @@ final readonly class HomeSummary
             pending: array_values(PendingFileData::waiting(self::PENDING)),
             pending_count: File::query()->toSort()->count(),
             checklist: $this->checklist($user),
+            missing: array_map(static fn (array $row): MissingDocumentData => new MissingDocumentData($row['card'], $row['href'], $row['document']), $this->expected->missingFor($today)),
         );
     }
 
