@@ -19,6 +19,8 @@ export type NoticeChannels = 'app' | 'email' | 'both';
 
 /** One notice of a group, in the shape the server saves it. */
 export type NoticeRule = {
+    /** The name saved with the row; the page keeps it and does not show it. */
+    name?: string;
     /** How many days from the due date, 0 for the day itself. */
     days: number;
     /** Before or after the due date. */

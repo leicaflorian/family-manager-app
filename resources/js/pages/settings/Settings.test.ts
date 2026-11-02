@@ -25,6 +25,13 @@ describe('Settings', () => {
             'href',
             '/settings/calendar',
         );
+        expect(screen.getByRole('link', { name: /Notices/ })).toHaveAttribute(
+            'href',
+            '/settings/notices',
+        );
+        expect(
+            screen.getByText('How many days before, where and to whom'),
+        ).toBeInTheDocument();
         expect(
             screen.getByRole('link', { name: /Document categories/ }),
         ).toHaveAttribute('href', '/settings/categories');

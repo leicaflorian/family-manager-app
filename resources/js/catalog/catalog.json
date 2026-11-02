@@ -26,7 +26,8 @@
       "pages/family/Organizations.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
-      "pages/settings/Categories.vue"
+      "pages/settings/Categories.vue",
+      "pages/settings/Notices.vue"
     ]
   },
   {
@@ -583,6 +584,7 @@
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
       "pages/settings/ExpenseCategories.vue",
+      "pages/settings/Notices.vue",
       "pages/welcome/Welcome.vue"
     ]
   },
@@ -643,6 +645,7 @@
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
       "pages/settings/ExpenseCategories.vue",
+      "pages/settings/Notices.vue",
       "pages/settings/Settings.vue"
     ]
   },
@@ -2421,7 +2424,8 @@
       "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",
-      "pages/settings/Categories.vue"
+      "pages/settings/Categories.vue",
+      "pages/settings/Notices.vue"
     ]
   },
   {
@@ -2479,7 +2483,9 @@
     ],
     "slots": [],
     "types": [],
-    "usedBy": []
+    "usedBy": [
+      "pages/settings/Notices.vue"
+    ]
   },
   {
     "name": "FmNumberTile",
@@ -3040,7 +3046,8 @@
       "pages/Home.vue",
       "pages/budget/PlannedItem.vue",
       "pages/cards/Card.vue",
-      "pages/notices/Notices.vue"
+      "pages/notices/Notices.vue",
+      "pages/settings/Notices.vue"
     ]
   },
   {
@@ -3209,6 +3216,7 @@
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
       "pages/settings/ExpenseCategories.vue",
+      "pages/settings/Notices.vue",
       "pages/settings/Settings.vue"
     ]
   },

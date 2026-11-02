@@ -362,6 +362,20 @@ readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 };
+export type NoticeRuleData = {
+readonly name: string,
+readonly days: number,
+readonly timing: string,
+readonly channels: string,
+readonly recipients: (string| number)[],
+};
+export type NoticeSettingsData = {
+readonly groups: App.Data.ReminderGroupData[],
+readonly kinds: App.Data.OptionData[],
+readonly people: App.Data.ReminderPersonData[],
+readonly without_account: string[],
+readonly can_change: boolean,
+};
 export type OptionData = {
 readonly value: string,
 readonly label: string,
@@ -511,6 +525,14 @@ readonly value: string,
 readonly label: string,
 readonly recipients: string[],
 readonly offsets: number[],
+};
+export type ReminderGroupData = {
+readonly id: number | null,
+readonly name: string,
+readonly is_default: boolean,
+readonly deadline_types: string[],
+readonly rules: App.Data.NoticeRuleData[],
+readonly example: string | null,
 };
 export type ReminderNoticeData = {
 readonly id: number,

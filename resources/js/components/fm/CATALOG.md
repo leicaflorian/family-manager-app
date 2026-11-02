@@ -149,6 +149,7 @@ button and from the menu alike.
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
 - `pages/settings/Categories.vue`
+- `pages/settings/Notices.vue`
 
 ## FmAvatar
 
@@ -323,6 +324,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/ExpenseCategories.vue`
+- `pages/settings/Notices.vue`
 - `pages/welcome/Welcome.vue`
 
 ## FmCard
@@ -396,6 +398,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/ExpenseCategories.vue`
+- `pages/settings/Notices.vue`
 - `pages/settings/Settings.vue`
 
 ## FmConfirm
@@ -818,6 +821,7 @@ export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
+- `pages/settings/Notices.vue`
 
 ## FmOrganizationMark
 
@@ -966,6 +970,7 @@ organization.
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/ExpenseCategories.vue`
+- `pages/settings/Notices.vue`
 - `pages/settings/Settings.vue`
 
 ## FmBackLink
@@ -1388,6 +1393,7 @@ every page.
 - `pages/budget/PlannedItem.vue`
 - `pages/cards/Card.vue`
 - `pages/notices/Notices.vue`
+- `pages/settings/Notices.vue`
 
 ## FmSidebar
 
@@ -2644,6 +2650,10 @@ edits its rule through `v-model`, and `remove` asks the form to drop it.
 <!-- Days after, email -->
 <FmNotificationRule :people="people" :modelValue="modelValue" />
 ```
+
+### Used by
+
+- `pages/settings/Notices.vue`
 
 ## FmPasswordField
 

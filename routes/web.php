@@ -23,6 +23,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
 use App\Http\Controllers\NoticeController;
+use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ReminderController;
@@ -128,6 +129,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
+        Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
+        Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::resource('settings/categories', CategoryController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['categories' => 'category'])
