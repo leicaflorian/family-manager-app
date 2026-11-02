@@ -337,6 +337,35 @@ describe('Settings, Notices', () => {
         ]);
     });
 
+    it('tells how to add the deadlines of a group', async () => {
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'New group' }),
+        );
+
+        expect(
+            screen.getByText(
+                'Choose from the list, or start typing to search.',
+            ),
+        ).toBeVisible();
+    });
+
+    it('scrolls the page to the new group', async () => {
+        // jsdom has no scrolling: the spy stands in for the page
+        const scroll = vi.fn();
+        Element.prototype.scrollIntoView = scroll;
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'New group' }),
+        );
+
+        const added = screen.getByRole('region', { name: 'New group' });
+        expect(scroll).toHaveBeenCalledOnce();
+        expect(scroll.mock.contexts[0]).toContain(added);
+    });
+
     it('starts a new group with the notices empty', async () => {
         const put = vi.spyOn(router, 'put').mockImplementation(() => {});
         renderPage(Notices, props());

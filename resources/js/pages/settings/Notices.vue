@@ -11,7 +11,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { Plus, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { useMediaQuery } from '@vueuse/core';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -215,10 +215,14 @@ function toggle(draft: Draft): void {
         : [...editing.value, draft.key];
 }
 
+/** The boxes of the groups, each with its key in `data-group`. */
+const groupBoxes = useTemplateRef<HTMLElement[]>('groupBoxes');
+
 /**
- * Adds a group, open for editing.
+ * Adds a group, open for editing, and scrolls the page to it: it goes at the
+ * bottom, below the others. On the phone it opens on its own screen.
  */
-function addGroup(): void {
+async function addGroup(): Promise<void> {
     const key = `new-${(newGroups += 1)}`;
 
     drafts.value.push({
@@ -231,6 +235,18 @@ function addGroup(): void {
         example: null,
     });
     editing.value.push(key);
+
+    if (desktop.value) {
+        await nextTick();
+        groupBoxes.value
+            ?.find((box) => box.dataset.group === key)
+            ?.scrollIntoView({
+                behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
+                    ? 'auto'
+                    : 'smooth',
+                block: 'start',
+            });
+    }
 }
 
 /**
@@ -327,7 +343,9 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
 
         <div
             v-for="draft in drafts"
+            ref="groupBoxes"
             :key="draft.key"
+            :data-group="draft.key"
             :data-testid="onScreen(draft) ? 'group-screen' : undefined"
             :class="
                 onScreen(draft) &&
@@ -354,11 +372,16 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
                         type="taglist"
                         name="types"
                         :label="$t('For which deadlines')"
+                        :help="
+                            $t(
+                                'Choose from the list, or start typing to search.',
+                            )
+                        "
                         :options="kindOptions(draft)"
                         :model-value="draft.deadline_types"
                         @input="(value: unknown) => setTypes(draft, value)"
                     />
-                    <div class="flex flex-col gap-4">
+                    <div class="mb-5 flex flex-col gap-4">
                         <FmNotificationRule
                             v-for="(rule, index) in draft.rules"
                             :key="index"

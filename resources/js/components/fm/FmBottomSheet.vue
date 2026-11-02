@@ -4,7 +4,7 @@
  * and filters. On the computer it is a window in the middle. It closes with the
  * handle, with the ×, with Esc and by tapping outside; while it is open the focus
  * stays inside. With `beforeClose` these ways ask first, as a form with changes
- * not saved does.
+ * not saved does. Esc in an open menu of a field closes the menu only.
  *
  * @group panels
  */
@@ -59,6 +59,37 @@ async function change(next: boolean): Promise<void> {
 
 // The panel is white, also when it opens from the coloured top of a card
 provideOnColor(false);
+
+/** The Esc being pressed started in an open menu of a field. */
+let escapeInMenu = false;
+
+/**
+ * Notes whether Esc starts in an open menu of a field (a FormKit list marks
+ * its field with `data-expanded`). It runs before the field: FormKit closes
+ * its list on the same key, and by the time the panel hears it the mark is
+ * gone.
+ *
+ * @param event - the key pressed, in the capture phase
+ */
+function noteEscape(event: KeyboardEvent): void {
+    escapeInMenu =
+        event.key === 'Escape' &&
+        event.target instanceof Element &&
+        event.target.closest('[data-expanded]') !== null;
+}
+
+/**
+ * Esc in an open menu of a field closes only the menu, not the panel.
+ *
+ * @param event - the Esc the panel would close with
+ */
+function keepOpenForMenu(event: KeyboardEvent): void {
+    if (escapeInMenu) {
+        event.preventDefault();
+    }
+
+    escapeInMenu = false;
+}
 </script>
 
 <template>
@@ -70,6 +101,8 @@ provideOnColor(false);
             />
             <DialogContent
                 :aria-describedby="undefined"
+                @keydown.capture="noteEscape"
+                @escape-key-down="keepOpenForMenu"
                 :class="above ? 'z-[70]' : 'z-50'"
                 class="fixed inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:p-7 lg:shadow-[0_24px_60px_rgba(24,33,47,0.25)] lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
             >

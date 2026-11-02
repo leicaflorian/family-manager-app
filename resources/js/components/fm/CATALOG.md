@@ -1949,7 +1949,7 @@ The panel that rises from the bottom over the darkened page, for short actions
 and filters. On the computer it is a window in the middle. It closes with the
 handle, with the ×, with Esc and by tapping outside; while it is open the focus
 stays inside. With `beforeClose` these ways ask first, as a form with changes
-not saved does.
+not saved does. Esc in an open menu of a field closes the menu only.
 
 ### Props
 
@@ -2002,6 +2002,7 @@ not saved does.
 - `components/fm/FmPaySheet.vue`
 - `components/fm/FmUploadSheet.vue`
 - `pages/documents/Documents.vue`
+- `pages/reminders/EditReminder.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Categories.vue`
 - `pages/settings/ExpenseCategories.vue`

@@ -119,51 +119,58 @@ function setRecipients(value: unknown): void {
 </script>
 
 <template>
-    <div
-        class="grid grid-cols-2 items-end gap-3 lg:grid-cols-[90px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.5fr)_44px]"
-    >
-        <FormKit
-            type="number"
-            name="days"
-            min="0"
-            :label="$t('Days')"
-            :model-value="rule.days"
-            @input="setDays"
-        />
-        <FormKit
-            type="togglebuttons"
-            name="when"
-            enforced
-            :label="$t('When')"
-            :options="timings"
-            :model-value="when"
-            @input="setWhen"
-        />
-        <FormKit
-            type="dropdown"
-            name="channels"
-            :label="$t('Where it goes')"
-            :options="channels"
-            :model-value="rule.channels"
-            @input="
-                (value: unknown) => patch({ channels: value as NoticeChannels })
-            "
-        />
-        <FormKit
-            type="taglist"
-            name="recipients"
-            :label="$t('To whom')"
-            :options="recipients"
-            :model-value="rule.recipients"
-            @input="setRecipients"
-        />
-        <button
-            type="button"
-            :aria-label="$t('Remove this notice')"
-            class="flex size-11 cursor-pointer items-center justify-center border-0 bg-transparent text-ink-soft hover:text-overdue"
-            @click="emit('remove')"
+    <!-- The row measures the card, not the screen: in the card of a group the
+         five columns fit only from about 670px. The fields lose their bottom
+         margin here, so that the button lines up with them. -->
+    <div class="@container/rule">
+        <div
+            class="grid grid-cols-2 items-start gap-3 @2xl/rule:grid-cols-[72px_auto_minmax(150px,1fr)_minmax(0,1.2fr)_44px] @2xl/rule:gap-x-2.5 [&_.formkit-tags>input]:min-w-10 [&_.formkit-tags>input]:basis-10 [&>.formkit-outer]:mb-0"
         >
-            <FmIcon :icon="X" :size="20" />
-        </button>
+            <FormKit
+                type="number"
+                name="days"
+                min="0"
+                :label="$t('Days')"
+                :model-value="rule.days"
+                @input="setDays"
+            />
+            <FormKit
+                type="togglebuttons"
+                name="when"
+                enforced
+                outer-class="condensed"
+                :label="$t('When')"
+                :options="timings"
+                :model-value="when"
+                @input="setWhen"
+            />
+            <FormKit
+                type="dropdown"
+                name="channels"
+                :label="$t('Where it goes')"
+                :options="channels"
+                :model-value="rule.channels"
+                @input="
+                    (value: unknown) =>
+                        patch({ channels: value as NoticeChannels })
+                "
+            />
+            <FormKit
+                type="taglist"
+                name="recipients"
+                :label="$t('To whom')"
+                :options="recipients"
+                :model-value="rule.recipients"
+                @input="setRecipients"
+            />
+            <button
+                type="button"
+                :aria-label="$t('Remove this notice')"
+                class="flex size-11 cursor-pointer items-center justify-center border-0 bg-transparent text-ink-soft hover:text-overdue @2xl/rule:mt-[29.5px]"
+                @click="emit('remove')"
+            >
+                <FmIcon :icon="X" :size="20" />
+            </button>
+        </div>
     </div>
 </template>

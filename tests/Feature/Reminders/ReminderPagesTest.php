@@ -336,6 +336,12 @@ test('the form tells who gets the notices of each group, and of the default one 
         ->and($props['default_recipients'])->toBe(['Marco', 'Laura', $this->member->name]);
 });
 
+test('the form leaves the default group out of the groups: «Default» already stands for it', function (): void {
+    $props = $this->actingAs($this->marco)->get('/reminders/create')->assertOk()->viewData('page')['props'];
+
+    expect(collect($props['groups'])->pluck('label')->all())->toBe(['Documenti e salute', 'Veicoli']);
+});
+
 test('the form says when each group notifies, as offsets from the day, and the default ones', function (): void {
     $props = $this->actingAs($this->marco)->get('/reminders/create')->assertOk()->viewData('page')['props'];
     $veicoli = collect($props['groups'])->firstWhere('label', 'Veicoli');

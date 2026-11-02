@@ -3,26 +3,29 @@
  * *New reminder* and the change of one written by hand: what to do, the day,
  * who takes care of it, the thing it refers to (a card, a document or a person)
  * and the group of notices, with when it notifies and the people who get them.
- * On the computer the form is a panel beside the list of the reminders; on the
- * phone it is the whole screen, with *Cancel* and *Save* at the bottom. An
+ * On the computer the form is a window in the middle, over the list of the
+ * reminders (board `Nuovo-promemoria-pc`), and closing it goes back to the
+ * list; on the phone it is the whole screen, with *Cancel* and *Save* at the
+ * bottom. An
  * `admin` can also delete a reminder written by hand.
  */
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
-import { useMediaQuery } from '@vueuse/core';
+import { createReusableTemplate, useMediaQuery } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
-import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { errors } from '@/lib/errors';
 import { isEmpty, withMethod, withNone } from '@/lib/forms';
 import { offsetsHint, recipientsSentence } from '@/lib/reminders';
 import { destroy, index, store, update } from '@/routes/reminders';
 import Reminders from './Reminders.vue';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const {
     reminder,
@@ -54,21 +57,41 @@ const {
     reminders: App.Data.RemindersPageData;
 }>();
 
-/** On the computer the form is a panel beside the list. */
+/** On the computer the form is a window over the list. */
 const desktop = useMediaQuery('(min-width: 1024px)');
+
+/** The form, written once: in the window on the computer, the whole page on the phone. */
+const [DefineForm, ReuseForm] = createReusableTemplate();
+
+/**
+ * Goes back to the list when the window closes (×, Esc or a tap outside).
+ *
+ * @param open - whether the window is still open
+ */
+function closeWindow(open: boolean): void {
+    if (!open) {
+        router.visit(index().url);
+    }
+}
 
 const form = useForm({
     title: reminder?.title ?? '',
     due_date: reminder?.due_date ?? '',
     person_id: reminder?.person ? String(reminder.person.id) : '',
     remindable: remindable ?? '',
-    reminder_group_id:
-        reminder?.group_id === null || reminder === null
-            ? ''
-            : String(reminder.group_id),
+    // A group outside the choices is the default one (the server leaves it out):
+    // «Default» does the same
+    reminder_group_id: groups.some(
+        (group) => group.value === String(reminder?.group_id),
+    )
+        ? String(reminder?.group_id)
+        : '',
 });
 
-/** While the form has changes not saved, leaving the page asks first. */
+/**
+ * While the form has changes not saved, leaving asks first: also closing the
+ * window, which goes back to the list.
+ */
 useUnsavedChanges(() => form.data());
 
 /** The title of the page. */
@@ -86,7 +109,7 @@ const things = computed(() =>
     ),
 );
 
-/** The choices of the group: the default ones first, then the groups of the family. */
+/** The choices of the group: «Default» (the default group of the family), then the other groups. */
 const groupChoices = computed(() => [
     { value: '', label: trans('Default') },
     ...groups.map(({ value, label }) => ({ value, label })),
@@ -132,29 +155,8 @@ useSaveShortcut(save, () => !form.processing);
 <template>
     <Head :title="heading" />
 
-    <div
-        class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-start"
-        :class="!desktop && 'mx-auto w-full max-w-[560px]'"
-    >
-        <Reminders v-if="desktop" embedded :reminders="reminders" />
-        <form
-            class="flex flex-col gap-3.5 rounded-3xl bg-white p-5 lg:sticky lg:top-6 lg:p-7"
-            novalidate
-            @submit.prevent="save"
-        >
-            <div class="flex items-center justify-between gap-3">
-                <h1 class="m-0 text-xl font-extrabold lg:text-[22px]">
-                    {{ heading }}
-                </h1>
-                <Link
-                    :href="index().url"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center text-ink-soft"
-                >
-                    <FmIcon :icon="X" :size="22" />
-                </Link>
-            </div>
-
+    <DefineForm>
+        <form class="flex flex-col gap-3.5" novalidate @submit.prevent="save">
             <FormKit
                 v-model="form.title"
                 type="text"
@@ -204,9 +206,10 @@ useSaveShortcut(save, () => !form.processing);
             <FmNotice>{{ recipientsSentence(recipients) }}</FmNotice>
 
             <div
-                class="sticky bottom-0 -mx-5 flex gap-2.5 bg-white px-5 pt-2 pb-1 lg:static lg:m-0 lg:p-0 lg:pt-2"
+                class="sticky bottom-0 -mx-5 flex gap-2.5 bg-white px-5 pt-2 pb-1 lg:static lg:m-0 lg:justify-end lg:p-0 lg:pt-2"
             >
                 <FmDeleteButton
+                    class="lg:mr-auto"
                     v-if="can_delete && reminder"
                     :url="destroy.url(reminder.id)"
                     :question="$t('Delete this reminder?')"
@@ -214,19 +217,44 @@ useSaveShortcut(save, () => !form.processing);
                     :confirm-label="$t('Delete the reminder')"
                 />
                 <FmButton
-                    variant="soft"
+                    :variant="desktop ? 'text' : 'soft'"
                     :href="index().url"
-                    class="flex-1"
+                    class="flex-1 lg:flex-none"
                     data-discard-changes
                     >{{ $t('Cancel') }}</FmButton
                 >
                 <FmButton
                     type="submit"
-                    class="flex-2"
+                    class="flex-2 lg:flex-none lg:px-7"
                     :disabled="form.processing"
                     >{{ $t('Save') }}</FmButton
                 >
             </div>
         </form>
+    </DefineForm>
+
+    <template v-if="desktop">
+        <Reminders embedded :reminders="reminders" />
+        <FmBottomSheet :open="true" :title="heading" @update:open="closeWindow">
+            <ReuseForm />
+        </FmBottomSheet>
+    </template>
+    <div
+        v-else
+        class="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 rounded-3xl bg-white p-5"
+    >
+        <div class="flex items-center justify-between gap-3">
+            <h1 class="m-0 text-xl font-extrabold">
+                {{ heading }}
+            </h1>
+            <Link
+                :href="index().url"
+                :aria-label="$t('Close')"
+                class="flex size-11 items-center justify-center text-ink-soft"
+            >
+                <FmIcon :icon="X" :size="22" />
+            </Link>
+        </div>
+        <ReuseForm />
     </div>
 </template>

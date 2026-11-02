@@ -10,8 +10,16 @@ import {
     reminderPeople,
     remindersPage,
 } from '@/test/fixtures';
+import {
+    choose,
+    openMenu,
+    renderPage,
+    search,
+    settle,
+    shown,
+    tapCancel,
+} from '@/test/page';
 import { hasChanges } from '@/lib/unsavedChanges';
-import { choose, renderPage, search, settle, tapCancel } from '@/test/page';
 import EditReminder from './EditReminder.vue';
 
 const props = {
@@ -159,6 +167,29 @@ describe('Edit a reminder', () => {
         );
     });
 
+    it('shows a reminder of the default group as Default, once', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        // 5 is the default group: the server leaves it out of the groups
+        renderPage(EditReminder, {
+            ...props,
+            reminder: { ...plumberReminder, group_id: 5 },
+        });
+
+        const list = await openMenu('Notices');
+        expect(shown(list)).toEqual(['Default', 'Only Laura']);
+        expect(
+            within(list).getByRole('option', { name: 'Default' }),
+        ).toHaveAttribute('aria-selected', 'true');
+        await userEvent.keyboard('{Escape}');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/reminders/2',
+            expect.objectContaining({ reminder_group_id: '' }),
+            expect.anything(),
+        );
+    });
+
     it('sends an empty person, thing and group as empty', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditReminder, {
@@ -225,19 +256,32 @@ describe('Edit a reminder', () => {
         ).toBeInTheDocument();
     });
 
-    it('is a panel beside the list of the reminders on the computer', () => {
+    it('is a window over the list of the reminders on the computer', async () => {
         screenWidth(true);
         renderPage(EditReminder, props);
 
         expect(
             screen.getByRole('region', { name: 'Overdue' }),
         ).toBeInTheDocument();
+        const window = await screen.findByRole('dialog', {
+            name: 'New reminder',
+        });
         expect(
-            screen.getByRole('heading', { name: 'New reminder' }),
+            within(window).getByRole('button', { name: 'Save' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('button', { name: 'Save' }),
+            within(window).getByRole('textbox', { name: /What needs doing/ }),
         ).toBeInTheDocument();
+    });
+
+    it('goes back to the reminders when the window closes', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        screenWidth(true);
+        renderPage(EditReminder, props);
+
+        await userEvent.keyboard('{Escape}');
+
+        expect(visit).toHaveBeenCalledWith('/reminders');
     });
 
     it('offers Delete only when the server says it can be deleted', async () => {

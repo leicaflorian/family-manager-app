@@ -137,7 +137,8 @@ final class ReminderController extends Controller
             'reminder' => $row,
             'remindable' => $remindable,
             'people' => BudgetFormOptions::people(),
-            'groups' => $groups->map(static fn (ReminderGroup $group): ReminderGroupChoiceData => new ReminderGroupChoiceData((string) ModelId::of($group), $group->name, $recipients->ofGroup($group), $recipients->offsetsOfGroup($group)))->values()->all(),
+            // The default group is «Default», the first choice of the form: listed again it would be there twice
+            'groups' => $groups->reject(static fn (ReminderGroup $group): bool => $group->is_default)->map(static fn (ReminderGroup $group): ReminderGroupChoiceData => new ReminderGroupChoiceData((string) ModelId::of($group), $group->name, $recipients->ofGroup($group), $recipients->offsetsOfGroup($group)))->values()->all(),
             'default_recipients' => $recipients->ofDefault($groups),
             'default_offsets' => $recipients->offsetsOfDefault($groups),
             'can_delete' => $reminder instanceof Reminder && Gate::allows('delete', $reminder),

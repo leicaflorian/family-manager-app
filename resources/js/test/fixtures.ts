@@ -1517,12 +1517,6 @@ export const remindersPage: App.Data.RemindersPageData = {
 /** The alert groups of the form, with the people who get their notices. */
 export const reminderGroups: App.Data.ReminderGroupChoiceData[] = [
     {
-        value: '5',
-        label: 'Default',
-        recipients: ['Marco', 'Laura'],
-        offsets: [-7, -1, 0],
-    },
-    {
         value: '6',
         label: 'Only Laura',
         recipients: ['Laura'],

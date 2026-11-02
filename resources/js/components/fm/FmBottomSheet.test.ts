@@ -49,6 +49,23 @@ describe('FmBottomSheet', () => {
         expect(result.emitted('update:open')).toEqual([[false]]);
     });
 
+    it('leaves Esc to an open menu inside, and stays open', async () => {
+        // An open FormKit list marks its field with data-expanded
+        const result = render(FmBottomSheet, {
+            props: { open: true, title: 'New reminder' },
+            slots: {
+                default:
+                    '<div data-expanded="true"><button type="button">Notices</button></div>',
+            },
+        });
+        await screen.findByRole('dialog');
+        screen.getByRole('button', { name: 'Notices' }).focus();
+
+        await userEvent.keyboard('{Escape}');
+
+        expect(result.emitted('update:open')).toBeUndefined();
+    });
+
     it('closes with the handle', async () => {
         const result = await openSheet();
 
