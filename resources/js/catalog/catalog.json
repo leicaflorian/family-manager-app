@@ -385,7 +385,7 @@
   {
     "name": "FmBell",
     "path": "resources/js/components/fm/FmBell.vue",
-    "description": "The bell in the header of the Home. When there are notices not yet seen it\nshows how many in a red dot (up to 99). A tap opens the menu of the notices\nunder it, on the computer and on the phone, as the board *Avvisi-pc* draws\nit: the title *Notices* with *Mark all as read* while something is new,\nthen the notices (`FmNoticeList`). The notices are not in the page until the\nmenu asks for them: opening it emits `open`, and until `notices` arrives the\nmenu says it is loading.",
+    "description": "The bell in the header of the Home. When there are notices not yet seen it\nshows how many in a red dot (up to 99). A tap opens the menu of the notices\nunder it, on the computer and on the phone, as the board *Avvisi-pc* draws\nit: the title *Notices* with *Mark all as read* while something is new,\nthen the last notices (`FmNoticeList`, at most 10, the server chooses them)\nand *See all the notices*, which leads to the page with the search. The notices are not in the page until the\nmenu asks for them: opening it emits `open`, and until `notices` arrives the\nmenu says it is loading.",
     "group": "navigation",
     "props": [
       {
@@ -606,6 +606,7 @@
       "components/fm/FmActions.vue",
       "components/fm/FmAgendaFilters.vue",
       "components/fm/FmAgendaRow.vue",
+      "components/fm/FmBell.vue",
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmCardForm.vue",
       "components/fm/FmChangeDeadlineSheet.vue",
@@ -1722,6 +1723,7 @@
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue",
       "pages/family/Organizations.vue",
+      "pages/notices/Notices.vue",
       "pages/reminders/Reminders.vue"
     ]
   },
@@ -2557,7 +2559,7 @@
   {
     "name": "FmNoticeList",
     "path": "resources/js/components/fm/FmNoticeList.vue",
-    "description": "The notices of the bell: the ones not seen yet in the box *New notices*,\nthen the ones already seen, each an `FmNoticeRow`; with no notice at all, a\nword that they arrive here. It ends saying the same notices arrive by email,\nwith the way to *Settings*. Used by the page *Notices* and by the menu of\nthe bell (`FmBell`), which put their title above it.",
+    "description": "The notices of the bell: the ones not seen yet in the box *New notices*,\nthen the ones already seen, each an `FmNoticeRow`; with no notice at all, a\nword that they arrive here. It ends saying the same notices arrive by email,\nwith the way to *Settings*; what the page adds (its pages) goes before\nthat line. Used by the page *Notices* and by the menu of\nthe bell (`FmBell`), which put their title above it.",
     "group": "sections",
     "props": [
       {
@@ -2576,7 +2578,9 @@
       }
     ],
     "events": [],
-    "slots": [],
+    "slots": [
+      "default"
+    ],
     "types": [],
     "usedBy": [
       "components/fm/FmBell.vue",
@@ -2742,7 +2746,8 @@
     "usedBy": [
       "components/fm/FmCardPayments.vue",
       "pages/cards/Card.vue",
-      "pages/documents/Documents.vue"
+      "pages/documents/Documents.vue",
+      "pages/notices/Notices.vue"
     ]
   },
   {
@@ -3209,7 +3214,8 @@
       "components/fm/FmAgendaFilters.vue",
       "components/fm/FmLinkDocumentSheet.vue",
       "pages/dev/Components.vue",
-      "pages/documents/Documents.vue"
+      "pages/documents/Documents.vue",
+      "pages/notices/Notices.vue"
     ]
   },
   {

@@ -208,3 +208,99 @@ test('a notice of an automatic reminder whose thing is gone leads to the list, w
 
     expect($row['href'])->toBe('/reminders');
 });
+
+/**
+ * Some notices of an account, one a minute before 24/10 at 6:00, the last the most recent.
+ *
+ * @param  User  $user  who they were sent to
+ * @param  int  $count  how many
+ * @param  array<string, mixed>  $notice  the columns they share
+ * @param  array<string, mixed>  $reminder  the columns of their reminders
+ * @return list<ReminderNotice>
+ */
+function noticesFor(User $user, int $count, array $notice = [], array $reminder = []): array
+{
+    return array_map(
+        fn (int $minute): ReminderNotice => noticeFor($user, ['sent_at' => CarbonImmutable::parse('2026-10-24 06:00', 'Europe/Rome')->subMinutes($count - $minute), ...$notice], $reminder),
+        range(1, $count),
+    );
+}
+
+/**
+ * The notices the menu of the bell gets, as the Home sends them when it asks.
+ *
+ * @return array{unread: list<array<string, mixed>>, seen: list<array<string, mixed>>}
+ */
+function bellMenu(User $user): array
+{
+    $version = test()->actingAs($user)->get('/dashboard')->viewData('page')['version'];
+
+    return test()->actingAs($user)->get('/dashboard', [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => $version,
+        'X-Inertia-Partial-Component' => 'Home',
+        'X-Inertia-Partial-Data' => 'notices',
+    ])->assertOk()->json('props.notices');
+}
+
+test('the menu of the bell has the last 10 notices, the new ones first even when older', function (): void {
+    $old = noticeFor($this->marco, ['sent_at' => CarbonImmutable::parse('2026-09-01 06:00', 'Europe/Rome')]);
+    $seen = noticesFor($this->marco, 12, ['read_at' => now()]);
+
+    $menu = bellMenu($this->marco);
+
+    expect(collect($menu['unread'])->pluck('id')->all())->toBe([$old->id])
+        ->and(collect($menu['seen'])->pluck('id')->all())->toBe(collect(array_reverse($seen))->take(9)->pluck('id')->all());
+});
+
+test('the page shows 20 notices at a time, the new ones first, with the way to the next page', function (): void {
+    $seen = noticesFor($this->marco, 21, ['read_at' => now()]);
+    $new = noticeFor($this->marco, ['sent_at' => CarbonImmutable::parse('2026-09-01 06:00', 'Europe/Rome')]);
+
+    $first = noticesPage($this->marco);
+
+    expect(collect($first['unread'])->pluck('id')->all())->toBe([$new->id])
+        ->and($first['seen'])->toHaveCount(19)
+        ->and($first['previousPage'])->toBeNull()
+        ->and($first['nextPage'])->toEndWith('/notices?page=2');
+
+    $second = $this->actingAs($this->marco)->get('/notices?page=2')->assertOk()->viewData('page')['props'];
+
+    expect($second['unread'])->toBe([])
+        ->and(collect($second['seen'])->pluck('id')->all())->toBe([$seen[1]->id, $seen[0]->id])
+        ->and($second['nextPage'])->toBeNull()
+        ->and($second['previousPage'])->toEndWith('/notices?page=1');
+});
+
+test('the search finds the notices by what the row says, the name of the thing too, whatever the case', function (): void {
+    $reminder = insideBianchi(fn (): Reminder => Reminder::query()->where('is_automatic', true)->where('status', ReminderStatus::Open)->with('link')->firstOrFail());
+    $automatic = noticeFor($this->marco, ['reminder_id' => $reminder->id, 'due_date' => $reminder->due_date]);
+    $road = noticeFor($this->marco);
+    noticeFor($this->marco, [], ['title' => 'Chiamare il dentista']);
+    $subject = collect(noticesPage($this->marco)['unread'])->firstWhere('id', $automatic->id)['subject'];
+
+    $bySubject = $this->actingAs($this->marco)->get('/notices?search='.urlencode(mb_strtoupper((string) $subject)))->viewData('page')['props'];
+    $byTitle = $this->actingAs($this->marco)->get('/notices?search=bollo')->viewData('page')['props'];
+
+    expect(collect($bySubject['unread'])->pluck('id')->all())->toBe([$automatic->id])
+        ->and($bySubject['search'])->toBe(mb_strtoupper((string) $subject))
+        ->and(collect($byTitle['unread'])->pluck('id')->all())->toBe([$road->id]);
+});
+
+test('the search stays on the other pages', function (): void {
+    noticesFor($this->marco, 21);
+
+    $page = $this->actingAs($this->marco)->get('/notices?search=bollo')->viewData('page')['props'];
+
+    expect($page['nextPage'])->toContain('search=bollo')->toContain('page=2');
+});
+
+test('a search that finds nothing tells it apart from no notices at all', function (): void {
+    noticeFor($this->marco);
+
+    $found = $this->actingAs($this->marco)->get('/notices?search=nothing-like-this')->viewData('page')['props'];
+    $none = noticesPage($this->laura);
+
+    expect($found['unread'])->toBe([])->and($found['seen'])->toBe([])->and($found['hasNotices'])->toBeTrue()
+        ->and($none['hasNotices'])->toBeFalse()->and($none['search'])->toBe('');
+});

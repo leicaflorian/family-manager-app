@@ -10,6 +10,7 @@ use App\Services\Reminders\NoticeList;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,13 +24,24 @@ final class NoticeController extends Controller
     public function __construct(private readonly NoticeList $list) {}
 
     /**
-     * The notices of the account, the new ones and the seen ones.
+     * The notices of the account, 20 at a time with the new ones first, split
+     * into new and seen, with the text searched and the addresses of the pages around.
      */
-    public function index(#[CurrentUser] User $user): Response
+    public function index(Request $request, #[CurrentUser] User $user): Response
     {
-        $lists = $this->list->for($user->id, CarbonImmutable::today('Europe/Rome'));
+        $search = trim($request->string('search')->toString());
+        $page = $this->list->page($user->id, CarbonImmutable::today('Europe/Rome'), $search, max(1, $request->integer('page')))
+            ->withQueryString();
+        $lists = NoticeList::split(array_values($page->items()));
 
-        return Inertia::render('notices/Notices', ['unread' => $lists['unread'], 'seen' => $lists['seen']]);
+        return Inertia::render('notices/Notices', [
+            'unread' => $lists['unread'],
+            'seen' => $lists['seen'],
+            'search' => $search,
+            'nextPage' => $page->nextPageUrl(),
+            'previousPage' => $page->previousPageUrl(),
+            'hasNotices' => $search === '' ? $page->total() > 0 : ReminderNotice::query()->where('user_id', $user->id)->exists(),
+        ]);
     }
 
     /**

@@ -4,7 +4,8 @@
  * shows how many in a red dot (up to 99). A tap opens the menu of the notices
  * under it, on the computer and on the phone, as the board *Avvisi-pc* draws
  * it: the title *Notices* with *Mark all as read* while something is new,
- * then the notices (`FmNoticeList`). The notices are not in the page until the
+ * then the last notices (`FmNoticeList`, at most 10, the server chooses them)
+ * and *See all the notices*, which leads to the page with the search. The notices are not in the page until the
  * menu asks for them: opening it emits `open`, and until `notices` arrives the
  * menu says it is loading.
  *
@@ -20,7 +21,9 @@ import {
     PopoverTrigger,
 } from 'reka-ui';
 import { computed } from 'vue';
+import { notices as noticesPage } from '@/routes';
 import { readAll } from '@/routes/notices';
+import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 import FmNoticeList from './FmNoticeList.vue';
 import FmSectionLink from './FmSectionLink.vue';
@@ -122,6 +125,9 @@ function markAll(): void {
                 <p v-else class="m-0 py-6 text-center text-sm text-ink-soft">
                     {{ $t('Loading…') }}
                 </p>
+                <FmButton variant="outline" wide :href="noticesPage().url">{{
+                    $t('See all the notices')
+                }}</FmButton>
             </PopoverContent>
         </PopoverPortal>
     </PopoverRoot>

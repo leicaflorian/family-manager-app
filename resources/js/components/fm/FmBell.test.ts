@@ -107,4 +107,19 @@ describe('FmBell', () => {
             screen.queryByRole('button', { name: 'Mark all as read' }),
         ).not.toBeInTheDocument();
     });
+
+    it('ends the menu with the way to the page of all the notices', async () => {
+        render(FmBell, {
+            props: {
+                count: 2,
+                notices: { unread: unreadNotices, seen: seenNotices },
+            },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: /Notices/ }));
+
+        expect(
+            screen.getByRole('link', { name: 'See all the notices' }),
+        ).toHaveAttribute('href', '/notices');
+    });
 });

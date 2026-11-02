@@ -3,7 +3,8 @@
  * The notices of the bell: the ones not seen yet in the box *New notices*,
  * then the ones already seen, each an `FmNoticeRow`; with no notice at all, a
  * word that they arrive here. It ends saying the same notices arrive by email,
- * with the way to *Settings*. Used by the page *Notices* and by the menu of
+ * with the way to *Settings*; what the page adds (its pages) goes before
+ * that line. Used by the page *Notices* and by the menu of
  * the bell (`FmBell`), which put their title above it.
  *
  * @group sections
@@ -25,6 +26,11 @@ const { unread, seen } = defineProps<{
     unread: App.Data.ReminderNoticeData[];
     /** The notices already seen, the most recent first. */
     seen: App.Data.ReminderNoticeData[];
+}>();
+
+defineSlots<{
+    /** What goes under the notices, before the line about email: the pages of *Notices*. */
+    default?: () => unknown;
 }>();
 
 /** The new notices, as rows. */
@@ -64,6 +70,8 @@ const old = computed((): NoticeItem[] => seen.map(toNoticeItem));
                 :read-href="read.url(notice.id)"
             />
         </FmCard>
+
+        <slot />
 
         <p class="m-0 flex items-start gap-2 text-sm text-ink-soft">
             <FmIcon :icon="Mail" :size="16" class="mt-0.5 shrink-0" />

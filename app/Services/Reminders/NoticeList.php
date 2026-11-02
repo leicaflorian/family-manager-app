@@ -11,37 +11,97 @@ use App\Models\Reminder;
 use App\Models\ReminderNotice;
 use App\Support\Reminders\DueText;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 /**
- * The notices of the bell as *Notices* shows them.
+ * The notices of the bell, for its menu on the Home and for *Notices*.
  */
 final readonly class NoticeList
 {
     public function __construct(private ReminderList $reminders) {}
 
+    /** How many notices the menu of the bell shows. */
+    public const int MENU = 10;
+
+    /** How many notices *Notices* shows on a page. */
+    public const int PER_PAGE = 20;
+
     /**
-     * The notices of an account, the most recent first, in two lists.
+     * The last notices of an account for the menu of the bell: the new ones
+     * first, even when older, then the seen ones, the most recent first.
      *
      * @param  int  $userId  the account
      * @param  CarbonImmutable  $today  today in Rome
      * @return array{unread: list<ReminderNoticeData>, seen: list<ReminderNoticeData>}
      */
-    public function for(int $userId, CarbonImmutable $today): array
+    public function latest(int $userId, CarbonImmutable $today): array
     {
-        $notices = ReminderNotice::query()
-            ->where('user_id', $userId)
-            ->with(['reminder.link'])
-            ->latest('sent_at')
-            ->latest('id')
-            ->get();
+        return self::split($this->rows($this->query($userId)->limit(self::MENU)->get(), $today));
+    }
 
-        $rows = $this->rows($notices, $today);
+    /**
+     * A page of the notices of an account, in the order of the menu, keeping only
+     * those whose row says the text searched, the name of the thing included.
+     * The search runs on the rows and not in the database because that name
+     * comes from the card, the document or the person each reminder refers to.
+     *
+     * @param  int  $userId  the account
+     * @param  CarbonImmutable  $today  today in Rome
+     * @param  string  $search  the text searched, empty for all
+     * @param  int  $page  the page, from 1
+     * @return LengthAwarePaginator<int, ReminderNoticeData>
+     */
+    public function page(int $userId, CarbonImmutable $today, string $search, int $page): LengthAwarePaginator
+    {
+        $rows = $this->rows($this->query($userId)->get(), $today);
 
+        if ($search !== '') {
+            $rows = array_values(array_filter(
+                $rows,
+                static fn (ReminderNoticeData $row): bool => mb_stripos($row->title, $search) !== false,
+            ));
+        }
+
+        return new LengthAwarePaginator(
+            array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
+            count($rows),
+            self::PER_PAGE,
+            $page,
+            ['path' => Paginator::resolveCurrentPath()],
+        );
+    }
+
+    /**
+     * Splits some rows into the new ones and the seen ones, keeping their order.
+     *
+     * @param  list<ReminderNoticeData>  $rows  the rows
+     * @return array{unread: list<ReminderNoticeData>, seen: list<ReminderNoticeData>}
+     */
+    public static function split(array $rows): array
+    {
         return [
             'unread' => array_values(array_filter($rows, static fn (ReminderNoticeData $row): bool => ! $row->read)),
             'seen' => array_values(array_filter($rows, static fn (ReminderNoticeData $row): bool => $row->read)),
         ];
+    }
+
+    /**
+     * The notices of an account in the order of the bell: the new ones first, each group the most recent first.
+     *
+     * @param  int  $userId  the account
+     * @return Builder<ReminderNotice>
+     */
+    private function query(int $userId): Builder
+    {
+        return ReminderNotice::query()
+            ->where('user_id', $userId)
+            ->with(['reminder.link'])
+            ->orderByRaw('read_at IS NOT NULL')
+            ->latest('sent_at')
+            ->latest('id');
     }
 
     /**

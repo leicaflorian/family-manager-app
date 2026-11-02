@@ -86,4 +86,18 @@ describe('FmNoticeList', () => {
             screen.getByRole('link', { name: 'Choose which ones in Settings' }),
         ).toHaveAttribute('href', '/settings');
     });
+
+    it('puts what the page adds under the notices, before the line about email', () => {
+        render(FmNoticeList, {
+            props: { unread: unreadNotices, seen: seenNotices },
+            slots: { default: '<nav aria-label="Pages">pages</nav>' },
+        });
+
+        const pages = screen.getByRole('navigation', { name: 'Pages' });
+        const email = screen.getByText('The same notices arrive by email.');
+        expect(
+            pages.compareDocumentPosition(email) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
 });

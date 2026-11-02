@@ -285,6 +285,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/fm/FmActions.vue`
 - `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmAgendaRow.vue`
+- `components/fm/FmBell.vue`
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmCardForm.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
@@ -573,6 +574,7 @@ below, what can be done.
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organizations.vue`
+- `pages/notices/Notices.vue`
 - `pages/reminders/Reminders.vue`
 
 ## FmFaces
@@ -1036,7 +1038,8 @@ The bell in the header of the Home. When there are notices not yet seen it
 shows how many in a red dot (up to 99). A tap opens the menu of the notices
 under it, on the computer and on the phone, as the board *Avvisi-pc* draws
 it: the title *Notices* with *Mark all as read* while something is new,
-then the notices (`FmNoticeList`). The notices are not in the page until the
+then the last notices (`FmNoticeList`, at most 10, the server chooses them)
+and *See all the notices*, which leads to the page with the search. The notices are not in the page until the
 menu asks for them: opening it emits `open`, and until `notices` arrives the
 menu says it is loading.
 
@@ -1388,6 +1391,7 @@ the documents of a card); nothing when the list fits in one page.
 - `components/fm/FmCardPayments.vue`
 - `pages/cards/Card.vue`
 - `pages/documents/Documents.vue`
+- `pages/notices/Notices.vue`
 
 ## FmSectionLink
 
@@ -2928,6 +2932,7 @@ it does with the text is up to the page.
 - `components/fm/FmLinkDocumentSheet.vue`
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
+- `pages/notices/Notices.vue`
 
 ## FmAmount
 
@@ -3626,7 +3631,8 @@ reminders of that person.
 The notices of the bell: the ones not seen yet in the box *New notices*,
 then the ones already seen, each an `FmNoticeRow`; with no notice at all, a
 word that they arrive here. It ends saying the same notices arrive by email,
-with the way to *Settings*. Used by the page *Notices* and by the menu of
+with the way to *Settings*; what the page adds (its pages) goes before
+that line. Used by the page *Notices* and by the menu of
 the bell (`FmBell`), which put their title above it.
 
 ### Props
@@ -3635,6 +3641,10 @@ the bell (`FmBell`), which put their title above it.
 | --- | --- | --- | --- | --- |
 | `unread` | `App.Data.ReminderNoticeData[]` | yes | — | The notices the person has not seen yet, the most recent first. |
 | `seen` | `App.Data.ReminderNoticeData[]` | yes | — | The notices already seen, the most recent first. |
+
+### Slots
+
+- `default`
 
 ### Examples
 

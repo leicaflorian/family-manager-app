@@ -28,7 +28,7 @@ final class HomeController extends Controller
 
         return Inertia::render('Home', [
             'home' => $summary->for($user, $today),
-            'notices' => Inertia::optional(fn (): array => $notices->for($user->id, $today)),
+            'notices' => Inertia::optional(fn (): array => $notices->latest($user->id, $today)),
         ]);
     }
 }
