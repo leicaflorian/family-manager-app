@@ -13,6 +13,7 @@ use App\Models\PlannedExpense;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
+use App\Support\ItalianArticle;
 use App\Support\ModelId;
 use App\Support\Reminders\Notices;
 use App\Support\Translated;
@@ -21,7 +22,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 
 /**
  * The notices the reminders give at the top of a card: the deadline that is near or past, the planned expense that
@@ -95,9 +95,10 @@ final readonly class CardNotices
         };
 
         return new CardNoticeData(
+            'deadline',
             $days < 0 ? NoticeTone::Danger : NoticeTone::Warning,
             $title,
-            $this->tidy(implode(' ', array_filter([$this->noticeText($reminder, $due, $today), $this->sentence($reminder, $due)]))) ?: null,
+            ItalianArticle::elide(implode(' ', array_filter([$this->noticeText($reminder, $due, $today), $this->sentence($reminder, $due)]))) ?: null,
         );
     }
 
@@ -148,6 +149,7 @@ final readonly class CardNotices
         $canAdd = ! $user instanceof User || Gate::forUser($user)->allows('create', PlannedExpense::class);
 
         return new CardNoticeData(
+            'missing-expense',
             NoticeTone::Warning,
             Translated::text('The planned expense is missing'),
             Translated::text('This payment is not in the budget.'),
@@ -183,13 +185,14 @@ final readonly class CardNotices
             }
 
             $date = $document->expiry_date->format('d/m/Y');
-            $name = Str::lcfirst($document->title);
             $expired = $document->expiry_date->lessThan($today);
 
+            // The title of the document stays a title: a sentence built around its name would need its gender
             $notices[] = new CardNoticeData(
+                'document:'.$document->id,
                 $expired ? NoticeTone::Danger : NoticeTone::Warning,
-                $this->tidy($expired ? Translated::text('The :document expired on :date', ['document' => $name, 'date' => $date]) : Translated::text('The :document expires on :date', ['document' => $name, 'date' => $date])),
-                null,
+                $document->title,
+                ItalianArticle::elide(Translated::text($expired ? 'Expired on :date.' : 'Expires on :date.', ['date' => $date])),
                 Translated::text('Upload the new one'),
                 ExpectedDocuments::uploadHref($card),
             );
@@ -209,11 +212,11 @@ final readonly class CardNotices
         $notices = [];
 
         if ($card instanceof Filing && $found['expected'] > 0) {
-            $notices[] = new CardNoticeData(NoticeTone::Info, Translated::text('Documents :collected of :expected collected', ['collected' => $found['expected'] - count($found['missing']), 'expected' => $found['expected']]));
+            $notices[] = new CardNoticeData('documents-count', NoticeTone::Info, Translated::text('Documents :collected of :expected collected', ['collected' => $found['expected'] - count($found['missing']), 'expected' => $found['expected']]));
         }
 
-        foreach ($found['missing'] as $document) {
-            $notices[] = new CardNoticeData(NoticeTone::Warning, Translated::text('Missing · :document', ['document' => $document]), null, Translated::text('Upload it'), ExpectedDocuments::uploadHref($card));
+        foreach ($found['missing'] as $position => $document) {
+            $notices[] = new CardNoticeData('missing-document:'.$position, NoticeTone::Warning, Translated::text('Missing · :document', ['document' => $document]), null, Translated::text('Upload it'), ExpectedDocuments::uploadHref($card));
         }
 
         return $notices;
@@ -225,13 +228,5 @@ final readonly class CardNotices
     private function due(Reminder $reminder, CarbonImmutable $today): CarbonImmutable
     {
         return CarbonImmutable::parse($reminder->due_date->toDateString(), $today->getTimezone())->startOfDay();
-    }
-
-    /**
-     * Italian writes «l'8», «l'11» and «l'18» before a date: «il 11/12/2026» becomes «l'11/12/2026».
-     */
-    private function tidy(string $text): string
-    {
-        return app()->getLocale() === 'it' ? (string) preg_replace('/\bil (0?8|11|18)\//', "l'$1/", $text) : $text;
     }
 }

@@ -64,4 +64,37 @@ describe('FmLinkedRecords', () => {
             screen.getByRole('link', { name: /Fiat Panda/ }),
         ).toHaveAttribute('href', '/cards/vehicle/1');
     });
+
+    it('adds the Reminders entry with their number, leading to the list of that person', () => {
+        render(FmLinkedRecords, {
+            props: {
+                groups,
+                reminders: { count: 2, href: '/reminders?person=3' },
+            },
+        });
+
+        const entry = screen.getByRole('link', { name: 'Reminders 2' });
+        expect(entry).toHaveAttribute('href', '/reminders?person=3');
+    });
+
+    it('shows the Reminders entry even when no record names them', () => {
+        render(FmLinkedRecords, {
+            props: {
+                groups: [],
+                reminders: { count: 1, href: '/reminders?person=3' },
+            },
+        });
+
+        expect(
+            screen.getByRole('link', { name: 'Reminders 1' }),
+        ).toBeInTheDocument();
+    });
+
+    it('has no Reminders entry without the prop', () => {
+        render(FmLinkedRecords, { props: { groups } });
+
+        expect(
+            screen.queryByRole('link', { name: /Reminders/ }),
+        ).not.toBeInTheDocument();
+    });
 });

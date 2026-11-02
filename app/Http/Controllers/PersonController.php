@@ -73,6 +73,7 @@ final class PersonController extends Controller
     public function show(Person $person, DocumentRows $rows, #[CurrentUser] User $user): Response
     {
         $theirs = ['person' => $person->id];
+        $reminders = $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'];
 
         return Inertia::render('family/Person', [
             'person' => PersonDetailData::fromPerson($person, $user),
@@ -80,7 +81,8 @@ final class PersonController extends Controller
             'personal' => $rows->of([...$theirs, 'linked' => false]),
             'documents' => $rows->of([...$theirs, 'linked' => true]),
             'links' => $this->records->ofPerson($person),
-            'reminders' => $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'],
+            'reminders' => $reminders,
+            'remindersCount' => count($reminders),
         ]);
     }
 

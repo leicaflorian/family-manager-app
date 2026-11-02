@@ -143,6 +143,7 @@ readonly show_when: Record<string, string[]>,
 readonly label_when: Record<string, Record<string, string>>,
 };
 export type CardNoticeData = {
+readonly key: string,
 readonly tone: App.Enums.NoticeTone,
 readonly title: string,
 readonly text: string | null,
@@ -331,6 +332,7 @@ readonly total_to_pay: number | null,
 readonly cost: number | null,
 };
 export type MissingDocumentData = {
+readonly key: string,
 readonly card: string,
 readonly href: string,
 readonly document: string,

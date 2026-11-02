@@ -15,6 +15,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class CardNoticeData extends Data
 {
     /**
+     * @param  string  $key  what tells this notice from the others of the card, for the list of the page (it does not depend on the words)
      * @param  NoticeTone  $tone  information, warning or danger (late)
      * @param  string  $title  the line in bold, empty when the notice is only a text
      * @param  string|null  $text  the text under the title
@@ -22,6 +23,7 @@ final class CardNoticeData extends Data
      * @param  string|null  $action_href  where the action leads
      */
     public function __construct(
+        public readonly string $key,
         public readonly NoticeTone $tone,
         public readonly string $title,
         public readonly ?string $text = null,
@@ -36,6 +38,6 @@ final class CardNoticeData extends Data
      */
     public static function warning(string $text): self
     {
-        return new self(NoticeTone::Warning, '', $text);
+        return new self('type-note', NoticeTone::Warning, '', $text);
     }
 }

@@ -111,6 +111,7 @@ describe('A card', () => {
                 ...policyDetail,
                 notices: [
                     {
+                        key: 'n',
                         tone: 'warning',
                         title: '',
                         text: 'Expires in 26 days',
@@ -142,6 +143,7 @@ describe('A card', () => {
                 ...policyDetail,
                 notices: [
                     {
+                        key: 'deadline',
                         tone: 'warning',
                         title: 'Expires in 26 days',
                         text: 'The reminder went out on 07/10/2026.',
@@ -149,6 +151,7 @@ describe('A card', () => {
                         action_href: null,
                     },
                     {
+                        key: 'document:1',
                         tone: 'danger',
                         title: 'The certificate expired on 20/10/2026',
                         text: null,
@@ -180,6 +183,7 @@ describe('A card', () => {
                 ...policyDetail,
                 notices: [
                     {
+                        key: 'n',
                         tone: 'info',
                         title: '',
                         text: 'Only a text.',

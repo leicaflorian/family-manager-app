@@ -40,8 +40,8 @@ function mainCategory(string $name): int
     return insideBianchi(fn (): int => DocumentCategory::query()->whereNull('parent_id')->where('name', $name)->sole()->id);
 }
 
-test('Lavoro gives the four payslips and the CU, subcategories included', function (): void {
-    expect(filtered(['category' => mainCategory('Lavoro')]))->toHaveCount(5)
+test('Lavoro gives the four payslips and the two CU, subcategories included', function (): void {
+    expect(filtered(['category' => mainCategory('Lavoro')]))->toHaveCount(6)
         ->toContain('Certificazione Unica 2026', 'Busta paga di ottobre');
 });
 
@@ -60,7 +60,7 @@ test('the search ignores capitals and accents, in the title and in the notes', f
     insideBianchi(fn () => Document::query()->where('title', 'Contratto Edison')->sole()->update(['notes' => 'Offerta Luce Flex, prezzo bloccato']));
 
     expect(filtered(['search' => 'DANZA']))->toBe(['Iscrizione danza 2026/27'])
-        ->and(filtered(['search' => "carta d'identita"]))->toBe(["Carta d'identità", "Carta d'identità"])
+        ->and(filtered(['search' => "carta d'identita"]))->toBe(["Carta d'identità", "Carta d'identità", "Carta d'identità"])
         ->and(filtered(['search' => 'prezzo bloccato']))->toBe(['Contratto Edison']);
 });
 

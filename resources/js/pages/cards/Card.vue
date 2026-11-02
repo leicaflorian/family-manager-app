@@ -131,7 +131,7 @@ function link(id: number): void {
 
         <FmNotice
             v-for="notice in card.notices"
-            :key="`${notice.title}|${notice.text}`"
+            :key="notice.key"
             :tone="notice.tone"
             :title="notice.title || undefined"
         >

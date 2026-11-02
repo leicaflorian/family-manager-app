@@ -77,8 +77,27 @@ final readonly class HomeSummary
             pending: array_values(PendingFileData::waiting(self::PENDING)),
             pending_count: File::query()->toSort()->count(),
             checklist: $this->checklist($user),
-            missing: array_map(static fn (array $row): MissingDocumentData => new MissingDocumentData($row['card'], $row['href'], $row['document']), $this->expected->missingFor($today)),
+            missing: $this->missing($today),
         );
+    }
+
+    /**
+     * What the cards miss, each with a key made of the page that uploads it and its place among those of the same card.
+     *
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return list<MissingDocumentData>
+     */
+    private function missing(CarbonImmutable $today): array
+    {
+        $places = [];
+        $rows = [];
+
+        foreach ($this->expected->missingFor($today) as $row) {
+            $places[$row['href']] = ($places[$row['href']] ?? 0) + 1;
+            $rows[] = new MissingDocumentData($row['href'].'#'.$places[$row['href']], $row['card'], $row['href'], $row['document']);
+        }
+
+        return $rows;
     }
 
     /**

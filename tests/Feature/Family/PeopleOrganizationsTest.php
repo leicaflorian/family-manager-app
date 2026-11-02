@@ -4,6 +4,7 @@ declare(strict_types=1);
 use App\Models\Enrollment;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\Reminder;
 use App\Models\User;
 use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
@@ -69,13 +70,15 @@ test('the page of Giulia shows the health card at the top, her personal document
 test('the page of a person lists their open reminders, the late one first', function (): void {
     $this->get(route('people.show', bianchi('Giulia')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->has('reminders', 3)
+        ->where('remindersCount', 3)
         ->where('reminders.0.title', 'Renew the document')
         ->where('reminders.0.due_date', '2026-10-20')
         ->where('reminders.0.subject.label', 'Tessera sanitaria')
         ->where('reminders.0.status', 'open'));
 
     $this->get(route('people.show', bianchi('Laura')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('reminders', fn ($reminders): bool => collect($reminders)->every(fn (array $reminder): bool => $reminder['status'] === 'open' && $reminder['person']['name'] === 'Laura')));
+        ->where('reminders', fn ($reminders): bool => collect($reminders)->every(fn (array $reminder): bool => $reminder['status'] === 'open' && $reminder['person']['name'] === 'Laura'))
+        ->where('remindersCount', insideBianchi(fn (): int => Reminder::query()->open()->where('person_id', bianchi('Laura')->id)->count())));
 });
 
 test('a person with an account is not deleted', function (): void {

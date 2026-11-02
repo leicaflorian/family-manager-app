@@ -3391,13 +3391,16 @@ Used by *A document* and, on the computer, on the right of *Documents*.
 `resources/js/components/fm/FmLinkedRecords.vue`
 
 *Links* of *A person* and *An organization*: the records that name them, one
-type at a time, with a tab for each type and how many records it has.
+type at a time, with a tab for each type and how many records it has. With
+`reminders` a last entry, *Reminders* with their number, leads to the list of
+reminders of that person.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `groups` | `App.Data.LinkGroupData[]` | yes | — | The records, grouped by type. |
+| `reminders` | `{ count: number; href: string; }` | no | — | The open reminders of the person: how many, and the list they are in; no entry when missing. |
 
 ### Examples
 
@@ -3407,6 +3410,9 @@ type at a time, with a tab for each type and how many records it has.
 
 <!-- Several types -->
 <FmLinkedRecords :groups="groups" />
+
+<!-- With the reminders of the person -->
+<FmLinkedRecords :groups="groups" :reminders="reminders" />
 
 <!-- No records -->
 <FmLinkedRecords :groups="groups" />

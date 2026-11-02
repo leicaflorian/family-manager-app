@@ -361,8 +361,9 @@ test('the Home says what is missing: the registration document of a vehicle and 
 
     $missing = collect(homeFor($marco)['missing']);
 
-    expect($missing->firstWhere('card', 'Fiat Panda'))->toBe(['card' => 'Fiat Panda', 'href' => '/upload?link=vehicle%3A'.$panda->id, 'document' => 'Vehicle registration document'])
-        ->and($missing->where('card', 'ISEE 2027')->pluck('document')->all())->toBe(['Annual income statement 2026 of Marco', 'Annual income statement 2026 of Laura']);
+    expect($missing->firstWhere('card', 'Fiat Panda'))->toBe(['key' => '/upload?link=vehicle%3A'.$panda->id.'#1', 'card' => 'Fiat Panda', 'href' => '/upload?link=vehicle%3A'.$panda->id, 'document' => 'Vehicle registration document'])
+        ->and($missing->where('card', 'ISEE 2027')->pluck('key')->unique()->count())->toBe(2);
+    expect($missing->where('card', 'ISEE 2027')->pluck('document')->all())->toBe(['Annual income statement 2026 of Marco', 'Annual income statement 2026 of Laura']);
 
     insideFamilyOf($marco, function () use ($panda, $isee): void {
         $document = Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Libretto Panda']);

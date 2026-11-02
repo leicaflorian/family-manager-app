@@ -1031,8 +1031,6 @@
     "The free trial ends on :date. If you do not need it, cancel before.": "La prova gratuita finisce il :date. Se non ti serve, disdici prima.",
     "When you submit it, mark it as sent: the reminder goes away by itself.": "Quando la presenti, segnala come inviata: il promemoria sparisce da solo.",
     "This payment is not in the budget.": "Questo pagamento non è nel bilancio.",
-    "The :document expires on :date": "Il :document scade il :date",
-    "The :document expired on :date": "Il :document è scaduto il :date",
     "Upload the new one": "Carica quello nuovo",
     "Documents :collected of :expected collected": "Documenti :collected di :expected raccolti",
     "Missing · :document": "Manca · :document",
@@ -1041,5 +1039,7 @@
     "Average balance :year of :account": "Giacenza media :year di :account",
     "Annual income statement :year of :person": "CU :year di :person",
     "Identity card of :person": "Carta d'identità di :person",
-    "Something is missing": "Manca qualcosa"
+    "Something is missing": "Manca qualcosa",
+    "Expires on :date.": "Scade il :date.",
+    "Expired on :date.": "Scaduto il :date."
 }

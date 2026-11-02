@@ -200,7 +200,7 @@ const hasRightColumn = computed(
                         layout="home"
                     />
                 </FmCard>
-                <FmCard v-else :title="$t('Incoming')">
+                <FmCard v-else :title="$t('Incoming')" class="max-lg:hidden">
                     <p class="m-0 text-[15px] text-ink-soft">
                         {{
                             $t(
@@ -216,7 +216,7 @@ const hasRightColumn = computed(
                 >
                     <FmRow
                         v-for="item in home.missing"
-                        :key="`${item.href}|${item.document}`"
+                        :key="item.key"
                         :title="item.document"
                         :subtitle="item.card"
                         :href="item.href"

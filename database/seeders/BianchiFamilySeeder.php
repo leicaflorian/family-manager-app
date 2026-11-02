@@ -265,7 +265,7 @@ final class BianchiFamilySeeder extends Seeder
             'Revisione caldaia' => MaintenanceRecord::query()->create(['title' => 'Revisione caldaia', 'type' => MaintenanceType::BoilerService, 'date' => '2026-09-15', 'home_id' => $home->id, 'organization_id' => $this->organizations['Termoidraulica Rossi']->id, 'notes' => 'Controllo annuale e pulizia del bruciatore']),
             'Carta Laura' => $lauraCard,
             'TV Samsung' => Belonging::query()->create(['name' => 'TV Samsung', 'brand' => 'Samsung', 'home_id' => $home->id, 'purchase_date' => '2024-12-20', 'warranty_expiry_date' => '2026-12-20']),
-            'ISEE 2027' => Filing::query()->create(['title' => 'ISEE 2027', 'type' => FilingType::Isee, 'reference_year' => 2027, 'organization_id' => $this->organizations['CAF CGIL Bologna']->id]),
+            'ISEE 2027' => Filing::query()->create(['title' => 'ISEE 2027', 'type' => FilingType::Isee, 'reference_year' => 2027, 'person_id' => $this->people['Laura']->id, 'organization_id' => $this->organizations['CAF CGIL Bologna']->id]),
         ];
     }
 
@@ -296,10 +296,13 @@ final class BianchiFamilySeeder extends Seeder
             ['Busta paga di ottobre', 'Lavoro › Buste paga', 'Laura', 'Comune di Bologna', '2026-10-23', null, ['Laura - Comune di Bologna'], 'busta-paga-laura-ottobre.pdf'],
             ['Busta paga di settembre', 'Lavoro › Buste paga', 'Laura', 'Comune di Bologna', '2026-09-23', null, ['Laura - Comune di Bologna'], 'busta-paga-laura-settembre.pdf'],
             ['Busta paga di agosto', 'Lavoro › Buste paga', 'Laura', 'Comune di Bologna', '2026-08-23', null, ['Laura - Comune di Bologna'], 'busta-paga-laura-agosto.pdf'],
-            ['Certificazione Unica 2026', 'Lavoro › CU', 'Laura', 'Comune di Bologna', '2026-03-20', null, ['Laura - Comune di Bologna'], 'cu-2026-laura.pdf'],
+            ['Certificazione Unica 2026', 'Lavoro › CU', 'Laura', 'Comune di Bologna', '2026-03-20', null, ['Laura - Comune di Bologna', 'ISEE 2027'], 'cu-2026-laura.pdf'],
+            // The file of the ISEE 2027: the CU of Marco and the identity card of Laura; the average balance is still to upload
+            ['Certificazione Unica 2026', 'Lavoro › CU', 'Marco', 'Studio Rinaldi', '2026-03-18', null, ['Marco - Studio Rinaldi', 'ISEE 2027'], 'cu-2026-laura.pdf'],
+            ["Carta d'identità", 'Anagrafica e pratiche', 'Laura', 'Comune di Bologna', '2021-05-14', '2031-05-14', ['ISEE 2027'], 'carta-identita.png'],
             ['Busta paga di settembre', 'Lavoro › Buste paga', 'Marco', 'Studio Rinaldi', '2026-09-27', null, ['Marco - Studio Rinaldi'], 'busta-paga-marco-settembre.pdf'],
             ['Iscrizione danza 2026/27', 'Scuola e attività', 'Giulia', 'Scuola Passo a Due', '2026-09-13', null, ['Danza Giulia'], 'iscrizione-danza.pdf'],
-            ['Certificato medico sportivo', 'Salute', 'Giulia', 'Dott.ssa Neri', '2025-12-11', '2026-12-11', ['Visite di Giulia'], 'certificato-medico-sportivo.pdf'],
+            ['Certificato medico sportivo', 'Salute', 'Giulia', 'Dott.ssa Neri', '2025-12-11', '2026-12-11', ['Visite di Giulia', 'Danza Giulia'], 'certificato-medico-sportivo.pdf'],
             ["Carta d'identità", 'Anagrafica e pratiche', 'Marco', 'Comune di Bologna', '2016-11-14', '2026-11-14', [], 'carta-identita.png'],
             ["Carta d'identità", 'Anagrafica e pratiche', 'Giulia', 'Comune di Bologna', '2017-05-24', '2027-05-24', [], 'carta-identita.png'],
             ['Tessera sanitaria', 'Anagrafica e pratiche', 'Giulia', null, '2020-10-20', '2026-10-20', [], 'tessera-sanitaria.pdf'],

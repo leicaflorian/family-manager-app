@@ -2085,7 +2085,7 @@
   {
     "name": "FmLinkedRecords",
     "path": "resources/js/components/fm/FmLinkedRecords.vue",
-    "description": "*Links* of *A person* and *An organization*: the records that name them, one\ntype at a time, with a tab for each type and how many records it has.",
+    "description": "*Links* of *A person* and *An organization*: the records that name them, one\ntype at a time, with a tab for each type and how many records it has. With\n`reminders` a last entry, *Reminders* with their number, leads to the list of\nreminders of that person.",
     "group": "sections",
     "props": [
       {
@@ -2094,6 +2094,13 @@
         "required": true,
         "default": null,
         "description": "The records, grouped by type."
+      },
+      {
+        "name": "reminders",
+        "type": "{ count: number; href: string; }",
+        "required": false,
+        "default": null,
+        "description": "The open reminders of the person: how many, and the list they are in; no entry when missing."
       }
     ],
     "events": [],

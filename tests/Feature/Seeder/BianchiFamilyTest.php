@@ -46,7 +46,7 @@ test('the seeder creates the Bianchi family as on the canvas, in Italian', funct
         expect(Person::query()->count())->toBe(3)
             ->and(User::query()->where('family_id', CurrentFamily::id())->count())->toBe(2)
             ->and(Organization::query()->count())->toBe(22)
-            ->and(Document::query()->count())->toBe(19)
+            ->and(Document::query()->count())->toBe(21)
             ->and($panda->documents()->pluck('title')->all())->toBe(['Polizza RC auto 2026'])
             ->and($document->category?->name)->toBe('Luce')
             ->and($document->organization?->name)->toBe('Edison')
@@ -62,7 +62,7 @@ test('run twice it duplicates nothing', function (): void {
     $this->seed(BianchiFamilySeeder::class);
 
     expect(Family::query()->count())->toBe(1)
-        ->and(Document::withoutGlobalScopes()->count())->toBe(19);
+        ->and(Document::withoutGlobalScopes()->count())->toBe(21);
 });
 
 test('the Bianchi accounts sign in with the test password', function (): void {

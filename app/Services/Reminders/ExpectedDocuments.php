@@ -106,7 +106,7 @@ final class ExpectedDocuments
             return [];
         }
 
-        return [Translated::text('Vehicle registration document') => static fn ($documents): bool => self::any($documents,
+        return [Translated::text('Vehicle registration document') => static fn ($documents): bool => array_any($documents,
             static fn (Document $document): bool => self::titled($document, ['libretto', 'registration']),
         )];
     }
@@ -128,13 +128,13 @@ final class ExpectedDocuments
         $items = [];
 
         foreach (FinancialAccount::query()->where('status', FinancialAccountStatus::Active)->where('type', '!=', FinancialAccountType::Card)->orderBy('id')->get() as $account) {
-            $items[Translated::text('Average balance :year of :account', ['year' => $year - 2, 'account' => $account->name])] = static fn ($documents): bool => self::any($documents,
+            $items[Translated::text('Average balance :year of :account', ['year' => $year - 2, 'account' => $account->name])] = static fn ($documents): bool => array_any($documents,
                 static fn (Document $document): bool => self::titled($document, ['giacenza']) && $document->date instanceof CarbonImmutable && $document->date->year >= $year - 1,
             );
         }
 
         foreach (Employment::query()->with('person')->where('status', EmploymentStatus::Active)->orderBy('id')->get() as $job) {
-            $items[Translated::text('Annual income statement :year of :person', ['year' => $year - 1, 'person' => $job->person->first_name])] = static fn ($documents): bool => self::any($documents,
+            $items[Translated::text('Annual income statement :year of :person', ['year' => $year - 1, 'person' => $job->person->first_name])] = static fn ($documents): bool => array_any($documents,
                 static fn (Document $document): bool => $document->person_id === $job->person_id
                     && $document->date?->year === $year - 1
                     && preg_match('/\bCU\b/i', $document->category->name ?? '') === 1,
@@ -142,7 +142,7 @@ final class ExpectedDocuments
         }
 
         if ($filing->person !== null) {
-            $items[Translated::text('Identity card of :person', ['person' => $filing->person->first_name])] = static fn ($documents): bool => self::any($documents,
+            $items[Translated::text('Identity card of :person', ['person' => $filing->person->first_name])] = static fn ($documents): bool => array_any($documents,
                 static fn (Document $document): bool => $document->person_id === $filing->person_id
                     && self::titled($document, ['identità', 'identity'])
                     && $document->status !== DocumentStatus::Expired
@@ -151,17 +151,6 @@ final class ExpectedDocuments
         }
 
         return $items;
-    }
-
-    /**
-     * Whether one of the documents passes the test.
-     *
-     * @param  array<int, Document>  $documents  the documents linked to the card
-     * @param  Closure(Document): bool  $test  what a document has to be
-     */
-    private static function any(array $documents, Closure $test): bool
-    {
-        return array_any($documents, $test);
     }
 
     /**

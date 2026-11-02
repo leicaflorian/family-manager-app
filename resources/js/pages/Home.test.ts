@@ -238,6 +238,7 @@ describe('Home', () => {
                 ...home,
                 missing: [
                     {
+                        key: '/upload?link=vehicle%3A1#1',
                         card: 'Fiat Panda',
                         href: '/upload?link=vehicle%3A1',
                         document: 'Vehicle registration document',
@@ -263,6 +264,7 @@ describe('Home', () => {
                 incoming: [],
                 missing: [
                     {
+                        key: '/upload?link=vehicle%3A1#1',
                         card: 'Fiat Panda',
                         href: '/upload?link=vehicle%3A1',
                         document: 'Vehicle registration document',
@@ -274,5 +276,33 @@ describe('Home', () => {
         expect(
             screen.getByRole('heading', { name: 'Something is missing' }),
         ).toBeInTheDocument();
+    });
+
+    it('hides the empty Incoming box on the phone when only what is missing has content', () => {
+        renderPage(Home, {
+            home: {
+                ...home,
+                incoming: [],
+                missing: [
+                    {
+                        key: '/upload?link=vehicle%3A1#1',
+                        card: 'Fiat Panda',
+                        href: '/upload?link=vehicle%3A1',
+                        document: 'Vehicle registration document',
+                    },
+                ],
+            },
+        });
+
+        expect(
+            screen
+                .getByRole('heading', { name: 'Incoming' })
+                .closest('section'),
+        ).toHaveClass('max-lg:hidden');
+        expect(
+            screen
+                .getByRole('heading', { name: 'Something is missing' })
+                .closest('section'),
+        ).not.toHaveClass('max-lg:hidden');
     });
 });

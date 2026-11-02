@@ -12,7 +12,6 @@ use App\Models\Enrollment;
 use App\Models\Filing;
 use App\Models\FinancialAccount;
 use App\Models\InsurancePolicy;
-use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -73,7 +72,7 @@ function noticePanda(): Vehicle
 }
 
 /**
- * The enrollment of Giulia to the dance, with the sports certificate linked to it.
+ * The enrollment of Giulia to the dance, which has the sports certificate linked to it in the seeder.
  *
  * @param  string|null  $expiry  a new expiry date for the certificate
  */
@@ -85,7 +84,6 @@ function noticeDance(?string $expiry = null): Enrollment
         if ($expiry !== null) {
             $document->update(['expiry_date' => $expiry]);
         }
-        $document->morphedByMany(Enrollment::class, 'documentable')->attach($enrollment);
 
         return $enrollment;
     });
@@ -174,7 +172,8 @@ test('the enrollment of Giulia shows the sports certificate that expires on 11/1
 
     $notice = collect(cardNoticesOf($enrollment))->firstWhere('action_label', 'Carica quello nuovo');
 
-    expect($notice->title)->toBe("Il certificato medico sportivo scade l'11/12/2026")
+    expect($notice->title)->toBe('Certificato medico sportivo')
+        ->and($notice->text)->toBe("Scade l'11/12/2026.")
         ->and($notice->tone)->toBe(NoticeTone::Warning)
         ->and($notice->action_href)->toBe('/upload?link=enrollment%3A'.$enrollment->id);
 });
@@ -182,7 +181,8 @@ test('the enrollment of Giulia shows the sports certificate that expires on 11/1
 test('a linked document that already expired is red and says it expired', function (): void {
     $notice = collect(cardNoticesOf(noticeDance('2026-10-20')))->firstWhere('action_label', 'Upload the new one');
 
-    expect($notice->title)->toBe('The certificato medico sportivo expired on 20/10/2026')
+    expect($notice->title)->toBe('Certificato medico sportivo')
+        ->and($notice->text)->toBe('Expired on 20/10/2026.')
         ->and($notice->tone)->toBe(NoticeTone::Danger);
 });
 
@@ -203,20 +203,31 @@ test('the Panda without its registration document says what is missing', functio
         ->and($missing->action_href)->toBe('/upload?link=vehicle%3A'.$panda->id);
 });
 
-test('the ISEE 2027 of Laura counts the documents collected and names the missing ones', function (): void {
+test('the ISEE 2027 of Laura, as the board shows it, has 3 documents of 4 and misses the average balance', function (): void {
     app()->setLocale('it');
-    $filing = insideBianchi(function (): Filing {
-        $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
-        $filing->update(['person_id' => Person::query()->where('first_name', 'Laura')->sole()->id]);
+    $filing = insideBianchi(fn (): Filing => Filing::query()->where('title', 'ISEE 2027')->sole());
 
-        return $filing;
-    });
+    $notices = cardNoticesOf($filing);
+    $titles = collect($notices)->pluck('title')->all();
 
-    $titles = collect(cardNoticesOf($filing))->pluck('title')->all();
-
-    expect($titles)->toContain('Documenti 0 di 4 raccolti')
+    expect($titles)->toContain('Documenti 3 di 4 raccolti')
         ->toContain('Manca · Giacenza media 2025 di Conto BPER')
-        ->toContain('Manca · CU 2026 di Marco');
+        ->not->toContain('Manca · CU 2026 di Marco')
+        ->and(collect($notices)->firstWhere('title', 'Manca · Giacenza media 2025 di Conto BPER')->action_label)->toBe('Caricalo');
+});
+
+test('the days that start with a vowel sound take l\' in Italian, in the date of the notices', function (): void {
+    app()->setLocale('it');
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('title', 'RC auto Panda')->sole());
+    insideBianchi(fn () => Reminder::query()->where('source_field', 'insurance_policies.expiry_date')->get()->each->update(['notifications_sent' => ['2026-11-21:-10']]));
+
+    expect(cardNoticesOf($policy)[0]->text)->toStartWith("Il promemoria è partito l'11/11/2026.");
+});
+
+test('every notice has a key of its own, which does not depend on its words', function (): void {
+    $keys = collect(cardNoticesOf(noticePanda()))->pluck('key');
+
+    expect($keys->all())->not->toBe([])->and($keys->unique()->count())->toBe($keys->count());
 });
 
 test('the notices that the card types already showed are still there, as warnings, on the page of the card', function (): void {

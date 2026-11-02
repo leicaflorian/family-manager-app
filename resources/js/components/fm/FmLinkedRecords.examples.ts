@@ -30,5 +30,12 @@ const policies: App.Data.LinkGroupData = {
 export default defineExamples(FmLinkedRecords, [
     { name: 'One type', props: { groups: [vehicles] } },
     { name: 'Several types', props: { groups: [vehicles, policies] } },
+    {
+        name: 'With the reminders of the person',
+        props: {
+            groups: [vehicles, policies],
+            reminders: { count: 2, href: '/reminders?person=1' },
+        },
+    },
     { name: 'No records', props: { groups: [] } },
 ]);

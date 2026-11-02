@@ -25,21 +25,30 @@ import { index as remindersIndex } from '@/routes/reminders';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/people';
 
-const { person, reminders, expiring, personal, documents, links } =
-    defineProps<{
-        /** The person. */
-        person: App.Data.PersonDetailData;
-        /** Their open reminders, the late ones first. */
-        reminders: App.Data.ReminderData[];
-        /** Their documents expiring within 60 days or already expired, the first to expire first. */
-        expiring: App.Data.DocumentData[];
-        /** Their documents linked to no record, such as the identity card. */
-        personal: App.Data.DocumentData[];
-        /** Their documents linked to a record. */
-        documents: App.Data.DocumentData[];
-        /** The records that name them, by type. */
-        links: App.Data.LinkGroupData[];
-    }>();
+const {
+    person,
+    reminders,
+    remindersCount,
+    expiring,
+    personal,
+    documents,
+    links,
+} = defineProps<{
+    /** The person. */
+    person: App.Data.PersonDetailData;
+    /** Their open reminders, the late ones first. */
+    reminders: App.Data.ReminderData[];
+    /** How many open reminders they have: the number of the entry in *Links*. */
+    remindersCount: number;
+    /** Their documents expiring within 60 days or already expired, the first to expire first. */
+    expiring: App.Data.DocumentData[];
+    /** Their documents linked to no record, such as the identity card. */
+    personal: App.Data.DocumentData[];
+    /** Their documents linked to a record. */
+    documents: App.Data.DocumentData[];
+    /** The records that name them, by type. */
+    links: App.Data.LinkGroupData[];
+}>();
 
 const { date } = useFormat();
 
@@ -56,7 +65,7 @@ function reminderText(reminder: App.Data.ReminderData): string {
     const when =
         days < 0
             ? transChoice(
-                  '{1} overdue by :count day|[2,*] overdue by :count days',
+                  '{1} Overdue by :count day|[2,*] Overdue by :count days',
                   -days,
                   { count: String(-days) },
               )
@@ -184,7 +193,19 @@ const actions = computed((): Action[] => [
                         {{ $t('No personal documents yet.') }}
                     </p>
                 </FmCard>
-                <FmLinkedRecords :groups="links" />
+                <FmLinkedRecords
+                    :groups="links"
+                    :reminders="
+                        remindersCount > 0
+                            ? {
+                                  count: remindersCount,
+                                  href: remindersIndex({
+                                      query: { person: person.id },
+                                  }).url,
+                              }
+                            : undefined
+                    "
+                />
             </div>
 
             <div class="flex min-w-0 flex-col gap-5">

@@ -34,6 +34,7 @@ function renderGiulia(
     renderPage(Person, {
         person,
         reminders,
+        remindersCount: reminders.length,
         expiring: [healthCard],
         personal: [healthCard],
         documents: [
@@ -141,9 +142,12 @@ describe('A person', () => {
         ).toHaveAttribute('src', '/files/40');
     });
 
-    it('shows no reminder box without open reminders', () => {
+    it('shows no reminder box and no Reminders entry without open reminders', () => {
         renderGiulia();
 
+        expect(
+            screen.queryByRole('link', { name: /Reminders/ }),
+        ).not.toBeInTheDocument();
         expect(
             screen.queryByRole('link', { name: 'Reminders' }),
         ).not.toBeInTheDocument();
@@ -164,10 +168,13 @@ describe('A person', () => {
             within(late).getByText(/Tessera sanitaria di Giulia/),
         ).toBeInTheDocument();
         expect(
-            within(late).getByText(/overdue by 26 days/),
+            within(late).getByText(/Overdue by 26 days/),
         ).toBeInTheDocument();
         expect(
             within(late).getByRole('link', { name: 'Reminders' }),
+        ).toHaveAttribute('href', '/reminders?person=3');
+        expect(
+            screen.getByRole('link', { name: 'Reminders 2' }),
         ).toHaveAttribute('href', '/reminders?person=3');
         expect(coming).not.toHaveClass('text-overdue');
         expect(within(coming).getByText(/in 5 days/)).toBeInTheDocument();

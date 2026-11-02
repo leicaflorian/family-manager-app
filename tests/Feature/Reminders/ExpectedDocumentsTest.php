@@ -41,17 +41,6 @@ function expectedLinkedDocument($card, array $state): Document
     return $document;
 }
 
-/**
- * The ISEE 2027 of the Bianchi, for Laura as the applicant.
- */
-function expectedIsee(): Filing
-{
-    $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
-    $filing->update(['person_id' => Person::query()->where('first_name', 'Laura')->sole()->id]);
-
-    return $filing;
-}
-
 test('an active vehicle expects its registration document, found by «libretto» or «registration» in the title', function (): void {
     insideBianchi(function (): void {
         $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
@@ -76,16 +65,9 @@ test('a sold vehicle and a card without expected documents expect nothing', func
     });
 });
 
-test('the ISEE 2027 of Laura expects the average balance, the two CU and her identity card, and counts what is collected', function (): void {
+test('the ISEE 2027 of Laura, as seeded, has 3 documents of 4 and misses the average balance, which counts once linked', function (): void {
     insideBianchi(function (): void {
-        $filing = expectedIsee();
-        $cu = DocumentCategory::query()->where('name', 'CU')->sole();
-        $marco = Person::query()->where('first_name', 'Marco')->sole();
-        $laura = Person::query()->where('first_name', 'Laura')->sole();
-
-        expectedLinkedDocument($filing, ['title' => 'Certificazione Unica 2026', 'category_id' => $cu->id, 'person_id' => $marco->id, 'date' => '2026-03-20']);
-        expectedLinkedDocument($filing, ['title' => 'CU Laura', 'category_id' => $cu->id, 'person_id' => $laura->id, 'date' => '2026-03-20']);
-        expectedLinkedDocument($filing, ['title' => "Carta d'identità", 'person_id' => $laura->id, 'expiry_date' => '2031-05-01']);
+        $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
 
         expect(resolve(ExpectedDocuments::class)->for($filing, $this->today))->toBe([
             'expected' => 4,
@@ -100,7 +82,8 @@ test('the ISEE 2027 of Laura expects the average balance, the two CU and her ide
 
 test('an identity card that has expired, or a CU of another person or year, does not count', function (): void {
     insideBianchi(function (): void {
-        $filing = expectedIsee();
+        $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
+        $filing->documents()->detach();
         $cu = DocumentCategory::query()->where('name', 'CU')->sole();
         $marco = Person::query()->where('first_name', 'Marco')->sole();
         $laura = Person::query()->where('first_name', 'Laura')->sole();
@@ -119,7 +102,7 @@ test('an identity card that has expired, or a CU of another person or year, does
 
 test('a filing that is not an ISEE, or has no reference year, expects nothing; without an applicant there is no identity card', function (): void {
     insideBianchi(function (): void {
-        $filing = expectedIsee();
+        $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
         $filing->update(['reference_year' => null]);
         expect(resolve(ExpectedDocuments::class)->for($filing->fresh(), $this->today)['expected'])->toBe(0);
 
@@ -133,14 +116,13 @@ test('a filing that is not an ISEE, or has no reference year, expects nothing; w
 
 test('missingFor lists what is missing in every active vehicle and open ISEE, with the page that uploads it', function (): void {
     insideBianchi(function (): void {
-        expectedIsee();
         $missing = resolve(ExpectedDocuments::class)->missingFor($this->today);
 
         $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
         $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
 
         expect($missing[0])->toBe(['card' => 'Fiat Panda', 'href' => '/upload?link=vehicle%3A'.$panda->id, 'document' => 'Vehicle registration document'])
-            ->and(collect($missing)->where('card', 'ISEE 2027')->count())->toBe(4)
+            ->and(collect($missing)->where('card', 'ISEE 2027')->pluck('document')->all())->toBe(['Average balance 2025 of Conto BPER'])
             ->and(collect($missing)->firstWhere('card', 'ISEE 2027')['href'])->toBe('/upload?link=filing%3A'.$filing->id);
 
         expectedLinkedDocument($panda, ['title' => 'Libretto']);
