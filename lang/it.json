@@ -1020,5 +1020,6 @@
     "No deadlines yet": "Ancora nessuna scadenza",
     ":kind · now in «:group»": ":kind · ora in «:group»",
     "Notices go out every morning at 6:00. They arrive only to those with an account.": "Gli avvisi partono ogni mattina alle 6:00. Arrivano solo a chi ha un account.",
-    "{1} Notices go out every morning at 6:00. They arrive only to those with an account: :names gets none.|[2,*] Notices go out every morning at 6:00. They arrive only to those with an account: :names get none.": "{1} Gli avvisi partono ogni mattina alle 6:00. Arrivano solo a chi ha un account: :names non ne riceve.|[2,*] Gli avvisi partono ogni mattina alle 6:00. Arrivano solo a chi ha un account: :names non ne ricevono."
+    "{1} Notices go out every morning at 6:00. They arrive only to those with an account: :names gets none.|[2,*] Notices go out every morning at 6:00. They arrive only to those with an account: :names get none.": "{1} Gli avvisi partono ogni mattina alle 6:00. Arrivano solo a chi ha un account: :names non ne riceve.|[2,*] Gli avvisi partono ogni mattina alle 6:00. Arrivano solo a chi ha un account: :names non ne ricevono.",
+    "The group :group is in the list twice.": "Il gruppo :group è nell'elenco due volte."
 }

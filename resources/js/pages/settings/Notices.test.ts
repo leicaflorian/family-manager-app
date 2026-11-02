@@ -1,7 +1,14 @@
 import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { renderPage, settle } from '@/test/page';
 import Notices from './Notices.vue';
 
@@ -121,9 +128,28 @@ function sentGroups(put: ReturnType<typeof vi.spyOn>): {
     return (call[1] as { groups: never }).groups;
 }
 
+/** Makes the page believe it is on a computer, or on a phone. */
+function screenWidth(computer: boolean): void {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+        matches:
+            query.includes('prefers-reduced-motion') ||
+            (computer && query.includes('min-width')),
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+    }));
+}
+
 describe('Settings, Notices', () => {
+    beforeEach(() => {
+        screenWidth(true);
+    });
+
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.unstubAllGlobals();
     });
 
     it('shows a card for each group with its kinds and its notices', () => {
@@ -378,5 +404,60 @@ describe('Settings, Notices', () => {
         expect(
             await screen.findByText('There must always be a default group.'),
         ).toBeVisible();
+    });
+
+    it('opens the group full screen on the phone, with Cancel and Save', async () => {
+        screenWidth(false);
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            within(card('Policies')).getByRole('button', { name: 'Edit' }),
+        );
+
+        const screenOfGroup = screen.getByTestId('group-screen');
+        expect(
+            within(screenOfGroup).getByLabelText('Name of the group'),
+        ).toBeVisible();
+        // The only Save is the one of the screen
+        expect(screen.getAllByRole('button', { name: 'Save' })).toHaveLength(1);
+        expect(
+            within(screenOfGroup).getByRole('button', { name: 'Cancel' }),
+        ).toBeVisible();
+
+        await userEvent.click(
+            within(screenOfGroup).getByRole('button', { name: 'Save' }),
+        );
+        expect(put).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops the changes with Cancel on the phone', async () => {
+        screenWidth(false);
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            within(card('Policies')).getByRole('button', { name: 'Edit' }),
+        );
+        const name = screen.getByLabelText('Name of the group');
+        await userEvent.clear(name);
+        await userEvent.type(name, 'Changed');
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(screen.queryByTestId('group-screen')).not.toBeInTheDocument();
+        expect(card('Policies')).toBeVisible();
+    });
+
+    it('edits in place on the computer, without a screen of its own', async () => {
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            within(card('Policies')).getByRole('button', { name: 'Edit' }),
+        );
+
+        expect(screen.queryByTestId('group-screen')).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Cancel' }),
+        ).not.toBeInTheDocument();
     });
 });

@@ -2,12 +2,15 @@
 /**
  * *Settings → Notices*: the groups of notices of the family. Each card is a
  * group with the deadlines it covers and its notices («45 days before · App and
- * email · Everyone»); *Edit* opens it in place. An administrator changes the
- * groups and saves them all together with *Save*; everyone else only looks.
+ * email · Everyone»). An administrator changes the groups and saves them all
+ * together with *Save*; everyone else only looks. *Edit* opens a group in place
+ * on the computer; on the phone it takes the whole screen, with *Cancel* and
+ * *Save* at the bottom.
  */
 import { Head, router } from '@inertiajs/vue3';
 import { Plus, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
+import { useMediaQuery } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -78,6 +81,8 @@ const editing = ref<string[]>([]);
 /** What the server refused with the last save. */
 const refused = ref<string[]>([]);
 const saving = ref(false);
+/** On the computer a group is edited in place; on the phone it takes the screen. */
+const desktop = useMediaQuery('(min-width: 1024px)');
 
 // A save redirects here with the new groups: start from them
 watch(
@@ -168,6 +173,24 @@ function setTypes(draft: Draft, value: unknown): void {
     }
 
     draft.deadline_types = chosen;
+}
+
+/**
+ * Whether a group is open on the screen of the phone.
+ *
+ * @param draft - the group
+ */
+function onScreen(draft: Draft): boolean {
+    return !desktop.value && editing.value.includes(draft.key);
+}
+
+/**
+ * Drops every change and closes the screen of the phone: back to the groups of the server.
+ */
+function cancel(): void {
+    drafts.value = toDrafts(page.groups);
+    editing.value = [];
+    refused.value = [];
 }
 
 /**
@@ -282,100 +305,136 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
             </template>
         </FmTitle>
 
-        <FmCard
+        <div
             v-for="draft in drafts"
             :key="draft.key"
-            :title="draft.name || $t('New group')"
+            :data-testid="onScreen(draft) ? 'group-screen' : undefined"
+            :class="
+                onScreen(draft) &&
+                'fixed inset-0 z-40 overflow-y-auto bg-canvas px-5 pt-4'
+            "
         >
-            <template v-if="page.can_change" #actions>
-                <FmSectionLink @click="toggle(draft)">{{
-                    editing.includes(draft.key)
-                        ? $t('Done editing')
-                        : $t('Edit')
-                }}</FmSectionLink>
-            </template>
+            <FmCard :title="draft.name || $t('New group')">
+                <template v-if="page.can_change && !onScreen(draft)" #actions>
+                    <FmSectionLink @click="toggle(draft)">{{
+                        editing.includes(draft.key)
+                            ? $t('Done editing')
+                            : $t('Edit')
+                    }}</FmSectionLink>
+                </template>
 
-            <template v-if="editing.includes(draft.key)">
-                <FormKit
-                    v-model="draft.name"
-                    type="text"
-                    name="name"
-                    :label="$t('Name of the group')"
-                />
-                <FormKit
-                    type="taglist"
-                    name="types"
-                    :label="$t('For which deadlines')"
-                    :options="kindOptions(draft)"
-                    :model-value="draft.deadline_types"
-                    @input="(value: unknown) => setTypes(draft, value)"
-                />
-                <div class="flex flex-col gap-4">
-                    <FmNotificationRule
-                        v-for="(rule, index) in draft.rules"
-                        :key="index"
-                        v-model="draft.rules[index]!"
-                        :people="people"
-                        @remove="draft.rules.splice(index, 1)"
+                <template v-if="editing.includes(draft.key)">
+                    <FormKit
+                        v-model="draft.name"
+                        type="text"
+                        name="name"
+                        :label="$t('Name of the group')"
                     />
-                </div>
-                <div
-                    class="flex flex-wrap items-center justify-between gap-2.5"
-                >
-                    <FmButton
-                        variant="soft"
-                        :icon="Plus"
-                        @click="
-                            draft.rules.push({
-                                ...NEW_RULE,
-                                recipients: ['all'],
-                            })
-                        "
-                        >{{ $t('Add a notice') }}</FmButton
-                    >
-                    <div class="flex gap-2.5">
-                        <FmButton
-                            v-if="!draft.is_default"
-                            variant="outline"
-                            @click="makeDefault(draft)"
-                            >{{ $t('Make default') }}</FmButton
-                        >
-                        <FmButton
-                            v-if="!draft.is_default"
-                            variant="danger"
-                            :icon="Trash2"
-                            @click="removeGroup(draft)"
-                            >{{ $t('Delete group') }}</FmButton
-                        >
+                    <FormKit
+                        type="taglist"
+                        name="types"
+                        :label="$t('For which deadlines')"
+                        :options="kindOptions(draft)"
+                        :model-value="draft.deadline_types"
+                        @input="(value: unknown) => setTypes(draft, value)"
+                    />
+                    <div class="flex flex-col gap-4">
+                        <FmNotificationRule
+                            v-for="(rule, index) in draft.rules"
+                            :key="index"
+                            v-model="draft.rules[index]!"
+                            :people="people"
+                            @remove="draft.rules.splice(index, 1)"
+                        />
                     </div>
-                </div>
-            </template>
-            <template v-else>
-                <p class="m-0 text-[13px] text-ink-soft">
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-2.5"
+                    >
+                        <FmButton
+                            variant="soft"
+                            :icon="Plus"
+                            @click="
+                                draft.rules.push({
+                                    ...NEW_RULE,
+                                    recipients: ['all'],
+                                })
+                            "
+                            >{{ $t('Add a notice') }}</FmButton
+                        >
+                        <div class="flex gap-2.5">
+                            <FmButton
+                                v-if="!draft.is_default"
+                                variant="outline"
+                                @click="makeDefault(draft)"
+                                >{{ $t('Make default') }}</FmButton
+                            >
+                            <FmButton
+                                v-if="!draft.is_default"
+                                variant="danger"
+                                :icon="Trash2"
+                                @click="removeGroup(draft)"
+                                >{{ $t('Delete group') }}</FmButton
+                            >
+                        </div>
+                    </div>
+                </template>
+                <template v-else>
+                    <p class="m-0 text-[13px] text-ink-soft">
+                        <span
+                            v-if="draft.is_default"
+                            class="mr-2 rounded-full bg-action-soft px-2 py-0.5 text-xs font-semibold text-action-dark"
+                            >{{ $t('Default') }}</span
+                        >{{ kindsText(draft) }}
+                    </p>
+                    <ul class="m-0 flex list-none flex-col gap-1 p-0">
+                        <li v-for="(rule, index) in draft.rules" :key="index">
+                            {{ ruleText(rule, people) }}
+                        </li>
+                    </ul>
+                    <p
+                        v-if="draft.example"
+                        class="m-0 text-[13px] text-ink-soft"
+                    >
+                        {{ draft.example }}
+                    </p>
+                </template>
+            </FmCard>
+            <div
+                v-if="onScreen(draft)"
+                class="sticky bottom-0 -mx-5 mt-3 flex flex-col gap-2 bg-canvas px-5 pt-2 pb-4"
+            >
+                <FmNotice v-if="refused.length > 0" tone="danger">
                     <span
-                        v-if="draft.is_default"
-                        class="mr-2 rounded-full bg-action-soft px-2 py-0.5 text-xs font-semibold text-action-dark"
-                        >{{ $t('Default') }}</span
-                    >{{ kindsText(draft) }}
-                </p>
-                <ul class="m-0 flex list-none flex-col gap-1 p-0">
-                    <li v-for="(rule, index) in draft.rules" :key="index">
-                        {{ ruleText(rule, people) }}
-                    </li>
-                </ul>
-                <p v-if="draft.example" class="m-0 text-[13px] text-ink-soft">
-                    {{ draft.example }}
-                </p>
-            </template>
-        </FmCard>
+                        v-for="message in refused"
+                        :key="message"
+                        class="block"
+                        >{{ message }}</span
+                    >
+                </FmNotice>
+                <div class="flex gap-2.5">
+                    <FmButton variant="soft" class="flex-1" @click="cancel">{{
+                        $t('Cancel')
+                    }}</FmButton>
+                    <FmButton class="flex-2" :disabled="saving" @click="save">{{
+                        $t('Save')
+                    }}</FmButton>
+                </div>
+            </div>
+        </div>
 
-        <FmNotice v-if="refused.length > 0" tone="danger">
+        <FmNotice
+            v-if="refused.length > 0 && (desktop || editing.length === 0)"
+            tone="danger"
+        >
             <span v-for="message in refused" :key="message" class="block">{{
                 message
             }}</span>
         </FmNotice>
 
-        <div v-if="page.can_change" class="flex justify-end">
+        <div
+            v-if="page.can_change && (desktop || editing.length === 0)"
+            class="flex justify-end"
+        >
             <FmButton :disabled="saving" @click="save">{{
                 $t('Save')
             }}</FmButton>

@@ -78,8 +78,18 @@ final class GroupRules
         $errors = [];
         $holder = [];
         $defaults = [];
+        $ids = [];
 
         foreach ($groups as $index => $group) {
+            $id = self::idOf($group);
+
+            if ($id !== null && isset($ids[$id])) {
+                $errors[] = __('The group :group is in the list twice.', ['group' => self::label($group)]);
+            }
+            if ($id !== null) {
+                $ids[$id] = true;
+            }
+
             try {
                 NotificationRule::check($group['notifications'] ?? null);
             } catch (InvalidArgumentException $exception) {

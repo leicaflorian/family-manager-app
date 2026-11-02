@@ -86,3 +86,12 @@ test('a dropped kind does not count as a duplicate', function (): void {
 
     expect($errors)->toBe([]);
 });
+
+test('the same group sent twice is refused', function (): void {
+    $errors = GroupRules::check([
+        aGroup(['id' => 1, 'name' => 'A', 'is_default' => true]),
+        aGroup(['id' => '1', 'name' => 'B']),
+    ], GROUP_KINDS);
+
+    expect($errors)->toBe(['The group «B» is in the list twice.']);
+});

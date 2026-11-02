@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
+use App\Support\CurrentFamily;
 use App\Support\Reminders\NotificationRule;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
@@ -154,8 +155,15 @@ test('a group left out is deleted, never the default one', function (): void {
     test()->actingAs($this->marco)->put('/settings/notices', ['groups' => $withoutDefault])->assertSessionHasErrors('groups');
     expect(insideBianchi(fn (): int => ReminderGroup::query()->count()))->toBe(3);
 
+    $reminder = insideBianchi(fn (): Reminder => Reminder::factory()->create([
+        'family_id' => CurrentFamily::id(),
+        'is_automatic' => false,
+        'reminder_group_id' => $groups[0]['id'],
+    ]));
+
     test()->actingAs($this->marco)->put('/settings/notices', ['groups' => $withoutVehicles])->assertSessionHasNoErrors();
-    expect(insideBianchi(fn (): int => ReminderGroup::query()->count()))->toBe(2);
+    expect(insideBianchi(fn (): int => ReminderGroup::query()->count()))->toBe(2)
+        ->and(insideBianchi(fn (): ?int => Reminder::query()->findOrFail($reminder->id)->reminder_group_id))->toBeNull();
 });
 
 test('a new group is created', function (): void {
@@ -211,4 +219,13 @@ test('a member sees the page without the right to change and gets 403 on PUT', f
 test('a guest is sent to sign in', function (): void {
     test()->get('/settings/notices')->assertRedirect('/login');
     test()->put('/settings/notices', [])->assertRedirect('/login');
+});
+
+test('the same group sent twice is refused', function (): void {
+    $groups = sentGroups();
+    $groups[] = [...$groups[0], 'name' => 'Copy', 'deadline_types' => []];
+
+    test()->actingAs($this->marco)->put('/settings/notices', ['groups' => $groups])->assertSessionHasErrors('groups');
+
+    expect(savedGroup('Veicoli')->name)->toBe('Veicoli');
 });
