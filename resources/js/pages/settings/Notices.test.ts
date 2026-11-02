@@ -460,4 +460,71 @@ describe('Settings, Notices', () => {
             screen.queryByRole('button', { name: 'Cancel' }),
         ).not.toBeInTheDocument();
     });
+
+    it('undoes only the open group with Cancel on the phone', async () => {
+        // A screen that can turn from a computer into a phone while the page is open
+        let computer = true;
+        const listeners: ((event: MediaQueryListEvent) => void)[] = [];
+        vi.stubGlobal('matchMedia', (query: string) => ({
+            get matches() {
+                return (
+                    query.includes('prefers-reduced-motion') ||
+                    (computer && query.includes('min-width'))
+                );
+            },
+            media: query,
+            addEventListener: (
+                _type: string,
+                listener: (event: MediaQueryListEvent) => void,
+            ) => listeners.push(listener),
+            removeEventListener: () => {},
+            addListener: () => {},
+            removeListener: () => {},
+        }));
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            within(card('Vehicles')).getByRole('button', { name: 'Edit' }),
+        );
+        const vehicles = within(card('Vehicles')).getByLabelText(
+            'Name of the group',
+        );
+        await userEvent.clear(vehicles);
+        await userEvent.type(vehicles, 'Cars');
+        await settle();
+        await userEvent.click(
+            within(card('Cars')).getByRole('button', { name: 'Done editing' }),
+        );
+
+        computer = false;
+        listeners.forEach((listener) => listener({} as MediaQueryListEvent));
+        await settle();
+
+        await userEvent.click(
+            within(card('Policies')).getByRole('button', { name: 'Edit' }),
+        );
+        const policies = screen.getByLabelText('Name of the group');
+        await userEvent.clear(policies);
+        await userEvent.type(policies, 'Changed');
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(card('Cars')).toBeVisible();
+        expect(card('Policies')).toBeVisible();
+        expect(screen.queryByRole('region', { name: 'Changed' })).toBeNull();
+    });
+
+    it('removes a new group with Cancel on the phone', async () => {
+        screenWidth(false);
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'New group' }),
+        );
+        expect(screen.getByTestId('group-screen')).toBeVisible();
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(screen.queryByTestId('group-screen')).not.toBeInTheDocument();
+        expect(screen.getAllByRole('region')).toHaveLength(3);
+    });
 });

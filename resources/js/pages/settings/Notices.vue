@@ -185,12 +185,21 @@ function onScreen(draft: Draft): boolean {
 }
 
 /**
- * Drops every change and closes the screen of the phone: back to the groups of the server.
+ * Undoes the group of the open screen and closes it: a saved group goes back to the server's version, a new one is
+ * removed. The other groups, what is open in them and the errors stay as they are.
+ *
+ * @param draft - the group of the screen
  */
-function cancel(): void {
-    drafts.value = toDrafts(page.groups);
-    editing.value = [];
-    refused.value = [];
+function cancel(draft: Draft): void {
+    const saved = page.groups.find((group) => group.id === draft.id);
+
+    drafts.value =
+        draft.id === null || saved === undefined
+            ? drafts.value.filter((other) => other.key !== draft.key)
+            : drafts.value.map((other) =>
+                  other.key === draft.key ? toDrafts([saved])[0]! : other,
+              );
+    editing.value = editing.value.filter((key) => key !== draft.key);
 }
 
 /**
@@ -412,9 +421,12 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
                     >
                 </FmNotice>
                 <div class="flex gap-2.5">
-                    <FmButton variant="soft" class="flex-1" @click="cancel">{{
-                        $t('Cancel')
-                    }}</FmButton>
+                    <FmButton
+                        variant="soft"
+                        class="flex-1"
+                        @click="cancel(draft)"
+                        >{{ $t('Cancel') }}</FmButton
+                    >
                     <FmButton class="flex-2" :disabled="saving" @click="save">{{
                         $t('Save')
                     }}</FmButton>
