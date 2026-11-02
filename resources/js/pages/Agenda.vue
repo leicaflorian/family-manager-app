@@ -7,7 +7,7 @@
  * filters (period, person and areas) are a bar above the list on the computer
  * and three buttons that open a panel from below on the phone. Then the list:
  * first the deadlines already passed (*To sort out*, in red, with *Update the
- * date* and *Renewed*), then this week, next week and the rest of the period
+ * date* and *Renewed*, which open the panel of the new date), then this week, next week and the rest of the period
  * (month by month when it is longer than one), each with what goes out. The
  * server sends the entries of the period; the person and the areas filter in
  * the page.
@@ -21,6 +21,7 @@ import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
+import FmDeadlineDateSheet from '@/components/fm/FmDeadlineDateSheet.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
@@ -55,6 +56,26 @@ const { agenda } = defineProps<{
 }>();
 
 const { euro } = useFormat();
+
+/** The passed deadline whose date is being changed, and whether it was renewed; it stays after closing, so the panel can slide away. */
+const changing = ref<{
+    entry: App.Data.AgendaEntryData;
+    renewed: boolean;
+} | null>(null);
+
+/** The panel of the new date is open. */
+const changingOpen = ref(false);
+
+/**
+ * Opens the panel of the new date of a passed deadline.
+ *
+ * @param entry - the deadline
+ * @param renewed - it was renewed, not only corrected
+ */
+function changeDate(entry: App.Data.AgendaEntryData, renewed: boolean): void {
+    changing.value = { entry, renewed };
+    changingOpen.value = true;
+}
 const { filters, toggleArea, choosePerson, chooseMonths, reset } =
     useAgendaFilters(agenda.filters);
 
@@ -299,6 +320,8 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
                     :key="entry.key"
                     :entry="entry"
                     :actions="group.overdue"
+                    @update-date="changeDate(entry, false)"
+                    @renewed="changeDate(entry, true)"
                     :person-avatar="
                         entry.person_id === null
                             ? undefined
@@ -314,5 +337,11 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
                 </template>
             </FmCard>
         </template>
+        <FmDeadlineDateSheet
+            v-if="changing"
+            v-model:open="changingOpen"
+            :entry="changing.entry"
+            :renewed="changing.renewed"
+        />
     </div>
 </template>

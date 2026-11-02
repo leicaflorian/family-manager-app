@@ -202,6 +202,17 @@ describe('FmAgendaRow', () => {
             expect(view.emitted().renewed).toHaveLength(1);
         });
 
+        it('has no buttons for a deadline the person may not change', () => {
+            render(FmAgendaRow, {
+                props: {
+                    entry: { ...agendaEntries[0], update_url: null },
+                    actions: true,
+                },
+            });
+
+            expect(screen.queryByRole('button')).toBeNull();
+        });
+
         it('has no buttons when not asked', () => {
             render(FmAgendaRow, { props: { entry: agendaEntries[0] } });
 

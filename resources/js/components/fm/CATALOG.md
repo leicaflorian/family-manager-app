@@ -60,6 +60,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 
 - [FmBottomSheet](#fmbottomsheet) — The panel that rises from the bottom over the darkened page, for short actions and filters.
 - [FmChangeDeadlineSheet](#fmchangedeadlinesheet) — *Change this due date*: the panel that changes one due date and not the planned expense.
+- [FmDeadlineDateSheet](#fmdeadlinedatesheet) — The panel of a passed deadline in the Agenda: *Update the date* corrects the date written on the card, *Renewed* writes the new one (proposed a year later) and marks the reminder of the old date done.
 - [FmFilePanel](#fmfilepanel) — The file of a document on grey, as the boards *Un documento* and *Modifica documento* show it, with the proportions of an A4 sheet: the preview and, under it, the name of the file.
 - [FmImagePanel](#fmimagepanel) — The photo of a person or the logo of an organization on grey, beside its form, as the file beside *Edit the document*.
 - [FmLinkDocumentSheet](#fmlinkdocumentsheet) — *Link a document*: the panel with the documents of the family that can be linked to a card, searched while typing, 15 at a time with the next ones loaded at the end of the list, each with ↗ to open it in a new tab.
@@ -286,6 +287,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/fm/FmCardForm.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
 - `components/fm/FmConfirm.vue`
+- `components/fm/FmDeadlineDateSheet.vue`
 - `components/fm/FmDeleteButton.vue`
 - `components/fm/FmDocumentActions.vue`
 - `components/fm/FmDocumentDetail.vue`
@@ -1536,7 +1538,7 @@ of its reminder beside it (*Notice on 03/11*, *Reminder done*, *Reminder
 late*), below what happens to it, then the person, how far it is
 («tomorrow» highlighted) and the amount («—» for a deadline). With
 `actions` a passed deadline has *Update the date* and *Renewed*, outside
-the link. In the Home (`home`): the dot of the area, the title, below the
+the link, when the person may change its date (`update_url`). In the Home (`home`): the dot of the area, the title, below the
 card with how far it is («Gas - Enel · in 4 days»), or «Late by 3 days ·
 23/10/2026» in red, and the amount, with «~» if it is an estimate. The
 whole row leads to the entry.
@@ -1548,7 +1550,7 @@ whole row leads to the entry.
 | `entry` | `App.Data.AgendaEntryData` | yes | — | The entry, as the server sends it. |
 | `layout` | `AgendaRowLayout` | no | `"agenda"` | The Agenda (the day on the left, the person) or the Home (the dot and the line below). |
 | `personAvatar` | `Pick<App.Data.PersonData, "initials" \| "photo">` | no | — | The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows. |
-| `actions` | `boolean` | no | `false` | Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline. |
+| `actions` | `boolean` | no | `false` | Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline the person may change. |
 
 ### Events
 
@@ -2027,6 +2029,7 @@ not saved does.
 - `components/fm/FmBottomBar.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
 - `components/fm/FmConfirm.vue`
+- `components/fm/FmDeadlineDateSheet.vue`
 - `components/fm/FmLinkDocumentSheet.vue`
 - `components/fm/FmPaySheet.vue`
 - `components/fm/FmUploadSheet.vue`
@@ -2074,6 +2077,41 @@ date; and a note. It sends them to `action` as the server reads them.
 
 - `pages/budget/Deadline.vue`
 - `pages/budget/PlannedItem.vue`
+
+## FmDeadlineDateSheet
+
+`resources/js/components/fm/FmDeadlineDateSheet.vue`
+
+The panel of a passed deadline in the Agenda: *Update the date* corrects
+the date written on the card, *Renewed* writes the new one (proposed a year
+later) and marks the reminder of the old date done. It sends the date to the
+`update_url` of the entry.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `entry` | `App.Data.AgendaEntryData` | yes | — | The passed deadline; it has an `update_url`. |
+| `renewed` | `boolean` | no | `false` | It was renewed: the new date is proposed a year later and the reminder is marked done. |
+| `open` | `boolean` | no | `false` | The panel is open. |
+
+### Events
+
+- `update:open`
+
+### Examples
+
+```vue
+<!-- Update the date -->
+<FmDeadlineDateSheet :entry="entry" />
+
+<!-- Renewed -->
+<FmDeadlineDateSheet :entry="entry" renewed />
+```
+
+### Used by
+
+- `pages/Agenda.vue`
 
 ## FmFilePanel
 

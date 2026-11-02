@@ -143,7 +143,7 @@
   {
     "name": "FmAgendaRow",
     "path": "resources/js/components/fm/FmAgendaRow.vue",
-    "description": "An entry of the Agenda, in two layouts. In the Agenda (`agenda`, the\nboards *Agenda* and *Agenda-pc*): the day with its weekday (the month, in\nred, once passed), the icon of the area, the thing in bold with the state\nof its reminder beside it (*Notice on 03/11*, *Reminder done*, *Reminder\nlate*), below what happens to it, then the person, how far it is\n(«tomorrow» highlighted) and the amount («—» for a deadline). With\n`actions` a passed deadline has *Update the date* and *Renewed*, outside\nthe link. In the Home (`home`): the dot of the area, the title, below the\ncard with how far it is («Gas - Enel · in 4 days»), or «Late by 3 days ·\n23/10/2026» in red, and the amount, with «~» if it is an estimate. The\nwhole row leads to the entry.",
+    "description": "An entry of the Agenda, in two layouts. In the Agenda (`agenda`, the\nboards *Agenda* and *Agenda-pc*): the day with its weekday (the month, in\nred, once passed), the icon of the area, the thing in bold with the state\nof its reminder beside it (*Notice on 03/11*, *Reminder done*, *Reminder\nlate*), below what happens to it, then the person, how far it is\n(«tomorrow» highlighted) and the amount («—» for a deadline). With\n`actions` a passed deadline has *Update the date* and *Renewed*, outside\nthe link, when the person may change its date (`update_url`). In the Home (`home`): the dot of the area, the title, below the\ncard with how far it is («Gas - Enel · in 4 days»), or «Late by 3 days ·\n23/10/2026» in red, and the amount, with «~» if it is an estimate. The\nwhole row leads to the entry.",
     "group": "rows",
     "props": [
       {
@@ -172,7 +172,7 @@
         "type": "boolean",
         "required": false,
         "default": "false",
-        "description": "Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline."
+        "description": "Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline the person may change."
       }
     ],
     "events": [
@@ -452,6 +452,7 @@
       "components/fm/FmBottomBar.vue",
       "components/fm/FmChangeDeadlineSheet.vue",
       "components/fm/FmConfirm.vue",
+      "components/fm/FmDeadlineDateSheet.vue",
       "components/fm/FmLinkDocumentSheet.vue",
       "components/fm/FmPaySheet.vue",
       "components/fm/FmUploadSheet.vue",
@@ -570,6 +571,7 @@
       "components/fm/FmCardForm.vue",
       "components/fm/FmChangeDeadlineSheet.vue",
       "components/fm/FmConfirm.vue",
+      "components/fm/FmDeadlineDateSheet.vue",
       "components/fm/FmDeleteButton.vue",
       "components/fm/FmDocumentActions.vue",
       "components/fm/FmDocumentDetail.vue",
@@ -1299,6 +1301,43 @@
     "types": [],
     "usedBy": [
       "pages/cards/Card.vue"
+    ]
+  },
+  {
+    "name": "FmDeadlineDateSheet",
+    "path": "resources/js/components/fm/FmDeadlineDateSheet.vue",
+    "description": "The panel of a passed deadline in the Agenda: *Update the date* corrects\nthe date written on the card, *Renewed* writes the new one (proposed a year\nlater) and marks the reminder of the old date done. It sends the date to the\n`update_url` of the entry.",
+    "group": "panels",
+    "props": [
+      {
+        "name": "entry",
+        "type": "App.Data.AgendaEntryData",
+        "required": true,
+        "default": null,
+        "description": "The passed deadline; it has an `update_url`."
+      },
+      {
+        "name": "renewed",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "It was renewed: the new date is proposed a year later and the reminder is marked done."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The panel is open."
+      }
+    ],
+    "events": [
+      "update:open"
+    ],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/Agenda.vue"
     ]
   },
   {

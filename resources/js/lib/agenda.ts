@@ -6,6 +6,7 @@
  */
 import { trans } from 'laravel-vue-i18n';
 import { monthName, shortDate } from './budget';
+import { addDays } from './days';
 
 /** A block of the list: the deadlines to sort out, a week, or one month. */
 export type AgendaGroup = {
@@ -40,21 +41,6 @@ export type AgendaTotals = {
  */
 function toCents(amount: number): number {
     return Math.round(amount * 100) / 100;
-}
-
-/**
- * Moves a day forward or back on the calendar.
- *
- * @param day - `yyyy-mm-dd`
- * @param days - how many days, negative to go back
- * @returns the new day, `yyyy-mm-dd`
- */
-function addDays(day: string, days: number): string {
-    const [year, month, date] = day.split('-').map(Number);
-
-    return new Date(Date.UTC(year, month - 1, date + days))
-        .toISOString()
-        .slice(0, 10);
 }
 
 /**

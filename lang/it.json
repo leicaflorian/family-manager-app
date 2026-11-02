@@ -1056,5 +1056,9 @@
     "You have changes not saved: if you leave, you lose them.": "Hai modifiche non salvate: se esci le perdi.",
     "Leave without saving": "Esci senza salvare",
     "Payment": "Pagamento",
-    "Income entry": "Entrata"
+    "Income entry": "Entrata",
+    "New expiry date": "Nuova data di scadenza",
+    "Correct date": "Data giusta",
+    "The reminder is marked done, and a new one waits for the new date.": "Il promemoria si segna fatto, e uno nuovo aspetta la nuova data.",
+    "The date changes on the card, and the reminder moves with it.": "La data cambia sulla scheda, e il promemoria si sposta con lei."
 }

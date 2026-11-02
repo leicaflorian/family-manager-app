@@ -7,7 +7,7 @@
  * late*), below what happens to it, then the person, how far it is
  * («tomorrow» highlighted) and the amount («—» for a deadline). With
  * `actions` a passed deadline has *Update the date* and *Renewed*, outside
- * the link. In the Home (`home`): the dot of the area, the title, below the
+ * the link, when the person may change its date (`update_url`). In the Home (`home`): the dot of the area, the title, below the
  * card with how far it is («Gas - Enel · in 4 days»), or «Late by 3 days ·
  * 23/10/2026» in red, and the amount, with «~» if it is an estimate. The
  * whole row leads to the entry.
@@ -50,7 +50,7 @@ const {
     layout?: AgendaRowLayout;
     /** The initials and photo of the person of the entry, from the people of the page; without it the first letter of the name shows. */
     personAvatar?: Pick<App.Data.PersonData, 'initials' | 'photo'>;
-    /** Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline. */
+    /** Only in the Agenda: *Update the date* and *Renewed* under the row, for a passed deadline the person may change. */
     actions?: boolean;
 }>();
 
@@ -289,7 +289,10 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 />
             </span>
         </Link>
-        <span v-if="actions" class="flex gap-2 pl-[46px] lg:pl-0">
+        <span
+            v-if="actions && entry.update_url !== null"
+            class="flex gap-2 pl-[46px] lg:pl-0"
+        >
             <FmButton
                 variant="outline"
                 class="grow lg:grow-0"

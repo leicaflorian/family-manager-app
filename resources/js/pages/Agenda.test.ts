@@ -191,6 +191,50 @@ describe('Agenda', () => {
         );
     });
 
+    it('opens the panel to update the date of a passed deadline', async () => {
+        renderPage(Agenda, agenda());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Update the date' }),
+        );
+
+        const panel = await screen.findByRole('dialog', {
+            name: 'Update the date',
+        });
+        expect(within(panel).getByLabelText('Correct date')).toHaveValue(
+            '30/09/2026',
+        );
+    });
+
+    it('opens the panel of the renewal with the date a year later', async () => {
+        renderPage(Agenda, agenda());
+
+        await userEvent.click(screen.getByRole('button', { name: 'Renewed' }));
+
+        const panel = await screen.findByRole('dialog', { name: 'Renewed' });
+        expect(within(panel).getByLabelText('New expiry date')).toHaveValue(
+            '30/09/2027',
+        );
+    });
+
+    it('starts the panel again from the right date when opened the other way', async () => {
+        renderPage(Agenda, agenda());
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Update the date' }),
+        );
+        const first = await screen.findByRole('dialog');
+        await userEvent.click(
+            within(first).getByRole('button', { name: 'Cancel' }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: 'Renewed' }));
+
+        const panel = await screen.findByRole('dialog', { name: 'Renewed' });
+        expect(within(panel).getByLabelText('New expiry date')).toHaveValue(
+            '30/09/2027',
+        );
+    });
+
     it('turns an area off on the computer from the menu of the areas', async () => {
         screenWidth(true);
         renderPage(Agenda, agenda());
