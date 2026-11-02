@@ -16,8 +16,10 @@ import {
     renderPage,
     settle,
     stubObjectUrls,
+    tapCancel,
 } from '@/test/page';
 import EditPerson from './EditPerson.vue';
+import { hasChanges } from '@/lib/unsavedChanges';
 
 beforeEach(() => {
     stubObjectUrls();
@@ -143,5 +145,19 @@ describe('Edit a person', () => {
             expect.objectContaining({ photo: null, remove_photo: true }),
             expect.anything(),
         );
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a field changes, and gives them up with Cancel', async () => {
+        renderPage(EditPerson, { person: null, roles: personRoles });
+        expect(hasChanges()).toBe(false);
+
+        await fireEvent.update(screen.getByLabelText('First name'), 'Rosa');
+        await settle();
+        expect(hasChanges()).toBe(true);
+
+        await tapCancel();
+        expect(hasChanges()).toBe(false);
     });
 });

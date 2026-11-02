@@ -20,6 +20,7 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import { useCardChoice } from '@/composables/useCardChoice';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import type { MovementFormOptions, MovementStart } from '@/lib/budget';
 import { errors } from '@/lib/errors';
 import {
@@ -258,6 +259,25 @@ watch(
     },
 );
 
+/**
+ * The changes not saved, from the values filled in so far: the ones the
+ * movement, the start and the planned item gave are not changes.
+ */
+const changes = useUnsavedChanges(() => values);
+
+/** The ×: closes the panel, asking first when something changed. */
+async function close(): Promise<void> {
+    if (await changes.confirmClose()) {
+        emit('close');
+    }
+}
+
+/** *Cancel*: gives up the changes without asking. */
+function cancel(): void {
+    changes.reset();
+    emit('close');
+}
+
 /** Sends the movement, if it has its title and amount. */
 function save(): void {
     problems.value = {};
@@ -307,6 +327,9 @@ function save(): void {
             onError: (messages) => {
                 problems.value = messages;
             },
+            onSuccess: () => {
+                changes.reset();
+            },
             onFinish: () => {
                 processing.value = false;
             },
@@ -347,7 +370,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 type="button"
                 :aria-label="$t('Close')"
                 class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-edge bg-white text-ink"
-                @click="emit('close')"
+                @click="close"
             >
                 <FmIcon :icon="X" :size="20" />
             </button>
@@ -523,7 +546,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 :confirm-label="$t('Delete the movement')"
             />
             <div class="ml-auto flex flex-wrap gap-2.5">
-                <FmButton variant="text" @click="emit('close')">{{
+                <FmButton variant="text" @click="cancel">{{
                     $t('Cancel')
                 }}</FmButton>
                 <FmButton v-if="canSave" type="submit" :disabled="processing">{{

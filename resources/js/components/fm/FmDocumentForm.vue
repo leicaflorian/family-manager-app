@@ -26,6 +26,7 @@ import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
 import FmCategoryOption from './FmCategoryOption.vue';
 import FmConfirm from './FmConfirm.vue';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const {
     action,
@@ -63,6 +64,9 @@ const form = useForm<DocumentFormValues>({
     ...initial,
     links: [...initial.links],
 });
+
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => form.data());
 
 // The categories keep their name and depth, which the list of the menu shows
 const categories = computed(() => [
@@ -346,6 +350,7 @@ useSaveShortcut(save, () => !form.processing);
                 <FmButton
                     v-if="cancelLabel"
                     variant="text"
+                    data-discard-changes
                     @click="$emit('cancel')"
                 >
                     {{ cancelLabel }}

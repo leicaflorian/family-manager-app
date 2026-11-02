@@ -18,6 +18,7 @@ import { withMethod } from '@/lib/forms';
 import { errors, listErrors } from '@/lib/errors';
 import { organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { organization, types } = defineProps<{
     /** The organization to change, or null for a new one. */
@@ -31,6 +32,9 @@ const form = useForm({
     logo: null as File | null,
     remove_logo: false,
 });
+
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => form.data());
 
 /** Where *Close* goes back to. */
 const back = computed(() =>
@@ -162,9 +166,12 @@ useSaveShortcut(save, () => !form.processing);
                     :errors="errors(form.errors.notes)"
                 />
                 <div class="mt-1.5 flex flex-wrap justify-end gap-2.5">
-                    <FmButton variant="text" :href="back">{{
-                        $t('Cancel')
-                    }}</FmButton>
+                    <FmButton
+                        variant="text"
+                        :href="back"
+                        data-discard-changes
+                        >{{ $t('Cancel') }}</FmButton
+                    >
                     <FmButton type="submit" :disabled="form.processing">{{
                         $t('Save')
                     }}</FmButton>

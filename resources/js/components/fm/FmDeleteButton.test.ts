@@ -50,4 +50,12 @@ describe('FmDeleteButton', () => {
             ).not.toBeInTheDocument(),
         );
     });
+
+    it('takes the place the page gives it, like the button on the left of a row', () => {
+        renderPage(FmDeleteButton, { ...props, class: 'lg:mr-auto' });
+
+        expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
+            'lg:mr-auto',
+        );
+    });
 });

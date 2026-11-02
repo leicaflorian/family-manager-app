@@ -31,10 +31,14 @@ const {
 
 /** The panel that asks before deleting. */
 const confirming = ref(false);
+
+// Two elements at the root: the class and the attributes of the page go to the button
+defineOptions({ inheritAttrs: false });
 </script>
 
 <template>
     <FmButton
+        v-bind="$attrs"
         variant="danger"
         :icon="Trash2"
         :label="compact ? $t('Delete') : undefined"

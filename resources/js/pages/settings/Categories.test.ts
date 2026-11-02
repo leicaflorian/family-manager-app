@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { layOut, watchLayout } from '@/test/layout';
-import { openMenu, pressSave, renderPage } from '@/test/page';
+import { openMenu, pressSave, renderPage, settle } from '@/test/page';
 import Categories from './Categories.vue';
+import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 
 const category = (
     id: number,
@@ -159,5 +160,24 @@ describe('Document categories', () => {
         expect(await screen.findByRole('dialog')).toHaveTextContent(
             'New category',
         );
+    });
+});
+
+describe('Changes not saved', () => {
+    it('asks before closing the panel with the × once the name changes', async () => {
+        renderPage(Categories, { categories, canEdit: true });
+        await fireEvent.click(
+            screen.getByRole('button', { name: /^Home and utilities/ }),
+        );
+        const sheet = await screen.findByRole('dialog');
+        await fireEvent.update(within(sheet).getByLabelText('Name'), 'Casa');
+        await settle();
+
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Close' }),
+        );
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
     });
 });

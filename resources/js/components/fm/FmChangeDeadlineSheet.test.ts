@@ -2,6 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 import { renderPage, settle } from '@/test/page';
 import { danceDeadline } from '@/test/fixtures';
 import FmChangeDeadlineSheet from './FmChangeDeadlineSheet.vue';
@@ -126,5 +127,19 @@ describe('FmChangeDeadlineSheet', () => {
             change_amount: false,
             change_date: false,
         });
+    });
+
+    it('asks before closing with the × when something changed', async () => {
+        const view = renderPage(FmChangeDeadlineSheet, props);
+        await screen.findByRole('dialog');
+        await userEvent.click(screen.getByLabelText('Skip this due date'));
+        await settle();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
+        await settle();
+        expect(view.emitted('close')).toBeUndefined();
     });
 });

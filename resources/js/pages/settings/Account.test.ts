@@ -2,8 +2,9 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { account } from '@/test/fixtures';
-import { pressSave, renderPage } from '@/test/page';
+import { pressSave, renderPage, settle } from '@/test/page';
 import Account from './Account.vue';
+import { answerLeave, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
 
 describe('My account', () => {
     it('shows first name, last name and email to change, and the photo', () => {
@@ -83,5 +84,35 @@ describe('My account', () => {
         pressSave();
 
         expect(patch).toHaveBeenCalled();
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a detail changes', async () => {
+        renderPage(Account, { account });
+        expect(hasChanges()).toBe(false);
+
+        await fireEvent.update(
+            screen.getByLabelText('First name'),
+            'Marcolino',
+        );
+        await settle();
+
+        expect(hasChanges()).toBe(true);
+    });
+
+    it('asks before closing the password panel with the × once something is written', async () => {
+        renderPage(Account, { account });
+        await fireEvent.click(screen.getByRole('button', { name: /Password/ }));
+        await fireEvent.update(
+            await screen.findByLabelText('Current password'),
+            'vecchia',
+        );
+        await settle();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
     });
 });

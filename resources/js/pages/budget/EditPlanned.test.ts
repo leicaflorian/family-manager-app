@@ -7,8 +7,16 @@ import {
     newPlannedValues,
     plannedExpenseOptions,
 } from '@/test/fixtures';
-import { choose, openMenu, renderPage, settle, shown } from '@/test/page';
+import {
+    choose,
+    openMenu,
+    renderPage,
+    settle,
+    shown,
+    tapCancel,
+} from '@/test/page';
 import EditPlanned from './EditPlanned.vue';
+import { hasChanges } from '@/lib/unsavedChanges';
 
 const props = {
     kind: 'expense',
@@ -239,5 +247,19 @@ describe('Edit a planned expense', () => {
                 { name: 'Employment' },
             ),
         ).toBeInTheDocument();
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a field changes, and gives them up with Cancel', async () => {
+        renderPage(EditPlanned, props);
+        expect(hasChanges()).toBe(false);
+
+        await choose('Category', 'Svago');
+        await settle();
+        expect(hasChanges()).toBe(true);
+
+        await tapCancel();
+        expect(hasChanges()).toBe(false);
     });
 });

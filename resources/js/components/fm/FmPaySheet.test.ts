@@ -3,6 +3,7 @@ import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { isoDate } from '@/lib/format';
+import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 import { pickFile, renderPage, settle } from '@/test/page';
 import { accountOptions, danceDeadline, salaryDeadline } from '@/test/fixtures';
 import FmPaySheet from './FmPaySheet.vue';
@@ -119,6 +120,36 @@ describe('FmPaySheet', () => {
 
         await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
+        expect(view.emitted('close')).toHaveLength(1);
+    });
+
+    it('asks before closing with the × when something changed', async () => {
+        const view = renderPage(FmPaySheet, props);
+        await screen.findByRole('dialog');
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Conto BPER' }),
+        );
+        await settle();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
+        await settle();
+        expect(view.emitted('close')).toBeUndefined();
+    });
+
+    it('closes with Cancel without asking, also with changes', async () => {
+        const view = renderPage(FmPaySheet, props);
+        await screen.findByRole('dialog');
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Conto BPER' }),
+        );
+        await settle();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(leaveQuestion.open).toBe(false);
         expect(view.emitted('close')).toHaveLength(1);
     });
 });

@@ -1,5 +1,8 @@
 import { render, screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
+import { router } from '@inertiajs/vue3';
 import { describe, expect, it, vi } from 'vite-plus/test';
+import { trackChanges } from '@/lib/unsavedChanges';
 import { areaCounts } from '@/test/fixtures';
 import AppLayout from './AppLayout.vue';
 
@@ -43,5 +46,36 @@ describe('AppLayout', () => {
             screen.getByRole('link', { name: 'Vehicles 1' }),
         ).toHaveAttribute('aria-current', 'page');
         page.url = '/documents?person=3';
+    });
+
+    it('asks before leaving a page with a form not saved, and stays if the person says so', async () => {
+        const stop = trackChanges(() => true);
+        const view = render(AppLayout, {
+            slots: { default: '<h1>Edit the reminder</h1>' },
+        });
+
+        router.visit('/agenda');
+
+        const question = await screen.findByRole('dialog', {
+            name: 'Leave without saving?',
+        });
+        expect(question).toHaveTextContent(
+            'You have changes not saved: if you leave, you lose them.',
+        );
+        expect(
+            within(question).getByRole('button', {
+                name: 'Leave without saving',
+            }),
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+            within(question).getByRole('button', { name: 'Cancel' }),
+        );
+        expect(
+            screen.queryByRole('dialog', { name: 'Leave without saving?' }),
+        ).not.toBeInTheDocument();
+
+        stop();
+        view.unmount();
     });
 });

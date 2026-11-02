@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { defineComponent, h } from 'vue';
 import { provideOnColor } from '@/composables/useOnColor';
 import FmBottomSheet from './FmBottomSheet.vue';
@@ -104,4 +104,69 @@ describe('FmBottomSheet', () => {
         expect(cancel).toHaveClass('text-action');
         expect(cancel).not.toHaveClass('bg-white/15', 'text-white');
     });
+
+    it('asks before closing, and stays open when the answer is no', async () => {
+        const result = render(FmBottomSheet, {
+            props: {
+                open: true,
+                title: 'Pay this deadline',
+                beforeClose: () => Promise.resolve(false),
+            },
+        });
+        await screen.findByRole('dialog');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+        await Promise.resolve();
+
+        expect(result.emitted('update:open')).toBeUndefined();
+    });
+
+    it('closes when the answer is yes', async () => {
+        const result = render(FmBottomSheet, {
+            props: {
+                open: true,
+                title: 'Pay this deadline',
+                beforeClose: () => Promise.resolve(true),
+            },
+        });
+        await screen.findByRole('dialog');
+
+        await userEvent.keyboard('{Escape}');
+
+        await vi.waitFor(() =>
+            expect(result.emitted('update:open')).toEqual([[false]]),
+        );
+    });
+
+    it('can sit above the panels already open, whatever their order in the page', async () => {
+        render(FmBottomSheet, {
+            props: { open: true, title: 'Pay this deadline' },
+        });
+        render(FmBottomSheet, {
+            props: { open: true, title: 'Leave without saving?', above: true },
+        });
+
+        // Two panels open together hide each other from screen readers in
+        // jsdom, title included: they are found by their text
+        const dialogs = await screen.findAllByRole('dialog', { hidden: true });
+        const panel = dialogs.find((dialog) =>
+            dialog.textContent?.includes('Pay this deadline'),
+        )!;
+        const question = dialogs.find((dialog) =>
+            dialog.textContent?.includes('Leave without saving?'),
+        )!;
+
+        // Same layer: the one later in the page wins. Above: it wins anyway
+        expect(layer(question)).toBeGreaterThan(layer(panel));
+    });
 });
+
+/**
+ * The layer of a panel, from the z-index class Tailwind gives it.
+ *
+ * @param element - the panel
+ * @returns the number of its z-index class
+ */
+function layer(element: HTMLElement): number {
+    return Number(/(?:^|\s)z-\[?(\d+)/.exec(element.className)?.[1] ?? 0);
+}

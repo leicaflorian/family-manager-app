@@ -407,6 +407,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 
 The panel from below that asks again before an action that is easy to do by
 mistake: the question, what happens, *Cancel* and the button that confirms.
+It sits above the other panels, also when it is asked from one of them.
 `FmConfirmDelete` uses it to delete; the form of a document, to remove a
 saved link.
 
@@ -436,6 +437,7 @@ saved link.
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmConfirmDelete.vue`
 - `components/fm/FmDocumentForm.vue`
+- `layouts/AppLayout.vue`
 - `pages/settings/Calendar.vue`
 
 ## FmConfirmDelete
@@ -1946,13 +1948,16 @@ the right. A value that is a person, an organization or a card is a link;
 The panel that rises from the bottom over the darkened page, for short actions
 and filters. On the computer it is a window in the middle. It closes with the
 handle, with the ×, with Esc and by tapping outside; while it is open the focus
-stays inside.
+stays inside. With `beforeClose` these ways ask first, as a form with changes
+not saved does.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `title` | `string` | yes | — | The title of the panel. |
+| `above` | `boolean` | no | — | Above every other panel, whatever their order in the page: a question asked while a panel is open («Leave without saving?», «Delete…?»). |
+| `beforeClose` | `(() => Promise<boolean>)` | no | — | Asked before closing with the handle, the ×, Esc or a tap outside: the panel stays open when it gives false. The buttons of the panel close it without asking. |
 | `open` | `boolean` | no | `false` | Open or closed. |
 
 ### Events
@@ -1974,6 +1979,16 @@ stays inside.
 <!-- Long content -->
 <FmBottomSheet title="Rules of the house">
     …
+</FmBottomSheet>
+
+<!-- Asks before closing -->
+<FmBottomSheet title="Pay this deadline" :beforeClose="beforeClose">
+    Closing it with the ×, Esc or outside asks first.
+</FmBottomSheet>
+
+<!-- Above the other panels -->
+<FmBottomSheet title="Leave without saving?" above>
+    A question asked from an open panel goes over it, as FmConfirm does.
 </FmBottomSheet>
 ```
 

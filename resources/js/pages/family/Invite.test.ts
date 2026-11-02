@@ -1,7 +1,8 @@
-import { screen, within } from '@testing-library/vue';
+import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { choose, openMenu, renderPage } from '@/test/page';
+import { choose, openMenu, renderPage, settle, tapCancel } from '@/test/page';
 import Invite from './Invite.vue';
+import { hasChanges } from '@/lib/unsavedChanges';
 
 const props = {
     people: [
@@ -76,5 +77,22 @@ describe('Invite a family member', () => {
         renderPage(Invite, { ...props, people: [] });
 
         expect(screen.getByLabelText('First name')).toBeInTheDocument();
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a field changes, and gives them up with Cancel', async () => {
+        renderPage(Invite, props);
+        expect(hasChanges()).toBe(false);
+
+        await fireEvent.update(
+            screen.getByLabelText('Their email'),
+            'nonna@example.com',
+        );
+        await settle();
+        expect(hasChanges()).toBe(true);
+
+        await tapCancel();
+        expect(hasChanges()).toBe(false);
     });
 });

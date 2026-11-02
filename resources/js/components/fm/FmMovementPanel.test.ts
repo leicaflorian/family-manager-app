@@ -14,6 +14,7 @@ import {
     movementOptions,
     salaryMovement,
 } from '@/test/fixtures';
+import { answerLeave, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
 import { choose, renderPage, settle } from '@/test/page';
 import FmMovementPanel from './FmMovementPanel.vue';
 
@@ -363,6 +364,39 @@ describe('FmMovementPanel', () => {
             screen.queryByRole('button', { name: 'Save' }),
         ).not.toBeInTheDocument();
         await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(panel.emitted()).toHaveProperty('close');
+    });
+
+    it('asks before closing with the × when something changed', async () => {
+        const panel = renderPage(FmMovementPanel, { ...props, compact: true });
+        await write('Title', 'Spesa al mercato');
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
+        await settle();
+        expect(panel.emitted()).not.toHaveProperty('close');
+    });
+
+    it('closes with the × without asking when nothing changed', async () => {
+        const panel = renderPage(FmMovementPanel, { ...props, compact: true });
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        await settle();
+
+        expect(leaveQuestion.open).toBe(false);
+        expect(panel.emitted()).toHaveProperty('close');
+    });
+
+    it('gives up the changes with Cancel without asking, and the page does not ask either', async () => {
+        const panel = renderPage(FmMovementPanel, props);
+        await write('Title', 'Spesa al mercato');
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(leaveQuestion.open).toBe(false);
+        expect(hasChanges()).toBe(false);
         expect(panel.emitted()).toHaveProperty('close');
     });
 });

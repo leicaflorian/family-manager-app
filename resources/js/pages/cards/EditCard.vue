@@ -187,9 +187,12 @@ function save(data: Record<string, unknown>): void {
                     @submit="save"
                 >
                     <template #start>
-                        <FmButton variant="text" :href="back">{{
-                            $t('Cancel')
-                        }}</FmButton>
+                        <FmButton
+                            variant="text"
+                            :href="back"
+                            data-discard-changes
+                            >{{ $t('Cancel') }}</FmButton
+                        >
                     </template>
                 </FmCardForm>
             </div>

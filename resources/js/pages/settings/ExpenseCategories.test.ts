@@ -3,6 +3,7 @@ import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { choose, renderPage } from '@/test/page';
 import ExpenseCategories from './ExpenseCategories.vue';
+import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 
 // Shaped like what ExpenseCategoryController sends
 const category = (
@@ -105,5 +106,21 @@ describe('Expense categories', () => {
 
         expect(screen.getByText('Auto')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /^Auto/ })).toBeNull();
+    });
+});
+
+describe('Changes not saved', () => {
+    it('asks before closing the panel with the × once the card changes', async () => {
+        renderPage(ExpenseCategories, { categories, cardTypes, canEdit: true });
+        await fireEvent.click(screen.getByRole('button', { name: /^Auto/ }));
+        const sheet = await screen.findByRole('dialog');
+        await choose('Linked card', 'Health event');
+
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Close' }),
+        );
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
     });
 });

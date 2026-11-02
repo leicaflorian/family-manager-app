@@ -17,6 +17,7 @@ import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { errors } from '@/lib/errors';
 import { isEmpty, withMethod, withNone } from '@/lib/forms';
 import { offsetsHint, recipientsSentence } from '@/lib/reminders';
@@ -66,6 +67,9 @@ const form = useForm({
             ? ''
             : String(reminder.group_id),
 });
+
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => form.data());
 
 /** The title of the page. */
 const heading = computed(() =>
@@ -209,9 +213,13 @@ useSaveShortcut(save, () => !form.processing);
                     :text="$t('It will not come back.')"
                     :confirm-label="$t('Delete the reminder')"
                 />
-                <FmButton variant="soft" :href="index().url" class="flex-1">{{
-                    $t('Cancel')
-                }}</FmButton>
+                <FmButton
+                    variant="soft"
+                    :href="index().url"
+                    class="flex-1"
+                    data-discard-changes
+                    >{{ $t('Cancel') }}</FmButton
+                >
                 <FmButton
                     type="submit"
                     class="flex-2"

@@ -37,4 +37,15 @@ describe('FmConfirm', () => {
         expect(result.emitted('update:open')).toEqual([[false]]);
         expect(result.emitted('confirm')).toBeUndefined();
     });
+
+    it('sits above a panel already open, as the question asked from it', async () => {
+        renderPage(FmConfirm, props);
+
+        const question = await screen.findByRole('dialog', {
+            name: 'Remove the link?',
+        });
+
+        // The panels are on z-50: the question goes over them
+        expect(question.className).toContain('z-[70]');
+    });
 });

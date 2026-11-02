@@ -20,6 +20,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { logout, settings } from '@/routes';
 import { destroy, password, photo, update } from '@/routes/account';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { account } = defineProps<{
     /** My account. */
@@ -32,9 +33,15 @@ const details = useForm({
     email: account.email,
 });
 
+/** While the details have changes not saved, leaving the page asks first. */
+const detailChanges = useUnsavedChanges(() => details.data());
+
 /** Sends first name, last name and email. */
 function saveDetails(): void {
-    details.submit(update(), { preserveScroll: true });
+    details.submit(update(), {
+        preserveScroll: true,
+        onSuccess: () => detailChanges.reset(),
+    });
 }
 
 useSaveShortcut(saveDetails, () => !details.processing);
@@ -55,6 +62,11 @@ function uploadPhoto(): void {
 
 const passwordSheet = ref(false);
 const passwordChange = useForm({ current_password: '', password: '' });
+
+/** Closing the password panel with the × asks first once something is written. */
+const passwordChanges = useUnsavedChanges(() => passwordChange.data(), {
+    active: () => passwordSheet.value,
+});
 
 /**
  * Changes the password and closes the panel.
@@ -237,6 +249,7 @@ function deleteAccount(): void {
 
         <FmBottomSheet
             v-model:open="passwordSheet"
+            :before-close="passwordChanges.confirmClose"
             :title="$t('Change the password')"
         >
             <form

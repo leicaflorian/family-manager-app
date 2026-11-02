@@ -19,6 +19,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { settings } from '@/routes';
 import { destroy, store, update } from '@/routes/categories';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { categories, canEdit } = defineProps<{
     /** The tree, from the main ones. */
@@ -31,6 +32,11 @@ const { categories, canEdit } = defineProps<{
 const selected = ref<App.Data.CategoryData | null>(null);
 const open = ref(false);
 const form = useForm({ name: '', parent_id: '' });
+
+/** Closing the panel with the × asks first once something changed. */
+const changes = useUnsavedChanges(() => form.data(), {
+    active: () => open.value,
+});
 // The deletion sends only the address; the server answers with the `category` error.
 const deletion = useForm<{ category?: string }>({});
 
@@ -117,6 +123,7 @@ function openSheet(category: App.Data.CategoryData | null): void {
     deletion.clearErrors();
     form.name = category?.name ?? '';
     form.parent_id = category?.parent_id ? String(category.parent_id) : '';
+    changes.reset();
     open.value = true;
 }
 
@@ -186,6 +193,7 @@ function deleteCategory(): void {
 
         <FmBottomSheet
             v-model:open="open"
+            :before-close="changes.confirmClose"
             :title="selected ? selected.name : $t('New category')"
         >
             <form class="flex flex-col gap-3" novalidate @submit.prevent="save">

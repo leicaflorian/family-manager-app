@@ -21,6 +21,7 @@ import type { PlannedFormOptions, PlannedFormValues } from '@/lib/budget';
 import { errors } from '@/lib/errors';
 import { isEmpty, withNone } from '@/lib/forms';
 import { destroy, index, show, store, update } from '@/routes/budget/planned';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { kind, planned, values, options } = defineProps<{
     /** `expense` or `income`. */
@@ -34,6 +35,9 @@ const { kind, planned, values, options } = defineProps<{
 }>();
 
 const form = useForm<PlannedFormValues>({ ...values });
+
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => form.data());
 
 /** The card of the expense, null when none is chosen. */
 const card = computed<string | null>({
@@ -305,9 +309,12 @@ useSaveShortcut(save, () => !form.processing);
                     :confirm-label="$t('Delete the planned expense')"
                 />
                 <div class="ml-auto flex flex-wrap gap-2.5">
-                    <FmButton variant="text" :href="back">{{
-                        $t('Cancel')
-                    }}</FmButton>
+                    <FmButton
+                        variant="text"
+                        :href="back"
+                        data-discard-changes
+                        >{{ $t('Cancel') }}</FmButton
+                    >
                     <FmButton type="submit" :disabled="form.processing">{{
                         $t('Save')
                     }}</FmButton>

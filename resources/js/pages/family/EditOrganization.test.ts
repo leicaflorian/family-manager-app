@@ -15,8 +15,10 @@ import {
     renderPage,
     settle,
     stubObjectUrls,
+    tapCancel,
 } from '@/test/page';
 import EditOrganization from './EditOrganization.vue';
+import { hasChanges } from '@/lib/unsavedChanges';
 
 beforeEach(() => {
     stubObjectUrls();
@@ -141,5 +143,22 @@ describe('Edit an organization', () => {
             expect.objectContaining({ logo: null, remove_logo: true }),
             expect.anything(),
         );
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a field changes, and gives them up with Cancel', async () => {
+        renderPage(EditOrganization, {
+            organization: null,
+            types: organizationTypes,
+        });
+        expect(hasChanges()).toBe(false);
+
+        await fireEvent.update(screen.getByLabelText('Name'), 'Coop Alleanza');
+        await settle();
+        expect(hasChanges()).toBe(true);
+
+        await tapCancel();
+        expect(hasChanges()).toBe(false);
     });
 });

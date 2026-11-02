@@ -65,102 +65,116 @@ const tile = computed(() =>
 </script>
 
 <template>
-    <div
-        class="grid grid-cols-[28px_36px_minmax(0,1fr)] items-center gap-x-3.5 gap-y-1.5 px-4.5 py-3 lg:grid-cols-[28px_36px_minmax(0,1fr)_110px_150px_170px]"
-    >
-        <button
-            v-if="!reminder.done"
-            type="button"
-            :aria-label="$t('Mark as done')"
-            class="-m-2.5 flex size-11 cursor-pointer items-center justify-center border-0 bg-transparent"
-            @click="emit('done')"
+    <!-- The row measures its own list, not the screen: next to the panel of a
+         reminder the list is narrow, and the columns of person, date and notice
+         would leave the title a few letters. -->
+    <div class="@container/reminder">
+        <div
+            class="grid grid-cols-[28px_36px_minmax(0,1fr)] items-center gap-x-3.5 gap-y-1.5 px-4.5 py-3 @4xl/reminder:grid-cols-[28px_36px_minmax(0,1fr)_110px_150px_170px]"
         >
-            <span
-                class="size-[22px] rounded-full border-2"
-                :class="late ? 'border-overdue' : 'border-[#9AA6B6]'"
-            />
-        </button>
-        <span
-            v-else
-            class="flex size-[22px] items-center justify-center rounded-full bg-paid text-white"
-        >
-            <FmIcon :icon="Check" :size="14" :stroke="3" />
-        </span>
-        <span :class="tile"
-            ><FmIcon :icon="areaIcon(reminder.area ?? 'general')" :size="20"
-        /></span>
-        <span class="flex min-w-0 flex-col gap-[3px]">
-            <Link
-                :href="reminder.href"
-                class="truncate text-base font-semibold text-inherit no-underline"
-                :class="reminder.done && 'text-ink-soft line-through'"
-                @click="emit('open')"
-                >{{ reminder.title }}</Link
+            <button
+                v-if="!reminder.done"
+                type="button"
+                :aria-label="$t('Mark as done')"
+                class="-m-2.5 flex size-11 cursor-pointer items-center justify-center border-0 bg-transparent"
+                @click="emit('done')"
             >
-            <span
-                class="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[13px] text-ink-soft"
-            >
-                <Link
-                    v-if="reminder.subject"
-                    :href="reminder.subject.href"
-                    class="truncate text-inherit"
-                    >{{ reminder.subject.label }}</Link
-                >
-                <FmIcon
-                    v-if="reminder.manual"
-                    :icon="PenLine"
-                    :size="14"
-                    :label="$t('Written by hand')"
-                />
                 <span
-                    v-if="reminder.missing_planned_expense"
-                    class="inline-flex items-center gap-1 font-semibold text-warning"
+                    class="size-[22px] rounded-full border-2"
+                    :class="late ? 'border-overdue' : 'border-[#9AA6B6]'"
+                />
+            </button>
+            <span
+                v-else
+                class="flex size-[22px] items-center justify-center rounded-full bg-paid text-white"
+            >
+                <FmIcon :icon="Check" :size="14" :stroke="3" />
+            </span>
+            <span :class="tile"
+                ><FmIcon
+                    :icon="areaIcon(reminder.area ?? 'general')"
+                    :size="20"
+            /></span>
+            <span class="flex min-w-0 flex-col gap-[3px]">
+                <Link
+                    :href="reminder.href"
+                    class="truncate text-base font-semibold text-inherit no-underline"
+                    :class="reminder.done && 'text-ink-soft line-through'"
+                    @click="emit('open')"
+                    >{{ reminder.title }}</Link
                 >
-                    <FmIcon :icon="TriangleAlert" :size="14" />
-                    {{ $t('The planned expense is missing') }}
+                <span
+                    class="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[13px] text-ink-soft"
+                >
+                    <Link
+                        v-if="reminder.subject"
+                        :href="reminder.subject.href"
+                        class="truncate text-inherit"
+                        >{{ reminder.subject.label }}</Link
+                    >
+                    <FmIcon
+                        v-if="reminder.manual"
+                        :icon="PenLine"
+                        :size="14"
+                        :label="$t('Written by hand')"
+                    />
+                    <span
+                        v-if="reminder.missing_planned_expense"
+                        class="inline-flex items-center gap-1 font-semibold text-warning"
+                    >
+                        <FmIcon :icon="TriangleAlert" :size="14" />
+                        {{ $t('The planned expense is missing') }}
+                    </span>
                 </span>
             </span>
-        </span>
-        <span
-            class="col-start-3 flex flex-wrap items-center gap-x-4 gap-y-1 lg:contents"
-        >
             <span
-                v-if="reminder.person"
-                class="flex items-center gap-2 text-sm"
+                class="col-start-3 flex flex-wrap items-center gap-x-4 gap-y-1 @4xl/reminder:contents"
             >
-                <FmAvatar
-                    :initials="reminder.person.initials"
-                    :photo="reminder.person.photo"
-                    :size="26"
-                    aria-hidden="true"
-                />
-                {{ reminder.person.name }}
-            </span>
-            <span v-else class="hidden lg:block" />
-            <span class="flex flex-col gap-0.5 text-sm">
-                <span class="font-semibold" :class="late && 'text-overdue'">{{
-                    date(reminder.due_date)
-                }}</span>
                 <span
-                    v-if="!reminder.done"
-                    class="text-[13px]"
-                    :class="
-                        late ? 'font-semibold text-overdue' : 'text-ink-soft'
-                    "
-                    >{{ distance }}</span
+                    v-if="reminder.person"
+                    class="flex items-center gap-2 text-sm"
                 >
+                    <FmAvatar
+                        :initials="reminder.person.initials"
+                        :photo="reminder.person.photo"
+                        :size="26"
+                        aria-hidden="true"
+                    />
+                    {{ reminder.person.name }}
+                </span>
+                <span v-else class="hidden @4xl/reminder:block" />
+                <span class="flex flex-col gap-0.5 text-sm">
+                    <span
+                        class="font-semibold"
+                        :class="late && 'text-overdue'"
+                        >{{ date(reminder.due_date) }}</span
+                    >
+                    <span
+                        v-if="!reminder.done"
+                        class="text-[13px]"
+                        :class="
+                            late
+                                ? 'font-semibold text-overdue'
+                                : 'text-ink-soft'
+                        "
+                        >{{ distance }}</span
+                    >
+                </span>
+                <button
+                    v-if="reminder.done"
+                    type="button"
+                    class="cursor-pointer justify-self-start border-0 bg-transparent p-0 text-sm font-semibold text-action-dark"
+                    @click="emit('reopen')"
+                >
+                    {{ $t('Reopen') }}
+                </button>
+                <span v-else class="text-[13px] text-ink-soft">{{
+                    nextNoticeText(
+                        reminder.next_notice_on,
+                        reminder.notices_sent,
+                    )
+                }}</span>
             </span>
-            <button
-                v-if="reminder.done"
-                type="button"
-                class="cursor-pointer justify-self-start border-0 bg-transparent p-0 text-sm font-semibold text-action-dark"
-                @click="emit('reopen')"
-            >
-                {{ $t('Reopen') }}
-            </button>
-            <span v-else class="text-[13px] text-ink-soft">{{
-                nextNoticeText(reminder.next_notice_on, reminder.notices_sent)
-            }}</span>
-        </span>
+        </div>
     </div>
 </template>

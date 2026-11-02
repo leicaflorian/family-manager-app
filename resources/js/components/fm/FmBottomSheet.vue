@@ -3,7 +3,8 @@
  * The panel that rises from the bottom over the darkened page, for short actions
  * and filters. On the computer it is a window in the middle. It closes with the
  * handle, with the ×, with Esc and by tapping outside; while it is open the focus
- * stays inside.
+ * stays inside. With `beforeClose` these ways ask first, as a form with changes
+ * not saved does.
  *
  * @group panels
  */
@@ -19,9 +20,20 @@ import {
 import { provideOnColor } from '@/composables/useOnColor';
 import FmIcon from './FmIcon.vue';
 
-const { title } = defineProps<{
+const { title, beforeClose, above } = defineProps<{
     /** The title of the panel. */
     title: string;
+    /**
+     * Above every other panel, whatever their order in the page: a question
+     * asked while a panel is open («Leave without saving?», «Delete…?»).
+     */
+    above?: boolean;
+    /**
+     * Asked before closing with the handle, the ×, Esc or a tap outside: the
+     * panel stays open when it gives false. The buttons of the panel close it
+     * without asking.
+     */
+    beforeClose?: () => Promise<boolean>;
 }>();
 
 /** Open or closed. */
@@ -32,19 +44,34 @@ defineSlots<{
     default: () => unknown;
 }>();
 
+/**
+ * Opens or closes the panel, asking first when it closes and `beforeClose` is there.
+ *
+ * @param next - open or closed
+ */
+async function change(next: boolean): Promise<void> {
+    if (!next && beforeClose && !(await beforeClose())) {
+        return;
+    }
+
+    open.value = next;
+}
+
 // The panel is white, also when it opens from the coloured top of a card
 provideOnColor(false);
 </script>
 
 <template>
-    <DialogRoot v-model:open="open">
+    <DialogRoot :open="open" @update:open="change">
         <DialogPortal>
             <DialogOverlay
-                class="fixed inset-0 z-40 bg-[rgba(24,33,47,0.45)] duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                :class="above ? 'z-[60]' : 'z-40'"
+                class="fixed inset-0 bg-[rgba(24,33,47,0.45)] duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             />
             <DialogContent
                 :aria-describedby="undefined"
-                class="fixed inset-x-0 bottom-0 z-50 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:p-7 lg:shadow-[0_24px_60px_rgba(24,33,47,0.25)] lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
+                :class="above ? 'z-[70]' : 'z-50'"
+                class="fixed inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-3xl bg-white px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:p-7 lg:shadow-[0_24px_60px_rgba(24,33,47,0.25)] lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
             >
                 <DialogClose
                     :aria-label="$t('Close the panel')"

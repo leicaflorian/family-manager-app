@@ -22,6 +22,7 @@ import { errors } from '@/lib/errors';
 import { isEmpty } from '@/lib/forms';
 import FmButton from './FmButton.vue';
 import FmLoanFigures from './FmLoanFigures.vue';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const {
     fields,
@@ -95,6 +96,9 @@ const data = reactive<Record<string, unknown>>(
         fields.map((field) => [field.column, startValue(field)]),
     ),
 );
+
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => data);
 
 /** The columns of a loan that its total to pay and cost follow. */
 const LOAN_COLUMNS = [

@@ -10,6 +10,7 @@
 import { router } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { errors } from '@/lib/errors';
 import { formatAmount, parseAmount } from '@/lib/forms';
 import FmAmount from './FmAmount.vue';
@@ -53,6 +54,9 @@ function initial() {
 /** The fields of the form. */
 const values = reactive(initial());
 
+/** The changes not saved: closing with the × asks first, *Cancel* does not. */
+const changes = useUnsavedChanges(() => values, { active: () => open.value });
+
 /** The messages of the server, by field. */
 const problems = ref<Record<string, string>>({});
 
@@ -78,6 +82,7 @@ watch(open, (isOpen) => {
     if (isOpen) {
         Object.assign(values, initial());
         problems.value = {};
+        changes.reset();
     } else {
         emit('close');
     }
@@ -117,7 +122,11 @@ function save(): void {
 </script>
 
 <template>
-    <FmBottomSheet v-model:open="open" :title="$t('Change this due date')">
+    <FmBottomSheet
+        v-model:open="open"
+        :before-close="changes.confirmClose"
+        :title="$t('Change this due date')"
+    >
         <div class="flex items-center gap-3 rounded-2xl bg-canvas p-3.5">
             <span class="flex min-w-0 grow flex-col">
                 <span class="truncate text-base font-bold">{{

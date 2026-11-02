@@ -10,6 +10,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { renderPage, settle } from '@/test/page';
+import { hasChanges } from '@/lib/unsavedChanges';
 import Notices from './Notices.vue';
 
 const people: App.Data.ReminderPersonData[] = [
@@ -526,5 +527,27 @@ describe('Settings, Notices', () => {
 
         expect(screen.queryByTestId('group-screen')).not.toBeInTheDocument();
         expect(screen.getAllByRole('region')).toHaveLength(3);
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a notice is added, and none once saved', async () => {
+        const view = renderPage(Notices, props());
+        expect(hasChanges()).toBe(false);
+
+        await userEvent.click(
+            within(card('Policies')).getByRole('button', { name: 'Edit' }),
+        );
+        expect(hasChanges()).toBe(false);
+        await userEvent.click(
+            within(card('Policies')).getByRole('button', {
+                name: 'Add a notice',
+            }),
+        );
+        expect(hasChanges()).toBe(true);
+
+        // The save redirects here with the groups as the server keeps them, a new list
+        await view.rerender(props({ groups: structuredClone(groups) }));
+        expect(hasChanges()).toBe(false);
     });
 });

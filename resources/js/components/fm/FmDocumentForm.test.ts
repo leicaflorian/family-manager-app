@@ -3,6 +3,7 @@ import { fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { newDocument } from '@/lib/documents';
+import { hasChanges } from '@/lib/unsavedChanges';
 import {
     choose,
     openMenu,
@@ -11,6 +12,7 @@ import {
     search,
     settle,
     shown,
+    tapCancel,
 } from '@/test/page';
 import FmDocumentForm from './FmDocumentForm.vue';
 
@@ -347,5 +349,22 @@ describe('FmDocumentForm', () => {
         await settle();
 
         expect(post).toHaveBeenCalled();
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a field changes, and gives them up with Cancel', async () => {
+        renderPage(FmDocumentForm, { ...props, cancelLabel: 'Cancel' });
+        expect(hasChanges()).toBe(false);
+
+        await fireEvent.update(
+            screen.getByLabelText('What it is'),
+            'Busta paga di novembre',
+        );
+        await settle();
+        expect(hasChanges()).toBe(true);
+
+        await tapCancel();
+        expect(hasChanges()).toBe(false);
     });
 });

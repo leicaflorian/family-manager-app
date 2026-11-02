@@ -1042,5 +1042,8 @@
     "Identity card of :person": "Carta d'identità di :person",
     "Something is missing": "Manca qualcosa",
     "Expires on :date.": "Scade il :date.",
-    "Expired on :date.": "Scaduto il :date."
+    "Expired on :date.": "Scaduto il :date.",
+    "Leave without saving?": "Esci senza salvare?",
+    "You have changes not saved: if you leave, you lose them.": "Hai modifiche non salvate: se esci le perdi.",
+    "Leave without saving": "Esci senza salvare"
 }

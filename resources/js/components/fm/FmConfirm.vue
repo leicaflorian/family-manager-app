@@ -2,6 +2,7 @@
 /**
  * The panel from below that asks again before an action that is easy to do by
  * mistake: the question, what happens, *Cancel* and the button that confirms.
+ * It sits above the other panels, also when it is asked from one of them.
  * `FmConfirmDelete` uses it to delete; the form of a document, to remove a
  * saved link.
  *
@@ -29,7 +30,7 @@ const open = defineModel<boolean>('open', { default: false });
 </script>
 
 <template>
-    <FmBottomSheet v-model:open="open" :title="question">
+    <FmBottomSheet v-model:open="open" :title="question" above>
         <p class="m-0 text-base leading-normal text-ink-soft">{{ text }}</p>
         <div class="flex flex-wrap justify-end gap-2.5">
             <FmButton variant="text" @click="open = false">{{

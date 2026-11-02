@@ -24,6 +24,7 @@ import type { NoticeRule, RulePerson } from '@/lib/reminders';
 import { ruleText } from '@/lib/reminders';
 import { settings } from '@/routes';
 import { update } from '@/routes/settings/notices';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { settings: page } = defineProps<{
     /** The groups, the kinds of deadline, the people with an account and whether who looks can change them. */
@@ -90,6 +91,7 @@ watch(
     (groups) => {
         drafts.value = toDrafts(groups);
         editing.value = [];
+        changes.reset();
     },
 );
 
@@ -253,39 +255,48 @@ function removeGroup(draft: Draft): void {
 }
 
 /**
+ * The groups as the server saves them: what the page has and is not saved
+ * (which group is open, the example) stays out.
+ *
+ * @returns the groups to send
+ */
+function payload() {
+    return {
+        groups: drafts.value.map((draft) => ({
+            id: draft.id,
+            name: draft.name,
+            is_default: draft.is_default,
+            deadline_types: draft.deadline_types,
+            notifications: draft.rules.map((rule) => ({
+                name: rule.name ?? '',
+                days: rule.days,
+                timing: rule.timing,
+                channels: rule.channels,
+                recipients: rule.recipients,
+            })),
+        })),
+    };
+}
+
+/** While the groups have changes not saved, leaving the page asks first. */
+const changes = useUnsavedChanges(payload);
+
+/**
  * Saves every group at once.
  */
 function save(): void {
     refused.value = [];
     saving.value = true;
 
-    router.put(
-        update.url(),
-        {
-            groups: drafts.value.map((draft) => ({
-                id: draft.id,
-                name: draft.name,
-                is_default: draft.is_default,
-                deadline_types: draft.deadline_types,
-                notifications: draft.rules.map((rule) => ({
-                    name: rule.name ?? '',
-                    days: rule.days,
-                    timing: rule.timing,
-                    channels: rule.channels,
-                    recipients: rule.recipients,
-                })),
-            })),
+    router.put(update.url(), payload(), {
+        preserveScroll: true,
+        onError: (errors) => {
+            refused.value = Object.values(errors);
         },
-        {
-            preserveScroll: true,
-            onError: (errors) => {
-                refused.value = Object.values(errors);
-            },
-            onFinish: () => {
-                saving.value = false;
-            },
+        onFinish: () => {
+            saving.value = false;
         },
-    );
+    });
 }
 
 useSaveShortcut(save, () => page.can_change && !saving.value);

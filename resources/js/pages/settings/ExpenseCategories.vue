@@ -17,6 +17,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { settings } from '@/routes';
 import { update } from '@/routes/expense-categories';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { cardTypes } = defineProps<{
     /** The tree, from the main ones. */
@@ -33,6 +34,11 @@ const open = ref(false);
 // The dropdown has no null value: the empty text is «No card»
 const form = useForm({ card_type: '' });
 
+/** Closing the panel with the × asks first once something changed. */
+const changes = useUnsavedChanges(() => form.data(), {
+    active: () => open.value,
+});
+
 /** The card types, after «No card». */
 const options = computed(() => [
     { value: '', label: trans('No card') },
@@ -48,6 +54,7 @@ function openSheet(category: App.Data.ExpenseCategoryData): void {
     selected.value = category;
     form.clearErrors();
     form.card_type = category.card_type ?? '';
+    changes.reset();
     open.value = true;
 }
 
@@ -103,7 +110,11 @@ useSaveShortcut(save, () => open.value && !form.processing);
             </FmCategoryTree>
         </FmCard>
 
-        <FmBottomSheet v-model:open="open" :title="selected?.name ?? ''">
+        <FmBottomSheet
+            v-model:open="open"
+            :before-close="changes.confirmClose"
+            :title="selected?.name ?? ''"
+        >
             <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
                 <FormKit
                     v-model="form.card_type"

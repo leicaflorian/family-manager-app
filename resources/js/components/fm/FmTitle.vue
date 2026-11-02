@@ -31,16 +31,31 @@ defineSlots<{
 
 <template>
     <!-- The link back and the title in one block, so the space between them is
-         the same on every page whatever the gap of the page. -->
-    <div class="flex flex-col gap-5">
+         the same on every page whatever the gap of the page. It is the container
+         the title measures: on a page with a panel beside it the column is
+         narrower than the screen. -->
+    <div class="@container/title flex flex-col gap-5">
         <FmBackLink v-if="back && backLabel" :href="back" :label="backLabel" />
         <!-- The actions never go below the title: they take the room the title
-             leaves, at least 40 % of the row, and put in the ⋯ what does not fit -->
-        <div class="flex items-center justify-between gap-4">
+             leaves, at least 40 % of the row, and put in the ⋯ what does not fit.
+             With something beside, title and actions stay on the first line and
+             what is beside goes on its own line below, until the row has room
+             for all three. -->
+        <div
+            :class="
+                $slots.beside
+                    ? 'flex flex-wrap items-center gap-x-5 gap-y-3'
+                    : 'flex items-center justify-between gap-4'
+            "
+        >
             <div
-                class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-3"
                 :class="
-                    $slots.actions && !$slots.beside && 'max-w-[60%] shrink-0'
+                    $slots.beside
+                        ? 'contents'
+                        : [
+                              'flex min-w-0 flex-wrap items-center gap-x-5 gap-y-3',
+                              $slots.actions && 'max-w-[60%] shrink-0',
+                          ]
                 "
             >
                 <div class="flex min-w-0 flex-col gap-1">
@@ -55,11 +70,17 @@ defineSlots<{
                         >{{ subtitle }}</span
                     >
                 </div>
-                <slot name="beside" />
+                <div
+                    v-if="$slots.beside"
+                    class="order-last w-full @3xl/title:order-none @3xl/title:w-auto"
+                >
+                    <slot name="beside" />
+                </div>
             </div>
             <div
                 v-if="$slots.actions"
-                class="flex min-w-0 flex-1 items-center justify-end gap-2.5"
+                class="flex items-center justify-end gap-2.5"
+                :class="$slots.beside ? 'ml-auto shrink-0' : 'min-w-0 flex-1'"
             >
                 <slot name="actions" />
             </div>

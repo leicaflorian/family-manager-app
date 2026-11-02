@@ -9,8 +9,10 @@ import { fireEvent, render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import type { RenderResult } from '@testing-library/vue';
 import type { Component } from 'vue';
+import { router } from '@inertiajs/vue3';
 import { vi } from 'vite-plus/test';
 import formkitConfig from '@/formkit.config';
+import { guardVisits } from '@/lib/unsavedChanges';
 
 /**
  * Mounts a page for a test.
@@ -172,4 +174,25 @@ export function stubObjectUrls(): void {
             static override revokeObjectURL(): void {}
         },
     );
+}
+
+/**
+ * Taps *Cancel* with the guard of the app listening, as it does under
+ * `AppLayout`, without leaving the page: the visit of the button is stopped.
+ *
+ * @param name - the text of the button
+ */
+export async function tapCancel(name = 'Cancel'): Promise<void> {
+    const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+    const stop = guardVisits();
+
+    // A link to the page before, or a button that tells the page
+    const [cancel] = [
+        ...screen.queryAllByRole('link', { name }),
+        ...screen.queryAllByRole('button', { name }),
+    ];
+    await userEvent.click(cancel!);
+
+    stop();
+    visit.mockRestore();
 }

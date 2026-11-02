@@ -13,6 +13,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { family } from '@/routes';
 import { store } from '@/routes/family/invitations';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 /** The value of «Who they are» for a person who is not there yet. */
 const NEW_PERSON = 'new';
@@ -45,6 +46,9 @@ const form = useForm({
     person_role: roles.at(-1)?.value ?? '',
     person_id: null as number | null,
 });
+
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => form.data());
 
 /**
  * Sends the invitation: with the chosen person, or with first and last name of
@@ -134,9 +138,12 @@ function send(): void {
             <FmButton type="submit" :disabled="form.processing">{{
                 $t('Send the invitation')
             }}</FmButton>
-            <FmButton variant="text" :href="family().url">{{
-                $t('Cancel')
-            }}</FmButton>
+            <FmButton
+                variant="text"
+                :href="family().url"
+                data-discard-changes
+                >{{ $t('Cancel') }}</FmButton
+            >
         </div>
     </form>
 </template>

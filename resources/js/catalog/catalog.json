@@ -398,7 +398,7 @@
   {
     "name": "FmBottomSheet",
     "path": "resources/js/components/fm/FmBottomSheet.vue",
-    "description": "The panel that rises from the bottom over the darkened page, for short actions\nand filters. On the computer it is a window in the middle. It closes with the\nhandle, with the ×, with Esc and by tapping outside; while it is open the focus\nstays inside.",
+    "description": "The panel that rises from the bottom over the darkened page, for short actions\nand filters. On the computer it is a window in the middle. It closes with the\nhandle, with the ×, with Esc and by tapping outside; while it is open the focus\nstays inside. With `beforeClose` these ways ask first, as a form with changes\nnot saved does.",
     "group": "panels",
     "props": [
       {
@@ -407,6 +407,20 @@
         "required": true,
         "default": null,
         "description": "The title of the panel."
+      },
+      {
+        "name": "above",
+        "type": "boolean",
+        "required": false,
+        "default": null,
+        "description": "Above every other panel, whatever their order in the page: a question\nasked while a panel is open («Leave without saving?», «Delete…?»)."
+      },
+      {
+        "name": "beforeClose",
+        "type": "(() => Promise<boolean>)",
+        "required": false,
+        "default": null,
+        "description": "Asked before closing with the handle, the ×, Esc or a tap outside: the\npanel stays open when it gives false. The buttons of the panel close it\nwithout asking."
       },
       {
         "name": "open",
@@ -1146,7 +1160,7 @@
   {
     "name": "FmConfirm",
     "path": "resources/js/components/fm/FmConfirm.vue",
-    "description": "The panel from below that asks again before an action that is easy to do by\nmistake: the question, what happens, *Cancel* and the button that confirms.\n`FmConfirmDelete` uses it to delete; the form of a document, to remove a\nsaved link.",
+    "description": "The panel from below that asks again before an action that is easy to do by\nmistake: the question, what happens, *Cancel* and the button that confirms.\nIt sits above the other panels, also when it is asked from one of them.\n`FmConfirmDelete` uses it to delete; the form of a document, to remove a\nsaved link.",
     "group": "basics",
     "props": [
       {
@@ -1188,6 +1202,7 @@
       "components/fm/FmCardDocumentActions.vue",
       "components/fm/FmConfirmDelete.vue",
       "components/fm/FmDocumentForm.vue",
+      "layouts/AppLayout.vue",
       "pages/settings/Calendar.vue"
     ]
   },

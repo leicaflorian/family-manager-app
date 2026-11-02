@@ -10,8 +10,9 @@ import {
     policyDetail,
     policyFields,
 } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, settle, tapCancel } from '@/test/page';
 import EditCard from './EditCard.vue';
+import { hasChanges } from '@/lib/unsavedChanges';
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -417,5 +418,31 @@ describe('Edit a card', () => {
         });
 
         expect(screen.queryByText('Total to pay')).not.toBeInTheDocument();
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a field changes, and gives them up with Cancel', async () => {
+        renderPage(EditCard, {
+            type: {
+                type: 'insurance_policy',
+                label: 'Insurance policy',
+                plural_label: 'Policies',
+                description: '',
+                area: 'insurance',
+                area_label: 'Insurance',
+            },
+            fields: policyFields,
+            values: {},
+            card: null,
+        });
+        expect(hasChanges()).toBe(false);
+
+        await fireEvent.update(screen.getByLabelText('Title'), 'RC auto Panda');
+        await settle();
+        expect(hasChanges()).toBe(true);
+
+        await tapCancel();
+        expect(hasChanges()).toBe(false);
     });
 });

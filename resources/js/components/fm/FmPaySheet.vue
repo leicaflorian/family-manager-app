@@ -14,6 +14,7 @@ import { Paperclip } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { longMonth, monthName } from '@/lib/budget';
 import { errors } from '@/lib/errors';
 import { formatAmount, parseAmount } from '@/lib/forms';
@@ -54,6 +55,9 @@ const values = reactive({
     receipt: null as File | null,
 });
 
+/** The changes not saved: closing with the × asks first, *Cancel* does not. */
+const changes = useUnsavedChanges(() => values, { active: () => open.value });
+
 /** The messages of the server, by field. */
 const problems = ref<Record<string, string>>({});
 
@@ -72,6 +76,7 @@ watch(open, (isOpen) => {
             deadline.account_id === null ? '' : String(deadline.account_id);
         values.receipt = null;
         problems.value = {};
+        changes.reset();
     } else {
         emit('close');
     }
@@ -152,6 +157,7 @@ function save(): void {
 <template>
     <FmBottomSheet
         v-model:open="open"
+        :before-close="changes.confirmClose"
         :title="income ? $t('It arrived') : $t('I paid it')"
     >
         <p class="m-0 text-[15px] text-[#4A5565]">

@@ -19,6 +19,7 @@ import { errors } from '@/lib/errors';
 import { personValues } from '@/lib/family';
 import { initialsOf } from '@/lib/names';
 import { index, show, store, update } from '@/routes/people';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { person, roles } = defineProps<{
     /** The person to change, or null for a new one. */
@@ -32,6 +33,9 @@ const form = useForm({
     photo: null as File | null,
     remove_photo: false,
 });
+
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => form.data());
 
 /** Where *Close* goes back to. */
 const back = computed(() => (person ? show.url(person.id) : index().url));
@@ -170,9 +174,12 @@ useSaveShortcut(save, () => !form.processing);
                     :errors="errors(form.errors.notes)"
                 />
                 <div class="mt-1.5 flex flex-wrap justify-end gap-2.5">
-                    <FmButton variant="text" :href="back">{{
-                        $t('Cancel')
-                    }}</FmButton>
+                    <FmButton
+                        variant="text"
+                        :href="back"
+                        data-discard-changes
+                        >{{ $t('Cancel') }}</FmButton
+                    >
                     <FmButton type="submit" :disabled="form.processing">{{
                         $t('Save')
                     }}</FmButton>

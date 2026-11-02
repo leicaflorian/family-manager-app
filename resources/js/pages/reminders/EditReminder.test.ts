@@ -10,7 +10,8 @@ import {
     reminderPeople,
     remindersPage,
 } from '@/test/fixtures';
-import { choose, renderPage, search, settle } from '@/test/page';
+import { hasChanges } from '@/lib/unsavedChanges';
+import { choose, renderPage, search, settle, tapCancel } from '@/test/page';
 import EditReminder from './EditReminder.vue';
 
 const props = {
@@ -259,5 +260,22 @@ describe('Edit a reminder', () => {
         expect(
             screen.queryByRole('button', { name: 'Delete' }),
         ).not.toBeInTheDocument();
+    });
+});
+
+describe('Changes not saved', () => {
+    it('has them once a field changes, and gives them up with Cancel', async () => {
+        renderPage(EditReminder, props);
+        expect(hasChanges()).toBe(false);
+
+        await userEvent.type(
+            screen.getByLabelText(/What needs doing/),
+            'Pagare il bollo',
+        );
+        await settle();
+        expect(hasChanges()).toBe(true);
+
+        await tapCancel();
+        expect(hasChanges()).toBe(false);
     });
 });
