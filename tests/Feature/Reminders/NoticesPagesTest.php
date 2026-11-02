@@ -134,11 +134,31 @@ test('marking one read twice keeps the first date', function (): void {
     expect(insideBianchi(fn (): string => ReminderNotice::query()->findOrFail($notice->id)->read_at->format('Y-m-d H:i')))->toBe('2026-10-25 08:00');
 });
 
+test('the Home sends the notices of the bell only when the menu asks for them', function (): void {
+    $new = noticeFor($this->marco);
+    $seen = noticeFor($this->marco, ['read_at' => now()]);
+    noticeFor($this->laura);
+
+    $this->actingAs($this->marco)->get('/dashboard')
+        ->assertInertia(fn ($page) => $page->missing('notices')
+            ->reloadOnly('notices', fn ($reload) => $reload
+                ->where('notices.unread.0.id', $new->id)
+                ->has('notices.unread', 1)
+                ->where('notices.seen.0.id', $seen->id)
+                ->has('notices.seen', 1)));
+});
+
+test('read all goes back to the page it was asked from', function (): void {
+    noticeFor($this->marco);
+
+    $this->actingAs($this->marco)->from('/dashboard')->post('/notices/read')->assertRedirect('/dashboard');
+});
+
 test('read all marks only the notices of the account', function (): void {
     $mine = noticeFor($this->marco);
     $hers = noticeFor($this->laura);
 
-    $this->actingAs($this->marco)->post('/notices/read')->assertRedirect('/notices');
+    $this->actingAs($this->marco)->from('/notices')->post('/notices/read')->assertRedirect('/notices');
 
     insideBianchi(function () use ($mine, $hers): void {
         expect(ReminderNotice::query()->findOrFail($mine->id)->read_at)->not->toBeNull()

@@ -1577,3 +1577,53 @@ export const reminderLinks: App.Data.LinkGroupData[] = [
     },
     { type: 'person', label: 'People', options: reminderPeople },
 ];
+
+/**
+ * A notice of the bell as the server sends it (`ReminderNoticeData`).
+ *
+ * @param change - the fields that differ from a new notice of the road tax
+ * @returns the notice
+ */
+export function bellNotice(
+    change: Partial<App.Data.ReminderNoticeData> = {},
+): App.Data.ReminderNoticeData {
+    return {
+        id: 1,
+        title: 'Pay the road tax',
+        subject: null,
+        area: 'general',
+        due_text: 'By 31/10/2026, in 5 days',
+        sent_at: '2026-10-24T06:00',
+        read: false,
+        state: null,
+        href: '/reminders/1/edit',
+        ...change,
+    };
+}
+
+/** The new notices of Marco: the road tax and the car insurance. */
+export const unreadNotices: App.Data.ReminderNoticeData[] = [
+    bellNotice({ id: 1 }),
+    bellNotice({
+        id: 2,
+        title: 'Renew the policy · Panda car insurance',
+        area: 'insurance',
+        href: '/cards/insurance/2',
+    }),
+];
+
+/** The notices Marco already saw: one of a late reminder, one of a reminder done. */
+export const seenNotices: App.Data.ReminderNoticeData[] = [
+    bellNotice({
+        id: 3,
+        title: 'Renew the document · Health card',
+        read: true,
+        state: 'expired',
+    }),
+    bellNotice({
+        id: 4,
+        title: 'Renew the ID card',
+        read: true,
+        state: 'done',
+    }),
+];

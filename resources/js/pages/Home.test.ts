@@ -1,4 +1,6 @@
+import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import {
     afterEach,
     beforeEach,
@@ -7,7 +9,12 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { agendaEntries, pendingPayslip } from '@/test/fixtures';
+import {
+    agendaEntries,
+    pendingPayslip,
+    seenNotices,
+    unreadNotices,
+} from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Home from './Home.vue';
 
@@ -86,18 +93,38 @@ describe('Home', () => {
         renderPage(Home, { home });
 
         expect(
-            screen.getByRole('link', { name: 'Notices: 2 new' }),
-        ).toHaveAttribute('href', '/notices');
+            screen.getByRole('button', { name: 'Notices: 2 new' }),
+        ).toBeInTheDocument();
         shared.unread_notices = 0;
     });
 
-    it('has the bell without a dot when nothing is new', () => {
+    it('loads only the notices when the bell opens its menu, without changing the address', async () => {
+        const reload = vi
+            .spyOn(router, 'reload')
+            .mockImplementation(() => undefined);
         renderPage(Home, { home });
 
-        expect(screen.getByRole('link', { name: 'Notices' })).toHaveAttribute(
-            'href',
-            '/notices',
+        await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({ only: ['notices'], preserveUrl: true }),
         );
+        reload.mockRestore();
+    });
+
+    it('shows the notices in the menu of the bell once they arrive', async () => {
+        vi.spyOn(router, 'reload').mockImplementation(() => undefined);
+        renderPage(Home, {
+            home,
+            notices: { unread: unreadNotices, seen: seenNotices },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
+
+        expect(
+            screen.getByRole('region', { name: 'New notices' }),
+        ).toHaveTextContent('Pay the road tax');
+        vi.restoreAllMocks();
     });
 
     it('shows the total and the deadlines, the late one first', () => {

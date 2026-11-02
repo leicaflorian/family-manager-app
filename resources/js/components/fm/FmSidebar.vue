@@ -113,7 +113,7 @@ function isPage(section: Section): boolean {
 
         <Link
             :href="items.upload"
-            class="mb-3.5 flex h-11.5 items-center justify-center gap-2 rounded-[10px] bg-action text-base font-normal text-white no-underline hover:bg-action-dark"
+            class="mb-3.5 flex h-11.5 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-action text-base font-normal text-white no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
             {{ $t('Upload') }}

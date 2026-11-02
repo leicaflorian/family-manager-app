@@ -7,14 +7,15 @@
  * computer: the box and the deadlines on the left, the incomes on the right.
  * *Something is missing* (on the right, only when a card lacks a document,
  * with the page that uploads it) and the bell of the notices beside the
- * greeting. The recently uploaded documents and the mail come with their own
+ * greeting, whose menu loads the notices when it opens. The recently uploaded documents and the mail come with their own
  * items.
  */
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
+import type { BellNotices } from '@/components/fm/FmBell.vue';
 import FmBell from '@/components/fm/FmBell.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChecklist from '@/components/fm/FmChecklist.vue';
@@ -27,15 +28,22 @@ import { agenda, areas, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
 import { create as invite } from '@/routes/family/invitations';
 
-const { home } = defineProps<{
+const { home, notices } = defineProps<{
     /** What the Home shows, as the server sends it. */
     home: App.Data.HomeData;
+    /** The notices of the menu of the bell: the server sends them only when the menu asks. */
+    notices?: BellNotices;
 }>();
 
 const page = usePage();
 
 /** How many notices the account has not seen yet, for the dot of the bell. */
 const unreadNotices = computed((): number => page.props.unread_notices ?? 0);
+
+/** Loads the notices of the bell when its menu opens, without changing the address. */
+function loadNotices(): void {
+    router.reload({ only: ['notices'], preserveUrl: true });
+}
 
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
 
@@ -114,7 +122,12 @@ const hasRightColumn = computed(
                     {{ $t('Hi, :name', { name: home.first_name }) }}
                 </h1>
             </div>
-            <FmBell :count="unreadNotices" class="rounded-full bg-white" />
+            <FmBell
+                :count="unreadNotices"
+                :notices="notices"
+                class="rounded-full bg-white"
+                @open="loadNotices"
+            />
         </div>
 
         <FmCard v-if="home.pending_count > 0" :title="$t('Waiting')" list>

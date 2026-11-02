@@ -385,7 +385,7 @@
   {
     "name": "FmBell",
     "path": "resources/js/components/fm/FmBell.vue",
-    "description": "The bell in the header: it leads to *Notices* and, when there are notices\nnot yet seen, shows how many in a red dot (up to 99).",
+    "description": "The bell in the header of the Home. When there are notices not yet seen it\nshows how many in a red dot (up to 99). A tap opens the menu of the notices\nunder it, on the computer and on the phone, as the board *Avvisi-pc* draws\nit: the title *Notices* with *Mark all as read* while something is new,\nthen the notices (`FmNoticeList`). The notices are not in the page until the\nmenu asks for them: opening it emits `open`, and until `notices` arrives the\nmenu says it is loading.",
     "group": "navigation",
     "props": [
       {
@@ -396,16 +396,20 @@
         "description": "How many notices the person has not seen yet."
       },
       {
-        "name": "href",
-        "type": "string",
+        "name": "notices",
+        "type": "BellNotices",
         "required": false,
-        "default": "notices().url",
-        "description": "Where the bell leads."
+        "default": null,
+        "description": "The notices of the menu; missing until the page loads them."
       }
     ],
-    "events": [],
+    "events": [
+      "open"
+    ],
     "slots": [],
-    "types": [],
+    "types": [
+      "export type BellNotices = {"
+    ],
     "usedBy": [
       "pages/Home.vue"
     ]
@@ -690,6 +694,7 @@
       "components/fm/FmCardBudget.vue",
       "components/fm/FmCardPayments.vue",
       "components/fm/FmChecklist.vue",
+      "components/fm/FmNoticeList.vue",
       "pages/Agenda.vue",
       "pages/Home.vue",
       "pages/budget/Comparison.vue",
@@ -703,7 +708,6 @@
       "pages/family/Organization.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
-      "pages/notices/Notices.vue",
       "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",
@@ -1708,6 +1712,7 @@
     ],
     "types": [],
     "usedBy": [
+      "components/fm/FmNoticeList.vue",
       "pages/Agenda.vue",
       "pages/Area.vue",
       "pages/Areas.vue",
@@ -1717,7 +1722,6 @@
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue",
       "pages/family/Organizations.vue",
-      "pages/notices/Notices.vue",
       "pages/reminders/Reminders.vue"
     ]
   },
@@ -2040,6 +2044,7 @@
       "components/fm/FmMovementPanel.vue",
       "components/fm/FmNewTabLink.vue",
       "components/fm/FmNotice.vue",
+      "components/fm/FmNoticeList.vue",
       "components/fm/FmNoticeRow.vue",
       "components/fm/FmNotificationRule.vue",
       "components/fm/FmOrganizationMark.vue",
@@ -2067,7 +2072,6 @@
       "pages/family/Organizations.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
-      "pages/notices/Notices.vue",
       "pages/reminders/EditReminder.vue",
       "pages/settings/Account.vue",
       "pages/settings/Settings.vue"
@@ -2551,6 +2555,35 @@
     ]
   },
   {
+    "name": "FmNoticeList",
+    "path": "resources/js/components/fm/FmNoticeList.vue",
+    "description": "The notices of the bell: the ones not seen yet in the box *New notices*,\nthen the ones already seen, each an `FmNoticeRow`; with no notice at all, a\nword that they arrive here. It ends saying the same notices arrive by email,\nwith the way to *Settings*. Used by the page *Notices* and by the menu of\nthe bell (`FmBell`), which put their title above it.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "unread",
+        "type": "App.Data.ReminderNoticeData[]",
+        "required": true,
+        "default": null,
+        "description": "The notices the person has not seen yet, the most recent first."
+      },
+      {
+        "name": "seen",
+        "type": "App.Data.ReminderNoticeData[]",
+        "required": true,
+        "default": null,
+        "description": "The notices already seen, the most recent first."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmBell.vue",
+      "pages/notices/Notices.vue"
+    ]
+  },
+  {
     "name": "FmNoticeRow",
     "path": "resources/js/components/fm/FmNoticeRow.vue",
     "description": "A notice of the bell in *Notices*: the icon with the colour of the area (grey\nonce seen), what is due, the line of the deadline as the notice said it, when\nit went out and, if the reminder is late or done today, a label. A dot marks\na notice not yet seen. The whole row leads to the card or to *Reminders*: a\nnew notice does so with one POST to `readHref`, which marks it seen and\nsends the person on; a seen one is a plain link.",
@@ -2575,7 +2608,7 @@
     "slots": [],
     "types": [],
     "usedBy": [
-      "pages/notices/Notices.vue"
+      "components/fm/FmNoticeList.vue"
     ]
   },
   {
@@ -3208,6 +3241,7 @@
     ],
     "types": [],
     "usedBy": [
+      "components/fm/FmBell.vue",
       "components/fm/FmCardFiles.vue",
       "components/fm/FmCardPayments.vue",
       "components/fm/FmMenu.vue",

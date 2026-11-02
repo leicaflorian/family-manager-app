@@ -49,7 +49,8 @@ final class NoticeController extends Controller
     }
 
     /**
-     * Marks every notice of the account as read; the notices of the others stay as they are.
+     * Marks every notice of the account as read, then goes back to the page it was asked from:
+     * *Notices*, or the Home with the menu of the bell. The notices of the others stay as they are.
      */
     public function readAll(#[CurrentUser] User $user): RedirectResponse
     {
@@ -57,6 +58,6 @@ final class NoticeController extends Controller
 
         ReminderNotice::query()->where('user_id', $user->id)->unread()->update(['read_at' => now()]);
 
-        return to_route('notices');
+        return back(fallback: route('notices'));
     }
 }

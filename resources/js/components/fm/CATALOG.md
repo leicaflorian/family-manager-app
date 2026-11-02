@@ -30,7 +30,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 ### Navigation
 
 - [FmBackLink](#fmbacklink) — The link back to the page a page comes from, with a chevron and that page's name, above the title or the header of a page.
-- [FmBell](#fmbell) — The bell in the header: it leads to *Notices* and, when there are notices not yet seen, shows how many in a red dot (up to 99).
+- [FmBell](#fmbell) — The bell in the header of the Home.
 - [FmBottomBar](#fmbottombar) — The bottom bar of the phone (below 1024 px): Home, Budget, the + of Upload in the middle, Areas and More.
 - [FmFamilyViews](#fmfamilyviews) — The top of *People* and *Organizations*: the title *Family* with the name of the family, the actions of the page and the two views, each with how many.
 - [FmHeader](#fmheader) — The big title of a sign-in page written by the page itself, when it depends on the data («Hi, Rosa»): like the one of `AuthLayout`.
@@ -108,6 +108,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmChecklist](#fmchecklist) — *To begin*, on the Home of a new family: the first steps, each a link to where it is done.
 - [FmDocumentDetail](#fmdocumentdetail) — A document as the board *Un documento* shows it: the preview of the file on grey and, beside it, its data, the linked records (one type at a time) and the notes.
 - [FmLinkedRecords](#fmlinkedrecords) — *Links* of *A person* and *An organization*: the records that name them, one type at a time, with a tab for each type and how many records it has.
+- [FmNoticeList](#fmnoticelist) — The notices of the bell: the ones not seen yet in the box *New notices*, then the ones already seen, each an `FmNoticeRow`; with no notice at all, a word that they arrive here.
 - [FmPaymentYears](#fmpaymentyears) — The payments of the planned items of a page by year, the latest first: a line with the year (and, with `counts`, how many payments) and its total, then each payment with its day, title, account, the clip of a receipt and the amount.
 - [FmReminderGroup](#fmremindergroup) — The box of a group of notices in *Settings → Notices*: its name (with the label *Default* for the group of everything else), the kinds of deadline it covers in words and a line for each notice («45 days before · App and email · Everyone»).
 
@@ -393,6 +394,7 @@ a short explanation can go under the card, in `note`.
 - `components/fm/FmCardBudget.vue`
 - `components/fm/FmCardPayments.vue`
 - `components/fm/FmChecklist.vue`
+- `components/fm/FmNoticeList.vue`
 - `pages/Agenda.vue`
 - `pages/Home.vue`
 - `pages/budget/Comparison.vue`
@@ -406,7 +408,6 @@ a short explanation can go under the card, in `note`.
 - `pages/family/Organization.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
-- `pages/notices/Notices.vue`
 - `pages/reminders/Reminders.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
@@ -562,6 +563,7 @@ below, what can be done.
 
 ### Used by
 
+- `components/fm/FmNoticeList.vue`
 - `pages/Agenda.vue`
 - `pages/Area.vue`
 - `pages/Areas.vue`
@@ -571,7 +573,6 @@ below, what can be done.
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organizations.vue`
-- `pages/notices/Notices.vue`
 - `pages/reminders/Reminders.vue`
 
 ## FmFaces
@@ -699,6 +700,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `components/fm/FmMovementPanel.vue`
 - `components/fm/FmNewTabLink.vue`
 - `components/fm/FmNotice.vue`
+- `components/fm/FmNoticeList.vue`
 - `components/fm/FmNoticeRow.vue`
 - `components/fm/FmNotificationRule.vue`
 - `components/fm/FmOrganizationMark.vue`
@@ -726,7 +728,6 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `pages/family/Organizations.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
-- `pages/notices/Notices.vue`
 - `pages/reminders/EditReminder.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Settings.vue`
@@ -1031,27 +1032,45 @@ name, above the title or the header of a page.
 
 `resources/js/components/fm/FmBell.vue`
 
-The bell in the header: it leads to *Notices* and, when there are notices
-not yet seen, shows how many in a red dot (up to 99).
+The bell in the header of the Home. When there are notices not yet seen it
+shows how many in a red dot (up to 99). A tap opens the menu of the notices
+under it, on the computer and on the phone, as the board *Avvisi-pc* draws
+it: the title *Notices* with *Mark all as read* while something is new,
+then the notices (`FmNoticeList`). The notices are not in the page until the
+menu asks for them: opening it emits `open`, and until `notices` arrives the
+menu says it is loading.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `count` | `number` | yes | — | How many notices the person has not seen yet. |
-| `href` | `string` | no | `notices().url` | Where the bell leads. |
+| `notices` | `BellNotices` | no | — | The notices of the menu; missing until the page loads them. |
+
+### Events
+
+- `open`
+
+### Types
+
+```ts
+export type BellNotices = {
+```
 
 ### Examples
 
 ```vue
 <!-- Nothing new -->
-<FmBell :count="0" />
+<FmBell :count="0" :notices="notices" />
 
 <!-- Two new -->
-<FmBell :count="2" />
+<FmBell :count="2" :notices="notices" />
 
 <!-- Many -->
-<FmBell :count="120" />
+<FmBell :count="120" :notices="notices" />
+
+<!-- Loading -->
+<FmBell :count="2" />
 ```
 
 ### Used by
@@ -1416,6 +1435,7 @@ every page.
 
 ### Used by
 
+- `components/fm/FmBell.vue`
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmCardPayments.vue`
 - `components/fm/FmMenu.vue`
@@ -1777,7 +1797,7 @@ sends the person on; a seen one is a plain link.
 
 ### Used by
 
-- `pages/notices/Notices.vue`
+- `components/fm/FmNoticeList.vue`
 
 ## FmPlannedRow
 
@@ -3598,6 +3618,41 @@ reminders of that person.
 
 - `pages/family/Organization.vue`
 - `pages/family/Person.vue`
+
+## FmNoticeList
+
+`resources/js/components/fm/FmNoticeList.vue`
+
+The notices of the bell: the ones not seen yet in the box *New notices*,
+then the ones already seen, each an `FmNoticeRow`; with no notice at all, a
+word that they arrive here. It ends saying the same notices arrive by email,
+with the way to *Settings*. Used by the page *Notices* and by the menu of
+the bell (`FmBell`), which put their title above it.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `unread` | `App.Data.ReminderNoticeData[]` | yes | — | The notices the person has not seen yet, the most recent first. |
+| `seen` | `App.Data.ReminderNoticeData[]` | yes | — | The notices already seen, the most recent first. |
+
+### Examples
+
+```vue
+<!-- New and seen -->
+<FmNoticeList :unread="unread" :seen="seen" />
+
+<!-- Only seen -->
+<FmNoticeList :unread="unread" :seen="seen" />
+
+<!-- None -->
+<FmNoticeList :unread="unread" :seen="seen" />
+```
+
+### Used by
+
+- `components/fm/FmBell.vue`
+- `pages/notices/Notices.vue`
 
 ## FmPaymentYears
 

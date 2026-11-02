@@ -1,24 +1,15 @@
 <script setup lang="ts">
 /**
- * *Notices*, the page of the bell: the notices not seen yet on top, then the
- * ones already seen, each with what is due, the words of the deadline of the
- * day it went out and, if the reminder is late or done, a label. A new notice
- * is marked as seen by the one visit that opens it, and *Mark all as read* does it for all.
- * The same notices arrive by email.
+ * *Notices*, the page of the bell, for whoever arrives with its address: the
+ * title with *Mark all as read* while something is new, then the notices
+ * (`FmNoticeList`), the same the menu of the bell shows on the Home.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
-import { BellOff, Mail } from '@lucide/vue';
-import { computed } from 'vue';
-import FmCard from '@/components/fm/FmCard.vue';
-import FmEmpty from '@/components/fm/FmEmpty.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
-import FmNoticeRow from '@/components/fm/FmNoticeRow.vue';
+import { Head, router } from '@inertiajs/vue3';
+import FmNoticeList from '@/components/fm/FmNoticeList.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import type { NoticeItem } from '@/lib/reminders';
-import { toNoticeItem } from '@/lib/reminders';
-import { dashboard, settings } from '@/routes';
-import { read, readAll } from '@/routes/notices';
+import { dashboard } from '@/routes';
+import { readAll } from '@/routes/notices';
 
 const { unread, seen } = defineProps<{
     /** The notices the person has not seen yet, the most recent first. */
@@ -26,12 +17,6 @@ const { unread, seen } = defineProps<{
     /** The notices already seen, the most recent first. */
     seen: App.Data.ReminderNoticeData[];
 }>();
-
-/** The new notices, as rows. */
-const fresh = computed((): NoticeItem[] => unread.map(toNoticeItem));
-
-/** The seen notices, as rows. */
-const old = computed((): NoticeItem[] => seen.map(toNoticeItem));
 
 /** Marks every notice as read. */
 function markAll(): void {
@@ -48,50 +33,13 @@ function markAll(): void {
             :back="dashboard().url"
             :back-label="$t('Home')"
         >
-            <template v-if="fresh.length > 0" #actions>
+            <template v-if="unread.length > 0" #actions>
                 <FmSectionLink @click="markAll">{{
                     $t('Mark all as read')
                 }}</FmSectionLink>
             </template>
         </FmTitle>
 
-        <FmEmpty
-            v-if="fresh.length === 0 && old.length === 0"
-            :icon="BellOff"
-            :title="$t('No notices yet')"
-            :text="
-                $t(
-                    'The notices of the deadlines arrive here on the morning they are due.',
-                )
-            "
-        />
-
-        <FmCard v-if="fresh.length > 0" :title="$t('New notices')" list>
-            <FmNoticeRow
-                v-for="notice in fresh"
-                :key="notice.id"
-                :notice="notice"
-                :read-href="read.url(notice.id)"
-            />
-        </FmCard>
-
-        <FmCard v-if="old.length > 0" :title="$t('Already seen')" list>
-            <FmNoticeRow
-                v-for="notice in old"
-                :key="notice.id"
-                :notice="notice"
-                :read-href="read.url(notice.id)"
-            />
-        </FmCard>
-
-        <p class="m-0 flex items-start gap-2 text-sm text-ink-soft">
-            <FmIcon :icon="Mail" :size="16" class="mt-0.5 shrink-0" />
-            <span
-                >{{ $t('The same notices arrive by email.') }}
-                <Link :href="settings().url" class="font-semibold">{{
-                    $t('Choose which ones in Settings')
-                }}</Link></span
-            >
-        </p>
+        <FmNoticeList :unread="unread" :seen="seen" />
     </div>
 </template>
