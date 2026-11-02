@@ -10,6 +10,7 @@
 import { router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { addYears } from '@/lib/days';
 import { errors } from '@/lib/errors';
 import FmBottomSheet from './FmBottomSheet.vue';
@@ -45,11 +46,17 @@ const problems = ref<Record<string, string>>({});
 /** The date is being sent. */
 const processing = ref(false);
 
+/** Asks before leaving or closing with the date changed and not saved. */
+const changes = useUnsavedChanges(() => day.value, {
+    active: () => open.value,
+});
+
 // Opened again, the field starts again from the proposed date
 watch(open, (isOpen) => {
     if (isOpen) {
         day.value = proposed();
         problems.value = {};
+        changes.reset();
     }
 });
 
@@ -84,6 +91,7 @@ function save(): void {
 <template>
     <FmBottomSheet
         v-model:open="open"
+        :before-close="changes.confirmClose"
         :title="renewed ? $t('Renewed') : $t('Update the date')"
     >
         <div class="flex flex-col rounded-2xl bg-canvas p-3.5">

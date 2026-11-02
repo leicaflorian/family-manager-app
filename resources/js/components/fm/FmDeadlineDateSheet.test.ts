@@ -3,6 +3,7 @@ import type { VisitOptions } from '@inertiajs/core';
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 import { agendaEntries } from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import FmDeadlineDateSheet from './FmDeadlineDateSheet.vue';
@@ -131,5 +132,25 @@ describe('FmDeadlineDateSheet', () => {
         await settle();
 
         expect(view.emitted()['update:open']).toEqual([[false]]);
+    });
+
+    it('asks before closing with the × when the date changed', async () => {
+        const view = renderPage(FmDeadlineDateSheet, {
+            entry: healthCard,
+            renewed: false,
+            open: true,
+        });
+        await screen.findByRole('dialog');
+        const field = screen.getByLabelText('Correct date');
+        await userEvent.clear(field);
+        await userEvent.type(field, '15/10/2026');
+        await settle();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
+        await settle();
+        expect(view.emitted()['update:open']).toBeUndefined();
     });
 });
