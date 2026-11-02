@@ -1415,3 +1415,123 @@ export const agendaAreas: App.Data.OptionData[] = [
     ['paperwork', 'Paperwork'],
     ['general', 'People and documents'],
 ].map(([value, label]) => ({ value, label, help: null }));
+
+/** The health card of Giulia: a reminder made by the app, late, with no notice left. */
+export const healthCardReminder: App.Data.ReminderData = {
+    id: 1,
+    title: 'Renew the health card',
+    due_date: '2026-09-30',
+    status: 'open' as App.Enums.ReminderStatus,
+    is_automatic: true,
+    subject: {
+        type: 'document',
+        id: 4,
+        label: 'Tessera sanitaria di Giulia',
+        href: '/documents/4',
+        area: 'general',
+    },
+    person: { id: 4, name: 'Giulia', initials: 'GB', photo: null },
+    group_id: null,
+    next_notice: null,
+    notice_sent: true,
+    missing_expense: false,
+    href: '/documents/4',
+};
+
+/** The plumber: a reminder written by hand, coming, for Laura. */
+export const plumberReminder: App.Data.ReminderData = {
+    id: 2,
+    title: "Chiamare l'idraulico per il preventivo del bagno",
+    due_date: '2026-10-31',
+    status: 'open' as App.Enums.ReminderStatus,
+    is_automatic: false,
+    subject: {
+        type: 'home',
+        id: 1,
+        label: 'Casa di via Roma',
+        href: '/cards/home/1',
+        area: 'home',
+    },
+    person: { id: 3, name: 'Laura', initials: 'LB', photo: null },
+    group_id: 5,
+    next_notice: '2026-10-30',
+    notice_sent: true,
+    missing_expense: false,
+    href: '/reminders/2/edit',
+};
+
+/** The inspection of the Panda, made by the app, coming, for Marco. */
+export const inspectionReminder: App.Data.ReminderData = {
+    id: 3,
+    title: 'Do the inspection',
+    due_date: '2027-01-09',
+    status: 'open' as App.Enums.ReminderStatus,
+    is_automatic: true,
+    subject: {
+        type: 'vehicle',
+        id: 1,
+        label: 'Fiat Panda',
+        href: '/cards/vehicle/1',
+        area: 'vehicles',
+    },
+    person: { id: 1, name: 'Marco', initials: 'MB', photo: null },
+    group_id: null,
+    next_notice: '2026-11-25',
+    notice_sent: false,
+    missing_expense: false,
+    href: '/cards/vehicle/1',
+};
+
+/** A reminder already done. */
+export const doneReminder: App.Data.ReminderData = {
+    id: 4,
+    title: 'Pay the road tax',
+    due_date: '2026-10-05',
+    status: 'done' as App.Enums.ReminderStatus,
+    is_automatic: false,
+    subject: null,
+    person: null,
+    group_id: null,
+    next_notice: null,
+    notice_sent: true,
+    missing_expense: false,
+    href: '/reminders/4/edit',
+};
+
+/** The people of the family as the menus of the reminders have them: the id as text. */
+export const reminderPeople: App.Data.OptionData[] = [
+    { value: '1', label: 'Marco', help: null },
+    { value: '3', label: 'Laura', help: null },
+    { value: '4', label: 'Giulia', help: null },
+];
+
+/** The props of *Reminders* as the controller sends them. */
+export const remindersPage: App.Data.RemindersPageData = {
+    open: [healthCardReminder, plumberReminder, inspectionReminder],
+    done: [doneReminder],
+    people: reminderPeople,
+    person_id: null,
+};
+
+/** The alert groups of the form, with the people who get their notices. */
+export const reminderGroups: App.Data.ReminderGroupChoiceData[] = [
+    { value: '5', label: 'Default', recipients: ['Marco', 'Laura'] },
+    { value: '6', label: 'Only Laura', recipients: ['Laura'] },
+];
+
+/** The things a reminder can refer to, as the controller groups them. */
+export const reminderLinks: App.Data.LinkGroupData[] = [
+    {
+        type: 'home',
+        label: 'Homes',
+        options: [{ value: '1', label: 'Casa di via Roma', help: null }],
+    },
+    {
+        type: 'document',
+        label: 'Documents',
+        options: [
+            { value: '4', label: 'Tessera sanitaria di Giulia', help: null },
+        ],
+    },
+    { type: 'person', label: 'People', options: reminderPeople },
+];

@@ -41,6 +41,7 @@ function agenda(
             filters: { months: 1, person_id: null, hidden_areas: [] },
             areas,
             periods: [1, 3, 6, 12],
+            open_reminders: 10,
             ...change,
         },
     };
@@ -65,7 +66,11 @@ function screenWidth(computer: boolean): void {
 function rows(): HTMLElement[] {
     return screen
         .queryAllByRole('link')
-        .filter((link) => link.getAttribute('href') === '/agenda');
+        .filter(
+            (link) =>
+                link.getAttribute('href') === '/agenda' &&
+                link.closest('nav') === null,
+        );
 }
 
 let put: MockInstance<typeof router.put>;
@@ -86,6 +91,21 @@ afterEach(() => {
 });
 
 describe('Agenda', () => {
+    it('has the tabs Deadlines and Reminders with the number still to do, and the way to a new reminder', () => {
+        renderPage(Agenda, agenda());
+
+        expect(screen.getByRole('link', { name: 'Deadlines' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+        expect(
+            screen.getByRole('link', { name: 'Reminders 10' }),
+        ).toHaveAttribute('href', '/reminders');
+        expect(
+            screen.getByRole('link', { name: 'New reminder' }),
+        ).toHaveAttribute('href', '/reminders/create');
+    });
+
     it('puts To sort out on top with the line about the passed deadlines', () => {
         renderPage(Agenda, agenda());
 

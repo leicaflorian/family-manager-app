@@ -29,6 +29,7 @@ final class AgendaData extends Data
      * @param  list<PersonData>  $people  the people of the family
      * @param  AgendaFiltersData  $filters  the filters
      * @param  list<OptionData>  $areas  the ten areas in the order of the board, with the names the Agenda gives them
+     * @param  int  $open_reminders  how many reminders of the family are still to do, for the number on the tab
      * @param  list<int>  $periods  the periods the person can choose, in months
      */
     public function __construct(
@@ -42,6 +43,7 @@ final class AgendaData extends Data
         public readonly AgendaFiltersData $filters,
         #[DataCollectionOf(OptionData::class)]
         public readonly array $areas,
+        public readonly int $open_reminders,
         public readonly array $periods = self::PERIODS,
     ) {}
 

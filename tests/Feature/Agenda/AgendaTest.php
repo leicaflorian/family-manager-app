@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Data\AgendaEntryData;
 use App\Enums\DocumentStatus;
 use App\Enums\ExceptionType;
+use App\Enums\ReminderStatus;
 use App\Enums\VehicleStatus;
 use App\Models\Document;
 use App\Models\Expense;
@@ -13,12 +14,14 @@ use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
 use App\Models\PlannedIncome;
+use App\Models\Reminder;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\Agenda;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
+use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Date;
 use Inertia\Testing\AssertableInertia;
@@ -304,4 +307,14 @@ test('the filters accept every area the agenda sends and nothing else', function
 
     $this->actingAs($marco)->put('/agenda/filters', $payload($values))->assertSessionHasNoErrors();
     $this->actingAs($marco)->put('/agenda/filters', $payload(['nowhere']))->assertSessionHasErrors('hidden_areas.0');
+});
+
+test('the agenda counts the open reminders of the whole family for the tab, whatever the filters', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+    $marco = User::query()->where('email', 'marco.bianchi@example.com')->sole();
+    $open = CurrentFamily::using($marco->family_id, fn (): int => Reminder::query()->where('status', ReminderStatus::Open)->count());
+
+    expect($open)->toBeGreaterThan(0)
+        ->and(agendaFor($marco)['open_reminders'])->toBe($open)
+        ->and(agendaFor($marco, '?months=3')['open_reminders'])->toBe($open);
 });

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 import type { NoticeRule, RulePerson } from './reminders';
-import { nextNoticeText, ruleText, sentAtText } from './reminders';
+import {
+    agendaTabs,
+    nextNoticeText,
+    recipientsSentence,
+    ruleText,
+    sentAtText,
+    toReminderItem,
+} from './reminders';
 
 const people: RulePerson[] = [
     { id: 1, name: 'Marco', initials: 'MB', photo: null },
@@ -75,6 +82,98 @@ describe('sentAtText', () => {
     it('writes only the date for an older one', () => {
         expect(sentAtText('2026-10-07T06:00:00+02:00', today, 'en')).toBe(
             '07/10 at 6:00',
+        );
+    });
+});
+
+const row: App.Data.ReminderData = {
+    id: 7,
+    title: 'Pay the road tax',
+    due_date: '2026-11-20',
+    status: 'open' as App.Enums.ReminderStatus,
+    is_automatic: false,
+    subject: {
+        type: 'vehicle',
+        id: 3,
+        label: 'Fiat Panda',
+        href: '/cards/vehicle/3',
+        area: 'vehicles',
+    },
+    person: { id: 1, name: 'Marco', initials: 'MB', photo: null },
+    group_id: null,
+    next_notice: '2026-11-13',
+    notice_sent: false,
+    missing_expense: true,
+    href: '/reminders/7/edit',
+};
+
+describe('toReminderItem', () => {
+    it('gives the row what it shows', () => {
+        expect(toReminderItem(row)).toEqual({
+            id: 7,
+            title: 'Pay the road tax',
+            due_date: '2026-11-20',
+            done: false,
+            manual: true,
+            area: 'vehicles',
+            subject: { label: 'Fiat Panda', href: '/cards/vehicle/3' },
+            person: { name: 'Marco', initials: 'MB', photo: null },
+            next_notice_on: '2026-11-13',
+            notices_sent: 0,
+            missing_planned_expense: true,
+            href: '/reminders/7/edit',
+        });
+    });
+
+    it('marks a done one, an automatic one and a notice already sent', () => {
+        const item = toReminderItem({
+            ...row,
+            status: 'done' as App.Enums.ReminderStatus,
+            is_automatic: true,
+            notice_sent: true,
+            subject: null,
+            person: null,
+        });
+
+        expect(item).toMatchObject({
+            done: true,
+            manual: false,
+            notices_sent: 1,
+            subject: null,
+            person: null,
+            area: null,
+        });
+    });
+});
+
+describe('agendaTabs', () => {
+    it('lists the two pages with the number of reminders and the open one marked', () => {
+        expect(agendaTabs('reminders', 10)).toEqual([
+            { label: 'Deadlines', href: '/agenda', current: false },
+            {
+                label: 'Reminders',
+                href: '/reminders',
+                count: 10,
+                current: true,
+            },
+        ]);
+        expect(agendaTabs('deadlines', 0)[0]?.current).toBe(true);
+    });
+});
+
+describe('recipientsSentence', () => {
+    it('names the people who get the notices', () => {
+        expect(recipientsSentence(['Marco', 'Laura'])).toBe(
+            'Notices arrive in the bell and by email to those with an account: Marco and Laura.',
+        );
+        expect(recipientsSentence(['Marco'])).toBe(
+            'Notices arrive in the bell and by email to those with an account: Marco.',
+        );
+    });
+
+    it('says it without names when nobody is left', () => {
+        expect(recipientsSentence([])).toBe(
+            'Notices arrive in the bell and by email to those with an account.',
         );
     });
 });

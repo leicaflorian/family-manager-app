@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\Reminders\SaveReminder;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
+use App\Data\ReminderGroupChoiceData;
 use App\Data\RemindersPageData;
 use App\Http\Requests\Reminders\SaveReminderRequest;
 use App\Models\Document;
@@ -15,6 +16,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Services\BudgetFormOptions;
 use App\Services\DocumentLinks;
+use App\Services\Reminders\GroupRecipients;
 use App\Services\Reminders\ReminderList;
 use App\Support\ModelId;
 use App\Support\Reminders\SubjectLink;
@@ -116,17 +118,20 @@ final class ReminderController extends Controller
         $row = null;
 
         if ($reminder instanceof Reminder) {
-            $reminder->load('person');
+            $reminder->load('person.photo');
             $this->list->loadSubjects(new Collection([$reminder]));
-            $groups = ReminderGroup::query()->get();
-            $row = $this->list->row($reminder, $groups, [], $today);
+            $row = $this->list->row($reminder, ReminderGroup::query()->get(), [], $today);
         }
+
+        $groups = ReminderGroup::query()->orderBy('name')->get();
+        $recipients = new GroupRecipients;
 
         return Inertia::render('reminders/EditReminder', [
             'reminder' => $row,
             'remindable' => $remindable,
             'people' => BudgetFormOptions::people(),
-            'groups' => ReminderGroup::query()->orderBy('name')->get()->map(static fn (ReminderGroup $group): OptionData => new OptionData((string) ModelId::of($group), $group->name))->all(),
+            'groups' => $groups->map(static fn (ReminderGroup $group): ReminderGroupChoiceData => new ReminderGroupChoiceData((string) ModelId::of($group), $group->name, $recipients->ofGroup($group)))->values()->all(),
+            'default_recipients' => $recipients->ofDefault($groups),
             'links' => $this->links(),
         ]);
     }

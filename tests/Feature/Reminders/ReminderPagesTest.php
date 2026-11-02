@@ -84,6 +84,10 @@ test('the list is the board: the health card of Giulia is overdue with no more n
         ->and($plumber['is_automatic'])->toBeFalse()
         ->and($plumber['href'])->toBe('/reminders/'.$plumber['id'].'/edit')
         ->and($plumber['subject']['type'])->toBe('home')
+        ->and($plumber['subject']['area'])->toBe('home')
+        ->and($health['subject']['area'])->toBe('general')
+        ->and($health['person']['initials'])->toBe('GB')
+        ->and($health['person'])->toHaveKey('photo')
         ->and($plumber['subject']['href'])->toBe('/cards/home/'.$plumber['subject']['id'])
         ->and(collect($page['done'])->pluck('status')->unique()->all())->toBe(['done']);
 });
@@ -312,4 +316,21 @@ test('the title of an automatic reminder is in the language of whoever looks', f
     $health = collect($page['open'])->firstWhere('is_automatic', true);
 
     expect($health['title'])->toBe('Rinnovare il documento');
+});
+
+test('the form tells who gets the notices of each group, and of the default one (an account without a person by its name)', function (): void {
+    $laura = insideBianchi(fn (): int => Person::query()->where('first_name', 'Laura')->sole()->id);
+    insideBianchi(fn (): ReminderGroup => ReminderGroup::query()->create([
+        'name' => 'Solo Laura',
+        'is_default' => false,
+        'deadline_types' => [],
+        'notifications' => [['name' => 'Avviso', 'days' => 3, 'timing' => 'before', 'channels' => 'app', 'recipients' => [$laura]]],
+    ]));
+
+    $props = $this->actingAs($this->marco)->get('/reminders/create')->assertOk()->viewData('page')['props'];
+    $groups = collect($props['groups']);
+
+    expect($groups->firstWhere('label', 'Solo Laura')['recipients'])->toBe(['Laura'])
+        ->and($groups->firstWhere('label', 'Veicoli')['recipients'])->toBe(['Marco', 'Laura', $this->member->name])
+        ->and($props['default_recipients'])->toBe(['Marco', 'Laura', $this->member->name]);
 });

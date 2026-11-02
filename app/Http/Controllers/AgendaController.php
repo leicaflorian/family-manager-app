@@ -10,6 +10,7 @@ use App\Data\AgendaFiltersData;
 use App\Data\PersonData;
 use App\Http\Requests\AgendaFiltersRequest;
 use App\Http\Requests\AgendaRequest;
+use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Agenda;
 use Carbon\CarbonImmutable;
@@ -55,6 +56,7 @@ final class AgendaController extends Controller
                 people: PersonData::ofFamily($user),
                 filters: $shown,
                 areas: AgendaData::areas(),
+                open_reminders: Reminder::query()->open()->count(),
             ),
         ]);
     }

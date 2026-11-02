@@ -317,6 +317,8 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/family/InvitationSent.vue`
 - `pages/family/Invite.vue`
 - `pages/family/Organizations.vue`
+- `pages/reminders/EditReminder.vue`
+- `pages/reminders/Reminders.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
@@ -388,6 +390,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 - `pages/family/Organization.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
+- `pages/reminders/Reminders.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
@@ -546,6 +549,7 @@ below, what can be done.
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organizations.vue`
+- `pages/reminders/Reminders.vue`
 
 ## FmFaces
 
@@ -696,6 +700,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `pages/family/Organizations.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
+- `pages/reminders/EditReminder.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Settings.vue`
 
@@ -804,6 +809,8 @@ export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
 - `pages/family/Invite.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
+- `pages/reminders/EditReminder.vue`
+- `pages/reminders/Reminders.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
@@ -943,6 +950,7 @@ organization.
 - `pages/family/EditPerson.vue`
 - `pages/family/InvitationSent.vue`
 - `pages/family/Invite.vue`
+- `pages/reminders/Reminders.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
 - `pages/settings/Categories.vue`
@@ -1407,7 +1415,9 @@ which opens Settings and Log out.
 
 The tabs at the top of a set of pages (the three of the budget, *Deadlines*
 and *Reminders* of the Agenda). The page lists its tabs; the one of the open
-page is marked, and a tab can show a number after its name.
+page is marked, and a tab can show a number after its name. They are lines
+under the names (`underline`) or, as in the Agenda, a grey pill with the open
+tab in white (`pill`).
 
 ### Props
 
@@ -1415,6 +1425,7 @@ page is marked, and a tab can show a number after its name.
 | --- | --- | --- | --- | --- |
 | `tabs` | `Tab[]` | yes | — | The tabs, in order. |
 | `label` | `string` | yes | — | What the set of tabs is, for those who cannot see it: «Budget». |
+| `variant` | `"underline" \| "pill"` | no | `"underline"` | `underline` (the default) or `pill`, a grey strip with the open tab in white. |
 
 ### Types
 
@@ -1430,14 +1441,20 @@ export type Tab = {
 
 <!-- With a number -->
 <FmTabs label="Agenda" :tabs="tabs" />
+
+<!-- Pill -->
+<FmTabs label="Agenda" variant="pill" :tabs="tabs" />
 ```
 
 ### Used by
 
 - `lib/budgetTabs.ts`
+- `lib/reminders.ts`
+- `pages/Agenda.vue`
 - `pages/budget/Comparison.vue`
 - `pages/budget/Movements.vue`
 - `pages/budget/Planned.vue`
+- `pages/reminders/Reminders.vue`
 
 ## FmActiveFilter
 
@@ -1766,6 +1783,10 @@ of the circle.
 <!-- Done -->
 <FmReminderRow :reminder="reminder" />
 ```
+
+### Used by
+
+- `pages/reminders/Reminders.vue`
 
 ## FmRow
 

@@ -44,4 +44,20 @@ export default defineExamples(FmTabs, [
             ],
         },
     },
+    {
+        name: 'Pill',
+        props: {
+            label: 'Agenda',
+            variant: 'pill',
+            tabs: [
+                { label: 'Deadlines', href: '/agenda', current: false },
+                {
+                    label: 'Reminders',
+                    href: '/reminders',
+                    count: 10,
+                    current: true,
+                },
+            ],
+        },
+    },
 ]);

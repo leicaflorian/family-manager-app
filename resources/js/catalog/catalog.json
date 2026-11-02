@@ -575,6 +575,8 @@
       "pages/family/InvitationSent.vue",
       "pages/family/Invite.vue",
       "pages/family/Organizations.vue",
+      "pages/reminders/EditReminder.vue",
+      "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
@@ -633,6 +635,7 @@
       "pages/family/Organization.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
+      "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",
@@ -1603,7 +1606,8 @@
       "pages/budget/Planned.vue",
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue",
-      "pages/family/Organizations.vue"
+      "pages/family/Organizations.vue",
+      "pages/reminders/Reminders.vue"
     ]
   },
   {
@@ -1949,6 +1953,7 @@
       "pages/family/Organizations.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
+      "pages/reminders/EditReminder.vue",
       "pages/settings/Account.vue",
       "pages/settings/Settings.vue"
     ]
@@ -2406,6 +2411,8 @@
       "pages/family/Invite.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
+      "pages/reminders/EditReminder.vue",
+      "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue"
@@ -2837,7 +2844,9 @@
     ],
     "slots": [],
     "types": [],
-    "usedBy": []
+    "usedBy": [
+      "pages/reminders/Reminders.vue"
+    ]
   },
   {
     "name": "FmRow",
@@ -3079,7 +3088,7 @@
   {
     "name": "FmTabs",
     "path": "resources/js/components/fm/FmTabs.vue",
-    "description": "The tabs at the top of a set of pages (the three of the budget, *Deadlines*\nand *Reminders* of the Agenda). The page lists its tabs; the one of the open\npage is marked, and a tab can show a number after its name.",
+    "description": "The tabs at the top of a set of pages (the three of the budget, *Deadlines*\nand *Reminders* of the Agenda). The page lists its tabs; the one of the open\npage is marked, and a tab can show a number after its name. They are lines\nunder the names (`underline`) or, as in the Agenda, a grey pill with the open\ntab in white (`pill`).",
     "group": "navigation",
     "props": [
       {
@@ -3095,6 +3104,13 @@
         "required": true,
         "default": null,
         "description": "What the set of tabs is, for those who cannot see it: «Budget»."
+      },
+      {
+        "name": "variant",
+        "type": "\"underline\" | \"pill\"",
+        "required": false,
+        "default": "\"underline\"",
+        "description": "`underline` (the default) or `pill`, a grey strip with the open tab in white."
       }
     ],
     "events": [],
@@ -3104,9 +3120,12 @@
     ],
     "usedBy": [
       "lib/budgetTabs.ts",
+      "lib/reminders.ts",
+      "pages/Agenda.vue",
       "pages/budget/Comparison.vue",
       "pages/budget/Movements.vue",
-      "pages/budget/Planned.vue"
+      "pages/budget/Planned.vue",
+      "pages/reminders/Reminders.vue"
     ]
   },
   {
@@ -3169,6 +3188,7 @@
       "pages/family/EditPerson.vue",
       "pages/family/InvitationSent.vue",
       "pages/family/Invite.vue",
+      "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",
       "pages/settings/Categories.vue",

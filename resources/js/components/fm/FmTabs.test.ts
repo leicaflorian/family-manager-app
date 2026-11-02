@@ -46,4 +46,18 @@ describe('FmTabs', () => {
             screen.getByRole('link', { name: 'Deadlines' }),
         ).toBeInTheDocument();
     });
+
+    it('draws the tabs as a grey pill with the open one in white', () => {
+        render(FmTabs, { props: { tabs, label: 'Agenda', variant: 'pill' } });
+
+        expect(screen.getByRole('navigation', { name: 'Agenda' })).toHaveClass(
+            'bg-[#E6EAF0]',
+        );
+        expect(screen.getByRole('link', { name: /Reminders/ })).toHaveClass(
+            'bg-white',
+        );
+        expect(screen.getByRole('link', { name: 'Deadlines' })).not.toHaveClass(
+            'bg-white',
+        );
+    });
 });

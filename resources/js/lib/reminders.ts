@@ -5,6 +5,9 @@
  */
 import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
+import type { Tab } from '@/components/fm/FmTabs.vue';
+import { index as remindersIndex } from '@/routes/reminders';
+import { agenda } from '@/routes';
 import { shortDate } from './budget';
 import { daysFromToday, toDate } from './format';
 
@@ -215,3 +218,87 @@ export type ReminderGroupItem = {
     /** Its notices. */
     rules: NoticeRule[];
 };
+
+/**
+ * A reminder as the server sends it, in the shape the row of the list reads.
+ *
+ * @param reminder - the reminder of `RemindersPageData`
+ * @returns the item for `FmReminderRow`
+ */
+export function toReminderItem(reminder: App.Data.ReminderData): ReminderItem {
+    const { subject, person } = reminder;
+
+    return {
+        id: reminder.id,
+        title: reminder.title,
+        due_date: reminder.due_date,
+        done: reminder.status === 'done',
+        manual: !reminder.is_automatic,
+        area: subject?.area ?? null,
+        subject:
+            subject?.href === undefined || subject.href === null
+                ? null
+                : { label: subject.label, href: subject.href },
+        person:
+            person === null
+                ? null
+                : {
+                      name: person.name,
+                      initials: person.initials,
+                      photo: person.photo,
+                  },
+        next_notice_on: reminder.next_notice,
+        notices_sent: reminder.notice_sent ? 1 : 0,
+        missing_planned_expense: reminder.missing_expense,
+        href: reminder.href,
+    };
+}
+
+/**
+ * The tabs of the Agenda, shared by *Deadlines* and *Reminders* so neither builds its own.
+ *
+ * @param current - the page that is open
+ * @param open - how many reminders are still to do
+ * @returns the two tabs, with the open one marked
+ */
+export function agendaTabs(
+    current: 'deadlines' | 'reminders',
+    open: number,
+): Tab[] {
+    return [
+        {
+            label: trans('Deadlines'),
+            href: agenda().url,
+            current: current === 'deadlines',
+        },
+        {
+            label: trans('Reminders'),
+            href: remindersIndex().url,
+            count: open,
+            current: current === 'reminders',
+        },
+    ];
+}
+
+/**
+ * The sentence of the reminder form about who gets the notices.
+ *
+ * @param names - the first names of the accounts that get them
+ * @returns for example «Notices arrive … an account: Marco and Laura.»
+ */
+export function recipientsSentence(names: string[]): string {
+    if (names.length === 0) {
+        return trans(
+            'Notices arrive in the bell and by email to those with an account.',
+        );
+    }
+
+    return trans(
+        'Notices arrive in the bell and by email to those with an account: :names.',
+        {
+            names: new Intl.ListFormat(getActiveLanguage(), {
+                type: 'conjunction',
+            }).format(names),
+        },
+    );
+}

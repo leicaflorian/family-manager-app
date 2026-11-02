@@ -22,6 +22,7 @@ readonly to: string,
 readonly people: App.Data.PersonData[],
 readonly filters: App.Data.AgendaFiltersData,
 readonly areas: App.Data.OptionData[],
+readonly open_reminders: number,
 readonly periods: number[],
 };
 export type AgendaEntryData = {
@@ -505,15 +506,23 @@ readonly notice_sent: boolean,
 readonly missing_expense: boolean,
 readonly href: string,
 };
+export type ReminderGroupChoiceData = {
+readonly value: string,
+readonly label: string,
+readonly recipients: string[],
+};
 export type ReminderPersonData = {
 readonly id: number,
 readonly name: string,
+readonly initials: string,
+readonly photo: string | null,
 };
 export type ReminderSubjectData = {
 readonly type: string,
 readonly id: number,
 readonly label: string,
 readonly href: string | null,
+readonly area: string,
 };
 export type RemindersPageData = {
 readonly open: App.Data.ReminderData[],

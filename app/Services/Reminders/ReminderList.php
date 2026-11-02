@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Reminders;
 
+use App\Cards\CardTypes;
 use App\Cards\DeadlineSource;
 use App\Cards\DeadlineSources;
+use App\Data\AgendaData;
 use App\Data\ReminderData;
 use App\Data\ReminderPersonData;
 use App\Data\ReminderSubjectData;
@@ -40,7 +42,7 @@ final readonly class ReminderList
     {
         $reminders = Reminder::query()
             ->when($personId !== null, static fn ($query) => $query->where('person_id', $personId))
-            ->with(['link', 'person'])
+            ->with(['link', 'person.photo'])
             ->oldest('due_date')
             ->orderBy('id')
             ->get();
@@ -80,7 +82,7 @@ final readonly class ReminderList
             status: $reminder->status,
             is_automatic: $reminder->is_automatic,
             subject: $subject,
-            person: $reminder->person instanceof Person ? new ReminderPersonData($reminder->person->id, $reminder->person->first_name) : null,
+            person: $reminder->person instanceof Person ? new ReminderPersonData($reminder->person->id, $reminder->person->first_name, $reminder->person->initials, $reminder->person->photoUrl()) : null,
             group_id: $reminder->reminder_group_id,
             next_notice: $next?->toDateString(),
             notice_sent: array_any($reminder->notifications_sent ?? [], static fn (mixed $key): bool => is_string($key) && str_starts_with($key, $prefix)),
@@ -134,6 +136,7 @@ final readonly class ReminderList
             ModelId::of($subject),
             SubjectLink::name($subject),
             SubjectLink::href($link->remindable_type, $subject),
+            CardTypes::find($link->remindable_type)?->area()->value ?? AgendaData::GENERAL_AREA,
         );
     }
 }

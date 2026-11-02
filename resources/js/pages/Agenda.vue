@@ -9,7 +9,7 @@
  * areas filter in the page.
  */
 import { Head } from '@inertiajs/vue3';
-import { CalendarRange } from '@lucide/vue';
+import { CalendarRange, Plus } from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -18,6 +18,7 @@ import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useAgendaFilters } from '@/composables/useAgendaFilters';
 import { useFormat } from '@/composables/useFormat';
@@ -27,6 +28,8 @@ import {
     summary,
     visibleEntries,
 } from '@/lib/agenda';
+import { agendaTabs } from '@/lib/reminders';
+import { create } from '@/routes/reminders';
 
 const { agenda } = defineProps<{
     /** The entries of the period with the filters saved, the people and the areas. */
@@ -114,7 +117,19 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
 <template>
     <Head :title="$t('Agenda')" />
 
-    <FmTitle :title="$t('Agenda')" />
+    <FmTitle :title="$t('Agenda')">
+        <template #actions>
+            <FmButton variant="outline" :icon="Plus" :href="create().url">{{
+                $t('New reminder')
+            }}</FmButton>
+        </template>
+    </FmTitle>
+    <FmTabs
+        variant="pill"
+        class="lg:w-[340px]"
+        :label="$t('Agenda views')"
+        :tabs="agendaTabs('deadlines', agenda.open_reminders)"
+    />
 
     <div class="grid gap-5 lg:grid-cols-[300px_1fr] lg:items-start">
         <FmAgendaFilters
