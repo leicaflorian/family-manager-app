@@ -28,6 +28,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReminderDoneController;
+use App\Http\Controllers\ReminderPostponeController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
@@ -62,6 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::resource('reminders', ReminderController::class)->except('show');
         Route::post('reminders/{reminder}/done', [ReminderDoneController::class, 'store'])->name('reminders.done');
         Route::delete('reminders/{reminder}/done', [ReminderDoneController::class, 'destroy'])->name('reminders.reopen');
+        Route::post('reminders/{reminder}/postpone', ReminderPostponeController::class)->name('reminders.postpone');
         Route::get('notices', [NoticeController::class, 'index'])->name('notices');
         Route::post('notices/read', [NoticeController::class, 'readAll'])->name('notices.read-all');
         Route::post('notices/{notice}/read', [NoticeController::class, 'read'])->name('notices.read')->whereNumber('notice');

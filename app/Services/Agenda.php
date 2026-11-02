@@ -273,7 +273,7 @@ final readonly class Agenda
             return new AgendaReminderData(AgendaReminderState::Done, null);
         }
 
-        $late = $reminder->due_date->toDateString() < $today->toDateString();
+        $late = $reminder->day()->toDateString() < $today->toDateString();
 
         return new AgendaReminderData(
             $late ? AgendaReminderState::Late : AgendaReminderState::Open,

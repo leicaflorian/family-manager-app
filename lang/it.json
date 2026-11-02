@@ -1,4 +1,5 @@
 {
+    "A reminder that is done cannot be postponed.": "Un promemoria fatto non si può rimandare.",
     "(and :count more error)": "(e :count altro errore)",
     "(and :count more errors)": "(e :count altro errore)|(e :count altri errori)|(e :count altri errori)",
     ":count doc.": ":count doc.",

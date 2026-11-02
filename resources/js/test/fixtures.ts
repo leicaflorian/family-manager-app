@@ -1443,6 +1443,7 @@ export const healthCardReminder: App.Data.ReminderData = {
     id: 1,
     title: 'Renew the health card',
     due_date: '2026-09-30',
+    postponed_from: null,
     status: 'open' as App.Enums.ReminderStatus,
     is_automatic: true,
     subject: {
@@ -1465,6 +1466,7 @@ export const plumberReminder: App.Data.ReminderData = {
     id: 2,
     title: "Chiamare l'idraulico per il preventivo del bagno",
     due_date: '2026-10-31',
+    postponed_from: null,
     status: 'open' as App.Enums.ReminderStatus,
     is_automatic: false,
     subject: {
@@ -1487,6 +1489,7 @@ export const inspectionReminder: App.Data.ReminderData = {
     id: 3,
     title: 'Do the inspection',
     due_date: '2027-01-09',
+    postponed_from: null,
     status: 'open' as App.Enums.ReminderStatus,
     is_automatic: true,
     subject: {
@@ -1509,6 +1512,7 @@ export const doneReminder: App.Data.ReminderData = {
     id: 4,
     title: 'Pay the road tax',
     due_date: '2026-10-05',
+    postponed_from: null,
     status: 'done' as App.Enums.ReminderStatus,
     is_automatic: false,
     subject: null,

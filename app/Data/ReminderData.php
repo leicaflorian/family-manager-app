@@ -17,7 +17,8 @@ final class ReminderData extends Data
     /**
      * @param  int  $id  the id
      * @param  string  $title  what to do: the title of the kind of deadline for an automatic reminder (in the language of whoever looks), the written one otherwise
-     * @param  string  $due_date  the day, `yyyy-mm-dd`
+     * @param  string  $due_date  the day, `yyyy-mm-dd`: the one it was postponed to, if any
+     * @param  string|null  $postponed_from  the day of the deadline of a postponed automatic reminder; null when not postponed
      * @param  ReminderStatus  $status  open or done
      * @param  bool  $is_automatic  whether the app makes it from a date of a card or a document
      * @param  ReminderSubjectData|null  $subject  the thing it refers to
@@ -32,6 +33,7 @@ final class ReminderData extends Data
         public readonly int $id,
         public readonly string $title,
         public readonly string $due_date,
+        public readonly ?string $postponed_from,
         public readonly ReminderStatus $status,
         public readonly bool $is_automatic,
         public readonly ?ReminderSubjectData $subject,

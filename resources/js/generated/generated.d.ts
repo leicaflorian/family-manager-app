@@ -532,6 +532,7 @@ export type ReminderData = {
 readonly id: number,
 readonly title: string,
 readonly due_date: string,
+readonly postponed_from: string | null,
 readonly status: App.Enums.ReminderStatus,
 readonly is_automatic: boolean,
 readonly subject: App.Data.ReminderSubjectData | null,

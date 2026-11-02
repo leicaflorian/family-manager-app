@@ -43,7 +43,8 @@ final readonly class ReminderList
         $reminders = Reminder::query()
             ->when($personId !== null, static fn ($query) => $query->where('person_id', $personId))
             ->with(['link', 'person.photo'])
-            ->oldest('due_date')
+            // The day that counts is the one it was postponed to, if any
+            ->orderByRaw('coalesce(postponed_to, due_date)')
             ->orderBy('id')
             ->get();
 
@@ -72,12 +73,13 @@ final readonly class ReminderList
         $subject = $this->subject($reminder->link);
         $open = $reminder->status === ReminderStatus::Open;
         $next = $open ? Notices::next($reminder, Notices::rulesFor($reminder, $groups), $today) : null;
-        $prefix = $reminder->due_date->toDateString().':';
+        $prefix = $reminder->day()->toDateString().':';
 
         return new ReminderData(
             id: $reminder->id,
             title: $this->titleOf($reminder),
-            due_date: $reminder->due_date->toDateString(),
+            due_date: $reminder->day()->toDateString(),
+            postponed_from: $reminder->postponed_to === null ? null : $reminder->due_date->toDateString(),
             status: $reminder->status,
             is_automatic: $reminder->is_automatic,
             subject: $subject,

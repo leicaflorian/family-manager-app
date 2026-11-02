@@ -92,6 +92,7 @@ const row: App.Data.ReminderData = {
     id: 7,
     title: 'Pay the road tax',
     due_date: '2026-11-20',
+    postponed_from: null,
     status: 'open' as App.Enums.ReminderStatus,
     is_automatic: false,
     subject: {

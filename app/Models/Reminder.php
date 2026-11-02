@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $family_id
  * @property string $title
  * @property CarbonImmutable $due_date
+ * @property CarbonImmutable|null $postponed_to The day the reminder was put off to; null when it is the day of the deadline
  * @property ReminderStatus $status
  * @property int|null $person_id
  * @property bool $is_automatic
@@ -46,7 +47,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'due_date', 'status', 'person_id', 'is_automatic', 'source_field', 'reminder_group_id', 'notifications_sent', 'notes'])]
+#[Fillable(['title', 'due_date', 'postponed_to', 'status', 'person_id', 'is_automatic', 'source_field', 'reminder_group_id', 'notifications_sent', 'notes'])]
 final class Reminder extends FamilyModel
 {
     /** @use HasFactory<ReminderFactory> */
@@ -116,6 +117,15 @@ final class Reminder extends FamilyModel
     }
 
     /**
+     * The day that counts for the list, the notices and the calendar: the day it was postponed to, else the
+     * day of the deadline.
+     */
+    public function day(): CarbonImmutable
+    {
+        return $this->postponed_to ?? $this->due_date;
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
@@ -124,6 +134,7 @@ final class Reminder extends FamilyModel
     {
         return [
             'due_date' => 'date',
+            'postponed_to' => 'date',
             'status' => ReminderStatus::class,
             'is_automatic' => 'boolean',
             'notifications_sent' => 'array',
