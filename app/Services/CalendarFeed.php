@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Data\AgendaEntryData;
-use App\Data\ReminderSubjectData;
 use App\Enums\ReminderStatus;
 use App\Models\Person;
 use App\Models\Reminder;
@@ -112,9 +111,8 @@ final readonly class CalendarFeed
     private function reminderTitle(Reminder $reminder): string
     {
         $title = Calendar::withoutDeadline($this->reminders->titleOf($reminder));
-        $subject = $reminder->is_automatic ? $this->reminders->subject($reminder->link) : null;
 
-        return $subject instanceof ReminderSubjectData ? "{$title} · {$subject->label}" : $title;
+        return $reminder->is_automatic ? ReminderList::joinTitle($title, $this->reminders->subject($reminder->link)?->label) : $title;
     }
 
     /**

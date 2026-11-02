@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Copy;
 
 use App\Actions\Budget\FillOccurrenceDates;
+use App\Actions\Reminders\SyncReminders;
 use App\Enums\Role;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -62,7 +64,7 @@ final class Copier
     /** @var array<string, int> */
     private array $leftOut = [];
 
-    public function __construct(private readonly FileStore $files, private readonly FillOccurrenceDates $occurrenceDates) {}
+    public function __construct(private readonly FileStore $files, private readonly FillOccurrenceDates $occurrenceDates, private readonly SyncReminders $reminders) {}
 
     /**
      * Copies the family of Directus into the app, with the given name.
@@ -104,7 +106,11 @@ final class Copier
                 }
 
                 $this->writeDeferred();
-                CurrentFamily::using($familyId, $this->occurrenceDates->handle(...));
+                CurrentFamily::using($familyId, function (): void {
+                    $this->occurrenceDates->handle();
+                    // Open automatic reminders take the new title; the done ones keep the one of Directus
+                    $this->reminders->family(CarbonImmutable::today('Europe/Rome'));
+                });
             } catch (Throwable $exception) {
                 $this->files->deleteFamily($familyId);
 

@@ -104,6 +104,28 @@ final readonly class ReminderList
     }
 
     /**
+     * What to do with the thing it is about: «Renew the policy · RC auto Panda». The one place that joins them, for
+     * the pages, the bell, the calendar and the mail.
+     *
+     * @param  string  $title  what to do
+     * @param  string|null  $subject  the name of the thing, null when there is none
+     */
+    public static function joinTitle(string $title, ?string $subject): string
+    {
+        return $subject === null ? $title : "{$title} · {$subject}";
+    }
+
+    /**
+     * The title of a reminder with the name of its thing, in the language of whoever looks.
+     *
+     * @param  Reminder  $reminder  the reminder, with `link.subject` loaded
+     */
+    public function titleWithSubject(Reminder $reminder): string
+    {
+        return self::joinTitle($this->titleOf($reminder), $this->subject($reminder->link)?->label);
+    }
+
+    /**
      * Loads the thing of every link with the relations its name reads, one query for each type.
      *
      * @param  EloquentCollection<int, Reminder>  $reminders  the reminders, with `link` loaded

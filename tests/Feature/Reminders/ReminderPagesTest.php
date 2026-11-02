@@ -11,6 +11,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\Reminders\ReminderList;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
@@ -364,4 +365,9 @@ test('only an admin can delete, and not an automatic reminder', function (): voi
         ->and($this->actingAs($this->member)->get("/reminders/{$written->id}/edit")->viewData('page')['props']['can_delete'])->toBeFalse()
         ->and($this->actingAs($this->marco)->get('/reminders/create')->viewData('page')['props']['can_delete'])->toBeFalse();
     $this->actingAs($this->marco)->get("/reminders/{$automatic->id}/edit")->assertForbidden();
+});
+
+test('the title of a reminder joins with its subject in one place', function (): void {
+    expect(ReminderList::joinTitle('Renew the policy', 'RC auto Panda'))->toBe('Renew the policy · RC auto Panda')
+        ->and(ReminderList::joinTitle('Call the plumber', null))->toBe('Call the plumber');
 });

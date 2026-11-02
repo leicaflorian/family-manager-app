@@ -73,7 +73,7 @@ function verdiCounts(): array
 /** The counts of the fake Directus, once copied. */
 const VERDI_COUNTS = [
     'files' => 3, 'users' => 1, 'people' => 3, 'organizations' => 2, 'document_categories' => 3, 'documents' => 3,
-    'utilities' => 1, 'reminders' => 2, 'family_settings' => 1, 'documentables' => 2, 'remindables' => 1,
+    'utilities' => 1, 'reminders' => 4, 'family_settings' => 1, 'documentables' => 2, 'remindables' => 3,
 ];
 
 test('the Directus connection is read only', function (): void {
@@ -112,7 +112,7 @@ test('the copy brings the family with its records, links, categories and account
         ->and(Storage::disk('local')->get(DB::table('files')->where('id', $bill->file_id)->value('path')))->toBe('%PDF-1.4 bolletta');
 
     $utility = DB::table('utilities')->sole();
-    expect(DB::table('remindables')->sole())->remindable_type->toBe('utility')->remindable_id->toBe($utility->id)
+    expect(DB::table('remindables')->where('remindable_type', 'utility')->sole())->remindable_type->toBe('utility')->remindable_id->toBe($utility->id)
         ->and(DB::table('family_settings')->sole()->mail_inbox_recipient)->toBe('documenti@example.com');
 });
 
@@ -232,9 +232,9 @@ test('the groups, the notices sent and the links of the reminders are read by th
         // The people of the recipients are those of the app, an id that was not copied is gone, nobody left is everybody, and an unknown channel is both
         expect($group->name)->toBe('Predefinito')
             ->and($group->is_default)->toBeTrue()
-            ->and($rules)->toHaveCount(3)
+            ->and($rules)->toHaveCount(4)
             ->and(array_map(static fn (NotificationRule $rule): array => [$rule->offset, $rule->channels, $rule->people], $rules))
-            ->toBe([[-7, Channel::Both, [$laura]], [0, Channel::App, [$laura]], [1, Channel::Both, null]])
+            ->toBe([[-7, Channel::Both, [$laura]], [0, Channel::App, [$laura]], [1, Channel::Both, null], [2, Channel::Email, null]])
             ->and($reminder->reminder_group_id)->toBe($group->id)
             ->and($reminder->notifications_sent)->toBe(['2026-11-10:-7'])
             ->and($reminder->link?->remindable_type)->toBe('utility')
@@ -257,4 +257,19 @@ test('after the copy a round does not send again the notices Directus marked, an
 
     expect(DB::table('reminder_notices')->where('user_id', $laura->id)->count())->toBe(1);
     expect(Reminder::query()->withoutGlobalScopes()->where('title', 'Leggere il contatore')->sole()->notifications_sent)->toBe(['2026-11-10:-7', '2026-11-10:0']);
+});
+
+test('after the copy the open automatic reminders take the new title and the done ones keep the Directus one', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+    $family = (int) DB::table('families')->where('name', 'Verdi')->value('id');
+
+    CurrentFamily::using($family, function (): void {
+        $open = Reminder::query()->where('due_date', '2027-01-15')->sole();
+        $done = Reminder::query()->where('due_date', '2026-06-01')->sole();
+
+        expect($open->title)->toBe('Renew the document')
+            ->and($open->person_id)->not->toBeNull()
+            ->and(Reminder::query()->where('due_date', '2027-01-15')->count())->toBe(1)
+            ->and($done->title)->toBe('Documento in scadenza · Tessera sanitaria · scade il 01/06/2026');
+    });
 });

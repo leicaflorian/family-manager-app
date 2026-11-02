@@ -101,6 +101,7 @@ INSERT INTO documents (id, title, file, category, status, person, organization, 
     (13, 'Contratto luce', 'aaaaaaaa-0000-0000-0000-000000000002', 1, 'active', 5, 7, '2024-03-15', NULL, '2026-09-01 09:00:00'),
     (14, 'Tessera sanitaria', 'aaaaaaaa-0000-0000-0000-000000000003', 4, 'active', 8, NULL, NULL, NULL, NULL),
     (15, 'Documento senza file', NULL, 4, 'active', NULL, NULL, NULL, NULL, NULL);
+UPDATE documents SET expiry_date = '2027-01-15' WHERE id = 14;
 
 CREATE TABLE planned_expenses (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -172,7 +173,7 @@ CREATE TABLE reminder_groups (
 -- Recipients as Directus saves them: ids of people, some as text, or "all"
 INSERT INTO reminder_groups (id, name, is_default, deadline_types, notifications, settings) VALUES
     (2, 'Predefinito', 1, '["vehicles.road_tax_due_date", "not_a_kind"]',
-     '[{"name": "Sollecito", "days": 7, "timing": "before", "channels": "both", "recipients": ["3"]}, {"name": "Ultimo avviso", "days": 0, "timing": "before", "channels": "app", "recipients": [3, 99]}, {"name": "Dopo", "days": 1, "timing": "after", "channels": "weird", "recipients": [99]}]',
+     '[{"name": "Sollecito", "days": 7, "timing": "before", "channels": "both", "recipients": ["3"]}, {"name": "Ultimo avviso", "days": 0, "timing": "before", "channels": "app", "recipients": [3, 99]}, {"name": "Dopo", "days": 1, "timing": "after", "channels": "weird", "recipients": [99]}, {"name": "Tutti", "days": 2, "timing": "after", "channels": "email", "recipients": ["all", 3]}]',
      '{}');
 
 CREATE TABLE reminders (
@@ -190,6 +191,9 @@ CREATE TABLE reminders (
 INSERT INTO reminders (id, title, due_date, status, person, is_automatic, reminder_group, notifications_sent) VALUES
     (5, 'Leggere il contatore', '2026-11-10', 'open', 5, 0, 2, '["2026-11-10:-7"]'),
     (6, 'Revisione auto', '2026-12-01', 'open', NULL, 1, NULL, NULL);
+INSERT INTO reminders (id, title, due_date, status, person, is_automatic, source_field, reminder_group, notifications_sent) VALUES
+    (7, 'Documento in scadenza · Tessera sanitaria · scade il 15/01/2027', '2027-01-15', 'open', 8, 1, 'documents.expiry_date', NULL, NULL),
+    (8, 'Documento in scadenza · Tessera sanitaria · scade il 01/06/2026', '2026-06-01', 'done', 8, 1, 'documents.expiry_date', NULL, NULL);
 
 CREATE TABLE reminders_related_to (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -199,7 +203,9 @@ CREATE TABLE reminders_related_to (
 );
 INSERT INTO reminders_related_to (reminders_id, collection, item) VALUES
     (5, 'utilities', '2'),
-    (6, 'vehicles', '4');
+    (6, 'vehicles', '4'),
+    (7, 'documents', '14'),
+    (8, 'documents', '14');
 
 CREATE TABLE family_settings (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,

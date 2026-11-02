@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Models\User;
+use App\Services\Reminders\ReminderList;
 use App\Support\Reminders\DueText;
 use App\Support\Reminders\MorningItem;
 use Carbon\CarbonImmutable;
@@ -50,7 +51,7 @@ final class MorningNoticesMail extends Mailable
 
         $title = $this->title($first);
 
-        return new Envelope(subject: DueText::subject($today, $this->day($first->dueOn)).': '.($first->subject === null ? $title : $title.' · '.$first->subject));
+        return new Envelope(subject: DueText::subject($today, $this->day($first->dueOn)).': '.ReminderList::joinTitle($title, $first->subject));
     }
 
     /**

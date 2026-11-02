@@ -228,8 +228,8 @@ final class DirectusMap
                 },
                 $notification['recipients'],
             ), static fn (int|string|null $recipient): bool => $recipient !== null));
-            // Nobody left reads as everybody, like a person without an account does when notices go out
-            $notification['recipients'] = $recipients === [] ? [NotificationRule::ALL] : $recipients;
+            // Everybody wins over the people, and nobody left reads as everybody, like a person without an account does
+            $notification['recipients'] = $recipients === [] || in_array(NotificationRule::ALL, $recipients, true) ? [NotificationRule::ALL] : $recipients;
         }
 
         return [...$copy, 'notifications' => json_encode($notifications, JSON_THROW_ON_ERROR)];

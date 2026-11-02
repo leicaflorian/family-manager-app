@@ -6,7 +6,6 @@ namespace App\Services\Reminders;
 
 use App\Data\AgendaData;
 use App\Data\ReminderNoticeData;
-use App\Data\ReminderSubjectData;
 use App\Enums\ReminderStatus;
 use App\Models\Reminder;
 use App\Models\ReminderNotice;
@@ -77,7 +76,7 @@ final readonly class NoticeList
 
             return new ReminderNoticeData(
                 id: $notice->id,
-                title: $subject instanceof ReminderSubjectData ? "{$title} · {$subject->label}" : $title,
+                title: ReminderList::joinTitle($title, $subject?->label),
                 subject: $subject?->label,
                 area: $subject->area ?? AgendaData::GENERAL_AREA,
                 due_text: DueText::when($sentOn->startOfDay(), $notice->due_date, ! $reminder->is_automatic),
