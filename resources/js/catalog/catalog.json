@@ -355,14 +355,16 @@
         "name": "href",
         "type": "string",
         "required": false,
-        "default": "\"/notices\"",
+        "default": "notices().url",
         "description": "Where the bell leads."
       }
     ],
     "events": [],
     "slots": [],
     "types": [],
-    "usedBy": []
+    "usedBy": [
+      "pages/Home.vue"
+    ]
   },
   {
     "name": "FmBottomBar",
@@ -635,6 +637,7 @@
       "pages/family/Organization.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
+      "pages/notices/Notices.vue",
       "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",
@@ -1608,6 +1611,7 @@
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue",
       "pages/family/Organizations.vue",
+      "pages/notices/Notices.vue",
       "pages/reminders/Reminders.vue"
     ]
   },
@@ -1954,6 +1958,7 @@
       "pages/family/Organizations.vue",
       "pages/family/People.vue",
       "pages/family/Person.vue",
+      "pages/notices/Notices.vue",
       "pages/reminders/EditReminder.vue",
       "pages/settings/Account.vue",
       "pages/settings/Settings.vue"
@@ -2438,7 +2443,9 @@
     ],
     "slots": [],
     "types": [],
-    "usedBy": []
+    "usedBy": [
+      "pages/notices/Notices.vue"
+    ]
   },
   {
     "name": "FmNotificationRule",
@@ -3027,7 +3034,8 @@
       "components/fm/FmPayButton.vue",
       "pages/Home.vue",
       "pages/budget/PlannedItem.vue",
-      "pages/cards/Card.vue"
+      "pages/cards/Card.vue",
+      "pages/notices/Notices.vue"
     ]
   },
   {
@@ -3190,6 +3198,7 @@
       "pages/family/EditPerson.vue",
       "pages/family/InvitationSent.vue",
       "pages/family/Invite.vue",
+      "pages/notices/Notices.vue",
       "pages/reminders/Reminders.vue",
       "pages/settings/Account.vue",
       "pages/settings/Calendar.vue",

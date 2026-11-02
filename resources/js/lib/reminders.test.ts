@@ -7,6 +7,7 @@ import {
     recipientsSentence,
     ruleText,
     sentAtText,
+    toNoticeItem,
     toReminderItem,
 } from './reminders';
 
@@ -189,5 +190,37 @@ describe('offsetsHint', () => {
 
     it('says so when the group sends nothing', () => {
         expect(offsetsHint([])).toBe('This group sends no notices.');
+    });
+});
+
+describe('toNoticeItem', () => {
+    const notice: App.Data.ReminderNoticeData = {
+        id: 4,
+        title: 'Renew the policy · Panda car insurance',
+        subject: 'Panda car insurance',
+        area: 'insurance',
+        due_text: 'Due in 26 days, on 21/11/2026',
+        sent_at: '2026-10-24T06:00',
+        read: false,
+        state: 'expired',
+        href: '/cards/insurance/2',
+    };
+
+    it('gives the row what it shows, and calls an expired reminder overdue', () => {
+        expect(toNoticeItem(notice)).toEqual({
+            id: 4,
+            title: 'Renew the policy · Panda car insurance',
+            due_text: 'Due in 26 days, on 21/11/2026',
+            sent_at: '2026-10-24T06:00',
+            read: false,
+            area: 'insurance',
+            state: 'overdue',
+            href: '/cards/insurance/2',
+        });
+    });
+
+    it('keeps done and no state as they are', () => {
+        expect(toNoticeItem({ ...notice, state: 'done' }).state).toBe('done');
+        expect(toNoticeItem({ ...notice, state: null }).state).toBeNull();
     });
 });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Data\FamilyData;
+use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\CardSummaries;
 use Illuminate\Http\Request;
@@ -53,6 +54,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'family' => fn (): ?FamilyData => $this->family($request),
             'areas' => fn (): array => $request->user() instanceof User ? $this->summaries->counts() : [],
+            'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->where('user_id', $request->user()->id)->unread()->count() : 0,
             'locale' => app()->getLocale(),
         ];
     }

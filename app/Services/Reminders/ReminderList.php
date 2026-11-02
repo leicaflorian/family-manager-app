@@ -69,7 +69,6 @@ final readonly class ReminderList
      */
     public function row(Reminder $reminder, EloquentCollection $groups, array $missing, CarbonImmutable $today): ReminderData
     {
-        $source = $reminder->is_automatic && $reminder->source_field !== null ? DeadlineSources::find($reminder->source_field) : null;
         $subject = $this->subject($reminder->link);
         $open = $reminder->status === ReminderStatus::Open;
         $next = $open ? Notices::next($reminder, Notices::rulesFor($reminder, $groups), $today) : null;
@@ -77,7 +76,7 @@ final readonly class ReminderList
 
         return new ReminderData(
             id: $reminder->id,
-            title: $source instanceof DeadlineSource ? __($source->title) : $reminder->title,
+            title: $this->titleOf($reminder),
             due_date: $reminder->due_date->toDateString(),
             status: $reminder->status,
             is_automatic: $reminder->is_automatic,
@@ -89,6 +88,19 @@ final readonly class ReminderList
             missing_expense: isset($missing[$reminder->id]),
             href: $reminder->is_automatic && $subject?->href !== null ? $subject->href : route('reminders.edit', $reminder, absolute: false),
         );
+    }
+
+    /**
+     * What to do, in the language of whoever looks: the title of the kind of deadline for an automatic reminder, the
+     * written title otherwise.
+     *
+     * @param  Reminder  $reminder  the reminder
+     */
+    public function titleOf(Reminder $reminder): string
+    {
+        $source = $reminder->is_automatic && $reminder->source_field !== null ? DeadlineSources::find($reminder->source_field) : null;
+
+        return $source instanceof DeadlineSource ? __($source->title) : $reminder->title;
     }
 
     /**
@@ -123,7 +135,7 @@ final readonly class ReminderList
      *
      * @param  Remindable|null  $link  the link, with `subject` loaded
      */
-    private function subject(?Remindable $link): ?ReminderSubjectData
+    public function subject(?Remindable $link): ?ReminderSubjectData
     {
         $subject = $link?->subject;
 

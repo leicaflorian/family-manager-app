@@ -255,6 +255,30 @@ export function toReminderItem(reminder: App.Data.ReminderData): ReminderItem {
 }
 
 /**
+ * A notice as the server sends it, in the shape the row of the list reads.
+ *
+ * @param notice - the notice of `ReminderNoticeData`
+ * @returns the item for `FmNoticeRow`
+ */
+export function toNoticeItem(notice: App.Data.ReminderNoticeData): NoticeItem {
+    return {
+        id: notice.id,
+        title: notice.title,
+        due_text: notice.due_text,
+        sent_at: notice.sent_at,
+        read: notice.read,
+        area: notice.area,
+        state:
+            notice.state === 'expired'
+                ? 'overdue'
+                : notice.state === 'done'
+                  ? 'done'
+                  : null,
+        href: notice.href,
+    };
+}
+
+/**
  * The tabs of the Agenda, shared by *Deadlines* and *Reminders* so neither builds its own.
  *
  * @param current - the page that is open

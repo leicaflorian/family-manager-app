@@ -5,14 +5,15 @@
  * next 30 days and the list of the deadlines, the incomes on their way and,
  * for a new family, *To begin*. One column on the phone, two from the
  * computer: the box and the deadlines on the left, the incomes on the right.
- * The recently uploaded documents, the mail and *Something is missing* come
- * with their own items.
+ * The bell of the notices sits beside the greeting. The recently uploaded
+ * documents, the mail and *Something is missing* come with their own items.
  */
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
+import FmBell from '@/components/fm/FmBell.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChecklist from '@/components/fm/FmChecklist.vue';
 import FmFileTile from '@/components/fm/FmFileTile.vue';
@@ -28,6 +29,11 @@ const { home } = defineProps<{
     /** What the Home shows, as the server sends it. */
     home: App.Data.HomeData;
 }>();
+
+const page = usePage();
+
+/** How many notices the account has not seen yet, for the dot of the bell. */
+const unreadNotices = computed((): number => page.props.unread_notices ?? 0);
 
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
 
@@ -96,11 +102,16 @@ const hasRightColumn = computed(
     <Head :title="$t('Home')" />
 
     <div class="flex flex-col gap-5">
-        <div class="flex flex-col gap-1">
-            <span class="text-sm text-ink-soft lg:text-[15px]">{{ day }}</span>
-            <h1 class="m-0 text-[28px] font-extrabold lg:text-[32px]">
-                {{ $t('Hi, :name', { name: home.first_name }) }}
-            </h1>
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex flex-col gap-1">
+                <span class="text-sm text-ink-soft lg:text-[15px]">{{
+                    day
+                }}</span>
+                <h1 class="m-0 text-[28px] font-extrabold lg:text-[32px]">
+                    {{ $t('Hi, :name', { name: home.first_name }) }}
+                </h1>
+            </div>
+            <FmBell :count="unreadNotices" class="rounded-full bg-white" />
         </div>
 
         <FmCard v-if="home.pending_count > 0" :title="$t('Waiting')" list>

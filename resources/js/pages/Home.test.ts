@@ -11,6 +11,15 @@ import { agendaEntries, pendingPayslip } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Home from './Home.vue';
 
+const shared = vi.hoisted(() => ({ unread_notices: 0 }));
+
+// The shared props of the page, and no <Head> as in `setup.ts`
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({ url: '/dashboard', props: { ...shared } }),
+}));
+
 const photo = {
     ...pendingPayslip,
     id: 13,
@@ -69,6 +78,25 @@ describe('Home', () => {
         expect(
             screen.getByRole('heading', { name: 'Hi, Marco', level: 1 }),
         ).toBeInTheDocument();
+    });
+
+    it('has the bell beside the greeting, with how many notices are new', () => {
+        shared.unread_notices = 2;
+        renderPage(Home, { home });
+
+        expect(
+            screen.getByRole('link', { name: 'Notices: 2 new' }),
+        ).toHaveAttribute('href', '/notices');
+        shared.unread_notices = 0;
+    });
+
+    it('has the bell without a dot when nothing is new', () => {
+        renderPage(Home, { home });
+
+        expect(screen.getByRole('link', { name: 'Notices' })).toHaveAttribute(
+            'href',
+            '/notices',
+        );
     });
 
     it('shows the total and the deadlines, the late one first', () => {

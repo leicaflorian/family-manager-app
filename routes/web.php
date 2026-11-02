@@ -22,6 +22,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
+use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ReminderController;
@@ -60,6 +61,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::resource('reminders', ReminderController::class)->except('show');
         Route::post('reminders/{reminder}/done', [ReminderDoneController::class, 'store'])->name('reminders.done');
         Route::delete('reminders/{reminder}/done', [ReminderDoneController::class, 'destroy'])->name('reminders.reopen');
+        Route::get('notices', [NoticeController::class, 'index'])->name('notices');
+        Route::post('notices/read', [NoticeController::class, 'readAll'])->name('notices.read-all');
+        Route::post('notices/{notice}/read', [NoticeController::class, 'read'])->name('notices.read')->whereNumber('notice');
         Route::get('areas', [AreaController::class, 'index'])->name('areas');
         Route::get('areas/{area}', [AreaController::class, 'show'])->name('areas.show');
 

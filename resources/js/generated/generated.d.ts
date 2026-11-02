@@ -512,6 +512,17 @@ readonly label: string,
 readonly recipients: string[],
 readonly offsets: number[],
 };
+export type ReminderNoticeData = {
+readonly id: number,
+readonly title: string,
+readonly subject: string | null,
+readonly area: string,
+readonly due_text: string,
+readonly sent_at: string,
+readonly read: boolean,
+readonly state: string | null,
+readonly href: string,
+};
 export type ReminderPersonData = {
 readonly id: number,
 readonly name: string,

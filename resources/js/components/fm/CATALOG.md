@@ -390,6 +390,7 @@ in `actions`, as `FmSectionLink` (or `FmMenu` with `text`).
 - `pages/family/Organization.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
+- `pages/notices/Notices.vue`
 - `pages/reminders/Reminders.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
@@ -550,6 +551,7 @@ below, what can be done.
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
 - `pages/family/Organizations.vue`
+- `pages/notices/Notices.vue`
 - `pages/reminders/Reminders.vue`
 
 ## FmFaces
@@ -701,6 +703,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `pages/family/Organizations.vue`
 - `pages/family/People.vue`
 - `pages/family/Person.vue`
+- `pages/notices/Notices.vue`
 - `pages/reminders/EditReminder.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Settings.vue`
@@ -957,6 +960,7 @@ organization.
 - `pages/family/EditPerson.vue`
 - `pages/family/InvitationSent.vue`
 - `pages/family/Invite.vue`
+- `pages/notices/Notices.vue`
 - `pages/reminders/Reminders.vue`
 - `pages/settings/Account.vue`
 - `pages/settings/Calendar.vue`
@@ -1009,7 +1013,7 @@ not yet seen, shows how many in a red dot (up to 99).
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `count` | `number` | yes | — | How many notices the person has not seen yet. |
-| `href` | `string` | no | `"/notices"` | Where the bell leads. |
+| `href` | `string` | no | `notices().url` | Where the bell leads. |
 
 ### Examples
 
@@ -1023,6 +1027,10 @@ not yet seen, shows how many in a red dot (up to 99).
 <!-- Many -->
 <FmBell :count="120" />
 ```
+
+### Used by
+
+- `pages/Home.vue`
 
 ## FmBottomBar
 
@@ -1379,6 +1387,7 @@ every page.
 - `pages/Home.vue`
 - `pages/budget/PlannedItem.vue`
 - `pages/cards/Card.vue`
+- `pages/notices/Notices.vue`
 
 ## FmSidebar
 
@@ -1712,6 +1721,10 @@ a notice not yet seen. The whole row leads to the card or to *Reminders*.
 <!-- Seen, done -->
 <FmNoticeRow :notice="notice" />
 ```
+
+### Used by
+
+- `pages/notices/Notices.vue`
 
 ## FmPlannedRow
 

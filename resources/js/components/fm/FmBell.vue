@@ -9,9 +9,10 @@ import { Link } from '@inertiajs/vue3';
 import { Bell } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import { notices } from '@/routes';
 import FmIcon from './FmIcon.vue';
 
-const { count, href = '/notices' } = defineProps<{
+const { count, href = notices().url } = defineProps<{
     /** How many notices the person has not seen yet. */
     count: number;
     /** Where the bell leads. */

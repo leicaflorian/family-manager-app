@@ -992,5 +992,12 @@
     "This group sends no notices.": "Questo gruppo non manda avvisi.",
     "Delete this reminder?": "Eliminare questo promemoria?",
     "It will not come back.": "Non si potrà recuperare.",
-    "Delete the reminder": "Elimina il promemoria"
+    "Delete the reminder": "Elimina il promemoria",
+    "Mark all as read": "Segna tutti come letti",
+    "No notices yet": "Ancora nessun avviso",
+    "The notices of the deadlines arrive here on the morning they are due.": "Gli avvisi delle scadenze arrivano qui la mattina in cui servono.",
+    "New notices": "Nuovi",
+    "Already seen": "Già visti",
+    "The same notices arrive by email.": "Gli stessi avvisi arrivano per email.",
+    "Choose which ones in Settings": "Quali ricevere lo scegli in Impostazioni"
 }

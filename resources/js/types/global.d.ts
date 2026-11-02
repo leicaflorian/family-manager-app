@@ -23,6 +23,8 @@ declare module '@inertiajs/core' {
             family: App.Data.FamilyData | null;
             /** The areas with their active cards, for the sidebar; empty for a guest. */
             areas: App.Data.AreaCountData[];
+            /** How many notices the account has not seen yet; 0 for a guest. */
+            unread_notices: number;
             locale: string;
             [key: string]: unknown;
         };
