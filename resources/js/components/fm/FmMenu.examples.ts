@@ -1,8 +1,16 @@
 /**
  * The cases of `FmMenu` for the component catalogue: the ⋯ button with a few
- * entries, and the plain one with an entry that deletes.
+ * entries, the plain one with an entry that deletes, and the outlined one
+ * with its label in sight, as *Postpone* of a late reminder.
  */
-import { Download, ExternalLink, Pencil, Trash2 } from '@lucide/vue';
+import {
+    CalendarDays,
+    Clock,
+    Download,
+    ExternalLink,
+    Pencil,
+    Trash2,
+} from '@lucide/vue';
 import { h } from 'vue';
 import { defineExamples } from '@/catalog/examples';
 import FmMenu from './FmMenu.vue';
@@ -51,6 +59,17 @@ export default defineExamples(FmMenu, [
                     () => 'Open in a new tab',
                 ),
                 h(FmMenuItem, { icon: Trash2, danger: true }, () => 'Delete'),
+            ],
+        },
+    },
+    {
+        name: 'Outlined, with its label',
+        props: { outline: true, label: 'Rimanda', icon: Clock },
+        slots: {
+            default: () => [
+                h(FmMenuItem, null, () => 'Domani'),
+                h(FmMenuItem, null, () => 'Tra una settimana'),
+                h(FmMenuItem, { icon: CalendarDays }, () => 'Scegli una data…'),
             ],
         },
     },

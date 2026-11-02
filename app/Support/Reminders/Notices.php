@@ -148,7 +148,7 @@ final class Notices
      */
     public static function next(Reminder $reminder, array $rules, CarbonImmutable $today): ?CarbonImmutable
     {
-        $deadline = CarbonImmutable::parse($reminder->due_date->toDateString(), $today->timezone);
+        $deadline = CarbonImmutable::parse($reminder->day()->toDateString(), $today->timezone);
         $next = null;
         foreach ($rules as $rule) {
             $day = $deadline->addDays($rule->offset);

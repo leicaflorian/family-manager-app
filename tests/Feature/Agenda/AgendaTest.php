@@ -24,6 +24,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
@@ -92,6 +93,71 @@ test('the agenda of one month has the twelve entries of the board in its order',
         ->and(collect($agenda['entries'])->firstWhere('title', 'Tessera sanitaria di Giulia')['reminder_done'])->toBeFalse()
         ->and(array_column($agenda['people'], 'first_name'))->toBe(['Marco', 'Laura', 'Giulia'])
         ->and($agenda['filters'])->toBe(['months' => 1, 'person_id' => null, 'hidden_areas' => []]);
+});
+
+test('each entry names the thing first and, below, what happens to it', function (): void {
+    $entries = agendaFor(boardFamily())['entries'];
+
+    expect(agendaColumns($entries, ['name', 'detail']))->toBe([
+        ['name' => 'Tessera sanitaria di Giulia', 'detail' => 'Document expiry'],
+        ['name' => 'Marco - Studio Rinaldi', 'detail' => 'Stipendio di Marco'],
+        ['name' => 'Gas - Enel', 'detail' => 'Bolletta gas'],
+        ['name' => 'Water - Hera', 'detail' => 'Bolletta acqua'],
+        ['name' => 'Netflix', 'detail' => 'End of the free trial'],
+        ['name' => 'Netflix', 'detail' => 'Primo pagamento'],
+        ['name' => 'Electricity - Edison', 'detail' => 'Bolletta luce di ottobre'],
+        ['name' => 'Finanziamento Panda', 'detail' => 'Rata 33 di 48'],
+        ['name' => "Scade la carta d'identità", 'detail' => 'Document expiry'],
+        ['name' => 'Mutuo casa', 'detail' => 'Rata mutuo'],
+        ['name' => 'RC auto Panda - UnipolSai', 'detail' => 'Policy renewal'],
+        ['name' => 'Laura - Comune di Bologna', 'detail' => 'Stipendio di Laura'],
+    ]);
+});
+
+test('a payment titled as its card does not say the name twice', function (): void {
+    $marco = boardFamily();
+    insideFamilyOf($marco, function (): void {
+        $netflix = Subscription::query()->where('name', 'Netflix')->sole();
+        PlannedExpense::query()->whereMorphedTo('card', $netflix)->update(['title' => 'Netflix']);
+    });
+
+    $netflix = collect(agendaFor($marco)['entries'])->first(static fn (array $entry): bool => $entry['kind'] === 'payment' && $entry['name'] === 'Netflix');
+
+    expect($netflix['detail'])->toBe('Payment');
+});
+
+test('a payment without a card is named by its title, with the organization below', function (): void {
+    $marco = boardFamily();
+    insideFamilyOf($marco, fn (): PlannedExpense => PlannedExpense::query()->create([
+        'title' => 'Tassa rifiuti',
+        'amount' => 120,
+        'is_recurring' => false,
+        'start_date' => '2026-11-02',
+        'organization_id' => Organization::query()->create(['name' => 'Comune di Bologna'])->id,
+    ]));
+
+    $entry = collect(agendaFor($marco)['entries'])->firstWhere('title', 'Tassa rifiuti');
+
+    expect($entry['name'])->toBe('Tassa rifiuti')
+        ->and($entry['detail'])->toBe('Comune di Bologna');
+});
+
+test('a deadline carries the state of its automatic reminder and its next notice', function (): void {
+    $marco = boardFamily();
+    // The reminder of the health card was born before its day passed: the sync makes none for a past day
+    insideFamilyOf($marco, function (): void {
+        $card = Document::query()->where('title', 'Tessera sanitaria di Giulia')->sole();
+        $reminder = Reminder::factory()->create(['family_id' => CurrentFamily::id(), 'is_automatic' => true, 'source_field' => 'documents.expiry_date', 'due_date' => '2026-09-30', 'status' => ReminderStatus::Open]);
+        DB::table('remindables')->insert(['reminder_id' => $reminder->id, 'remindable_type' => $card->getMorphClass(), 'remindable_id' => $card->id]);
+    });
+    $entries = collect(agendaFor($marco)['entries']);
+    $by = static fn (string $name, string $detail): array => $entries->first(static fn (array $entry): bool => $entry['name'] === $name && $entry['detail'] === $detail);
+
+    expect($by('Tessera sanitaria di Giulia', 'Document expiry')['reminder'])->toBe(['state' => 'late', 'next_notice' => null])
+        ->and($by("Scade la carta d'identità", 'Document expiry')['reminder'])->toBe(['state' => 'done', 'next_notice' => null])
+        ->and($by('Netflix', 'End of the free trial')['reminder']['state'])->toBe('open')
+        ->and($by('Netflix', 'End of the free trial')['reminder']['next_notice'])->toBeString()
+        ->and($by('Gas - Enel', 'Bolletta gas')['reminder'])->toBeNull();
 });
 
 test('the keys and the addresses of the entries', function (): void {

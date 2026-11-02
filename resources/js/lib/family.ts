@@ -16,6 +16,7 @@ import {
     Zap,
 } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
+import { plainText } from './text';
 
 /** The fields of the form of a person, as the inputs hold them. */
 export type PersonFormValues = {
@@ -131,16 +132,6 @@ export function websiteHref(website: string): string {
 }
 
 /**
- * A text without capitals and accents, to compare names.
- *
- * @param text - the text
- * @returns the text in lower case, without the accents
- */
-function plain(text: string): string {
-    return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-}
-
-/**
  * The organizations of the chosen type whose name holds the search.
  *
  * @param organizations - all the organizations
@@ -151,12 +142,12 @@ function plain(text: string): string {
 export function filterOrganizations<
     T extends { name: string; types: readonly string[] },
 >(organizations: readonly T[], type: string | null, search: string): T[] {
-    const text = plain(search.trim());
+    const text = plainText(search.trim());
 
     return organizations.filter(
         (organization) =>
             (type === null || organization.types.includes(type)) &&
-            plain(organization.name).includes(text),
+            plainText(organization.name).includes(text),
     );
 }
 

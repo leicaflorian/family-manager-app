@@ -25,4 +25,15 @@ describe('FmSearchField', () => {
 
         expect(text.value).toBe('gas');
     });
+
+    it('small, it is as high as the buttons of a toolbar', () => {
+        render(FmSearchField, {
+            props: { label: 'Search a reminder', modelValue: '', small: true },
+        });
+
+        expect(
+            screen.getByRole('searchbox', { name: 'Search a reminder' })
+                .parentElement,
+        ).toHaveClass('h-9', 'text-sm');
+    });
 });

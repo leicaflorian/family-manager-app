@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /**
  * The ⋯ button that opens a small menu of the less frequent actions, so that
- * a title next to it keeps its room. The entries are `FmMenuItem`.
+ * a title next to it keeps its room. The entries are `FmMenuItem`. With
+ * `text` or `outline` the button shows its label beside the icon, as
+ * *Record payment* beside a title or *Postpone* on a late reminder.
  *
  * @group navigation
  */
@@ -14,6 +16,7 @@ import {
     DropdownMenuTrigger,
 } from 'reka-ui';
 import FmButton from './FmButton.vue';
+import FmIcon from './FmIcon.vue';
 import FmSectionLink from './FmSectionLink.vue';
 
 const {
@@ -21,6 +24,7 @@ const {
     small = false,
     plain = false,
     text = false,
+    outline = false,
     icon,
 } = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
@@ -33,6 +37,8 @@ const {
     plain?: boolean;
     /** The label beside the icon, as the link beside a title (`FmSectionLink`), as *Record payment*. */
     text?: boolean;
+    /** The label beside the icon, in a white button with a grey border, as *Postpone* of a late reminder. */
+    outline?: boolean;
 }>();
 
 defineSlots<{
@@ -45,7 +51,16 @@ defineSlots<{
     <!-- Not modal: an entry may open a panel, which takes the focus itself -->
     <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger as-child>
-            <FmSectionLink v-if="text" :icon="icon ?? Ellipsis">{{
+            <button
+                v-if="outline"
+                type="button"
+                class="flex h-9 shrink-0 cursor-pointer items-center gap-[7px] rounded-[10px] border border-edge bg-white px-3 text-sm font-semibold whitespace-nowrap text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+            >
+                <FmIcon :icon="icon ?? Ellipsis" :size="18" />{{
+                    label ?? $t('More actions')
+                }}
+            </button>
+            <FmSectionLink v-else-if="text" :icon="icon ?? Ellipsis">{{
                 label ?? $t('More actions')
             }}</FmSectionLink>
             <FmButton

@@ -1,18 +1,18 @@
 /**
- * The logic of the pages of the Agenda: how the entries are grouped by month,
- * counted by area, filtered by the person and the areas, and told in the
- * summary above the list. The server sends the entries of the period already in
- * order; the pages do the rest.
+ * The logic of the pages of the Agenda: how the entries are grouped by week
+ * (and by month further on), summed up in the tiles above the list, counted by
+ * area and filtered by the person and the areas. The server sends the entries
+ * of the period already in order; the pages do the rest.
  */
-import { trans, transChoice } from 'laravel-vue-i18n';
+import { trans } from 'laravel-vue-i18n';
 import { monthName, shortDate } from './budget';
-import { listNames } from './names';
+import { addDays, endOfWeek } from './days';
 
-/** A block of the list: the deadlines to sort out, or one month. */
+/** A block of the list: the deadlines to sort out, a week, or one month. */
 export type AgendaGroup = {
-    /** `overdue`, or the month as `yyyy-mm`. */
+    /** `overdue`, `this-week`, `next-week`, `later`, or the month as `yyyy-mm`. */
     key: string;
-    /** The title of the block, for example «October 2026». */
+    /** The title of the block, for example «This week» or «October 2026». */
     title: string;
     /** Whether it is the block of the passed deadlines, which the page shows in red. */
     overdue: boolean;
@@ -20,6 +20,16 @@ export type AgendaGroup = {
     outgoing: number | null;
     /** The entries, in the order the server sent them. */
     entries: App.Data.AgendaEntryData[];
+};
+
+/** The figures of the tiles above the list. */
+export type AgendaTotals = {
+    /** How many deadlines are already passed. */
+    overdue: number;
+    /** The payments from today to Sunday: their sum, how many entries go out, and the two days, `yyyy-mm-dd`. */
+    week: { amount: number; count: number; from: string; to: string };
+    /** The payments of the whole period: their sum and how many entries go out, the passed deadlines too. */
+    period: { amount: number; count: number };
 };
 
 /**
@@ -34,65 +44,137 @@ function toCents(amount: number): number {
 }
 
 /**
+ * Whether an entry is a deadline already passed: only a deadline can be,
+ * because payments and incomes before today do not come from the server.
+ *
+ * @param entry - the entry
+ * @param today - today, `yyyy-mm-dd`
+ * @returns true for a passed deadline
+ */
+function isPassed(entry: App.Data.AgendaEntryData, today: string): boolean {
+    return entry.kind === 'deadline' && entry.date < today;
+}
+
+/**
+ * The sum of the payments among some entries: the incomes and the deadlines do not count.
+ *
+ * @param entries - the entries
+ * @returns the sum, rounded to the cent
+ */
+function outgoingOf(entries: App.Data.AgendaEntryData[]): number {
+    return toCents(
+        entries
+            .filter((entry) => entry.kind === 'payment')
+            .reduce((sum, entry) => sum + (entry.amount ?? 0), 0),
+    );
+}
+
+/**
  * Groups the entries as the list shows them: first the deadlines already
- * passed (*To sort out*), then one block for each month with the sum of its
- * payments. Payments and incomes before today do not come from the server, so
- * only a deadline can be passed.
+ * passed (*To sort out*), then *This week* (today to Sunday) and *Next week*;
+ * then, for one month, the rest of the period in one block («Later, until
+ * 26/11»), for a longer period one block for each month. Each block has the sum
+ * of its payments.
  *
  * @param entries - the entries, in the order of the server
  * @param today - today, `yyyy-mm-dd`
+ * @param to - the last day of the period, `yyyy-mm-dd`
+ * @param months - the length of the period, in months
  * @returns the blocks, without the empty ones
  */
-export function groupByMonth(
+export function groupByWeek(
     entries: App.Data.AgendaEntryData[],
     today: string,
+    to: string,
+    months: number,
 ): AgendaGroup[] {
+    const sunday = endOfWeek(today);
+    const nextSunday = addDays(sunday, 7);
     const groups: AgendaGroup[] = [];
-    const overdue = entries.filter(
-        (entry) => entry.kind === 'deadline' && entry.date < today,
-    );
 
-    const passed = new Set(overdue);
-
-    if (overdue.length > 0) {
-        groups.push({
-            key: 'overdue',
-            title: trans('To sort out'),
-            overdue: true,
-            outgoing: null,
-            entries: overdue,
-        });
-    }
-
-    for (const entry of entries) {
-        if (passed.has(entry)) {
-            continue;
-        }
-
-        const month = entry.date.slice(0, 7);
-        let group = groups.find((candidate) => candidate.key === month);
+    /**
+     * The block of an entry, made the first time it is needed.
+     *
+     * @param key - the key of the block
+     * @param title - its title
+     * @returns the block
+     */
+    const groupFor = (key: string, title: () => string): AgendaGroup => {
+        let group = groups.find((candidate) => candidate.key === key);
 
         if (group === undefined) {
             group = {
-                key: month,
-                title: monthName(month),
-                overdue: false,
+                key,
+                title: title(),
+                overdue: key === 'overdue',
                 outgoing: null,
                 entries: [],
             };
             groups.push(group);
         }
 
-        group.entries.push(entry);
+        return group;
+    };
 
-        if (entry.kind === 'payment') {
-            group.outgoing = toCents(
-                (group.outgoing ?? 0) + (entry.amount ?? 0),
-            );
-        }
+    for (const entry of entries) {
+        const group = isPassed(entry, today)
+            ? groupFor('overdue', () => trans('To sort out'))
+            : entry.date <= sunday
+              ? groupFor('this-week', () => trans('This week'))
+              : entry.date <= nextSunday
+                ? groupFor('next-week', () => trans('Next week'))
+                : months === 1
+                  ? groupFor('later', () =>
+                        trans('Later, until :date', { date: shortDate(to) }),
+                    )
+                  : groupFor(entry.date.slice(0, 7), () =>
+                        monthName(entry.date.slice(0, 7)),
+                    );
+
+        group.entries.push(entry);
+    }
+
+    // The passed deadlines come first even if the server sent them later
+    groups.sort((a, b) => Number(b.overdue) - Number(a.overdue));
+
+    for (const group of groups) {
+        group.outgoing = group.entries.some((entry) => entry.kind === 'payment')
+            ? outgoingOf(group.entries)
+            : null;
     }
 
     return groups;
+}
+
+/**
+ * The figures of the tiles above the list: the passed deadlines, what goes
+ * out this week and what goes out in the whole period. The incomes are not
+ * counted; a deadline counts as an entry that goes out, without an amount.
+ *
+ * @param entries - the entries the list shows
+ * @param today - today, `yyyy-mm-dd`
+ * @returns the figures
+ */
+export function agendaTotals(
+    entries: App.Data.AgendaEntryData[],
+    today: string,
+): AgendaTotals {
+    const sunday = endOfWeek(today);
+    const outgoing = entries.filter((entry) => entry.kind !== 'income');
+    const week = outgoing.filter(
+        (entry) => !isPassed(entry, today) && entry.date <= sunday,
+    );
+
+    return {
+        overdue: entries.filter((entry) => isPassed(entry, today)).length,
+        week: {
+            amount: outgoingOf(week),
+            count: week.length,
+            from: today,
+            to: sunday,
+        },
+        period: { amount: outgoingOf(outgoing), count: outgoing.length },
+    };
 }
 
 /**
@@ -152,56 +234,4 @@ export function visibleEntries(
     return ofPerson(entries, filters.person_id).filter(
         (entry) => !filters.hidden_areas.includes(entry.area),
     );
-}
-
-/**
- * The line above the list: «10 entries in the next month, from 26/10 to 26/11
- * · 2 hidden: Work».
- *
- * @param visible - how many entries the list shows
- * @param hidden - for each area turned off, how many entries it hides
- * @param months - the length of the period, in months
- * @param from - the first day, `yyyy-mm-dd`
- * @param to - the last day, `yyyy-mm-dd`
- * @param labels - the name of each area, by area, as the server sends them
- * @returns the sentence, in the language of the page
- */
-export function summary(
-    visible: number,
-    hidden: Record<string, number>,
-    months: number,
-    from: string,
-    to: string,
-    labels: Record<string, string>,
-): string {
-    const text = trans(':entries :period, from :from to :to', {
-        entries: transChoice('{1} :count entry|[2,*] :count entries', visible, {
-            count: String(visible),
-        }),
-        period: transChoice(
-            '{1} in the next month|[2,*] in the next :count months',
-            months,
-            { count: String(months) },
-        ),
-        from: shortDate(from),
-        to: shortDate(to),
-    });
-    const areas = Object.keys(hidden);
-    const count = Object.values(hidden).reduce((sum, n) => sum + n, 0);
-
-    // Areas turned off that have no entries hide nothing: there is nothing to say.
-    if (count === 0) {
-        return text;
-    }
-
-    const hiddenText = transChoice(
-        '{1} :count hidden: :areas|[2,*] :count hidden: :areas',
-        count,
-        {
-            count: String(count),
-            areas: listNames(areas.map((area) => labels[area] ?? area)),
-        },
-    );
-
-    return `${text} · ${hiddenText}`;
 }

@@ -249,7 +249,7 @@ describe('Edit a reminder', () => {
         renderPage(EditReminder, props);
 
         expect(
-            screen.queryByRole('region', { name: 'Overdue' }),
+            screen.queryByRole('region', { name: 'Late' }),
         ).not.toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Save' }),
@@ -260,8 +260,9 @@ describe('Edit a reminder', () => {
         screenWidth(true);
         renderPage(EditReminder, props);
 
+        // The list is behind the window, which hides it from screen readers
         expect(
-            screen.getByRole('region', { name: 'Overdue' }),
+            await screen.findByRole('region', { name: 'Late', hidden: true }),
         ).toBeInTheDocument();
         const window = await screen.findByRole('dialog', {
             name: 'New reminder',

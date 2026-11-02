@@ -17,7 +17,8 @@ final class ReminderData extends Data
     /**
      * @param  int  $id  the id
      * @param  string  $title  what to do: the title of the kind of deadline for an automatic reminder (in the language of whoever looks), the written one otherwise
-     * @param  string  $due_date  the day, `yyyy-mm-dd`
+     * @param  string  $due_date  the day, `yyyy-mm-dd`: the one it was postponed to, if any
+     * @param  string|null  $postponed_from  the day of the deadline of a postponed automatic reminder; null when not postponed
      * @param  ReminderStatus  $status  open or done
      * @param  bool  $is_automatic  whether the app makes it from a date of a card or a document
      * @param  ReminderSubjectData|null  $subject  the thing it refers to
@@ -27,11 +28,14 @@ final class ReminderData extends Data
      * @param  bool  $notice_sent  whether a notice has already gone out for the current date
      * @param  bool  $missing_expense  whether the planned expense of its card is missing
      * @param  string  $href  the card or document of an automatic reminder; the form of a written one
+     * @param  bool  $can_edit  whether whoever looks may change it: a written one only
+     * @param  bool  $can_delete  whether whoever looks may delete it: a written one, by an `admin`
      */
     public function __construct(
         public readonly int $id,
         public readonly string $title,
         public readonly string $due_date,
+        public readonly ?string $postponed_from,
         public readonly ReminderStatus $status,
         public readonly bool $is_automatic,
         public readonly ?ReminderSubjectData $subject,
@@ -41,5 +45,7 @@ final class ReminderData extends Data
         public readonly bool $notice_sent,
         public readonly bool $missing_expense,
         public readonly string $href,
+        public readonly bool $can_edit = false,
+        public readonly bool $can_delete = false,
     ) {}
 }

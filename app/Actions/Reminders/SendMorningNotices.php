@@ -49,7 +49,8 @@ final class SendMorningNotices
 
         try {
             foreach (Reminder::query()->open()->with('link.subject')->orderBy('id')->get() as $reminder) {
-                $deadline = CarbonImmutable::parse($reminder->due_date->toDateString(), $today->timezone);
+                // A postponed reminder is notified again from its new day
+                $deadline = CarbonImmutable::parse($reminder->day()->toDateString(), $today->timezone);
                 $previous = array_values(array_map(strval(...), array_filter($reminder->notifications_sent ?? [], is_scalar(...))));
                 $due = Notices::due($deadline, Notices::rulesFor($reminder, $groups), $previous, $today);
 

@@ -1310,7 +1310,11 @@ function agendaEntry(
         amount: null,
         estimated: false,
         reminder_done: false,
+        reminder: null,
+        update_url: null,
         href: '/agenda',
+        name: entry.subtitle ?? '',
+        detail: entry.title,
         ...entry,
     };
 }
@@ -1321,6 +1325,11 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         kind: 'deadline',
         date: '2026-09-30',
         title: 'Tessera sanitaria di Giulia',
+        subtitle: 'Document of Giulia',
+        name: 'Tessera sanitaria di Giulia',
+        detail: 'Document expiry',
+        reminder: { state: 'late', next_notice: null },
+        update_url: '/agenda/deadlines/documents.expiry_date/17',
         area: 'general',
         person_id: 3,
         person: 'Giulia',
@@ -1329,23 +1338,28 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         kind: 'income',
         date: '2026-10-27',
         title: 'Stipendio di Marco',
+        subtitle: 'Marco - Studio Rinaldi',
         area: 'work',
         amount: 1850,
     }),
     agendaEntry({
         date: '2026-10-30',
         title: 'Bolletta gas',
+        subtitle: 'Gas - Enel',
         amount: 84.2,
     }),
     agendaEntry({
         date: '2026-10-31',
         title: 'Bolletta acqua',
+        subtitle: 'Water - Hera',
         amount: 37.9,
     }),
     agendaEntry({
         kind: 'deadline',
         date: '2026-11-04',
         title: 'End of the free trial',
+        subtitle: 'Netflix',
+        reminder: { state: 'open', next_notice: '2026-11-03' },
         area: 'subscriptions',
         person_id: 2,
         person: 'Laura',
@@ -1353,6 +1367,7 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
     agendaEntry({
         date: '2026-11-04',
         title: 'Primo pagamento',
+        subtitle: 'Netflix',
         area: 'subscriptions',
         person_id: 2,
         person: 'Laura',
@@ -1361,11 +1376,13 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
     agendaEntry({
         date: '2026-11-06',
         title: 'Bolletta luce di ottobre',
+        subtitle: 'Electricity - Edison',
         amount: 62.4,
     }),
     agendaEntry({
         date: '2026-11-10',
         title: 'Rata 33 di 48',
+        subtitle: 'Finanziamento Panda',
         area: 'banks',
         amount: 189,
     }),
@@ -1373,18 +1390,24 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         kind: 'deadline',
         date: '2026-11-14',
         title: "Scade la carta d'identità",
+        subtitle: 'Document of Marco',
+        name: "Scade la carta d'identità",
+        detail: 'Document expiry',
         area: 'general',
         reminder_done: true,
+        reminder: { state: 'done', next_notice: null },
     }),
     agendaEntry({
         date: '2026-11-15',
         title: 'Rata mutuo',
+        subtitle: 'Mutuo casa',
         area: 'banks',
         amount: 612,
     }),
     agendaEntry({
         date: '2026-11-21',
         title: 'Policy renewal',
+        subtitle: 'RC auto Panda - UnipolSai',
         area: 'insurance',
         amount: 418,
     }),
@@ -1392,6 +1415,7 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         kind: 'income',
         date: '2026-11-23',
         title: 'Stipendio di Laura',
+        subtitle: 'Laura - Comune di Bologna',
         area: 'work',
         person_id: 2,
         person: 'Laura',
@@ -1421,6 +1445,7 @@ export const healthCardReminder: App.Data.ReminderData = {
     id: 1,
     title: 'Renew the health card',
     due_date: '2026-09-30',
+    postponed_from: null,
     status: 'open' as App.Enums.ReminderStatus,
     is_automatic: true,
     subject: {
@@ -1436,6 +1461,8 @@ export const healthCardReminder: App.Data.ReminderData = {
     notice_sent: true,
     missing_expense: false,
     href: '/documents/4',
+    can_edit: false,
+    can_delete: false,
 };
 
 /** The plumber: a reminder written by hand, coming, for Laura. */
@@ -1443,6 +1470,7 @@ export const plumberReminder: App.Data.ReminderData = {
     id: 2,
     title: "Chiamare l'idraulico per il preventivo del bagno",
     due_date: '2026-10-31',
+    postponed_from: null,
     status: 'open' as App.Enums.ReminderStatus,
     is_automatic: false,
     subject: {
@@ -1458,6 +1486,8 @@ export const plumberReminder: App.Data.ReminderData = {
     notice_sent: true,
     missing_expense: false,
     href: '/reminders/2/edit',
+    can_edit: true,
+    can_delete: true,
 };
 
 /** The inspection of the Panda, made by the app, coming, for Marco. */
@@ -1465,6 +1495,7 @@ export const inspectionReminder: App.Data.ReminderData = {
     id: 3,
     title: 'Do the inspection',
     due_date: '2027-01-09',
+    postponed_from: null,
     status: 'open' as App.Enums.ReminderStatus,
     is_automatic: true,
     subject: {
@@ -1480,6 +1511,8 @@ export const inspectionReminder: App.Data.ReminderData = {
     notice_sent: false,
     missing_expense: false,
     href: '/cards/vehicle/1',
+    can_edit: false,
+    can_delete: false,
 };
 
 /** A reminder already done. */
@@ -1487,6 +1520,7 @@ export const doneReminder: App.Data.ReminderData = {
     id: 4,
     title: 'Pay the road tax',
     due_date: '2026-10-05',
+    postponed_from: null,
     status: 'done' as App.Enums.ReminderStatus,
     is_automatic: false,
     subject: null,
@@ -1496,6 +1530,8 @@ export const doneReminder: App.Data.ReminderData = {
     notice_sent: true,
     missing_expense: false,
     href: '/reminders/4/edit',
+    can_edit: true,
+    can_delete: true,
 };
 
 /** The people of the family as the menus of the reminders have them: the id as text. */
@@ -1509,9 +1545,10 @@ export const reminderPeople: App.Data.OptionData[] = [
 export const remindersPage: App.Data.RemindersPageData = {
     open: [healthCardReminder, plumberReminder, inspectionReminder],
     done: [doneReminder],
-    people: reminderPeople,
+    people: peopleList,
     person_id: null,
     open_total: 10,
+    areas: agendaAreas,
 };
 
 /** The alert groups of the form, with the people who get their notices. */

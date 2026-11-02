@@ -31,18 +31,26 @@ readonly kind: string,
 readonly date: string,
 readonly title: string,
 readonly subtitle: string,
+readonly name: string,
+readonly detail: string,
 readonly area: string,
 readonly person_id: number | null,
 readonly person: string | null,
 readonly amount: number | null,
 readonly estimated: boolean,
 readonly reminder_done: boolean,
+readonly reminder: App.Data.AgendaReminderData | null,
 readonly href: string,
+readonly update_url: string | null,
 };
 export type AgendaFiltersData = {
 readonly months: number,
 readonly person_id: number | null,
 readonly hidden_areas: string[],
+};
+export type AgendaReminderData = {
+readonly state: App.Enums.AgendaReminderState,
+readonly next_notice: string | null,
 };
 export type AreaCountData = {
 readonly area: string,
@@ -525,6 +533,7 @@ export type ReminderData = {
 readonly id: number,
 readonly title: string,
 readonly due_date: string,
+readonly postponed_from: string | null,
 readonly status: App.Enums.ReminderStatus,
 readonly is_automatic: boolean,
 readonly subject: App.Data.ReminderSubjectData | null,
@@ -534,6 +543,8 @@ readonly next_notice: string | null,
 readonly notice_sent: boolean,
 readonly missing_expense: boolean,
 readonly href: string,
+readonly can_edit: boolean,
+readonly can_delete: boolean,
 };
 export type ReminderGroupChoiceData = {
 readonly value: string,
@@ -576,9 +587,10 @@ readonly area: string,
 export type RemindersPageData = {
 readonly open: App.Data.ReminderData[],
 readonly done: App.Data.ReminderData[],
-readonly people: App.Data.OptionData[],
+readonly people: App.Data.PersonData[],
 readonly person_id: number | null,
 readonly open_total: number,
+readonly areas: App.Data.OptionData[],
 };
 export type SentInvitationData = {
 readonly email: string,
@@ -587,6 +599,7 @@ readonly expires_on: string,
 };
 }
 namespace Enums {
+export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type Channel = 'app' | 'email' | 'both';

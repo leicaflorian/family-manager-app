@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Reminders\SaveReminder;
+use App\Data\AgendaData;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
+use App\Data\PersonData;
 use App\Data\ReminderGroupChoiceData;
 use App\Data\RemindersPageData;
 use App\Http\Requests\Reminders\SaveReminderRequest;
@@ -14,6 +16,7 @@ use App\Models\Document;
 use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
+use App\Models\User;
 use App\Services\BudgetFormOptions;
 use App\Services\DocumentLinks;
 use App\Services\Reminders\GroupRecipients;
@@ -53,7 +56,10 @@ final class ReminderController extends Controller
         $personId = is_string($asked) && ctype_digit($asked) && Person::query()->whereKey((int) $asked)->exists() ? (int) $asked : null;
         $lists = $this->list->for(CarbonImmutable::today('Europe/Rome'), $personId);
 
-        return new RemindersPageData($lists['open'], $lists['done'], BudgetFormOptions::people(), $personId, Reminder::query()->open()->count());
+        $viewer = $request->user();
+        abort_unless($viewer instanceof User, 401);
+
+        return new RemindersPageData($lists['open'], $lists['done'], PersonData::ofFamily($viewer), $personId, Reminder::query()->open()->count(), AgendaData::areas());
     }
 
     /**

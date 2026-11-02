@@ -1,15 +1,20 @@
 /**
- * The words of the reminders and notices: how a rule of a group reads, the
- * next notice of a reminder and when a notice went out. The pages and the
- * components write these the same way, so they live here.
+ * The words and the logic of the reminders and notices: how a rule of a group
+ * reads, when a notice went out, and how the list of the reminders is grouped,
+ * searched, counted by area and postponed. The pages and the components do
+ * these the same way, so they live here.
  */
 import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import type { Tab } from '@/components/fm/FmTabs.vue';
-import { index as remindersIndex } from '@/routes/reminders';
+import type { VisitOptions } from '@inertiajs/core';
+import { router } from '@inertiajs/vue3';
+import { edit, index as remindersIndex, postpone } from '@/routes/reminders';
 import { agenda } from '@/routes';
 import { shortDate } from './budget';
+import { addDays, addMonths, endOfWeek } from './days';
 import { daysFromToday, toDate } from './format';
+import { plainText } from './text';
 
 /** Before or after the due date; the day itself is 0 days. */
 export type NoticeTiming = 'before' | 'after';
@@ -119,23 +124,6 @@ export function ruleText(rule: NoticeRule, people: RulePerson[]): string {
 }
 
 /**
- * The line about the next notice of a reminder.
- *
- * @param nextOn - the day of the next notice, `yyyy-mm-dd`, or null if none is left
- * @param sent - how many notices already went out
- * @returns «First notice on 30/10», «Notice on 30/10» or «No other notice»
- */
-export function nextNoticeText(nextOn: string | null, sent: number): string {
-    if (nextOn === null) {
-        return trans('No other notice');
-    }
-
-    return trans(sent === 0 ? 'First notice on :date' : 'Notice on :date', {
-        date: shortDate(nextOn),
-    });
-}
-
-/**
  * When a notice went out: the weekday and the day if it was in the last week,
  * the day alone if older, then the time.
  *
@@ -167,26 +155,48 @@ export type ReminderItem = {
     id: number;
     /** What to do: «Renew the health card». */
     title: string;
-    /** The day it is due, `yyyy-mm-dd`. */
+    /** The day it is due, `yyyy-mm-dd`; the new day when it was postponed. */
     due_date: string;
+    /** The day of the deadline it was postponed from, `yyyy-mm-dd`, or null. */
+    postponed_from: string | null;
     /** It is marked as done. */
     done: boolean;
     /** It was written by hand, not born from a date of a card or document. */
     manual: boolean;
-    /** The area of the thing it refers to, for the colour of its icon. */
-    area: string | null;
-    /** The thing it refers to, with the address of its page. */
-    subject: { label: string; href: string } | null;
+    /** The area of the thing it refers to, `general` when it refers to nothing. */
+    area: string;
+    /** The thing it refers to, with the address of its page if it has one. */
+    subject: { label: string; href: string | null } | null;
     /** Who takes care of it. */
     person: { name: string; initials: string; photo: string | null } | null;
     /** The day of the next notice, `yyyy-mm-dd`, or null if none is left. */
     next_notice_on: string | null;
-    /** How many notices already went out. */
-    notices_sent: number;
     /** A payment of the card is not in the budget. */
     missing_planned_expense: boolean;
     /** Where the row leads: the card, or the form of a reminder written by hand. */
     href: string;
+    /** The form of the reminder, when the person may change it. */
+    edit_href: string | null;
+    /** The card or document an automatic reminder comes from, when it has a page. */
+    card_href: string | null;
+    /** The person may delete it. */
+    can_delete: boolean;
+};
+
+/** A block of the list of the reminders to do. */
+export type ReminderGroup = {
+    /** Late, this week (today to Sunday), or later. */
+    key: 'late' | 'week' | 'later';
+    /** The reminders of the block, in the order of the server. */
+    items: ReminderItem[];
+};
+
+/** A quick choice of *Postpone*: its words and the day it moves the reminder to. */
+export type PostponeChoice = {
+    /** For example «Tomorrow». */
+    label: string;
+    /** The new day, `yyyy-mm-dd`. */
+    to: string;
 };
 
 /** A notice of the bell as the list shows it. */
@@ -234,11 +244,12 @@ export function toReminderItem(reminder: App.Data.ReminderData): ReminderItem {
         id: reminder.id,
         title: reminder.title,
         due_date: reminder.due_date,
+        postponed_from: reminder.postponed_from,
         done: reminder.status === 'done',
         manual: !reminder.is_automatic,
-        area: subject?.area ?? null,
+        area: subject?.area ?? 'general',
         subject:
-            subject?.href === undefined || subject.href === null
+            subject === null
                 ? null
                 : { label: subject.label, href: subject.href },
         person:
@@ -250,10 +261,108 @@ export function toReminderItem(reminder: App.Data.ReminderData): ReminderItem {
                       photo: person.photo,
                   },
         next_notice_on: reminder.next_notice,
-        notices_sent: reminder.notice_sent ? 1 : 0,
         missing_planned_expense: reminder.missing_expense,
         href: reminder.href,
+        edit_href: reminder.can_edit ? edit.url(reminder.id) : null,
+        card_href: reminder.is_automatic ? (subject?.href ?? null) : null,
+        can_delete: reminder.can_delete,
     };
+}
+
+/**
+ * Splits the reminders to do as the list shows them: the late ones (their day
+ * is passed), this week (today to Sunday) and later.
+ *
+ * @param items - the reminders to do, in the order of the server
+ * @param today - today, `yyyy-mm-dd`
+ * @returns the blocks, without the empty ones
+ */
+export function groupReminders(
+    items: ReminderItem[],
+    today: string,
+): ReminderGroup[] {
+    const sunday = endOfWeek(today);
+    const keyOf = (item: ReminderItem): ReminderGroup['key'] =>
+        item.due_date < today
+            ? 'late'
+            : item.due_date <= sunday
+              ? 'week'
+              : 'later';
+
+    return (['late', 'week', 'later'] as const)
+        .map((key) => ({
+            key,
+            items: items.filter((item) => keyOf(item) === key),
+        }))
+        .filter((group) => group.items.length > 0);
+}
+
+/**
+ * Whether a reminder holds what is searched, in its title or in the name of
+ * the thing it refers to, without capitals and accents.
+ *
+ * @param item - the reminder
+ * @param search - the text typed
+ * @returns true when it holds it, or nothing is typed
+ */
+export function matchesReminder(item: ReminderItem, search: string): boolean {
+    const text = plainText(search.trim());
+
+    return [item.title, item.subject?.label ?? ''].some((part) =>
+        plainText(part).includes(text),
+    );
+}
+
+/**
+ * The quick choices of *Postpone*, counted from today.
+ *
+ * @param today - today, `yyyy-mm-dd`
+ * @returns tomorrow, in a week and in a month
+ */
+export function postponeChoices(today: string): PostponeChoice[] {
+    return [
+        { label: trans('Tomorrow'), to: addDays(today, 1) },
+        { label: trans('In a week'), to: addDays(today, 7) },
+        { label: trans('In a month'), to: addMonths(today, 1) },
+    ];
+}
+
+/**
+ * Moves a reminder to another day; the page stays where it is.
+ *
+ * @param id - the reminder
+ * @param to - the new day, `yyyy-mm-dd`, after today
+ * @param options - what to do when the server answers
+ */
+export function postponeReminder(
+    id: number,
+    to: string,
+    options: VisitOptions = {},
+): void {
+    router.post(postpone.url(id), { to }, { preserveScroll: true, ...options });
+}
+
+/**
+ * How many reminders each area has. The areas turned off count too: their
+ * number stays when their name is struck.
+ *
+ * @param items - the reminders
+ * @param areas - the areas the server sends, in order
+ * @returns the count of each area, zero included
+ */
+export function reminderAreaCounts(
+    items: ReminderItem[],
+    areas: App.Data.OptionData[],
+): Record<string, number> {
+    const counts: Record<string, number> = Object.fromEntries(
+        areas.map((area) => [area.value, 0]),
+    );
+
+    for (const item of items) {
+        counts[item.area] = (counts[item.area] ?? 0) + 1;
+    }
+
+    return counts;
 }
 
 /**

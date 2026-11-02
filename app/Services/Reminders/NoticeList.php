@@ -84,7 +84,7 @@ final readonly class NoticeList
                 read: $notice->read_at !== null,
                 state: match (true) {
                     $reminder->status === ReminderStatus::Done => 'done',
-                    $reminder->due_date->lt($today) => 'expired',
+                    $reminder->day()->lt($today) => 'expired',
                     default => null,
                 },
                 href: $this->reminders->hrefOf($reminder, $subject),

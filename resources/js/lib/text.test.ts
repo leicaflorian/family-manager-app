@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { splitTail } from './text';
+import { plainText, splitTail } from './text';
 
 describe('splitTail', () => {
     it('keeps the last characters apart, to show them after the ellipsis', () => {
@@ -19,5 +19,12 @@ describe('splitTail', () => {
             ' mare',
         ]);
         expect(splitTail('ab😀cdef', 5)).toEqual(['ab', '😀cdef']);
+    });
+});
+
+describe('plainText', () => {
+    it('takes the capitals and the accents away, to compare texts', () => {
+        expect(plainText('Più Avanti')).toBe('piu avanti');
+        expect(plainText('ÉCOLE')).toBe('ecole');
     });
 });

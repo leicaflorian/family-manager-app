@@ -1,6 +1,6 @@
 /**
  * The cases of `FmCard` for the component catalogue: with a text, with a
- * title and buttons, and holding a list of rows.
+ * title and buttons, overdue (with a note under it), and holding a list of rows.
  */
 import { h } from 'vue';
 import { defineExamples } from '@/catalog/examples';
@@ -26,6 +26,19 @@ export default defineExamples(FmCard, [
         name: 'Overdue title',
         props: { title: 'To sort out', tone: 'overdue' },
         slots: { default: 'Deadlines already passed.' },
+    },
+    {
+        name: 'Overdue list with a note',
+        props: { title: 'To sort out', tone: 'overdue', list: true },
+        slots: {
+            default: () =>
+                h(FmRow, {
+                    title: 'Tessera sanitaria di Giulia',
+                    subtitle: 'Scaduta il 20/10/2026',
+                    href: '/documents/4',
+                }),
+            note: 'A passed deadline stays here for three months, until you renew it or fix the date.',
+        },
     },
     {
         name: 'List of rows',

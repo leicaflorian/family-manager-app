@@ -2,13 +2,15 @@ import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
 import { createApp } from 'vue';
 import { beforeAll, describe, expect, it } from 'vite-plus/test';
 import { agendaAreas, agendaEntries } from '@/test/fixtures';
-import { areaCounts, groupByMonth, summary, visibleEntries } from './agenda';
+import {
+    agendaTotals,
+    areaCounts,
+    groupByWeek,
+    visibleEntries,
+} from './agenda';
 import { i18nOptions } from './i18n';
 
 const today = '2026-10-26';
-const labels = Object.fromEntries(
-    agendaAreas.map((area) => [area.value, area.label]),
-);
 const defaults: App.Data.AgendaFiltersData = {
     months: 1,
     person_id: null,
@@ -29,59 +31,150 @@ beforeAll(async () => {
     await speak('en');
 });
 
-describe('groupByMonth', () => {
-    it('puts the passed deadlines first, then one group for each month', () => {
-        const groups = groupByMonth(agendaEntries, today);
+describe('groupByWeek', () => {
+    it('puts the passed deadlines first, then this week, next week and the rest of the month', () => {
+        const groups = groupByWeek(agendaEntries, today, '2026-11-26', 1);
 
         expect(groups.map((group) => group.title)).toEqual([
             'To sort out',
-            'October 2026',
-            'November 2026',
+            'This week',
+            'Next week',
+            'Later, until 26/11',
         ]);
         expect(groups.map((group) => group.overdue)).toEqual([
             true,
+            false,
             false,
             false,
         ]);
         expect(groups[0].entries.map((entry) => entry.title)).toEqual([
             'Tessera sanitaria di Giulia',
         ]);
-    });
-
-    it('sums the payments of a month, not the incomes', () => {
-        const [, october, november] = groupByMonth(agendaEntries, today);
-
-        expect(november.outgoing).toBe(1295.39);
-        expect(october.outgoing).toBe(122.1);
-    });
-
-    it('has no sum for a group without payments', () => {
-        const groups = groupByMonth(agendaEntries.slice(0, 2), today);
-
-        expect(groups[0].outgoing).toBeNull();
-        expect(groups[1].outgoing).toBeNull();
-    });
-
-    it('has no group to sort out when nothing is passed', () => {
-        const groups = groupByMonth(agendaEntries.slice(1), today);
-
-        expect(groups.map((group) => group.key)).toEqual([
-            '2026-10',
-            '2026-11',
+        expect(groups.map((group) => group.entries.length)).toEqual([
+            1, 3, 3, 5,
         ]);
     });
 
-    it('writes the month in the language of the page', async () => {
+    it('ends this week on Sunday and starts the next one on Monday', () => {
+        // Sunday 01/11: this week is that day alone
+        const groups = groupByWeek(
+            agendaEntries.slice(4),
+            '2026-11-01',
+            '2026-12-01',
+            1,
+        );
+
+        expect(groups.map((group) => group.key)).toEqual([
+            'next-week',
+            'later',
+        ]);
+        expect(groups[0].entries.map((entry) => entry.date)).toEqual([
+            '2026-11-04',
+            '2026-11-04',
+            '2026-11-06',
+        ]);
+        expect(groups[1].entries[0].date).toBe('2026-11-10');
+    });
+
+    it('groups by month after next week when the period is longer', () => {
+        const later = {
+            ...agendaEntries[10],
+            key: 'payment:later',
+            date: '2026-12-21',
+        };
+        const groups = groupByWeek(
+            [...agendaEntries, later],
+            today,
+            '2027-01-26',
+            3,
+        );
+
+        expect(groups.map((group) => group.title)).toEqual([
+            'To sort out',
+            'This week',
+            'Next week',
+            'November 2026',
+            'December 2026',
+        ]);
+    });
+
+    it('sums the payments of a group, not the incomes', () => {
+        const [overdue, week, next, later] = groupByWeek(
+            agendaEntries,
+            today,
+            '2026-11-26',
+            1,
+        );
+
+        expect(overdue.outgoing).toBeNull();
+        expect(week.outgoing).toBe(122.1);
+        expect(next.outgoing).toBe(76.39);
+        expect(later.outgoing).toBe(1219);
+    });
+
+    it('has no group to sort out when nothing is passed', () => {
+        const groups = groupByWeek(
+            agendaEntries.slice(1),
+            today,
+            '2026-11-26',
+            1,
+        );
+
+        expect(groups.map((group) => group.key)).toEqual([
+            'this-week',
+            'next-week',
+            'later',
+        ]);
+    });
+
+    it('is written in Italian', async () => {
         await speak('it');
 
-        expect(groupByMonth(agendaEntries, today)[1].title).toBe(
-            'Ottobre 2026',
-        );
-        expect(groupByMonth(agendaEntries, today)[0].title).toBe(
+        expect(
+            groupByWeek(agendaEntries, today, '2026-11-26', 1).map(
+                (group) => group.title,
+            ),
+        ).toEqual([
             'Da sistemare',
-        );
+            'Questa settimana',
+            'Prossima settimana',
+            'Più avanti, fino al 26/11',
+        ]);
+        expect(
+            groupByWeek(agendaEntries, today, '2027-01-26', 3)[3].title,
+        ).toBe('Novembre 2026');
 
         await speak('en');
+    });
+});
+
+describe('agendaTotals', () => {
+    it('counts the passed deadlines', () => {
+        expect(agendaTotals(agendaEntries, today).overdue).toBe(1);
+    });
+
+    it('sums the payments of this week, up to Sunday, and counts what goes out', () => {
+        expect(agendaTotals(agendaEntries, today).week).toEqual({
+            amount: 122.1,
+            count: 2,
+            from: '2026-10-26',
+            to: '2026-11-01',
+        });
+    });
+
+    it('sums the payments of the whole period and counts what goes out, the passed deadlines too', () => {
+        expect(agendaTotals(agendaEntries, today).period).toEqual({
+            amount: 1417.49,
+            count: 10,
+        });
+    });
+
+    it('is all zero without entries', () => {
+        expect(agendaTotals([], today)).toEqual({
+            overdue: 0,
+            week: { amount: 0, count: 0, from: today, to: '2026-11-01' },
+            period: { amount: 0, count: 0 },
+        });
     });
 });
 
@@ -129,56 +222,5 @@ describe('visibleEntries', () => {
         expect(
             visibleEntries(withoutPerson, { ...defaults, person_id: 2 }),
         ).toHaveLength(3);
-    });
-});
-
-describe('summary', () => {
-    it('says how many entries, the period and what is hidden', () => {
-        expect(
-            summary(10, { work: 2 }, 1, '2026-10-26', '2026-11-26', labels),
-        ).toBe(
-            '10 entries in the next month, from 26/10 to 26/11 · 2 hidden: Work',
-        );
-    });
-
-    it('has no hidden part when no area is turned off', () => {
-        expect(summary(12, {}, 3, '2026-10-26', '2027-01-26', labels)).toBe(
-            '12 entries in the next 3 months, from 26/10 to 26/01',
-        );
-    });
-
-    it('says nothing about an area that is off but has no entries', () => {
-        expect(
-            summary(5, { work: 0 }, 1, '2026-10-26', '2026-11-26', labels),
-        ).toBe('5 entries in the next month, from 26/10 to 26/11');
-    });
-
-    it('lists the names of the hidden areas', () => {
-        expect(
-            summary(
-                1,
-                { work: 2, general: 1 },
-                1,
-                '2026-10-26',
-                '2026-11-26',
-                labels,
-            ),
-        ).toBe(
-            '1 entry in the next month, from 26/10 to 26/11 · 3 hidden: Work and People and documents',
-        );
-    });
-
-    it('is written in Italian', async () => {
-        await speak('it');
-
-        expect(
-            summary(10, { work: 2 }, 1, '2026-10-26', '2026-11-26', {
-                work: 'Lavoro',
-            }),
-        ).toBe(
-            '10 voci nel prossimo mese, dal 26/10 al 26/11 · 2 nascoste: Lavoro',
-        );
-
-        await speak('en');
     });
 });

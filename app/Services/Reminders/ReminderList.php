@@ -23,6 +23,7 @@ use App\Support\Reminders\SubjectLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The reminders of the family as the page shows them, with the data of every row read with a fixed number of queries.
@@ -43,7 +44,8 @@ final readonly class ReminderList
         $reminders = Reminder::query()
             ->when($personId !== null, static fn ($query) => $query->where('person_id', $personId))
             ->with(['link', 'person.photo'])
-            ->oldest('due_date')
+            // The day that counts is the one it was postponed to, if any
+            ->orderByRaw('coalesce(postponed_to, due_date)')
             ->orderBy('id')
             ->get();
 
@@ -72,12 +74,13 @@ final readonly class ReminderList
         $subject = $this->subject($reminder->link);
         $open = $reminder->status === ReminderStatus::Open;
         $next = $open ? Notices::next($reminder, Notices::rulesFor($reminder, $groups), $today) : null;
-        $prefix = $reminder->due_date->toDateString().':';
+        $prefix = $reminder->day()->toDateString().':';
 
         return new ReminderData(
             id: $reminder->id,
             title: $this->titleOf($reminder),
-            due_date: $reminder->due_date->toDateString(),
+            due_date: $reminder->day()->toDateString(),
+            postponed_from: $reminder->postponed_to === null ? null : $reminder->due_date->toDateString(),
             status: $reminder->status,
             is_automatic: $reminder->is_automatic,
             subject: $subject,
@@ -87,6 +90,8 @@ final readonly class ReminderList
             notice_sent: array_any($reminder->notifications_sent ?? [], static fn (mixed $key): bool => is_string($key) && str_starts_with($key, $prefix)),
             missing_expense: isset($missing[$reminder->id]),
             href: $this->hrefOf($reminder, $subject),
+            can_edit: Gate::allows('update', $reminder),
+            can_delete: Gate::allows('delete', $reminder),
         );
     }
 

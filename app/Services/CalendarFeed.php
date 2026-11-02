@@ -97,7 +97,7 @@ final readonly class CalendarFeed
 
         return new CalendarEvent(
             uid: "reminder-{$reminder->id}@family-manager",
-            date: $reminder->due_date,
+            date: $reminder->day(),
             summary: $this->reminderTitle($reminder),
             description: implode("\n", array_filter($lines, static fn (mixed $line): bool => is_string($line) && $line !== '')),
         );

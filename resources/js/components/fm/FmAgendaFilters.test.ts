@@ -15,7 +15,7 @@ function props(
     change: Partial<ComponentProps<typeof FmAgendaFilters>> = {},
 ): ComponentProps<typeof FmAgendaFilters> {
     return {
-        variant: 'column',
+        variant: 'toolbar',
         filters: { months: 1, person_id: null, hidden_areas: [] },
         people,
         areas: agendaAreas,
@@ -26,112 +26,273 @@ function props(
     };
 }
 
+/** Opens the menu of the areas of the toolbar. */
+async function openAreas(name: RegExp | string = 'All areas'): Promise<void> {
+    await userEvent.click(screen.getByRole('button', { name }));
+}
+
 describe('FmAgendaFilters', () => {
-    it('shows every area with its count', () => {
-        render(FmAgendaFilters, { props: props() });
+    describe('the toolbar of the computer', () => {
+        it('chooses the period', async () => {
+            const view = render(FmAgendaFilters, { props: props() });
 
-        expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(
-            10,
-        );
-        expect(screen.getByRole('button', { name: /Home/ })).toHaveTextContent(
-            '3',
-        );
-        expect(
-            screen.getByRole('button', { name: /Vehicles/ }),
-        ).toHaveTextContent('0');
-    });
+            expect(
+                screen.getByRole('radio', { name: '1 month' }),
+            ).toBeChecked();
 
-    it('turns an area off and keeps its count', async () => {
-        const view = render(FmAgendaFilters, { props: props() });
+            await userEvent.click(
+                screen.getByRole('radio', { name: '3 months' }),
+            );
 
-        await userEvent.click(screen.getByRole('button', { name: /Work/ }));
-
-        expect(view.emitted().area).toEqual([['work']]);
-    });
-
-    it('shows an area turned off as not pressed, with its count', () => {
-        render(FmAgendaFilters, {
-            props: props({
-                filters: { months: 1, person_id: null, hidden_areas: ['work'] },
-            }),
+            expect(view.emitted().months).toEqual([[3]]);
         });
 
-        const work = screen.getByRole('button', { name: /Work/ });
-        expect(work).toHaveAttribute('aria-pressed', 'false');
-        expect(work).toHaveTextContent('2');
-    });
+        it('offers the periods the server sends, and no others', () => {
+            render(FmAgendaFilters, { props: props({ periods: [1, 6] }) });
 
-    it('chooses the period', async () => {
-        const view = render(FmAgendaFilters, { props: props() });
-
-        expect(screen.getByRole('radio', { name: '1 month' })).toBeChecked();
-
-        await userEvent.click(screen.getByRole('radio', { name: '3 months' }));
-
-        expect(view.emitted().months).toEqual([[3]]);
-    });
-
-    it('chooses a person, or the whole family', async () => {
-        const view = render(FmAgendaFilters, {
-            props: props({
-                filters: { months: 1, person_id: 2, hidden_areas: [] },
-            }),
+            expect(
+                within(
+                    screen.getByRole('radiogroup', { name: 'Period' }),
+                ).getAllByRole('radio'),
+            ).toHaveLength(2);
+            expect(
+                screen.queryByRole('radio', { name: '3 months' }),
+            ).toBeNull();
         });
 
-        expect(screen.getByRole('radio', { name: /Laura/ })).toBeChecked();
+        it('chooses a person, or everyone', async () => {
+            const view = render(FmAgendaFilters, {
+                props: props({
+                    filters: { months: 1, person_id: 2, hidden_areas: [] },
+                }),
+            });
 
-        await userEvent.click(screen.getByRole('radio', { name: /Marco/ }));
-        await userEvent.click(
-            screen.getByRole('radio', { name: /Whole family/ }),
-        );
+            expect(screen.getByRole('radio', { name: /Laura/ })).toBeChecked();
 
-        expect(view.emitted().person).toEqual([[1], [null]]);
-    });
+            await userEvent.click(screen.getByRole('radio', { name: /Marco/ }));
+            await userEvent.click(
+                screen.getByRole('radio', { name: /Everyone/ }),
+            );
 
-    it('takes the filters off', async () => {
-        const view = render(FmAgendaFilters, { props: props() });
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Clear filters' }),
-        );
-
-        expect(view.emitted().reset).toHaveLength(1);
-    });
-
-    it('is a panel on the phone, ending with the entries it shows', async () => {
-        const view = render(FmAgendaFilters, {
-            props: props({ variant: 'sheet', open: true }),
+            expect(view.emitted().person).toEqual([[1], [null]]);
         });
 
-        const dialog = await screen.findByRole('dialog', {
-            name: 'Filter the agenda',
+        it('shows every area with its count in the menu of the areas', async () => {
+            render(FmAgendaFilters, { props: props() });
+
+            await openAreas();
+
+            expect(
+                await screen.findAllByRole('button', { pressed: true }),
+            ).toHaveLength(10);
+            expect(
+                screen.getByRole('button', { name: /Home/ }),
+            ).toHaveTextContent('3');
+            expect(
+                screen.getByRole('button', { name: /Vehicles/ }),
+            ).toHaveTextContent('0');
         });
-        expect(dialog).toBeInTheDocument();
 
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Show 10 entries' }),
-        );
+        it('turns an area off', async () => {
+            const view = render(FmAgendaFilters, { props: props() });
 
-        expect(view.emitted()['update:open']).toEqual([[false]]);
+            await openAreas();
+            await userEvent.click(
+                await screen.findByRole('button', { name: /Work/ }),
+            );
+
+            expect(view.emitted().area).toEqual([['work']]);
+        });
+
+        it('says how many areas are off, and shows them not pressed with their count', async () => {
+            render(FmAgendaFilters, {
+                props: props({
+                    filters: {
+                        months: 1,
+                        person_id: null,
+                        hidden_areas: ['work'],
+                    },
+                }),
+            });
+
+            await openAreas('1 area off');
+
+            const work = await screen.findByRole('button', { name: /Work/ });
+            expect(work).toHaveAttribute('aria-pressed', 'false');
+            expect(work).toHaveTextContent('2');
+        });
+
+        it('takes the filters off from the menu of the areas', async () => {
+            const view = render(FmAgendaFilters, { props: props() });
+
+            await openAreas();
+            await userEvent.click(
+                await screen.findByRole('button', { name: 'Clear filters' }),
+            );
+
+            expect(view.emitted().reset).toHaveLength(1);
+        });
     });
 
-    it('is closed on the phone until it is opened', () => {
-        render(FmAgendaFilters, {
-            props: props({ variant: 'sheet', open: false }),
+    describe('the phone', () => {
+        it('shows what is chosen as three buttons that open the panel', async () => {
+            const view = render(FmAgendaFilters, {
+                props: props({ variant: 'sheet', open: false }),
+            });
+
+            const group = screen.getByRole('group', { name: 'Filters' });
+            expect(
+                within(group)
+                    .getAllByRole('button')
+                    .map((button) => button.textContent?.trim()),
+            ).toEqual(['1 month', 'Everyone', 'All areas']);
+
+            await userEvent.click(
+                within(group).getByRole('button', { name: /Everyone/ }),
+            );
+
+            expect(view.emitted()['update:open']).toEqual([[true]]);
         });
 
-        expect(screen.queryByRole('dialog')).toBeNull();
+        it('names the person chosen and the areas off', () => {
+            render(FmAgendaFilters, {
+                props: props({
+                    variant: 'sheet',
+                    filters: {
+                        months: 3,
+                        person_id: 2,
+                        hidden_areas: ['work', 'home'],
+                    },
+                }),
+            });
+
+            const group = screen.getByRole('group', { name: 'Filters' });
+            expect(
+                within(group)
+                    .getAllByRole('button')
+                    .map((button) => button.textContent?.trim()),
+            ).toEqual(['3 months', 'LB Laura', '2 areas off']);
+        });
+
+        it('is a panel ending with the entries it shows', async () => {
+            const view = render(FmAgendaFilters, {
+                props: props({ variant: 'sheet', open: true }),
+            });
+
+            const dialog = await screen.findByRole('dialog', {
+                name: 'Filter the agenda',
+            });
+            expect(
+                within(dialog).getByRole('button', { name: /Work/ }),
+            ).toHaveAttribute('aria-pressed', 'true');
+
+            await userEvent.click(
+                within(dialog).getByRole('button', { name: 'Show 10 entries' }),
+            );
+
+            expect(view.emitted()['update:open']).toEqual([[false]]);
+        });
+
+        it('is closed until it is opened', () => {
+            render(FmAgendaFilters, {
+                props: props({ variant: 'sheet', open: false }),
+            });
+
+            expect(screen.queryByRole('dialog')).toBeNull();
+        });
     });
 
-    it('offers the periods the server sends, and no others', () => {
-        render(FmAgendaFilters, { props: props({ periods: [1, 6] }) });
+    describe('without the period, as in Reminders', () => {
+        /** The props of *Reminders*: the two lists in place of the period, and the search. */
+        const reminders = (
+            change: Partial<ComponentProps<typeof FmAgendaFilters>> = {},
+        ): ComponentProps<typeof FmAgendaFilters> =>
+            props({
+                periods: undefined,
+                views: {
+                    label: 'Status',
+                    options: [
+                        { value: 'open', label: 'To do · 3' },
+                        { value: 'done', label: 'Completed' },
+                    ],
+                },
+                view: 'open',
+                searchLabel: 'Search a reminder',
+                search: '',
+                ...change,
+            });
 
-        expect(
-            within(
-                screen.getByRole('radiogroup', { name: 'Period' }),
-            ).getAllByRole('radio'),
-        ).toHaveLength(2);
-        expect(screen.getByRole('radio', { name: '6 months' })).toBeVisible();
-        expect(screen.queryByRole('radio', { name: '3 months' })).toBeNull();
+        it('chooses the list in place of the period, on the computer', async () => {
+            const view = render(FmAgendaFilters, { props: reminders() });
+
+            expect(
+                screen.queryByRole('radiogroup', { name: 'Period' }),
+            ).toBeNull();
+            expect(
+                screen.getByRole('radio', { name: 'To do · 3' }),
+            ).toBeChecked();
+
+            await userEvent.click(
+                screen.getByRole('radio', { name: 'Completed' }),
+            );
+
+            expect(view.emitted()['update:view']).toEqual([['done']]);
+        });
+
+        it('searches while typing, on the computer', async () => {
+            const view = render(FmAgendaFilters, { props: reminders() });
+
+            await userEvent.type(
+                screen.getByRole('searchbox', { name: 'Search a reminder' }),
+                'a',
+            );
+
+            expect(view.emitted()['update:search']).toEqual([['a']]);
+        });
+
+        it('has no search without its label', () => {
+            render(FmAgendaFilters, {
+                props: reminders({ searchLabel: undefined }),
+            });
+
+            expect(screen.queryByRole('searchbox')).toBeNull();
+        });
+
+        it('shows the lists as buttons beside the person and the areas, on the phone', async () => {
+            const view = render(FmAgendaFilters, {
+                props: reminders({ variant: 'sheet', open: false }),
+            });
+
+            const group = screen.getByRole('group', { name: 'Filters' });
+            expect(
+                within(group)
+                    .getAllByRole('button')
+                    .map((button) => button.textContent?.trim()),
+            ).toEqual(['To do · 3', 'Completed', 'Everyone', 'All areas']);
+            expect(
+                within(group).getByRole('button', { name: 'To do · 3' }),
+            ).toHaveAttribute('aria-pressed', 'true');
+
+            await userEvent.click(
+                within(group).getByRole('button', { name: 'Completed' }),
+            );
+
+            expect(view.emitted()['update:view']).toEqual([['done']]);
+            expect(view.emitted()['update:open']).toBeUndefined();
+        });
+
+        it('leaves the period out of the panel', async () => {
+            render(FmAgendaFilters, {
+                props: reminders({ variant: 'sheet', open: true }),
+            });
+
+            const dialog = await screen.findByRole('dialog', {
+                name: 'Filter the agenda',
+            });
+            expect(within(dialog).queryByText('Period')).toBeNull();
+            expect(
+                within(dialog).getByRole('radiogroup', { name: 'Person' }),
+            ).toBeInTheDocument();
+        });
     });
 });

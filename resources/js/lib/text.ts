@@ -24,3 +24,14 @@ export function splitTail(text: string, tail: number): [string, string] {
         characters.slice(-tail).join(''),
     ];
 }
+
+/**
+ * A text without capitals and accents, to compare what is typed in a search
+ * with names and titles.
+ *
+ * @param text - the text
+ * @returns the text in lower case, without the accents
+ */
+export function plainText(text: string): string {
+    return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}

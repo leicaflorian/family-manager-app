@@ -7,19 +7,25 @@ namespace App\Services;
 use App\Cards\CardTypes;
 use App\Data\AgendaData;
 use App\Data\AgendaEntryData;
+use App\Data\AgendaReminderData;
+use App\Enums\AgendaReminderState;
+use App\Enums\ReminderStatus;
 use App\Models\Document;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\Reminder;
+use App\Models\ReminderGroup;
 use App\Queries\CardDeadlines;
 use App\Support\CardDeadline;
 use App\Support\Deadline;
 use App\Support\ModelId;
 use App\Support\PlannedKind;
+use App\Support\Reminders\Notices;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The entries of a period, for the Agenda, the Home and the calendar: the
@@ -95,6 +101,8 @@ final readonly class Agenda
         $payments = $this->openDueDates($today->subDays($paymentsBack), $until);
         $deadlines = $this->cardDeadlines->between($today->subDays($deadlinesBack), $until, $today);
         $this->loadLabels($deadlines);
+        $groups = ReminderGroup::query()->get();
+        $reminder = fn (?CardDeadline $deadline): ?AgendaReminderData => $this->reminderOf($deadline, $today, $groups);
 
         $byCard = [];
 
@@ -120,13 +128,13 @@ final readonly class Agenda
             $index = $deadline->source->hasExpense ? ($byCard[$this->sameCard($deadline->card, $deadline->date)] ?? null) : null;
 
             if ($index === null || isset($merged[$index])) {
-                $entries[] = ['entry' => $this->deadlineEntry($deadline), 'deadline' => $deadline];
+                $entries[] = ['entry' => $this->deadlineEntry($deadline, $reminder($deadline)), 'deadline' => $deadline];
 
                 continue;
             }
 
             $merged[$index] = true;
-            $entries[] = ['entry' => $this->paymentEntry($payments[$index], $deadline), 'deadline' => $deadline];
+            $entries[] = ['entry' => $this->paymentEntry($payments[$index], $deadline, $reminder($deadline)), 'deadline' => $deadline];
         }
 
         foreach ($payments as $index => $payment) {
@@ -184,11 +192,13 @@ final readonly class Agenda
      * The entry of a deadline of a card or a document.
      *
      * @param  CardDeadline  $deadline  the deadline
+     * @param  AgendaReminderData|null  $reminder  its automatic reminder
      */
-    private function deadlineEntry(CardDeadline $deadline): AgendaEntryData
+    private function deadlineEntry(CardDeadline $deadline, ?AgendaReminderData $reminder): AgendaEntryData
     {
         $card = $deadline->card;
         $date = $deadline->date->toDateString();
+        $document = $card instanceof Document;
 
         return new AgendaEntryData(
             key: "deadline:{$deadline->source->field}:".ModelId::of($card).":{$date}",
@@ -196,15 +206,19 @@ final readonly class Agenda
             date: $date,
             title: $this->deadlineTitle($deadline),
             subtitle: $this->deadlineSubtitle($deadline),
+            name: $document ? $this->deadlineTitle($deadline) : $this->cards->label($card),
+            detail: $document ? __('Document expiry') : $this->deadlineTitle($deadline),
             area: $deadline->area,
             person_id: $deadline->person?->id,
             person: $deadline->person?->first_name,
             amount: null,
             estimated: false,
             reminder_done: $deadline->reminderDone(),
-            href: $card instanceof Document
+            reminder: $reminder,
+            href: $document
                 ? route('documents.show', $card)
                 : route('cards.show', ['type' => CardTypes::for($card)->type(), 'id' => ModelId::of($card)]),
+            update_url: Gate::allows('update', $card) ? route('agenda.deadlines.update', ['field' => $deadline->source->field, 'id' => ModelId::of($card)]) : null,
         );
     }
 
@@ -213,8 +227,9 @@ final readonly class Agenda
      *
      * @param  Deadline  $payment  the open due date
      * @param  CardDeadline|null  $deadline  the deadline of the same card on the same day, if this payment pays it
+     * @param  AgendaReminderData|null  $reminder  the automatic reminder of that deadline
      */
-    private function paymentEntry(Deadline $payment, ?CardDeadline $deadline = null): AgendaEntryData
+    private function paymentEntry(Deadline $payment, ?CardDeadline $deadline = null, ?AgendaReminderData $reminder = null): AgendaEntryData
     {
         $planned = $payment->planned;
         $card = PlannedKind::card($planned);
@@ -226,15 +241,61 @@ final readonly class Agenda
             key: "{$kind}:{$planned->id}:{$originalDate}",
             kind: $kind,
             date: $payment->occurrence->date->toDateString(),
-            title: $deadline instanceof CardDeadline ? $this->deadlineTitle($deadline) : $payment->title,
-            subtitle: $card instanceof Model ? $this->cards->label($card) : ($planned->organization->name ?? ''),
+            title: $title = $deadline instanceof CardDeadline ? $this->deadlineTitle($deadline) : $payment->title,
+            subtitle: $subtitle = $card instanceof Model ? $this->cards->label($card) : ($planned->organization->name ?? ''),
+            name: $card instanceof Model ? $subtitle : $title,
+            detail: $card instanceof Model ? $this->paymentDetail($title, $subtitle, $kind) : $subtitle,
             area: $card instanceof Model ? CardTypes::for($card)->area()->value : AgendaData::GENERAL_AREA,
             person_id: $person?->id,
             person: $person?->first_name,
             amount: $payment->occurrence->amount,
             estimated: $payment->occurrence->estimated,
             reminder_done: $deadline?->reminderDone() ?? false,
+            reminder: $reminder,
             href: route('budget.deadlines.show', ['kind' => $payment->kind(), 'id' => $planned->id, 'date' => $originalDate]).'?pay=1',
+        );
+    }
+
+    /**
+     * The line below the name of a payment of a card: its title, or what it is when the title only repeats the card's name («Netflix» paid to Netflix).
+     *
+     * @param  string  $title  the title of the payment
+     * @param  string  $name  the name of the card
+     * @param  'payment'|'income'  $kind  payment or income
+     */
+    private function paymentDetail(string $title, string $name, string $kind): string
+    {
+        if (mb_strtolower(trim($title)) !== mb_strtolower(trim($name))) {
+            return $title;
+        }
+
+        return $kind === 'payment' ? __('Payment') : __('Income entry');
+    }
+
+    /**
+     * The automatic reminder of a deadline as the Agenda shows it: to do, late or done, with its next notice.
+     *
+     * @param  CardDeadline|null  $deadline  the deadline, null for a payment that pays none
+     * @param  CarbonImmutable  $today  today in Rome
+     * @param  Collection<int, ReminderGroup>  $groups  the groups of notices of the family
+     */
+    private function reminderOf(?CardDeadline $deadline, CarbonImmutable $today, Collection $groups): ?AgendaReminderData
+    {
+        $reminder = $deadline?->reminder;
+
+        if (! $reminder instanceof Reminder) {
+            return null;
+        }
+
+        if ($reminder->status === ReminderStatus::Done) {
+            return new AgendaReminderData(AgendaReminderState::Done, null);
+        }
+
+        $late = $reminder->day()->toDateString() < $today->toDateString();
+
+        return new AgendaReminderData(
+            $late ? AgendaReminderState::Late : AgendaReminderState::Open,
+            Notices::next($reminder, Notices::rulesFor($reminder, $groups), $today)?->toDateString(),
         );
     }
 
