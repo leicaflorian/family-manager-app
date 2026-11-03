@@ -22,6 +22,7 @@ import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
 import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
+import { countBadge } from '@/lib/badge';
 import FmLogo from './FmLogo.vue';
 import type { NavigationItems, Section } from './navigation';
 
@@ -132,7 +133,7 @@ function isPage(section: Section): boolean {
             <span
                 v-if="uploadCount > 0"
                 class="rounded-full bg-white px-1.5 text-xs font-semibold text-action"
-                >{{ uploadCount > 99 ? '99+' : uploadCount }}</span
+                >{{ countBadge(uploadCount) }}</span
             >
         </Link>
 

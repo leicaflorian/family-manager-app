@@ -96,4 +96,30 @@ describe('useReadingFill', () => {
             useReadingFill(form, initial, 'untouched').canRestore.value,
         ).toBe(false);
     });
+
+    it('does not refill a field the person emptied when the same reading arrives again', () => {
+        const { form, initial } = start();
+        const fill = useReadingFill(form, initial, 'untouched');
+        const values = { category_id: '4', title: 'Luce ottobre' };
+        fill.apply(values);
+        form.category_id = '';
+        form.title = 'bolletta-edison.pdf';
+
+        fill.apply({ ...values });
+
+        expect(form.category_id).toBe('');
+        expect(form.title).toBe('bolletta-edison.pdf');
+    });
+
+    it('updates the fields still holding the first reading with a different second reading', () => {
+        const { form, initial } = start();
+        const fill = useReadingFill(form, initial, 'untouched');
+        fill.apply({ title: 'Luce ottobre', person_id: '7' });
+        form.person_id = '8';
+
+        fill.apply({ title: 'Luce novembre', person_id: '9' });
+
+        expect(form.title).toBe('Luce novembre');
+        expect(form.person_id).toBe('8');
+    });
 });

@@ -9,6 +9,7 @@
 import { Link } from '@inertiajs/vue3';
 import { LogOut, Menu, Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { countBadge } from '@/lib/badge';
 import { cn } from '@/lib/utils';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmIcon from './FmIcon.vue';

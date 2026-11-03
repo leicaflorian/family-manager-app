@@ -45,7 +45,9 @@ function same(
  * a field is filled only if the person did not touch it (it still holds its
  * starting value) or, in `empty` mode, if it is empty; the links add up to the
  * ones already chosen. What was read is remembered, so `restore()` can put it
- * back after the person changed it.
+ * back after the person changed it. A field the reading filled is the person's
+ * once its value differs from what was written, so a second reading never
+ * overwrites an edit, while a different one still updates what is untouched.
  *
  * @param form - the reactive values of the form
  * @param initial - the values the form started from
@@ -60,6 +62,9 @@ export function useReadingFill(
     /** The values read so far, as the form holds them after applying. */
     const read = ref<Partial<DocumentFormValues>>({});
 
+    /** The value this composable last wrote in each field: any other value there is the person's. */
+    const written: Partial<DocumentFormValues> = {};
+
     /**
      * Writes one field.
      *
@@ -72,6 +77,7 @@ export function useReadingFill(
     ): void {
         form[key] = value;
         read.value = { ...read.value, [key]: value };
+        written[key] = value;
     }
 
     /**
@@ -93,6 +99,14 @@ export function useReadingFill(
      * @returns true when the person has not made it theirs
      */
     function writable(key: keyof DocumentFormValues): boolean {
+        const last = written[key];
+
+        // A field already filled by a reading is the person's as soon as it differs from it,
+        // even if they emptied it or typed the starting value back
+        if (last !== undefined) {
+            return same(form[key], last);
+        }
+
         return mode === 'empty'
             ? isEmpty(form[key])
             : same(form[key], initial[key]);
@@ -127,6 +141,7 @@ export function useReadingFill(
 
         for (const key of Object.keys(fields) as (keyof typeof fields)[]) {
             form[key] = fields[key] as never;
+            written[key] = fields[key] as never;
         }
 
         if (links !== undefined) {

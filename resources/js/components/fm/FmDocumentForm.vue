@@ -73,6 +73,9 @@ const form = useForm<DocumentFormValues>({
     links: [...initial.links],
 });
 
+/** While the form has changes not saved, leaving the page asks first. */
+useUnsavedChanges(() => form.data());
+
 const reading = useReadingFill(form, initial, fill);
 
 // The proposal may arrive after the form opened (the reading ends later)
@@ -85,9 +88,6 @@ watch(
     },
     { immediate: true },
 );
-
-/** While the form has changes not saved, leaving the page asks first. */
-useUnsavedChanges(() => form.data());
 
 // The categories keep their name and depth, which the list of the menu shows
 const categories = computed(() => [

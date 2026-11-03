@@ -419,4 +419,21 @@ describe('Changes not saved', () => {
 
         expect(screen.getByLabelText('What it is')).toHaveValue('Luce ottobre');
     });
+
+    it('counts a proposal as a change not saved when the form opens with it', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            proposal: { title: 'Luce ottobre' },
+        });
+        expect(hasChanges()).toBe(true);
+    });
+
+    it('counts a proposal that arrives later as a change not saved', async () => {
+        const view = renderPage(FmDocumentForm, props);
+        expect(hasChanges()).toBe(false);
+
+        await view.rerender({ ...props, proposal: { title: 'Luce ottobre' } });
+
+        expect(hasChanges()).toBe(true);
+    });
 });
