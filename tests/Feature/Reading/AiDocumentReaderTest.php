@@ -208,13 +208,43 @@ test('a wrong key is not retried', function (int $status): void {
         ->and($failed?->retry)->toBeFalse();
 })->with([401, 403]);
 
-test('another error of the service is not retried', function (): void {
-    Http::fake(['*' => Http::response(['error' => ['code' => 500, 'message' => 'Internal error.']], 500)]);
+test('a wrong gemini key is not retried', function (): void {
+    // Google answers a wrong key with 400 and the reason in the details, not with 401
+    Http::fake(['*' => Http::response(aiAnswer('gemini-invalid-key'), 400)]);
+
+    $failed = aiFailure(fn (): Reading => aiReader('gemini', 'gemini-3.8-flash')->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it'));
+
+    expect($failed?->getMessage())->toBe('The key of the AI service is not valid.')
+        ->and($failed?->retry)->toBeFalse();
+});
+
+test('another error of the service is not retried', function (int $status): void {
+    Http::fake(['*' => Http::response(['error' => ['code' => $status, 'message' => 'Something went wrong.', 'status' => 'INVALID_ARGUMENT']], $status)]);
 
     $failed = aiFailure(fn (): Reading => aiReader('gemini', 'gemini-3.8-flash')->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it'));
 
     expect($failed?->getMessage())->toBe('The AI service answered with an error.')
         ->and($failed?->retry)->toBeFalse();
+})->with([400, 500]);
+
+test('ollama does not get a pdf', function (): void {
+    config(['ai.providers.ollama.url' => 'http://192.168.1.20:11434']);
+    Http::fake();
+
+    $failed = aiFailure(fn (): Reading => aiReader('ollama', 'qwen3-vl:8b')->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it'));
+
+    expect($failed?->getMessage())->toBe('This AI service cannot read PDF files.')
+        ->and($failed?->retry)->toBeFalse();
+    Http::assertNothingSent();
+});
+
+test('the reader reads only when it is on', function (): void {
+    Http::fake();
+    config(['document_reader.provider' => null]);
+
+    expect(fn (): Reading => resolve(DocumentReader::class)->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it'))
+        ->toThrow(LogicException::class, 'The reading is off: call read() only when isActive() is true.');
+    Http::assertNothingSent();
 });
 
 test('without a key the reader is off', function (array $settings, bool $active): void {

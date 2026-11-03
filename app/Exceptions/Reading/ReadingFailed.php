@@ -79,6 +79,14 @@ final class ReadingFailed extends RuntimeException
     }
 
     /**
+     * The service only reads photos (Ollama), and the file is a PDF.
+     */
+    public static function pdfNotSupported(): self
+    {
+        return new self('This AI service cannot read PDF files.');
+    }
+
+    /**
      * The service answered with any other error.
      */
     public static function serviceError(\Throwable $previous): self

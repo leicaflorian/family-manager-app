@@ -20,6 +20,7 @@ use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\Data\FinishReason;
 use Laravel\Ai\Responses\Data\Step;
 use Laravel\Ai\Responses\StructuredAgentResponse;
+use LogicException;
 
 /**
  * Reads a document with the service and the model of `config/document_reader.php`, through the Laravel AI SDK.
@@ -28,6 +29,9 @@ final class AiDocumentReader implements DocumentReader
 {
     /** The statuses with which a service refuses the key. */
     private const array KEY_REFUSED = [401, 403];
+
+    /** The reason Google gives, with a 400, for a key that is not valid. */
+    private const string GOOGLE_KEY_INVALID = 'API_KEY_INVALID';
 
     /**
      * Whether the reading is on: Gemini and Anthropic need their key, Ollama its address. An empty value of the
@@ -46,19 +50,30 @@ final class AiDocumentReader implements DocumentReader
 
     /**
      * Reads a file: a PDF or a photo goes as an attachment, a text inside the message, before the instructions.
+     * Called only when `isActive()` is true.
      *
      * @param  ReadingSource  $source  the file as the model reads it
      * @param  ReadingContext  $context  the lists the model picks from and the notes of the file
      * @param  string  $locale  the language of who uploaded the file (`it` or `en`)
      *
      * @throws ReadingFailed when the service gives no extraction: `retry` only when it is busy or cannot be reached
+     * @throws LogicException when the reading is off
      */
     public function read(ReadingSource $source, ReadingContext $context, string $locale): Reading
     {
+        if (! $this->isActive()) {
+            throw new LogicException('The reading is off: call read() only when isActive() is true.');
+        }
+
         $provider = Config::string('document_reader.provider');
         $model = Config::string('document_reader.model');
         $instructions = ReadingPrompt::instructions($context, $locale);
         $text = $source->text();
+
+        // Ollama takes only photos: its pages as photos are for later, and the SDK would throw on a document
+        if ($provider === 'ollama' && $source->mediaType === 'application/pdf') {
+            throw ReadingFailed::pdfNotSupported();
+        }
 
         $response = $this->ask(
             new DocumentReaderAgent($model),
@@ -109,9 +124,24 @@ final class AiDocumentReader implements DocumentReader
         } catch (ProviderConnectionException $e) {
             throw ReadingFailed::unreachable($e);
         } catch (RequestException $e) {
-            throw in_array($e->response->status(), self::KEY_REFUSED, true) ? ReadingFailed::invalidKey($e) : ReadingFailed::serviceError($e);
+            throw $this->refusesKey($e) ? ReadingFailed::invalidKey($e) : ReadingFailed::serviceError($e);
         } catch (AiException $e) {
             throw ReadingFailed::serviceError($e);
         }
+    }
+
+    /**
+     * Whether the service refused the key: a 401 or a 403, or the 400 with which Google answers a wrong key.
+     *
+     * @param  RequestException  $e  the error answer of the service
+     */
+    private function refusesKey(RequestException $e): bool
+    {
+        $status = $e->response->status();
+        $details = $e->response->json('error.details');
+        $reasons = is_array($details) ? array_column($details, 'reason') : [];
+
+        return in_array($status, self::KEY_REFUSED, true)
+            || ($status === 400 && in_array(self::GOOGLE_KEY_INVALID, $reasons, true));
     }
 }

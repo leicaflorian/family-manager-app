@@ -27,6 +27,13 @@ test('gemini-3.5-flash has its own price', function (): void {
     expect(millionTokensCost('gemini-3.5-flash', '2026-10-01'))->toEqualWithDelta(10.5, 1e-9);
 });
 
+test('claude-opus-5, a model of the fallback, has its own price', function (): void {
+    // opus 5: 5 + 25; opus 5.5 keeps 4 + 20
+    expect(millionTokensCost('claude-opus-5', '2026-10-01'))->toEqualWithDelta(30.0, 1e-9)
+        ->and(millionTokensCost('claude-opus-5-20260301', '2026-10-01'))->toEqualWithDelta(30.0, 1e-9)
+        ->and(millionTokensCost('claude-opus-5-5', '2026-10-01'))->toEqualWithDelta(24.0, 1e-9);
+});
+
 test('an unknown model gives null', function (): void {
     expect(millionTokensCost('modello-sconosciuto', '2026-10-01'))->toBeNull();
 });

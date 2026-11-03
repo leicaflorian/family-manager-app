@@ -1085,5 +1085,6 @@
     "The AI service is busy, try again in a while.": "Il servizio AI è occupato, riprova tra poco.",
     "The AI service cannot be reached, try again in a while.": "Il servizio AI non risponde, riprova tra poco.",
     "The key of the AI service is not valid.": "La chiave del servizio AI non è valida.",
-    "The AI service answered with an error.": "Il servizio AI ha risposto con un errore."
+    "The AI service answered with an error.": "Il servizio AI ha risposto con un errore.",
+    "This AI service cannot read PDF files.": "Questo servizio AI non sa leggere i file PDF."
 }

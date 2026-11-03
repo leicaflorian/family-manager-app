@@ -51,6 +51,7 @@ return [
             'driver' => 'anthropic',
             'key' => env('ANTHROPIC_API_KEY'),
             'url' => env('ANTHROPIC_URL', 'https://api.anthropic.com/v1'),
+            // A custom ANTHROPIC_BETA must keep server-side-fallback-2026-07-01: the body sends `fallbacks`.
             'anthropic_beta' => env('ANTHROPIC_BETA', 'server-side-fallback-2026-07-01'),
         ],
 
