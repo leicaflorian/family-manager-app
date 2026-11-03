@@ -648,6 +648,8 @@
       "pages/cards/EditCard.vue",
       "pages/documents/Documents.vue",
       "pages/documents/EditDocument.vue",
+      "pages/documents/ToSort.vue",
+      "pages/documents/Upload.vue",
       "pages/family/EditOrganization.vue",
       "pages/family/EditPerson.vue",
       "pages/family/InvitationSent.vue",
@@ -1459,6 +1461,13 @@
         "required": false,
         "default": "false",
         "description": "Only the bin, without the text, as in the panel beside the list."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "required": false,
+        "default": null,
+        "description": "The name of the button, when it is not *Delete*: «Delete the copy»."
       }
     ],
     "events": [],
@@ -1467,6 +1476,7 @@
     "usedBy": [
       "components/fm/FmMovementPanel.vue",
       "pages/budget/EditPlanned.vue",
+      "pages/documents/ToSort.vue",
       "pages/reminders/EditReminder.vue"
     ]
   },
@@ -1743,6 +1753,7 @@
       "pages/budget/Planned.vue",
       "pages/dev/Components.vue",
       "pages/documents/Documents.vue",
+      "pages/documents/ToSort.vue",
       "pages/family/Organizations.vue",
       "pages/notices/Notices.vue",
       "pages/reminders/Reminders.vue"
@@ -3226,6 +3237,7 @@
       "pages/budget/Movements.vue",
       "pages/budget/PlannedItem.vue",
       "pages/dev/Components.vue",
+      "pages/documents/ToSort.vue",
       "pages/family/Organizations.vue",
       "pages/family/People.vue",
       "pages/settings/Account.vue",
@@ -3381,7 +3393,7 @@
   {
     "name": "FmTabs",
     "path": "resources/js/components/fm/FmTabs.vue",
-    "description": "The tabs at the top of a set of pages (the three of the budget, *Deadlines*\nand *Reminders* of the Agenda). The page lists its tabs; the one of the open\npage is marked, and a tab can show a number after its name. They are lines\nunder the names (`underline`) or, as in the Agenda, a grey pill with the open\ntab in white (`pill`).",
+    "description": "The tabs at the top of a set of pages (the three of the budget, *Deadlines*\nand *Reminders* of the Agenda). The page lists its tabs; the one of the open\npage is marked, and a tab can show a number after its name, and one with nothing behind it can be shown soft and without a link (`disabled`). They are lines\nunder the names (`underline`) or, as in the Agenda, a grey pill with the open\ntab in white (`pill`).",
     "group": "navigation",
     "props": [
       {
@@ -3418,6 +3430,7 @@
       "pages/budget/Comparison.vue",
       "pages/budget/Movements.vue",
       "pages/budget/Planned.vue",
+      "pages/documents/ToSort.vue",
       "pages/reminders/Reminders.vue"
     ]
   },
@@ -3477,6 +3490,7 @@
       "pages/documents/Document.vue",
       "pages/documents/Documents.vue",
       "pages/documents/EditDocument.vue",
+      "pages/documents/ToSort.vue",
       "pages/documents/Upload.vue",
       "pages/family/EditOrganization.vue",
       "pages/family/EditPerson.vue",

@@ -12,6 +12,14 @@ import { pendingPayslip as payslip } from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import Upload from './Upload.vue';
 
+const shared = vi.hoisted(() => ({ to_sort_count: 0 }));
+
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({ url: '/upload', props: { ...shared } }),
+}));
+
 const options = {
     categories: [],
     people: [],
@@ -51,6 +59,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    shared.to_sort_count = 0;
     vi.useRealTimers();
     vi.restoreAllMocks();
 });
@@ -111,6 +120,23 @@ describe('Upload', () => {
         expect(
             screen.getByRole('button', { name: 'Save' }),
         ).toBeInTheDocument();
+    });
+
+    it('leads to the files to sort when there are some', () => {
+        shared.to_sort_count = 1;
+        renderPage(Upload, { pending: [], ...options });
+
+        expect(
+            screen.getByRole('link', { name: '1 file to sort' }),
+        ).toHaveAttribute('href', '/to-sort');
+    });
+
+    it('does not mention the files to sort when there are none', () => {
+        renderPage(Upload, { pending: [], ...options });
+
+        expect(
+            screen.queryByRole('link', { name: /to sort/ }),
+        ).not.toBeInTheDocument();
     });
 
     it('cancels to the files to sort without deleting the file', async () => {

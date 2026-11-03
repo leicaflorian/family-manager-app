@@ -458,6 +458,7 @@ readonly note: string | null,
 readonly copy_of: string | null,
 readonly pages: number | null,
 readonly can_delete: boolean,
+readonly created_on: string,
 };
 export type PersonData = {
 readonly id: number,
@@ -604,6 +605,16 @@ export type SentInvitationData = {
 readonly email: string,
 readonly link: string,
 readonly expires_on: string,
+};
+export type ToSortPageData = {
+readonly files: App.Data.PendingFileData[],
+readonly source: App.Enums.FileSource | null,
+readonly counts: {
+all: number,
+mail: number,
+phone: number,
+upload: number,
+},
 };
 namespace Reading {
 export type DocumentProposalData = {

@@ -31,6 +31,7 @@ use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\LocalOnly;
@@ -147,6 +148,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('files/{file}/download', [FileController::class, 'download'])->name('files.download');
         Route::post('files/{file}/read', FileReadingController::class)->name('files.read');
 
+        Route::get('to-sort', [ToSortController::class, 'index'])->name('to-sort');
+        Route::post('to-sort/read', [ToSortController::class, 'read'])->name('to-sort.read');
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');

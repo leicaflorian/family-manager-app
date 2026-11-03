@@ -5,6 +5,14 @@ import { documentDetail, documentFilterOptions } from '@/test/fixtures';
 import { choose, renderPage } from '@/test/page';
 import Documents from './Documents.vue';
 
+const shared = vi.hoisted(() => ({ to_sort_count: 0 }));
+
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({ url: '/documents', props: { ...shared } }),
+}));
+
 const none = {
     category: null,
     person: null,
@@ -38,10 +46,28 @@ const props = {
 };
 
 afterEach(() => {
+    shared.to_sort_count = 0;
     vi.restoreAllMocks();
 });
 
 describe('Documents', () => {
+    it('leads to the files to sort when there are some', () => {
+        shared.to_sort_count = 3;
+        renderPage(Documents, props);
+
+        expect(
+            screen.getByRole('link', { name: '3 files to sort' }),
+        ).toHaveAttribute('href', '/to-sort');
+    });
+
+    it('does not mention the files to sort when there are none', () => {
+        renderPage(Documents, props);
+
+        expect(
+            screen.queryByRole('link', { name: /to sort/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('lists the documents, the most recent first', () => {
         renderPage(Documents, props);
 

@@ -10,6 +10,7 @@ use App\Enums\ReadingStatus;
 use App\Models\File;
 use App\Support\FileTitle;
 use App\Support\PresetLink;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -38,6 +39,7 @@ final class PendingFileData extends Data
      * @param  string|null  $copy_of  the name of the older file it is a copy of, null when it is no copy
      * @param  int|null  $pages  how many pages it has, when known: one for a photo
      * @param  bool  $can_delete  whether whoever signed in may delete it
+     * @param  string  $created_on  the day it arrived, `yyyy-mm-dd`
      */
     public function __construct(
         public readonly int $id,
@@ -56,6 +58,7 @@ final class PendingFileData extends Data
         public readonly ?string $copy_of,
         public readonly ?int $pages,
         public readonly bool $can_delete,
+        public readonly string $created_on,
     ) {}
 
     /**
@@ -66,7 +69,17 @@ final class PendingFileData extends Data
      */
     public static function waiting(?int $limit = null): array
     {
-        $files = File::query()->toSort()->with('document')->oldest('id')->limit($limit)->get();
+        return self::fromFiles(File::query()->toSort()->with('document')->oldest('id')->limit($limit)->get());
+    }
+
+    /**
+     * The data of many files waiting for their document, with their copies found in one query.
+     *
+     * @param  Collection<int, File>  $files  the files, with their `document` loaded
+     * @return array<int, self>
+     */
+    public static function fromFiles(Collection $files): array
+    {
         File::findCopies($files);
 
         return $files->map(self::fromFile(...))->values()->all();
@@ -100,6 +113,7 @@ final class PendingFileData extends Data
             copy_of: $file->copyOf()?->original_name,
             pages: str_starts_with($file->mime_type, 'image/') ? 1 : null,
             can_delete: Gate::allows('delete', $file),
+            created_on: $file->created_at?->format('Y-m-d') ?? '',
         );
     }
 }

@@ -60,4 +60,31 @@ describe('FmTabs', () => {
             'bg-white',
         );
     });
+
+    it('shows a tab that cannot be chosen as a name without a link', () => {
+        render(FmTabs, {
+            props: {
+                label: 'Files',
+                tabs: [
+                    { label: 'All', href: '/to-sort', count: 5, current: true },
+                    {
+                        label: 'By mail',
+                        href: '/to-sort?source=mail',
+                        count: 0,
+                        current: false,
+                        disabled: true,
+                    },
+                ],
+            },
+        });
+
+        expect(
+            screen.queryByRole('link', { name: /By mail/ }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('By mail')).toHaveAttribute(
+            'aria-disabled',
+            'true',
+        );
+        expect(screen.getByRole('link', { name: 'All 5' })).toBeInTheDocument();
+    });
 });

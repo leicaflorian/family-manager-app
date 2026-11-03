@@ -60,7 +60,8 @@ final class UploadController extends Controller
     }
 
     /**
-     * Discards a file still waiting, if the person may (`FilePolicy`): a filed one is no longer here.
+     * Discards a file still waiting, if the person may (`FilePolicy`): a filed one is no longer here. It goes back
+     * to the page it was deleted from, *Upload* or *To sort*.
      */
     public function destroy(File $file, FileStore $store): RedirectResponse
     {
@@ -69,7 +70,7 @@ final class UploadController extends Controller
 
         $store->delete($file);
 
-        return to_route('upload');
+        return back(fallback: route('upload'));
     }
 
     /**

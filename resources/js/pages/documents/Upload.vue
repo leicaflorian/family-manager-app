@@ -13,6 +13,7 @@
 import { Head, Link, router, usePoll } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { computed, watch } from 'vue';
+import FmButton from '@/components/fm/FmButton.vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
 import FmFilePreview from '@/components/fm/FmFilePreview.vue';
@@ -21,9 +22,10 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { useToSortCount } from '@/composables/useToSortCount';
 import type { DocumentFormOptions, DocumentLink } from '@/lib/documents';
 import { linkQuery, newDocument, proposalValues } from '@/lib/documents';
-import { dashboard } from '@/routes';
+import { dashboard, toSort } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 import { store as storeDocument } from '@/routes/documents';
 import { read } from '@/routes/files';
@@ -36,6 +38,9 @@ const props = defineProps<
         presetLinks: DocumentLink[];
     } & DocumentFormOptions
 >();
+
+/** The files waiting in *To sort*, for the link beside the title. */
+const toSortCount = useToSortCount();
 
 const options = computed<DocumentFormOptions>(() => ({
     categories: props.categories,
@@ -65,9 +70,6 @@ const {
 
 /** How often the page asks for the state of the files being read, in milliseconds. */
 const POLL_INTERVAL = 2000;
-
-/** Where *Cancel* goes: the files waiting, which keep the file. */
-const TO_SORT_URL = '/to-sort';
 
 /** Whether a file is being read: waiting in the queue or running. */
 const isReading = (file: App.Data.PendingFileData): boolean =>
@@ -119,7 +121,7 @@ function readAgain(file: App.Data.PendingFileData): void {
 
 /** Leaves the file where it is, in *To sort*. */
 function cancel(): void {
-    router.visit(TO_SORT_URL);
+    router.visit(toSort().url);
 }
 </script>
 
@@ -129,6 +131,19 @@ function cancel(): void {
     <div class="flex flex-col gap-6">
         <FmTitle :title="$t('Upload a document')">
             <template #actions>
+                <FmButton
+                    v-if="toSortCount > 0"
+                    variant="soft"
+                    :href="toSort().url"
+                >
+                    {{
+                        $tChoice(
+                            '{1} :count file to sort|[2,*] :count files to sort',
+                            toSortCount,
+                            { count: String(toSortCount) },
+                        )
+                    }}
+                </FmButton>
                 <Link
                     :href="closeUrl"
                     :aria-label="$t('Close')"

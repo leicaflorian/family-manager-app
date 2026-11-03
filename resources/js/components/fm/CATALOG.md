@@ -321,6 +321,8 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/cards/EditCard.vue`
 - `pages/documents/Documents.vue`
 - `pages/documents/EditDocument.vue`
+- `pages/documents/ToSort.vue`
+- `pages/documents/Upload.vue`
 - `pages/family/EditOrganization.vue`
 - `pages/family/EditPerson.vue`
 - `pages/family/InvitationSent.vue`
@@ -512,6 +514,7 @@ the question, what happens, *Cancel* and the button that deletes.
 | `text` | `string` | yes | — | What happens, under the title. |
 | `confirmLabel` | `string` | yes | — | The text of the button that deletes. |
 | `compact` | `boolean` | no | `false` | Only the bin, without the text, as in the panel beside the list. |
+| `label` | `string` | no | — | The name of the button, when it is not *Delete*: «Delete the copy». |
 
 ### Examples
 
@@ -521,12 +524,16 @@ the question, what happens, *Cancel* and the button that deletes.
 
 <!-- Compact -->
 <FmDeleteButton url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" compact />
+
+<!-- With another name -->
+<FmDeleteButton url="/documents/3" question="Delete this document?" text="The file goes too, and the cards it is linked to lose it." confirmLabel="Delete the document" label="Delete the copy" compact />
 ```
 
 ### Used by
 
 - `components/fm/FmMovementPanel.vue`
 - `pages/budget/EditPlanned.vue`
+- `pages/documents/ToSort.vue`
 - `pages/reminders/EditReminder.vue`
 
 ## FmEmpty
@@ -574,6 +581,7 @@ below, what can be done.
 - `pages/budget/Planned.vue`
 - `pages/dev/Components.vue`
 - `pages/documents/Documents.vue`
+- `pages/documents/ToSort.vue`
 - `pages/family/Organizations.vue`
 - `pages/notices/Notices.vue`
 - `pages/reminders/Reminders.vue`
@@ -1018,6 +1026,7 @@ organization.
 - `pages/documents/Document.vue`
 - `pages/documents/Documents.vue`
 - `pages/documents/EditDocument.vue`
+- `pages/documents/ToSort.vue`
 - `pages/documents/Upload.vue`
 - `pages/family/EditOrganization.vue`
 - `pages/family/EditPerson.vue`
@@ -1535,7 +1544,7 @@ which opens Settings and Log out.
 
 The tabs at the top of a set of pages (the three of the budget, *Deadlines*
 and *Reminders* of the Agenda). The page lists its tabs; the one of the open
-page is marked, and a tab can show a number after its name. They are lines
+page is marked, and a tab can show a number after its name, and one with nothing behind it can be shown soft and without a link (`disabled`). They are lines
 under the names (`underline`) or, as in the Agenda, a grey pill with the open
 tab in white (`pill`).
 
@@ -1564,6 +1573,9 @@ export type Tab = {
 
 <!-- Pill -->
 <FmTabs label="Agenda" variant="pill" :tabs="tabs" />
+
+<!-- A tab with nothing in it -->
+<FmTabs label="Files to sort" variant="pill" :tabs="tabs" />
 ```
 
 ### Used by
@@ -1574,6 +1586,7 @@ export type Tab = {
 - `pages/budget/Comparison.vue`
 - `pages/budget/Movements.vue`
 - `pages/budget/Planned.vue`
+- `pages/documents/ToSort.vue`
 - `pages/reminders/Reminders.vue`
 
 ## FmActiveFilter
@@ -2028,6 +2041,7 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 - `pages/budget/Movements.vue`
 - `pages/budget/PlannedItem.vue`
 - `pages/dev/Components.vue`
+- `pages/documents/ToSort.vue`
 - `pages/family/Organizations.vue`
 - `pages/family/People.vue`
 - `pages/settings/Account.vue`

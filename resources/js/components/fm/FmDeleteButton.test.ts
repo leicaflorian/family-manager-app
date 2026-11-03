@@ -58,4 +58,19 @@ describe('FmDeleteButton', () => {
             'lg:mr-auto',
         );
     });
+
+    it('names the button as the page says, for a thing other than the usual', () => {
+        renderPage(FmDeleteButton, {
+            ...props,
+            label: 'Delete the copy',
+            compact: true,
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'Delete the copy' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Delete' }),
+        ).not.toBeInTheDocument();
+    });
 });

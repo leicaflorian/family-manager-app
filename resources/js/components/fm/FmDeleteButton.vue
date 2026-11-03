@@ -16,6 +16,7 @@ const {
     text,
     confirmLabel,
     compact = false,
+    label,
 } = defineProps<{
     /** The address the deletion is sent to. */
     url: string;
@@ -27,6 +28,8 @@ const {
     confirmLabel: string;
     /** Only the bin, without the text, as in the panel beside the list. */
     compact?: boolean;
+    /** The name of the button, when it is not *Delete*: «Delete the copy». */
+    label?: string;
 }>();
 
 /** The panel that asks before deleting. */
@@ -41,10 +44,10 @@ defineOptions({ inheritAttrs: false });
         v-bind="$attrs"
         variant="danger"
         :icon="Trash2"
-        :label="compact ? $t('Delete') : undefined"
+        :label="compact ? (label ?? $t('Delete')) : undefined"
         @click="confirming = true"
     >
-        {{ $t('Delete') }}
+        {{ label ?? $t('Delete') }}
     </FmButton>
     <FmConfirmDelete
         v-model:open="confirming"

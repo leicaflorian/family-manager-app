@@ -487,6 +487,7 @@ export const pendingPayslip: App.Data.PendingFileData = {
     copy_of: null,
     pages: null,
     can_delete: true,
+    created_on: '2026-10-22',
 };
 
 /** The card of the dance lessons, as `DeadlineData` sends it. */

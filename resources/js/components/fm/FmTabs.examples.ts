@@ -60,4 +60,27 @@ export default defineExamples(FmTabs, [
             ],
         },
     },
+    {
+        name: 'A tab with nothing in it',
+        props: {
+            label: 'Files to sort',
+            variant: 'pill',
+            tabs: [
+                { label: 'All', href: '/to-sort', count: 5, current: true },
+                {
+                    label: 'By mail',
+                    href: '/to-sort?source=mail',
+                    count: 0,
+                    current: false,
+                    disabled: true,
+                },
+                {
+                    label: 'From the phone',
+                    href: '/to-sort?source=phone',
+                    count: 2,
+                    current: false,
+                },
+            ],
+        },
+    },
 ]);
