@@ -6,7 +6,6 @@ namespace App\Http\Controllers;
 
 use App\Actions\Reading\QueueReading;
 use App\Data\ToSortPageData;
-use App\Enums\FileSource;
 use App\Http\Requests\Documents\ReadToSortRequest;
 use App\Models\File;
 use App\Models\User;
@@ -23,13 +22,11 @@ use Inertia\Response;
 final class ToSortController extends Controller
 {
     /**
-     * The files waiting, all or only those of `?source=` (an unknown source shows all of them).
+     * The files waiting, all or only those of `?source=` (anything but a source with a tab shows all of them).
      */
     public function index(Request $request): Response
     {
-        $source = FileSource::tryFrom($request->string('source')->toString());
-
-        return Inertia::render('documents/ToSort', ToSortPageData::for($source)->toArray());
+        return Inertia::render('documents/ToSort', ToSortPageData::for($request->query('source'))->toArray());
     }
 
     /**

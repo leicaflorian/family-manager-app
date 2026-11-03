@@ -483,6 +483,7 @@ export const pendingPayslip: App.Data.PendingFileData = {
     reading_error: null,
     proposal: null,
     source: 'upload',
+    source_label: 'Uploaded here',
     note: 'Uploaded here on 22/10/2026 by Marco',
     copy_of: null,
     pages: null,

@@ -23,6 +23,7 @@ const phone = file({
     id: 1,
     name: 'Telefono 2026-10-25 19.04.pdf',
     source: 'phone',
+    source_label: 'From the phone',
     note: 'Uploaded from the phone on 25/10/2026 by Laura',
     created_on: '2026-10-25',
     reading_status: 'done',
@@ -32,6 +33,7 @@ const copy = file({
     id: 2,
     name: 'Telefono 2026-10-25 19.06.pdf',
     source: 'phone',
+    source_label: 'From the phone',
     copy_of: 'Telefono 2026-10-25 19.04.pdf',
     created_on: '2026-10-25',
     can_delete: true,
@@ -41,6 +43,7 @@ const hera = file({
     name: 'Avviso - La tua fattura è disponibile.txt',
     mime_type: 'text/plain',
     source: 'mail',
+    source_label: 'By mail',
     note: null,
     size: 2048,
     reading_status: 'done',
@@ -60,10 +63,25 @@ const warranty = file({
     reading_status: 'reading',
 });
 
+/** The filters as the server sends them, with these numbers. */
+function filters(
+    all: number,
+    mail: number,
+    phone: number,
+    upload: number,
+): App.Data.ToSortPageData['filters'] {
+    return [
+        { value: null, label: 'All', count: all },
+        { value: 'mail', label: 'By mail', count: mail },
+        { value: 'phone', label: 'From the phone', count: phone },
+        { value: 'upload', label: 'Uploaded here', count: upload },
+    ];
+}
+
 const page = {
     files: [warranty, tari, hera, copy, phone],
     source: null,
-    counts: { all: 5, mail: 1, phone: 2, upload: 2 },
+    filters: filters(5, 1, 2, 2),
 };
 
 beforeEach(() => {
@@ -132,7 +150,7 @@ describe('ToSort', () => {
     it('shows the filters with their numbers, and a filter with none cannot be chosen', () => {
         renderPage(ToSort, {
             ...page,
-            counts: { all: 5, mail: 0, phone: 2, upload: 3 },
+            filters: filters(5, 0, 2, 3),
         });
 
         expect(screen.getByRole('link', { name: 'All 5' })).toHaveAttribute(
@@ -227,7 +245,7 @@ describe('ToSort', () => {
         expect(reload).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({
-                only: ['files', 'counts'],
+                only: ['files', 'filters'],
                 preserveUrl: true,
             }),
         );
@@ -256,7 +274,7 @@ describe('ToSort', () => {
         renderPage(ToSort, {
             files: [],
             source: null,
-            counts: { all: 0, mail: 0, phone: 0, upload: 0 },
+            filters: filters(0, 0, 0, 0),
         });
 
         expect(screen.getByText('Nothing to sort')).toBeInTheDocument();

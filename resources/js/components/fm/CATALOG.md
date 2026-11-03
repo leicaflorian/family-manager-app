@@ -43,6 +43,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmSectionLink](#fmsectionlink) — The link beside the title of a section (`FmCard`), as *Upload*, *Add* or *Record payment*: blue text with its icon, normal weight, no box around it, underlined on hover.
 - [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload, the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
 - [FmTabs](#fmtabs) — The tabs at the top of a set of pages (the three of the budget, *Deadlines* and *Reminders* of the Agenda).
+- [FmToSortLink](#fmtosortlink) — The link to *To sort* that sits beside the title of *Documents* and *Upload*: a soft button that says how many files wait there.
 
 ### Rows
 
@@ -301,6 +302,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/fm/FmMovementPanel.vue`
 - `components/fm/FmPaySheet.vue`
 - `components/fm/FmPostponeSheet.vue`
+- `components/fm/FmToSortLink.vue`
 - `lib/actions.ts`
 - `pages/Agenda.vue`
 - `pages/Area.vue`
@@ -322,7 +324,6 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/documents/Documents.vue`
 - `pages/documents/EditDocument.vue`
 - `pages/documents/ToSort.vue`
-- `pages/documents/Upload.vue`
 - `pages/family/EditOrganization.vue`
 - `pages/family/EditPerson.vue`
 - `pages/family/InvitationSent.vue`
@@ -1588,6 +1589,35 @@ export type Tab = {
 - `pages/budget/Planned.vue`
 - `pages/documents/ToSort.vue`
 - `pages/reminders/Reminders.vue`
+
+## FmToSortLink
+
+`resources/js/components/fm/FmToSortLink.vue`
+
+The link to *To sort* that sits beside the title of *Documents* and
+*Upload*: a soft button that says how many files wait there. With none it is
+not shown.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `count` | `number` | yes | — | How many files wait, copies left out. |
+
+### Examples
+
+```vue
+<!-- One file -->
+<FmToSortLink :count="1" />
+
+<!-- Many files -->
+<FmToSortLink :count="4" />
+```
+
+### Used by
+
+- `pages/documents/Documents.vue`
+- `pages/documents/Upload.vue`
 
 ## FmActiveFilter
 

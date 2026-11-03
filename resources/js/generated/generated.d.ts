@@ -454,6 +454,7 @@ readonly reading_status: App.Enums.ReadingStatus | null,
 readonly reading_error: string | null,
 readonly proposal: App.Data.Reading.DocumentProposalData | null,
 readonly source: App.Enums.FileSource,
+readonly source_label: string,
 readonly note: string | null,
 readonly copy_of: string | null,
 readonly pages: number | null,
@@ -609,12 +610,11 @@ readonly expires_on: string,
 export type ToSortPageData = {
 readonly files: App.Data.PendingFileData[],
 readonly source: App.Enums.FileSource | null,
-readonly counts: {
-all: number,
-mail: number,
-phone: number,
-upload: number,
-},
+readonly filters: {
+value: string | null,
+label: string,
+count: number,
+}[],
 };
 namespace Reading {
 export type DocumentProposalData = {

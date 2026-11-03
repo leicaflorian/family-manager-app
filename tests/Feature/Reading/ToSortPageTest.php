@@ -57,7 +57,14 @@ test('the example of the analysis: five files, one copy, four to sort', function
         ->component('documents/ToSort')
         ->where('to_sort_count', 4)
         ->where('source', null)
-        ->where('counts', ['all' => 5, 'mail' => 1, 'phone' => 2, 'upload' => 2])
+        ->where('filters', [
+            ['value' => null, 'label' => 'All', 'count' => 5],
+            ['value' => 'mail', 'label' => 'By mail', 'count' => 1],
+            ['value' => 'phone', 'label' => 'From the phone', 'count' => 2],
+            ['value' => 'upload', 'label' => 'Uploaded here', 'count' => 2],
+        ])
+        ->where('files.3.source_label', 'From the phone')
+        ->where('files.2.source_label', 'By mail')
         ->has('files', 5)
         ->where('files.0.id', $files['warranty']->id)
         ->where('files.3.id', $files['copy']->id)
@@ -75,7 +82,7 @@ test('the filters show only the files of one source', function (): void {
         ->where('source', 'mail')
         ->has('files', 1)
         ->where('files.0.id', $files['hera']->id)
-        ->where('counts.all', 5));
+        ->where('filters.0.count', 5));
 
     $this->actingAs($this->marco)->get(route('to-sort', ['source' => 'phone']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->has('files', 2));
@@ -89,11 +96,29 @@ test('a source that does not exist shows everything', function (): void {
         ->has('files', 5));
 });
 
+test('a source that is not a tab shows everything too', function (): void {
+    bianchiToSort();
+    waiting(['source' => FileSource::Scanner]);
+
+    $this->actingAs($this->marco)->get(route('to-sort', ['source' => 'scanner']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('source', null)
+        ->has('files', 6)
+        ->where('filters.0.count', 6));
+});
+
+test('a source sent as a list shows everything instead of failing', function (): void {
+    bianchiToSort();
+
+    $this->actingAs($this->marco)->get('/to-sort?source[]=mail')->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('source', null)
+        ->has('files', 5));
+});
+
 test('a source with no files has a zero and the others are not touched', function (): void {
     waiting(['source' => FileSource::Upload]);
 
     $this->actingAs($this->marco)->get(route('to-sort'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('counts', ['all' => 1, 'mail' => 0, 'phone' => 0, 'upload' => 1]));
+        ->where('filters.0.count', 1)->where('filters.1.count', 0)->where('filters.2.count', 0)->where('filters.3.count', 1));
 });
 
 test('only the files of the family waiting are listed', function (): void {
@@ -102,7 +127,7 @@ test('only the files of the family waiting are listed', function (): void {
     File::factory()->for($this->marco->family)->create(['to_sort' => false]);
 
     $this->actingAs($this->marco)->get(route('to-sort'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->has('files', 1)->where('counts.all', 1));
+        ->has('files', 1)->where('filters.0.count', 1));
 });
 
 test('a member can delete only his files and the copies', function (): void {
@@ -116,6 +141,17 @@ test('a member can delete only his files and the copies', function (): void {
         ->where('files.0.can_delete', false)
         ->where('files.1.can_delete', false)
         ->where('files.2.can_delete', false));
+});
+
+test('a member deletes a copy someone else uploaded', function (): void {
+    $files = bianchiToSort();
+    $marcosCopy = waiting(['checksum' => hash('sha256', 'tari'), 'created_by' => $this->marco->id]);
+
+    $this->actingAs($this->laura)->from(route('to-sort'))->delete(route('upload.destroy', $marcosCopy))
+        ->assertRedirect(route('to-sort'));
+    $this->actingAs($this->laura)->delete(route('upload.destroy', $files['tari']))->assertForbidden();
+
+    expect($marcosCopy->fresh())->toBeNull()->and($files['tari']->fresh())->not->toBeNull();
 });
 
 test('an admin can delete every file', function (): void {

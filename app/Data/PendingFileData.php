@@ -35,6 +35,7 @@ final class PendingFileData extends Data
      * @param  string|null  $reading_error  why the file is not read, in the language of who uploaded it
      * @param  DocumentProposalData|null  $proposal  what the reading proposes for the form, once the file is read
      * @param  FileSource  $source  where the file came from
+     * @param  string  $source_label  where it came from, in words
      * @param  string|null  $note  how it arrived («Uploaded here on 22/10/2026 by Marco»)
      * @param  string|null  $copy_of  the name of the older file it is a copy of, null when it is no copy
      * @param  int|null  $pages  how many pages it has, when known: one for a photo
@@ -54,6 +55,7 @@ final class PendingFileData extends Data
         public readonly ?string $reading_error,
         public readonly ?DocumentProposalData $proposal,
         public readonly FileSource $source,
+        public readonly string $source_label,
         public readonly ?string $note,
         public readonly ?string $copy_of,
         public readonly ?int $pages,
@@ -109,6 +111,7 @@ final class PendingFileData extends Data
             // A file read again keeps the old reading until the new one is done: only a done reading proposes
             proposal: $file->reading_status === ReadingStatus::Done && is_array($proposal) ? DocumentProposalData::from($proposal) : null,
             source: $file->source,
+            source_label: $file->source->label(),
             note: $file->note,
             copy_of: $file->copyOf()?->original_name,
             pages: str_starts_with($file->mime_type, 'image/') ? 1 : null,

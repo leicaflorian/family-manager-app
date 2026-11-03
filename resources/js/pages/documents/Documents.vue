@@ -22,11 +22,12 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useToSortCount } from '@/composables/useToSortCount';
 import { categoryOptions } from '@/lib/categories';
 import type { DocumentFilterOptions, DocumentFilters } from '@/lib/documents';
 import { filterQuery } from '@/lib/documents';
-import { toSort, upload } from '@/routes';
+import { upload } from '@/routes';
 import { index, show } from '@/routes/documents';
 
 /** The files waiting in *To sort*, for the link beside the title. */
@@ -187,19 +188,7 @@ function rowHref(document: App.Data.DocumentData): string {
     <div class="flex flex-col gap-4">
         <FmTitle :title="$t('Documents')">
             <template #actions>
-                <FmButton
-                    v-if="toSortCount > 0"
-                    variant="soft"
-                    :href="toSort().url"
-                >
-                    {{
-                        $tChoice(
-                            '{1} :count file to sort|[2,*] :count files to sort',
-                            toSortCount,
-                            { count: String(toSortCount) },
-                        )
-                    }}
-                </FmButton>
+                <FmToSortLink :count="toSortCount" />
             </template>
         </FmTitle>
 

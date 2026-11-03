@@ -628,6 +628,7 @@
       "components/fm/FmMovementPanel.vue",
       "components/fm/FmPaySheet.vue",
       "components/fm/FmPostponeSheet.vue",
+      "components/fm/FmToSortLink.vue",
       "lib/actions.ts",
       "pages/Agenda.vue",
       "pages/Area.vue",
@@ -649,7 +650,6 @@
       "pages/documents/Documents.vue",
       "pages/documents/EditDocument.vue",
       "pages/documents/ToSort.vue",
-      "pages/documents/Upload.vue",
       "pages/family/EditOrganization.vue",
       "pages/family/EditPerson.vue",
       "pages/family/InvitationSent.vue",
@@ -3504,6 +3504,28 @@
       "pages/settings/ExpenseCategories.vue",
       "pages/settings/Notices.vue",
       "pages/settings/Settings.vue"
+    ]
+  },
+  {
+    "name": "FmToSortLink",
+    "path": "resources/js/components/fm/FmToSortLink.vue",
+    "description": "The link to *To sort* that sits beside the title of *Documents* and\n*Upload*: a soft button that says how many files wait there. With none it is\nnot shown.",
+    "group": "navigation",
+    "props": [
+      {
+        "name": "count",
+        "type": "number",
+        "required": true,
+        "default": null,
+        "description": "How many files wait, copies left out."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": [
+      "pages/documents/Documents.vue",
+      "pages/documents/Upload.vue"
     ]
   },
   {

@@ -32,8 +32,8 @@ const props = defineProps<{
     files: App.Data.PendingFileData[];
     /** The filter chosen, `null` for *All*. */
     source: App.Enums.FileSource | null;
-    /** How many files each filter has. */
-    counts: App.Data.ToSortPageData['counts'];
+    /** The filters in order, with their names and how many files each has. */
+    filters: App.Data.ToSortPageData['filters'];
 }>();
 
 const { date } = useFormat();
@@ -41,39 +41,17 @@ const { date } = useFormat();
 /** How often the page asks for the state of the files being read, in milliseconds. */
 const POLL_INTERVAL = 2000;
 
-/** The filters in order, with the key of their number in `counts`. */
-const FILTERS = [
-    { source: null, key: 'all' },
-    { source: 'mail', key: 'mail' },
-    { source: 'phone', key: 'phone' },
-    { source: 'upload', key: 'upload' },
-] as const;
-
-/** Where a file came from, in the words of the person. */
-function sourceLabel(source: App.Enums.FileSource | null): string {
-    switch (source) {
-        case 'mail':
-            return trans('By mail');
-        case 'phone':
-            return trans('From the phone');
-        case 'scanner':
-            return trans('Scanned');
-        case 'upload':
-            return trans('Uploaded here');
-        default:
-            return trans('All');
-    }
-}
-
 /** The filters as tabs: a filter with no files cannot be chosen. */
 const tabs = computed<Tab[]>(() =>
-    FILTERS.map(({ source, key }) => ({
-        label: sourceLabel(source),
+    props.filters.map((filter) => ({
+        label: filter.label,
         href:
-            source === null ? toSort().url : toSort({ query: { source } }).url,
-        count: props.counts[key],
-        current: props.source === source,
-        disabled: props.counts[key] === 0 && source !== null,
+            filter.value === null
+                ? toSort().url
+                : toSort({ query: { source: filter.value } }).url,
+        count: filter.count,
+        current: props.source === filter.value,
+        disabled: filter.count === 0 && filter.value !== null,
     })),
 );
 
@@ -102,7 +80,7 @@ const anyReading = computed(() =>
 
 const poll = usePoll(
     POLL_INTERVAL,
-    { only: ['files', 'counts'], preserveUrl: true },
+    { only: ['files', 'filters'], preserveUrl: true },
     { autoStart: false },
 );
 
@@ -143,11 +121,9 @@ function measure(file: App.Data.PendingFileData): string {
  * @param file - the file
  */
 function subtitle(file: App.Data.PendingFileData): string {
-    return [
-        date(file.created_on),
-        measure(file),
-        sourceLabel(file.source),
-    ].join(' · ');
+    return [date(file.created_on), measure(file), file.source_label].join(
+        ' · ',
+    );
 }
 
 /**
