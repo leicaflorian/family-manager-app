@@ -1079,5 +1079,11 @@
     "The answer of the model is not valid.": "La risposta del modello non è valida.",
     "The file is too big to be read: fill it in yourself.": "Il file è troppo grande per essere letto: compilalo tu.",
     "This kind of file cannot be read.": "Questo tipo di file non si può leggere.",
-    "The text is too big (at most 100 KB).": "Il testo è troppo grande (al massimo 100 KB)."
+    "The text is too big (at most 100 KB).": "Il testo è troppo grande (al massimo 100 KB).",
+    "The model refused to read the document.": "Il modello ha rifiutato di leggere il documento.",
+    "The answer of the model was cut short.": "La risposta del modello è stata troncata.",
+    "The AI service is busy, try again in a while.": "Il servizio AI è occupato, riprova tra poco.",
+    "The AI service cannot be reached, try again in a while.": "Il servizio AI non risponde, riprova tra poco.",
+    "The key of the AI service is not valid.": "La chiave del servizio AI non è valida.",
+    "The AI service answered with an error.": "Il servizio AI ha risposto con un errore."
 }

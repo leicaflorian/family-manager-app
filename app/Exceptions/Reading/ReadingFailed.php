@@ -37,4 +37,52 @@ final class ReadingFailed extends RuntimeException
     {
         return new self('The answer of the model is not valid.', previous: $previous);
     }
+
+    /**
+     * The model refused to read the document: asking again gets the same answer.
+     */
+    public static function refused(): self
+    {
+        return new self('The model refused to read the document.');
+    }
+
+    /**
+     * The answer of the model ended before the JSON did.
+     */
+    public static function cutShort(): self
+    {
+        return new self('The answer of the model was cut short.');
+    }
+
+    /**
+     * The service is busy (too many requests, overloaded): it passes by itself.
+     */
+    public static function busy(\Throwable $previous): self
+    {
+        return new self('The AI service is busy, try again in a while.', retry: true, previous: $previous);
+    }
+
+    /**
+     * The service could not be reached: the network may come back.
+     */
+    public static function unreachable(\Throwable $previous): self
+    {
+        return new self('The AI service cannot be reached, try again in a while.', retry: true, previous: $previous);
+    }
+
+    /**
+     * The service did not accept the key (401, 403).
+     */
+    public static function invalidKey(\Throwable $previous): self
+    {
+        return new self('The key of the AI service is not valid.', previous: $previous);
+    }
+
+    /**
+     * The service answered with any other error.
+     */
+    public static function serviceError(\Throwable $previous): self
+    {
+        return new self('The AI service answered with an error.', previous: $previous);
+    }
 }

@@ -1,0 +1,26 @@
+{
+    "id": "v1_ChdpbnRlcmFjdGlvbi1jdXQtMDE",
+    "object": "interaction",
+    "model": "gemini-3.8-flash",
+    "status": "incomplete",
+    "created": "2026-10-25T18:04:12Z",
+    "updated": "2026-10-25T18:05:02Z",
+    "role": "model",
+    "steps": [
+        {
+            "type": "model_output",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "{\"kind\":\"utility_bill\",\"title\":\"Bolletta gas\",\"issuer_name\":\"Enel Energia\",\"organization_id\":7,\"total_amount\":84.2,\"fee_"
+                }
+            ]
+        }
+    ],
+    "usage": {
+        "total_input_tokens": 1830,
+        "total_output_tokens": 8192,
+        "total_thought_tokens": 0,
+        "total_tokens": 10022
+    }
+}

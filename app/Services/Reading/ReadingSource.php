@@ -100,6 +100,14 @@ final readonly class ReadingSource
     }
 
     /**
+     * The words of a text, which go to the model in the message itself; null for a PDF or a photo.
+     */
+    public function text(): ?string
+    {
+        return $this->mediaType === 'text/plain' ? $this->data : null;
+    }
+
+    /**
      * Re-encodes a photo as a JPEG at most 2000 px wide, with the rotation of its EXIF applied.
      *
      * @param  string  $bytes  the photo

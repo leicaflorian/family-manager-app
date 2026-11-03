@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\DocumentReader;
 use App\Models\Family;
 use App\Models\FamilyModel;
 use App\Models\User;
 use App\Observers\LoanPlanObserver;
 use App\Policies\FamilyPolicy;
+use App\Services\Reading\AiDocumentReader;
 use App\Support\CurrentFamily;
 use App\Support\Linkables;
 use Carbon\CarbonImmutable;
@@ -31,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
 
         // One per request too: the loan observer keeps it quiet while it writes the planned expense of a loan
         $this->app->scoped(LoanPlanObserver::class);
+
+        // The documents are read through the Laravel AI SDK; the tests of the queue bind FakeDocumentReader instead
+        $this->app->bind(DocumentReader::class, AiDocumentReader::class);
     }
 
     /**

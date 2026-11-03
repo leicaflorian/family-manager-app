@@ -80,6 +80,14 @@ test('strips the BOM of a text', function (): void {
         ->and(base64_decode($source->attachment()->base64, true))->toBe('ciao €');
 });
 
+test('gives the words of a text, and none for a pdf', function (): void {
+    $text = ReadingSource::of(storeReadable("\xEF\xBB\xBFciao €", 'note.txt', 'text/plain'));
+    $pdf = ReadingSource::of(storeReadable((string) file_get_contents(base_path('tests/Fixtures/one-page.pdf')), 'scan.pdf', 'application/pdf'));
+
+    expect($text->text())->toBe('ciao €')
+        ->and($pdf->text())->toBeNull();
+});
+
 test('reads a photo as jpeg', function (): void {
     $png = imagecreatetruecolor(10, 10);
     ob_start();
