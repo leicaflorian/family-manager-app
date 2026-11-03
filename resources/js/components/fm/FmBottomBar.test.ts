@@ -106,4 +106,31 @@ describe('FmBottomBar', () => {
             'page',
         );
     });
+
+    it('shows how many files wait to be sorted on the +, nothing at zero and 99+ above 99', () => {
+        const none = render(FmBottomBar, {
+            props: { active: 'home', items: navigationItems(), uploadCount: 0 },
+        });
+        expect(
+            screen.getByRole('link', { name: 'Upload a document' }),
+        ).toBeInTheDocument();
+        none.unmount();
+
+        const four = render(FmBottomBar, {
+            props: { active: 'home', items: navigationItems(), uploadCount: 4 },
+        });
+        expect(
+            screen.getByRole('link', { name: 'Upload a document, 4 to sort' }),
+        ).toBeInTheDocument();
+        four.unmount();
+
+        render(FmBottomBar, {
+            props: {
+                active: 'home',
+                items: navigationItems(),
+                uploadCount: 120,
+            },
+        });
+        expect(screen.getByText('99+')).toBeInTheDocument();
+    });
 });

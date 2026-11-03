@@ -26,6 +26,21 @@ export default defineExamples(FmDocumentForm, [
         },
     },
     {
+        name: 'With a reading',
+        props: {
+            action: { url: '/documents', method: 'post' },
+            initial: {
+                ...newDocument('bolletta-edison.pdf'),
+                date: fromToday(0),
+                expiry_date: fromToday(365),
+            },
+            extra: { file_id: 12 },
+            options: documentFormOptions,
+            submitLabel: 'Save the document',
+            proposal: { title: 'Luce ottobre', person_id: '1' },
+        },
+    },
+    {
         name: 'Edit',
         props: {
             action: { url: '/documents/5', method: 'put' },

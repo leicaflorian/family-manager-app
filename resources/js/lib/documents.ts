@@ -231,3 +231,41 @@ function fromId(id: number | null): string {
 function toId(value: string): number | null {
     return value === '' ? null : Number(value);
 }
+
+/**
+ * The values of the form from the proposal of the reading, the only place that
+ * maps the one to the other: what the reading did not find is left out, so it
+ * never overwrites a field.
+ *
+ * @param proposal - the proposal the server read from the file
+ * @returns the values of the form that the reading found
+ */
+export function proposalValues(
+    proposal: App.Data.Reading.DocumentProposalData,
+): Partial<DocumentFormValues> {
+    const values: Partial<DocumentFormValues> = {};
+
+    if (proposal.title !== null) {
+        values.title = proposal.title;
+    }
+    if (proposal.category_id !== null) {
+        values.category_id = fromId(proposal.category_id);
+    }
+    if (proposal.person_id !== null) {
+        values.person_id = fromId(proposal.person_id);
+    }
+    if (proposal.organization_id !== null) {
+        values.organization_id = fromId(proposal.organization_id);
+    }
+    if (proposal.date !== null) {
+        values.date = proposal.date;
+    }
+    if (proposal.expiry_date !== null) {
+        values.expiry_date = proposal.expiry_date;
+    }
+    if (proposal.links.length > 0) {
+        values.links = proposal.links.map(({ type, id }) => ({ type, id }));
+    }
+
+    return values;
+}

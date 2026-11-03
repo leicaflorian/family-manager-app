@@ -433,6 +433,13 @@
         "required": true,
         "default": null,
         "description": "The navigation items."
+      },
+      {
+        "name": "uploadCount",
+        "type": "number",
+        "required": false,
+        "default": "0",
+        "description": "The files waiting to be sorted: the number on the +; nothing at zero, 99+ above 99."
       }
     ],
     "events": [],
@@ -1598,6 +1605,20 @@
         "required": false,
         "default": null,
         "description": "The text of the button that gives up, if there is one."
+      },
+      {
+        "name": "proposal",
+        "type": "Partial<DocumentFormValues>",
+        "required": false,
+        "default": null,
+        "description": "What the reading found, as form values: written into the fields the person has not touched."
+      },
+      {
+        "name": "fill",
+        "type": "FillMode",
+        "required": false,
+        "default": "\"untouched\"",
+        "description": "Which fields the proposal may write: the ones not touched, or only the empty ones."
       }
     ],
     "events": [
@@ -2998,6 +3019,39 @@
     ]
   },
   {
+    "name": "FmReadingProgress",
+    "path": "resources/js/components/fm/FmReadingProgress.vue",
+    "description": "The wait while a file is read: a line that runs, «Reading the document…», a\nnote that it takes a few seconds and, on the computer, the name of the file\nwith its pages and the lines found so far (who it is from, the amount…).\nUsed on the page of the reading and on the rows of the files being read.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The name of the file."
+      },
+      {
+        "name": "pages",
+        "type": "number | null",
+        "required": false,
+        "default": null,
+        "description": "The pages of the file; missing when they are not known (a PDF not counted yet)."
+      },
+      {
+        "name": "found",
+        "type": "App.Data.Reading.FoundLineData[]",
+        "required": false,
+        "default": null,
+        "description": "What the reading found so far, one line each."
+      }
+    ],
+    "events": [],
+    "slots": [],
+    "types": [],
+    "usedBy": []
+  },
+  {
     "name": "FmReminderGroup",
     "path": "resources/js/components/fm/FmReminderGroup.vue",
     "description": "The box of a group of notices in *Settings → Notices*: its name (with the\nlabel *Default* for the group of everything else), the kinds of deadline it\ncovers in words and a line for each notice («45 days before · App and email ·\nEveryone»). Whoever can edit has the *Edit* button.",
@@ -3306,6 +3360,13 @@
         "required": true,
         "default": null,
         "description": "The name of who is signed in."
+      },
+      {
+        "name": "uploadCount",
+        "type": "number",
+        "required": false,
+        "default": "0",
+        "description": "The files waiting to be sorted: the number on *Upload*; nothing at zero, 99+ above 99."
       }
     ],
     "events": [],

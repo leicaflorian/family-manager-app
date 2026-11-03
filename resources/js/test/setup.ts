@@ -45,6 +45,15 @@ if (typeof window !== 'undefined') {
         }) satisfies MediaQueryList;
 }
 
+// jsdom has no scrollIntoView, which the FormKit Pro menus call when they open.
+if (typeof window !== 'undefined' && !('scrollIntoView' in Element.prototype)) {
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+        value: (): void => {},
+        writable: true,
+        configurable: true,
+    });
+}
+
 // The tests read the texts in English, the language they are written in.
 config.global.plugins.push([i18nVue, i18nOptions('en')]);
 

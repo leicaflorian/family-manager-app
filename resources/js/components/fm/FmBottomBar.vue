@@ -15,12 +15,23 @@ import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
 import type { NavigationItem, NavigationItems, Section } from './navigation';
 
-const { active, items } = defineProps<{
+const {
+    active,
+    items,
+    uploadCount = 0,
+} = defineProps<{
     /** The section of the page that is open. */
     active: Section;
     /** The navigation items. */
     items: NavigationItems;
+    /** The files waiting to be sorted: the number on the +; nothing at zero, 99+ above 99. */
+    uploadCount?: number;
 }>();
+
+/** The number on the +: «99+» above 99. */
+const uploadBadge = computed(() =>
+    uploadCount > 99 ? '99+' : String(uploadCount),
+);
 
 const moreOpen = ref(false);
 
@@ -66,10 +77,22 @@ function itemClasses(marked: boolean): string {
             <span v-if="i === 2" class="flex justify-center">
                 <Link
                     :href="items.upload"
-                    :aria-label="$t('Upload a document')"
-                    class="-mt-7 flex size-15 items-center justify-center rounded-full bg-action text-white shadow-[0_6px_16px_rgba(0,112,224,0.35)]"
+                    :aria-label="
+                        uploadCount > 0
+                            ? $t('Upload a document, :count to sort', {
+                                  count: uploadBadge,
+                              })
+                            : $t('Upload a document')
+                    "
+                    class="relative -mt-7 flex size-15 items-center justify-center rounded-full bg-action text-white shadow-[0_6px_16px_rgba(0,112,224,0.35)]"
                 >
                     <FmIcon :icon="Plus" :size="28" :stroke="2.5" />
+                    <span
+                        v-if="uploadCount > 0"
+                        aria-hidden="true"
+                        class="absolute -top-1 -right-1 min-w-5 rounded-full bg-overdue px-1 text-center text-xs font-semibold text-white"
+                        >{{ uploadBadge }}</span
+                    >
                 </Link>
             </span>
             <Link

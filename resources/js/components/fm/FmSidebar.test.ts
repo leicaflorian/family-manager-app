@@ -9,7 +9,7 @@ import { navigationItems } from './navigation';
 /**
  * The sidebar of Marco, on the given page.
  */
-function bar(active: Section, path = '/dashboard') {
+function bar(active: Section, path = '/dashboard', uploadCount?: number) {
     return render(FmSidebar, {
         props: {
             active,
@@ -18,6 +18,7 @@ function bar(active: Section, path = '/dashboard') {
             areas: areaCounts,
             family: 'Bianchi',
             user: 'Marco Bianchi',
+            uploadCount,
         },
     });
 }
@@ -159,5 +160,24 @@ describe('FmSidebar', () => {
             'aria-current',
             'page',
         );
+    });
+
+    it('shows how many files wait to be sorted on Upload, nothing at zero and 99+ above 99', () => {
+        const none = bar('home', '/', 0);
+        expect(screen.getByRole('link', { name: 'Upload' })).toHaveTextContent(
+            /^\s*Upload\s*$/,
+        );
+        none.unmount();
+
+        const four = bar('home', '/', 4);
+        expect(
+            screen.getByRole('link', { name: 'Upload 4' }),
+        ).toBeInTheDocument();
+        four.unmount();
+
+        bar('home', '/', 120);
+        expect(
+            screen.getByRole('link', { name: 'Upload 99+' }),
+        ).toBeInTheDocument();
     });
 });

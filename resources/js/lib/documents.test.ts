@@ -8,6 +8,7 @@ import {
     linkQuery,
     newDocument,
     parseLinkKey,
+    proposalValues,
     toPayload,
 } from './documents';
 
@@ -137,5 +138,29 @@ describe('filterQuery', () => {
                 search: null,
             }),
         ).toEqual({});
+    });
+});
+
+describe('proposalValues', () => {
+    it('maps the proposal of the reading to the values of the form, leaving out what was not read', () => {
+        expect(
+            proposalValues({
+                title: 'Luce ottobre',
+                category_id: 4,
+                person_id: null,
+                organization_id: 9,
+                date: '2026-10-15',
+                expiry_date: null,
+                links: [{ type: 'home', id: 2 }],
+                headline: 'A light bill',
+                found: [],
+            }),
+        ).toEqual({
+            title: 'Luce ottobre',
+            category_id: '4',
+            organization_id: '9',
+            date: '2026-10-15',
+            links: [{ type: 'home', id: 2 }],
+        });
     });
 });

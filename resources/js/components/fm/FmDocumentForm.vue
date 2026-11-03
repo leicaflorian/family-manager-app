@@ -11,6 +11,8 @@
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+import type { FillMode } from '@/composables/useReadingFill';
+import { useReadingFill } from '@/composables/useReadingFill';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { categoryOptions } from '@/lib/categories';
 import type {
@@ -35,6 +37,8 @@ const {
     options,
     submitLabel,
     cancelLabel,
+    proposal,
+    fill = 'untouched',
 } = defineProps<{
     /** Where the form is sent: a new document or a change. */
     action: RouteDefinition<'post' | 'put'>;
@@ -48,6 +52,10 @@ const {
     submitLabel: string;
     /** The text of the button that gives up, if there is one. */
     cancelLabel?: string;
+    /** What the reading found, as form values: written into the fields the person has not touched. */
+    proposal?: Partial<DocumentFormValues>;
+    /** Which fields the proposal may write: the ones not touched, or only the empty ones. */
+    fill?: FillMode;
 }>();
 
 defineEmits<{
@@ -64,6 +72,19 @@ const form = useForm<DocumentFormValues>({
     ...initial,
     links: [...initial.links],
 });
+
+const reading = useReadingFill(form, initial, fill);
+
+// The proposal may arrive after the form opened (the reading ends later)
+watch(
+    () => proposal,
+    (values) => {
+        if (values) {
+            reading.apply(values);
+        }
+    },
+    { immediate: true },
+);
 
 /** While the form has changes not saved, leaving the page asks first. */
 useUnsavedChanges(() => form.data());
@@ -347,6 +368,14 @@ useSaveShortcut(save, () => !form.processing);
         <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">
             <slot name="start" />
             <div class="ml-auto flex flex-wrap gap-2.5">
+                <FmButton
+                    v-if="reading.canRestore.value"
+                    variant="text"
+                    type="button"
+                    @click="reading.restore()"
+                >
+                    {{ $t('Restore the reading') }}
+                </FmButton>
                 <FmButton
                     v-if="cancelLabel"
                     variant="text"

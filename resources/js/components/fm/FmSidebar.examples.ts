@@ -17,6 +17,10 @@ const shared = {
 export default defineExamples(FmSidebar, [
     { name: 'Home', props: { ...shared, active: 'home', path: '/' } },
     {
+        name: 'Files to sort',
+        props: { ...shared, active: 'home', path: '/', uploadCount: 4 },
+    },
+    {
         name: 'Inside an area',
         props: { ...shared, active: 'areas', path: '/areas/home' },
     },

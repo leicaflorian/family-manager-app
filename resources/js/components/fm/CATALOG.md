@@ -25,6 +25,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange) or that is late (red).
 - [FmOrganizationMark](#fmorganizationmark) — The mark of an organization: its logo or, without one, the icon of its type.
 - [FmPayButton](#fmpaybutton) — *Record payment* (or *Record income*) of a card: it opens *A due date* with the panel of *I paid it* on the oldest open due date.
+- [FmReadingProgress](#fmreadingprogress) — The wait while a file is read: a line that runs, «Reading the document…», a note that it takes a few seconds and, on the computer, the name of the file with its pages and the lines found so far (who it is from, the amount…).
 - [FmTitle](#fmtitle) — The title at the top of a page: 28 px on the phone, 32 px on the computer, with the sentence below and, on the right and centred on them, the actions of the page.
 
 ### Navigation
@@ -920,6 +921,36 @@ not there.
 - `components/fm/FmCardPayments.vue`
 - `pages/cards/CardPayments.vue`
 
+## FmReadingProgress
+
+`resources/js/components/fm/FmReadingProgress.vue`
+
+The wait while a file is read: a line that runs, «Reading the document…», a
+note that it takes a few seconds and, on the computer, the name of the file
+with its pages and the lines found so far (who it is from, the amount…).
+Used on the page of the reading and on the rows of the files being read.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `name` | `string` | yes | — | The name of the file. |
+| `pages` | `number \| null` | no | — | The pages of the file; missing when they are not known (a PDF not counted yet). |
+| `found` | `App.Data.Reading.FoundLineData[]` | no | — | What the reading found so far, one line each. |
+
+### Examples
+
+```vue
+<!-- Just started -->
+<FmReadingProgress name="bolletta-edison-ottobre.pdf" />
+
+<!-- With the pages -->
+<FmReadingProgress name="bolletta-edison-ottobre.pdf" :pages="2" />
+
+<!-- With what it found -->
+<FmReadingProgress name="bolletta-edison-ottobre.pdf" :pages="1" :found="found" />
+```
+
 ## FmTitle
 
 `resources/js/components/fm/FmTitle.vue`
@@ -1094,6 +1125,7 @@ Settings and Log out, and stays marked when one of those pages is open.
 | --- | --- | --- | --- | --- |
 | `active` | `Section` | yes | — | The section of the page that is open. |
 | `items` | `NavigationItems` | yes | — | The navigation items. |
+| `uploadCount` | `number` | no | `0` | The files waiting to be sorted: the number on the +; nothing at zero, 99+ above 99. |
 
 ### Examples
 
@@ -1103,6 +1135,9 @@ Settings and Log out, and stays marked when one of those pages is open.
 
 <!-- Documents -->
 <FmBottomBar :items="items" active="documents" />
+
+<!-- Files to sort -->
+<FmBottomBar :items="items" active="home" :uploadCount="4" />
 
 <!-- More is marked -->
 <FmBottomBar :items="items" active="family" />
@@ -1468,12 +1503,16 @@ which opens Settings and Log out.
 | `areas` | `App.Data.AreaCountData[]` | yes | — | The areas with their active cards, in order. |
 | `family` | `string` | yes | — | The name of the family, for example «Bianchi». |
 | `user` | `string` | yes | — | The name of who is signed in. |
+| `uploadCount` | `number` | no | `0` | The files waiting to be sorted: the number on *Upload*; nothing at zero, 99+ above 99. |
 
 ### Examples
 
 ```vue
 <!-- Home -->
 <FmSidebar :items="items" :areas="areas" family="Bianchi" user="Marco Bianchi" active="home" path="/" />
+
+<!-- Files to sort -->
+<FmSidebar :items="items" :areas="areas" family="Bianchi" user="Marco Bianchi" active="home" path="/" :uploadCount="4" />
 
 <!-- Inside an area -->
 <FmSidebar :items="items" :areas="areas" family="Bianchi" user="Marco Bianchi" active="areas" path="/areas/home" />
@@ -2745,6 +2784,8 @@ The category, the person and the organization are found by typing.
 | `options` | `DocumentFormOptions` | yes | — | The choices of the menus. |
 | `submitLabel` | `string` | yes | — | The text of the button that sends. |
 | `cancelLabel` | `string` | no | — | The text of the button that gives up, if there is one. |
+| `proposal` | `Partial<DocumentFormValues>` | no | — | What the reading found, as form values: written into the fields the person has not touched. |
+| `fill` | `FillMode` | no | `"untouched"` | Which fields the proposal may write: the ones not touched, or only the empty ones. |
 
 ### Events
 
@@ -2759,6 +2800,9 @@ The category, the person and the organization are found by typing.
 ```vue
 <!-- New -->
 <FmDocumentForm :action="action" :initial="initial" :extra="extra" :options="options" submitLabel="Save the document" />
+
+<!-- With a reading -->
+<FmDocumentForm :action="action" :initial="initial" :extra="extra" :options="options" submitLabel="Save the document" :proposal="proposal" />
 
 <!-- Edit -->
 <FmDocumentForm :action="action" :initial="initial" :options="options" submitLabel="Save" cancelLabel="Cancel" />

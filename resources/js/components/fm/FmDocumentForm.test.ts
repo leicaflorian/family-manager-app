@@ -367,4 +367,56 @@ describe('Changes not saved', () => {
         await tapCancel();
         expect(hasChanges()).toBe(false);
     });
+
+    it('fills the fields the person has not touched with the proposal, and restores the reading', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            proposal: {
+                title: 'Luce ottobre',
+                category_id: '4',
+                links: [{ type: 'employment', id: 3 }],
+            },
+        });
+
+        expect(screen.getByLabelText('What it is')).toHaveValue('Luce ottobre');
+        expect(
+            screen.getByRole('combobox', { name: 'What kind it is' }),
+        ).toHaveValue('Work › Payslips');
+        expect(
+            screen.getByText('Laura - Comune di Bologna'),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Restore the reading' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.type(screen.getByLabelText('What it is'), ' bis');
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Restore the reading' }),
+        );
+
+        expect(screen.getByLabelText('What it is')).toHaveValue('Luce ottobre');
+    });
+
+    it('in empty mode keeps what is already written', () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            fill: 'empty',
+            proposal: { title: 'Luce ottobre', category_id: '4' },
+        });
+
+        expect(screen.getByLabelText('What it is')).toHaveValue(
+            'Busta paga novembre 2026',
+        );
+        expect(
+            screen.getByRole('combobox', { name: 'What kind it is' }),
+        ).toHaveValue('Work › Payslips');
+    });
+
+    it('fills the form when the proposal arrives after it opened', async () => {
+        const view = renderPage(FmDocumentForm, props);
+
+        await view.rerender({ ...props, proposal: { title: 'Luce ottobre' } });
+
+        expect(screen.getByLabelText('What it is')).toHaveValue('Luce ottobre');
+    });
 });

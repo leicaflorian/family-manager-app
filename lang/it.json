@@ -1135,5 +1135,11 @@
     "I found a road tax notice": "Ho trovato un avviso di bollo auto",
     "I found a medical document": "Ho trovato un documento medico",
     "I found a document": "Ho trovato un documento",
-    "Who sent it": "Da chi arriva"
+    "Who sent it": "Da chi arriva",
+    "Reading the document…": "Sto leggendo il documento…",
+    "It takes a few seconds": "Ci vogliono pochi secondi",
+    ":name · :pages": ":name · :pages",
+    "{1} :count page|[2,*] :count pages": "{1} :count pagina|[2,*] :count pagine",
+    "Restore the reading": "Rimetti quello che ho letto",
+    "Upload a document, :count to sort": "Carica un documento, :count da smistare"
 }

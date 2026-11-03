@@ -25,7 +25,15 @@ import { trans } from 'laravel-vue-i18n';
 import FmLogo from './FmLogo.vue';
 import type { NavigationItems, Section } from './navigation';
 
-const { active, path, items, areas, family, user } = defineProps<{
+const {
+    active,
+    path,
+    items,
+    areas,
+    family,
+    user,
+    uploadCount = 0,
+} = defineProps<{
     /** The section of the page that is open. */
     active: Section;
     /** The path of the page, for example `/areas/home`, to mark its area. */
@@ -38,6 +46,8 @@ const { active, path, items, areas, family, user } = defineProps<{
     family: string;
     /** The name of who is signed in. */
     user: string;
+    /** The files waiting to be sorted: the number on *Upload*; nothing at zero, 99+ above 99. */
+    uploadCount?: number;
 }>();
 
 /** A link of the list under *Areas*. */
@@ -117,6 +127,13 @@ function isPage(section: Section): boolean {
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
             {{ $t('Upload') }}
+            <!-- A space, so the link reads «Upload 4» -->
+            {{ ' ' }}
+            <span
+                v-if="uploadCount > 0"
+                class="rounded-full bg-white px-1.5 text-xs font-semibold text-action"
+                >{{ uploadCount > 99 ? '99+' : uploadCount }}</span
+            >
         </Link>
 
         <nav :aria-label="$t('Sections')" class="flex flex-col gap-0.5">
