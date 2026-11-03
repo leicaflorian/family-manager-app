@@ -30,9 +30,7 @@ const {
 }>();
 
 /** The number on the +: «99+» above 99. */
-const uploadBadge = computed(() =>
-    uploadCount > 99 ? '99+' : String(uploadCount),
-);
+const uploadBadge = computed(() => countBadge(uploadCount));
 
 const moreOpen = ref(false);
 
