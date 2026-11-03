@@ -1074,5 +1074,7 @@
     "Choose a date…": "Scegli una data…",
     "Open the card": "Apri la scheda",
     "Postpone to": "Rimanda al",
-    "No reminders with these filters": "Nessun promemoria con questi filtri"
+    "No reminders with these filters": "Nessun promemoria con questi filtri",
+    "The answer of the model is empty.": "La risposta del modello è vuota.",
+    "The answer of the model is not valid.": "La risposta del modello non è valida."
 }
