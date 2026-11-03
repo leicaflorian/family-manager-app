@@ -951,6 +951,10 @@ Used on the page of the reading and on the rows of the files being read.
 <FmReadingProgress name="bolletta-edison-ottobre.pdf" :pages="1" :found="found" />
 ```
 
+### Used by
+
+- `pages/documents/Upload.vue`
+
 ## FmTitle
 
 `resources/js/components/fm/FmTitle.vue`

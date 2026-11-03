@@ -27,6 +27,7 @@ const path = computed((): string => page.url.split('?')[0] ?? '/');
 const active = computed((): Section => sectionOf(path.value, items));
 const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
+const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
 
 let stopGuard: (() => void) | undefined;
@@ -57,6 +58,7 @@ function onQuestion(open: boolean): void {
             :areas="areas"
             :family="family"
             :user="user"
+            :upload-count="toSort"
         />
         <div class="flex min-w-0 grow flex-col">
             <main
@@ -69,7 +71,11 @@ function onQuestion(open: boolean): void {
                 </div>
             </main>
             <div class="sticky bottom-0 z-30 lg:hidden">
-                <FmBottomBar :active="active" :items="items" />
+                <FmBottomBar
+                    :active="active"
+                    :items="items"
+                    :upload-count="toSort"
+                />
             </div>
         </div>
         <Toaster />

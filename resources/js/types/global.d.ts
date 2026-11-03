@@ -25,6 +25,8 @@ declare module '@inertiajs/core' {
             areas: App.Data.AreaCountData[];
             /** How many notices the account has not seen yet; 0 for a guest. */
             unread_notices: number;
+            /** The files waiting to be sorted, without the copies; 0 for a guest. */
+            to_sort_count: number;
             locale: string;
             [key: string]: unknown;
         };

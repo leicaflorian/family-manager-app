@@ -3,25 +3,30 @@
  * *Upload a document*: one or more files (PDF, JPG, PNG, HEIC, up to 25 MB
  * each) are saved and wait; each in turn gets the form of the board
  * *Proposta*, with the title taken from its name and the card it was uploaded
- * from among the links. Saving files it, discarding deletes it. The × goes
- * back to the card the upload comes from.
+ * from among the links. The file is read by itself: while it is read the page
+ * asks for its state every 2 seconds and shows the wait; when it is done the
+ * sentence of what was found and the form filled with it (only the fields the
+ * person has not touched); when it fails or is off, the reason and the form
+ * empty. Saving files the document, cancelling leaves the file in *To sort*.
+ * The × goes back to the card the upload comes from.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePoll } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
 import FmFilePreview from '@/components/fm/FmFilePreview.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import type { DocumentFormOptions, DocumentLink } from '@/lib/documents';
-import { linkQuery, newDocument } from '@/lib/documents';
+import { linkQuery, newDocument, proposalValues } from '@/lib/documents';
 import { dashboard } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 import { store as storeDocument } from '@/routes/documents';
-import { destroy } from '@/routes/upload';
+import { read } from '@/routes/files';
 
 const props = defineProps<
     {
@@ -58,13 +63,63 @@ const {
     errors: uploadErrors,
 } = useFileUpload(() => preset.value);
 
+/** How often the page asks for the state of the files being read, in milliseconds. */
+const POLL_INTERVAL = 2000;
+
+/** Where *Cancel* goes: the files waiting, which keep the file. */
+const TO_SORT_URL = '/to-sort';
+
+/** Whether a file is being read: waiting in the queue or running. */
+const isReading = (file: App.Data.PendingFileData): boolean =>
+    file.reading_status === 'queued' || file.reading_status === 'reading';
+
+/** Whether any file waiting is being read, which keeps the page asking. */
+const anyReading = computed(() => props.pending.some(isReading));
+
+/** The file in front is being read: the wait takes the place of the form. */
+const waiting = computed(
+    () => current.value !== undefined && isReading(current.value),
+);
+
+/** What the reading found, as the values of the form; nothing before it is done. */
+const proposal = computed(() =>
+    current.value?.reading_status === 'done' && current.value.proposal
+        ? proposalValues(current.value.proposal)
+        : undefined,
+);
+
+/** The reason the reading did not give a proposal: it failed, is off or was skipped. */
+const notRead = computed(() => {
+    const status = current.value?.reading_status;
+
+    return status === 'failed' || status === 'off' || status === 'skipped'
+        ? current.value
+        : undefined;
+});
+
+const poll = usePoll(
+    POLL_INTERVAL,
+    { only: ['pending'], preserveUrl: true },
+    { autoStart: false },
+);
+
+// Asks only while there is a file to wait for; the poll stops by itself on unmount
+watch(anyReading, (reading) => (reading ? poll.start() : poll.stop()), {
+    immediate: true,
+});
+
 /**
- * Discards a file waiting: it is deleted.
+ * Reads the file again after it failed.
  *
  * @param file - the file
  */
-function discard(file: App.Data.PendingFileData): void {
-    router.delete(destroy.url(file.id), { preserveScroll: true });
+function readAgain(file: App.Data.PendingFileData): void {
+    router.post(read.url(file.id), {}, { preserveScroll: true });
+}
+
+/** Leaves the file where it is, in *To sort*. */
+function cancel(): void {
+    router.visit(TO_SORT_URL);
 }
 </script>
 
@@ -88,6 +143,29 @@ function discard(file: App.Data.PendingFileData): void {
             <p v-for="message in uploadErrors" :key="message" class="m-0">
                 {{ message }}
             </p>
+        </FmNotice>
+
+        <FmNotice
+            v-if="current && proposal && current.proposal"
+            :title="current.proposal.headline"
+        >
+            {{ $t('Check it, change what is wrong and save.') }}
+        </FmNotice>
+
+        <FmNotice
+            v-if="notRead"
+            :tone="notRead.reading_status === 'failed' ? 'warning' : 'info'"
+        >
+            {{ notRead.reading_error }}
+            <template v-if="notRead.reading_status === 'failed'" #action>
+                <button
+                    type="button"
+                    class="cursor-pointer border-0 bg-transparent p-0 font-semibold text-inherit underline"
+                    @click="readAgain(notRead)"
+                >
+                    {{ $t('Read again') }}
+                </button>
+            </template>
         </FmNotice>
 
         <div v-if="current" class="flex flex-wrap items-start gap-6">
@@ -127,7 +205,14 @@ function discard(file: App.Data.PendingFileData): void {
                         }}
                     </p>
                 </div>
+                <FmReadingProgress
+                    v-if="waiting"
+                    :name="current.name"
+                    :pages="current.pages"
+                />
+                <!-- Kept while the file is read, so what the person writes stays -->
                 <FmDocumentForm
+                    v-show="!waiting"
                     :key="current.id"
                     :action="storeDocument(linkQuery(preset))"
                     :initial="{
@@ -136,9 +221,10 @@ function discard(file: App.Data.PendingFileData): void {
                     }"
                     :extra="{ file_id: current.id }"
                     :options="options"
-                    :submit-label="$t('Save')"
-                    :cancel-label="$t('Discard this file')"
-                    @cancel="discard(current)"
+                    :proposal="proposal"
+                    :submit-label="proposal ? $t('Okay, save') : $t('Save')"
+                    :cancel-label="$t('Cancel')"
+                    @cancel="cancel"
                 />
             </section>
         </div>

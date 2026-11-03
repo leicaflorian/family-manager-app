@@ -1,6 +1,13 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { pendingPayslip as payslip } from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import Upload from './Upload.vue';
@@ -15,7 +22,36 @@ const options = {
     presetLinks: [],
 };
 
+const reading: App.Data.PendingFileData = {
+    ...payslip,
+    reading_status: 'reading',
+    pages: 1,
+};
+
+/** What the server sends for a file read: the status and the proposal. */
+const done: App.Data.PendingFileData = {
+    ...payslip,
+    reading_status: 'done',
+    pages: 1,
+    proposal: {
+        title: 'Busta paga ottobre 2026',
+        category_id: null,
+        person_id: null,
+        organization_id: null,
+        date: '2026-10-25',
+        expiry_date: null,
+        links: [],
+        headline: 'I found a payslip',
+        found: [{ label: 'Date', value: '25/10/2026' }],
+    },
+};
+
+beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+});
+
 afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
 });
 
@@ -77,15 +113,15 @@ describe('Upload', () => {
         ).toBeInTheDocument();
     });
 
-    it('discards the file waiting', async () => {
+    it('cancels to the files to sort without deleting the file', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
         renderPage(Upload, { pending: [payslip], ...options });
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Discard this file' }),
-        );
+        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-        expect(destroy).toHaveBeenCalledWith('/upload/12', expect.anything());
+        expect(visit).toHaveBeenCalledWith('/to-sort');
+        expect(destroy).not.toHaveBeenCalled();
     });
 
     const vehicles = [
@@ -176,5 +212,189 @@ describe('Upload', () => {
             'href',
             '/dashboard',
         );
+    });
+
+    describe('the reading', () => {
+        it('shows the progress in place of the form while the file is read', () => {
+            renderPage(Upload, { pending: [reading], ...options });
+
+            expect(
+                screen.getByText('Reading the document…'),
+            ).toBeInTheDocument();
+            expect(screen.queryByLabelText('What it is')).not.toBeVisible();
+        });
+
+        it('asks for the state every 2 seconds while a file is read, and stops when none is', async () => {
+            // The poll goes through `reload`, which is a visit to the same page
+            const reload = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => {});
+            const result = renderPage(Upload, {
+                pending: [{ ...payslip, reading_status: 'queued' }],
+                ...options,
+            });
+
+            await vi.advanceTimersByTimeAsync(2000);
+            expect(reload).toHaveBeenCalledOnce();
+            expect(reload).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({
+                    only: ['pending'],
+                    preserveUrl: true,
+                }),
+            );
+
+            await result.rerender({ pending: [done], ...options });
+            await vi.advanceTimersByTimeAsync(6000);
+            expect(reload).toHaveBeenCalledOnce();
+        });
+
+        it('stops asking when the page goes away', async () => {
+            const reload = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => {});
+            const result = renderPage(Upload, {
+                pending: [reading],
+                ...options,
+            });
+
+            result.unmount();
+            await vi.advanceTimersByTimeAsync(6000);
+
+            expect(reload).not.toHaveBeenCalled();
+        });
+
+        it('does not ask when no file is being read', async () => {
+            const reload = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => {});
+            renderPage(Upload, { pending: [payslip], ...options });
+
+            await vi.advanceTimersByTimeAsync(6000);
+
+            expect(reload).not.toHaveBeenCalled();
+        });
+
+        it('shows the sentence and the form with what was read when the reading is done', () => {
+            renderPage(Upload, { pending: [done], ...options });
+
+            expect(screen.getByText('I found a payslip')).toBeInTheDocument();
+            expect(screen.getByLabelText('What it is')).toHaveValue(
+                'Busta paga ottobre 2026',
+            );
+            expect(
+                screen.queryByText('Reading the document…'),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'Okay, save' }),
+            ).toBeInTheDocument();
+        });
+
+        it('keeps the title the person wrote while the file was read', async () => {
+            const result = renderPage(Upload, {
+                pending: [reading],
+                ...options,
+            });
+
+            await fireEvent.update(
+                screen.getByLabelText('What it is'),
+                'Il mio titolo',
+            );
+            await settle();
+            await result.rerender({ pending: [done], ...options });
+
+            expect(screen.getByLabelText('What it is')).toHaveValue(
+                'Il mio titolo',
+            );
+            expect(screen.getByLabelText('Date')).toHaveValue('25/10/2026');
+        });
+
+        it('puts the reading back with Restore the reading', async () => {
+            renderPage(Upload, { pending: [done], ...options });
+
+            await fireEvent.update(
+                screen.getByLabelText('What it is'),
+                'Altro titolo',
+            );
+            await settle();
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Restore the reading' }),
+            );
+            await settle();
+
+            expect(screen.getByLabelText('What it is')).toHaveValue(
+                'Busta paga ottobre 2026',
+            );
+        });
+
+        it('shows why a reading failed, with Read again, and the empty form', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(Upload, {
+                pending: [
+                    {
+                        ...payslip,
+                        reading_status: 'failed',
+                        reading_error: 'The reading did not work.',
+                    },
+                ],
+                ...options,
+            });
+
+            expect(
+                screen.getByText('The reading did not work.'),
+            ).toBeInTheDocument();
+            expect(screen.getByLabelText('What it is')).toBeVisible();
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Read again' }),
+            );
+
+            expect(post).toHaveBeenCalledWith(
+                '/files/12/read',
+                {},
+                expect.objectContaining({ preserveScroll: true }),
+            );
+        });
+
+        it.each(['off', 'skipped'] as const)(
+            'shows the message of a reading %s and the form to fill by hand',
+            (status) => {
+                renderPage(Upload, {
+                    pending: [
+                        {
+                            ...payslip,
+                            reading_status: status,
+                            reading_error: `Message ${status}`,
+                        },
+                    ],
+                    ...options,
+                });
+
+                expect(
+                    screen.getByText(`Message ${status}`),
+                ).toBeInTheDocument();
+                expect(
+                    screen.queryByRole('button', { name: 'Read again' }),
+                ).not.toBeInTheDocument();
+                expect(screen.getByLabelText('What it is')).toBeVisible();
+            },
+        );
+
+        it('files the document with the file id when saved after a reading', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(Upload, { pending: [done], ...options });
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Okay, save' }),
+            );
+            await settle();
+
+            expect(post.mock.calls[0]?.[0]).toBe('/documents');
+            expect(post.mock.calls[0]?.[1]).toMatchObject({
+                file_id: 12,
+                title: 'Busta paga ottobre 2026',
+                date: '2026-10-25',
+            });
+        });
     });
 });

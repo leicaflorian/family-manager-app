@@ -6,7 +6,7 @@ import { trackChanges } from '@/lib/unsavedChanges';
 import { areaCounts } from '@/test/fixtures';
 import AppLayout from './AppLayout.vue';
 
-const page = vi.hoisted(() => ({ url: '/documents?person=3' }));
+const page = vi.hoisted(() => ({ url: '/documents?person=3', toSort: 0 }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
@@ -16,11 +16,25 @@ vi.mock('@inertiajs/vue3', async (original) => ({
             auth: { user: { name: 'Marco Bianchi' } },
             family: { name: 'Bianchi' },
             areas: areaCounts,
+            to_sort_count: page.toSort,
         },
     }),
 }));
 
 describe('AppLayout', () => {
+    it('shows the files to sort on Upload, in the sidebar and in the bottom bar', () => {
+        page.toSort = 4;
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        page.toSort = 0;
+
+        expect(
+            screen.getByRole('link', { name: 'Upload 4' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'Upload a document, 4 to sort' }),
+        ).toBeInTheDocument();
+    });
+
     it('has the sidebar for the computer and the bottom bar for the phone, with the section of the page', () => {
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
 
