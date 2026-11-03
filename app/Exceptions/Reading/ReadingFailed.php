@@ -8,18 +8,19 @@ use RuntimeException;
 
 /**
  * A reading that did not give an extraction. The message is shown to the person (English key, translated),
- * `retry` says whether trying again can work: true only for the failures that pass by themselves.
+ * `retry` says whether trying again can work: true only for the failures that pass by themselves. The key stays,
+ * so the message can be written again in the language of who uploaded the file.
  */
 final class ReadingFailed extends RuntimeException
 {
     /**
-     * @param  string  $message  what to show, as an English key of `lang/it.json`
+     * @param  string  $key  what to show, as an English key of `lang/it.json`
      * @param  bool  $retry  true when the failure may pass (overload, network), false when trying again changes nothing
      * @param  \Throwable|null  $previous  the error underneath
      */
-    public function __construct(string $message, public readonly bool $retry = false, ?\Throwable $previous = null)
+    public function __construct(public readonly string $key, public readonly bool $retry = false, ?\Throwable $previous = null)
     {
-        parent::__construct(__($message), 0, $previous);
+        parent::__construct(__($key), 0, $previous);
     }
 
     /**

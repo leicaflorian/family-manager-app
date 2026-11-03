@@ -19,7 +19,7 @@ return [
 
     'model' => env('DOCUMENT_READER_MODEL', 'gemini-3.8-flash'),
 
-    // readings per month for the whole app
+    // readings per family in a month of Rome (ReadingAllowance)
     'monthly_limit' => (int) env('DOCUMENT_READER_MONTHLY_LIMIT', 1000),
 
     // largest file sent to the service

@@ -99,6 +99,17 @@ final class File extends FamilyModel
     }
 
     /**
+     * Writes where the reading of the file stands, with the message to show (null clears it).
+     *
+     * @param  ReadingStatus  $status  the new state of the reading
+     * @param  string|null  $error  why the file is not read, already translated
+     */
+    public function markReading(ReadingStatus $status, ?string $error = null): void
+    {
+        $this->forceFill(['reading_status' => $status, 'reading_error' => $error])->save();
+    }
+
+    /**
      * Only the files uploaded and still waiting for their document.
      *
      * @param  Builder<self>  $query
