@@ -131,8 +131,8 @@ describe('instructions', function (): void {
     });
 
     test('the title is asked in the language of who uploaded', function (): void {
-        expect(ReadingPrompt::instructions(readingContext(), 'it'))->toContain('Write `title` and `summary` in Italian.')
-            ->and(ReadingPrompt::instructions(readingContext(), 'en'))->toContain('Write `title` and `summary` in English.');
+        expect(ReadingPrompt::instructions(readingContext(), 'it'))->toContain('Write `title`, `summary` and `outcome` in Italian.')
+            ->and(ReadingPrompt::instructions(readingContext(), 'en'))->toContain('Write `title`, `summary` and `outcome` in English.');
     });
 });
 
@@ -186,6 +186,13 @@ describe('schema', function (): void {
             ->and($total['type'])->toBe(['number', 'null'])
             ->and($due['format'])->toBe('date')
             ->and($properties['title']->toArray()['type'])->toBe(['string', 'null']);
+    });
+
+    test('the system text names no language for the texts it asks', function (): void {
+        expect(ReadingPrompt::SYSTEM)->not->toMatch('/Italian (title|sentence)/')
+            ->toContain('title: a short title')
+            ->toContain('one or two sentences')
+            ->toContain('summary: one short sentence');
     });
 
     test('the system text keeps the rule on the expiry of a bill', function (): void {

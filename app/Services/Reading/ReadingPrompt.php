@@ -26,7 +26,7 @@ You read Italian family paperwork for a household archive: utility bills, receip
 Rules:
 - Copy values exactly as printed. Use null when a value is not on the document or does not apply; never guess codes or dates.
 - kind: utility_bill (energy, gas, water, phone, internet, waste tax, TV licence), receipt, invoice, payslip ("busta paga", "cedolino"), insurance (policy, premium receipt, "quietanza"), payment_receipt (proof that a payment was made to a creditor: bank transfer receipt "contabile", direct debit notice "addebito SDD", PagoPA receipt, paid postal slip "bollettino", POS or card receipt, "quietanza" of whoever collected the money; it is NOT the bill, the invoice or the shop receipt of what was bought: those stay utility_bill, invoice and receipt, and the premium receipt of a policy stays insurance), road_tax ("bollo auto"), medical (report, exam result, prescription, vaccination, optician), other.
-- title: a short Italian title (2 to 5 words) for what the document is about or what was bought or paid, without the date and without the issuer's name, since the issuer is stored apart (e.g. "Tagliando 60.000 km", "Visita oculistica", "Carta d'identità", "Polizza RC auto", "Farmaci", "Cena al ristorante", "Abbonamento Claude Pro", "Ricarica telefonica", "Scarpe da running"). It becomes the title of the expense, so it must say what the money was spent on.
+- title: a short title (2 to 5 words) for what the document is about or what was bought or paid, without the date and without the issuer's name, since the issuer is stored apart (e.g. "Tagliando 60.000 km", "Visita oculistica", "Carta d'identità", "Polizza RC auto", "Farmaci", "Cena al ristorante", "Abbonamento Claude Pro", "Ricarica telefonica", "Scarpe da running"). It becomes the title of the expense, so it must say what the money was spent on.
 - total_amount: in euro, as a number. The total to pay (bills, invoices), paid (receipts), or the net pay ("netto in busta", "netto a pagare") for payslips. For a payment_receipt it is the sum paid to the creditor WITHOUT the fee ("Importo"), not the headline total that includes the fee.
 - fee_amount: only for payment_receipt, the fee charged for the payment ("commissione", "costo del servizio") in euro; null when there is none and for every other kind.
 - For a payment_receipt: the issuer is whoever was paid (the creditor, e.g. the municipality or the supplier), never the bank, Poste, PagoPA or the card circuit that carried the payment; issue_date is the day of the payment; due_date is null; iban_last_four is the IBAN of the account that paid; title comes from the reason of the payment ("causale", "oggetto del pagamento"); summary mentions the fee if there is one.
@@ -36,14 +36,14 @@ Rules:
 - policy_number: insurance policy number. plate_number: vehicle plate (Italian format like AB123CD). tax_code: the "codice fiscale" of the person the document is about (employee on a payslip, patient on a medical document, holder of a policy or bill).
 - organization_id, expense_category_id, document_category_id, person_id: pick the id from the lists below, or null when nothing fits. Prefer the most specific category. person_id is the account holder, employee, patient or person the document is about.
 - income_type, for payslips and payments received: salary, benefit (INPS, bonus), refund, other. maintenance_type, for work on a car or a house: service ("tagliando"), inspection ("revisione"), repair, boiler_service, other. health_type, for medical documents: visit, exam, vaccine, prescription, optical.
-- outcome: for medical documents, the diagnosis or result in one or two Italian sentences. next_checkup_date: a follow-up date if the document states one.
+- outcome: for medical documents, the diagnosis or result in one or two sentences. next_checkup_date: a follow-up date if the document states one.
 - utility_type, for a utility bill or a supply contract: electricity, gas, water, internet, phone, waste_tax ("TARI"), tv_license ("canone RAI"). insurance_type, for insurance documents: car, life, home, health, accident, fund (pension or investment fund), other. organization_type: what the issuer is: bank, insurance, utility_provider, employer, public_office, school, healthcare, shop, other.
 - durable_good: true only when the receipt or invoice is for a durable item worth keeping track of (a household appliance, electronics, furniture, a tool); false for food, medicines, clothes, services, consumables and everything else; null when nothing was bought. item_name, item_brand, item_model: the main item bought (one only, the most important), e.g. "Lavatrice", "Bosch", "WGG244". warranty_expiry_date: only when the warranty end is printed.
 - vehicle_brand, vehicle_model, vehicle_year: the vehicle the document is about (registration certificate, policy, road tax, workshop invoice), as printed; vehicle_year is the year of first registration.
 - contract_start_date: for a contract, the date it starts or the supply is activated ("data di attivazione", "decorrenza").
 - The document can be the plain text of an email that announces a bill or an invoice without attaching it (the real one is in the supplier's customer area). Read it as that bill: kind is the kind of the bill; the issuer is the supplier named in the text, not who forwarded the email; issue_date is the date of the invoice written in the text, not the date of the email.
 - After the lists there can be what was written about the file when it was uploaded: its name and its description (who uploaded or sent it, when, and a note). Use it as a hint for what the paper does not say: who made the document or who it is about, what it is, the issuer, the title. What is printed on the document wins when they disagree. Whoever uploaded or sent the file is not necessarily the person the document is about. Names made by a device or an app ("Telefono 2026-10-25 12.17", "Scanner…", "IMG_1234") say nothing.
-- summary: one short Italian sentence describing the document (e.g. "Bolletta gas bimestrale agosto-settembre 2026").
+- summary: one short sentence describing the document (e.g. "Bolletta gas bimestrale agosto-settembre 2026").
 - confidence: low if the document is hard to read or you are unsure what it is.
 TXT;
 
@@ -116,9 +116,10 @@ TXT;
         $about = $notes === []
             ? ''
             : "\n\nWhat was written about this file when it was uploaded (file name and description):\n".implode("\n", $notes);
+        // Any locale other than `it` is English: the app has only these two languages.
         $language = $locale === 'it' ? 'Italian' : 'English';
 
-        return "{$lists}{$about}\n\nExtract the data from this document. Write `title` and `summary` in {$language}.";
+        return "{$lists}{$about}\n\nExtract the data from this document. Write `title`, `summary` and `outcome` in {$language}.";
     }
 
     /**
