@@ -34,7 +34,8 @@ final class ImportRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'files' => ['required', 'array', 'min:1', 'max:50'],
+            // A list, so every entry has a numeric place and the rules of its document are built for it
+            'files' => ['required', 'array', 'list', 'min:1', 'max:50'],
             'files.*' => ['required', 'array:file_id,document'],
             'files.*.file_id' => [...DocumentRules::fileId(), 'distinct'],
             'files.*.document' => ['required', 'array'],

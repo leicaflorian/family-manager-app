@@ -59,8 +59,8 @@ const leftOut = reactive(new Set<number>());
 /** The values of each form, as the form tells them. */
 const values = reactive<Record<number, DocumentFormValues>>({});
 
-/** The errors of the last import, by the name of the field (`files.1.document.title`). */
-const errors = ref<Record<string, string>>({});
+/** The errors of the last import, by the id of the file and then the field of its document (`title`, `tags.0`…). */
+const errors = ref<Record<number, Record<string, string>>>({});
 
 /** Whether the documents are being sent. */
 const processing = ref(false);
@@ -116,19 +116,72 @@ function proposalOf(
 }
 
 /**
- * The reason a file did not save: what the server answered for its fields, or why it failed last time.
+ * The reason a file did not save: the first error the server found in it, or why it failed last time.
  *
  * @param file - the file
  * @returns the message, if there is one
  */
 function problemOf(file: App.Data.PendingFileData): string | undefined {
-    const prefix = `files.${included.value.indexOf(file)}.`;
-    const own = Object.entries(errors.value).find(([key]) =>
-        key.startsWith(prefix),
+    return (
+        Object.values(errors.value[file.id] ?? {})[0] ?? props.failures[file.id]
     );
-
-    return own ? own[1] : props.failures[file.id];
 }
+
+/**
+ * The errors of the fields of a file's document, for its form (the one on the file itself is not a field).
+ *
+ * @param file - the file
+ * @returns the messages by field
+ */
+function fieldErrorsOf(file: App.Data.PendingFileData): Record<string, string> {
+    return Object.fromEntries(
+        Object.entries(errors.value[file.id] ?? {}).filter(
+            ([field]) => field !== 'file_id',
+        ),
+    );
+}
+
+/**
+ * Groups the errors of the server by file. The server numbers the files as they were sent.
+ *
+ * @param received - the errors by name (`files.1.document.title`)
+ * @param sent - the files in the order they were sent
+ * @returns the messages by file id and field
+ */
+function errorsByFile(
+    received: Record<string, string>,
+    sent: App.Data.PendingFileData[],
+): Record<number, Record<string, string>> {
+    const byFile: Record<number, Record<string, string>> = {};
+
+    for (const [key, message] of Object.entries(received)) {
+        const found = /^files\.(\d+)\.(?:document\.)?(.+)$/.exec(key);
+        const file = found ? sent[Number(found[1])] : undefined;
+
+        if (found && file) {
+            (byFile[file.id] ??= {})[found[2]!] = message;
+        }
+    }
+
+    return byFile;
+}
+
+// When the files change (the page came back after a partial failure, or a file went), stay on the file open,
+// or go to the first that failed, or to the first
+watch(
+    () => props.files,
+    (files, before) => {
+        const stays = files.findIndex(
+            (file) => file.id === before[position.value]?.id,
+        );
+        const failed = files.findIndex((file) => problemOf(file) !== undefined);
+
+        position.value =
+            stays >= 0 && Object.keys(props.failures).length === 0
+                ? stays
+                : Math.max(failed, 0);
+    },
+);
 
 /**
  * Where a file stands in the list.
@@ -179,6 +232,7 @@ function toggleLeftOut(): void {
 /** Files the documents of the files that are not left out. */
 function save(): void {
     errors.value = {};
+    const sent = included.value;
     router.post(
         store().url,
         {
@@ -192,7 +246,7 @@ function save(): void {
             onStart: () => (processing.value = true),
             onFinish: () => (processing.value = false),
             onError: (received) => {
-                errors.value = received;
+                errors.value = errorsByFile(received, sent);
                 const first = props.files.findIndex(
                     (file) => problemOf(file) !== undefined,
                 );
@@ -214,6 +268,7 @@ function save(): void {
             <template #actions>
                 <Link
                     :href="toSort().url"
+                    data-discard-changes
                     :aria-label="$t('Close')"
                     class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
                 >
@@ -278,12 +333,36 @@ function save(): void {
                     >
                         {{ $t('Previous') }}
                     </FmButton>
-                    <span class="text-sm font-semibold text-ink-soft">{{
-                        $t(':current of :total', {
-                            current: String(position + 1),
-                            total: String(files.length),
-                        })
-                    }}</span>
+                    <span
+                        class="flex flex-col items-center gap-1 text-sm font-semibold text-ink-soft"
+                    >
+                        {{
+                            $t(':current of :total', {
+                                current: String(position + 1),
+                                total: String(files.length),
+                            })
+                        }}
+                        <span class="flex gap-1">
+                            <span
+                                v-for="file in files"
+                                :key="file.id"
+                                class="size-2 rounded-full"
+                                :class="
+                                    problemOf(file)
+                                        ? 'bg-overdue'
+                                        : file.id === current.id
+                                          ? 'bg-action'
+                                          : 'bg-edge'
+                                "
+                            >
+                                <span v-if="problemOf(file)" class="sr-only">{{
+                                    $t(':name needs a look', {
+                                        name: file.name,
+                                    })
+                                }}</span>
+                            </span>
+                        </span>
+                    </span>
                     <FmButton
                         variant="outline"
                         :disabled="position === files.length - 1"
@@ -344,6 +423,7 @@ function save(): void {
                     :initial="initialValues(file)"
                     :options="options"
                     :proposal="proposalOf(file)"
+                    :errors="fieldErrorsOf(file)"
                     @change="values[file.id] = $event"
                 />
 

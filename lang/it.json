@@ -1170,5 +1170,6 @@
     "This file stays in the files to sort.": "Questo file resta tra i file da smistare.",
     "This file was already filed.": "Questo file è già stato archiviato.",
     "This file could not be saved.": "Non sono riuscito a salvare questo file.",
-    "{1} Import the file|[2,*] Import the :count files": "{1} Importa il file|[2,*] Importa i :count file"
+    "{1} Import the file|[2,*] Import the :count files": "{1} Importa il file|[2,*] Importa i :count file",
+    ":name needs a look": ":name va guardato"
 }

@@ -192,10 +192,10 @@ test('read leaves out a copy', function (): void {
     expect($files['copy']->fresh()->reading_status)->toBeNull();
 });
 
-test('read does not touch a file that is no longer waiting', function (): void {
+test('read does not touch a file that is no longer waiting, and goes back to the files to sort', function (): void {
     $filed = File::factory()->for($this->marco->family)->create(['to_sort' => false]);
 
-    $this->actingAs($this->marco)->post(route('to-sort.read'), ['ids' => [$filed->id]])->assertSessionHasNoErrors();
+    $this->actingAs($this->marco)->post(route('to-sort.read'), ['ids' => [$filed->id]])->assertSessionHasNoErrors()->assertRedirect(route('to-sort'));
 
     Queue::assertNothingPushed();
 });

@@ -487,3 +487,28 @@ describe('FmDocumentForm without an action', () => {
         expect(post).not.toHaveBeenCalled();
     });
 });
+
+describe('FmDocumentForm with errors from outside', () => {
+    const { action: _action, submitLabel: _label, ...bare } = props;
+
+    it('shows them under the fields and drops them when they go', async () => {
+        const view = renderPage(FmDocumentForm, {
+            ...bare,
+            errors: {
+                title: 'Write what the document is.',
+                'tags.0': 'The tag is too long.',
+            },
+        });
+
+        expect(
+            screen.getByText('Write what the document is.'),
+        ).toBeInTheDocument();
+        expect(screen.getByText('The tag is too long.')).toBeInTheDocument();
+
+        await view.rerender({ ...bare, errors: {} });
+
+        expect(
+            screen.queryByText('Write what the document is.'),
+        ).not.toBeInTheDocument();
+    });
+});

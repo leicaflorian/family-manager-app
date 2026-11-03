@@ -39,6 +39,7 @@ const {
     cancelLabel,
     proposal,
     fill = 'untouched',
+    errors: outsideErrors,
 } = defineProps<{
     /**
      * Where the form is sent: a new document or a change. Without it the form has no buttons and sends
@@ -59,6 +60,8 @@ const {
     proposal?: Partial<DocumentFormValues>;
     /** Which fields the proposal may write: the ones not touched, or only the empty ones. */
     fill?: FillMode;
+    /** Errors found outside the form (a page that sent many documents), by field: `title`, `tags.0`… */
+    errors?: Record<string, string>;
 }>();
 
 const emit = defineEmits<{
@@ -89,6 +92,19 @@ watch(
 
 /** While the form has changes not saved, leaving the page asks first. */
 useUnsavedChanges(() => form.data());
+
+// The errors a page gives replace the ones shown
+watch(
+    () => outsideErrors,
+    (received) => {
+        form.clearErrors();
+
+        if (received && Object.keys(received).length > 0) {
+            form.setError(received);
+        }
+    },
+    { immediate: true },
+);
 
 const reading = useReadingFill(form, initial, fill);
 

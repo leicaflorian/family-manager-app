@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Models\Document;
 use App\Models\File;
 use App\Models\Organization;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -117,6 +118,16 @@ test('the rules of a document apply to each file and nothing is saved when one i
     expect(Document::query()->count())->toBe(0);
 });
 
+test('entries that are not a list are refused, so no document escapes its rules', function (): void {
+    $file = waitingFile();
+    $foreign = Person::factory()->create();
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => ['foo' => importEntry($file, ['person_id' => $foreign->id])]])
+        ->assertSessionHasErrors('files');
+
+    expect(Document::query()->count())->toBe(0)->and($file->fresh()->to_sort)->toBeTrue();
+});
+
 test('at least one file is needed', function (): void {
     $this->actingAs($this->marco)->post(route('import.store'), ['files' => []])->assertSessionHasErrors('files');
     $this->actingAs($this->marco)->post(route('import.store'))->assertSessionHasErrors('files');
@@ -131,7 +142,7 @@ test('a file already filed is not imported twice', function (): void {
     expect(Document::query()->count())->toBe(1);
 });
 
-test('the same file twice in one request makes one document and the row says why', function (): void {
+test('the same file twice in one request is refused and nothing is saved', function (): void {
     $file = waitingFile();
     $other = waitingFile();
 
@@ -159,7 +170,7 @@ test('a file that fails to save leaves the others saved, and the page says why',
         ->and($bad->fresh()->to_sort)->toBeTrue();
 });
 
-test('a file filed by someone else while the others are saved is told, not imported twice', function (): void {
+test('a file filed by someone else while the others are saved is skipped, and the others stay saved', function (): void {
     $good = waitingFile();
     $taken = waitingFile();
     Document::created(function () use ($taken): void {

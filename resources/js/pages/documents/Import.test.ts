@@ -144,6 +144,14 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
+    it('closes to the files to sort, asking first about changes not saved', () => {
+        renderPage(Import, props([light]));
+
+        const close = screen.getByRole('link', { name: 'Close' });
+        expect(close).toHaveAttribute('href', '/to-sort');
+        expect(close).toHaveAttribute('data-discard-changes');
+    });
+
     it('counts the files on the button', () => {
         renderPage(Import, props([light, gas, warranty]));
 
@@ -303,10 +311,11 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
-    it('shows the errors of the server on the row of the file and opens the first', async () => {
+    it('shows the errors of the server on the row of the file, under its fields, and opens the first', async () => {
         vi.spyOn(router, 'post').mockImplementation((_url, _data, visit) => {
             visit?.onError?.({
                 'files.1.document.title': 'Write what the document is.',
+                'files.1.document.notes': 'The notes are too long.',
             });
         });
         renderPage(Import, props([light, gas]));
@@ -321,6 +330,74 @@ describe('Import', () => {
                 'Write what the document is.',
             ),
         ).toBeInTheDocument();
+        expect(
+            within(row('bolletta-gas.pdf')).getByText('You are looking at it'),
+        ).toBeInTheDocument();
+        // Every error of the file is under its field
+        expect(
+            screen.getAllByText('Write what the document is.').length,
+        ).toBeGreaterThan(1);
+        expect(screen.getByText('The notes are too long.')).toBeInTheDocument();
+        expect(
+            screen.getByText('bolletta-gas.pdf needs a look'),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText('bolletta-luce.pdf needs a look'),
+        ).not.toBeInTheDocument();
+    });
+
+    it('puts the errors on the right file when one was left out before', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, visit) => {
+            visit?.onError?.({
+                'files.0.document.title': 'Write what the document is.',
+            });
+        });
+        renderPage(Import, props([light, gas]));
+        await settle();
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Do not import this file' }),
+        );
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Import the file' }),
+        );
+
+        expect(
+            within(row('bolletta-gas.pdf')).getByText(
+                'Write what the document is.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            within(row('bolletta-luce.pdf')).queryByText(
+                'Write what the document is.',
+            ),
+        ).not.toBeInTheDocument();
+    });
+
+    it('opens the file that failed when the page comes back with fewer files', async () => {
+        const view = renderPage(Import, props([light, gas, warranty]));
+        await fireEvent.click(row('garanzia.jpg'));
+
+        await view.rerender(
+            structuredClone(
+                props([warranty], { 3: 'This file could not be saved.' }),
+            ),
+        );
+
+        expect(
+            within(row('garanzia.jpg')).getByText('You are looking at it'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getAllByText('This file could not be saved.').length,
+        ).toBeGreaterThan(0);
+    });
+
+    it('stays on a file that is still there when others go', async () => {
+        const view = renderPage(Import, props([light, gas, warranty]));
+        await fireEvent.click(row('bolletta-gas.pdf'));
+
+        await view.rerender(structuredClone(props([gas, warranty])));
+
         expect(
             within(row('bolletta-gas.pdf')).getByText('You are looking at it'),
         ).toBeInTheDocument();

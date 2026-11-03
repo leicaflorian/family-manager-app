@@ -1630,6 +1630,13 @@
         "required": false,
         "default": "\"untouched\"",
         "description": "Which fields the proposal may write: the ones not touched, or only the empty ones."
+      },
+      {
+        "name": "errors",
+        "type": "Record<string, string>",
+        "required": false,
+        "default": null,
+        "description": "Errors found outside the form (a page that sent many documents), by field: `title`, `tags.0`…"
       }
     ],
     "events": [

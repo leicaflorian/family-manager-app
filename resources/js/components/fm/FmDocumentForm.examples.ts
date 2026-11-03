@@ -53,6 +53,18 @@ export default defineExamples(FmDocumentForm, [
         },
     },
     {
+        name: 'With errors from the page',
+        props: {
+            initial: {
+                ...newDocument(''),
+                date: fromToday(0),
+                expiry_date: fromToday(365),
+            },
+            options: documentFormOptions,
+            errors: { title: 'Write what the document is.' },
+        },
+    },
+    {
         name: 'Edit',
         props: {
             action: { url: '/documents/5', method: 'put' },
