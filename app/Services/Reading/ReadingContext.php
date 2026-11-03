@@ -24,6 +24,8 @@ final readonly class ReadingContext
      * @param  list<array{id: int, label: string}>  $people
      * @param  string|null  $fileName  the name the file had when it was uploaded
      * @param  string|null  $fileNote  the note written about the file (who sent it, what it is)
+     * @param  int|null  $familyId  the family of the file: the searches that link the cards run inside it, whoever is
+     *                              signed in; null runs them in the current family
      */
     public function __construct(
         public array $expenseCategories,
@@ -32,6 +34,7 @@ final readonly class ReadingContext
         public array $people,
         public ?string $fileName,
         public ?string $fileNote,
+        public ?int $familyId = null,
     ) {}
 
     /**
@@ -59,6 +62,7 @@ final readonly class ReadingContext
                     ->all()),
                 fileName: $file->original_name,
                 fileNote: $file->note,
+                familyId: $file->family_id,
             );
         });
     }

@@ -23,6 +23,12 @@ final class Extraction extends Data
     /** The kinds of paper the model tells apart. */
     public const array KINDS = ['utility_bill', 'receipt', 'invoice', 'payment_receipt', 'payslip', 'insurance', 'road_tax', 'medical', 'other'];
 
+    /**
+     * The kinds of paper that never expire: a period printed on them ("valid until", the term of a subscription) is
+     * no expiry. The model is told so, and the code drops the date anyway, so a model that gets it wrong is not enough.
+     */
+    public const array NO_EXPIRY = ['invoice', 'receipt', 'utility_bill', 'payment_receipt', 'payslip', 'road_tax'];
+
     /** The levels of confidence. */
     public const array CONFIDENCES = ['high', 'medium', 'low'];
 

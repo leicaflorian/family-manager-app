@@ -598,6 +598,20 @@ readonly link: string,
 readonly expires_on: string,
 };
 namespace Reading {
+export type DocumentProposalData = {
+readonly title: string | null,
+readonly category_id: number | null,
+readonly person_id: number | null,
+readonly organization_id: number | null,
+readonly date: string | null,
+readonly expiry_date: string | null,
+readonly links: {
+type: string,
+id: number,
+}[],
+readonly headline: string,
+readonly found: App.Data.Reading.FoundLineData[],
+};
 export type Extraction = {
 kind: string | null,
 title: string | null,
@@ -638,6 +652,10 @@ vehicle_year: number | null,
 contract_start_date: string | null,
 summary: string | null,
 confidence: string | null,
+};
+export type FoundLineData = {
+readonly label: string,
+readonly value: string,
 };
 }
 }
