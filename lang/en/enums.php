@@ -56,6 +56,12 @@ return [
         'amount_override' => 'Different amount',
         'date_override' => 'Different date',
     ],
+    'file_source' => [
+        'upload' => 'Uploaded here',
+        'mail' => 'By mail',
+        'phone' => 'From the phone',
+        'scanner' => 'Scanned',
+    ],
     'filing_status' => [
         'draft' => 'Draft',
         'submitted' => 'Submitted',
@@ -153,6 +159,21 @@ return [
         'parent' => 'Parent',
         'child' => 'Child',
         'other' => 'Other',
+    ],
+    'reading_purpose' => [
+        'document' => 'Document',
+        'mail_filter' => 'Mail filter',
+        'mail_notice' => 'Mail notice',
+        'mail_file' => 'Mail attachment',
+        'crop' => 'Crop',
+    ],
+    'reading_status' => [
+        'queued' => 'Queued',
+        'reading' => 'Reading',
+        'done' => 'Read',
+        'failed' => 'Not read',
+        'skipped' => 'Not read on purpose',
+        'off' => 'Reading is off',
     ],
     'reminder_status' => [
         'open' => 'Open',

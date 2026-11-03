@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\FileSource;
+use App\Enums\ReadingStatus;
 use App\Services\FilePreviews;
 use Carbon\CarbonImmutable;
 use Database\Factories\FileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -32,6 +36,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property ReadingStatus|null $reading_status queued, reading, done, failed, skipped or off; null until the file is queued
+ * @property array<array-key, mixed>|null $reading What the AI read from the file
+ * @property string|null $reading_error Why the reading failed
+ * @property FileSource $source upload, mail, phone or scanner
+ * @property string|null $note
+ * @property string|null $checksum SHA-256 of the content, to find copies
+ * @property-read Collection<int, AiReading> $aiReadings
+ * @property-read int|null $ai_readings_count
  * @property-read Document|null $document
  * @property-read Family $family
  *
@@ -57,6 +69,16 @@ final class File extends FamilyModel
     public function document(): HasOne
     {
         return $this->hasOne(Document::class);
+    }
+
+    /**
+     * The AI calls made to read the file; they stay (without the file) when it is deleted.
+     *
+     * @return HasMany<AiReading, $this>
+     */
+    public function aiReadings(): HasMany
+    {
+        return $this->hasMany(AiReading::class);
     }
 
     /**
@@ -99,6 +121,9 @@ final class File extends FamilyModel
             'to_sort' => 'boolean',
             'link_id' => 'integer',
             'preview_failed' => 'boolean',
+            'reading_status' => ReadingStatus::class,
+            'reading' => 'array',
+            'source' => FileSource::class,
         ];
     }
 }

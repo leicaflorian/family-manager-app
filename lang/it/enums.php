@@ -56,6 +56,12 @@ return [
         'amount_override' => 'Importo diverso',
         'date_override' => 'Data diversa',
     ],
+    'file_source' => [
+        'upload' => 'Caricati qui',
+        'mail' => 'Per posta',
+        'phone' => 'Dal telefono',
+        'scanner' => 'Scansionati',
+    ],
     'filing_status' => [
         'draft' => 'Bozza',
         'submitted' => 'Inviata',
@@ -153,6 +159,21 @@ return [
         'parent' => 'Genitore',
         'child' => 'Figlio/a',
         'other' => 'Altro',
+    ],
+    'reading_purpose' => [
+        'document' => 'Documento',
+        'mail_filter' => 'Filtro della posta',
+        'mail_notice' => 'Avviso dalla posta',
+        'mail_file' => 'Allegato della posta',
+        'crop' => 'Ritaglio',
+    ],
+    'reading_status' => [
+        'queued' => 'In coda',
+        'reading' => 'Sto leggendo',
+        'done' => 'Letto',
+        'failed' => 'Non letto',
+        'skipped' => 'Non si legge',
+        'off' => 'Lettura spenta',
     ],
     'reminder_status' => [
         'open' => 'Aperto',
