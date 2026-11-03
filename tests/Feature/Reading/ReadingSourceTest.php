@@ -7,6 +7,8 @@ use App\Models\File;
 use App\Services\FileStore;
 use App\Services\Reading\ReadingSource;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Files\Base64Document;
 use Laravel\Ai\Files\Base64Image;
@@ -123,15 +125,86 @@ test('a HEIC photo is read as a jpeg', function (): void {
         ->and(getimagesizefromstring(base64_decode($source->attachment()->base64, true) ?: '')['mime'])->toBe('image/jpeg');
 });
 
-test('a photo turned on its side comes out straight', function (): void {
-    $jpeg = jpegBytes(300, 200);
-    // orientation 6: the camera was turned, the pixels must be turned 90 degrees clockwise
+/**
+ * A JPEG that says it was shot with the camera turned (EXIF orientation 6).
+ */
+function turnedJpeg(int $width, int $height): string
+{
+    $jpeg = jpegBytes($width, $height);
     $exif = "Exif\0\0MM\0*\0\0\0\x08\0\x01\x01\x12\0\x03\0\0\0\x01\0\x06\0\0\0\0\0\0";
-    $segment = "\xFF\xE1".pack('n', strlen($exif) + 2).$exif;
-    $file = storeReadable(substr($jpeg, 0, 2).$segment.substr($jpeg, 2), 'turned.jpg', 'image/jpeg');
+
+    return substr($jpeg, 0, 2)."\xFF\xE1".pack('n', strlen($exif) + 2).$exif.substr($jpeg, 2);
+}
+
+/**
+ * The files the reading leaves in the temp folder.
+ *
+ * @return list<string>
+ */
+function readingTempFiles(): array
+{
+    return glob(sys_get_temp_dir().'/reading*') ?: [];
+}
+
+test('a photo turned on its side comes out straight', function (): void {
+    $file = storeReadable(turnedJpeg(300, 200), 'turned.jpg', 'image/jpeg');
     expect(exif_read_data(Storage::disk('local')->path($file->path))['Orientation'] ?? null)->toBe(6);
 
     expect(sentSize(ReadingSource::of($file)))->toBe([200, 300]);
+});
+
+test('a big photo turned on its side is 2000 px wide once straight', function (): void {
+    $file = storeReadable(turnedJpeg(2400, 3200), 'turned.jpg', 'image/jpeg');
+
+    expect(sentSize(ReadingSource::of($file)))->toBe([2000, 1500]);
+});
+
+test('a photo that does not fit in memory is skipped, turned or not', function (string $kind): void {
+    $bytes = $kind === 'turned' ? turnedJpeg(3000, 2000) : jpegBytes(3000, 2000);
+    $file = storeReadable($bytes, 'big.jpg', 'image/jpeg');
+    $limit = ini_get('memory_limit');
+    ini_set('memory_limit', (string) (memory_get_usage(true) + 14 * 1024 * 1024));
+
+    try {
+        expect(fn (): ReadingSource => ReadingSource::of($file))
+            ->toThrow(ReadingSkipped::class, 'The file is too big to be read: fill it in yourself.');
+    } finally {
+        ini_set('memory_limit', (string) $limit);
+    }
+})->with(['straight', 'turned']);
+
+test('a file gone from the disk is skipped', function (): void {
+    $file = storeReadable('%PDF', 'gone.pdf', 'application/pdf');
+    Storage::disk('local')->delete($file->path);
+
+    expect(fn (): ReadingSource => ReadingSource::of($file))
+        ->toThrow(ReadingSkipped::class, 'This kind of file cannot be read.');
+});
+
+test('a HEIC photo the tool cannot convert is skipped and leaves nothing', function (): void {
+    Log::spy();
+    Process::fake(['*' => Process::result(errorOutput: 'bad file', exitCode: 1)]);
+    $file = storeReadable('heic bytes', 'photo.heic', 'image/heic');
+    $before = readingTempFiles();
+
+    expect(fn (): ReadingSource => ReadingSource::of($file))
+        ->toThrow(ReadingSkipped::class, 'This kind of file cannot be read.');
+
+    expect(readingTempFiles())->toBe($before);
+    Log::shouldNotHaveReceived('error');
+});
+
+test('a missing HEIC tool is skipped, logged and leaves nothing', function (): void {
+    Log::spy();
+    Process::fake(['*' => Process::result(errorOutput: 'not found', exitCode: 127)]);
+    $file = storeReadable('heic bytes', 'photo.heic', 'image/heic');
+    $before = readingTempFiles();
+
+    expect(fn (): ReadingSource => ReadingSource::of($file))
+        ->toThrow(ReadingSkipped::class, 'This kind of file cannot be read.');
+
+    expect(readingTempFiles())->toBe($before);
+    Log::shouldHaveReceived('error')->with('[document-reader] heic tool missing or not executable')->once();
 });
 
 test('a 21 MB file is skipped with its message', function (): void {

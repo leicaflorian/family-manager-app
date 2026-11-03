@@ -83,12 +83,13 @@ final readonly class HeicConverter
      *
      * @param  int  $width  the width in pixels
      * @param  int  $height  the height in pixels
+     * @param  int  $held  the bytes PHP already holds for this image (the encoded file), which stay in memory while GD decodes
      */
-    public static function fitsDimensions(int $width, int $height): bool
+    public static function fitsDimensions(int $width, int $height, int $held = 0): bool
     {
         $limit = ini_parse_quantity(ini_get('memory_limit'));
 
         return $limit <= 0
-            || $limit - memory_get_usage() >= $width * $height * self::BYTES_PER_PIXEL + self::MEMORY_MARGIN;
+            || $limit - memory_get_usage() >= $width * $height * self::BYTES_PER_PIXEL + $held + self::MEMORY_MARGIN;
     }
 }

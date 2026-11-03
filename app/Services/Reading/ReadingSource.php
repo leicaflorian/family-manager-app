@@ -115,7 +115,7 @@ final readonly class ReadingSource
             throw ReadingSkipped::unsupported();
         }
 
-        if (! HeicConverter::fitsDimensions($size[0], $size[1])) {
+        if (! HeicConverter::fitsDimensions($size[0], $size[1], strlen($bytes))) {
             throw ReadingSkipped::tooBig();
         }
 
@@ -125,16 +125,38 @@ final readonly class ReadingSource
             throw ReadingSkipped::unsupported();
         }
 
-        $image = self::straighten($image, $size['mime'] === 'image/jpeg' ? self::orientationOf($bytes) : 1);
+        $orientation = $size['mime'] === 'image/jpeg' ? self::orientationOf($bytes) : 1;
 
-        if (imagesx($image) > self::WIDTH) {
-            $image = imagescale($image, self::WIDTH) ?: $image;
-        }
+        // Scaled before it is turned: the turn allocates a second bitmap, and a small one is cheap.
+        // A photo on its side ends up as wide as it is tall now, so that is the side held to 2000 px.
+        $turnsSide = in_array($orientation, [5, 6, 7, 8], true);
+        $image = self::scaled($image, $turnsSide ? imagesy($image) : imagesx($image), $turnsSide);
+        $image = self::straighten($image, $orientation);
 
         ob_start();
         imagejpeg($image, null, self::QUALITY);
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * The image made smaller so that the side that ends up as its width is at most 2000 px.
+     *
+     * @param  GdImage  $image  the image as stored
+     * @param  int  $side  the length of the side that ends up as the width
+     * @param  bool  $heightIsSide  true when that side is the height of the stored image
+     */
+    private static function scaled(GdImage $image, int $side, bool $heightIsSide): GdImage
+    {
+        if ($side <= self::WIDTH) {
+            return $image;
+        }
+
+        $width = $heightIsSide
+            ? (int) round(imagesx($image) * self::WIDTH / $side)
+            : self::WIDTH;
+
+        return imagescale($image, max(1, $width)) ?: $image;
     }
 
     /**
@@ -194,22 +216,26 @@ final readonly class ReadingSource
     {
         $source = tempnam(sys_get_temp_dir(), 'reading');
         $output = $source.'.jpg';
-        file_put_contents($source, $heic);
 
         try {
+            file_put_contents($source, $heic);
             $made = (new HeicConverter)->toJpeg($source, $output, self::WIDTH, self::QUALITY);
+            $jpeg = $made ? file_get_contents($output) : false;
+
+            if (! $made && is_file($output) && ! HeicConverter::fitsInMemory($output)) {
+                throw ReadingSkipped::tooBig();
+            }
         } catch (ProcessTimedOutException) {
-            $made = false;
+            $jpeg = false;
         } catch (ProcessFailedException $exception) {
-            $made = false;
+            $jpeg = false;
 
             if (in_array($exception->result->exitCode(), FilePreviews::TOOL_MISSING, true)) {
                 Log::error('[document-reader] heic tool missing or not executable');
             }
+        } finally {
+            Filesystem::delete([$source, $output]);
         }
-
-        $jpeg = $made ? file_get_contents($output) : false;
-        Filesystem::delete([$source, $output]);
 
         return $jpeg !== false ? $jpeg : throw ReadingSkipped::unsupported();
     }

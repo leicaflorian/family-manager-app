@@ -61,3 +61,18 @@ test('the note of the file reaches the instructions', function (): void {
         ->toContain('Telefono 2026-10-25 19.04.pdf')
         ->toContain('«dentista Giulia»');
 });
+
+test('gives the name and the note of the file', function (): void {
+    $file = File::factory()->for($this->bianchi)->create(['original_name' => 'Telefono.pdf', 'note' => '«per la nonna»']);
+
+    $context = ReadingContext::for($file);
+
+    expect($context->fileName)->toBe('Telefono.pdf')
+        ->and($context->fileNote)->toBe('«per la nonna»');
+});
+
+test('gives nothing for a file without a note', function (): void {
+    $file = File::factory()->for($this->bianchi)->create(['note' => null]);
+
+    expect(ReadingContext::for($file)->fileNote)->toBeNull();
+});
