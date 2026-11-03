@@ -1076,5 +1076,8 @@
     "Postpone to": "Rimanda al",
     "No reminders with these filters": "Nessun promemoria con questi filtri",
     "The answer of the model is empty.": "La risposta del modello è vuota.",
-    "The answer of the model is not valid.": "La risposta del modello non è valida."
+    "The answer of the model is not valid.": "La risposta del modello non è valida.",
+    "The file is too big to be read: fill it in yourself.": "Il file è troppo grande per essere letto: compilalo tu.",
+    "This kind of file cannot be read.": "Questo tipo di file non si può leggere.",
+    "The text is too big (at most 100 KB).": "Il testo è troppo grande (al massimo 100 KB)."
 }

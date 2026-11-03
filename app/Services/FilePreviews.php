@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\File;
+use App\Support\HeicConverter;
 use Carbon\CarbonInterval;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Process\Exceptions\ProcessFailedException;
@@ -23,6 +24,9 @@ use Illuminate\Support\Facades\Storage;
  */
 final readonly class FilePreviews
 {
+    /** Makes the JPEG of a HEIC photo. */
+    private HeicConverter $heic;
+
     /** The mime types a preview can be made for. */
     public const array TYPES = ['application/pdf', 'image/heic', 'image/heif'];
 
@@ -38,14 +42,8 @@ final readonly class FilePreviews
     /** The seconds the lock of a file lasts beyond the timeout of a conversion. */
     private const int LOCK_MARGIN = 10;
 
-    /** The bytes GD needs for a pixel when it decodes a JPEG, with some room. */
-    private const int BYTES_PER_PIXEL = 5;
-
-    /** The bytes kept free for everything else when GD decodes an image. */
-    private const int MEMORY_MARGIN = 8 * 1024 * 1024;
-
     /** The exit codes of a shell for a tool that is not executable or not found. */
-    private const array TOOL_MISSING = [126, 127];
+    public const array TOOL_MISSING = [126, 127];
 
     /** The seconds a request waits for the lock of a file. */
     private const int LOCK_WAIT = 15;
@@ -58,8 +56,10 @@ final readonly class FilePreviews
     public function __construct(
         private CarbonInterval|int $timeout = self::TIMEOUT,
         private string $pdfTool = 'pdftoppm',
-        private string $heicTool = 'heif-convert',
-    ) {}
+        string $heicTool = 'heif-convert',
+    ) {
+        $this->heic = new HeicConverter($timeout, $heicTool);
+    }
 
     /**
      * The path of the preview of a file on its disk, where it is made and where it is deleted.
@@ -141,7 +141,7 @@ final readonly class FilePreviews
         try {
             $made = $file->mime_type === 'application/pdf'
                 ? $this->fromPdf($disk->path($file->path), $output)
-                : $this->fromHeic($disk->path($file->path), $output);
+                : $this->heic->toJpeg($disk->path($file->path), $output, self::WIDTH, self::QUALITY);
         } catch (ProcessTimedOutException) {
             $made = false;
         } catch (ProcessFailedException $exception) {
@@ -253,56 +253,5 @@ final readonly class FilePreviews
         ])->throw();
 
         return true;
-    }
-
-    /**
-     * Writes a HEIC photo as a JPEG, at most as wide as the preview. The photo is
-     * decoded by GD only if it fits in the memory left to PHP.
-     *
-     * @param  string  $source  the HEIC photo
-     * @param  string  $output  where the JPEG goes
-     * @return bool whether the conversion worked
-     *
-     * @throws ProcessTimedOutException if the tool takes too long
-     * @throws ProcessFailedException if the tool fails
-     */
-    private function fromHeic(string $source, string $output): bool
-    {
-        Process::timeout($this->timeout)->run([$this->heicTool, '-q', (string) self::QUALITY, $source, $output])->throw();
-
-        if (! $this->fitsInMemory($output)) {
-            return false;
-        }
-
-        $image = @imagecreatefromjpeg($output);
-
-        if ($image === false) {
-            return false;
-        }
-
-        if (imagesx($image) > self::WIDTH) {
-            $image = imagescale($image, self::WIDTH);
-        }
-
-        return $image !== false && imagejpeg($image, $output, self::QUALITY);
-    }
-
-    /**
-     * Whether GD can decode the JPEG with the memory PHP has left, read from its header only.
-     *
-     * @param  string  $image  the JPEG
-     */
-    private function fitsInMemory(string $image): bool
-    {
-        $size = @getimagesize($image);
-
-        if ($size === false) {
-            return false;
-        }
-
-        $limit = ini_parse_quantity(ini_get('memory_limit'));
-
-        return $limit <= 0
-            || $limit - memory_get_usage() >= $size[0] * $size[1] * self::BYTES_PER_PIXEL + self::MEMORY_MARGIN;
     }
 }
