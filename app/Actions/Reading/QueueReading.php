@@ -78,9 +78,7 @@ final readonly class QueueReading
         $now = CarbonImmutable::now('Europe/Rome');
 
         if ($this->allowance->left($now) === 0) {
-            return $this->stop($file, ReadingStatus::Off, __('You have used all the automatic readings of :month.', [
-                'month' => $now->settings(['locale' => $locale])->translatedFormat('F'),
-            ]));
+            return $this->stop($file, ReadingStatus::Off, $this->allowance->usedUpMessage($now, $locale));
         }
 
         $file->markReading(ReadingStatus::Queued);

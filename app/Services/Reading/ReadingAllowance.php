@@ -32,4 +32,17 @@ final readonly class ReadingAllowance
 
         return max(0, Config::integer('document_reader.monthly_limit') - $used);
     }
+
+    /**
+     * What the person reads when the readings of the month are used up, with the name of the month of Rome.
+     *
+     * @param  CarbonImmutable  $now  the moment, in any time zone
+     * @param  string  $locale  the language of the message and of the name of the month (`it` or `en`)
+     */
+    public function usedUpMessage(CarbonImmutable $now, string $locale): string
+    {
+        return __('You have used all the automatic readings of :month.', [
+            'month' => $now->setTimezone('Europe/Rome')->settings(['locale' => $locale])->translatedFormat('F'),
+        ], $locale);
+    }
 }

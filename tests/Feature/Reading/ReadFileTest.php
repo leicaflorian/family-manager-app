@@ -9,6 +9,7 @@ use App\Data\Reading\Extraction;
 use App\Enums\ReadingPurpose;
 use App\Enums\ReadingStatus;
 use App\Exceptions\Reading\ReadingFailed;
+use App\Jobs\PreparePreview;
 use App\Jobs\ReadFile;
 use App\Models\AiReading;
 use App\Models\Family;
@@ -83,11 +84,15 @@ function workQueue(): void
 }
 
 /**
- * The jobs waiting in the queue.
+ * The jobs of a class waiting in the queue.
+ *
+ * @param  class-string  $job  the class of the job; the readings unless said otherwise
  */
-function waitingJobs(): int
+function waitingJobs(string $job = ReadFile::class): int
 {
-    return DB::table('jobs')->count();
+    return DB::table('jobs')->pluck('payload')
+        ->filter(fn (string $payload): bool => json_decode($payload, true)['displayName'] === $job)
+        ->count();
 }
 
 test('a file goes queued, reading, done', function (): void {
@@ -195,6 +200,7 @@ test('one reading per file', function (): void {
     // *Leggi di nuovo* reads a file already read
     expect(queueReadingOf($this->file->fresh(), $this->marco, again: true))->toBe(ReadingStatus::Queued)
         ->and(waitingJobs())->toBe(1);
+    workQueue(); // the preview of the first reading
     workQueue();
     expect($this->reader->reads())->toBe(2);
 });
@@ -234,6 +240,7 @@ test('the language of who uploaded', function (): void {
     $refused = fileToRead($this->bianchi);
     queueReadingOf($this->file, $this->marco, 'en');
     workQueue();
+    workQueue(); // the preview
     $this->reader->fails(ReadingFailed::refused());
     queueReadingOf($refused, $this->marco, 'en');
     workQueue();
@@ -287,10 +294,25 @@ test('the preview is made after the reading', function (): void {
     queueReadingOf($this->file, $this->marco);
     workQueue();
 
+    // the reading is done, and the preview waits for a job of its own
+    expect($this->file->fresh()->reading_status)->toBe(ReadingStatus::Done)
+        ->and($this->file->fresh()->preview_path)->toBeNull()
+        ->and(waitingJobs(PreparePreview::class))->toBe(1);
+
+    workQueue();
+
     $file = $this->file->fresh();
-    expect($file->reading_status)->toBe(ReadingStatus::Done)
-        ->and($file->preview_path)->not->toBeNull();
+    expect($file->preview_path)->not->toBeNull()
+        ->and(waitingJobs(PreparePreview::class))->toBe(0);
     Storage::disk('local')->assertExists((string) $file->preview_path);
+});
+
+test('no preview job after a reading that failed', function (): void {
+    $this->reader->fails(ReadingFailed::refused());
+    queueReadingOf($this->file, $this->marco);
+    workQueue();
+
+    expect(waitingJobs(PreparePreview::class))->toBe(0);
 });
 
 test('a failed preview does not fail the reading', function (): void {
@@ -298,11 +320,72 @@ test('a failed preview does not fail the reading', function (): void {
 
     queueReadingOf($broken, $this->marco);
     workQueue();
+    workQueue();
 
     $file = $broken->fresh();
     expect($file->reading_status)->toBe(ReadingStatus::Done)
         ->and($file->preview_failed)->toBeTrue()
-        ->and($file->preview_path)->toBeNull();
+        ->and($file->preview_path)->toBeNull()
+        ->and(DB::table('failed_jobs')->count())->toBe(0);
+});
+
+test('the preview of a file deleted meanwhile ends quietly', function (): void {
+    queueReadingOf($this->file, $this->marco);
+    workQueue();
+    $this->file->delete();
+
+    workQueue();
+
+    expect(waitingJobs(PreparePreview::class))->toBe(0)
+        ->and(DB::table('failed_jobs')->count())->toBe(0);
+});
+
+test('a job tried again on a file already read does not read it again', function (): void {
+    queueReadingOf($this->file, $this->marco);
+    workQueue();
+
+    // as a try killed after the reading was saved, given again to a worker after `retry_after`
+    dispatch(new ReadFile($this->file->id, $this->bianchi->id, $this->marco->id, 'it', ReadingPurpose::Document));
+    workQueue();
+
+    expect($this->reader->reads())->toBe(1)
+        ->and($this->file->fresh()->reading_status)->toBe(ReadingStatus::Done)
+        ->and(AiReading::query()->withoutGlobalScopes()->count())->toBe(1);
+});
+
+test('a reading is counted even when what comes after it fails', function (): void {
+    $this->reader->returns(Extraction::from(['kind' => 'utility_bill', 'confidence' => 'high', 'issuer_name' => 'Edison']));
+    // the proposal looks the issuer up among the organizations: that search breaks, after the service answered
+    Organization::retrieved(function (): void {
+        if ($this->reader->reads() > 0) {
+            throw new RuntimeException('the proposal broke');
+        }
+    });
+
+    queueReadingOf($this->file, $this->marco);
+    workQueue();
+
+    $reading = AiReading::query()->withoutGlobalScopes()->sole();
+    expect($this->reader->reads())->toBe(1)
+        ->and($reading->file_id)->toBe($this->file->id)
+        ->and($reading->cost_usd)->toBe('0.002025')
+        ->and($this->file->fresh()->reading_status)->not->toBe(ReadingStatus::Done);
+});
+
+test('the limit is checked again when the file is read', function (): void {
+    config(['document_reader.monthly_limit' => 1]);
+    $second = fileToRead($this->bianchi);
+
+    expect(queueReadingOf($this->file, $this->marco))->toBe(ReadingStatus::Queued)
+        ->and(queueReadingOf($second, $this->marco))->toBe(ReadingStatus::Queued);
+    workQueue();
+    workQueue();
+    workQueue();
+
+    expect($this->reader->reads())->toBe(1)
+        ->and($second->fresh()->reading_status)->toBe(ReadingStatus::Off)
+        ->and($second->fresh()->reading_error)->toBe('Hai usato tutte le letture automatiche di ottobre.')
+        ->and(AiReading::query()->withoutGlobalScopes()->count())->toBe(1);
 });
 
 test('a photo that cannot be prepared is skipped by the job', function (): void {

@@ -64,7 +64,7 @@ final class ReadFile implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Reads the file. A file deleted while it waited ends the job without a word.
+     * Reads the file. A file deleted while it waited, or no longer `queued` or `reading`, ends the job without a word.
      *
      * @param  ReadStoredFile  $read  the reading itself
      *
@@ -75,7 +75,8 @@ final class ReadFile implements ShouldBeUnique, ShouldQueue
         $this->inFamilyAndLanguage(function () use ($read): void {
             $file = File::query()->find($this->fileId);
 
-            if (! $file instanceof File) {
+            // Gone, or no longer waiting: a try started again after a timeout must not read (and pay) twice
+            if (! $file instanceof File || ! in_array($file->reading_status, [ReadingStatus::Queued, ReadingStatus::Reading], true)) {
                 return;
             }
 

@@ -10,11 +10,12 @@ use App\Enums\ReadingPurpose;
 use App\Enums\ReadingStatus;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Exceptions\Reading\ReadingSkipped;
+use App\Jobs\PreparePreview;
 use App\Models\AiReading;
 use App\Models\File;
 use App\Models\User;
-use App\Services\FilePreviews;
 use App\Services\Reading\DocumentProposal;
+use App\Services\Reading\ReadingAllowance;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingSource;
 use App\Support\CurrentFamily;
@@ -25,23 +26,25 @@ use Throwable;
 
 /**
  * Reads a stored file with the AI service: the file is `reading`, then `done` with what was read and the proposal
- * of its document; the call is written in `ai_readings` and in the log, and the preview of the file is made.
+ * of its document. The call is written in `ai_readings` and in the log as soon as the service answers, and the
+ * preview of the file is prepared by a job of its own.
  */
 final readonly class ReadStoredFile
 {
     /**
      * @param  DocumentReader  $reader  the AI service
      * @param  DocumentProposal  $proposals  turns what was read into the values of the form of a document
-     * @param  FilePreviews  $previews  makes the preview of a PDF or a HEIC
+     * @param  ReadingAllowance  $allowance  the readings left this month
      */
     public function __construct(
         private DocumentReader $reader,
         private DocumentProposal $proposals,
-        private FilePreviews $previews,
+        private ReadingAllowance $allowance,
     ) {}
 
     /**
-     * Reads the file. A file the model does not read ends `skipped`, a service switched off ends `off`.
+     * Reads the file. A file the model does not read ends `skipped`; a service switched off, or the readings of the
+     * month used up, end `off`.
      *
      * @param  File  $file  the file to read
      * @param  User|null  $user  who uploaded it
@@ -59,6 +62,13 @@ final readonly class ReadStoredFile
             return;
         }
 
+        // The limit is checked again: other files of the family may have been read while this one waited
+        if ($this->allowance->left($now) === 0) {
+            $file->markReading(ReadingStatus::Off, $this->allowance->usedUpMessage($now, $locale));
+
+            return;
+        }
+
         $file->markReading(ReadingStatus::Reading);
 
         try {
@@ -71,6 +81,12 @@ final readonly class ReadStoredFile
 
         $context = ReadingContext::for($file);
         $reading = $this->reader->read($source, $context, $locale);
+
+        // The reading is paid from here: it is counted before anything else can fail
+        $cost = ReadingCost::estimate($reading->model, $reading->inputTokens, $reading->outputTokens, $now);
+        $this->record($file, $user, $purpose, $reading, $cost);
+        $this->log($file, $reading, $cost);
+
         $proposal = $this->proposals->of($reading->extraction, $context, $locale);
 
         $file->forceFill([
@@ -85,10 +101,8 @@ final readonly class ReadStoredFile
             ],
         ])->save();
 
-        $cost = ReadingCost::estimate($reading->model, $reading->inputTokens, $reading->outputTokens, $now);
-        $this->record($file, $user, $purpose, $reading, $cost);
-        $this->log($file, $reading, $cost);
-        $this->preview($file);
+        // In a job of its own: a slow conversion must not make the queue try the paid reading again
+        dispatch(new PreparePreview($file->id, $file->family_id));
     }
 
     /**
@@ -135,20 +149,5 @@ final readonly class ReadStoredFile
             .($x->kind ?? 'unknown').', '.($x->confidence ?? 'unknown')
             ."; tokens in {$reading->inputTokens}, out {$reading->outputTokens}"
             .($cost === null ? ', no price for this model' : sprintf(', about $%.4f', $cost)));
-    }
-
-    /**
-     * Makes the preview of the file now, so that it is ready when someone opens it. A preview that fails does not
-     * touch the reading.
-     *
-     * @param  File  $file  the file read
-     */
-    private function preview(File $file): void
-    {
-        try {
-            $this->previews->path($file);
-        } catch (Throwable $error) {
-            report($error);
-        }
     }
 }
