@@ -2,17 +2,29 @@
 
 declare(strict_types=1);
 
+use App\Contracts\DocumentReader;
+use App\Data\PendingFileData;
+use App\Enums\FileSource;
+use App\Enums\ReadingStatus;
+use App\Enums\Role;
+use App\Jobs\ReadFile;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\Employment;
 use App\Models\File;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\User;
 use App\Models\Vehicle;
 use App\Support\CurrentFamily;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
+use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -259,4 +271,131 @@ test('a filed file forgets the card it was uploaded from', function (): void {
     $this->post(route('documents.store'), ['file_id' => $file->id, 'title' => 'Libretto', 'status' => 'active'])->assertSessionHasNoErrors();
 
     expect($file->fresh())->link_type->toBeNull()->link_id->toBeNull();
+});
+
+/**
+ * Uploads one file with the given content and returns the row the upload created.
+ */
+function uploadContent(string $name, string $content): File
+{
+    test()->post(route('upload.store'), ['files' => [UploadedFile::fake()->createWithContent($name, $content)]])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('upload'));
+
+    return File::query()->latest('id')->firstOrFail();
+}
+
+test('uploading reads the file by itself', function (): void {
+    Queue::fake();
+    app()->instance(DocumentReader::class, new FakeDocumentReader);
+
+    $this->post(route('upload.store'), ['files' => [
+        UploadedFile::fake()->createWithContent('Bolletta Edison.pdf', 'the bill of october'),
+        UploadedFile::fake()->createWithContent('Libretto Panda.pdf', 'the booklet of the car'),
+    ]])->assertSessionHasNoErrors()->assertRedirect(route('upload'));
+
+    Queue::assertPushed(ReadFile::class, 2);
+    Queue::assertPushed(ReadFile::class, fn (ReadFile $job): bool => $job->userId === $this->marco->id && $job->locale === 'en');
+    expect(File::query()->oldest('id')->pluck('reading_status')->all())->toBe([ReadingStatus::Queued, ReadingStatus::Queued]);
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.reading_status', 'queued')
+        ->where('pending.0.reading_error', null)
+        ->where('pending.0.proposal', null));
+});
+
+test('the checksum and the note are written', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-10-22 10:15', 'Europe/Rome'));
+
+    $file = uploadContent('Bolletta Edison.pdf', 'the bill of october');
+
+    expect($file)
+        ->checksum->toBe(hash('sha256', 'the bill of october'))
+        ->source->toBe(FileSource::Upload)
+        ->note->toBe('Uploaded here on 22/10/2026 by Marco');
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.source', 'upload')
+        ->where('pending.0.note', 'Uploaded here on 22/10/2026 by Marco')
+        ->where('pending.0.copy_of', null));
+});
+
+test('the note is written in Italian when the app speaks Italian', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-10-22 10:15', 'Europe/Rome'));
+
+    $this->withHeader('Accept-Language', 'it');
+    $file = uploadContent('Bolletta Edison.pdf', 'the bill of october');
+
+    expect($file->note)->toBe('Caricato qui il 22/10/2026 da Marco');
+});
+
+test('a copy is marked', function (): void {
+    $bill = uploadContent('Telefono 2026-10-25 19.04.pdf', 'the bill of october');
+    uploadContent('Libretto Panda.pdf', 'the booklet of the car');
+    $copy = uploadContent('Telefono 2026-10-25 19.06.pdf', 'the bill of october');
+
+    expect($copy->copyOf()?->id)->toBe($bill->id)->and($bill->copyOf())->toBeNull();
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.copy_of', null)
+        ->where('pending.1.copy_of', null)
+        ->where('pending.2.copy_of', 'Telefono 2026-10-25 19.04.pdf'));
+});
+
+test('a copy of the file of a document is marked', function (): void {
+    $bill = uploadContent('Bolletta Edison.pdf', 'the bill of october');
+    $this->post(route('documents.store'), ['file_id' => $bill->id, 'title' => 'Bolletta Edison', 'status' => 'active'])->assertSessionHasNoErrors();
+
+    $copy = uploadContent('Bolletta di nuovo.pdf', 'the bill of october');
+
+    expect($copy->copyOf()?->id)->toBe($bill->id);
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.copy_of', 'Bolletta Edison.pdf'));
+});
+
+test('a file the same as one that is neither waiting nor a document is no copy', function (): void {
+    // A photo of a person: a file of the family that is not waiting and has no document
+    File::factory()->for($this->marco->family)->create(['checksum' => hash('sha256', 'the photo of Laura'), 'to_sort' => false]);
+
+    $file = uploadContent('Laura.pdf', 'the photo of Laura');
+
+    expect($file->copyOf())->toBeNull();
+});
+
+test('to_sort_count leaves out the copies', function (): void {
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('to_sort_count', 0));
+
+    uploadContent('Telefono 2026-10-25 19.04.pdf', 'the bill of october');
+    uploadContent('Libretto Panda.pdf', 'the booklet of the car');
+    uploadContent('Telefono 2026-10-25 19.06.pdf', 'the bill of october');
+
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('to_sort_count', 2));
+});
+
+test('to_sort_count counts only the waiting files of the family', function (): void {
+    uploadContent('Libretto Panda.pdf', 'the booklet of the car');
+    $rossi = registerFamily('Rossi', 'anna@example.com');
+    CurrentFamily::using($rossi->family_id, fn (): File => File::factory()->for($rossi->family)->create(['to_sort' => true]));
+
+    $this->actingAs($this->marco)->get(route('upload'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('to_sort_count', 1));
+});
+
+test('the copies of the waiting files are found without a query per file', function (): void {
+    $rosa = User::factory()->for($this->marco->family)->create(['role' => Role::Member]);
+    $queries = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        PendingFileData::waiting();
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+    uploadContent('Telefono 2026-10-25 19.04.pdf', 'the bill of october');
+    $this->actingAs($rosa);
+    $one = $queries();
+
+    $this->actingAs($this->marco);
+    uploadContent('Libretto Panda.pdf', 'the booklet of the car');
+    uploadContent('Telefono 2026-10-25 19.06.pdf', 'the bill of october');
+    $this->actingAs($rosa);
+
+    expect($queries())->toBe($one);
 });

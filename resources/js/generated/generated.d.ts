@@ -450,6 +450,14 @@ readonly links: {
 type: string,
 id: number,
 }[],
+readonly reading_status: App.Enums.ReadingStatus | null,
+readonly reading_error: string | null,
+readonly proposal: App.Data.Reading.DocumentProposalData | null,
+readonly source: App.Enums.FileSource,
+readonly note: string | null,
+readonly copy_of: string | null,
+readonly pages: number | null,
+readonly can_delete: boolean,
 };
 export type PersonData = {
 readonly id: number,

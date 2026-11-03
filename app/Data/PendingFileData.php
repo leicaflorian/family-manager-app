@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use App\Data\Reading\DocumentProposalData;
+use App\Enums\FileSource;
+use App\Enums\ReadingStatus;
 use App\Models\File;
 use App\Support\FileTitle;
 use App\Support\PresetLink;
+use Illuminate\Support\Facades\Gate;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * A file of *Upload* that waits for its document, with the title proposed for it.
+ * A file of *Upload* that waits for its document, with the title proposed for it, where its reading stands and
+ * what the reading proposes.
  */
 #[TypeScript]
 final class PendingFileData extends Data
@@ -25,6 +30,14 @@ final class PendingFileData extends Data
      * @param  string  $title  the proposed title, from the name
      * @param  string|null  $preview_url  the address of the preview image, null when the file has none
      * @param  list<array{type: string, id: int}>  $links  the card the file was uploaded from, linked from the start of its form
+     * @param  ReadingStatus|null  $reading_status  where the AI reading stands, null when it was never asked
+     * @param  string|null  $reading_error  why the file is not read, in the language of who uploaded it
+     * @param  DocumentProposalData|null  $proposal  what the reading proposes for the form, once the file is read
+     * @param  FileSource  $source  where the file came from
+     * @param  string|null  $note  how it arrived («Uploaded here on 22/10/2026 by Marco»)
+     * @param  string|null  $copy_of  the name of the older file it is a copy of, null when it is no copy
+     * @param  int|null  $pages  how many pages it has, when known: one for a photo
+     * @param  bool  $can_delete  whether whoever signed in may delete it
      */
     public function __construct(
         public readonly int $id,
@@ -35,19 +48,28 @@ final class PendingFileData extends Data
         public readonly string $title,
         public readonly ?string $preview_url,
         public readonly array $links,
+        public readonly ?ReadingStatus $reading_status,
+        public readonly ?string $reading_error,
+        public readonly ?DocumentProposalData $proposal,
+        public readonly FileSource $source,
+        public readonly ?string $note,
+        public readonly ?string $copy_of,
+        public readonly ?int $pages,
+        public readonly bool $can_delete,
     ) {}
 
     /**
-     * The files waiting for their document, the oldest first.
+     * The files waiting for their document, the oldest first, with their copies found in one query.
      *
      * @param  int|null  $limit  how many at most, null for all
      * @return array<int, self>
      */
     public static function waiting(?int $limit = null): array
     {
-        return File::query()->toSort()->oldest('id')->limit($limit)->get()
-            ->map(self::fromFile(...))
-            ->values()->all();
+        $files = File::query()->toSort()->with('document')->oldest('id')->limit($limit)->get();
+        File::findCopies($files);
+
+        return $files->map(self::fromFile(...))->values()->all();
     }
 
     /**
@@ -58,6 +80,7 @@ final class PendingFileData extends Data
     public static function fromFile(File $file): self
     {
         $link = PresetLink::ofFile($file);
+        $proposal = $file->reading['proposal'] ?? null;
 
         return new self(
             id: $file->id,
@@ -68,6 +91,15 @@ final class PendingFileData extends Data
             title: FileTitle::from($file->original_name),
             preview_url: $file->hasPreview() ? route('files.preview', $file) : null,
             links: $link === null ? [] : [$link],
+            reading_status: $file->reading_status,
+            reading_error: $file->reading_error,
+            // A file read again keeps the old reading until the new one is done: only a done reading proposes
+            proposal: $file->reading_status === ReadingStatus::Done && is_array($proposal) ? DocumentProposalData::from($proposal) : null,
+            source: $file->source,
+            note: $file->note,
+            copy_of: $file->copyOf()?->original_name,
+            pages: str_starts_with($file->mime_type, 'image/') ? 1 : null,
+            can_delete: Gate::allows('delete', $file),
         );
     }
 }

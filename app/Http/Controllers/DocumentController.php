@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Documents\ChangeFile;
+use App\Actions\Documents\FileDocument;
 use App\Actions\Reminders\ForgetRemindable;
 use App\Data\DocumentData;
 use App\Data\DocumentDetailData;
@@ -92,13 +93,12 @@ final class DocumentController extends Controller
      * *Upload* while other files wait, otherwise to the card the upload comes
      * from, or to *Documents*.
      */
-    public function store(SaveDocumentRequest $request): RedirectResponse
+    public function store(SaveDocumentRequest $request, FileDocument $fileDocument): RedirectResponse
     {
-        DB::transaction(function () use ($request): void {
-            $document = Document::query()->create([...$request->fields(), 'file_id' => $request->integer('file_id')]);
-            $document->file->update(['to_sort' => false, 'link_type' => null, 'link_id' => null]);
-            $this->links->sync($document, $request->links());
-        });
+        $fileDocument->handle(
+            File::query()->findOrFail($request->integer('file_id')),
+            ['fields' => $request->fields(), 'links' => $request->links()],
+        );
 
         $card = PresetLink::from($request->query('link'));
 

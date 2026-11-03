@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\FileSource;
 use App\Models\File;
 use App\Support\CurrentFamily;
 use Illuminate\Http\UploadedFile;
@@ -29,13 +30,16 @@ final class FileStore
      * @param  UploadedFile  $file  the uploaded file
      * @param  bool  $toSort  true for a file of *Upload*, which waits for its document
      * @param  array{type: string, id: int}|null  $link  the card a file of *Upload* comes from, from `PresetLink`
-     * @return File the row of the saved file
+     * @param  FileSource  $source  where the file came from
+     * @param  string|null  $note  how it arrived, for *To sort* and for the reading
+     * @return File the row of the saved file, with the SHA-256 of its content to find its copies
      *
      * @throws RuntimeException if the family is missing or the disk does not write
      */
-    public function store(UploadedFile $file, bool $toSort = false, ?array $link = null): File
+    public function store(UploadedFile $file, bool $toSort = false, ?array $link = null, FileSource $source = FileSource::Upload, ?string $note = null): File
     {
         $family = CurrentFamily::id() ?? throw new RuntimeException('No family to save the file for.');
+        $checksum = hash_file('sha256', $file->getPathname()) ?: null;
 
         $path = $file->storeAs($this->folder($family), $this->newName($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? '')), self::DISK)
             ?: throw new RuntimeException('The file was not saved.');
@@ -49,6 +53,9 @@ final class FileStore
             'to_sort' => $toSort,
             'link_type' => $link['type'] ?? null,
             'link_id' => $link['id'] ?? null,
+            'source' => $source,
+            'note' => $note,
+            'checksum' => $checksum,
         ]);
     }
 

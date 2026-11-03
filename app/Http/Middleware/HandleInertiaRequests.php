@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Data\FamilyData;
+use App\Models\File;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\CardSummaries;
@@ -55,6 +56,8 @@ class HandleInertiaRequests extends Middleware
             'family' => fn (): ?FamilyData => $this->family($request),
             'areas' => fn (): array => $request->user() instanceof User ? $this->summaries->counts() : [],
             'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->where('user_id', $request->user()->id)->unread()->count() : 0,
+            // The number on *Upload*: the files waiting for their document, the copies left out
+            'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
             'locale' => app()->getLocale(),
         ];
     }

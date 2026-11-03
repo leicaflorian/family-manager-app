@@ -19,6 +19,7 @@ use App\Http\Controllers\Dev\ComponentCatalogController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\FileReadingController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
@@ -144,6 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('files/{file}', [FileController::class, 'show'])->name('files.show');
         Route::get('files/{file}/preview', [FileController::class, 'preview'])->name('files.preview');
         Route::get('files/{file}/download', [FileController::class, 'download'])->name('files.download');
+        Route::post('files/{file}/read', FileReadingController::class)->name('files.read');
 
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');

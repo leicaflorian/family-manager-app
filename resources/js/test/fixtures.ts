@@ -479,6 +479,14 @@ export const pendingPayslip: App.Data.PendingFileData = {
     title: 'Busta paga novembre 2026',
     preview_url: '/files/12/preview',
     links: [],
+    reading_status: null,
+    reading_error: null,
+    proposal: null,
+    source: 'upload',
+    note: 'Uploaded here on 22/10/2026 by Marco',
+    copy_of: null,
+    pages: null,
+    can_delete: true,
 };
 
 /** The card of the dance lessons, as `DeadlineData` sends it. */

@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * An uploaded file (`files`, instead of `directus_files`). The actual file sits on the private disk.
@@ -50,16 +51,20 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @method static FileFactory factory($count = null, $state = [])
  * @method static Builder<static>|File newModelQuery()
  * @method static Builder<static>|File newQuery()
+ * @method static Builder<static>|File notCopies()
  * @method static Builder<static>|File query()
  * @method static Builder<static>|File toSort()
  *
  * @mixin \Eloquent
  */
-#[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size', 'to_sort', 'link_type', 'link_id'])]
+#[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size', 'to_sort', 'link_type', 'link_id', 'source', 'note', 'checksum'])]
 final class File extends FamilyModel
 {
     /** @use HasFactory<FileFactory> */
     use HasFactory;
+
+    /** The older file this one is a copy of, once looked for: false until then. */
+    private self|false|null $copyOfFile = false;
 
     /**
      * The document the file belongs to, once it is filed.
@@ -107,6 +112,79 @@ final class File extends FamilyModel
     public function markReading(ReadingStatus $status, ?string $error = null): void
     {
         $this->forceFill(['reading_status' => $status, 'reading_error' => $error])->save();
+    }
+
+    /**
+     * The oldest file of the family with the same content, waiting or of a document: this file is a copy of it.
+     * Null when the file is no copy. Looked for once, or found with the others by `findCopies()`.
+     */
+    public function copyOf(): ?self
+    {
+        if ($this->copyOfFile === false) {
+            $this->copyOfFile = $this->checksum === null ? null : self::originals()
+                ->where('checksum', $this->checksum)
+                ->where('id', '<', $this->id)
+                ->first();
+        }
+
+        return $this->copyOfFile;
+    }
+
+    /**
+     * Finds what each file is a copy of with one query, so that `copyOf()` asks nothing more.
+     *
+     * @param  Collection<int, self>  $files  files of the current family
+     */
+    public static function findCopies(Collection $files): void
+    {
+        $checksums = $files->pluck('checksum')->filter()->unique()->values();
+        $originals = $checksums->isEmpty() ? collect() : self::originals()->whereIn('checksum', $checksums)->get();
+
+        foreach ($files as $file) {
+            $file->copyOfFile = $file->checksum === null ? null
+                : $originals->first(static fn (self $original): bool => $original->checksum === $file->checksum && $original->id < $file->id);
+        }
+    }
+
+    /**
+     * Only the files that are no copy of an older one (see `copyOf()`), with one query.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function notCopies(Builder $query): void
+    {
+        $files = $this->getTable();
+
+        $query->whereNotExists(static fn (QueryBuilder $older): QueryBuilder => $older->from($files, 'older')
+            ->whereColumn('older.family_id', "{$files}.family_id")
+            ->whereColumn('older.checksum', "{$files}.checksum")
+            ->whereColumn('older.id', '<', "{$files}.id")
+            ->where(static fn (QueryBuilder $kept): QueryBuilder => self::waitingOrFiled($kept, 'older')));
+    }
+
+    /**
+     * The files of the family a copy can be of, the oldest first.
+     *
+     * @return Builder<self>
+     */
+    private static function originals(): Builder
+    {
+        return self::query()
+            ->where(static fn (Builder $query): QueryBuilder => self::waitingOrFiled($query->getQuery(), $query->getModel()->getTable()))
+            ->oldest('id');
+    }
+
+    /**
+     * Keeps the files that count as originals of a copy: still waiting, or the file of a document.
+     *
+     * @param  QueryBuilder  $query  the query on the files
+     * @param  string  $table  the name or alias of the files in the query
+     */
+    private static function waitingOrFiled(QueryBuilder $query, string $table): QueryBuilder
+    {
+        return $query->where("{$table}.to_sort", true)
+            ->orWhereExists(static fn (QueryBuilder $documents): QueryBuilder => $documents->from('documents')->whereColumn('documents.file_id', "{$table}.id"));
     }
 
     /**
