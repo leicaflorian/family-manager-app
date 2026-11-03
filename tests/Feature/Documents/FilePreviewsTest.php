@@ -208,7 +208,7 @@ test('a file deleted while its preview is made leaves no JPEG', function (): voi
 test('a big HEIC photo that does not fit in memory is marked and leaves nothing', function (): void {
     $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
     $limit = ini_get('memory_limit');
-    ini_set('memory_limit', (string) (memory_get_usage() + 14 * 1024 * 1024));
+    ini_set('memory_limit', (string) max(memory_get_usage() + 6 * 1024 * 1024, memory_get_usage(true) + 2 * 1024 * 1024));
 
     try {
         $path = resolve(FilePreviews::class)->path($file);
