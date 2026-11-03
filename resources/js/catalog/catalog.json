@@ -649,6 +649,7 @@
       "pages/cards/EditCard.vue",
       "pages/documents/Documents.vue",
       "pages/documents/EditDocument.vue",
+      "pages/documents/Import.vue",
       "pages/documents/ToSort.vue",
       "pages/family/EditOrganization.vue",
       "pages/family/EditPerson.vue",
@@ -1577,9 +1578,9 @@
       {
         "name": "action",
         "type": "RouteDefinition<\"post\" | \"put\">",
-        "required": true,
+        "required": false,
         "default": null,
-        "description": "Where the form is sent: a new document or a change."
+        "description": "Where the form is sent: a new document or a change. Without it the form has no buttons and sends\nnothing: it only tells its values (`change`), for a page that sends many documents together."
       },
       {
         "name": "initial",
@@ -1605,9 +1606,9 @@
       {
         "name": "submitLabel",
         "type": "string",
-        "required": true,
+        "required": false,
         "default": null,
-        "description": "The text of the button that sends."
+        "description": "The text of the button that sends; with an `action`."
       },
       {
         "name": "cancelLabel",
@@ -1632,6 +1633,7 @@
       }
     ],
     "events": [
+      "change",
       "cancel"
     ],
     "slots": [
@@ -1640,6 +1642,7 @@
     "types": [],
     "usedBy": [
       "pages/documents/EditDocument.vue",
+      "pages/documents/Import.vue",
       "pages/documents/Upload.vue"
     ]
   },
@@ -1940,6 +1943,7 @@
     "types": [],
     "usedBy": [
       "components/fm/FmFilePanel.vue",
+      "pages/documents/Import.vue",
       "pages/documents/Upload.vue"
     ]
   },
@@ -2099,6 +2103,7 @@
       "pages/cards/EditCard.vue",
       "pages/cards/NewCard.vue",
       "pages/documents/Documents.vue",
+      "pages/documents/Import.vue",
       "pages/documents/Upload.vue",
       "pages/family/EditOrganization.vue",
       "pages/family/EditPerson.vue",
@@ -2575,6 +2580,7 @@
       "pages/auth/VerifyEmail.vue",
       "pages/budget/Deadline.vue",
       "pages/cards/Card.vue",
+      "pages/documents/Import.vue",
       "pages/documents/Upload.vue",
       "pages/family/InvitationSent.vue",
       "pages/family/Invite.vue",
@@ -3061,6 +3067,7 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "pages/documents/Import.vue",
       "pages/documents/Upload.vue"
     ]
   },
@@ -3490,6 +3497,7 @@
       "pages/documents/Document.vue",
       "pages/documents/Documents.vue",
       "pages/documents/EditDocument.vue",
+      "pages/documents/Import.vue",
       "pages/documents/ToSort.vue",
       "pages/documents/Upload.vue",
       "pages/family/EditOrganization.vue",

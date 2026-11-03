@@ -40,16 +40,19 @@ const {
     proposal,
     fill = 'untouched',
 } = defineProps<{
-    /** Where the form is sent: a new document or a change. */
-    action: RouteDefinition<'post' | 'put'>;
+    /**
+     * Where the form is sent: a new document or a change. Without it the form has no buttons and sends
+     * nothing: it only tells its values (`change`), for a page that sends many documents together.
+     */
+    action?: RouteDefinition<'post' | 'put'>;
     /** The values the form starts from. */
     initial: DocumentFormValues;
     /** Data sent with the fields, for example the `file_id` of a new document. */
     extra?: Record<string, number | string>;
     /** The choices of the menus. */
     options: DocumentFormOptions;
-    /** The text of the button that sends. */
-    submitLabel: string;
+    /** The text of the button that sends; with an `action`. */
+    submitLabel?: string;
     /** The text of the button that gives up, if there is one. */
     cancelLabel?: string;
     /** What the reading found, as form values: written into the fields the person has not touched. */
@@ -58,9 +61,11 @@ const {
     fill?: FillMode;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
     /** The person gave up. */
     cancel: [];
+    /** The values of the form, now and every time they change (the person writes, the reading fills). */
+    change: [values: DocumentFormValues];
 }>();
 
 defineSlots<{
@@ -72,6 +77,15 @@ const form = useForm<DocumentFormValues>({
     ...initial,
     links: [...initial.links],
 });
+
+watch(
+    () => form.data(),
+    (values) => emit('change', values),
+    {
+        deep: true,
+        immediate: true,
+    },
+);
 
 /** While the form has changes not saved, leaving the page asks first. */
 useUnsavedChanges(() => form.data());
@@ -222,6 +236,10 @@ function confirmUnlink(): void {
 
 /** Sends the document, if it has its title. */
 function save(): void {
+    if (!action) {
+        return;
+    }
+
     form.clearErrors();
 
     if (form.title.trim() === '') {
@@ -377,14 +395,18 @@ useSaveShortcut(save, () => !form.processing);
                     {{ $t('Restore the reading') }}
                 </FmButton>
                 <FmButton
-                    v-if="cancelLabel"
+                    v-if="cancelLabel && action"
                     variant="text"
                     data-discard-changes
                     @click="$emit('cancel')"
                 >
                     {{ cancelLabel }}
                 </FmButton>
-                <FmButton type="submit" :disabled="form.processing">
+                <FmButton
+                    v-if="action"
+                    type="submit"
+                    :disabled="form.processing"
+                >
                     {{ submitLabel }}
                 </FmButton>
             </div>

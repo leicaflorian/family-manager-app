@@ -1158,5 +1158,17 @@
     "The file is deleted for good.": "Il file viene eliminato per sempre.",
     "Delete the file": "Elimina il file",
     "{0} Read and import files|{1} Read and import :count file|[2,*] Read and import :count files": "{0} Leggi e importa i file|{1} Leggi e importa :count file|[2,*] Leggi e importa :count file",
-    "{1} :count file to sort|[2,*] :count files to sort": "{1} :count file da smistare|[2,*] :count file da smistare"
+    "{1} :count file to sort|[2,*] :count files to sort": "{1} :count file da smistare|[2,*] :count file da smistare",
+    "Import more files": "Importa più file",
+    "Files to import": "File da importare",
+    "You are looking at it": "Lo stai guardando",
+    "Checked": "Controllato",
+    "To check": "Da controllare",
+    "Left out": "Lasciato fuori",
+    "Do not import this file": "Non importare questo file",
+    "Import this file": "Importa questo file",
+    "This file stays in the files to sort.": "Questo file resta tra i file da smistare.",
+    "This file was already filed.": "Questo file è già stato archiviato.",
+    "This file could not be saved.": "Non sono riuscito a salvare questo file.",
+    "{1} Import the file|[2,*] Import the :count files": "{1} Importa il file|[2,*] Importa i :count file"
 }

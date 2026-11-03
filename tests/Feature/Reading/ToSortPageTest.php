@@ -173,7 +173,8 @@ test('read queues the files that are not read, and a file already read is not re
     $files = bianchiToSort();
 
     $this->actingAs($this->laura)->post(route('to-sort.read'), ['ids' => [$files['hera']->id, $files['tari']->id, $files['warranty']->id]])
-        ->assertSessionHasNoErrors()->assertRedirect(route('to-sort'));
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('import', ['files' => "{$files['hera']->id},{$files['tari']->id},{$files['warranty']->id}"]));
 
     Queue::assertPushed(ReadFile::class, 2);
     expect($files['hera']->fresh()->reading_status)->toBe(ReadingStatus::Done)

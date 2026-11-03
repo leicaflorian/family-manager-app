@@ -21,6 +21,7 @@ use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileReadingController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
 use App\Http\Controllers\NoticeController;
@@ -150,6 +151,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
         Route::get('to-sort', [ToSortController::class, 'index'])->name('to-sort');
         Route::post('to-sort/read', [ToSortController::class, 'read'])->name('to-sort.read');
+        Route::get('import', [ImportController::class, 'index'])->name('import');
+        Route::post('import', [ImportController::class, 'store'])->name('import.store');
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');

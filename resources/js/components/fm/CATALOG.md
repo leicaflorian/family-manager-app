@@ -323,6 +323,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `pages/cards/EditCard.vue`
 - `pages/documents/Documents.vue`
 - `pages/documents/EditDocument.vue`
+- `pages/documents/Import.vue`
 - `pages/documents/ToSort.vue`
 - `pages/family/EditOrganization.vue`
 - `pages/family/EditPerson.vue`
@@ -733,6 +734,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `pages/cards/EditCard.vue`
 - `pages/cards/NewCard.vue`
 - `pages/documents/Documents.vue`
+- `pages/documents/Import.vue`
 - `pages/documents/Upload.vue`
 - `pages/family/EditOrganization.vue`
 - `pages/family/EditPerson.vue`
@@ -845,6 +847,7 @@ export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
 - `pages/auth/VerifyEmail.vue`
 - `pages/budget/Deadline.vue`
 - `pages/cards/Card.vue`
+- `pages/documents/Import.vue`
 - `pages/documents/Upload.vue`
 - `pages/family/InvitationSent.vue`
 - `pages/family/Invite.vue`
@@ -962,6 +965,7 @@ Used on the page of the reading and on the rows of the files being read.
 
 ### Used by
 
+- `pages/documents/Import.vue`
 - `pages/documents/Upload.vue`
 
 ## FmTitle
@@ -1027,6 +1031,7 @@ organization.
 - `pages/documents/Document.vue`
 - `pages/documents/Documents.vue`
 - `pages/documents/EditDocument.vue`
+- `pages/documents/Import.vue`
 - `pages/documents/ToSort.vue`
 - `pages/documents/Upload.vue`
 - `pages/family/EditOrganization.vue`
@@ -2826,17 +2831,18 @@ The category, the person and the organization are found by typing.
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `action` | `RouteDefinition<"post" \| "put">` | yes | — | Where the form is sent: a new document or a change. |
+| `action` | `RouteDefinition<"post" \| "put">` | no | — | Where the form is sent: a new document or a change. Without it the form has no buttons and sends nothing: it only tells its values (`change`), for a page that sends many documents together. |
 | `initial` | `DocumentFormValues` | yes | — | The values the form starts from. |
 | `extra` | `Record<string, string \| number>` | no | `{}` | Data sent with the fields, for example the `file_id` of a new document. |
 | `options` | `DocumentFormOptions` | yes | — | The choices of the menus. |
-| `submitLabel` | `string` | yes | — | The text of the button that sends. |
+| `submitLabel` | `string` | no | — | The text of the button that sends; with an `action`. |
 | `cancelLabel` | `string` | no | — | The text of the button that gives up, if there is one. |
 | `proposal` | `Partial<DocumentFormValues>` | no | — | What the reading found, as form values: written into the fields the person has not touched. |
 | `fill` | `FillMode` | no | `"untouched"` | Which fields the proposal may write: the ones not touched, or only the empty ones. |
 
 ### Events
 
+- `change`
 - `cancel`
 
 ### Slots
@@ -2852,6 +2858,9 @@ The category, the person and the organization are found by typing.
 <!-- With a reading -->
 <FmDocumentForm :action="action" :initial="initial" :extra="extra" :options="options" submitLabel="Save the document" :proposal="proposal" />
 
+<!-- Without an action -->
+<FmDocumentForm :initial="initial" :options="options" :proposal="proposal" />
+
 <!-- Edit -->
 <FmDocumentForm :action="action" :initial="initial" :options="options" submitLabel="Save" cancelLabel="Cancel" />
 ```
@@ -2859,6 +2868,7 @@ The category, the person and the organization are found by typing.
 ### Used by
 
 - `pages/documents/EditDocument.vue`
+- `pages/documents/Import.vue`
 - `pages/documents/Upload.vue`
 
 ## FmFileDrop
@@ -3354,6 +3364,7 @@ the file in another tab.
 ### Used by
 
 - `components/fm/FmFilePanel.vue`
+- `pages/documents/Import.vue`
 - `pages/documents/Upload.vue`
 
 ## FmFileTile

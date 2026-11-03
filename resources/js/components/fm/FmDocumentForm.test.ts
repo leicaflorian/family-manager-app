@@ -437,3 +437,53 @@ describe('Changes not saved', () => {
         expect(hasChanges()).toBe(true);
     });
 });
+
+describe('FmDocumentForm without an action', () => {
+    const { action: _action, submitLabel: _label, ...bare } = props;
+
+    it('has no buttons and tells the values when they change', async () => {
+        const view = renderPage(FmDocumentForm, bare);
+
+        expect(
+            screen.queryByRole('button', { name: 'Save the document' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Cancel' }),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.update(
+            screen.getByLabelText('What it is'),
+            'Luce ottobre',
+        );
+        await settle();
+
+        const changes = view.emitted<[{ title: string }]>().change;
+        expect(changes.at(-1)?.[0].title).toBe('Luce ottobre');
+    });
+
+    it('tells the values the proposal wrote', async () => {
+        const view = renderPage(FmDocumentForm, {
+            ...bare,
+            proposal: { title: 'Luce ottobre', person_id: '7' },
+        });
+        await settle();
+
+        const changes =
+            view.emitted<[{ title: string; person_id: string }]>().change;
+        expect(changes.at(-1)?.[0]).toMatchObject({
+            title: 'Luce ottobre',
+            person_id: '7',
+        });
+    });
+
+    it('does not send anything on Enter', async () => {
+        const post = vi.spyOn(router, 'visit');
+        renderPage(FmDocumentForm, bare);
+
+        await fireEvent.submit(
+            screen.getByLabelText('What it is').closest('form')!,
+        );
+
+        expect(post).not.toHaveBeenCalled();
+    });
+});

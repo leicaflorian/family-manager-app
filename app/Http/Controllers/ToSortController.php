@@ -31,17 +31,20 @@ final class ToSortController extends Controller
 
     /**
      * Has the files chosen read: those not read yet, never a copy and never a file that already has its document.
-     * The reading goes on in the queue; the page asks for its state.
+     * The reading goes on in the queue; the person goes on to *Import more files*, which asks for its state.
      */
     public function read(ReadToSortRequest $request, QueueReading $queue, #[CurrentUser] User $user): RedirectResponse
     {
-        $files = File::query()->toSort()->notCopies()->whereKey($request->ids())->get();
+        $ids = $request->ids();
+        $files = File::query()->toSort()->notCopies()->whereKey($ids)->get()
+            ->sortBy(static fn (File $file): int|false => array_search($file->id, $ids, true));
 
         foreach ($files as $file) {
             $queue->handle($file, $user, app()->getLocale());
         }
 
-        // Task 13 (*Import more files*) changes this line: it opens that page with the ids
-        return to_route('to-sort');
+        return $files->isEmpty()
+            ? to_route('to-sort')
+            : to_route('import', ['files' => $files->pluck('id')->implode(',')]);
     }
 }
