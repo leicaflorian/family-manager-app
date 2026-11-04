@@ -31,6 +31,15 @@ test('read again', function (): void {
     Queue::assertPushed(ReadFile::class, fn (ReadFile $job): bool => $job->fileId === $failed->id && $job->userId === $this->marco->id);
 });
 
+test('read again a file that came in while the reading was off, once it is on', function (): void {
+    $off = File::factory()->for($this->marco->family)->create(['to_sort' => true, 'reading_status' => ReadingStatus::Off, 'reading_error' => 'Automatic reading is not on.']);
+
+    $this->from(route('import', ['files' => $off->id]))->post(route('files.read', $off))->assertRedirect(route('import', ['files' => $off->id]));
+
+    expect($off->fresh())->reading_status->toBe(ReadingStatus::Queued)->reading_error->toBeNull();
+    Queue::assertPushed(ReadFile::class, fn (ReadFile $job): bool => $job->fileId === $off->id);
+});
+
 test('a file already waiting in the queue is not queued twice', function (): void {
     $queued = File::factory()->for($this->marco->family)->create(['to_sort' => true, 'reading_status' => ReadingStatus::Queued]);
 

@@ -27,6 +27,10 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_DATABASE" value="testing"/>
         <env name="DB_URL" value=""/>
+        <!-- The reading stays off in the tests whatever .env says: a test turns it on with FakeDocumentReader -->
+        <env name="DOCUMENT_READER_PROVIDER" value="" force="true"/>
+        <env name="GEMINI_API_KEY" value="" force="true"/>
+        <env name="ANTHROPIC_API_KEY" value="" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

@@ -1172,5 +1172,10 @@
     "This file could not be saved.": "Non sono riuscito a salvare questo file.",
     "{1} Import the file|[2,*] Import the :count files": "{1} Importa il file|[2,*] Importa i :count file",
     ":name needs a look": ":name va guardato",
-    "Fill in from the file": "Compila dal file"
+    "Fill in from the file": "Compila dal file",
+    "{1} Import :count file|[2,*] Import :count files": "{1} Importa :count file|[2,*] Importa :count file",
+    "{1} Check it, then import it.|[2,*] Check them one by one, then import them together.": "{1} Controllalo, poi importalo.|[2,*] Controllali uno per uno, poi importali insieme.",
+    "File :current of :total": "File :current di :total",
+    "Next file": "Successivo",
+    "Previous file": "Prima"
 }

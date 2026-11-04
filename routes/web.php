@@ -156,7 +156,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
-        Route::resource('documents', DocumentController::class)->except('create');
+        Route::resource('documents', DocumentController::class)->except(['create', 'store']);
         Route::post('documents/{document}/file', [DocumentController::class, 'file'])->name('documents.file');
 
         Route::redirect('family', '/family/people')->name('family');

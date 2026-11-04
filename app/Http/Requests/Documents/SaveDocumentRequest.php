@@ -10,38 +10,29 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * A document, new from a file of *Upload* or changed: its fields and the
+ * A document changed: its fields and the
  * records it links to. Every id must belong to the family.
  */
 final class SaveDocumentRequest extends FormRequest
 {
     /**
-     * A new document whoever adds documents, a change whoever may change it.
+     * A change whoever may change the document.
      */
     public function authorize(): bool
     {
         $document = $this->route('document');
 
-        return $document instanceof Document
-            ? $this->user()?->can('update', $document) ?? false
-            : $this->user()?->can('create', Document::class) ?? false;
+        return $document instanceof Document && ($this->user()?->can('update', $document) ?? false);
     }
 
     /**
-     * The rules of the fields. A new document also needs its file, one of
-     * *Upload* still waiting for its document.
+     * The rules of the fields. New documents come from *Import* (`ImportRequest`), with the same rules.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $rules = DocumentRules::rules($this->input('links'));
-
-        if (! $this->route('document') instanceof Document) {
-            $rules['file_id'] = DocumentRules::fileId();
-        }
-
-        return $rules;
+        return DocumentRules::rules($this->input('links'));
     }
 
     /**
@@ -51,7 +42,7 @@ final class SaveDocumentRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['file_id' => __('file'), ...DocumentRules::attributes()];
+        return DocumentRules::attributes();
     }
 
     /**

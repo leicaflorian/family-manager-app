@@ -25,7 +25,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange) or that is late (red).
 - [FmOrganizationMark](#fmorganizationmark) — The mark of an organization: its logo or, without one, the icon of its type.
 - [FmPayButton](#fmpaybutton) — *Record payment* (or *Record income*) of a card: it opens *A due date* with the panel of *I paid it* on the oldest open due date.
-- [FmReadingNotice](#fmreadingnotice) — What the reading of a file says once it ended: when it is done, the sentence of what was found with the invitation to check it; when it failed, is off or was skipped, the reason (with an action beside, for example *Read again*).
+- [FmReadingNotice](#fmreadingnotice) — What the reading of a file says once it ended: when it is done, the sentence of what was found with the invitation to check it; when it failed, is off or was skipped, the reason, with *Read again* beside when the page offers it and asking again can help (failed or off).
 - [FmReadingProgress](#fmreadingprogress) — The wait while a file is read: a line that runs, «Reading the document…», a note that it takes a few seconds and, on the computer, the name of the file with its pages and the lines found so far (who it is from, the amount…).
 - [FmTitle](#fmtitle) — The title at the top of a page: 28 px on the phone, 32 px on the computer, with the sentence below and, on the right and centred on them, the actions of the page.
 
@@ -940,8 +940,8 @@ not there.
 `resources/js/components/fm/FmReadingNotice.vue`
 
 What the reading of a file says once it ended: when it is done, the sentence of what was found with the
-invitation to check it; when it failed, is off or was skipped, the reason (with an action beside, for example
-*Read again*). Nothing while the file waits or was never read.
+invitation to check it; when it failed, is off or was skipped, the reason, with *Read again* beside when the page
+offers it and asking again can help (failed or off). Nothing while the file waits or was never read.
 
 ### Props
 
@@ -950,10 +950,11 @@ invitation to check it; when it failed, is off or was skipped, the reason (with 
 | `status` | `App.Enums.ReadingStatus \| null` | no | — | Where the reading stands. |
 | `headline` | `string \| null` | no | — | What the reading found, in a sentence; shown when it is done. |
 | `error` | `string \| null` | no | — | Why the file was not read; shown when it failed (with a sentence of its own when missing), is off or was skipped. |
+| `again` | `boolean` | no | — | True when the page can put the reading back in the queue: *Read again* shows for a reading failed or off. |
 
-### Slots
+### Events
 
-- `action`
+- `again`
 
 ### Examples
 
@@ -962,17 +963,16 @@ invitation to check it; when it failed, is off or was skipped, the reason (with 
 <FmReadingNotice status="done" headline="I found an electricity bill" />
 
 <!-- Failed -->
-<FmReadingNotice status="failed" error="The file could not be read.">
-    <template #action>Read again</template>
-</FmReadingNotice>
+<FmReadingNotice status="failed" error="The file could not be read." again />
 
 <!-- Failed without a reason -->
-<FmReadingNotice status="failed">
-    <template #action>Read again</template>
-</FmReadingNotice>
+<FmReadingNotice status="failed" again />
 
 <!-- Off -->
 <FmReadingNotice status="off" error="Automatic reading is not on." />
+
+<!-- Off, with Read again -->
+<FmReadingNotice status="off" error="Automatic reading is not on." again />
 ```
 
 ### Used by

@@ -205,7 +205,7 @@ describe('Home', () => {
         expect(within(waiting).getByText('+5 more')).toBeInTheDocument();
         expect(
             within(waiting).getByRole('link', { name: 'Finish' }),
-        ).toHaveAttribute('href', '/upload');
+        ).toHaveAttribute('href', '/to-sort');
         const headings = screen
             .getAllByRole('heading', { level: 2 })
             .map((heading) => heading.textContent);

@@ -18,7 +18,7 @@ export type UseFileUpload = {
 
 /**
  * Sends the files of documents to *Upload*, where they wait for their
- * document; the server then opens *Upload* with the form of the first one.
+ * document; the server then opens *Import more files* with them.
  *
  * @param link - the card the files come from, linked from the start of their form
  * @returns `send` for the files of `FmFileDrop`, whether they are being sent and the messages of those refused

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Documents\ChangeFile;
-use App\Actions\Documents\FileDocument;
 use App\Actions\Reminders\ForgetRemindable;
 use App\Data\DocumentData;
 use App\Data\DocumentDetailData;
@@ -22,7 +21,6 @@ use App\Services\DocumentFormOptions;
 use App\Services\DocumentLinks;
 use App\Services\FileStore;
 use App\Services\Reading\ReadingAvailability;
-use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -95,27 +93,6 @@ final class DocumentController extends Controller
                 $availability->unavailable(app()->getLocale()),
             ),
         ]);
-    }
-
-    /**
-     * Files a file of *Upload*: the document, with its links. Back to
-     * *Upload* while other files wait, otherwise to the card the upload comes
-     * from, or to *Documents*.
-     */
-    public function store(SaveDocumentRequest $request, FileDocument $fileDocument): RedirectResponse
-    {
-        $fileDocument->handle(
-            File::query()->findOrFail($request->integer('file_id')),
-            ['fields' => $request->fields(), 'links' => $request->links()],
-        );
-
-        $card = PresetLink::from($request->query('link'));
-
-        return match (true) {
-            File::query()->toSort()->exists() => to_route('upload', PresetLink::query($request->query('link'))),
-            $card !== null => to_route('cards.show', $card),
-            default => to_route('documents.index'),
-        };
     }
 
     /**

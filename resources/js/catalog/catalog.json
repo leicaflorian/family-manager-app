@@ -3046,7 +3046,7 @@
   {
     "name": "FmReadingNotice",
     "path": "resources/js/components/fm/FmReadingNotice.vue",
-    "description": "What the reading of a file says once it ended: when it is done, the sentence of what was found with the\ninvitation to check it; when it failed, is off or was skipped, the reason (with an action beside, for example\n*Read again*). Nothing while the file waits or was never read.",
+    "description": "What the reading of a file says once it ended: when it is done, the sentence of what was found with the\ninvitation to check it; when it failed, is off or was skipped, the reason, with *Read again* beside when the page\noffers it and asking again can help (failed or off). Nothing while the file waits or was never read.",
     "group": "basics",
     "props": [
       {
@@ -3069,12 +3069,19 @@
         "required": false,
         "default": null,
         "description": "Why the file was not read; shown when it failed (with a sentence of its own when missing), is off or was skipped."
+      },
+      {
+        "name": "again",
+        "type": "boolean",
+        "required": false,
+        "default": null,
+        "description": "True when the page can put the reading back in the queue: *Read again* shows for a reading failed or off."
       }
     ],
-    "events": [],
-    "slots": [
-      "action"
+    "events": [
+      "again"
     ],
+    "slots": [],
     "types": [],
     "usedBy": [
       "pages/documents/EditDocument.vue",

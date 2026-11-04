@@ -228,7 +228,7 @@ test('it creates a home without the switch in the form', function (): void {
     expect(insideBianchi(fn (): bool => DB::table('homes')->where('name', 'Casa al mare')->sole()->is_owned === 0))->toBeTrue();
 });
 
-test('it creates a vehicle with its documents and opens the upload linked to it', function (): void {
+test('it creates a vehicle with its documents and opens Import linked to it', function (): void {
     $this->actingAs($this->marco);
 
     // As the page sends it with files: form data, so the switch is "1" and an empty date "".
@@ -238,7 +238,8 @@ test('it creates a vehicle with its documents and opens the upload linked to it'
     ]);
 
     $vespa = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Vespa')->sole());
-    $response->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => 'vehicle:'.$vespa->id]));
+    $ids = insideBianchi(fn (): string => File::query()->toSort()->oldest('id')->pluck('id')->implode(','));
+    $response->assertSessionHasNoErrors()->assertRedirect(route('import', ['files' => $ids, 'link' => 'vehicle:'.$vespa->id]));
     expect($vespa->is_owned)->toBeTrue()
         ->and(insideBianchi(fn (): array => File::query()->toSort()->oldest('id')->pluck('original_name')->all()))->toBe(['Libretto.pdf', 'Bollo.pdf'])
         ->and(insideBianchi(fn (): array => File::query()->toSort()->get(['link_type', 'link_id'])->map->only('link_type', 'link_id')->unique()->values()->all()))
@@ -255,13 +256,16 @@ test('it creates nothing when a document is not a file it takes', function (): v
     expect(insideBianchi(fn (): bool => Vehicle::query()->where('name', 'Vespa')->exists()))->toBeFalse();
 });
 
-test('it saves a change with documents and opens the upload linked to the card', function (): void {
+test('it saves a change with documents and opens Import linked to the card', function (): void {
     $this->actingAs($this->marco);
 
     // As the page sends it with files: a POST with the real method in _method.
-    $this->post(route('cards.update', $this->pandaUrl), [
+    $response = $this->post(route('cards.update', $this->pandaUrl), [
         '_method' => 'put', 'name' => 'Fiat Panda bianca', 'files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')],
-    ])->assertSessionHasNoErrors()->assertRedirect(route('upload', ['link' => 'vehicle:'.$this->panda->id]));
+    ]);
+
+    $id = insideBianchi(fn (): int => File::query()->toSort()->sole()->id);
+    $response->assertSessionHasNoErrors()->assertRedirect(route('import', ['files' => (string) $id, 'link' => 'vehicle:'.$this->panda->id]));
 
     expect(insideBianchi(fn (): array => File::query()->toSort()->pluck('original_name')->all()))->toBe(['Libretto.pdf'])
         ->and(insideBianchi(fn (): string => Vehicle::query()->sole()->name))->toBe('Fiat Panda bianca')

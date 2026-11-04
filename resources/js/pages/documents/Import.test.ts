@@ -9,7 +9,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { pendingPayslip } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, screenWidth, settle } from '@/test/page';
 import Import from './Import.vue';
 
 /** A file as the server sends it, over the payslip of the fixtures. */
@@ -67,8 +67,14 @@ const options = {
 function props(
     files: App.Data.PendingFileData[],
     failures: Record<number, string> = {},
+    presetLinks: { type: string; id: number }[] = [],
 ): Record<string, unknown> {
-    return { files, failures, ...options };
+    return { files, failures, presetLinks, ...options };
+}
+
+/** The box that leaves the open file out of the import. */
+function leaveOut(): HTMLElement {
+    return screen.getByRole('checkbox', { name: 'Do not import this file' });
 }
 
 /** The row of a file in the list of the computer. */
@@ -78,11 +84,14 @@ function row(name: string): HTMLElement {
 
 beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    // On a computer unless a test says otherwise: the list of the files and the button on top
+    screenWidth(true);
 });
 
 afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('Import', () => {
@@ -90,7 +99,10 @@ describe('Import', () => {
         renderPage(Import, props([light, gas, warranty]));
 
         expect(
-            screen.getByRole('heading', { name: 'Import more files' }),
+            screen.getByRole('heading', { name: 'Import 3 files' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Check them one by one, then import them together.'),
         ).toBeInTheDocument();
         expect(
             within(row('bolletta-luce.pdf')).getByText('You are looking at it'),
@@ -103,13 +115,10 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
-    it('moves on with Next and Previous, and a file left behind is checked', async () => {
+    it('moves on with Next file, and a file left behind is checked', async () => {
         renderPage(Import, props([light, gas, warranty]));
-        const previous = screen.getByRole('button', { name: 'Previous' });
-        const next = screen.getByRole('button', { name: 'Next' });
-        expect(previous).toBeDisabled();
 
-        await fireEvent.click(next);
+        await fireEvent.click(screen.getByRole('button', { name: 'Next file' }));
 
         expect(
             within(row('bolletta-luce.pdf')).getByText('Checked'),
@@ -117,18 +126,56 @@ describe('Import', () => {
         expect(
             within(row('bolletta-gas.pdf')).getByText('You are looking at it'),
         ).toBeInTheDocument();
-        expect(screen.getByText('2 of 3')).toBeInTheDocument();
 
-        await fireEvent.click(next);
-        expect(next).toBeDisabled();
+        await fireEvent.click(screen.getByRole('button', { name: 'Next file' }));
+        expect(
+            screen.queryByRole('button', { name: 'Next file' }),
+        ).not.toBeInTheDocument();
+    });
 
-        await fireEvent.click(previous);
+    it('numbers the files in the row on top', () => {
+        renderPage(Import, props([light, gas, warranty]));
+
+        const list = screen.getByRole('list', { name: 'Files to import' });
+        expect(within(list).getAllByRole('listitem')).toHaveLength(3);
         expect(
-            within(row('bolletta-gas.pdf')).getByText('You are looking at it'),
+            within(row('bolletta-gas.pdf')).getByText('2'),
         ).toBeInTheDocument();
+    });
+
+    it.each(['failed', 'off'] as const)(
+        'reads again a file whose reading was %s, keeping what was written',
+        async (status) => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(
+                Import,
+                props([{ ...warranty, reading_status: status }, light]),
+            );
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Read again' }),
+            );
+
+            expect(post).toHaveBeenCalledWith(
+                `/files/${warranty.id}/read`,
+                {},
+                expect.objectContaining({
+                    preserveScroll: true,
+                    preserveState: true,
+                }),
+            );
+        },
+    );
+
+    it('does not offer Read again for a file the reading skipped', () => {
+        renderPage(
+            Import,
+            props([{ ...warranty, reading_status: 'skipped' }, light]),
+        );
+
         expect(
-            within(row('garanzia.jpg')).getByText('Checked'),
-        ).toBeInTheDocument();
+            screen.queryByRole('button', { name: 'Read again' }),
+        ).not.toBeInTheDocument();
     });
 
     it('opens a file by its row in the list', async () => {
@@ -144,12 +191,29 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
-    it('closes to the files to sort, asking first about changes not saved', () => {
+    it('goes back to the files to sort, throwing away the changes', () => {
         renderPage(Import, props([light]));
 
+        const back = screen.getByRole('link', { name: 'To sort' });
+        expect(back).toHaveAttribute('href', '/to-sort');
+        expect(back).toHaveAttribute('data-discard-changes');
+    });
+
+    it('from a card, closes to the card and imports going back to it', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Import, props([light], {}, [{ type: 'vehicle', id: 1 }]));
+        await settle();
+
         const close = screen.getByRole('link', { name: 'Close' });
-        expect(close).toHaveAttribute('href', '/to-sort');
+        expect(close).toHaveAttribute('href', '/cards/vehicle/1');
         expect(close).toHaveAttribute('data-discard-changes');
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Import the file' }),
+        );
+        expect(decodeURIComponent(`${post.mock.calls[0]?.[0] as string}`)).toBe(
+            '/import?link=vehicle:1',
+        );
     });
 
     it('counts the files on the button', () => {
@@ -171,10 +235,9 @@ describe('Import', () => {
     it('leaves a file out with Do not import this file, and takes it back', async () => {
         renderPage(Import, props([light, gas, warranty]));
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Do not import this file' }),
-        );
+        await fireEvent.click(leaveOut());
 
+        expect(leaveOut()).toBeChecked();
         expect(
             within(row('bolletta-luce.pdf')).getByText('Left out'),
         ).toBeInTheDocument();
@@ -182,9 +245,7 @@ describe('Import', () => {
             screen.getByRole('button', { name: 'Import the 2 files' }),
         ).toBeInTheDocument();
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Import this file' }),
-        );
+        await fireEvent.click(leaveOut());
 
         expect(
             screen.getByRole('button', { name: 'Import the 3 files' }),
@@ -194,9 +255,7 @@ describe('Import', () => {
     it('cannot import with every file left out', async () => {
         renderPage(Import, props([light]));
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Do not import this file' }),
-        );
+        await fireEvent.click(leaveOut());
 
         expect(
             screen.getByRole('button', { name: 'Import the file' }),
@@ -250,10 +309,8 @@ describe('Import', () => {
         const [title] = screen.getAllByLabelText('What it is');
         await fireEvent.update(title!, 'Luce di ottobre');
         await settle();
-        await fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Do not import this file' }),
-        );
+        await fireEvent.click(screen.getByRole('button', { name: 'Next file' }));
+        await fireEvent.click(leaveOut());
         await fireEvent.click(
             screen.getByRole('button', { name: 'Import the file' }),
         );
@@ -338,12 +395,6 @@ describe('Import', () => {
             screen.getAllByText('Write what the document is.').length,
         ).toBeGreaterThan(1);
         expect(screen.getByText('The notes are too long.')).toBeInTheDocument();
-        expect(
-            screen.getByText('bolletta-gas.pdf needs a look'),
-        ).toBeInTheDocument();
-        expect(
-            screen.queryByText('bolletta-luce.pdf needs a look'),
-        ).not.toBeInTheDocument();
     });
 
     it('shows an error about the whole list of files on the page', async () => {
@@ -370,9 +421,7 @@ describe('Import', () => {
         });
         renderPage(Import, props([light, gas]));
         await settle();
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Do not import this file' }),
-        );
+        await fireEvent.click(leaveOut());
 
         await fireEvent.click(
             screen.getByRole('button', { name: 'Import the file' }),
@@ -440,5 +489,70 @@ describe('Import', () => {
         expect(
             within(row('bolletta-luce.pdf')).getByText('You are looking at it'),
         ).toBeInTheDocument();
+    });
+
+    describe('on the phone', () => {
+        beforeEach(() => {
+            screenWidth(false);
+        });
+
+        it('shows one file at a time, with where it is and the bar of the files', () => {
+            renderPage(Import, props([light, gas, warranty]));
+
+            expect(
+                screen.getByRole('heading', { name: 'Import 3 files' }),
+            ).toBeInTheDocument();
+            expect(screen.getByText('File 1 of 3')).toBeInTheDocument();
+            expect(
+                screen.queryByRole('list', { name: 'Files to import' }),
+            ).not.toBeInTheDocument();
+            expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
+                'href',
+                '/to-sort',
+            );
+        });
+
+        it('moves with Previous file and Next file, and imports from the last file', async () => {
+            renderPage(Import, props([light, gas, warranty]));
+            const previous = screen.getByRole('button', {
+                name: 'Previous file',
+            });
+            expect(previous).toBeDisabled();
+            expect(
+                screen.queryByRole('button', { name: 'Import the 3 files' }),
+            ).not.toBeInTheDocument();
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Next file' }),
+            );
+            expect(screen.getByText('File 2 of 3')).toBeInTheDocument();
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Next file' }),
+            );
+            expect(
+                screen.queryByRole('button', { name: 'Next file' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'Import the 3 files' }),
+            ).toBeEnabled();
+
+            await fireEvent.click(previous);
+            expect(screen.getByText('File 2 of 3')).toBeInTheDocument();
+        });
+
+        it('says on the bar which file needs a look', () => {
+            renderPage(
+                Import,
+                props([light, gas], { 2: 'This file could not be saved.' }),
+            );
+
+            expect(
+                screen.getByText('bolletta-gas.pdf needs a look'),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByText('bolletta-luce.pdf needs a look'),
+            ).not.toBeInTheDocument();
+        });
     });
 });

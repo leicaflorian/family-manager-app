@@ -1,16 +1,20 @@
 <script setup lang="ts">
 /**
- * *Import more files*: the files of *To sort* that were read, checked one by one and filed as documents
- * together. On the phone one file at a time, with *Previous* and *Next*; on the computer the list of the
- * files on the left with their state (*Checked*, *You are looking at it*, *To check*), the file in the
- * middle and its form on the right, filled with what the reading found. A file can be left out
- * (*Do not import this file*) and stays in *To sort*. A file still being read makes the page ask for its
- * state every 2 seconds, and the import waits for it. What does not save stays on the page, its row saying
- * why; an error about the list as a whole (too many files) shows on top of the page.
+ * *Import more files*: the files just uploaded, or chosen in *To sort*, checked one by one and filed as
+ * documents together; one file is the same page. On the computer, as the board *Importa (pc)*: the files on top
+ * as badges with their state (*Checked*, *You are looking at it*, *To check*), the file and its form side by
+ * side, *Next file* in the form and the import button by the title. On the phone, as *Importa*: one file at a
+ * time, the bar of the files on top and *Previous file* / *Next file* at the bottom, the import button in
+ * place of *Next file* on the last file. A file can be left out (*Do not import this file*) and stays in
+ * *To sort*. A file still being read makes the page ask for its state every 2 seconds, and the import waits
+ * for it. What does not save stays on the page, its badge saying why; an error about the list as a whole (too
+ * many files) shows on top of the page. Coming from a card (`presetLinks`), × and the import go back to it.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { CircleCheck, FileText, X } from '@lucide/vue';
+import { useMediaQuery } from '@vueuse/core';
 import { computed, reactive, ref, watch } from 'vue';
+import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
 import FmFilePreview from '@/components/fm/FmFilePreview.vue';
@@ -20,10 +24,21 @@ import FmReadingNotice from '@/components/fm/FmReadingNotice.vue';
 import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useReadingPoll } from '@/composables/useReadingPoll';
-import type { DocumentFormOptions, DocumentFormValues } from '@/lib/documents';
-import { newDocument, proposalOf, toPayload } from '@/lib/documents';
-import { anyFileReading, isReading } from '@/lib/reading';
+import type {
+    DocumentFormOptions,
+    DocumentFormValues,
+    DocumentLink,
+} from '@/lib/documents';
+import {
+    linkQuery,
+    newDocument,
+    proposalOf,
+    toPayload,
+} from '@/lib/documents';
+import { cn } from '@/lib/utils';
+import { anyFileReading, isReading, readAgain } from '@/lib/reading';
 import { toSort } from '@/routes';
+import { show as showCard } from '@/routes/cards';
 import { store } from '@/routes/import';
 
 const props = defineProps<
@@ -32,6 +47,8 @@ const props = defineProps<
         files: App.Data.PendingFileData[];
         /** Why a file did not save the last time, by the id of the file. */
         failures: Record<number, string>;
+        /** The card the files come from: × and the import go back to it. */
+        presetLinks: DocumentLink[];
     } & DocumentFormOptions
 >();
 
@@ -46,6 +63,20 @@ const options = computed<DocumentFormOptions>(() => ({
     statuses: props.statuses,
     tags: props.tags,
 }));
+
+/** The computer: the badges of the files on top and the import button by the title. */
+const desktop = useMediaQuery('(min-width: 1024px)');
+
+/** The card the files come from. */
+const preset = computed(() => props.presetLinks[0]);
+
+/** Where × goes: the card the files come from, or *To sort*, where the files stay. */
+const closeUrl = computed(() =>
+    preset.value ? showCard.url(preset.value) : toSort().url,
+);
+
+/** Whether the open file is the last one. */
+const last = computed(() => position.value === props.files.length - 1);
 
 /** Which file is open, by its place in the list. */
 const position = ref(0);
@@ -200,6 +231,25 @@ function open(index: number): void {
     position.value = Math.min(Math.max(index, 0), props.files.length - 1);
 }
 
+/**
+ * The colour of a file on the bar of the phone: red when it needs a look, blue when open, green when checked.
+ *
+ * @param file - the file
+ * @returns the classes of its stretch of the bar
+ */
+function barOf(file: App.Data.PendingFileData): string {
+    if (problemOf(file)) {
+        return cn('bg-overdue');
+    }
+
+    return {
+        looking: cn('bg-action'),
+        checked: cn('bg-paid'),
+        'to-check': cn('bg-edge'),
+        'left-out': cn('bg-edge'),
+    }[stateOf(file)];
+}
+
 /** Leaves the open file out of the import, or takes it back. */
 function toggleLeftOut(): void {
     const file = current.value;
@@ -221,7 +271,7 @@ function save(): void {
     listError.value = undefined;
     const sent = included.value;
     router.post(
-        store().url,
+        store(linkQuery(preset.value)).url,
         {
             files: included.value.map((file) => ({
                 file_id: file.id,
@@ -252,168 +302,28 @@ function save(): void {
     <Head :title="$t('Import more files')" />
 
     <div class="flex flex-col gap-6">
-        <FmTitle :title="$t('Import more files')">
-            <template #actions>
-                <Link
-                    :href="toSort().url"
-                    data-discard-changes
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
-
-        <FmNotice v-if="listError" tone="warning">{{ listError }}</FmNotice>
-
-        <div
-            v-if="current"
-            class="grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)_minmax(0,1.2fr)]"
-        >
-            <ul
-                class="m-0 hidden list-none flex-col gap-2 p-0 lg:flex"
-                :aria-label="$t('Files to import')"
+        <template v-if="desktop">
+            <FmBackLink
+                v-if="!preset"
+                :href="closeUrl"
+                :label="$t('To sort')"
+                data-discard-changes
+            />
+            <FmTitle
+                :title="
+                    $tChoice(
+                        '{1} Import :count file|[2,*] Import :count files',
+                        files.length,
+                    )
+                "
+                :subtitle="
+                    $tChoice(
+                        '{1} Check it, then import it.|[2,*] Check them one by one, then import them together.',
+                        files.length,
+                    )
+                "
             >
-                <li v-for="(file, index) in files" :key="file.id">
-                    <button
-                        type="button"
-                        class="flex w-full cursor-pointer flex-col gap-0.5 rounded-2xl border border-edge bg-white p-3 text-left"
-                        :class="{
-                            'border-action': stateOf(file) === 'looking',
-                            'opacity-60': stateOf(file) === 'left-out',
-                        }"
-                        @click="open(index)"
-                    >
-                        <span class="text-[15px] font-semibold break-all">{{
-                            file.name
-                        }}</span>
-                        <span class="text-sm text-ink-soft">
-                            <template v-if="stateOf(file) === 'looking'">{{
-                                $t('You are looking at it')
-                            }}</template>
-                            <template v-else-if="stateOf(file) === 'checked'">{{
-                                $t('Checked')
-                            }}</template>
-                            <template
-                                v-else-if="stateOf(file) === 'left-out'"
-                                >{{ $t('Left out') }}</template
-                            >
-                            <template v-else>{{ $t('To check') }}</template>
-                        </span>
-                        <span
-                            v-if="problemOf(file)"
-                            class="text-sm text-overdue"
-                            >{{ problemOf(file) }}</span
-                        >
-                    </button>
-                </li>
-            </ul>
-
-            <div
-                class="flex min-w-0 flex-col items-center gap-3.5 rounded-3xl bg-divider p-5 lg:p-8"
-            >
-                <div
-                    class="flex w-full items-center justify-between gap-2 lg:hidden"
-                >
-                    <FmButton
-                        variant="outline"
-                        :disabled="position === 0"
-                        @click="open(position - 1)"
-                    >
-                        {{ $t('Previous') }}
-                    </FmButton>
-                    <span
-                        class="flex flex-col items-center gap-1 text-sm font-semibold text-ink-soft"
-                    >
-                        {{
-                            $t(':current of :total', {
-                                current: String(position + 1),
-                                total: String(files.length),
-                            })
-                        }}
-                        <span class="flex gap-1">
-                            <span
-                                v-for="file in files"
-                                :key="file.id"
-                                class="size-2 rounded-full"
-                                :class="
-                                    problemOf(file)
-                                        ? 'bg-overdue'
-                                        : file.id === current.id
-                                          ? 'bg-action'
-                                          : 'bg-edge'
-                                "
-                            >
-                                <span v-if="problemOf(file)" class="sr-only">{{
-                                    $t(':name needs a look', {
-                                        name: file.name,
-                                    })
-                                }}</span>
-                            </span>
-                        </span>
-                    </span>
-                    <FmButton
-                        variant="outline"
-                        :disabled="position === files.length - 1"
-                        @click="open(position + 1)"
-                    >
-                        {{ $t('Next') }}
-                    </FmButton>
-                </div>
-                <FmFilePreview
-                    :url="current.url"
-                    :mime-type="current.mime_type"
-                    :name="current.name"
-                    :preview-url="current.preview_url"
-                />
-                <span class="text-sm break-all text-ink-soft">{{
-                    current.name
-                }}</span>
-            </div>
-
-            <section
-                class="flex min-w-0 flex-col gap-3.5 rounded-3xl bg-white p-5 lg:p-7"
-            >
-                <FmNotice v-if="problemOf(current)" tone="warning">
-                    {{ problemOf(current) }}
-                </FmNotice>
-                <FmReadingNotice
-                    :status="current.reading_status"
-                    :headline="current.proposal?.headline"
-                    :error="current.reading_error"
-                />
-                <FmReadingProgress
-                    v-if="isReading(current.reading_status)"
-                    :name="current.name"
-                    :pages="current.pages"
-                />
-                <FmNotice v-if="leftOut.has(current.id)">
-                    {{ $t('This file stays in the files to sort.') }}
-                </FmNotice>
-
-                <!-- Every form stays in the page, so what is written in one is kept while the others are open -->
-                <FmDocumentForm
-                    v-for="file in files"
-                    v-show="file.id === current.id && !leftOut.has(file.id)"
-                    :key="file.id"
-                    :initial="initialValues(file)"
-                    :options="options"
-                    :proposal="proposalOf(file.reading_status, file.proposal)"
-                    :errors="fieldErrorsOf(file)"
-                    @change="values[file.id] = $event"
-                />
-
-                <div
-                    class="mt-1 flex flex-wrap items-center justify-between gap-2.5"
-                >
-                    <FmButton variant="text" @click="toggleLeftOut">
-                        {{
-                            leftOut.has(current.id)
-                                ? $t('Import this file')
-                                : $t('Do not import this file')
-                        }}
-                    </FmButton>
+                <template #actions>
                     <FmButton
                         :disabled="
                             included.length === 0 || anyReading || processing
@@ -427,8 +337,239 @@ function save(): void {
                             )
                         }}
                     </FmButton>
-                </div>
-            </section>
+                    <Link
+                        v-if="preset"
+                        :href="closeUrl"
+                        data-discard-changes
+                        :aria-label="$t('Close')"
+                        class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
+                    >
+                        <FmIcon :icon="X" :size="20" />
+                    </Link>
+                </template>
+            </FmTitle>
+        </template>
+        <div v-else-if="current" class="flex flex-col gap-3">
+            <div class="flex items-center gap-2">
+                <Link
+                    :href="closeUrl"
+                    data-discard-changes
+                    :aria-label="$t('Close')"
+                    class="-ml-2.5 flex size-11 items-center justify-center text-ink"
+                >
+                    <FmIcon :icon="X" :size="24" />
+                </Link>
+                <h1 class="m-0 grow text-lg font-bold">
+                    {{
+                        $tChoice(
+                            '{1} Import :count file|[2,*] Import :count files',
+                            files.length,
+                        )
+                    }}
+                </h1>
+                <span class="text-sm font-semibold text-ink-soft">{{
+                    $t('File :current of :total', {
+                        current: String(position + 1),
+                        total: String(files.length),
+                    })
+                }}</span>
+            </div>
+            <div
+                class="grid gap-1.5"
+                :style="{
+                    gridTemplateColumns: `repeat(${files.length}, minmax(0, 1fr))`,
+                }"
+            >
+                <span
+                    v-for="file in files"
+                    :key="file.id"
+                    class="h-1.5 rounded-full"
+                    :class="barOf(file)"
+                >
+                    <span v-if="problemOf(file)" class="sr-only">{{
+                        $t(':name needs a look', { name: file.name })
+                    }}</span>
+                </span>
+            </div>
         </div>
+
+        <FmNotice v-if="listError" tone="warning">{{ listError }}</FmNotice>
+
+        <template v-if="current">
+            <ul
+                v-if="desktop"
+                class="m-0 flex list-none flex-wrap gap-2.5 p-0"
+                :aria-label="$t('Files to import')"
+            >
+                <li
+                    v-for="(file, index) in files"
+                    :key="file.id"
+                    class="min-w-0 flex-[1_1_240px]"
+                >
+                    <button
+                        type="button"
+                        class="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-edge bg-white px-3.5 py-2.5 text-left"
+                        :class="{
+                            'border-action': stateOf(file) === 'looking',
+                            'opacity-60': stateOf(file) === 'left-out',
+                        }"
+                        @click="open(index)"
+                    >
+                        <span
+                            class="shrink-0 text-sm font-extrabold text-ink-soft"
+                            >{{ index + 1 }}</span
+                        >
+                        <span
+                            class="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-edge bg-canvas text-ink-soft"
+                        >
+                            <FmIcon :icon="FileText" :size="18" />
+                        </span>
+                        <span class="flex min-w-0 flex-col gap-0.5">
+                            <span
+                                class="truncate text-sm font-semibold"
+                                :title="file.name"
+                                >{{ file.name }}</span
+                            >
+                            <span
+                                class="flex items-center gap-1 text-[13px] font-semibold"
+                                :class="
+                                    stateOf(file) === 'looking'
+                                        ? 'text-action'
+                                        : stateOf(file) === 'checked'
+                                          ? 'text-paid'
+                                          : 'text-ink-soft'
+                                "
+                            >
+                                <FmIcon
+                                    v-if="stateOf(file) === 'checked'"
+                                    :icon="CircleCheck"
+                                    :size="14"
+                                />
+                                <template v-if="stateOf(file) === 'looking'">{{
+                                    $t('You are looking at it')
+                                }}</template>
+                                <template
+                                    v-else-if="stateOf(file) === 'checked'"
+                                    >{{ $t('Checked') }}</template
+                                >
+                                <template
+                                    v-else-if="stateOf(file) === 'left-out'"
+                                    >{{ $t('Left out') }}</template
+                                >
+                                <template v-else>{{ $t('To check') }}</template>
+                            </span>
+                            <span
+                                v-if="problemOf(file)"
+                                class="truncate text-[13px] text-overdue"
+                                >{{ problemOf(file) }}</span
+                            >
+                        </span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="flex flex-wrap items-start gap-6">
+                <div
+                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-3xl bg-[#E9EDF3] p-5 lg:sticky lg:top-0 lg:p-8"
+                >
+                    <FmFilePreview
+                        :url="current.url"
+                        :mime-type="current.mime_type"
+                        :name="current.name"
+                        :preview-url="current.preview_url"
+                    />
+                    <span
+                        class="text-center text-sm break-all text-ink-soft"
+                        >{{ current.note ?? current.name }}</span
+                    >
+                </div>
+
+                <section
+                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-3xl bg-white p-5 lg:p-7"
+                >
+                    <FmNotice v-if="problemOf(current)" tone="warning">
+                        {{ problemOf(current) }}
+                    </FmNotice>
+                    <FmReadingNotice
+                        :status="current.reading_status"
+                        :headline="current.proposal?.headline"
+                        :error="current.reading_error"
+                        again
+                        @again="readAgain(current.id)"
+                    />
+                    <FmReadingProgress
+                        v-if="isReading(current.reading_status)"
+                        :name="current.name"
+                        :pages="current.pages"
+                    />
+                    <FmNotice v-if="leftOut.has(current.id)">
+                        {{ $t('This file stays in the files to sort.') }}
+                    </FmNotice>
+
+                    <!-- Every form stays in the page, so what is written in one is kept while the others are open -->
+                    <FmDocumentForm
+                        v-for="file in files"
+                        v-show="file.id === current.id && !leftOut.has(file.id)"
+                        :key="file.id"
+                        :initial="initialValues(file)"
+                        :options="options"
+                        :proposal="proposalOf(file.reading_status, file.proposal)"
+                        :errors="fieldErrorsOf(file)"
+                        @change="values[file.id] = $event"
+                    />
+
+                    <div
+                        class="mt-1.5 flex flex-wrap items-center justify-between gap-2.5"
+                    >
+                        <label
+                            class="flex cursor-pointer items-center gap-2.5 text-[15px] text-ink-soft"
+                        >
+                            <input
+                                type="checkbox"
+                                class="m-0 size-5 accent-action"
+                                :checked="leftOut.has(current.id)"
+                                @change="toggleLeftOut"
+                            />
+                            {{ $t('Do not import this file') }}
+                        </label>
+                        <FmButton
+                            v-if="desktop && !last"
+                            variant="outline"
+                            @click="open(position + 1)"
+                        >
+                            {{ $t('Next file') }}
+                        </FmButton>
+                    </div>
+                </section>
+            </div>
+
+            <div
+                v-if="!desktop"
+                class="sticky bottom-0 -mx-5 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2.5 border-t border-edge bg-white px-5 pt-3 pb-4"
+            >
+                <FmButton
+                    variant="outline"
+                    :disabled="position === 0"
+                    @click="open(position - 1)"
+                >
+                    {{ $t('Previous file') }}
+                </FmButton>
+                <FmButton
+                    v-if="last"
+                    :disabled="included.length === 0 || anyReading || processing"
+                    @click="save"
+                >
+                    {{
+                        $tChoice(
+                            '{1} Import the file|[2,*] Import the :count files',
+                            included.length || 1,
+                        )
+                    }}
+                </FmButton>
+                <FmButton v-else @click="open(position + 1)">
+                    {{ $t('Next file') }}
+                </FmButton>
+            </div>
+        </template>
     </div>
 </template>

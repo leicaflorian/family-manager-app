@@ -10,6 +10,8 @@ use App\Http\Requests\Reading\ImportRequest;
 use App\Models\Document;
 use App\Models\File;
 use App\Services\DocumentFormOptions;
+use App\Support\ImportPage;
+use App\Support\PresetLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -44,22 +46,26 @@ final class ImportController extends Controller
         return Inertia::render('documents/Import', [
             'files' => PendingFileData::fromFiles($ordered),
             'failures' => is_array($failures) ? $failures : [],
+            'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
             ...$options->all(),
         ]);
     }
 
     /**
      * Files the documents. What fails stays on the page, each file with its reason; with nothing left to
-     * check the person goes to *Documents*.
+     * check the person goes to the card the files come from (`?link=`), or to *Documents*.
      */
     public function store(ImportRequest $request, ImportFiles $import): RedirectResponse
     {
         $failures = $import->handle($request->entries());
         $waiting = File::query()->toSort()->whereKey(array_keys($failures))->pluck('id');
+        $card = PresetLink::from($request->query('link'));
 
-        return $waiting->isEmpty()
-            ? to_route('documents.index')
-            : to_route('import', ['files' => $waiting->implode(',')])->with('import_failures', $failures);
+        return match (true) {
+            $waiting->isNotEmpty() => ImportPage::open($waiting, $request->query('link'))->with('import_failures', $failures),
+            $card !== null => to_route('cards.show', $card),
+            default => to_route('documents.index'),
+        };
     }
 
     /**

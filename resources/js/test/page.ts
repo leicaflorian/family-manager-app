@@ -196,3 +196,28 @@ export async function tapCancel(name = 'Cancel'): Promise<void> {
     stop();
     visit.mockRestore();
 }
+
+/**
+ * Makes the page believe it is on a computer (wider than every `min-width` it asks about) or on a phone.
+ * Reduced motion stays on, as in `setup.ts`: jsdom cannot animate. `vi.unstubAllGlobals()` puts it back.
+ *
+ * @param computer - true for a computer, false for a phone
+ */
+export function screenWidth(computer: boolean): void {
+    vi.stubGlobal(
+        'matchMedia',
+        (query: string): MediaQueryList =>
+            ({
+                matches:
+                    query.includes('prefers-reduced-motion') ||
+                    (computer && query.includes('min-width')),
+                media: query,
+                onchange: null,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+            }) satisfies MediaQueryList,
+    );
+}

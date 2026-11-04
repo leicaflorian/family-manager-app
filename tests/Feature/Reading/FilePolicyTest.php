@@ -32,14 +32,14 @@ test('a member deletes only his files and the copies', function (): void {
     $rosas = uploadAs($this->rosa, 'Pagella Giulia.pdf', 'the school report');
     $copy = uploadAs($this->marco, 'Bolletta di nuovo.pdf', 'the bill of october');
 
-    $this->actingAs($this->rosa)->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('pending.0.can_delete', false)
-        ->where('pending.1.can_delete', true)
-        ->where('pending.2.can_delete', true));
+    $this->actingAs($this->rosa)->get(route('import', ['files' => "{$marcos->id},{$rosas->id},{$copy->id}"]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('files.0.can_delete', false)
+        ->where('files.1.can_delete', true)
+        ->where('files.2.can_delete', true));
 
     $this->actingAs($this->rosa)->delete(route('upload.destroy', $marcos))->assertForbidden();
-    $this->actingAs($this->rosa)->delete(route('upload.destroy', $rosas))->assertRedirect(route('upload'));
-    $this->actingAs($this->rosa)->delete(route('upload.destroy', $copy))->assertRedirect(route('upload'));
+    $this->actingAs($this->rosa)->from(route('to-sort'))->delete(route('upload.destroy', $rosas))->assertRedirect(route('to-sort'));
+    $this->actingAs($this->rosa)->from(route('to-sort'))->delete(route('upload.destroy', $copy))->assertRedirect(route('to-sort'));
 
     expect($marcos->fresh())->not->toBeNull()->and($rosas->fresh())->toBeNull()->and($copy->fresh())->toBeNull();
 });
@@ -47,9 +47,9 @@ test('a member deletes only his files and the copies', function (): void {
 test('an admin deletes every waiting file', function (): void {
     $rosas = uploadAs($this->rosa, 'Pagella Giulia.pdf', 'the school report');
 
-    $this->actingAs($this->marco)->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('pending.0.can_delete', true));
-    $this->actingAs($this->marco)->delete(route('upload.destroy', $rosas))->assertRedirect(route('upload'));
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $rosas->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('files.0.can_delete', true));
+    $this->actingAs($this->marco)->from(route('to-sort'))->delete(route('upload.destroy', $rosas))->assertRedirect(route('to-sort'));
 
     expect($rosas->fresh())->toBeNull();
 });

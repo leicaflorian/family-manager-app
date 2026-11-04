@@ -24,7 +24,7 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { formatLongDate, formatSize } from '@/lib/format';
-import { agenda, areas, upload } from '@/routes';
+import { agenda, areas, toSort, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
 import { create as invite } from '@/routes/family/invitations';
 
@@ -132,7 +132,7 @@ const hasRightColumn = computed(
 
         <FmCard v-if="home.pending_count > 0" :title="$t('Waiting')" list>
             <template #actions>
-                <FmSectionLink :href="upload().url">{{
+                <FmSectionLink :href="toSort().url">{{
                     $t('Finish')
                 }}</FmSectionLink>
             </template>

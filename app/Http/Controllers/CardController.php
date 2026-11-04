@@ -24,6 +24,7 @@ use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use App\Services\FileStore;
 use App\Support\LoanTerms;
+use App\Support\ImportPage;
 use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -264,7 +265,7 @@ final class CardController extends Controller
 
     /**
      * Keeps the files sent with the card waiting for their document, each linked
-     * to the card, and opens *Upload*; without files, opens the card.
+     * to the card, and opens *Import* with them; without files, opens the card.
      *
      * @param  CardType  $type  the type of the card
      * @param  Model  $card  the card just saved
@@ -277,12 +278,14 @@ final class CardController extends Controller
 
         $link = PresetLink::card($type, $card);
 
+        $ids = [];
+
         foreach ($files as $file) {
-            $store->store($file, toSort: true, link: $link);
+            $ids[] = $store->store($file, toSort: true, link: $link)->id;
         }
 
-        return $files === []
+        return $ids === []
             ? to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()])
-            : to_route('upload', PresetLink::of($type, $card));
+            : ImportPage::open($ids, PresetLink::of($type, $card)['link']);
     }
 }

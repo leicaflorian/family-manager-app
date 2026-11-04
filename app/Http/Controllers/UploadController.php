@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Reading\QueueReading;
-use App\Data\PendingFileData;
 use App\Enums\FileSource;
 use App\Http\Requests\Documents\UploadRequest;
 use App\Models\File;
 use App\Models\User;
-use App\Services\DocumentFormOptions;
 use App\Services\FileStore;
+use App\Support\ImportPage;
 use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -22,41 +21,41 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * *Upload*: the files are saved first and wait, each with the form of its
- * document, while the AI reads them; saving the form files it, discarding it
- * deletes the file.
+ * *Upload*: the files are saved and wait in *To sort* while the AI reads them; *Import more files* then
+ * opens with them, to check and file each as a document. Discarding a waiting file deletes it.
  */
 final class UploadController extends Controller
 {
     /**
-     * The files waiting for their document, oldest first, with the choices of the form
-     * and the card the person comes from (`?link=<type>:<id>`), if it is one of the family.
+     * The page that takes the files, with the card the person comes from (`?link=<type>:<id>`), if it is one
+     * of the family.
      */
-    public function index(Request $request, DocumentFormOptions $options): Response
+    public function index(Request $request): Response
     {
         return Inertia::render('documents/Upload', [
-            'pending' => PendingFileData::waiting(),
             'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
-            ...$options->all(),
         ]);
     }
 
     /**
      * Saves the chosen files, which then wait for their document, each with the card
-     * the person comes from, so its form starts linked to it; the card stays in the
-     * address too, for the next files and for going back to it. Each file is read
+     * the person comes from, so its form starts linked to it, and opens *Import* with
+     * them; the card stays in the address too, for going back to it. Each file is read
      * by itself, in the queue.
      */
     public function store(UploadRequest $request, FileStore $store, QueueReading $queue, #[CurrentUser] User $user): RedirectResponse
     {
         $link = PresetLink::from($request->query('link'));
         $note = $this->note($user);
+        $ids = [];
 
         foreach ($request->file('files', []) as $file) {
-            $queue->handle($store->store($file, toSort: true, link: $link, source: FileSource::Upload, note: $note), $user, app()->getLocale());
+            $stored = $store->store($file, toSort: true, link: $link, source: FileSource::Upload, note: $note);
+            $queue->handle($stored, $user, app()->getLocale());
+            $ids[] = $stored->id;
         }
 
-        return to_route('upload', PresetLink::query($request->query('link')));
+        return ImportPage::open($ids, $request->query('link'));
     }
 
     /**
@@ -70,7 +69,7 @@ final class UploadController extends Controller
 
         $store->delete($file);
 
-        return back(fallback: route('upload'));
+        return back(fallback: route('to-sort'));
     }
 
     /**

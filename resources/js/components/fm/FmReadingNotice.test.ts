@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/vue';
+import { fireEvent, render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import FmReadingNotice from './FmReadingNotice.vue';
 
@@ -14,10 +14,13 @@ describe('FmReadingNotice', () => {
         ).toBeInTheDocument();
     });
 
-    it('says why the file was not read, with the action beside', () => {
+    it('says why the file was not read, with Read again beside', () => {
         render(FmReadingNotice, {
-            props: { status: 'failed', error: 'The reading did not work.' },
-            slots: { action: '<button>Read again</button>' },
+            props: {
+                status: 'failed',
+                error: 'The reading did not work.',
+                again: true,
+            },
         });
 
         expect(
@@ -30,8 +33,7 @@ describe('FmReadingNotice', () => {
 
     it('says the file could not be read when a failure has no reason', () => {
         render(FmReadingNotice, {
-            props: { status: 'failed', error: null },
-            slots: { action: '<button>Read again</button>' },
+            props: { status: 'failed', error: null, again: true },
         });
 
         expect(
@@ -40,6 +42,35 @@ describe('FmReadingNotice', () => {
         expect(
             screen.getByRole('button', { name: 'Read again' }),
         ).toBeInTheDocument();
+    });
+
+    it('sends again when Read again is pressed, also for a reading that was off', async () => {
+        const { emitted } = render(FmReadingNotice, {
+            props: {
+                status: 'off',
+                error: 'Automatic reading is not on.',
+                again: true,
+            },
+        });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Read again' }),
+        );
+
+        expect(emitted('again')).toHaveLength(1);
+    });
+
+    it('offers Read again neither for a file skipped nor without again', () => {
+        render(FmReadingNotice, {
+            props: { status: 'skipped', error: 'Not a document.', again: true },
+        });
+        render(FmReadingNotice, {
+            props: { status: 'failed', error: 'Broken.' },
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Read again' }),
+        ).not.toBeInTheDocument();
     });
 
     it.each(['off', 'skipped'] as const)(

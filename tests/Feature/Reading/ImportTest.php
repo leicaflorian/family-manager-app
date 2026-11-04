@@ -8,6 +8,7 @@ use App\Models\File;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -189,6 +190,35 @@ test('the failures come back to the page', function (): void {
     $this->actingAs($this->marco)->withSession(['import_failures' => [$file->id => 'It could not be saved.']])
         ->get(route('import', ['files' => (string) $file->id]))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('failures', [$file->id => 'It could not be saved.']));
+});
+
+test('the page keeps the card the files come from, and ignores one of another family', function (): void {
+    $file = waitingFile();
+    $panda = Vehicle::factory()->for($this->marco->family)->create();
+    $theirs = Vehicle::factory()->create();
+
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id, 'link' => 'vehicle:'.$panda->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetLinks', [['type' => 'vehicle', 'id' => $panda->id]]));
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id, 'link' => 'vehicle:'.$theirs->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetLinks', []));
+});
+
+test('files imported from a card go back to the card', function (): void {
+    $file = waitingFile();
+    $panda = Vehicle::factory()->for($this->marco->family)->create();
+
+    $this->actingAs($this->marco)->post(route('import.store', ['link' => 'vehicle:'.$panda->id]), ['files' => [importEntry($file)]])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('cards.show', ['type' => 'vehicle', 'id' => $panda->id]));
+});
+
+test('a file that fails to save from a card comes back to the page with the card', function (): void {
+    $bad = waitingFile();
+    $panda = Vehicle::factory()->for($this->marco->family)->create();
+    Document::creating(fn (): never => throw new RuntimeException('The disk is full'));
+
+    $this->actingAs($this->marco)->post(route('import.store', ['link' => 'vehicle:'.$panda->id]), ['files' => [importEntry($bad)]])
+        ->assertRedirect(route('import', ['files' => (string) $bad->id, 'link' => 'vehicle:'.$panda->id]));
 });
 
 test('guests are sent to sign in', function (): void {
