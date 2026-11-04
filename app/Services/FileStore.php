@@ -39,7 +39,7 @@ final class FileStore
     public function store(UploadedFile $file, bool $toSort = false, ?array $link = null, FileSource $source = FileSource::Upload, ?string $note = null): File
     {
         $family = CurrentFamily::id() ?? throw new RuntimeException('No family to save the file for.');
-        $checksum = hash_file('sha256', $file->getPathname()) ?: null;
+        $checksum = $this->checksum($file->getPathname());
 
         $path = $file->storeAs($this->folder($family), $this->newName($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? '')), self::DISK)
             ?: throw new RuntimeException('The file was not saved.');
@@ -57,6 +57,17 @@ final class FileStore
             'note' => $note,
             'checksum' => $checksum,
         ]);
+    }
+
+    /**
+     * The SHA-256 of a file's content, which finds the copies of a file.
+     *
+     * @param  string  $path  the file on a local disk
+     * @return string|null the hash, null when the file does not read
+     */
+    public function checksum(string $path): ?string
+    {
+        return @hash_file('sha256', $path) ?: null;
     }
 
     /**

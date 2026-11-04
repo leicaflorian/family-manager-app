@@ -207,6 +207,29 @@ test('with --without-files the rows of the files are there, without content', fu
         ->and(Storage::disk('local')->allFiles())->toBe([]);
 });
 
+test('the copied files carry the checksum of their content, the source from the tags and no reading', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    $files = DB::table('files')->orderBy('original_name')->get()->keyBy('original_name');
+
+    expect($files['bolletta-ottobre.pdf']->checksum)->toBe(hash('sha256', '%PDF-1.4 bolletta'))
+        ->and($files['bolletta-ottobre.pdf']->source)->toBe('mail')
+        ->and($files['contratto-luce.pdf']->source)->toBe('phone')
+        ->and($files['tessera.jpg']->source)->toBe('upload')
+        // These two have no content in the uploads, so there is nothing to hash
+        ->and($files['contratto-luce.pdf']->checksum)->toBeNull()
+        ->and($files->pluck('reading_status')->filter()->all())->toBe([])
+        ->and($files->pluck('reading')->filter()->all())->toBe([])
+        ->and(DB::table('ai_readings')->count())->toBe(0);
+});
+
+test('with --without-files the copied files have no checksum', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi', '--without-files' => true])->assertSuccessful()->run();
+
+    expect(DB::table('files')->whereNotNull('checksum')->count())->toBe(0)
+        ->and(DB::table('files')->where('original_name', 'bolletta-ottobre.pdf')->value('source'))->toBe('mail');
+});
+
 test('the copy stops when an email of the accounts is already in the app', function (): void {
     registerFamily('Rossi', 'laura.verdi@example.com');
 

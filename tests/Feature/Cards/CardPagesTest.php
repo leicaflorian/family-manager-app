@@ -28,6 +28,8 @@ beforeEach(function (): void {
     Storage::fake('local');
     $this->travelTo('2026-10-26 10:00:00');
     $this->seed(BianchiFamilySeeder::class);
+    // The files the seeder leaves in To sort are not what these tests look at
+    insideBianchi(fn (): int => File::query()->toSort()->delete());
     $this->marco = User::query()->where('email', 'marco.bianchi@example.com')->sole();
     $this->rosa = User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]);
     $this->panda = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Fiat Panda')->sole());

@@ -26,13 +26,14 @@ CREATE TABLE directus_files (
     folder char(36) NULL,
     filesize bigint NULL,
     uploaded_on timestamp NULL,
-    reading json NULL
+    reading json NULL,
+    tags json NULL
 );
-INSERT INTO directus_files (id, storage, filename_disk, filename_download, type, filesize, uploaded_on, reading) VALUES
-    ('aaaaaaaa-0000-0000-0000-000000000001', 'local', 'aaaaaaaa-0000-0000-0000-000000000001.pdf', 'bolletta-ottobre.pdf', 'application/pdf', 12, '2026-10-01 09:00:00', '{"model": "x"}'),
-    ('aaaaaaaa-0000-0000-0000-000000000002', 'local', 'aaaaaaaa-0000-0000-0000-000000000002.pdf', 'contratto-luce.pdf', 'application/pdf', 34, '2026-09-01 09:00:00', NULL),
-    ('aaaaaaaa-0000-0000-0000-000000000003', 's3', 'aaaaaaaa-0000-0000-0000-000000000003.jpg', 'tessera.jpg', 'image/jpeg', 56, '2026-08-01 09:00:00', NULL),
-    ('aaaaaaaa-0000-0000-0000-000000000004', 'local', 'aaaaaaaa-0000-0000-0000-000000000004.jpg', 'non-usato.jpg', 'image/jpeg', 78, '2026-07-01 09:00:00', NULL);
+INSERT INTO directus_files (id, storage, filename_disk, filename_download, type, filesize, uploaded_on, reading, tags) VALUES
+    ('aaaaaaaa-0000-0000-0000-000000000001', 'local', 'aaaaaaaa-0000-0000-0000-000000000001.pdf', 'bolletta-ottobre.pdf', 'application/pdf', 12, '2026-10-01 09:00:00', '{"model": "x"}', '["posta"]'),
+    ('aaaaaaaa-0000-0000-0000-000000000002', 'local', 'aaaaaaaa-0000-0000-0000-000000000002.pdf', 'contratto-luce.pdf', 'application/pdf', 34, '2026-09-01 09:00:00', NULL, '["telefono"]'),
+    ('aaaaaaaa-0000-0000-0000-000000000003', 's3', 'aaaaaaaa-0000-0000-0000-000000000003.jpg', 'tessera.jpg', 'image/jpeg', 56, '2026-08-01 09:00:00', NULL, NULL),
+    ('aaaaaaaa-0000-0000-0000-000000000004', 'local', 'aaaaaaaa-0000-0000-0000-000000000004.jpg', 'non-usato.jpg', 'image/jpeg', 78, '2026-07-01 09:00:00', NULL, NULL);
 
 CREATE TABLE people (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,

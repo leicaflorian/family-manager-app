@@ -6,9 +6,13 @@ namespace Database\Seeders;
 
 use App\Actions\Families\CreateFamily;
 use App\Actions\Reminders\SyncReminders;
+use App\Data\Reading\DocumentProposalData;
+use App\Data\Reading\Extraction;
+use App\Data\Reading\FoundLineData;
 use App\Enums\DocumentStatus;
 use App\Enums\EnrollmentType;
 use App\Enums\ExceptionType;
+use App\Enums\FileSource;
 use App\Enums\FilingType;
 use App\Enums\FinancialAccountType;
 use App\Enums\HealthEventType;
@@ -18,6 +22,7 @@ use App\Enums\IntervalUnit;
 use App\Enums\MaintenanceType;
 use App\Enums\OrganizationType;
 use App\Enums\PersonRole;
+use App\Enums\ReadingStatus;
 use App\Enums\ReminderStatus;
 use App\Enums\Role;
 use App\Enums\SubscriptionType;
@@ -187,6 +192,7 @@ final class BianchiFamilySeeder extends Seeder
                 $this->createOrganizations();
                 $this->createRecords();
                 $this->createDocuments();
+                $this->createFilesToSort();
                 $this->createBudget();
             });
 
@@ -246,7 +252,7 @@ final class BianchiFamilySeeder extends Seeder
 
         $this->records = [
             'Casa di via Roma' => $home,
-            'Luce - Edison' => $this->utility(UtilityType::Electricity, 'Edison', $home),
+            'Luce - Edison' => $this->utility(UtilityType::Electricity, 'Edison', $home, 'IT 001 E 12345678'),
             'Gas - Enel' => $this->utility(UtilityType::Gas, 'Enel Energia', $home),
             'Acqua - Hera' => $this->utility(UtilityType::Water, 'Hera', $home),
             'Internet - Fastweb' => $this->utility(UtilityType::Internet, 'Fastweb', $home),
@@ -276,9 +282,9 @@ final class BianchiFamilySeeder extends Seeder
      * @param  string  $provider  the name of the provider
      * @param  Home  $home  the home served
      */
-    private function utility(UtilityType $type, string $provider, Home $home): Utility
+    private function utility(UtilityType $type, string $provider, Home $home, ?string $supplyPoint = null): Utility
     {
-        return Utility::query()->create(['type' => $type, 'organization_id' => $this->organizations[$provider]->id, 'home_id' => $home->id]);
+        return Utility::query()->create(['type' => $type, 'organization_id' => $this->organizations[$provider]->id, 'home_id' => $home->id, 'supply_point_code' => $supplyPoint]);
     }
 
     /**
@@ -706,12 +712,91 @@ final class BianchiFamilySeeder extends Seeder
      * Puts a fake file of `database/seeders/files/` in the store.
      *
      * @param  string  $name  the name of the file in the folder
+     * @param  string|null  $as  the name the file arrived with, when it is not the one of the folder
+     * @param  bool  $toSort  true for a file that waits in *To sort*
+     * @param  FileSource  $source  where the file came from
+     * @param  string|null  $note  how it arrived
      */
-    private function file(string $name): File
+    private function file(string $name, ?string $as = null, bool $toSort = false, FileSource $source = FileSource::Upload, ?string $note = null): File
     {
         $path = __DIR__.'/files/'.$name;
 
-        return $this->files->store(new UploadedFile($path, $name, (string) mime_content_type($path), null, true));
+        return $this->files->store(new UploadedFile($path, $as ?? $name, (string) mime_content_type($path), null, true), $toSort, null, $source, $note);
+    }
+
+    /**
+     * The files in *To sort*: three already read, as the reading leaves them, and a copy of the file of a document.
+     * The readings are written by hand, with no call to the service.
+     */
+    private function createFilesToSort(): void
+    {
+        $edison = $this->organizations['Edison'];
+        $ferri = $this->organizations['Studio Ferri'];
+        $uploaded = static fn (string $name): string => __('Uploaded here on :date by :name', ['date' => '29/10/2026', 'name' => $name]);
+
+        $this->reading(
+            $this->file('bolletta-edison-novembre.pdf', toSort: true, source: FileSource::Mail),
+            new Extraction(kind: 'utility_bill', issuer_name: 'Edison', organization_id: $edison->id, total_amount: 91.40, issue_date: '2026-11-03', due_date: '2026-12-05', supply_point_code: 'IT 001 E 12345678', utility_type: 'electricity', confidence: 'high'),
+            new DocumentProposalData(
+                title: __('Electricity bill :month :year', ['month' => 'novembre', 'year' => '2026']),
+                category_id: $this->category('Casa e utenze › Luce')->id,
+                person_id: null,
+                organization_id: $edison->id,
+                date: '2026-11-03',
+                expiry_date: null,
+                links: [['type' => 'utility', 'id' => $this->records['Luce - Edison']->id]],
+                headline: __('I found an electricity bill'),
+                found: [new FoundLineData(__('Who sent it'), 'Edison'), new FoundLineData(__('How much'), '91,40 €'), new FoundLineData(__('Due on'), '05/12/2026')],
+            ),
+        );
+        $this->reading(
+            $this->file('fattura-studio-ferri.pdf', toSort: true, note: $uploaded('Laura')),
+            new Extraction(kind: 'invoice', issuer_name: 'Studio Ferri', organization_id: $ferri->id, total_amount: 120.0, issue_date: '2026-10-28', person_id: $this->people['Giulia']->id, confidence: 'high'),
+            new DocumentProposalData(
+                title: __('Invoice :issuer :month :year', ['issuer' => 'Studio Ferri', 'month' => 'ottobre', 'year' => '2026']),
+                category_id: $this->category('Salute')->id,
+                person_id: $this->people['Giulia']->id,
+                organization_id: $ferri->id,
+                date: '2026-10-28',
+                expiry_date: null,
+                links: [],
+                headline: __('I found an invoice'),
+                found: [new FoundLineData(__('Who sent it'), 'Studio Ferri'), new FoundLineData(__('How much'), '120,00 €')],
+            ),
+        );
+        $this->reading(
+            $this->file('garanzia-lavatrice.jpg', 'Garanzia lavatrice.jpg', toSort: true, note: $uploaded('Marco')),
+            new Extraction(kind: 'receipt', issue_date: '2025-03-14', durable_good: true, item_name: 'Lavatrice', warranty_expiry_date: '2027-03-14', confidence: 'medium'),
+            new DocumentProposalData(
+                title: 'Garanzia lavatrice',
+                category_id: $this->category('Acquisti, garanzie e abbonamenti › Garanzie e scontrini')->id,
+                person_id: null,
+                organization_id: null,
+                date: '2025-03-14',
+                expiry_date: '2027-03-14',
+                links: [],
+                headline: __('I found a receipt'),
+                found: [],
+            ),
+        );
+
+        // The same file as the October bill, which is the file of a document: the page tells it is a copy
+        $this->file('bolletta-luce-ottobre.pdf', toSort: true, note: $uploaded('Laura'));
+    }
+
+    /**
+     * Marks a file as read, with the reading and the proposal a real reading would have left.
+     *
+     * @param  File  $file  the file in *To sort*
+     * @param  Extraction  $extraction  what the model would have read
+     * @param  DocumentProposalData  $proposal  what the form is filled with
+     */
+    private function reading(File $file, Extraction $extraction, DocumentProposalData $proposal): void
+    {
+        $file->forceFill([
+            'reading_status' => ReadingStatus::Done,
+            'reading' => ['extraction' => $extraction->toArray(), 'proposal' => $proposal->toArray(), 'provider' => 'gemini', 'model' => 'gemini-3.8-flash', 'read_at' => '2026-10-29T10:00:00+01:00'],
+        ])->save();
     }
 
     /**

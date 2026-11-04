@@ -2,13 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Data\PendingFileData;
 use App\Enums\FinancialAccountType;
 use App\Enums\MaintenanceType;
+use App\Enums\ReadingStatus;
 use App\Enums\ReminderStatus;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
+use App\Models\File;
 use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
 use App\Models\Home;
@@ -24,6 +27,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Deadlines;
 use App\Support\CurrentFamily;
@@ -291,6 +295,33 @@ test('the RC auto Panda policy and its instalment fall on 21/11/2026', function 
             ->and($document->date?->toDateString())->toBe('2025-11-21')
             ->and($document->expiry_date?->toDateString())->toBe('2026-11-21')
             ->and($plan->start_date->toDateString())->toBe('2025-11-21');
+    });
+});
+
+test('the Bianchis have files to sort, already read, and the POD of the electricity supply', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $pending = collect(PendingFileData::waiting())->keyBy('name');
+
+        expect(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->count())->toBe(1)
+            ->and($pending->keys()->sort()->values()->all())->toBe(['Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'fattura-studio-ferri.pdf'])
+            ->and(File::query()->toSort()->where('reading_status', ReadingStatus::Done)->count())->toBe(3)
+            ->and(File::query()->toSort()->notCopies()->count())->toBe(3)
+            ->and($pending['bolletta-luce-ottobre.pdf']->copy_of)->toBe('bolletta-luce-ottobre.pdf')
+            ->and($pending['bolletta-luce-ottobre.pdf']->reading_status)->toBeNull();
+
+        $bill = $pending['bolletta-edison-novembre.pdf']->proposal;
+        $invoice = $pending['fattura-studio-ferri.pdf']->proposal;
+        $warranty = $pending['Garanzia lavatrice.jpg']->proposal;
+
+        expect($bill?->organization_id)->toBe(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole()->organization_id)
+            ->and($bill?->links)->toEqual([['type' => 'utility', 'id' => Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole()->id]])
+            ->and($bill?->headline)->toBe('Ho trovato una bolletta della luce')
+            ->and($invoice?->person_id)->toBe(Person::query()->where('first_name', 'Giulia')->sole()->id)
+            ->and($warranty?->title)->not->toBeEmpty()
+            ->and($pending['Garanzia lavatrice.jpg']->note)->toContain('Marco');
+        Storage::disk('local')->assertExists(File::query()->where('original_name', 'Garanzia lavatrice.jpg')->sole()->path);
     });
 });
 

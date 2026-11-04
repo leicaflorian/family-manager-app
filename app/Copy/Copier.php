@@ -6,6 +6,7 @@ namespace App\Copy;
 
 use App\Actions\Budget\FillOccurrenceDates;
 use App\Actions\Reminders\SyncReminders;
+use App\Enums\FileSource;
 use App\Enums\Role;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
@@ -319,8 +320,27 @@ final class Copier
             'mime_type' => $this->text($copy['mime_type'] ?? null) ?: 'application/octet-stream',
             'size' => is_numeric($copy['size'] ?? null) ? (int) $copy['size'] : 0,
             'to_sort' => false,
+            'checksum' => $withFiles && $present ? $this->files->checksum($source) : null,
+            'source' => $this->fileSource($row['tags'] ?? null)->value,
             'updated_at' => $copy['created_at'] ?? null,
         ];
+    }
+
+    /**
+     * Where a Directus file came from, from its tags: `posta` is mail and `telefono` is phone, anything else an upload.
+     *
+     * @param  mixed  $tags  the `tags` of `directus_files`: a JSON list, already decoded or not
+     */
+    private function fileSource(mixed $tags): FileSource
+    {
+        $list = is_string($tags) ? json_decode($tags, true) : $tags;
+        $names = is_array($list) ? array_map(fn (mixed $tag): string => mb_strtolower($this->text($tag)), $list) : [];
+
+        return match (true) {
+            in_array('posta', $names, true) => FileSource::Mail,
+            in_array('telefono', $names, true) => FileSource::Phone,
+            default => FileSource::Upload,
+        };
     }
 
     /**
