@@ -210,13 +210,13 @@ function rowHref(document: App.Data.DocumentData): string {
         <div
             v-else
             :class="[
-                'flex flex-col gap-6 lg:grid lg:items-start',
+                'flex flex-col gap-6 md:grid md:items-start',
                 selected
-                    ? 'lg:grid-cols-[16rem_minmax(0,3fr)_minmax(0,2fr)]'
-                    : 'lg:grid-cols-[16rem_minmax(0,1fr)]',
+                    ? 'md:grid-cols-[55%_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,3fr)_minmax(0,2fr)]'
+                    : 'xl:grid-cols-[16rem_minmax(0,1fr)]',
             ]"
         >
-            <aside class="hidden rounded-[20px] bg-white p-5 lg:block">
+            <aside class="hidden rounded-[20px] bg-white p-5 xl:block">
                 <FmDocumentFilters
                     :filters="filters"
                     :options="options"
@@ -239,7 +239,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     <button
                         type="button"
                         :aria-label="$t('Filters')"
-                        class="flex size-11.5 shrink-0 items-center justify-center rounded-[10px] border border-edge bg-white text-ink lg:hidden"
+                        class="flex size-11.5 shrink-0 items-center justify-center rounded-[10px] border border-edge bg-white text-ink xl:hidden"
                         @click="filtersOpen = true"
                     >
                         <FmIcon :icon="ListFilter" :size="22" />
@@ -276,7 +276,7 @@ function rowHref(document: App.Data.DocumentData): string {
                 />
             </div>
 
-            <section v-if="selected" class="hidden min-w-0 lg:block">
+            <section v-if="selected" class="hidden min-w-0 md:block md:sticky lg:top-0">
                 <FmDocumentDetail :document="selected" compact />
             </section>
         </div>
