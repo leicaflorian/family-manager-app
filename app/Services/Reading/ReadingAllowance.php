@@ -21,16 +21,28 @@ final readonly class ReadingAllowance
      */
     public function left(CarbonImmutable $now): int
     {
-        $month = $now->setTimezone('Europe/Rome')->startOfMonth();
-
-        // `created_at` is written in the time zone of the app, so the edges of the month of Rome are turned into it
-        $timezone = Config::string('app.timezone');
+        [$from, $to] = $this->monthEdges($now);
         $used = AiReading::query()
-            ->where('created_at', '>=', $month->setTimezone($timezone))
-            ->where('created_at', '<', $month->addMonth()->setTimezone($timezone))
+            ->where('created_at', '>=', $from)
+            ->where('created_at', '<', $to)
             ->count();
 
         return max(0, Config::integer('document_reader.monthly_limit') - $used);
+    }
+
+    /**
+     * The first moment of the month of Rome that holds a moment and of the next one, in the time zone `created_at`
+     * is written in (that of the app), so they compare correctly with the stored readings.
+     *
+     * @param  CarbonImmutable  $now  the moment, in any time zone
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable} the start of the month (included) and of the next (not)
+     */
+    public function monthEdges(CarbonImmutable $now): array
+    {
+        $month = $now->setTimezone('Europe/Rome')->startOfMonth();
+        $timezone = Config::string('app.timezone');
+
+        return [$month->setTimezone($timezone), $month->addMonth()->setTimezone($timezone)];
     }
 
     /**
