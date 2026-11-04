@@ -74,9 +74,8 @@ final class UploadController extends Controller
     }
 
     /**
-     * How the files arrived, «Uploaded here on 22/10/2026 by Marco»: in the language of the app, like the
-     * titles of the reminders, since the whole family reads it; with the first name of the person of the
-     * account, as the Home greets it.
+     * How the files arrived, «Uploaded here on 22/10/2026 by Marco»: in the language of the request (`SetLocale`),
+     * like the titles of the reminders; with the first name of the person of the account, as the Home greets it.
      *
      * @param  User  $user  who uploads
      */
@@ -85,6 +84,6 @@ final class UploadController extends Controller
         return __('Uploaded here on :date by :name', [
             'date' => CarbonImmutable::now('Europe/Rome')->format('d/m/Y'),
             'name' => $user->person->first_name ?? $user->name,
-        ], config()->string('app.locale'));
+        ]);
     }
 }

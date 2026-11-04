@@ -307,6 +307,18 @@ test('the preview is made after the reading', function (): void {
     Storage::disk('local')->assertExists((string) $file->preview_path);
 });
 
+test('the preview is tried once, in at most a minute', function (): void {
+    queueReadingOf($this->file, $this->marco);
+    workQueue();
+
+    $payload = json_decode((string) DB::table('jobs')->value('payload'), true);
+
+    expect($payload['displayName'])->toBe(PreparePreview::class)
+        ->and($payload['maxTries'])->toBe(1)
+        ->and($payload['timeout'])->toBe(60)
+        ->toBeLessThan(config('queue.connections.database.retry_after'));
+});
+
 test('no preview job after a reading that failed', function (): void {
     $this->reader->fails(ReadingFailed::refused());
     queueReadingOf($this->file, $this->marco);

@@ -21,9 +21,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
+use Spatie\LaravelData\Exceptions\CannotCreateData;
 use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
@@ -303,6 +305,18 @@ test('uploading reads the file by itself', function (): void {
         ->where('pending.0.proposal', null));
 });
 
+test('a stored proposal that cannot be read is no proposal', function (): void {
+    Exceptions::fake();
+    $file = uploadOne('Bolletta Edison.pdf');
+    // a proposal written by an older version of the app, without the headline it needs now
+    $file->forceFill(['reading_status' => ReadingStatus::Done, 'reading' => ['proposal' => ['title' => 'Bolletta']]])->save();
+
+    $this->get(route('upload'))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.reading_status', 'done')
+        ->where('pending.0.proposal', null));
+    Exceptions::assertReported(CannotCreateData::class);
+});
+
 test('the checksum and the note are written', function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-10-22 10:15', 'Europe/Rome'));
 
@@ -318,14 +332,17 @@ test('the checksum and the note are written', function (): void {
         ->where('pending.0.copy_of', null));
 });
 
-test('the note is written in Italian when the app speaks Italian', function (): void {
+test('the note follows the language of the request', function (string $language, string $note): void {
     Date::setTestNow(CarbonImmutable::parse('2026-10-22 10:15', 'Europe/Rome'));
 
-    $this->withHeader('Accept-Language', 'it');
+    $this->withHeader('Accept-Language', $language);
     $file = uploadContent('Bolletta Edison.pdf', 'the bill of october');
 
-    expect($file->note)->toBe('Caricato qui il 22/10/2026 da Marco');
-});
+    expect($file->note)->toBe($note);
+})->with([
+    'Italian' => ['it-IT,it;q=0.9', 'Caricato qui il 22/10/2026 da Marco'],
+    'English' => ['en-GB,en;q=0.9', 'Uploaded here on 22/10/2026 by Marco'],
+]);
 
 test('a copy is marked', function (): void {
     $bill = uploadContent('Telefono 2026-10-25 19.04.pdf', 'the bill of october');
@@ -375,6 +392,24 @@ test('to_sort_count counts only the waiting files of the family', function (): v
     CurrentFamily::using($rossi->family_id, fn (): File => File::factory()->for($rossi->family)->create(['to_sort' => true]));
 
     $this->actingAs($this->marco)->get(route('upload'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('to_sort_count', 1));
+});
+
+test('the same file in another family is no copy and is counted', function (): void {
+    $rossi = registerFamily('Rossi', 'anna@example.com');
+    // the older file, with the same content, waits in the Rossi family
+    $theirs = CurrentFamily::using($rossi->family_id, fn (): File => File::factory()->for($rossi->family)->create([
+        'to_sort' => true, 'checksum' => hash('sha256', 'the bill of october'),
+    ]));
+
+    $this->actingAs($this->marco);
+    $ours = uploadContent('Bolletta Edison.pdf', 'the bill of october');
+
+    expect($ours->copyOf())->toBeNull()->and($ours->id)->toBeGreaterThan($theirs->id);
+    $this->get(route('upload'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pending.0.copy_of', null)
+        ->where('to_sort_count', 1));
+    $this->actingAs($rossi)->get(route('upload'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('to_sort_count', 1));
 });
 

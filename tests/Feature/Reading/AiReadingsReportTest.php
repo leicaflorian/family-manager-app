@@ -67,6 +67,23 @@ test('counts the readings without a price apart', function (): void {
         ->assertSuccessful();
 });
 
+test('a family whose readings all have no price shows no cost', function (): void {
+    reportReading($this->bianchi, '2026-10-03 10:00');
+    reportReading($this->rossi, '2026-10-04 10:00', ['cost_usd' => null]);
+    reportReading($this->rossi, '2026-10-05 10:00', ['cost_usd' => null]);
+
+    $this->artisan('ai-readings:report', ['--month' => '2026-10'])
+        ->expectsTable(
+            ['Family', 'Readings', 'Input tokens', 'Output tokens', 'Cost'],
+            [
+                ['Bianchi', '1', '1000', '100', '0,0025 $'],
+                ['Rossi', '2', '2000', '200', '- (2 without a price)'],
+                ['Total', '3', '3000', '300', '0,0025 $ (2 without a price)'],
+            ],
+        )
+        ->assertSuccessful();
+});
+
 test('without a month it reports the current month of Rome', function (): void {
     // 23:30 UTC of 31/10 is already November in Rome
     Date::setTestNow(CarbonImmutable::parse('2026-10-31 23:30', 'UTC'));

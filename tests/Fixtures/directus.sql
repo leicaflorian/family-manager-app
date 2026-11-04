@@ -1,6 +1,6 @@
 -- A small Directus, with the tables and columns of the real one that the copy
--- reads: three accounts (one without email), four files (one on S3, one not used), three people, two
--- organizations, three categories (one with its parent after it), four
+-- reads: three accounts (one without email), six files (one on S3, one not used, two with tags that say
+-- nothing), three people, two organizations, three categories (one with its parent after it), six
 -- documents (one without its file), a utility with its documents and two
 -- reminders. Loaded by tests/Feature/Copy/CopyFromDirectusTest.php.
 
@@ -27,13 +27,16 @@ CREATE TABLE directus_files (
     filesize bigint NULL,
     uploaded_on timestamp NULL,
     reading json NULL,
-    tags json NULL
+    -- text, not json, as in the real Directus: it can hold anything
+    tags text NULL
 );
 INSERT INTO directus_files (id, storage, filename_disk, filename_download, type, filesize, uploaded_on, reading, tags) VALUES
     ('aaaaaaaa-0000-0000-0000-000000000001', 'local', 'aaaaaaaa-0000-0000-0000-000000000001.pdf', 'bolletta-ottobre.pdf', 'application/pdf', 12, '2026-10-01 09:00:00', '{"model": "x"}', '["posta"]'),
     ('aaaaaaaa-0000-0000-0000-000000000002', 'local', 'aaaaaaaa-0000-0000-0000-000000000002.pdf', 'contratto-luce.pdf', 'application/pdf', 34, '2026-09-01 09:00:00', NULL, '["telefono"]'),
     ('aaaaaaaa-0000-0000-0000-000000000003', 's3', 'aaaaaaaa-0000-0000-0000-000000000003.jpg', 'tessera.jpg', 'image/jpeg', 56, '2026-08-01 09:00:00', NULL, NULL),
-    ('aaaaaaaa-0000-0000-0000-000000000004', 'local', 'aaaaaaaa-0000-0000-0000-000000000004.jpg', 'non-usato.jpg', 'image/jpeg', 78, '2026-07-01 09:00:00', NULL, NULL);
+    ('aaaaaaaa-0000-0000-0000-000000000004', 'local', 'aaaaaaaa-0000-0000-0000-000000000004.jpg', 'non-usato.jpg', 'image/jpeg', 78, '2026-07-01 09:00:00', NULL, NULL),
+    ('aaaaaaaa-0000-0000-0000-000000000005', 'local', 'aaaaaaaa-0000-0000-0000-000000000005.pdf', 'ricevuta.pdf', 'application/pdf', 90, '2026-06-01 09:00:00', NULL, 'not json'),
+    ('aaaaaaaa-0000-0000-0000-000000000006', 'local', 'aaaaaaaa-0000-0000-0000-000000000006.pdf', 'verbale.pdf', 'application/pdf', 91, '2026-06-02 09:00:00', NULL, '[1, {"a":2}]');
 
 CREATE TABLE people (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -101,7 +104,9 @@ INSERT INTO documents (id, title, file, category, status, person, organization, 
     (12, 'Bolletta luce di ottobre', 'aaaaaaaa-0000-0000-0000-000000000001', 1, 'active', 3, 7, '2026-10-01', '["luce", "2026"]', '2026-10-01 09:00:00'),
     (13, 'Contratto luce', 'aaaaaaaa-0000-0000-0000-000000000002', 1, 'active', 5, 7, '2024-03-15', NULL, '2026-09-01 09:00:00'),
     (14, 'Tessera sanitaria', 'aaaaaaaa-0000-0000-0000-000000000003', 4, 'active', 8, NULL, NULL, NULL, NULL),
-    (15, 'Documento senza file', NULL, 4, 'active', NULL, NULL, NULL, NULL, NULL);
+    (15, 'Documento senza file', NULL, 4, 'active', NULL, NULL, NULL, NULL, NULL),
+    (16, 'Ricevuta', 'aaaaaaaa-0000-0000-0000-000000000005', 4, 'active', NULL, NULL, NULL, NULL, NULL),
+    (17, 'Verbale', 'aaaaaaaa-0000-0000-0000-000000000006', 4, 'active', NULL, NULL, NULL, NULL, NULL);
 UPDATE documents SET expiry_date = '2027-01-15' WHERE id = 14;
 
 CREATE TABLE planned_expenses (

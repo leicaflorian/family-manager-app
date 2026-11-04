@@ -72,7 +72,7 @@ function verdiCounts(): array
 
 /** The counts of the fake Directus, once copied. */
 const VERDI_COUNTS = [
-    'files' => 3, 'users' => 1, 'people' => 3, 'organizations' => 2, 'document_categories' => 3, 'documents' => 3,
+    'files' => 5, 'users' => 1, 'people' => 3, 'organizations' => 2, 'document_categories' => 3, 'documents' => 5,
     'utilities' => 1, 'reminders' => 4, 'family_settings' => 1, 'documentables' => 2, 'remindables' => 3,
 ];
 
@@ -203,7 +203,7 @@ test('a family of the same name that registered itself is never replaced', funct
 test('with --without-files the rows of the files are there, without content', function (): void {
     $this->artisan('directus:copy', ['--family' => 'Verdi', '--without-files' => true])->assertSuccessful()->run();
 
-    expect(ofVerdi('files'))->toBe(3)
+    expect(ofVerdi('files'))->toBe(5)
         ->and(Storage::disk('local')->allFiles())->toBe([]);
 });
 
@@ -216,6 +216,9 @@ test('the copied files carry the checksum of their content, the source from the 
         ->and($files['bolletta-ottobre.pdf']->source)->toBe('mail')
         ->and($files['contratto-luce.pdf']->source)->toBe('phone')
         ->and($files['tessera.jpg']->source)->toBe('upload')
+        // Tags that are not JSON, or a list of things that are not names, say nothing: an upload
+        ->and($files['ricevuta.pdf']->source)->toBe('upload')
+        ->and($files['verbale.pdf']->source)->toBe('upload')
         // These two have no content in the uploads, so there is nothing to hash
         ->and($files['contratto-luce.pdf']->checksum)->toBeNull()
         ->and($files->pluck('reading_status')->filter()->all())->toBe([])

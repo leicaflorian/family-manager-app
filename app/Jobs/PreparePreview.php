@@ -9,13 +9,19 @@ use App\Services\FilePreviews;
 use App\Support\CurrentFamily;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
 use Throwable;
 
 /**
  * Makes the preview of a file after its reading, so that it is ready when someone opens it. Kept out of the job of
  * the reading: a slow conversion there would make the queue try the paid reading again. A file deleted meanwhile
  * ends the job without a word, and a preview that fails is reported and marked by `FilePreviews`, nothing more.
+ * One try of at most a minute, less than the 90 seconds of `retry_after`: a preview that failed is marked, and
+ * trying it again would fail the same way.
  */
+#[Timeout(60)]
+#[Tries(1)]
 final class PreparePreview implements ShouldQueue
 {
     use Queueable;

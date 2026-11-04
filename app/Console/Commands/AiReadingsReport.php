@@ -95,7 +95,7 @@ final class AiReadingsReport extends Command
     }
 
     /**
-     * A row of the table for some readings.
+     * A row of the table for some readings. The cost is `-` when none of them has a price.
      *
      * @param  string  $label  the first cell
      * @param  Collection<int, AiReading>  $readings  the readings to add up
@@ -104,7 +104,10 @@ final class AiReadingsReport extends Command
     private function row(string $label, Collection $readings): array
     {
         $unpriced = $readings->whereNull('cost_usd')->count();
-        $cost = number_format($readings->sum(fn (AiReading $reading): float => (float) $reading->cost_usd), 4, ',', '.').' $';
+        // Four decimals: a reading costs a fraction of a cent, and two would show most months as 0,00 $
+        $cost = $unpriced === $readings->count()
+            ? '-'
+            : number_format($readings->sum(fn (AiReading $reading): float => (float) $reading->cost_usd), 4, ',', '.').' $';
 
         return [
             $label,

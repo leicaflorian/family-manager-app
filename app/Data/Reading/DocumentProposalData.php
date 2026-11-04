@@ -8,6 +8,7 @@ use App\Enums\ReadingStatus;
 use App\Models\File;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Throwable;
 
 /**
  * What the reading proposes for the form of a document: the values of its fields, the cards it links to
@@ -41,7 +42,8 @@ final class DocumentProposalData extends Data
 
     /**
      * What the reading of a file proposes. A file read again keeps the old reading until the new one is done, so
-     * only a done reading proposes.
+     * only a done reading proposes. A stored proposal that no longer fits this class (written by an older version
+     * of the app, or broken) is reported and proposes nothing, so the page still opens.
      *
      * @param  File  $file  the file
      */
@@ -49,6 +51,16 @@ final class DocumentProposalData extends Data
     {
         $proposal = $file->reading['proposal'] ?? null;
 
-        return $file->reading_status === ReadingStatus::Done && is_array($proposal) ? self::from($proposal) : null;
+        if ($file->reading_status !== ReadingStatus::Done || ! is_array($proposal)) {
+            return null;
+        }
+
+        try {
+            return self::from($proposal);
+        } catch (Throwable $error) {
+            report($error);
+
+            return null;
+        }
     }
 }
