@@ -8,7 +8,7 @@
  * state every 2 seconds, and the import waits for it. What does not save stays on the page, its row saying
  * why.
  */
-import { Head, Link, router, usePoll } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -16,10 +16,13 @@ import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
 import FmFilePreview from '@/components/fm/FmFilePreview.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmReadingNotice from '@/components/fm/FmReadingNotice.vue';
 import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useReadingPoll } from '@/composables/useReadingPoll';
 import type { DocumentFormOptions, DocumentFormValues } from '@/lib/documents';
 import { newDocument, proposalValues, toPayload } from '@/lib/documents';
+import { isReading } from '@/lib/reading';
 import { toSort } from '@/routes';
 import { store } from '@/routes/import';
 
@@ -31,9 +34,6 @@ const props = defineProps<
         failures: Record<number, string>;
     } & DocumentFormOptions
 >();
-
-/** How often the page asks for the state of the files being read, in milliseconds. */
-const POLL_INTERVAL = 2000;
 
 /** The state of a file in the list. */
 type FileState = 'looking' | 'checked' | 'to-check' | 'left-out';
@@ -73,23 +73,13 @@ const included = computed(() =>
     props.files.filter((file) => !leftOut.has(file.id)),
 );
 
-/** Whether a file is being read: waiting in the queue or running. */
-const isReading = (file: App.Data.PendingFileData): boolean =>
-    file.reading_status === 'queued' || file.reading_status === 'reading';
-
 /** Whether a file that will be imported is still being read. */
-const anyReading = computed(() => included.value.some(isReading));
-
-const poll = usePoll(
-    POLL_INTERVAL,
-    { only: ['files'], preserveUrl: true },
-    { autoStart: false },
+const anyReading = computed(() =>
+    included.value.some((file) => isReading(file.reading_status)),
 );
 
 // Asks only while there is a file to wait for; the poll stops by itself on unmount
-watch(anyReading, (reading) => (reading ? poll.start() : poll.stop()), {
-    immediate: true,
-});
+useReadingPoll(() => anyReading.value, ['files']);
 
 /**
  * The form of a file, before the reading and the person write in it.
@@ -388,26 +378,13 @@ function save(): void {
                 <FmNotice v-if="problemOf(current)" tone="warning">
                     {{ problemOf(current) }}
                 </FmNotice>
-                <FmNotice
-                    v-if="current.reading_status === 'done' && current.proposal"
-                    :title="current.proposal.headline"
-                >
-                    {{ $t('Check it, change what is wrong and save.') }}
-                </FmNotice>
-                <FmNotice
-                    v-else-if="
-                        current.reading_status === 'failed' ||
-                        current.reading_status === 'off' ||
-                        current.reading_status === 'skipped'
-                    "
-                    :tone="
-                        current.reading_status === 'failed' ? 'warning' : 'info'
-                    "
-                >
-                    {{ current.reading_error }}
-                </FmNotice>
+                <FmReadingNotice
+                    :status="current.reading_status"
+                    :headline="current.proposal?.headline"
+                    :error="current.reading_error"
+                />
                 <FmReadingProgress
-                    v-if="isReading(current)"
+                    v-if="isReading(current.reading_status)"
                     :name="current.name"
                     :pages="current.pages"
                 />

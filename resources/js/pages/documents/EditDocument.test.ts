@@ -169,6 +169,15 @@ describe('Fill in from the file', () => {
         vi.useRealTimers();
     });
 
+    /** Mocks the post of *Fill in from the file*: it lands, as the server answers. */
+    function postLands() {
+        return vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+    }
+
     /** Renders the page with a reading. */
     function open(reading: Partial<App.Data.DocumentReadingData> = {}) {
         return renderPage(EditDocument, {
@@ -179,7 +188,7 @@ describe('Fill in from the file', () => {
     }
 
     it('asks the server to read the file of the document', async () => {
-        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        const post = postLands();
         open();
 
         await fireEvent.click(
@@ -249,7 +258,7 @@ describe('Fill in from the file', () => {
     });
 
     it('fills only the empty fields once the reading is done', async () => {
-        vi.spyOn(router, 'post').mockImplementation(() => {});
+        postLands();
         const result = open();
 
         await fireEvent.click(
@@ -284,7 +293,7 @@ describe('Fill in from the file', () => {
     });
 
     it('says why a reading failed and lets the person try again', async () => {
-        vi.spyOn(router, 'post').mockImplementation(() => {});
+        postLands();
         const result = open();
 
         await fireEvent.click(
@@ -304,5 +313,57 @@ describe('Fill in from the file', () => {
         expect(
             screen.getByRole('button', { name: 'Fill in from the file' }),
         ).toBeInTheDocument();
+    });
+
+    it('writes nothing from an old reading when the request did not land', async () => {
+        vi.spyOn(router, 'post').mockImplementation(() => {});
+        const result = open({ status: 'done', proposal });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Fill in from the file' }),
+        );
+        await result.rerender({
+            reading: { ...documentReading, status: 'done', proposal },
+        });
+        await settle();
+
+        expect(screen.getByLabelText('Expires on')).toHaveValue('DD/MM/YYYY');
+        expect(screen.queryByText('I found a payslip')).not.toBeInTheDocument();
+    });
+
+    it('does not show the unavailable sentence beside the wait', () => {
+        open({
+            status: 'queued',
+            can_read: false,
+            unavailable: 'Automatic reading is not on.',
+        });
+
+        expect(screen.getByText('Reading the document…')).toBeInTheDocument();
+        expect(
+            screen.queryByText('Automatic reading is not on.'),
+        ).not.toBeInTheDocument();
+    });
+
+    it('keeps what the person types in an empty field while the file is read', async () => {
+        postLands();
+        const result = open();
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Fill in from the file' }),
+        );
+        await result.rerender({
+            reading: { ...documentReading, status: 'reading' },
+        });
+        await fireEvent.update(
+            screen.getByLabelText('Expires on'),
+            '01/02/2027',
+        );
+        await settle();
+        await result.rerender({
+            reading: { ...documentReading, status: 'done', proposal },
+        });
+        await settle();
+
+        expect(screen.getByLabelText('Expires on')).toHaveValue('01/02/2027');
     });
 });

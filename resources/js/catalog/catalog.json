@@ -2581,13 +2581,13 @@
     "usedBy": [
       "components/fm/FmCardFiles.vue",
       "components/fm/FmPaySheet.vue",
+      "components/fm/FmReadingNotice.vue",
       "components/fm/FmUploadSheet.vue",
       "pages/auth/ForgotPassword.vue",
       "pages/auth/Login.vue",
       "pages/auth/VerifyEmail.vue",
       "pages/budget/Deadline.vue",
       "pages/cards/Card.vue",
-      "pages/documents/EditDocument.vue",
       "pages/documents/Import.vue",
       "pages/documents/Upload.vue",
       "pages/family/InvitationSent.vue",
@@ -3041,6 +3041,45 @@
     "types": [],
     "usedBy": [
       "pages/reminders/Reminders.vue"
+    ]
+  },
+  {
+    "name": "FmReadingNotice",
+    "path": "resources/js/components/fm/FmReadingNotice.vue",
+    "description": "What the reading of a file says once it ended: when it is done, the sentence of what was found with the\ninvitation to check it; when it failed, is off or was skipped, the reason (with an action beside, for example\n*Read again*). Nothing while the file waits or was never read.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "status",
+        "type": "App.Enums.ReadingStatus | null",
+        "required": false,
+        "default": null,
+        "description": "Where the reading stands."
+      },
+      {
+        "name": "headline",
+        "type": "string | null",
+        "required": false,
+        "default": null,
+        "description": "What the reading found, in a sentence; shown when it is done."
+      },
+      {
+        "name": "error",
+        "type": "string | null",
+        "required": false,
+        "default": null,
+        "description": "Why the file was not read; shown when it failed, is off or was skipped."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "action"
+    ],
+    "types": [],
+    "usedBy": [
+      "pages/documents/EditDocument.vue",
+      "pages/documents/Import.vue",
+      "pages/documents/Upload.vue"
     ]
   },
   {

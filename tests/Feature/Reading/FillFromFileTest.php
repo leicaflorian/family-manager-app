@@ -75,16 +75,16 @@ test('the page sends the state of the reading and, once done, the proposal', fun
         ->where('reading.proposal.date', '2026-10-25'));
 });
 
-test('a file read again sends no old proposal while it waits', function (): void {
+test('a file read again sends no old proposal while it waits or is read', function (ReadingStatus $status): void {
     $document = savedDocument([
-        'reading_status' => ReadingStatus::Queued,
+        'reading_status' => $status,
         'reading' => ['proposal' => ['title' => 'Old', 'category_id' => null, 'person_id' => null, 'organization_id' => null, 'date' => null, 'expiry_date' => null, 'links' => [], 'headline' => 'Old', 'found' => []]],
     ]);
 
     $this->get(route('documents.edit', $document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('reading.status', 'queued')
+        ->where('reading.status', $status->value)
         ->where('reading.proposal', null));
-});
+})->with([ReadingStatus::Queued, ReadingStatus::Reading]);
 
 test('a failed reading sends why', function (): void {
     $document = savedDocument(['reading_status' => ReadingStatus::Failed, 'reading_error' => 'The file could not be read.']);
@@ -142,5 +142,27 @@ test('a document of another family is 404, to open and to read', function (): vo
     $this->actingAs($this->marco)->get(route('documents.edit', $theirs))->assertNotFound();
     $this->actingAs($this->marco)->post(route('files.read', $theirs->file_id))->assertNotFound();
 
+    Queue::assertNothingPushed();
+});
+
+test('reading a document\'s file with the reading off leaves it off, with the reason', function (): void {
+    app()->instance(DocumentReader::class, (new FakeDocumentReader)->off());
+    $document = savedDocument(['reading_status' => ReadingStatus::Done]);
+
+    $this->post(route('files.read', $document->file))->assertRedirect();
+
+    expect($document->file->fresh())->reading_status->toBe(ReadingStatus::Off)->reading_error->toBe('Automatic reading is not on.');
+    Queue::assertNothingPushed();
+});
+
+test('reading a document\'s file with the month used up leaves it off, with the reason', function (): void {
+    config()->set('document_reader.monthly_limit', 1);
+    AiReading::factory()->for($this->marco->family)->create();
+    $document = savedDocument(['reading_status' => ReadingStatus::Done]);
+
+    $this->post(route('files.read', $document->file))->assertRedirect();
+
+    expect($document->file->fresh())->reading_status->toBe(ReadingStatus::Off)
+        ->and($document->file->fresh()->reading_error)->toStartWith('You have used all the automatic readings of');
     Queue::assertNothingPushed();
 });

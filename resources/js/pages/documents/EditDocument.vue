@@ -8,18 +8,20 @@
  * missing, with a sentence saying why, when the reading is off or the month's
  * readings are used up.
  */
-import { Head, router, usePoll } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Sparkles, Trash2 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmConfirmDelete from '@/components/fm/FmConfirmDelete.vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
 import FmFilePanel from '@/components/fm/FmFilePanel.vue';
-import FmNotice from '@/components/fm/FmNotice.vue';
+import FmReadingNotice from '@/components/fm/FmReadingNotice.vue';
 import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useReadingPoll } from '@/composables/useReadingPoll';
 import type { DocumentFormOptions } from '@/lib/documents';
 import { documentValues, proposalValues } from '@/lib/documents';
+import { isReading } from '@/lib/reading';
 import { destroy, file, show, update } from '@/routes/documents';
 import { read } from '@/routes/files';
 
@@ -32,17 +34,11 @@ const props = defineProps<{
     reading: App.Data.DocumentReadingData;
 }>();
 
-/** How often the page asks for the reading while it runs, in milliseconds. */
-const POLL_INTERVAL = 2000;
-
 /** The person asked for the reading on this page: an old reading is never written into the form. */
 const asked = ref(false);
 
 /** The file is waiting in the queue or being read. */
-const isReading = computed(
-    () =>
-        props.reading.status === 'queued' || props.reading.status === 'reading',
-);
+const running = computed(() => isReading(props.reading.status));
 
 /** What the reading found, as form values: only once it is done and the person asked for it. */
 const proposal = computed(() =>
@@ -51,31 +47,22 @@ const proposal = computed(() =>
         : undefined,
 );
 
-/** Why the reading did not give a proposal, after the person asked. */
-const notRead = computed(() =>
-    asked.value &&
-    (props.reading.status === 'failed' ||
-        props.reading.status === 'off' ||
-        props.reading.status === 'skipped')
-        ? props.reading.error
-        : null,
-);
-
 // Only the reading is asked for, so the form the person is writing is not reloaded
-const poll = usePoll(
-    POLL_INTERVAL,
-    { only: ['reading'], preserveUrl: true },
-    { autoStart: false },
-);
-
-watch(isReading, (running) => (running ? poll.start() : poll.stop()), {
-    immediate: true,
-});
+useReadingPoll(() => running.value, ['reading']);
 
 /** Asks the server to read the file again. */
 function fillFromFile(): void {
-    asked.value = true;
-    router.post(read.url(props.reading.file_id), {}, { preserveScroll: true });
+    router.post(
+        read.url(props.reading.file_id),
+        {},
+        {
+            preserveScroll: true,
+            // Only once the request landed: an old proposal is never written because of a request that failed
+            onSuccess: () => {
+                asked.value = true;
+            },
+        },
+    );
 }
 
 /** The panel that asks before deleting. */
@@ -102,7 +89,7 @@ const confirmingDelete = ref(false);
                 class="flex flex-col gap-4 rounded-3xl bg-white p-5 lg:p-7"
             >
                 <div
-                    v-if="reading.can_read && !isReading"
+                    v-if="reading.can_read && !running"
                     class="flex justify-start"
                 >
                     <FmButton
@@ -114,24 +101,18 @@ const confirmingDelete = ref(false);
                     </FmButton>
                 </div>
                 <p
-                    v-else-if="reading.unavailable"
+                    v-else-if="reading.unavailable && !running"
                     class="m-0 text-sm text-ink-soft"
                 >
                     {{ reading.unavailable }}
                 </p>
-                <FmReadingProgress
-                    v-if="isReading"
-                    :name="document.file.name"
+                <FmReadingProgress v-if="running" :name="document.file.name" />
+                <FmReadingNotice
+                    v-if="asked"
+                    :status="reading.status"
+                    :headline="reading.proposal?.headline"
+                    :error="reading.error"
                 />
-                <FmNotice
-                    v-if="proposal && reading.proposal"
-                    :title="reading.proposal.headline"
-                >
-                    {{ $t('Check it, change what is wrong and save.') }}
-                </FmNotice>
-                <FmNotice v-if="notRead" tone="warning">
-                    {{ notRead }}
-                </FmNotice>
                 <FmDocumentForm
                     :action="update(document.id)"
                     :initial="documentValues(document)"

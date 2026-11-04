@@ -10,7 +10,7 @@
  * is left out) and *Read and import* has them read, then opens the import. While
  * a file is queued or read the page asks for its state every 2 seconds.
  */
-import { Head, router, usePoll } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Inbox } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -22,7 +22,9 @@ import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
+import { useReadingPoll } from '@/composables/useReadingPoll';
 import { formatSize } from '@/lib/format';
+import { isReading } from '@/lib/reading';
 import { toSort } from '@/routes';
 import { read } from '@/routes/to-sort';
 import { destroy } from '@/routes/upload';
@@ -37,9 +39,6 @@ const props = defineProps<{
 }>();
 
 const { date } = useFormat();
-
-/** How often the page asks for the state of the files being read, in milliseconds. */
-const POLL_INTERVAL = 2000;
 
 /** The filters as tabs: a filter with no files cannot be chosen. */
 const tabs = computed<Tab[]>(() =>
@@ -71,23 +70,11 @@ const chosenIds = computed<number[]>(() =>
 
 /** Whether any file waiting is being read, which keeps the page asking. */
 const anyReading = computed(() =>
-    props.files.some(
-        (file) =>
-            file.reading_status === 'queued' ||
-            file.reading_status === 'reading',
-    ),
-);
-
-const poll = usePoll(
-    POLL_INTERVAL,
-    { only: ['files', 'filters'], preserveUrl: true },
-    { autoStart: false },
+    props.files.some((file) => isReading(file.reading_status)),
 );
 
 // Asks only while there is a file to wait for; the poll stops by itself on unmount
-watch(anyReading, (reading) => (reading ? poll.start() : poll.stop()), {
-    immediate: true,
-});
+useReadingPoll(() => anyReading.value, ['files', 'filters']);
 
 /**
  * Chooses a file or lets it go.

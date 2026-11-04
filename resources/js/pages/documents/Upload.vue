@@ -10,21 +10,24 @@
  * empty. Saving files the document, cancelling leaves the file in *To sort*.
  * The × goes back to the card the upload comes from.
  */
-import { Head, Link, router, usePoll } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
 import FmFilePreview from '@/components/fm/FmFilePreview.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmReadingNotice from '@/components/fm/FmReadingNotice.vue';
 import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { useReadingPoll } from '@/composables/useReadingPoll';
 import { useToSortCount } from '@/composables/useToSortCount';
 import type { DocumentFormOptions, DocumentLink } from '@/lib/documents';
 import { linkQuery, newDocument, proposalValues } from '@/lib/documents';
+import { isReading } from '@/lib/reading';
 import { dashboard, toSort } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 import { store as storeDocument } from '@/routes/documents';
@@ -68,19 +71,15 @@ const {
     errors: uploadErrors,
 } = useFileUpload(() => preset.value);
 
-/** How often the page asks for the state of the files being read, in milliseconds. */
-const POLL_INTERVAL = 2000;
-
-/** Whether a file is being read: waiting in the queue or running. */
-const isReading = (file: App.Data.PendingFileData): boolean =>
-    file.reading_status === 'queued' || file.reading_status === 'reading';
-
 /** Whether any file waiting is being read, which keeps the page asking. */
-const anyReading = computed(() => props.pending.some(isReading));
+const anyReading = computed(() =>
+    props.pending.some((file) => isReading(file.reading_status)),
+);
 
 /** The file in front is being read: the wait takes the place of the form. */
 const waiting = computed(
-    () => current.value !== undefined && isReading(current.value),
+    () =>
+        current.value !== undefined && isReading(current.value.reading_status),
 );
 
 /** What the reading found, as the values of the form; nothing before it is done. */
@@ -90,25 +89,8 @@ const proposal = computed(() =>
         : undefined,
 );
 
-/** The reason the reading did not give a proposal: it failed, is off or was skipped. */
-const notRead = computed(() => {
-    const status = current.value?.reading_status;
-
-    return status === 'failed' || status === 'off' || status === 'skipped'
-        ? current.value
-        : undefined;
-});
-
-const poll = usePoll(
-    POLL_INTERVAL,
-    { only: ['pending'], preserveUrl: true },
-    { autoStart: false },
-);
-
 // Asks only while there is a file to wait for; the poll stops by itself on unmount
-watch(anyReading, (reading) => (reading ? poll.start() : poll.stop()), {
-    immediate: true,
-});
+useReadingPoll(() => anyReading.value, ['pending']);
 
 /**
  * Reads the file again after it failed.
@@ -148,28 +130,22 @@ function cancel(): void {
             </p>
         </FmNotice>
 
-        <FmNotice
-            v-if="current && proposal && current.proposal"
-            :title="current.proposal.headline"
+        <FmReadingNotice
+            v-if="current"
+            :status="current.reading_status"
+            :headline="current.proposal?.headline"
+            :error="current.reading_error"
         >
-            {{ $t('Check it, change what is wrong and save.') }}
-        </FmNotice>
-
-        <FmNotice
-            v-if="notRead"
-            :tone="notRead.reading_status === 'failed' ? 'warning' : 'info'"
-        >
-            {{ notRead.reading_error }}
-            <template v-if="notRead.reading_status === 'failed'" #action>
+            <template v-if="current.reading_status === 'failed'" #action>
                 <button
                     type="button"
                     class="cursor-pointer border-0 bg-transparent p-0 font-semibold text-inherit underline"
-                    @click="readAgain(notRead)"
+                    @click="readAgain(current)"
                 >
                     {{ $t('Read again') }}
                 </button>
             </template>
-        </FmNotice>
+        </FmReadingNotice>
 
         <div v-if="current" class="flex flex-wrap items-start gap-6">
             <div
