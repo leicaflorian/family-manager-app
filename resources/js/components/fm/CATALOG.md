@@ -949,7 +949,7 @@ invitation to check it; when it failed, is off or was skipped, the reason (with 
 | --- | --- | --- | --- | --- |
 | `status` | `App.Enums.ReadingStatus \| null` | no | — | Where the reading stands. |
 | `headline` | `string \| null` | no | — | What the reading found, in a sentence; shown when it is done. |
-| `error` | `string \| null` | no | — | Why the file was not read; shown when it failed, is off or was skipped. |
+| `error` | `string \| null` | no | — | Why the file was not read; shown when it failed (with a sentence of its own when missing), is off or was skipped. |
 
 ### Slots
 
@@ -963,6 +963,11 @@ invitation to check it; when it failed, is off or was skipped, the reason (with 
 
 <!-- Failed -->
 <FmReadingNotice status="failed" error="The file could not be read.">
+    <template #action>Read again</template>
+</FmReadingNotice>
+
+<!-- Failed without a reason -->
+<FmReadingNotice status="failed">
     <template #action>Read again</template>
 </FmReadingNotice>
 

@@ -8,6 +8,7 @@ import {
     linkQuery,
     newDocument,
     parseLinkKey,
+    proposalOf,
     proposalValues,
     toPayload,
 } from './documents';
@@ -162,5 +163,31 @@ describe('proposalValues', () => {
             date: '2026-10-15',
             links: [{ type: 'home', id: 2 }],
         });
+    });
+});
+
+describe('proposalOf', () => {
+    const proposal: App.Data.Reading.DocumentProposalData = {
+        title: 'Luce ottobre',
+        category_id: null,
+        person_id: null,
+        organization_id: null,
+        date: null,
+        expiry_date: null,
+        links: [],
+        headline: 'A light bill',
+        found: [],
+    };
+
+    it('gives the values of the form once the reading is done', () => {
+        expect(proposalOf('done', proposal)).toEqual({ title: 'Luce ottobre' });
+    });
+
+    it('gives nothing before the reading is done, or without a proposal', () => {
+        // A file read again keeps its old proposal while it is read
+        expect(proposalOf('reading', proposal)).toBeUndefined();
+        expect(proposalOf('failed', proposal)).toBeUndefined();
+        expect(proposalOf('done', null)).toBeUndefined();
+        expect(proposalOf(null, undefined)).toBeUndefined();
     });
 });

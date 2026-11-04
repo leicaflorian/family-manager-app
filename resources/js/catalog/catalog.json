@@ -3068,7 +3068,7 @@
         "type": "string | null",
         "required": false,
         "default": null,
-        "description": "Why the file was not read; shown when it failed, is off or was skipped."
+        "description": "Why the file was not read; shown when it failed (with a sentence of its own when missing), is off or was skipped."
       }
     ],
     "events": [],

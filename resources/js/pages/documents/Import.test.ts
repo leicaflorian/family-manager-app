@@ -346,6 +346,22 @@ describe('Import', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('shows an error about the whole list of files on the page', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, visit) => {
+            visit?.onError?.({ files: 'Import at most 50 files at a time.' });
+        });
+        renderPage(Import, props([light, gas]));
+        await settle();
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Import the 2 files' }),
+        );
+
+        expect(
+            screen.getByText('Import at most 50 files at a time.'),
+        ).toBeInTheDocument();
+    });
+
     it('puts the errors on the right file when one was left out before', async () => {
         vi.spyOn(router, 'post').mockImplementation((_url, _data, visit) => {
             visit?.onError?.({
@@ -400,6 +416,29 @@ describe('Import', () => {
 
         expect(
             within(row('bolletta-gas.pdf')).getByText('You are looking at it'),
+        ).toBeInTheDocument();
+    });
+
+    it('keeps the person on the file open when a refresh only changes the state of the readings', async () => {
+        const reading = file({
+            ...gas,
+            reading_status: 'reading',
+            proposal: null,
+        });
+        const failures = { 3: 'This file could not be saved.' };
+        const view = renderPage(
+            Import,
+            props([light, reading, warranty], failures),
+        );
+        await fireEvent.click(row('bolletta-luce.pdf'));
+
+        // the poll: the same files, the second one read meanwhile
+        await view.rerender(
+            structuredClone(props([light, gas, warranty], failures)),
+        );
+
+        expect(
+            within(row('bolletta-luce.pdf')).getByText('You are looking at it'),
         ).toBeInTheDocument();
     });
 });

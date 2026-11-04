@@ -20,3 +20,15 @@ export function isReading(status: Status): boolean {
 export function isNotRead(status: Status): boolean {
     return status === 'failed' || status === 'off' || status === 'skipped';
 }
+
+/**
+ * Whether any of the files is waiting in the queue or being read: a page showing them keeps asking.
+ *
+ * @param files - the files, with their reading status
+ * @returns true when one of them is `queued` or `reading`
+ */
+export function anyFileReading(
+    files: readonly { reading_status: Status }[],
+): boolean {
+    return files.some((file) => isReading(file.reading_status));
+}

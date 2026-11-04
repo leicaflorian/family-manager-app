@@ -6,7 +6,7 @@
  * middle and its form on the right, filled with what the reading found. A file can be left out
  * (*Do not import this file*) and stays in *To sort*. A file still being read makes the page ask for its
  * state every 2 seconds, and the import waits for it. What does not save stays on the page, its row saying
- * why.
+ * why; an error about the list as a whole (too many files) shows on top of the page.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
@@ -21,8 +21,8 @@ import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import type { DocumentFormOptions, DocumentFormValues } from '@/lib/documents';
-import { newDocument, proposalValues, toPayload } from '@/lib/documents';
-import { isReading } from '@/lib/reading';
+import { newDocument, proposalOf, toPayload } from '@/lib/documents';
+import { anyFileReading, isReading } from '@/lib/reading';
 import { toSort } from '@/routes';
 import { store } from '@/routes/import';
 
@@ -62,6 +62,9 @@ const values = reactive<Record<number, DocumentFormValues>>({});
 /** The errors of the last import, by the id of the file and then the field of its document (`title`, `tags.0`…). */
 const errors = ref<Record<number, Record<string, string>>>({});
 
+/** An error of the server about the list of files as a whole (how many there are), not about one of them. */
+const listError = ref<string | undefined>();
+
 /** Whether the documents are being sent. */
 const processing = ref(false);
 
@@ -74,9 +77,7 @@ const included = computed(() =>
 );
 
 /** Whether a file that will be imported is still being read. */
-const anyReading = computed(() =>
-    included.value.some((file) => isReading(file.reading_status)),
-);
+const anyReading = computed(() => anyFileReading(included.value));
 
 // Asks only while there is a file to wait for; the poll stops by itself on unmount
 useReadingPoll(() => anyReading.value, ['files']);
@@ -89,20 +90,6 @@ useReadingPoll(() => anyReading.value, ['files']);
  */
 function initialValues(file: App.Data.PendingFileData): DocumentFormValues {
     return { ...newDocument(file.title), links: file.links };
-}
-
-/**
- * What the reading found for a file, as the values of its form.
- *
- * @param file - the file
- * @returns the values, nothing before the reading is done
- */
-function proposalOf(
-    file: App.Data.PendingFileData,
-): Partial<DocumentFormValues> | undefined {
-    return file.reading_status === 'done' && file.proposal
-        ? proposalValues(file.proposal)
-        : undefined;
 }
 
 /**
@@ -157,19 +144,28 @@ function errorsByFile(
 }
 
 // When the files change (the page came back after a partial failure, or a file went), stay on the file open,
-// or go to the first that failed, or to the first
+// or go to the first that failed, or to the first. A refresh of the readings changes neither the files nor the
+// failures, so the person stays where they are
 watch(
-    () => props.files,
-    (files, before) => {
-        const stays = files.findIndex(
-            (file) => file.id === before[position.value]?.id,
+    (): [number[], string[]] => [
+        props.files.map((file) => file.id),
+        Object.keys(props.failures),
+    ],
+    ([ids, failed], [idsBefore, failedBefore]) => {
+        if (
+            ids.join() === idsBefore.join() &&
+            failed.join() === failedBefore.join()
+        ) {
+            return;
+        }
+
+        const stays = ids.indexOf(idsBefore[position.value] ?? -1);
+        const first = props.files.findIndex(
+            (file) => problemOf(file) !== undefined,
         );
-        const failed = files.findIndex((file) => problemOf(file) !== undefined);
 
         position.value =
-            stays >= 0 && Object.keys(props.failures).length === 0
-                ? stays
-                : Math.max(failed, 0);
+            stays >= 0 && failed.length === 0 ? stays : Math.max(first, 0);
     },
 );
 
@@ -222,6 +218,7 @@ function toggleLeftOut(): void {
 /** Files the documents of the files that are not left out. */
 function save(): void {
     errors.value = {};
+    listError.value = undefined;
     const sent = included.value;
     router.post(
         store().url,
@@ -237,6 +234,7 @@ function save(): void {
             onFinish: () => (processing.value = false),
             onError: (received) => {
                 errors.value = errorsByFile(received, sent);
+                listError.value = received.files;
                 const first = props.files.findIndex(
                     (file) => problemOf(file) !== undefined,
                 );
@@ -266,6 +264,8 @@ function save(): void {
                 </Link>
             </template>
         </FmTitle>
+
+        <FmNotice v-if="listError" tone="warning">{{ listError }}</FmNotice>
 
         <div
             v-if="current"
@@ -399,7 +399,7 @@ function save(): void {
                     :key="file.id"
                     :initial="initialValues(file)"
                     :options="options"
-                    :proposal="proposalOf(file)"
+                    :proposal="proposalOf(file.reading_status, file.proposal)"
                     :errors="fieldErrorsOf(file)"
                     @change="values[file.id] = $event"
                 />

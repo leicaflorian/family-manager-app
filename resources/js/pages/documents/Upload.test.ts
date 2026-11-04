@@ -8,6 +8,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import { guardVisits, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
 import { pendingPayslip as payslip } from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import Upload from './Upload.vue';
@@ -382,6 +383,42 @@ describe('Upload', () => {
             );
         });
 
+        it('asks for the state again once Read again puts the file back in the queue', async () => {
+            const failed: App.Data.PendingFileData = {
+                ...payslip,
+                reading_status: 'failed',
+                reading_error: 'The reading did not work.',
+            };
+            const reload = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => {});
+            const result = renderPage(Upload, {
+                pending: [failed],
+                ...options,
+            });
+
+            await vi.advanceTimersByTimeAsync(4000);
+            expect(reload).not.toHaveBeenCalled();
+
+            // What the server sends back after *Read again*
+            await result.rerender({
+                pending: [
+                    {
+                        ...failed,
+                        reading_status: 'queued',
+                        reading_error: null,
+                    },
+                ],
+                ...options,
+            });
+            await vi.advanceTimersByTimeAsync(2000);
+
+            expect(reload).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({ only: ['pending'] }),
+            );
+        });
+
         it.each(['off', 'skipped'] as const)(
             'shows the message of a reading %s and the form to fill by hand',
             (status) => {
@@ -405,6 +442,37 @@ describe('Upload', () => {
                 expect(screen.getByLabelText('What it is')).toBeVisible();
             },
         );
+
+        it('cancels a form filled by the reading without asking to leave', async () => {
+            window.history.replaceState(null, '', '/upload');
+            const visits: string[] = [];
+            /** Notes the visits the guard let through, then stops them: there is no server. */
+            const watch = (event: Event): void => {
+                const { visit } = (event as CustomEvent).detail as {
+                    visit: { url: URL };
+                };
+                if (!event.defaultPrevented) {
+                    visits.push(visit.url.pathname);
+                }
+                event.preventDefault();
+            };
+            renderPage(Upload, { pending: [done], ...options });
+            await settle();
+            // As under `AppLayout`; the watcher comes after it, to see what it stopped
+            const stop = guardVisits();
+            document.addEventListener('inertia:before', watch);
+
+            expect(hasChanges()).toBe(true);
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Cancel' }),
+            );
+
+            document.removeEventListener('inertia:before', watch);
+            stop();
+            window.history.replaceState(null, '', '/');
+            expect(leaveQuestion.open).toBe(false);
+            expect(visits).toEqual(['/to-sort']);
+        });
 
         it('files the document with the file id when saved after a reading', async () => {
             const post = vi.spyOn(router, 'post').mockImplementation(() => {});

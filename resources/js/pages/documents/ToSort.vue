@@ -24,7 +24,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { formatSize } from '@/lib/format';
-import { isReading } from '@/lib/reading';
+import { anyFileReading } from '@/lib/reading';
 import { toSort } from '@/routes';
 import { read } from '@/routes/to-sort';
 import { destroy } from '@/routes/upload';
@@ -69,9 +69,7 @@ const chosenIds = computed<number[]>(() =>
 );
 
 /** Whether any file waiting is being read, which keeps the page asking. */
-const anyReading = computed(() =>
-    props.files.some((file) => isReading(file.reading_status)),
-);
+const anyReading = computed(() => anyFileReading(props.files));
 
 // Asks only while there is a file to wait for; the poll stops by itself on unmount
 useReadingPoll(() => anyReading.value, ['files', 'filters']);

@@ -20,7 +20,7 @@ import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import type { DocumentFormOptions } from '@/lib/documents';
-import { documentValues, proposalValues } from '@/lib/documents';
+import { documentValues, proposalOf } from '@/lib/documents';
 import { isReading } from '@/lib/reading';
 import { destroy, file, show, update } from '@/routes/documents';
 import { read } from '@/routes/files';
@@ -42,8 +42,8 @@ const running = computed(() => isReading(props.reading.status));
 
 /** What the reading found, as form values: only once it is done and the person asked for it. */
 const proposal = computed(() =>
-    asked.value && props.reading.status === 'done' && props.reading.proposal
-        ? proposalValues(props.reading.proposal)
+    asked.value
+        ? proposalOf(props.reading.status, props.reading.proposal)
         : undefined,
 );
 

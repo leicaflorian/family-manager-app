@@ -269,3 +269,18 @@ export function proposalValues(
 
     return values;
 }
+
+/**
+ * What the reading of a file proposes, as the values of the form: only once it is done. A file read again
+ * keeps its old proposal while it waits, and that one is never written into the form.
+ *
+ * @param status - where the reading of the file stands
+ * @param proposal - the proposal the server keeps for the file
+ * @returns the values the reading found, nothing before it is done
+ */
+export function proposalOf(
+    status: App.Enums.ReadingStatus | null | undefined,
+    proposal: App.Data.Reading.DocumentProposalData | null | undefined,
+): Partial<DocumentFormValues> | undefined {
+    return status === 'done' && proposal ? proposalValues(proposal) : undefined;
+}

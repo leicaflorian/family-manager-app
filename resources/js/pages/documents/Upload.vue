@@ -26,8 +26,8 @@ import { useFileUpload } from '@/composables/useFileUpload';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { useToSortCount } from '@/composables/useToSortCount';
 import type { DocumentFormOptions, DocumentLink } from '@/lib/documents';
-import { linkQuery, newDocument, proposalValues } from '@/lib/documents';
-import { isReading } from '@/lib/reading';
+import { linkQuery, newDocument, proposalOf } from '@/lib/documents';
+import { anyFileReading, isReading } from '@/lib/reading';
 import { dashboard, toSort } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 import { store as storeDocument } from '@/routes/documents';
@@ -72,9 +72,7 @@ const {
 } = useFileUpload(() => preset.value);
 
 /** Whether any file waiting is being read, which keeps the page asking. */
-const anyReading = computed(() =>
-    props.pending.some((file) => isReading(file.reading_status)),
-);
+const anyReading = computed(() => anyFileReading(props.pending));
 
 /** The file in front is being read: the wait takes the place of the form. */
 const waiting = computed(
@@ -84,9 +82,7 @@ const waiting = computed(
 
 /** What the reading found, as the values of the form; nothing before it is done. */
 const proposal = computed(() =>
-    current.value?.reading_status === 'done' && current.value.proposal
-        ? proposalValues(current.value.proposal)
-        : undefined,
+    proposalOf(current.value?.reading_status, current.value?.proposal),
 );
 
 // Asks only while there is a file to wait for; the poll stops by itself on unmount

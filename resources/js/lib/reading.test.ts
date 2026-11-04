@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { isNotRead, isReading } from './reading';
+import { anyFileReading, isNotRead, isReading } from './reading';
 
 describe('isReading', () => {
     it('is true while the file waits in the queue or is read', () => {
@@ -38,5 +38,26 @@ describe('isNotRead', () => {
         ] as const) {
             expect(isNotRead(status)).toBe(false);
         }
+    });
+});
+
+describe('anyFileReading', () => {
+    it('is true when one of the files waits in the queue or is read', () => {
+        expect(
+            anyFileReading([
+                { reading_status: 'done' },
+                { reading_status: 'queued' },
+            ]),
+        ).toBe(true);
+    });
+
+    it('is false when none is, and for no files', () => {
+        expect(
+            anyFileReading([
+                { reading_status: 'done' },
+                { reading_status: null },
+            ]),
+        ).toBe(false);
+        expect(anyFileReading([])).toBe(false);
     });
 });

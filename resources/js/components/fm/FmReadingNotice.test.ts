@@ -28,6 +28,20 @@ describe('FmReadingNotice', () => {
         ).toBeInTheDocument();
     });
 
+    it('says the file could not be read when a failure has no reason', () => {
+        render(FmReadingNotice, {
+            props: { status: 'failed', error: null },
+            slots: { action: '<button>Read again</button>' },
+        });
+
+        expect(
+            screen.getByText('The file could not be read.'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Read again' }),
+        ).toBeInTheDocument();
+    });
+
     it.each(['off', 'skipped'] as const)(
         'shows the reason when %s',
         (status) => {

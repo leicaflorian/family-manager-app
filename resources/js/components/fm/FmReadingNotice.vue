@@ -6,6 +6,7 @@
  *
  * @group basics
  */
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { isNotRead } from '@/lib/reading';
 import FmNotice from './FmNotice.vue';
@@ -15,7 +16,7 @@ const { status, headline, error } = defineProps<{
     status?: App.Enums.ReadingStatus | null;
     /** What the reading found, in a sentence; shown when it is done. */
     headline?: string | null;
-    /** Why the file was not read; shown when it failed, is off or was skipped. */
+    /** Why the file was not read; shown when it failed (with a sentence of its own when missing), is off or was skipped. */
     error?: string | null;
 }>();
 
@@ -27,8 +28,20 @@ defineSlots<{
 /** The sentence of what was found: only a done reading has one. */
 const found = computed(() => (status === 'done' && headline ? headline : null));
 
-/** The reason, only for a reading that ended without a proposal. */
-const reason = computed(() => (isNotRead(status) ? error : null));
+/**
+ * The reason, only for a reading that ended without a proposal. A failure always says something, so that the
+ * notice and its action show even when the server gave no reason.
+ */
+const reason = computed(() => {
+    if (!isNotRead(status)) {
+        return null;
+    }
+
+    return (
+        error ||
+        (status === 'failed' ? trans('The file could not be read.') : null)
+    );
+});
 </script>
 
 <template>

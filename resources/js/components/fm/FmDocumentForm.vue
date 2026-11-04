@@ -14,6 +14,7 @@ import { computed, ref, watch } from 'vue';
 import type { FillMode } from '@/composables/useReadingFill';
 import { useReadingFill } from '@/composables/useReadingFill';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { categoryOptions } from '@/lib/categories';
 import type {
     DocumentFormOptions,
@@ -28,7 +29,6 @@ import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
 import FmCategoryOption from './FmCategoryOption.vue';
 import FmConfirm from './FmConfirm.vue';
-import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const {
     action,
