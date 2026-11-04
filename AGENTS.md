@@ -82,7 +82,7 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 | `./vendor/bin/sail npx vp check --fix` | Formattazione e lint del frontend |
 | `./vendor/bin/sail npm run catalog` | Riscrive il catalogo dei componenti, `components/fm/CATALOG.md` |
 | `./vendor/bin/sail artisan directus:copy --family="…"` | Copia una famiglia da Directus (`--replace`, `--without-files`) |
-| `./vendor/bin/sail artisan ai-readings:report` | Le letture AI di oggi per famiglia, con il costo |
+| `./vendor/bin/sail artisan ai-readings:report` | Le letture AI del mese per famiglia, con token e costo (`--month=2026-10`; senza, il mese in corso) |
 | `./vendor/bin/sail artisan files:checksums` | Scrive le impronte dei file che non l'hanno (una volta, dopo la migrazione) |
 
 Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori, Rector senza modifiche proposte, build, tipi e lint senza errori, Pint pulito, catalogo dei componenti aggiornato (`npm run catalog` non cambia niente).
