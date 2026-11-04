@@ -273,6 +273,14 @@ readonly type_label: string,
 readonly label: string,
 readonly href: string | null,
 };
+export type DocumentReadingData = {
+readonly file_id: number,
+readonly status: App.Enums.ReadingStatus | null,
+readonly error: string | null,
+readonly proposal: App.Data.Reading.DocumentProposalData | null,
+readonly can_read: boolean,
+readonly unavailable: string | null,
+};
 export type ExceptionData = {
 readonly id: number,
 readonly occurrence_date: string,

@@ -847,6 +847,7 @@ export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
 - `pages/auth/VerifyEmail.vue`
 - `pages/budget/Deadline.vue`
 - `pages/cards/Card.vue`
+- `pages/documents/EditDocument.vue`
 - `pages/documents/Import.vue`
 - `pages/documents/Upload.vue`
 - `pages/family/InvitationSent.vue`
@@ -965,6 +966,7 @@ Used on the page of the reading and on the rows of the files being read.
 
 ### Used by
 
+- `pages/documents/EditDocument.vue`
 - `pages/documents/Import.vue`
 - `pages/documents/Upload.vue`
 

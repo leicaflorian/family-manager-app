@@ -2587,6 +2587,7 @@
       "pages/auth/VerifyEmail.vue",
       "pages/budget/Deadline.vue",
       "pages/cards/Card.vue",
+      "pages/documents/EditDocument.vue",
       "pages/documents/Import.vue",
       "pages/documents/Upload.vue",
       "pages/family/InvitationSent.vue",
@@ -3074,6 +3075,7 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "pages/documents/EditDocument.vue",
       "pages/documents/Import.vue",
       "pages/documents/Upload.vue"
     ]

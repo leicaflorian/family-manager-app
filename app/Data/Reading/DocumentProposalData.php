@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Data\Reading;
 
+use App\Enums\ReadingStatus;
+use App\Models\File;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -36,4 +38,17 @@ final class DocumentProposalData extends Data
         public readonly string $headline,
         public readonly array $found,
     ) {}
+
+    /**
+     * What the reading of a file proposes. A file read again keeps the old reading until the new one is done, so
+     * only a done reading proposes.
+     *
+     * @param  File  $file  the file
+     */
+    public static function fromFile(File $file): ?self
+    {
+        $proposal = $file->reading['proposal'] ?? null;
+
+        return $file->reading_status === ReadingStatus::Done && is_array($proposal) ? self::from($proposal) : null;
+    }
 }

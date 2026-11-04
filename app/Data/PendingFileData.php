@@ -95,7 +95,6 @@ final class PendingFileData extends Data
     public static function fromFile(File $file): self
     {
         $link = PresetLink::ofFile($file);
-        $proposal = $file->reading['proposal'] ?? null;
 
         return new self(
             id: $file->id,
@@ -108,8 +107,7 @@ final class PendingFileData extends Data
             links: $link === null ? [] : [$link],
             reading_status: $file->reading_status,
             reading_error: $file->reading_error,
-            // A file read again keeps the old reading until the new one is done: only a done reading proposes
-            proposal: $file->reading_status === ReadingStatus::Done && is_array($proposal) ? DocumentProposalData::from($proposal) : null,
+            proposal: DocumentProposalData::fromFile($file),
             source: $file->source,
             source_label: $file->source->label(),
             note: $file->note,

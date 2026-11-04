@@ -469,6 +469,16 @@ export const areaCounts: App.Data.AreaCountData[] = allAreas.map(
     }),
 );
 
+/** The reading of the file of a saved document that was never read (a copy from Directus), as the server sends it. */
+export const documentReading: App.Data.DocumentReadingData = {
+    file_id: 12,
+    status: null,
+    error: null,
+    proposal: null,
+    can_read: true,
+    unavailable: null,
+};
+
 /** A file of *Upload* waiting for its document, as the server sends it. */
 export const pendingPayslip: App.Data.PendingFileData = {
     id: 12,

@@ -9,6 +9,7 @@ use App\Actions\Documents\FileDocument;
 use App\Actions\Reminders\ForgetRemindable;
 use App\Data\DocumentData;
 use App\Data\DocumentDetailData;
+use App\Data\DocumentReadingData;
 use App\Http\Requests\Documents\ChangeFileRequest;
 use App\Http\Requests\Documents\DocumentIndexRequest;
 use App\Http\Requests\Documents\SaveDocumentRequest;
@@ -20,6 +21,7 @@ use App\Services\CategoryTree;
 use App\Services\DocumentFormOptions;
 use App\Services\DocumentLinks;
 use App\Services\FileStore;
+use App\Services\Reading\ReadingAvailability;
 use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -76,15 +78,22 @@ final class DocumentController extends Controller
     }
 
     /**
-     * *Edit a document*: its form with every field and the links.
+     * *Edit a document*: its form with every field and the links, and where the reading of its file stands
+     * (*Fill in from the file*).
      */
-    public function edit(Document $document, DocumentFormOptions $options, #[CurrentUser] User $user): Response
+    public function edit(Document $document, DocumentFormOptions $options, ReadingAvailability $availability, #[CurrentUser] User $user): Response
     {
         Gate::authorize('update', $document);
 
         return Inertia::render('documents/EditDocument', [
             'document' => $this->detail($document, $user),
             'options' => $options->all(),
+            // A prop of its own and a closure, so the page asks for it alone while the file is read
+            'reading' => fn (): DocumentReadingData => DocumentReadingData::fromFile(
+                $document->file,
+                $user->can('read', $document->file),
+                $availability->unavailable(app()->getLocale()),
+            ),
         ]);
     }
 
