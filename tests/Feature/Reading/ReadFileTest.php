@@ -372,6 +372,31 @@ test('a reading is counted even when what comes after it fails', function (): vo
         ->and($this->file->fresh()->reading_status)->not->toBe(ReadingStatus::Done);
 });
 
+test('a failure after the paid reading fails the file and is not tried again', function (): void {
+    Exceptions::fake();
+    $this->reader->returns(Extraction::from(['kind' => 'utility_bill', 'confidence' => 'high', 'issuer_name' => 'Edison']));
+    // the proposal breaks after the service answered: a try started again would pay a second reading
+    Organization::retrieved(function (): void {
+        if ($this->reader->reads() > 0) {
+            throw new RuntimeException('the proposal broke');
+        }
+    });
+
+    queueReadingOf($this->file, $this->marco);
+    workQueue();
+    Date::setTestNow(now()->addMinutes(5));
+    workQueue();
+
+    $file = $this->file->fresh();
+    expect($this->reader->reads())->toBe(1)
+        ->and(AiReading::query()->withoutGlobalScopes()->count())->toBe(1)
+        ->and($file->reading_status)->toBe(ReadingStatus::Failed)
+        ->and($file->reading_error)->toBe('Non è stato possibile leggere il file.')
+        ->and(waitingJobs())->toBe(0)
+        ->and(DB::table('failed_jobs')->count())->toBe(0);
+    Exceptions::assertReported(fn (RuntimeException $exception): bool => $exception->getMessage() === 'the proposal broke');
+});
+
 test('the limit is checked again when the file is read', function (): void {
     config(['document_reader.monthly_limit' => 1]);
     $second = fileToRead($this->bianchi);

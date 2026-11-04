@@ -75,7 +75,8 @@ final class ReadFile implements ShouldBeUnique, ShouldQueue
         $this->inFamilyAndLanguage(function () use ($read): void {
             $file = File::query()->find($this->fileId);
 
-            // Gone, or no longer waiting: a try started again after a timeout must not read (and pay) twice
+            // Gone, or done, failed or off already: a second job of the same file must not read (and pay) it again.
+            // A try killed by the timeout while still `reading` is read again: that window is accepted
             if (! $file instanceof File || ! in_array($file->reading_status, [ReadingStatus::Queued, ReadingStatus::Reading], true)) {
                 return;
             }

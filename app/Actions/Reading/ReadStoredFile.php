@@ -44,7 +44,8 @@ final readonly class ReadStoredFile
 
     /**
      * Reads the file. A file the model does not read ends `skipped`; a service switched off, or the readings of the
-     * month used up, end `off`.
+     * month used up, end `off`. Anything that breaks after the service answered is reported and ends the file
+     * `failed`, without going back to the queue: the reading is paid already.
      *
      * @param  File  $file  the file to read
      * @param  User|null  $user  who uploaded it
@@ -87,19 +88,27 @@ final readonly class ReadStoredFile
         $this->record($file, $user, $purpose, $reading, $cost);
         $this->log($file, $reading, $cost);
 
-        $proposal = $this->proposals->of($reading->extraction, $context, $locale);
+        // A failure from here on must not reach the queue: a try started again would pay a second reading
+        try {
+            $proposal = $this->proposals->of($reading->extraction, $context, $locale);
 
-        $file->forceFill([
-            'reading_status' => ReadingStatus::Done,
-            'reading_error' => null,
-            'reading' => [
-                'extraction' => $reading->extraction->toArray(),
-                'proposal' => $proposal->toArray(),
-                'provider' => $reading->provider,
-                'model' => $reading->model,
-                'read_at' => $now->toIso8601String(),
-            ],
-        ])->save();
+            $file->forceFill([
+                'reading_status' => ReadingStatus::Done,
+                'reading_error' => null,
+                'reading' => [
+                    'extraction' => $reading->extraction->toArray(),
+                    'proposal' => $proposal->toArray(),
+                    'provider' => $reading->provider,
+                    'model' => $reading->model,
+                    'read_at' => $now->toIso8601String(),
+                ],
+            ])->save();
+        } catch (Throwable $error) {
+            report($error);
+            $file->markReading(ReadingStatus::Failed, __('The file could not be read.'));
+
+            return;
+        }
 
         // In a job of its own: a slow conversion must not make the queue try the paid reading again
         dispatch(new PreparePreview($file->id, $file->family_id));
