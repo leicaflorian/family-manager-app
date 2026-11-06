@@ -49,7 +49,7 @@ function tabClasses(marked: boolean, disabled = false): string {
         return cn(
             'flex h-10 flex-1 items-center justify-center gap-1 rounded-[9px] text-[15px] no-underline',
             marked
-                ? 'bg-white font-bold text-ink shadow-[0_1px_3px_rgba(24,33,47,0.12)]'
+                ? 'bg-card font-bold text-ink shadow-raised'
                 : cn(
                       'font-medium text-ink-soft',
                       disabled ? 'opacity-50' : 'hover:text-ink',
@@ -74,7 +74,7 @@ function tabClasses(marked: boolean, disabled = false): string {
         :aria-label="label"
         :class="
             variant === 'pill'
-                ? 'flex gap-1.5 rounded-lg bg-[#E6EAF0] p-1'
+                ? 'flex gap-1.5 rounded-lg bg-segment p-1'
                 : '-mx-1 flex gap-1 overflow-x-auto border-b border-divider'
         "
     >

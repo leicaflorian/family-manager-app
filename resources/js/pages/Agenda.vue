@@ -175,7 +175,7 @@ function tileClass(tile: Tile): string {
     return desktop.value
         ? cn(
               'flex flex-[1_1_220px] flex-col gap-1 rounded-card px-[18px] py-4',
-              tile.overdue ? 'bg-overdue/8' : 'bg-white',
+              tile.overdue ? 'bg-overdue/8' : 'bg-card',
           )
         : cn(
               'flex flex-1 flex-col gap-0.5 px-3.5 py-3 not-last:border-r not-last:border-divider',
@@ -226,7 +226,7 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
             v-if="!nothingInPeriod"
             :aria-label="$t('In short')"
             class="m-0 flex list-none p-0"
-            :class="desktop ? 'flex-wrap gap-3' : 'rounded-card bg-white'"
+            :class="desktop ? 'flex-wrap gap-3' : 'rounded-card bg-card'"
         >
             <li
                 v-for="tile in tiles"
@@ -234,7 +234,7 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
                 :class="tileClass(tile)"
             >
                 <span
-                    class="font-semibold text-[#4A5565]"
+                    class="font-semibold text-ink-soft"
                     :class="desktop ? 'text-sm' : 'text-[13px]'"
                     >{{ tile.label }}</span
                 >
@@ -288,7 +288,7 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
         <template v-else>
             <div
                 v-if="shown.length === 0"
-                class="flex flex-wrap items-center gap-3 rounded-card bg-white p-5"
+                class="flex flex-wrap items-center gap-3 rounded-card bg-card p-5"
             >
                 <span class="text-[15px]">{{
                     $t('No entries with these filters')

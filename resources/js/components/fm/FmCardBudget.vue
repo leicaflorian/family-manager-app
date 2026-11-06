@@ -123,7 +123,7 @@ const nextLineClass = computed((): string =>
     <Link
         v-if="budget && next"
         :href="nextUrl"
-        class="flex flex-col gap-1 rounded-card bg-white p-4 text-ink no-underline hover:bg-white/80"
+        class="flex flex-col gap-1 rounded-card bg-card p-4 text-ink no-underline hover:bg-card/80"
     >
         <span class="text-[13px] font-semibold text-ink-soft">{{
             budget.next_label
@@ -156,7 +156,7 @@ const nextLineClass = computed((): string =>
 
     <div
         v-if="budget && progress"
-        class="flex flex-col gap-2 rounded-card bg-white p-4"
+        class="flex flex-col gap-2 rounded-card bg-card p-4"
     >
         <span class="flex items-baseline justify-between gap-3">
             <span class="text-[13px] font-semibold text-ink-soft">{{

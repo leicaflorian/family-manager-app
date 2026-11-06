@@ -112,7 +112,7 @@ const status = computed(() => {
         <FmBackLink :href="back.href" :label="back.label" />
 
         <div
-            class="flex flex-wrap items-center justify-between gap-6 rounded-sheet bg-white p-5 lg:p-7"
+            class="flex flex-wrap items-center justify-between gap-6 rounded-sheet bg-card p-5 lg:p-7"
         >
             <div class="flex min-w-0 flex-col gap-1.5">
                 <Link

@@ -82,7 +82,7 @@ describe('FmDocumentActions', () => {
 
         expect(
             screen.getByRole('button', { name: 'More actions' }),
-        ).toHaveClass('size-11.5');
+        ).toHaveClass('size-control-md');
     });
 
     it('on its own page puts in the menu the buttons that do not fit', async () => {

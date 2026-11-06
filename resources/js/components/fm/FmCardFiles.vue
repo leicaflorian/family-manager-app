@@ -150,7 +150,7 @@ function keep(id: number): void {
 
 <template>
     <section
-        class="flex flex-col gap-3 rounded-sheet bg-[#e9edf3] p-5 lg:p-7"
+        class="flex flex-col gap-3 rounded-sheet bg-segment p-5 lg:p-7"
         :aria-labelledby="titleId"
     >
         <div class="flex items-center justify-between gap-3">
@@ -177,7 +177,7 @@ function keep(id: number): void {
         <ul
             v-if="files.length > 0"
             v-auto-animate
-            class="m-0 flex list-none flex-col divide-y divide-divider overflow-hidden rounded-card bg-white p-0"
+            class="m-0 flex list-none flex-col divide-y divide-divider overflow-hidden rounded-card bg-card p-0"
         >
             <li
                 v-for="(file, index) in files"
@@ -209,7 +209,7 @@ function keep(id: number): void {
         <div
             v-if="link.length > 0 || documents.length > 0"
             v-auto-animate
-            class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-white"
+            class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
         >
             <div
                 v-for="document in link"

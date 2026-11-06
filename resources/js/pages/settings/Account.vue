@@ -189,7 +189,7 @@ function deleteAccount(): void {
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-[#4A5565]"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-ink-soft"
                     >
                         <FmIcon :icon="KeyRound" :size="22" />
                     </span>
@@ -217,7 +217,7 @@ function deleteAccount(): void {
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-[#4A5565]"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-ink-soft"
                     >
                         <FmIcon :icon="Users" :size="22" />
                     </span>

@@ -31,8 +31,8 @@ describe('FmCardHeader', () => {
         });
 
         expect(screen.getByRole('button', { name: 'Edit' })).toHaveClass(
-            'bg-white/15',
-            'text-white',
+            'bg-on-hero-soft',
+            'text-on-hero',
         );
     });
 });

@@ -342,7 +342,7 @@ function save(): void {
                         :href="closeUrl"
                         data-discard-changes
                         :aria-label="$t('Close')"
-                        class="flex size-11 items-center justify-center rounded-lg border border-edge bg-white text-ink"
+                        class="flex size-11 items-center justify-center rounded-lg border border-edge bg-card text-ink"
                     >
                         <FmIcon :icon="X" :size="20" />
                     </Link>
@@ -408,7 +408,7 @@ function save(): void {
                 >
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge bg-white px-3.5 py-2.5 text-left"
+                        class="flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge bg-card px-3.5 py-2.5 text-left"
                         :class="{
                             'border-action': stateOf(file) === 'looking',
                             'opacity-60': stateOf(file) === 'left-out',
@@ -470,7 +470,7 @@ function save(): void {
 
             <div class="flex flex-wrap items-start gap-6">
                 <div
-                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-[#E9EDF3] p-5 lg:sticky lg:top-0 lg:p-8"
+                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-segment p-5 lg:sticky lg:top-0 lg:p-8"
                 >
                     <FmFilePreview
                         :url="current.url"
@@ -485,7 +485,7 @@ function save(): void {
                 </div>
 
                 <section
-                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-white p-5 lg:p-7"
+                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-card p-5 lg:p-7"
                 >
                     <FmNotice v-if="problemOf(current)" tone="warning">
                         {{ problemOf(current) }}
@@ -545,7 +545,7 @@ function save(): void {
 
             <div
                 v-if="!desktop"
-                class="sticky bottom-0 -mx-5 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2.5 border-t border-edge bg-white px-5 pt-3 pb-4"
+                class="sticky bottom-0 -mx-5 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2.5 border-t border-edge bg-card px-5 pt-3 pb-4"
             >
                 <FmButton
                     variant="outline"

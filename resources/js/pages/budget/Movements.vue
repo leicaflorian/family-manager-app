@@ -227,7 +227,7 @@ function subtitle(movement: App.Data.MovementData): string {
 
                 <div class="grid grid-cols-3 gap-2.5">
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-white p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
                     >
                         <span class="text-[13px] text-ink-soft">{{
                             $t('Money in')
@@ -242,7 +242,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         >
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-white p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
                     >
                         <span class="text-[13px] text-ink-soft">{{
                             $t('Money out')
@@ -255,7 +255,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         }}</span>
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-white p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
                     >
                         <span class="text-[13px] text-ink-soft">{{
                             $t('So far')
@@ -283,7 +283,7 @@ function subtitle(movement: App.Data.MovementData): string {
                             :key="choice.value ?? 'all'"
                             type="button"
                             :aria-pressed="kind === choice.value"
-                            class="h-[38px] cursor-pointer rounded-[7px] border-0 bg-transparent px-3.5 text-[15px] text-ink-soft aria-pressed:bg-white aria-pressed:text-ink aria-pressed:shadow-[0_1px_3px_rgba(24,33,47,0.12)]"
+                            class="h-[38px] cursor-pointer rounded-[7px] border-0 bg-transparent px-3.5 text-[15px] text-ink-soft aria-pressed:bg-card aria-pressed:text-ink aria-pressed:shadow-raised"
                             @click="go({ kind: choice.value })"
                         >
                             {{ choice.label }}

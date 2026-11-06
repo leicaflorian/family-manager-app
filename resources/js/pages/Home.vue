@@ -125,7 +125,7 @@ const hasRightColumn = computed(
             <FmBell
                 :count="unreadNotices"
                 :notices="notices"
-                class="rounded-full bg-white"
+                class="rounded-full bg-card"
                 @open="loadNotices"
             />
         </div>

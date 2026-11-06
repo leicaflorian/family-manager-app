@@ -18,7 +18,7 @@ const { title, subtitle } = defineProps<{
         <h1 class="m-0 text-[28px] font-extrabold lg:text-[30px]">
             {{ title }}
         </h1>
-        <p v-if="subtitle" class="m-0 text-base leading-[1.45] text-[#4A5565]">
+        <p v-if="subtitle" class="m-0 text-base leading-[1.45] text-ink-soft">
             {{ subtitle }}
         </p>
     </div>

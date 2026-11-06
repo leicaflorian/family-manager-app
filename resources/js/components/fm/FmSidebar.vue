@@ -110,7 +110,7 @@ function isPage(section: Section): boolean {
 
 <template>
     <aside
-        class="flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-[#E3E8EF] bg-white px-3.5 py-5"
+        class="flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5"
     >
         <div class="flex items-center gap-2.5 px-2 pt-1 pb-4">
             <FmLogo :size="36" />
@@ -124,7 +124,7 @@ function isPage(section: Section): boolean {
 
         <Link
             :href="items.upload"
-            class="mb-3.5 flex h-11.5 shrink-0 items-center justify-center gap-2 rounded-md bg-action text-base font-normal text-white no-underline hover:bg-action-dark"
+            class="mb-3.5 flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md bg-action text-base font-normal text-on-action no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
             {{ $t('Upload') }}
@@ -132,7 +132,7 @@ function isPage(section: Section): boolean {
             {{ ' ' }}
             <span
                 v-if="uploadCount > 0"
-                class="rounded-full bg-white px-1.5 text-xs font-semibold text-action"
+                class="rounded-full bg-on-action px-1.5 text-xs font-semibold text-action"
                 >{{ countBadge(uploadCount) }}</span
             >
         </Link>
@@ -170,7 +170,7 @@ function isPage(section: Section): boolean {
                         :aria-label="$t('Show the areas')"
                         :aria-expanded="open"
                         aria-controls="sidebar-areas"
-                        class="absolute right-1 flex size-9 items-center justify-center rounded-tag text-ink-soft hover:bg-white/70 hover:text-ink"
+                        class="absolute right-1 flex size-9 items-center justify-center rounded-tag text-ink-soft hover:bg-card/70 hover:text-ink"
                         @click="open = !open"
                     >
                         <FmIcon
@@ -248,7 +248,7 @@ function isPage(section: Section): boolean {
                     <DropdownMenuContent
                         side="top"
                         :side-offset="8"
-                        class="z-50 flex w-[232px] flex-col gap-0.5 rounded-xl border border-[#E3E8EF] bg-white p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-1 motion-reduce:animate-none"
+                        class="z-50 flex w-[232px] flex-col gap-0.5 rounded-xl border border-edge-soft bg-card p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-1 motion-reduce:animate-none"
                     >
                         <DropdownMenuItem as-child>
                             <Link

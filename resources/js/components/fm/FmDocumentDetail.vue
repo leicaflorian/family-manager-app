@@ -35,7 +35,7 @@ const { date } = useFormat();
 
 /** The colours of the badge of each status. */
 const statusColor: Record<string, string> = {
-    active: cn('bg-[#e6f4ee] text-paid'),
+    active: cn('bg-paid-soft text-paid'),
     expired: cn('bg-overdue/10 text-overdue'),
     archived: cn('bg-divider text-ink-soft'),
 };
@@ -77,7 +77,7 @@ const shownGroup = computed(
         :class="
             cn(
                 'flex flex-col gap-4',
-                compact && 'rounded-card-lg bg-white p-5.5',
+                compact && 'rounded-card-lg bg-card p-5.5',
             )
         "
     >
@@ -113,7 +113,7 @@ const shownGroup = computed(
 
             <div class="flex min-w-0 flex-col gap-4">
                 <div
-                    :class="compact ? 'pt-1' : 'rounded-card-lg bg-white p-5.5'"
+                    :class="compact ? 'pt-1' : 'rounded-card-lg bg-card p-5.5'"
                 >
                     <dl
                         class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
@@ -198,7 +198,7 @@ const shownGroup = computed(
                     class="flex flex-col gap-2"
                 >
                     <h2 class="m-0 text-[17px] font-bold">{{ $t('Links') }}</h2>
-                    <div class="flex flex-col rounded-card bg-white px-4 pt-1">
+                    <div class="flex flex-col rounded-card bg-card px-4 pt-1">
                         <div
                             class="flex items-center gap-4.5 border-b border-edge"
                         >
@@ -211,7 +211,7 @@ const shownGroup = computed(
                                 :class="
                                     group.type === shownGroup?.type
                                         ? 'border-action font-bold text-action-dark'
-                                        : 'border-transparent font-medium text-[#4A5565]'
+                                        : 'border-transparent font-medium text-ink-soft'
                                 "
                                 @click="chosenType = group.type"
                             >
@@ -260,7 +260,7 @@ const shownGroup = computed(
                 >
                     <h2 class="m-0 text-[17px] font-bold">{{ $t('Notes') }}</h2>
                     <p
-                        class="m-0 rounded-card bg-white px-4 py-3.5 text-[15px] leading-normal whitespace-pre-line text-[#4A5565]"
+                        class="m-0 rounded-card bg-card px-4 py-3.5 text-[15px] leading-normal whitespace-pre-line text-ink-soft"
                     >
                         {{ document.notes }}
                     </p>

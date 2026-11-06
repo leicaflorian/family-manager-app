@@ -29,7 +29,7 @@ const names = computed(() => listNames(people.map((p) => p.first_name)));
             v-for="(person, i) in people"
             :key="person.id"
             aria-hidden="true"
-            class="flex rounded-full shadow-[0_0_0_3px_#fff] not-first:-ml-2.5"
+            class="flex rounded-full shadow-[0_0_0_3px_var(--card)] not-first:-ml-2.5"
         >
             <FmAvatar
                 :initials="person.initials"

@@ -344,7 +344,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
     <form
         :class="
             cn(
-                'flex flex-col gap-4 bg-white p-5',
+                'flex flex-col gap-4 bg-card p-5',
                 compact ? 'rounded-card-lg' : 'rounded-sheet lg:p-7',
             )
         "
@@ -369,7 +369,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 v-if="compact"
                 type="button"
                 :aria-label="$t('Close')"
-                class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-edge bg-white text-ink"
+                class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-edge bg-card text-ink"
                 @click="close"
             >
                 <FmIcon :icon="X" :size="20" />

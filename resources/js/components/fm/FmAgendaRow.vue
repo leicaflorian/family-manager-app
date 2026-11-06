@@ -243,7 +243,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             </span>
             <!-- Said to screen readers always, seen only on the computer -->
             <span
-                class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-sm lg:text-[#4A5565]"
+                class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-sm lg:text-ink-soft"
             >
                 <template v-if="entry.person">
                     <FmAvatar
@@ -277,13 +277,13 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                             :income="entry.kind === 'income'"
                         />
                     </span>
-                    <span v-else class="hidden text-sm text-[#8A94A3] lg:inline"
+                    <span v-else class="hidden text-sm text-ink-faint lg:inline"
                         >—</span
                     >
                 </span>
                 <FmIcon
                     v-if="!actions"
-                    class="hidden text-[#9AA6B6] lg:block"
+                    class="hidden text-ink-faint lg:block"
                     :icon="ChevronRight"
                     :size="18"
                 />

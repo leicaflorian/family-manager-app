@@ -9,9 +9,8 @@ describe('FmLogo', () => {
 
         expect(svg).toHaveAttribute('aria-hidden', 'true');
         expect(svg).toHaveAttribute('width', '36');
-        expect(result.container.querySelector('rect')).toHaveAttribute(
-            'fill',
-            '#3399FF',
+        expect(result.container.querySelector('rect')).toHaveClass(
+            'fill-brand',
         );
     });
 

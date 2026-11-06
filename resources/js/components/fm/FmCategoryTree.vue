@@ -82,7 +82,7 @@ function toggle(id: number): void {
                 <button
                     v-if="category.children.length"
                     type="button"
-                    class="ml-2 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-tag border-0 bg-transparent text-[#9AA6B6] hover:bg-canvas"
+                    class="ml-2 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-tag border-0 bg-transparent text-ink-faint hover:bg-canvas"
                     :aria-expanded="open.has(category.id)"
                     :aria-label="
                         open.has(category.id)

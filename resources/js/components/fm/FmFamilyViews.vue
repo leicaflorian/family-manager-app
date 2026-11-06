@@ -53,7 +53,7 @@ const views = computed(() => [
         </FmTitle>
         <nav
             :aria-label="$t('Family')"
-            class="flex max-w-[420px] gap-1.5 rounded-lg bg-[#E6EAF0] p-1"
+            class="flex max-w-[420px] gap-1.5 rounded-lg bg-segment p-1"
         >
             <Link
                 v-for="view in views"
@@ -63,8 +63,8 @@ const views = computed(() => [
                 class="flex h-9 flex-1 items-center justify-center gap-1 rounded-[9px] text-[15px] whitespace-nowrap no-underline"
                 :class="
                     view.key === current
-                        ? 'bg-white text-ink shadow-[0_1px_3px_rgba(24,33,47,0.12)]'
-                        : 'text-[#4A5565]'
+                        ? 'bg-card text-ink shadow-raised'
+                        : 'text-ink-soft'
                 "
             >
                 {{ view.label }}

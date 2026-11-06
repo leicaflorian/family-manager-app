@@ -86,7 +86,7 @@ onBeforeUnmount(forgetChosen);
 
 <template>
     <div
-        class="flex flex-col items-center gap-4 rounded-sheet bg-[#e9edf3] p-5 lg:p-7"
+        class="flex flex-col items-center gap-4 rounded-sheet bg-segment p-5 lg:p-7"
     >
         <slot :image="shown" />
         <span class="flex flex-wrap justify-center gap-x-3 text-sm">

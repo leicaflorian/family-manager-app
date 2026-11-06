@@ -86,7 +86,7 @@ const tile = computed(() =>
 
 /** The classes of a grey label, as *Written by hand*. */
 const label = cn(
-    'inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg bg-divider px-2 text-xs font-semibold whitespace-nowrap text-[#4A5565]',
+    'inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg bg-divider px-2 text-xs font-semibold whitespace-nowrap text-ink-soft',
 );
 
 /**
@@ -172,7 +172,7 @@ const dayClass = computed(() =>
                     />
                     <span
                         v-else
-                        class="flex size-[18px] items-center justify-center rounded-full bg-divider text-[#4A5565] @4xl/reminder:hidden"
+                        class="flex size-[18px] items-center justify-center rounded-full bg-divider text-ink-soft @4xl/reminder:hidden"
                         aria-hidden="true"
                         ><FmIcon :icon="UsersRound" :size="11"
                     /></span>
@@ -200,7 +200,7 @@ const dayClass = computed(() =>
 
             <!-- Said to screen readers always, seen only on a wide list -->
             <span
-                class="sr-only text-sm text-[#4A5565] @4xl/reminder:not-sr-only @4xl/reminder:flex @4xl/reminder:w-[104px] @4xl/reminder:shrink-0 @4xl/reminder:items-center @4xl/reminder:gap-2"
+                class="sr-only text-sm text-ink-soft @4xl/reminder:not-sr-only @4xl/reminder:flex @4xl/reminder:w-[104px] @4xl/reminder:shrink-0 @4xl/reminder:items-center @4xl/reminder:gap-2"
             >
                 <template v-if="reminder.person">
                     <FmAvatar
@@ -341,7 +341,7 @@ const dayClass = computed(() =>
                             </template>
                         </FmMenu>
                         <label
-                            class="relative flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-[#4A5565]"
+                            class="relative flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-ink-soft"
                         >
                             <input
                                 type="checkbox"
@@ -358,10 +358,10 @@ const dayClass = computed(() =>
                             />
                             <span
                                 aria-hidden="true"
-                                class="flex h-6 w-10 shrink-0 items-center rounded-lg bg-[#CDD5E0] p-0.5 transition-colors peer-checked:justify-end peer-checked:bg-paid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-action"
+                                class="flex h-6 w-10 shrink-0 items-center rounded-lg bg-edge p-0.5 transition-colors peer-checked:justify-end peer-checked:bg-paid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-action"
                             >
                                 <span
-                                    class="size-5 rounded-full bg-white shadow-[0_1px_2px_rgba(24,33,47,0.25)]"
+                                    class="size-5 rounded-full bg-card shadow-raised"
                                 />
                             </span>
                             {{ $t('Done') }}

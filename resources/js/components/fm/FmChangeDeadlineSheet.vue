@@ -145,7 +145,7 @@ function save(): void {
         </div>
         <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
             <fieldset class="m-0 flex flex-col gap-2.5 border-0 p-0">
-                <legend class="mb-1.5 p-0 text-sm font-semibold text-[#4A5565]">
+                <legend class="mb-1.5 p-0 text-sm font-semibold text-ink-soft">
                     {{
                         $t(
                             'What changes this time (more than one thing is fine)',

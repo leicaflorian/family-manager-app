@@ -120,7 +120,7 @@ useSaveShortcut(save, () => !form.processing);
                 <Link
                     :href="back"
                     :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge bg-white text-ink"
+                    class="flex size-11 items-center justify-center rounded-lg border border-edge bg-card text-ink"
                 >
                     <FmIcon :icon="X" :size="20" />
                 </Link>
@@ -128,7 +128,7 @@ useSaveShortcut(save, () => !form.processing);
         </FmTitle>
 
         <form
-            class="flex max-w-[720px] flex-col gap-6 rounded-sheet bg-white p-5 lg:p-7"
+            class="flex max-w-[720px] flex-col gap-6 rounded-sheet bg-card p-5 lg:p-7"
             novalidate
             @submit.prevent="save"
         >

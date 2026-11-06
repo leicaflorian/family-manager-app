@@ -46,7 +46,7 @@ describe('FmButton', () => {
         });
 
         const button = screen.getByRole('button', { name: 'Edit' });
-        expect(button).toHaveClass('size-11.5', 'bg-canvas', 'text-ink');
+        expect(button).toHaveClass('size-control-md', 'bg-canvas', 'text-ink');
         expect(button).not.toHaveClass('bg-action-soft');
     });
 
@@ -67,7 +67,7 @@ describe('FmButton', () => {
 
         const button = screen.getByRole('button', { name: 'Edit' });
         expect(button).toHaveClass('size-10');
-        expect(button).not.toHaveClass('size-11.5');
+        expect(button).not.toHaveClass('size-control-md');
     });
 
     it('xsmall and with label is a square of 30 px with a smaller icon, as beside the tabs of a card', () => {
@@ -77,7 +77,7 @@ describe('FmButton', () => {
 
         const button = screen.getByRole('button', { name: 'Edit' });
         expect(button).toHaveClass('size-7.5');
-        expect(button).not.toHaveClass('size-11.5');
+        expect(button).not.toHaveClass('size-control-md');
         expect(button.querySelector('svg')).toHaveAttribute('width', '16');
     });
 
@@ -173,9 +173,9 @@ describe('FmButton', () => {
 
         const button = screen.getByRole('button', { name: 'Edit' });
         expect(button).toHaveClass(
-            'bg-white/15',
-            'text-white',
-            'hover:bg-white/25',
+            'bg-on-hero-soft',
+            'text-on-hero',
+            'hover:bg-on-hero/25',
         );
         expect(button).not.toHaveClass('bg-action-soft', 'text-action-dark');
     });
@@ -184,7 +184,11 @@ describe('FmButton', () => {
         onColor({ variant: 'soft', icon: Pencil, label: 'More actions' });
 
         const button = screen.getByRole('button', { name: 'More actions' });
-        expect(button).toHaveClass('size-11.5', 'bg-white/15', 'text-white');
+        expect(button).toHaveClass(
+            'size-control-md',
+            'bg-on-hero-soft',
+            'text-on-hero',
+        );
         expect(button).not.toHaveClass('bg-canvas', 'text-ink');
     });
 });

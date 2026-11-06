@@ -93,7 +93,7 @@ const over = computed((): boolean => spent > planned);
             <span
                 v-if="planned > 0"
                 data-planned
-                class="absolute -top-0.5 h-3.5 w-0.5 bg-ink shadow-[0_0_0_2px_#fff]"
+                class="absolute -top-0.5 h-3.5 w-0.5 bg-ink shadow-[0_0_0_2px_var(--card)]"
                 :style="{ left: `calc(${plannedLeft} - 1px)` }"
             />
         </div>

@@ -18,7 +18,7 @@ describe('FmNotice', () => {
             props: { tone: 'ok' },
             slots: { default: 'Done' },
         });
-        expect(screen.getByRole('status')).toHaveClass('text-[#14533F]');
+        expect(screen.getByRole('status')).toHaveClass('text-paid');
         result.unmount();
 
         render(FmNotice, {

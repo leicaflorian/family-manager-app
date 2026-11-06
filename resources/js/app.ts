@@ -6,6 +6,7 @@ import formkitConfig from '@/formkit.config';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { i18nOptions } from '@/lib/i18n';
 import { pageLayout } from '@/lib/pageLayout';
+import { progressColor } from '@/lib/progress';
 import { pageVisitOptions } from '@/lib/transitions';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
@@ -33,7 +34,7 @@ void createInertiaApp({
         });
     },
     progress: {
-        color: '#0070E0',
+        color: progressColor(),
     },
     defaults: {
         visitOptions: (_href, options) => pageVisitOptions(options),

@@ -54,7 +54,7 @@ defineSlots<{
             <button
                 v-if="outline"
                 type="button"
-                class="flex h-9 shrink-0 cursor-pointer items-center gap-[7px] rounded-md border border-edge bg-white px-3 text-sm font-semibold whitespace-nowrap text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+                class="flex h-9 shrink-0 cursor-pointer items-center gap-[7px] rounded-md border border-edge bg-card px-3 text-sm font-semibold whitespace-nowrap text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
             >
                 <FmIcon :icon="icon ?? Ellipsis" :size="18" />{{
                     label ?? $t('More actions')
@@ -76,7 +76,7 @@ defineSlots<{
             <DropdownMenuContent
                 align="end"
                 :side-offset="6"
-                class="z-30 flex min-w-56 flex-col gap-0.5 rounded-xl bg-white p-1.5 text-ink shadow-[0_12px_32px_rgba(24,33,47,0.18)] duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                class="z-30 flex min-w-56 flex-col gap-0.5 rounded-xl bg-card p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             >
                 <slot />
             </DropdownMenuContent>

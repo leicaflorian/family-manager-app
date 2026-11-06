@@ -34,10 +34,10 @@ defineSlots<{
 
 const styles: Record<NoticeTone, { classes: string; icon: LucideIcon }> = {
     info: {
-        classes: cn('bg-canvas text-[#4A5565] [&>svg]:text-action'),
+        classes: cn('bg-canvas text-ink-soft [&>svg]:text-action'),
         icon: Info,
     },
-    ok: { classes: cn('bg-[#E6F4EE] text-[#14533F]'), icon: MailCheck },
+    ok: { classes: cn('bg-paid-soft text-paid'), icon: MailCheck },
     warning: {
         classes: cn('bg-warning-soft text-warning'),
         icon: CircleAlert,

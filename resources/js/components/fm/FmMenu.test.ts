@@ -97,7 +97,7 @@ describe('FmMenu', () => {
 
         const button = screen.getByRole('button', { name: 'Postpone' });
         expect(button).toHaveTextContent('Postpone');
-        expect(button).toHaveClass('h-9', 'border-edge', 'bg-white');
+        expect(button).toHaveClass('h-9', 'border-edge', 'bg-card');
         expect(button.querySelector('.lucide-plus')).not.toBeNull();
         await userEvent.click(button);
         expect(

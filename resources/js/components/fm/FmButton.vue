@@ -65,10 +65,10 @@ defineEmits<{
 
 const styles: Record<ButtonVariant, string> = {
     solid: cn(
-        'bg-action px-5 font-normal text-white hover:bg-action-dark active:bg-action-dark',
+        'bg-action px-5 font-normal text-on-action hover:bg-action-dark active:bg-action-dark',
     ),
     outline: cn(
-        'border-2 border-action bg-white px-5 font-normal text-action hover:bg-action-soft',
+        'border-2 border-action bg-card px-5 font-normal text-action hover:bg-action-soft',
     ),
     soft: cn(
         'bg-action-soft px-5 font-normal text-action-dark hover:bg-action/15',
@@ -85,20 +85,20 @@ const onColor = useOnColor();
 const classes = computed((): string =>
     cn(
         // Every variant has the same size: two buttons side by side must match
-        'inline-flex h-11.5 shrink-0 items-center justify-center gap-2 rounded-md text-base whitespace-nowrap transition-colors',
+        'inline-flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md text-base whitespace-nowrap transition-colors',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
         'disabled:cursor-not-allowed disabled:border-0 disabled:bg-edge disabled:text-ink-soft',
         styles[variant],
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
-        label && 'size-11.5 border-0 bg-canvas px-0 hover:bg-divider',
+        label && 'size-control-md border-0 bg-canvas px-0 hover:bg-divider',
         label && small && 'size-10',
         label && xsmall && 'size-7.5 rounded-tag',
         label && plain && 'bg-transparent hover:bg-canvas',
         label && variant !== 'danger' && 'text-ink',
         // The colour behind shows through, a bit less on hover
         onColor &&
-            'border-0 bg-white/15 font-semibold text-white hover:bg-white/25 focus-visible:outline-white active:bg-white/30',
+            'border-0 bg-on-hero-soft font-semibold text-on-hero hover:bg-on-hero/25 focus-visible:outline-on-hero active:bg-on-hero/30',
     ),
 );
 

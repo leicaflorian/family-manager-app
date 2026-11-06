@@ -185,7 +185,7 @@ function segment(chosen: boolean): string {
             ? 'h-8 rounded-tag px-3'
             : 'h-[38px] flex-1 rounded-[9px]',
         chosen
-            ? 'bg-white font-bold shadow-[0_1px_3px_rgba(24,33,47,0.12)]'
+            ? 'bg-card font-bold shadow-raised'
             : 'font-medium text-ink-soft',
     );
 }
@@ -201,7 +201,7 @@ function ring(chosen: boolean): string {
         ? cn(
               'border-[1.5px] border-action bg-action-soft font-bold text-action-dark',
           )
-        : cn('border border-edge bg-white font-medium');
+        : cn('border border-edge bg-card font-medium');
 }
 
 /**
@@ -235,7 +235,7 @@ function viewChip(chosen: boolean): string {
 
 /** The classes of the buttons of the phone and of the button of the areas. */
 const chip = cn(
-    'flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border border-edge bg-white text-sm font-medium whitespace-nowrap text-ink',
+    'flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border border-edge bg-card text-sm font-medium whitespace-nowrap text-ink',
 );
 </script>
 
@@ -374,7 +374,7 @@ const chip = cn(
                         :class="
                             isOn(area.value)
                                 ? 'text-ink'
-                                : 'text-[#8A94A3] line-through'
+                                : 'text-ink-faint line-through'
                         "
                         >{{ area.label }}</span
                     >
@@ -383,7 +383,7 @@ const chip = cn(
                         :class="
                             isOn(area.value)
                                 ? 'text-ink-soft'
-                                : 'text-[#8A94A3]'
+                                : 'text-ink-faint'
                         "
                         >{{ counts[area.value] ?? 0 }}</span
                     >
@@ -394,14 +394,14 @@ const chip = cn(
 
     <div
         v-if="variant === 'toolbar'"
-        class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-white px-3 py-2.5"
+        class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-card px-3 py-2.5"
     >
         <ReusePeriod v-if="hasPeriod" />
         <ReuseViews v-else />
         <span
             v-if="hasPeriod || views"
             aria-hidden="true"
-            class="h-6 w-px bg-[#E3E8EF]"
+            class="h-6 w-px bg-edge-soft"
         />
         <ReusePeople />
         <span class="grow" />
@@ -421,7 +421,7 @@ const chip = cn(
                 <PopoverContent
                     align="end"
                     :side-offset="6"
-                    class="z-30 w-80 rounded-xl bg-white p-4 text-ink shadow-[0_12px_32px_rgba(24,33,47,0.18)] duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                    class="z-30 w-80 rounded-xl bg-card p-4 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
                 >
                     <ReuseAreas />
                 </PopoverContent>
