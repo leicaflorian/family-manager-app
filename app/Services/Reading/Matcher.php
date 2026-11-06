@@ -33,17 +33,19 @@ use Illuminate\Database\Eloquent\Model;
 final class Matcher
 {
     /**
-     * The active utility with the supply point code (POD/PDR), otherwise with the customer code.
+     * The utility with the given status (the active one by default) and the supply point code (POD/PDR),
+     * otherwise the customer code.
      *
      * @param  string|null  $pod  the POD or PDR as printed
      * @param  string|null  $customer  the customer code as printed
+     * @param  UtilityStatus  $status  the status the utility must have
      */
-    public function utility(?string $pod, ?string $customer): ?Utility
+    public function utility(?string $pod, ?string $customer, UtilityStatus $status = UtilityStatus::Active): ?Utility
     {
-        $active = ['status' => UtilityStatus::Active];
+        $where = ['status' => $status];
 
-        return $this->byCode(Utility::class, 'supply_point_code', $pod, $active)
-            ?? $this->byCode(Utility::class, 'customer_code', $customer, $active);
+        return $this->byCode(Utility::class, 'supply_point_code', $pod, $where)
+            ?? $this->byCode(Utility::class, 'customer_code', $customer, $where);
     }
 
     /**
