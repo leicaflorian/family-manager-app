@@ -684,6 +684,17 @@ export type FoundLineData = {
 readonly label: string,
 readonly value: string,
 };
+export type RecordDraftData = {
+readonly kind: App.Enums.RecordKind,
+readonly title: string,
+readonly values: Record<string, any>,
+readonly suggested: boolean,
+readonly missing: string[],
+readonly existing: {
+id: number,
+title: string,
+} | null,
+};
 }
 }
 namespace Enums {
@@ -716,6 +727,7 @@ export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'empl
 export type PersonRole = 'parent' | 'child' | 'other';
 export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
+export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance';
 export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
 export type SubscriptionStatus = 'active' | 'cancelled';

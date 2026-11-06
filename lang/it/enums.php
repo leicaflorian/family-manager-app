@@ -180,6 +180,14 @@ return [
         'skipped' => 'Non si legge',
         'off' => 'Lettura spenta',
     ],
+    'record_kind' => [
+        'organization' => 'Ente',
+        'vehicle' => 'Veicolo',
+        'utility' => 'Utenza',
+        'policy' => 'Polizza',
+        'belonging' => 'Bene',
+        'maintenance' => 'Intervento',
+    ],
     'reminder_status' => [
         'open' => 'Aperto',
         'done' => 'Fatto',

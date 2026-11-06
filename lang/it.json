@@ -1177,5 +1177,18 @@
     "{1} Check it, then import it.|[2,*] Check them one by one, then import them together.": "{1} Controllalo, poi importalo.|[2,*] Controllali uno per uno, poi importali insieme.",
     "File :current of :total": "File :current di :total",
     "Next file": "Successivo",
-    "Previous file": "Prima"
+    "Previous file": "Prima",
+    "the utility :name": "l'utenza :name",
+    "the vehicle :name (:plate)": "il veicolo :name (:plate)",
+    "the vehicle :plate": "il veicolo :plate",
+    "the policy :name": "la polizza :name",
+    "the item :name": "il bene :name",
+    "the intervention :name": "l'intervento :name",
+    "the organization :name": "l'ente :name",
+    "the name": "il nome",
+    "the type": "il tipo",
+    "the title": "il titolo",
+    "the date": "la data",
+    "Accident policy": "Polizza infortuni",
+    "Fund": "Fondo"
 }

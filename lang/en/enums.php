@@ -180,6 +180,14 @@ return [
         'skipped' => 'Not read on purpose',
         'off' => 'Reading is off',
     ],
+    'record_kind' => [
+        'organization' => 'Organization',
+        'vehicle' => 'Vehicle',
+        'utility' => 'Utility',
+        'policy' => 'Policy',
+        'belonging' => 'Item',
+        'maintenance' => 'Intervention',
+    ],
     'reminder_status' => [
         'open' => 'Open',
         'done' => 'Done',
