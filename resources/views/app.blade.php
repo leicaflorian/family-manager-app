@@ -4,6 +4,13 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        {{-- Applies the dark theme before the first paint, so the page never flashes light. For now only the device decides. --}}
+        <script>
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        </script>
+
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
             html {
