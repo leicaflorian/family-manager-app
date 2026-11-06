@@ -715,6 +715,16 @@ amount: number,
 is_estimated: boolean,
 } | null,
 };
+export type PolicyGiverData = {
+readonly key: string,
+readonly fileName: string | null,
+readonly number: string,
+readonly creates: boolean,
+readonly organizationId: number | null,
+readonly organizationName: string | null,
+readonly personId: number | null,
+readonly type: string | null,
+};
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,
 readonly title: string,
