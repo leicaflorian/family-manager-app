@@ -40,7 +40,7 @@ it('lets the device decide when my theme is system', function (): void {
 
     expect($html)->not->toMatch('/<html[^>]*class="[^"]*dark/')
         ->and($html)->toContain('prefers-color-scheme: dark')
-        ->and($html)->toContain("if ('system' === 'system'");
+        ->and($html)->toMatch("/if \\(\\s*'system'\\s*===\\s*'system'/");
 });
 
 it('never lets the device darken a page when my theme is light', function (): void {
@@ -50,5 +50,5 @@ it('never lets the device darken a page when my theme is light', function (): vo
     $html = $this->actingAs($marco)->get(route('dashboard'))->assertOk()->getContent();
 
     expect($html)->not->toMatch('/<html[^>]*class="[^"]*dark/')
-        ->and($html)->toContain("if ('light' === 'system'");
+        ->and($html)->toMatch("/if \\(\\s*'light'\\s*===\\s*'system'/");
 });

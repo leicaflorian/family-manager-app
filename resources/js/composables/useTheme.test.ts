@@ -10,7 +10,7 @@ import { nextTick, reactive } from 'vue';
 import { useTheme } from './useTheme';
 
 const shared = vi.hoisted(() => ({
-    page: null as { props: { theme?: string } } | null,
+    page: null as { props?: { theme?: string } } | null,
 }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -113,7 +113,7 @@ describe('useTheme', () => {
         useTheme();
         expect(isDark()).toBe(false);
 
-        shared.page!.props.theme = 'dark';
+        shared.page!.props!.theme = 'dark';
         await nextTick();
         expect(isDark()).toBe(true);
         expect(media.listeners()).toBe(0);
@@ -121,7 +121,28 @@ describe('useTheme', () => {
         media.set(false);
         expect(isDark()).toBe(true);
 
-        shared.page!.props.theme = 'light';
+        shared.page!.props!.theme = 'light';
+        await nextTick();
+        expect(isDark()).toBe(false);
+    });
+
+    it('leaves the class the server set until the first page is loaded', async () => {
+        const media = device(false);
+        document.documentElement.classList.add('dark');
+        const page = reactive<{ props?: { theme?: string } }>({
+            props: undefined,
+        });
+        shared.page = page;
+
+        useTheme();
+        expect(isDark()).toBe(true);
+        expect(media.listeners()).toBe(0);
+
+        page.props = { theme: 'dark' };
+        await nextTick();
+        expect(isDark()).toBe(true);
+
+        page.props = { theme: 'system' };
         await nextTick();
         expect(isDark()).toBe(false);
     });

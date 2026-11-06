@@ -13,6 +13,8 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
  * It reads the shared `usePage()` state, which is global, so it also works outside
  * a component (it is called once in `app.ts` and lives as long as the app).
  *
+ * Nothing changes until the first page is loaded.
+ *
  * @returns the theme of the account (`system` when the page shares none) and `apply()`, which sets the class now
  */
 export function useTheme(): {
@@ -33,9 +35,17 @@ export function useTheme(): {
         document.documentElement.classList.toggle('dark', dark);
     }
 
+    // Until the first page is loaded its props do not exist: the class the server and
+    // the inline script set is right, and a fallback to `system` would undo a dark theme.
+    const loaded = computed((): boolean => page.props !== undefined);
+
     watch(
-        theme,
-        (value, _previous, onCleanup): void => {
+        [loaded, theme],
+        ([isLoaded, value], _previous, onCleanup): void => {
+            if (!isLoaded) {
+                return;
+            }
+
             apply();
 
             if (value !== 'system') {
