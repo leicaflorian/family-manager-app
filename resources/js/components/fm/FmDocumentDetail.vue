@@ -35,7 +35,8 @@ const { date } = useFormat();
 
 /** The colours of the badge of each status. */
 const statusColor: Record<string, string> = {
-    active: cn('bg-paid-soft text-paid'),
+    // Green text on paid-soft reads under 4.5:1, so the label is ink
+    active: cn('bg-paid-soft text-ink'),
     expired: cn('bg-overdue/10 text-overdue'),
     archived: cn('bg-divider text-ink-soft'),
 };

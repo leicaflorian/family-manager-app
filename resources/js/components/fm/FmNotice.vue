@@ -37,7 +37,11 @@ const styles: Record<NoticeTone, { classes: string; icon: LucideIcon }> = {
         classes: cn('bg-canvas text-ink-soft [&>svg]:text-action'),
         icon: Info,
     },
-    ok: { classes: cn('bg-paid-soft text-paid'), icon: MailCheck },
+    // Green text on paid-soft reads under 4.5:1: the text is ink, the icon green
+    ok: {
+        classes: cn('bg-paid-soft text-ink [&>svg]:text-paid'),
+        icon: MailCheck,
+    },
     warning: {
         classes: cn('bg-warning-soft text-warning'),
         icon: CircleAlert,

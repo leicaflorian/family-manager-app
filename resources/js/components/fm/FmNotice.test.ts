@@ -18,7 +18,12 @@ describe('FmNotice', () => {
             props: { tone: 'ok' },
             slots: { default: 'Done' },
         });
-        expect(screen.getByRole('status')).toHaveClass('text-paid');
+        // Green text on the green background reads under 4.5:1: the icon is green
+        expect(screen.getByRole('status')).toHaveClass(
+            'bg-paid-soft',
+            'text-ink',
+            '[&>svg]:text-paid',
+        );
         result.unmount();
 
         render(FmNotice, {
