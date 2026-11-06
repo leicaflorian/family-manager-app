@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Theme;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -23,4 +24,31 @@ it('serves the page with the script that applies the dark theme before it is dra
         ->and($head)->toContain('matchMedia')
         ->and($head)->toContain("document.documentElement.classList.add('dark')")
         ->and($scriptAt)->toBeLessThan($firstLinkAt);
+});
+
+it('draws the page dark when my theme is dark', function (): void {
+    $marco = registerFamily();
+    $marco->update(['theme' => Theme::Dark]);
+
+    $html = $this->actingAs($marco)->get(route('dashboard'))->assertOk()->getContent();
+
+    expect($html)->toMatch('/<html[^>]*class="dark"/');
+});
+
+it('lets the device decide when my theme is system', function (): void {
+    $html = $this->actingAs(registerFamily())->get(route('dashboard'))->assertOk()->getContent();
+
+    expect($html)->not->toMatch('/<html[^>]*class="[^"]*dark/')
+        ->and($html)->toContain('prefers-color-scheme: dark')
+        ->and($html)->toContain("if ('system' === 'system'");
+});
+
+it('never lets the device darken a page when my theme is light', function (): void {
+    $marco = registerFamily();
+    $marco->update(['theme' => Theme::Light]);
+
+    $html = $this->actingAs($marco)->get(route('dashboard'))->assertOk()->getContent();
+
+    expect($html)->not->toMatch('/<html[^>]*class="[^"]*dark/')
+        ->and($html)->toContain("if ('light' === 'system'");
 });
