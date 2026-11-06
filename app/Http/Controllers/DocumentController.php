@@ -13,7 +13,6 @@ use App\Http\Requests\Documents\ChangeFileRequest;
 use App\Http\Requests\Documents\DocumentIndexRequest;
 use App\Http\Requests\Documents\SaveDocumentRequest;
 use App\Models\Document;
-use App\Models\File;
 use App\Models\User;
 use App\Queries\FilterDocuments;
 use App\Services\CategoryTree;

@@ -979,7 +979,6 @@ offers it and asking again can help (failed or off). Nothing while the file wait
 
 - `pages/documents/EditDocument.vue`
 - `pages/documents/Import.vue`
-- `pages/documents/Upload.vue`
 
 ## FmReadingProgress
 
@@ -1015,7 +1014,6 @@ Used on the page of the reading and on the rows of the files being read.
 
 - `pages/documents/EditDocument.vue`
 - `pages/documents/Import.vue`
-- `pages/documents/Upload.vue`
 
 ## FmTitle
 
@@ -1128,6 +1126,7 @@ name, above the title or the header of a page.
 - `pages/budget/PlannedItem.vue`
 - `pages/cards/Card.vue`
 - `pages/cards/CardPayments.vue`
+- `pages/documents/Import.vue`
 
 ## FmBell
 
@@ -2922,7 +2921,6 @@ The category, the person and the organization are found by typing.
 
 - `pages/documents/EditDocument.vue`
 - `pages/documents/Import.vue`
-- `pages/documents/Upload.vue`
 
 ## FmFileDrop
 
@@ -3418,7 +3416,6 @@ the file in another tab.
 
 - `components/fm/FmFilePanel.vue`
 - `pages/documents/Import.vue`
-- `pages/documents/Upload.vue`
 
 ## FmFileTile
 

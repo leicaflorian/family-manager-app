@@ -58,11 +58,11 @@ final class ImportController extends Controller
     public function store(ImportRequest $request, ImportFiles $import): RedirectResponse
     {
         $failures = $import->handle($request->entries());
-        $waiting = File::query()->toSort()->whereKey(array_keys($failures))->pluck('id');
+        $waiting = File::query()->toSort()->whereKey(array_keys($failures))->get()->map(fn (File $file): int => $file->id)->all();
         $card = PresetLink::from($request->query('link'));
 
         return match (true) {
-            $waiting->isNotEmpty() => ImportPage::open($waiting, $request->query('link'))->with('import_failures', $failures),
+            $waiting !== [] => ImportPage::open($waiting, $request->query('link'))->with('import_failures', $failures),
             $card !== null => to_route('cards.show', $card),
             default => to_route('documents.index'),
         };

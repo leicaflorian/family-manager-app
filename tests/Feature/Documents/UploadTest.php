@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
 use Spatie\LaravelData\Exceptions\CannotCreateData;
 use Tests\Support\FakeDocumentReader;
@@ -69,7 +70,7 @@ function waitingData(): array
  * @param  array<string, mixed>  $document
  * @param  array<string, string>  $query
  */
-function importOne(File $file, array $document, array $query = []): Illuminate\Testing\TestResponse
+function importOne(File $file, array $document, array $query = []): TestResponse
 {
     return test()->post(route('import.store', $query), ['files' => [['file_id' => $file->id, 'document' => ['status' => 'active', ...$document]]]]);
 }
