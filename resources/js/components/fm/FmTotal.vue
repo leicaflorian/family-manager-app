@@ -50,7 +50,7 @@ const count = computed((): string => {
 
 <template>
     <section
-        class="flex flex-col gap-1 rounded-[20px] bg-action p-5 text-white"
+        class="flex flex-col gap-1 rounded-card-lg bg-action p-5 text-white"
         :aria-label="$t('To pay in the next 30 days')"
     >
         <h2 class="m-0 text-[15px] font-semibold opacity-90">

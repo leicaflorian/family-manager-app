@@ -110,7 +110,7 @@ const soon = computed((): boolean => {
 const distanceClass = computed((): string =>
     soon.value
         ? cn(
-              'inline-flex h-6 items-center rounded-xl bg-action-soft px-2 text-xs font-semibold text-action-dark',
+              'inline-flex h-6 items-center rounded-lg bg-action-soft px-2 text-xs font-semibold text-action-dark',
           )
         : late.value
           ? cn('text-xs font-semibold text-overdue lg:text-sm')
@@ -208,7 +208,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 >
             </span>
             <span
-                class="flex size-8 shrink-0 items-center justify-center rounded-[10px] lg:size-9"
+                class="flex size-8 shrink-0 items-center justify-center rounded-md lg:size-9"
                 :class="areaTile[area]"
             >
                 <FmIcon :icon="areaIcon(area)" :size="20" />
@@ -235,7 +235,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 </span>
                 <span
                     v-if="badge"
-                    class="order-3 mt-0.5 inline-flex h-6 shrink-0 items-center gap-[5px] rounded-xl px-2 text-xs font-semibold whitespace-nowrap lg:order-2 lg:mt-0"
+                    class="order-3 mt-0.5 inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg px-2 text-xs font-semibold whitespace-nowrap lg:order-2 lg:mt-0"
                     :class="badge.tone"
                 >
                     <FmIcon :icon="badge.icon" :size="14" />{{ badge.text }}

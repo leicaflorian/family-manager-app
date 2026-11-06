@@ -85,7 +85,7 @@ const onColor = useOnColor();
 const classes = computed((): string =>
     cn(
         // Every variant has the same size: two buttons side by side must match
-        'inline-flex h-11.5 shrink-0 items-center justify-center gap-2 rounded-[10px] text-base whitespace-nowrap transition-colors',
+        'inline-flex h-11.5 shrink-0 items-center justify-center gap-2 rounded-md text-base whitespace-nowrap transition-colors',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
         'disabled:cursor-not-allowed disabled:border-0 disabled:bg-edge disabled:text-ink-soft',
         styles[variant],
@@ -93,7 +93,7 @@ const classes = computed((): string =>
         // Only the icon: the light grey square of the canvas
         label && 'size-11.5 border-0 bg-canvas px-0 hover:bg-divider',
         label && small && 'size-10',
-        label && xsmall && 'size-7.5 rounded-lg',
+        label && xsmall && 'size-7.5 rounded-tag',
         label && plain && 'bg-transparent hover:bg-canvas',
         label && variant !== 'danger' && 'text-ink',
         // The colour behind shows through, a bit less on hover

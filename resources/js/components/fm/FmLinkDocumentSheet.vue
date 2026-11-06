@@ -85,7 +85,7 @@ function pick(document: App.Data.DocumentData): void {
             <FmSearchField v-model="search" :label="$t('Search a document')" />
             <div
                 v-if="shown.length > 0 || linkableNext"
-                class="flex min-h-0 flex-col divide-y divide-divider overflow-y-auto rounded-2xl border border-divider"
+                class="flex min-h-0 flex-col divide-y divide-divider overflow-y-auto rounded-card border border-divider"
             >
                 <div
                     v-for="document in shown"

@@ -72,7 +72,7 @@ function dropped(event: DragEvent): void {
 <template>
     <label
         :for="id"
-        class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[20px] border-2 border-dashed bg-white text-center text-ink-soft transition-colors"
+        class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-card-lg border-2 border-dashed bg-white text-center text-ink-soft transition-colors"
         :class="[
             dragging ? 'border-action bg-action-soft' : 'border-edge',
             compact ? 'p-5' : 'min-h-[320px] p-8',

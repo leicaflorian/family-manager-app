@@ -212,7 +212,7 @@ function save(): void {
             <div class="flex flex-col gap-1.5">
                 <button
                     type="button"
-                    class="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-[#9AA6B6] bg-white px-3 text-[15px] font-semibold text-action"
+                    class="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed border-[#9AA6B6] bg-white px-3 text-[15px] font-semibold text-action"
                     @click="picker?.click()"
                 >
                     <FmIcon :icon="Paperclip" :size="18" />

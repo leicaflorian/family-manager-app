@@ -55,7 +55,7 @@ function chosen(): void {
         :class="
             cn(
                 'flex aspect-[210/297] w-full flex-col items-center gap-3.5 bg-[#e9edf3]',
-                compact ? 'rounded-[14px] p-5' : 'rounded-3xl p-5 lg:p-7',
+                compact ? 'rounded-xl p-5' : 'rounded-sheet p-5 lg:p-7',
             )
         "
     >

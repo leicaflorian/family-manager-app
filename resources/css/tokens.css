@@ -82,6 +82,12 @@
     --camera-bg: #101418;
     --camera-surface: #1c232b;
     --camera-raised: #2a323c;
+    --shadow-raised-value: 0 1px 3px rgba(24,33,47,0.12);
+    --shadow-float-value: 0 10px 30px rgba(24,33,47,0.10);
+    --shadow-menu-value: 0 12px 32px rgba(24,33,47,0.16);
+    --shadow-dialog-value: 0 24px 60px rgba(24,33,47,0.25);
+    --shadow-fab-value: 0 6px 16px rgba(0,112,224,0.35);
+    --shadow-focus-value: 0 0 0 3px rgba(0,112,224,0.18);
 }
 
 .dark {
@@ -166,12 +172,12 @@
     --camera-bg: #101418;
     --camera-surface: #1c232b;
     --camera-raised: #2a323c;
-    --shadow-raised: 0 1px 3px rgba(0,0,0,0.5);
-    --shadow-float: 0 10px 30px rgba(0,0,0,0.45);
-    --shadow-menu: 0 12px 32px rgba(0,0,0,0.55);
-    --shadow-dialog: 0 24px 60px rgba(0,0,0,0.6);
-    --shadow-fab: 0 6px 16px rgba(0,0,0,0.5);
-    --shadow-focus: 0 0 0 3px rgba(90,168,255,0.35);
+    --shadow-raised-value: 0 1px 3px rgba(0,0,0,0.5);
+    --shadow-float-value: 0 10px 30px rgba(0,0,0,0.45);
+    --shadow-menu-value: 0 12px 32px rgba(0,0,0,0.55);
+    --shadow-dialog-value: 0 24px 60px rgba(0,0,0,0.6);
+    --shadow-fab-value: 0 6px 16px rgba(0,0,0,0.5);
+    --shadow-focus-value: 0 0 0 3px rgba(90,168,255,0.35);
 }
 
 @theme inline {
@@ -256,6 +262,12 @@
     --color-camera-bg: var(--camera-bg);
     --color-camera-surface: var(--camera-surface);
     --color-camera-raised: var(--camera-raised);
+    --shadow-raised: var(--shadow-raised-value);
+    --shadow-float: var(--shadow-float-value);
+    --shadow-menu: var(--shadow-menu-value);
+    --shadow-dialog: var(--shadow-dialog-value);
+    --shadow-fab: var(--shadow-fab-value);
+    --shadow-focus: var(--shadow-focus-value);
 }
 
 @theme {
@@ -344,10 +356,4 @@
     --spacing-line: 1px;
     --spacing-line-field: 1.5px;
     --spacing-line-strong: 2px;
-    --shadow-raised: 0 1px 3px rgba(24,33,47,0.12);
-    --shadow-float: 0 10px 30px rgba(24,33,47,0.10);
-    --shadow-menu: 0 12px 32px rgba(24,33,47,0.16);
-    --shadow-dialog: 0 24px 60px rgba(24,33,47,0.25);
-    --shadow-fab: 0 6px 16px rgba(0,112,224,0.35);
-    --shadow-focus: 0 0 0 3px rgba(0,112,224,0.18);
 }

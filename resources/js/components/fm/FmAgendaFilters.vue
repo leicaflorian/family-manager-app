@@ -181,7 +181,9 @@ function tile(area: string): string {
 function segment(chosen: boolean): string {
     return cn(
         'relative flex cursor-pointer items-center justify-center text-sm whitespace-nowrap has-focus-visible:outline-2 has-focus-visible:outline-action',
-        compact.value ? 'h-8 rounded-lg px-3' : 'h-[38px] flex-1 rounded-[9px]',
+        compact.value
+            ? 'h-8 rounded-tag px-3'
+            : 'h-[38px] flex-1 rounded-[9px]',
         chosen
             ? 'bg-white font-bold shadow-[0_1px_3px_rgba(24,33,47,0.12)]'
             : 'font-medium text-ink-soft',
@@ -242,7 +244,7 @@ const chip = cn(
         <div
             role="radiogroup"
             :aria-label="$t('Period')"
-            class="flex rounded-xl bg-divider"
+            class="flex rounded-lg bg-divider"
             :class="compact ? 'gap-0.5 p-[3px]' : 'gap-1 p-1'"
         >
             <label
@@ -267,7 +269,7 @@ const chip = cn(
             v-if="views"
             role="radiogroup"
             :aria-label="views.label"
-            class="flex gap-0.5 rounded-xl bg-divider p-[3px]"
+            class="flex gap-0.5 rounded-lg bg-divider p-[3px]"
         >
             <label
                 v-for="option in views.options"
@@ -358,11 +360,11 @@ const chip = cn(
                     :key="area.value"
                     type="button"
                     :aria-pressed="isOn(area.value)"
-                    class="flex min-h-11 min-w-0 cursor-pointer items-center gap-2.5 rounded-[10px] border-0 bg-transparent px-1.5 text-left hover:bg-action-soft"
+                    class="flex min-h-11 min-w-0 cursor-pointer items-center gap-2.5 rounded-md border-0 bg-transparent px-1.5 text-left hover:bg-action-soft"
                     @click="emit('area', area.value)"
                 >
                     <span
-                        class="flex size-7 shrink-0 items-center justify-center rounded-lg"
+                        class="flex size-7 shrink-0 items-center justify-center rounded-tag"
                         :class="tile(area.value)"
                     >
                         <FmIcon :icon="areaIcon(area.value)" :size="16" />
@@ -392,7 +394,7 @@ const chip = cn(
 
     <div
         v-if="variant === 'toolbar'"
-        class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-white px-3 py-2.5"
+        class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-white px-3 py-2.5"
     >
         <ReusePeriod v-if="hasPeriod" />
         <ReuseViews v-else />
@@ -411,7 +413,7 @@ const chip = cn(
             class="min-w-40 shrink basis-[220px]"
         />
         <PopoverRoot>
-            <PopoverTrigger :class="cn(chip, 'gap-2 rounded-[10px] px-3')">
+            <PopoverTrigger :class="cn(chip, 'gap-2 rounded-md px-3')">
                 {{ areasText }}
                 <FmIcon class="text-ink-soft" :icon="ChevronDown" :size="18" />
             </PopoverTrigger>
@@ -419,7 +421,7 @@ const chip = cn(
                 <PopoverContent
                     align="end"
                     :side-offset="6"
-                    class="z-30 w-80 rounded-[14px] bg-white p-4 text-ink shadow-[0_12px_32px_rgba(24,33,47,0.18)] duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                    class="z-30 w-80 rounded-xl bg-white p-4 text-ink shadow-[0_12px_32px_rgba(24,33,47,0.18)] duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
                 >
                     <ReuseAreas />
                 </PopoverContent>

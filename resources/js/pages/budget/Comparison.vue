@@ -74,7 +74,7 @@ function go(month: string): void {
 }
 
 /** The classes of a number at the top. */
-const tile = cn('flex flex-col gap-0.5 rounded-2xl bg-white p-3.5 lg:p-4');
+const tile = cn('flex flex-col gap-0.5 rounded-card bg-white p-3.5 lg:p-4');
 </script>
 
 <template>

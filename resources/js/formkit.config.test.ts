@@ -130,7 +130,7 @@ describe('formkit.config', () => {
             name: 'Expiring soon',
         });
 
-        expect(box).toHaveClass('appearance-none', 'border-edge', 'rounded-md');
+        expect(box).toHaveClass('appearance-none', 'border-edge', 'rounded-sm');
         await waitFor(() => {
             expect(container.querySelector('label svg')).not.toBeNull();
         });

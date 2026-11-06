@@ -97,7 +97,6 @@
     --border: var(--edge);
     --input: var(--edge);
     --ring: var(--action);
-    --radius: var(--radius-md);
     --sidebar-background: var(--card);
     --sidebar-foreground: var(--ink);
     --sidebar-primary: var(--action);

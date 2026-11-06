@@ -342,7 +342,7 @@ function save(): void {
                         :href="closeUrl"
                         data-discard-changes
                         :aria-label="$t('Close')"
-                        class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
+                        class="flex size-11 items-center justify-center rounded-lg border border-edge bg-white text-ink"
                     >
                         <FmIcon :icon="X" :size="20" />
                     </Link>
@@ -408,7 +408,7 @@ function save(): void {
                 >
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-edge bg-white px-3.5 py-2.5 text-left"
+                        class="flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge bg-white px-3.5 py-2.5 text-left"
                         :class="{
                             'border-action': stateOf(file) === 'looking',
                             'opacity-60': stateOf(file) === 'left-out',
@@ -420,7 +420,7 @@ function save(): void {
                             >{{ index + 1 }}</span
                         >
                         <span
-                            class="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-edge bg-canvas text-ink-soft"
+                            class="flex size-9 shrink-0 items-center justify-center rounded-md border border-edge bg-canvas text-ink-soft"
                         >
                             <FmIcon :icon="FileText" :size="18" />
                         </span>
@@ -470,7 +470,7 @@ function save(): void {
 
             <div class="flex flex-wrap items-start gap-6">
                 <div
-                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-3xl bg-[#E9EDF3] p-5 lg:sticky lg:top-0 lg:p-8"
+                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-[#E9EDF3] p-5 lg:sticky lg:top-0 lg:p-8"
                 >
                     <FmFilePreview
                         :url="current.url"
@@ -485,7 +485,7 @@ function save(): void {
                 </div>
 
                 <section
-                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-3xl bg-white p-5 lg:p-7"
+                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-white p-5 lg:p-7"
                 >
                     <FmNotice v-if="problemOf(current)" tone="warning">
                         {{ problemOf(current) }}

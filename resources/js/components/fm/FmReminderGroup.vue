@@ -38,7 +38,7 @@ const kinds = computed((): string =>
 <template>
     <section
         :aria-label="group.name"
-        class="flex flex-col overflow-hidden rounded-[20px] bg-white"
+        class="flex flex-col overflow-hidden rounded-card-lg bg-white"
     >
         <div class="flex items-start justify-between gap-3 px-4 py-3.5">
             <div class="flex min-w-0 flex-col gap-0.5">

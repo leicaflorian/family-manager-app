@@ -77,7 +77,7 @@ useSaveShortcut(save, () => !form.processing);
                 <Link
                     :href="back"
                     :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
+                    class="flex size-11 items-center justify-center rounded-lg border border-edge bg-white text-ink"
                 >
                     <FmIcon :icon="X" :size="20" />
                 </Link>
@@ -100,12 +100,12 @@ useSaveShortcut(save, () => !form.processing);
                         :logo="image"
                         :name="form.name"
                         :icon-size="64"
-                        class="size-40 rounded-3xl bg-white"
+                        class="size-40 rounded-sheet bg-white"
                     />
                 </template>
             </FmImagePanel>
             <form
-                class="flex flex-col gap-3.5 rounded-3xl bg-white p-5 lg:p-7"
+                class="flex flex-col gap-3.5 rounded-sheet bg-white p-5 lg:p-7"
                 novalidate
                 @submit.prevent="save"
             >

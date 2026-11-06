@@ -53,7 +53,7 @@ const views = computed(() => [
         </FmTitle>
         <nav
             :aria-label="$t('Family')"
-            class="flex max-w-[420px] gap-1.5 rounded-xl bg-[#E6EAF0] p-1"
+            class="flex max-w-[420px] gap-1.5 rounded-lg bg-[#E6EAF0] p-1"
         >
             <Link
                 v-for="view in views"

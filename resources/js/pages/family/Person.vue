@@ -209,7 +209,7 @@ const actions = computed((): Action[] => [
             </div>
 
             <div class="flex min-w-0 flex-col gap-5">
-                <div class="rounded-[20px] bg-white p-5">
+                <div class="rounded-card-lg bg-white p-5">
                     <dl
                         class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
                     >

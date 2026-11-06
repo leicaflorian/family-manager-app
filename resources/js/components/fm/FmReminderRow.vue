@@ -79,14 +79,14 @@ const choices = computed((): PostponeChoice[] =>
 /** The classes of the icon tile, the colour of the area. */
 const tile = computed(() =>
     cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-[10px] @4xl/reminder:size-9',
+        'flex size-8 shrink-0 items-center justify-center rounded-md @4xl/reminder:size-9',
         areaTile[areaOf(reminder.area) ?? 'general'],
     ),
 );
 
 /** The classes of a grey label, as *Written by hand*. */
 const label = cn(
-    'inline-flex h-6 shrink-0 items-center gap-[5px] rounded-xl bg-divider px-2 text-xs font-semibold whitespace-nowrap text-[#4A5565]',
+    'inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg bg-divider px-2 text-xs font-semibold whitespace-nowrap text-[#4A5565]',
 );
 
 /**
@@ -257,7 +257,7 @@ const dayClass = computed(() =>
                     <template v-if="!reminder.done">
                         <span
                             v-if="reminder.next_notice_on"
-                            class="inline-flex h-6 items-center gap-[5px] rounded-xl bg-action-soft px-2 text-xs font-semibold whitespace-nowrap text-action-dark"
+                            class="inline-flex h-6 items-center gap-[5px] rounded-lg bg-action-soft px-2 text-xs font-semibold whitespace-nowrap text-action-dark"
                             ><FmIcon :icon="Bell" :size="13" />{{
                                 $t('Notice on :date', {
                                     date: shortDate(reminder.next_notice_on),
@@ -358,7 +358,7 @@ const dayClass = computed(() =>
                             />
                             <span
                                 aria-hidden="true"
-                                class="flex h-6 w-10 shrink-0 items-center rounded-xl bg-[#CDD5E0] p-0.5 transition-colors peer-checked:justify-end peer-checked:bg-paid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-action"
+                                class="flex h-6 w-10 shrink-0 items-center rounded-lg bg-[#CDD5E0] p-0.5 transition-colors peer-checked:justify-end peer-checked:bg-paid peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-action"
                             >
                                 <span
                                     class="size-5 rounded-full bg-white shadow-[0_1px_2px_rgba(24,33,47,0.25)]"

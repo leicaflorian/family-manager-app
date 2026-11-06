@@ -94,7 +94,7 @@ function save(): void {
         :before-close="changes.confirmClose"
         :title="renewed ? $t('Renewed') : $t('Update the date')"
     >
-        <div class="flex flex-col rounded-2xl bg-canvas p-3.5">
+        <div class="flex flex-col rounded-card bg-canvas p-3.5">
             <span class="truncate text-base font-bold">{{ entry.name }}</span>
             <span class="truncate text-[13px] text-ink-soft">{{
                 `${entry.detail} · ${formatDate(entry.date)}`

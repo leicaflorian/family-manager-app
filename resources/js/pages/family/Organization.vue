@@ -111,7 +111,7 @@ const actions = computed((): Action[] => [
                     :logo="organization.logo"
                     :name="organization.name"
                     :icon-size="28"
-                    class="size-14 rounded-2xl bg-white lg:size-16"
+                    class="size-14 rounded-card bg-white lg:size-16"
                 />
                 <div class="flex flex-col gap-1">
                     <h1

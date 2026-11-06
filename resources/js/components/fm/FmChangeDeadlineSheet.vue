@@ -127,7 +127,7 @@ function save(): void {
         :before-close="changes.confirmClose"
         :title="$t('Change this due date')"
     >
-        <div class="flex items-center gap-3 rounded-2xl bg-canvas p-3.5">
+        <div class="flex items-center gap-3 rounded-card bg-canvas p-3.5">
             <span class="flex min-w-0 grow flex-col">
                 <span class="truncate text-base font-bold">{{
                     deadline.planned_title

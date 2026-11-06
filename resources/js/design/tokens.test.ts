@@ -133,13 +133,60 @@ describe('buildTokensCss', () => {
         const css = buildTokensCss(fixture());
 
         expect(block(css, '@theme')).toContain('--radius-card: 16px;');
-        expect(block(css, '@theme')).toContain(
-            '--shadow-menu: 0 12px 32px rgba(1,2,3,0.16);',
+        expect(css).toContain('--spacing-control-md: 44px;');
+    });
+
+    it('writes each shadow as a raw variable per theme, mapped into Tailwind by reference', () => {
+        const css = buildTokensCss(fixture());
+
+        expect(block(css, ':root')).toContain(
+            '--shadow-menu-value: 0 12px 32px rgba(1,2,3,0.16);',
         );
         expect(block(css, '.dark')).toContain(
-            '--shadow-menu: 0 12px 32px rgba(0,0,0,0.55);',
+            '--shadow-menu-value: 0 12px 32px rgba(0,0,0,0.55);',
         );
-        expect(css).toContain('--spacing-control-md: 44px;');
+        expect(block(css, '@theme inline')).toContain(
+            '--shadow-menu: var(--shadow-menu-value);',
+        );
+        // Tailwind would inline a literal value and ignore the dark override
+        expect(block(css, '@theme')).not.toMatch(/--shadow-menu: \d/);
+    });
+
+    it('keeps the light value of a shadow that has no dark one', () => {
+        const css = buildTokensCss(
+            fixture({
+                shadow: {
+                    tokens: [
+                        {
+                            name: 'shadow-flat',
+                            value: '0 1px 2px #000',
+                            usage: '',
+                        },
+                    ],
+                },
+            }),
+        );
+
+        expect(block(css, '.dark')).toContain(
+            '--shadow-flat-value: 0 1px 2px #000;',
+        );
+    });
+
+    it('throws a TokenError naming the token when a themed value has neither the theme nor a light value', () => {
+        const bad = fixture({
+            shadow: {
+                tokens: [
+                    {
+                        name: 'shadow-odd',
+                        value: { dark: '0 0 1px #000' },
+                        usage: '',
+                    },
+                ],
+            },
+        });
+
+        expect(() => buildTokensCss(bad)).toThrow(TokenError);
+        expect(() => buildTokensCss(bad)).toThrow(/shadow-odd/);
     });
 
     it('writes the font family', () => {

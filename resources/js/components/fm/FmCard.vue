@@ -64,8 +64,8 @@ defineSlots<{
             class="flex flex-col overflow-hidden bg-white"
             :class="[
                 list
-                    ? 'divide-y divide-divider rounded-2xl'
-                    : 'gap-3.5 rounded-[20px] p-5',
+                    ? 'divide-y divide-divider rounded-card'
+                    : 'gap-3.5 rounded-card-lg p-5',
                 tone === 'overdue' && 'shadow-[inset_0_0_0_1.5px_#F4C7CE]',
             ]"
         >

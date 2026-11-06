@@ -41,7 +41,7 @@ const open = ref(false);
         </button>
         <div
             v-auto-animate
-            class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
+            class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-white"
         >
             <slot v-if="open" />
         </div>

@@ -30,7 +30,7 @@ const open = computed(
 <template>
     <section class="flex flex-col gap-2">
         <h2 class="m-0 text-lg font-extrabold">{{ $t('Links') }}</h2>
-        <div class="rounded-2xl bg-white px-4 pt-1">
+        <div class="rounded-card bg-white px-4 pt-1">
             <template v-if="open || reminders">
                 <div class="flex gap-4 overflow-x-auto border-b border-edge">
                     <button

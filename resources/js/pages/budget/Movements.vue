@@ -227,7 +227,7 @@ function subtitle(movement: App.Data.MovementData): string {
 
                 <div class="grid grid-cols-3 gap-2.5">
                     <div
-                        class="flex flex-col gap-0.5 rounded-2xl bg-white p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-white p-3.5 lg:p-4"
                     >
                         <span class="text-[13px] text-ink-soft">{{
                             $t('Money in')
@@ -242,7 +242,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         >
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-2xl bg-white p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-white p-3.5 lg:p-4"
                     >
                         <span class="text-[13px] text-ink-soft">{{
                             $t('Money out')
@@ -255,7 +255,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         }}</span>
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-2xl bg-white p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-white p-3.5 lg:p-4"
                     >
                         <span class="text-[13px] text-ink-soft">{{
                             $t('So far')
@@ -277,7 +277,7 @@ function subtitle(movement: App.Data.MovementData): string {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
-                    <div class="flex gap-1 rounded-[10px] bg-segment p-1">
+                    <div class="flex gap-1 rounded-md bg-segment p-1">
                         <button
                             v-for="choice in kinds"
                             :key="choice.value ?? 'all'"

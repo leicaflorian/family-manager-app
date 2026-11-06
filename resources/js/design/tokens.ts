@@ -60,14 +60,27 @@ const ALIAS_PATTERN = /^\{([^}]+)\}$/;
  * The value of a token for one theme: the theme's own value, or the light one
  * when the token has no value for that theme.
  *
+ * @param token Name of the token, for the error message.
  * @param value A plain value or one value per theme.
  * @param theme Theme id (`light`, `dark`).
  * @returns The value to write.
+ * @throws TokenError When the value has neither the theme nor a light value.
  */
-function forTheme(value: ThemedValue, theme: string): string {
-    return typeof value === 'string'
-        ? value
-        : (value[theme] ?? value.light ?? '');
+function forTheme(token: string, value: ThemedValue, theme: string): string {
+    if (typeof value === 'string') {
+        return value;
+    }
+
+    const found = value[theme] ?? value.light;
+
+    if (found === undefined) {
+        throw new TokenError(
+            token,
+            `has no value for the "${theme}" theme and no light value to fall back on`,
+        );
+    }
+
+    return found;
 }
 
 /**
@@ -119,9 +132,9 @@ function checkSpacing(tokens: Token[]): void {
 }
 
 /**
- * Builds `tokens.css`: raw colours for the light theme in `:root` and for the
- * dark one in `.dark`, Tailwind's names for them in `@theme inline`, and text
- * styles, font, radii, sizes and shadows in `@theme`. The output follows the
+ * Builds `tokens.css`: raw colours and shadow values for the light theme in `:root`
+ * and for the dark one in `.dark`, Tailwind's names for them in `@theme inline`,
+ * and text styles, font, radii and sizes in `@theme`. The output follows the
  * order of the tokens and ends with one newline.
  *
  * @param tokens The content of `tokens.json`.
@@ -135,7 +148,7 @@ export function buildTokensCss(tokens: DesignTokens): string {
     const colors = (theme: string): string[] =>
         tokens.color.tokens.map(
             ({ name, value }) =>
-                `    --${name}: ${colorValue(name, forTheme(value, theme), names)};`,
+                `    --${name}: ${colorValue(name, forTheme(name, value, theme), names)};`,
         );
 
     const inline = tokens.color.tokens.map(
@@ -158,10 +171,17 @@ export function buildTokensCss(tokens: DesignTokens): string {
     const sizes = tokens.size.tokens.map(
         ({ name, value }) => `    --spacing-${name}: ${value};`,
     );
+    // Tailwind parses a shadow written in @theme and inlines its colour, so a
+    // dark override would never apply: the values are raw variables per theme
+    // (`--<name>-value`) and `@theme inline` points the shadow at them.
     const shadows = (theme: string): string[] =>
         tokens.shadow.tokens.map(
-            ({ name, value }) => `    --${name}: ${forTheme(value, theme)};`,
+            ({ name, value }) =>
+                `    --${name}-value: ${forTheme(name, value, theme)};`,
         );
+    const inlineShadows = tokens.shadow.tokens.map(
+        ({ name }) => `    --${name}: var(--${name}-value);`,
+    );
 
     const block = (selector: string, lines: string[]): string =>
         `${selector} {\n${lines.join('\n')}\n}`;
@@ -169,16 +189,10 @@ export function buildTokensCss(tokens: DesignTokens): string {
     return (
         [
             NOTICE,
-            block(':root', colors('light')),
+            block(':root', [...colors('light'), ...shadows('light')]),
             block('.dark', [...colors('dark'), ...shadows('dark')]),
-            block('@theme inline', inline),
-            block('@theme', [
-                ...fonts,
-                ...texts,
-                ...radii,
-                ...sizes,
-                ...shadows('light'),
-            ]),
+            block('@theme inline', [...inline, ...inlineShadows]),
+            block('@theme', [...fonts, ...texts, ...radii, ...sizes]),
         ].join('\n\n') + '\n'
     );
 }

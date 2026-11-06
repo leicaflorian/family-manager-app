@@ -255,7 +255,7 @@ const sections = computed((): Section[] => {
                                     name: entry.name,
                                 })
                             "
-                            class="h-[760px] w-[390px] max-w-full self-center rounded-[20px] border border-edge bg-canvas"
+                            class="h-[760px] w-[390px] max-w-full self-center rounded-card-lg border border-edge bg-canvas"
                         />
                         <DevCases v-else :key="entry.name" :name="entry.name" />
                     </div>

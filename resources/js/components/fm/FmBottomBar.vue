@@ -116,7 +116,7 @@ function itemClasses(marked: boolean): string {
 
     <FmBottomSheet v-model:open="moreOpen" :title="$t('More')">
         <div
-            class="flex flex-col divide-y divide-divider rounded-2xl border border-divider"
+            class="flex flex-col divide-y divide-divider rounded-card border border-divider"
         >
             <FmRow
                 v-for="item in inMore"

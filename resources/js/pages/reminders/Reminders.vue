@@ -351,7 +351,7 @@ function askDelete(item: ReminderItem): void {
 
         <div
             v-if="shown.length === 0 && filtered"
-            class="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-5"
+            class="flex flex-wrap items-center gap-3 rounded-card bg-white p-5"
         >
             <span class="text-[15px]">{{
                 $t('No reminders with these filters')

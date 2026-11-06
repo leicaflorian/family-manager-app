@@ -32,7 +32,7 @@ const marks = computed((): boolean => !notice.read && readHref !== undefined);
 /** The classes of the icon tile: the area while new, grey once seen. */
 const tile = computed(() =>
     cn(
-        'flex size-10 shrink-0 items-center justify-center rounded-xl',
+        'flex size-10 shrink-0 items-center justify-center rounded-lg',
         notice.read
             ? 'bg-canvas text-ink-soft'
             : areaTile[areaOf(notice.area) ?? 'general'],

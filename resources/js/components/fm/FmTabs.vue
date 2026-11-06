@@ -74,7 +74,7 @@ function tabClasses(marked: boolean, disabled = false): string {
         :aria-label="label"
         :class="
             variant === 'pill'
-                ? 'flex gap-1.5 rounded-xl bg-[#E6EAF0] p-1'
+                ? 'flex gap-1.5 rounded-lg bg-[#E6EAF0] p-1'
                 : '-mx-1 flex gap-1 overflow-x-auto border-b border-divider'
         "
     >

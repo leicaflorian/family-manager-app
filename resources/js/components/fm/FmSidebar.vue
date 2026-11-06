@@ -124,7 +124,7 @@ function isPage(section: Section): boolean {
 
         <Link
             :href="items.upload"
-            class="mb-3.5 flex h-11.5 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-action text-base font-normal text-white no-underline hover:bg-action-dark"
+            class="mb-3.5 flex h-11.5 shrink-0 items-center justify-center gap-2 rounded-md bg-action text-base font-normal text-white no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
             {{ $t('Upload') }}
@@ -145,7 +145,7 @@ function isPage(section: Section): boolean {
                         :aria-current="
                             isPage(item.section) ? 'page' : undefined
                         "
-                        class="flex h-11 grow items-center gap-3 rounded-xl px-3 text-[15px] no-underline"
+                        class="flex h-11 grow items-center gap-3 rounded-lg px-3 text-[15px] no-underline"
                         :class="[
                             isPage(item.section)
                                 ? 'bg-action-soft font-bold text-action-dark'
@@ -170,7 +170,7 @@ function isPage(section: Section): boolean {
                         :aria-label="$t('Show the areas')"
                         :aria-expanded="open"
                         aria-controls="sidebar-areas"
-                        class="absolute right-1 flex size-9 items-center justify-center rounded-lg text-ink-soft hover:bg-white/70 hover:text-ink"
+                        class="absolute right-1 flex size-9 items-center justify-center rounded-tag text-ink-soft hover:bg-white/70 hover:text-ink"
                         @click="open = !open"
                     >
                         <FmIcon
@@ -192,7 +192,7 @@ function isPage(section: Section): boolean {
                                 :aria-current="
                                     link.href === path ? 'page' : undefined
                                 "
-                                class="flex h-9 items-center gap-2 rounded-lg px-2.5 text-[13px] no-underline"
+                                class="flex h-9 items-center gap-2 rounded-tag px-2.5 text-[13px] no-underline"
                                 :class="
                                     link.href === path
                                         ? 'bg-action-soft font-bold text-action-dark'
@@ -226,7 +226,7 @@ function isPage(section: Section): boolean {
         <div class="border-t border-divider pt-2">
             <DropdownMenuRoot>
                 <DropdownMenuTrigger
-                    class="flex min-h-13 w-full items-center gap-2.5 rounded-xl px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"
+                    class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"
                 >
                     <span
                         class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-action-soft text-sm font-bold text-action-dark"
@@ -248,12 +248,12 @@ function isPage(section: Section): boolean {
                     <DropdownMenuContent
                         side="top"
                         :side-offset="8"
-                        class="z-50 flex w-[232px] flex-col gap-0.5 rounded-[14px] border border-[#E3E8EF] bg-white p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-1 motion-reduce:animate-none"
+                        class="z-50 flex w-[232px] flex-col gap-0.5 rounded-xl border border-[#E3E8EF] bg-white p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-1 motion-reduce:animate-none"
                     >
                         <DropdownMenuItem as-child>
                             <Link
                                 :href="items.settings.href"
-                                class="flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[15px] font-medium no-underline outline-none data-[highlighted]:bg-canvas"
+                                class="flex min-h-11 items-center gap-3 rounded-md px-3 text-[15px] font-medium no-underline outline-none data-[highlighted]:bg-canvas"
                             >
                                 <FmIcon
                                     :icon="items.settings.icon"
@@ -271,7 +271,7 @@ function isPage(section: Section): boolean {
                                 :href="items.logout"
                                 method="post"
                                 as="button"
-                                class="flex min-h-11 w-full items-center gap-3 rounded-[10px] px-3 text-left text-[15px] font-medium text-overdue outline-none data-[highlighted]:bg-canvas"
+                                class="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[15px] font-medium text-overdue outline-none data-[highlighted]:bg-canvas"
                             >
                                 <FmIcon :icon="LogOut" :size="20" />
                                 {{ $t('Log out') }}

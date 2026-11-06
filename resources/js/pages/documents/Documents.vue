@@ -216,7 +216,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     : 'xl:grid-cols-[16rem_minmax(0,1fr)]',
             ]"
         >
-            <aside class="hidden rounded-[20px] bg-white p-5 xl:block">
+            <aside class="hidden rounded-card-lg bg-white p-5 xl:block">
                 <FmDocumentFilters
                     :filters="filters"
                     :options="options"
@@ -239,7 +239,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     <button
                         type="button"
                         :aria-label="$t('Filters')"
-                        class="flex size-11.5 shrink-0 items-center justify-center rounded-[10px] border border-edge bg-white text-ink xl:hidden"
+                        class="flex size-11.5 shrink-0 items-center justify-center rounded-md border border-edge bg-white text-ink xl:hidden"
                         @click="filtersOpen = true"
                     >
                         <FmIcon :icon="ListFilter" :size="22" />

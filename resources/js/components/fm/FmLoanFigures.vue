@@ -28,7 +28,7 @@ function written(amount: number | null | undefined): string {
 
 <template>
     <dl
-        class="grid grid-cols-2 gap-3 rounded-2xl bg-canvas px-4 py-3"
+        class="grid grid-cols-2 gap-3 rounded-card bg-canvas px-4 py-3"
         data-testid="loan-figures"
     >
         <div class="flex flex-col gap-0.5">

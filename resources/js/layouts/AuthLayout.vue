@@ -94,7 +94,7 @@ defineSlots<{
             class="flex grow items-stretch justify-center lg:items-center lg:p-12"
         >
             <div
-                class="flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-3xl lg:bg-white lg:p-9"
+                class="flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-sheet lg:bg-white lg:p-9"
             >
                 <div class="flex items-center gap-2.5 lg:hidden">
                     <FmLogo :size="36" />

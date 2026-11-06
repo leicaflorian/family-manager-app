@@ -247,7 +247,7 @@ useSaveShortcut(save, () => !form.processing);
     </template>
     <div
         v-else
-        class="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 rounded-3xl bg-white p-5"
+        class="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 rounded-sheet bg-white p-5"
     >
         <div class="flex items-center justify-between gap-3">
             <h1 class="m-0 text-xl font-extrabold">
