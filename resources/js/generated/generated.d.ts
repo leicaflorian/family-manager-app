@@ -719,6 +719,7 @@ export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
 export type SubscriptionStatus = 'active' | 'cancelled';
 export type SubscriptionType = 'streaming' | 'software' | 'cloud' | 'web' | 'other';
+export type Theme = 'system' | 'light' | 'dark';
 export type UtilityStatus = 'active' | 'terminated';
 export type UtilityType = 'electricity' | 'gas' | 'water' | 'internet' | 'phone' | 'waste_tax' | 'tv_license';
 export type VehicleStatus = 'active' | 'sold';

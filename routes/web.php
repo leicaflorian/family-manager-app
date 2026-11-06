@@ -129,6 +129,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settings/account', [AccountController::class, 'edit'])->name('account.edit');
         Route::patch('settings/account', [AccountController::class, 'update'])->name('account.update');
         Route::put('settings/account/password', [AccountController::class, 'password'])->middleware('throttle:6,1')->name('account.password');
+        Route::put('settings/account/theme', [AccountController::class, 'theme'])->name('account.theme');
         Route::post('settings/account/photo', [AccountController::class, 'photo'])->name('account.photo');
         Route::delete('settings/account', [AccountController::class, 'destroy'])->name('account.destroy');
         Route::get('settings/calendar', [CalendarSettingsController::class, 'edit'])->name('calendar.edit');

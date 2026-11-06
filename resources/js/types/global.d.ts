@@ -28,6 +28,8 @@ declare module '@inertiajs/core' {
             /** The files waiting to be sorted, without the copies; 0 for a guest. */
             to_sort_count: number;
             locale: string;
+            /** The theme of the account; `system` for a guest. */
+            theme: App.Enums.Theme;
             [key: string]: unknown;
         };
     }

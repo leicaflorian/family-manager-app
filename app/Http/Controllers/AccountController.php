@@ -7,9 +7,11 @@ namespace App\Http\Controllers;
 use App\Actions\Account\ChangePhoto;
 use App\Actions\Account\UpdateAccount;
 use App\Data\AccountData;
+use App\Enums\Theme;
 use App\Http\Requests\Settings\ChangePasswordRequest;
 use App\Http\Requests\Settings\DeleteAccountRequest;
 use App\Http\Requests\Settings\UpdateAccountRequest;
+use App\Http\Requests\Settings\UpdateThemeRequest;
 use App\Http\Requests\Settings\UploadPhotoRequest;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -61,6 +63,16 @@ final class AccountController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password changed.')]);
 
         return to_route('account.edit');
+    }
+
+    /**
+     * Saves the theme of the account. A personal preference: every account saves its own.
+     */
+    public function theme(UpdateThemeRequest $request, #[CurrentUser] User $user): RedirectResponse
+    {
+        $user->update(['theme' => Theme::from($request->string('theme')->toString())]);
+
+        return back();
     }
 
     /**
