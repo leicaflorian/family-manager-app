@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@import './tokens.css';
+
 @import 'tw-animate-css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -14,71 +16,15 @@
 @custom-variant formkit-errors (&:where([data-errors] *, [data-invalid] *));
 @custom-variant formkit-disabled (&:where([data-disabled], [data-disabled] *));
 
-/*
- * Colours of the Claude Design canvas (*Components* pages).
- * static: the colours of the areas are also used from var() in inline styles,
- * which Tailwind does not see.
- */
+/* Widest the content of a page gets, in the middle of AppLayout's main */
 @theme static {
-    /* Widest the content of a page gets, in the middle of AppLayout's main */
     --main-width: 1120px;
-
-    --color-brand: #3399ff;
-    --color-action: #0070e0;
-    --color-action-dark: #0059b3;
-    --color-action-soft: #eaf4ff;
-    --color-canvas: #f4f6fa;
-    --color-ink: #18212f;
-    --color-ink-soft: #5a6575;
-    --color-edge: #cdd5e0;
-    --color-divider: #eef1f5;
-    --color-segment: #e6eaf0;
-    --color-overdue: #c4283f;
-    --color-warning: #9a4308;
-    --color-warning-soft: #fff1e7;
-    --color-paid: #1b7f5f;
-
-    /* Colour of each area: light for dots and icons, dark for text */
-    --color-home: #f76b15;
-    --color-home-dark: #b4500f;
-    --color-vehicles: #0797b9;
-    --color-vehicles-dark: #067891;
-    --color-insurance: #8e4ec6;
-    --color-insurance-dark: #7a44ae;
-    --color-banks: #3e63dd;
-    --color-banks-dark: #3550b5;
-    --color-health: #c13fb8;
-    --color-health-dark: #9e2f96;
-    --color-school: #e5a50a;
-    --color-school-dark: #8a6206;
-    --color-work: #6e9f18;
-    --color-work-dark: #4f7311;
-    --color-subscriptions: #5b5bd6;
-    --color-subscriptions-dark: #4747b8;
-    --color-paperwork: #a0714f;
-    --color-paperwork-dark: #7d5537;
-    --color-expenses: #e35169;
-    --color-income: #2ecda7;
-    --color-general: #80838d;
-    --color-general-dark: #5d6069;
-
-    /* The shadow of what opens over the page: menus and the lists of the dropdowns */
-    --shadow-menu: 0 12px 32px rgba(24, 33, 47, 0.16);
 }
 
 @theme inline {
-    --font-sans:
-        Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
-
     --color-background: var(--background);
     --color-foreground: var(--foreground);
 
-    --color-card: var(--card);
     --color-card-foreground: var(--card-foreground);
 
     --color-popover: var(--popover);
@@ -102,12 +48,6 @@
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
-
-    --color-chart-1: var(--chart-1);
-    --color-chart-2: var(--chart-2);
-    --color-chart-3: var(--chart-3);
-    --color-chart-4: var(--chart-4);
-    --color-chart-5: var(--chart-5);
 
     --color-sidebar: var(--sidebar-background);
     --color-sidebar-foreground: var(--sidebar-foreground);
@@ -138,76 +78,35 @@
 }
 
 :root {
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(0 0% 3.9%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(0 0% 3.9%);
-    --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(0 0% 3.9%);
-    --primary: hsl(0 0% 9%);
-    --primary-foreground: hsl(0 0% 98%);
-    --secondary: hsl(0 0% 92.1%);
-    --secondary-foreground: hsl(0 0% 9%);
-    --muted: hsl(0 0% 96.1%);
-    --muted-foreground: hsl(0 0% 45.1%);
-    --accent: hsl(0 0% 96.1%);
-    --accent-foreground: hsl(0 0% 9%);
-    --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 92.8%);
-    --input: hsl(0 0% 89.8%);
-    --ring: hsl(0 0% 3.9%);
-    --chart-1: hsl(12 76% 61%);
-    --chart-2: hsl(173 58% 39%);
-    --chart-3: hsl(197 37% 24%);
-    --chart-4: hsl(43 74% 66%);
-    --chart-5: hsl(27 87% 67%);
-    --radius: 0.5rem;
-    --sidebar-background: hsl(0 0% 98%);
-    --sidebar-foreground: hsl(240 5.3% 26.1%);
-    --sidebar-primary: hsl(0 0% 10%);
-    --sidebar-primary-foreground: hsl(0 0% 98%);
-    --sidebar-accent: hsl(0 0% 94%);
-    --sidebar-accent-foreground: hsl(0 0% 30%);
-    --sidebar-border: hsl(0 0% 91%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(0 0% 98%);
-}
-
-.dark {
-    --background: hsl(0 0% 3.9%);
-    --foreground: hsl(0 0% 98%);
-    --card: hsl(0 0% 3.9%);
-    --card-foreground: hsl(0 0% 98%);
-    --popover: hsl(0 0% 3.9%);
-    --popover-foreground: hsl(0 0% 98%);
-    --primary: hsl(0 0% 98%);
-    --primary-foreground: hsl(0 0% 9%);
-    --secondary: hsl(0 0% 14.9%);
-    --secondary-foreground: hsl(0 0% 98%);
-    --muted: hsl(0 0% 16.08%);
-    --muted-foreground: hsl(0 0% 63.9%);
-    --accent: hsl(0 0% 14.9%);
-    --accent-foreground: hsl(0 0% 98%);
-    --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 14.9%);
-    --input: hsl(0 0% 14.9%);
-    --ring: hsl(0 0% 83.1%);
-    --chart-1: hsl(220 70% 50%);
-    --chart-2: hsl(160 60% 45%);
-    --chart-3: hsl(30 80% 55%);
-    --chart-4: hsl(280 65% 60%);
-    --chart-5: hsl(340 75% 55%);
-    --sidebar-background: hsl(0 0% 7%);
-    --sidebar-foreground: hsl(0 0% 95.9%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
-    --sidebar-accent: hsl(0 0% 15.9%);
-    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-border: hsl(0 0% 15.9%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(240 5.9% 10%);
+    /* The starter kit's names, pointed at the tokens of tokens.css (--card is a token itself) */
+    --background: var(--canvas);
+    --foreground: var(--ink);
+    --card-foreground: var(--ink);
+    --popover: var(--card);
+    --popover-foreground: var(--ink);
+    --primary: var(--action);
+    --primary-foreground: var(--on-action);
+    --secondary: var(--segment);
+    --secondary-foreground: var(--ink);
+    --muted: var(--card-sunken);
+    --muted-foreground: var(--ink-soft);
+    --accent: var(--action-soft);
+    --accent-foreground: var(--action-dark);
+    --destructive: var(--overdue);
+    --destructive-foreground: var(--on-action);
+    --border: var(--edge);
+    --input: var(--edge);
+    --ring: var(--action);
+    --radius: var(--radius-md);
+    --sidebar-background: var(--card);
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--action);
+    --sidebar-primary-foreground: var(--on-action);
+    --sidebar-accent: var(--action-soft);
+    --sidebar-accent-foreground: var(--action-dark);
+    --sidebar-border: var(--edge-soft);
+    --sidebar-ring: var(--action);
+    --sidebar: var(--card);
 }
 
 @layer base {
@@ -221,8 +120,8 @@
 
 @layer base {
     body {
-        background: var(--color-canvas);
-        color: var(--color-ink);
+        background: var(--canvas);
+        color: var(--ink);
         -webkit-tap-highlight-color: transparent;
     }
 
@@ -272,17 +171,17 @@
 
     ::-webkit-scrollbar-thumb {
         border-radius: 9999px;
-        background: var(--color-edge);
+        background: var(--edge);
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: var(--color-ink-soft);
+        background: var(--ink-soft);
     }
 
     @supports not selector(::-webkit-scrollbar) {
         * {
             scrollbar-width: thin;
-            scrollbar-color: var(--color-edge) transparent;
+            scrollbar-color: var(--edge) transparent;
         }
     }
 }
