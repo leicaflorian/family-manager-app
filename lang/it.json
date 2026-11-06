@@ -1191,5 +1191,22 @@
     "the title": "il titolo",
     "the date": "la data",
     "Accident policy": "Polizza infortuni",
-    "Fund": "Fondo"
+    "Fund": "Fondo",
+    "Planned expense: :value": "Spesa fissa: :value",
+    "Category: :value": "Categoria: :value",
+    "Organization: :value": "Ente: :value",
+    "Account: :name": "Conto: :name",
+    "Account: :name, before :before": "Conto: :name, prima :before",
+    "The receipt is :paid, the expense :amount: the amount and the fee of the expense do not change.": "La ricevuta è di :paid, la spesa di :amount: importo e commissione della spesa non cambiano.",
+    "Amount: :amount (:before plus :fee of fee)": "Importo: :amount (:before più :fee di commissione)",
+    "Deadline not found: to create the expense to pay it must be entered.": "Scadenza non trovata: per creare la spesa da pagare va inserita.",
+    "Amount or date not found: to create the income they must be entered.": "Importo o data non trovati: per creare l'entrata vanno inseriti.",
+    "Amount or date not found: to create the expense they must be entered.": "Importo o data non trovati: per creare la spesa vanno inseriti.",
+    "the person": "la persona",
+    "{1} To create the health event :fields is missing.|[2,*] To create the health event :fields are missing.": "{1} Per creare l'evento di salute manca :fields.|[2,*] Per creare l'evento di salute mancano :fields.",
+    "I'll remind you to book the checkup": "Ti ricorderò di prenotare il controllo",
+    "I'll remind you before the warranty ends": "Ti ricorderò prima che finisca la garanzia",
+    "Utility not found (:code): choose it by hand.": "Utenza non trovata (:code): va scelta a mano.",
+    "No vehicle with the plate :plate.": "Nessun veicolo con targa :plate.",
+    "No policy with the number :number.": "Nessuna polizza con numero :number."
 }

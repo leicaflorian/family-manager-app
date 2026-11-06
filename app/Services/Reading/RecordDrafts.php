@@ -19,6 +19,7 @@ use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Utility;
 use App\Models\Vehicle;
+use App\Support\Reading\RecordLabel;
 use App\Support\Reading\ValidDate;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -144,7 +145,7 @@ final class RecordDrafts
                     'warranty_expiry_date' => self::warrantyEnd($document['date'], ValidDate::carbon($x->warranty_expiry_date))?->toDateString(),
                 ],
                 $amount !== null && $amount >= self::BELONGING_TICK_EUR,
-                $belonging instanceof Belonging ? ['id' => $belonging->id, 'title' => (string) $belonging->name] : null,
+                $belonging instanceof Belonging ? ['id' => $belonging->id, 'title' => RecordLabel::of($belonging)] : null,
             );
         }
 
@@ -166,9 +167,7 @@ final class RecordDrafts
                     'home_id' => $onVehicle ? null : $onlyHome,
                 ],
                 true,
-                $record instanceof MaintenanceRecord
-                    ? ['id' => $record->id, 'title' => $record->title.' ('.$record->date->format('d/m/Y').')']
-                    : null,
+                $record instanceof MaintenanceRecord ? ['id' => $record->id, 'title' => RecordLabel::of($record)] : null,
             );
         }
 
@@ -185,7 +184,7 @@ final class RecordDrafts
                 __('the organization :name', ['name' => (string) $x->issuer_name]),
                 ['name' => $x->issuer_name, 'types' => self::has($x->organization_type) ? [$x->organization_type] : []],
                 $organization instanceof Organization || $needed || in_array($x->kind, self::ORGANIZATION_TICKED_KINDS, true),
-                $organization instanceof Organization ? ['id' => $organization->id, 'title' => $organization->name] : null,
+                $organization instanceof Organization ? ['id' => $organization->id, 'title' => RecordLabel::of($organization)] : null,
             );
         }
 
@@ -220,7 +219,7 @@ final class RecordDrafts
      * @param  array<string, mixed>  $values  the fields it would be created with
      * @return list<string>
      */
-    private static function missing(RecordKind $kind, array $values): array
+    public static function missing(RecordKind $kind, array $values): array
     {
         $missing = [];
         foreach (self::required($kind) as $column) {

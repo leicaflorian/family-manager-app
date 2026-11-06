@@ -34,6 +34,9 @@ final class MovementSearch
     /** Days around the day of a payment receipt in which the expense it pays can have been recorded. */
     public const int PAYMENT_WINDOW_DAYS = 30;
 
+    /** How many movements the person is offered to pick by hand. */
+    public const int NEAR_LIMIT = 20;
+
     /**
      * The commitment linked to a card (the employment, for an income); with several, the one whose dates contain the
      * date. A one-off planned expense counts only within the duplicate window of its own date: it is not the
@@ -159,6 +162,33 @@ final class MovementSearch
             ->filter(fn (PlannedExpense $row): bool => Money::cents($row->amount) === Money::cents($amount))
             ->sortBy(fn (PlannedExpense $row): int => IssuerOrder::daysApart($row->start_date ?? $day, $day), SORT_NUMERIC)
             ->first();
+    }
+
+    /**
+     * The movements within the payment window of a date, the closest first (then the lowest id), at most
+     * `NEAR_LIMIT`: those the person can pick by hand instead of the one found.
+     *
+     * @param  string  $kind  `expense` or `income`
+     * @param  CarbonImmutable  $date  the date of the paper
+     * @return list<array{id: int, title: string, date: string, amount: float}>
+     */
+    public function near(string $kind, CarbonImmutable $date): array
+    {
+        $day = $date->startOfDay();
+
+        /** @var Collection<int, Expense|Income> $rows */
+        $rows = $this->movements($kind)->whereBetween('date', $this->window($date, self::PAYMENT_WINDOW_DAYS))->orderBy('id')->get();
+
+        return array_values($rows
+            ->sortBy(fn (Expense|Income $row): int => IssuerOrder::daysApart($row->date ?? $day, $day), SORT_NUMERIC)
+            ->take(self::NEAR_LIMIT)
+            ->map(fn (Expense|Income $row): array => [
+                'id' => $row->id,
+                'title' => (string) $row->title,
+                'date' => ($row->date ?? $day)->toDateString(),
+                'amount' => Money::cents($row->amount) / 100.0,
+            ])
+            ->all());
     }
 
     /**

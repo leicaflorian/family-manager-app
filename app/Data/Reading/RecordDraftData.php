@@ -21,6 +21,8 @@ final class RecordDraftData extends Data
      * @param  bool  $suggested  whether the box starts ticked
      * @param  list<string>  $missing  the required fields still empty, as words (`the type`)
      * @param  array{id: int, title: string}|null  $existing  the organization, belonging or intervention already there, to link
+     * @param  list<array{id: int, label: string}>  $candidates  the cards of this kind, to pick one by hand
+     * @param  string|null  $reminder  the reminder the new card makes (`I'll remind you before the warranty ends`)
      */
     public function __construct(
         public readonly RecordKind $kind,
@@ -29,5 +31,7 @@ final class RecordDraftData extends Data
         public readonly bool $suggested,
         public readonly array $missing,
         public readonly ?array $existing = null,
+        public readonly array $candidates = [],
+        public readonly ?string $reminder = null,
     ) {}
 }

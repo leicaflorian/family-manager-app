@@ -639,6 +639,33 @@ id: number,
 readonly headline: string,
 readonly found: App.Data.Reading.FoundLineData[],
 };
+export type DueData = {
+readonly suggested: boolean,
+readonly date: string | null,
+readonly plan: {
+id: number,
+title: string,
+date: string,
+} | null,
+readonly occurrence: string | null,
+readonly mode: App.Enums.DueMode,
+};
+export type EventProposalData = {
+readonly values: App.Data.Reading.EventValuesData,
+readonly suggested: boolean,
+readonly existing: {
+id: number,
+title: string,
+date: string,
+} | null,
+readonly blocked: string | null,
+readonly candidates: {
+id: number,
+title: string,
+date: string,
+}[],
+readonly reminder: string | null,
+};
 export type EventValuesData = {
 readonly title: string | null,
 readonly type: string | null,
@@ -694,6 +721,33 @@ export type FoundLineData = {
 readonly label: string,
 readonly value: string,
 };
+export type MovementProposalData = {
+readonly values: App.Data.Reading.MovementValuesData,
+readonly suggested: boolean,
+readonly duplicate: {
+id: number,
+title: string,
+date: string,
+} | null,
+readonly changes: string[],
+readonly warnings: string[],
+readonly others: number,
+readonly blocked: string | null,
+readonly due: App.Data.Reading.DueData | null,
+readonly pays: {
+planned: number,
+title: string,
+date: string,
+occurrence: string,
+others: number,
+} | null,
+readonly candidates: {
+id: number,
+title: string,
+date: string,
+amount: number,
+}[],
+};
 export type MovementValuesData = {
 readonly kind: string,
 readonly title: string | null,
@@ -725,6 +779,19 @@ readonly organizationName: string | null,
 readonly personId: number | null,
 readonly type: string | null,
 };
+export type ProposalData = {
+readonly fileId: number,
+readonly document: App.Data.Reading.DocumentProposalData,
+readonly movement: App.Data.Reading.MovementProposalData | null,
+readonly event: App.Data.Reading.EventProposalData | null,
+readonly records: App.Data.Reading.RecordDraftData[],
+readonly policy: {
+need: boolean,
+giver: App.Data.Reading.PolicyGiverData | null,
+many: boolean,
+} | null,
+readonly warnings: string[],
+};
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,
 readonly title: string,
@@ -735,6 +802,11 @@ readonly existing: {
 id: number,
 title: string,
 } | null,
+readonly candidates: {
+id: number,
+label: string,
+}[],
+readonly reminder: string | null,
 };
 }
 }
