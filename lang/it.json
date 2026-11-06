@@ -1208,5 +1208,15 @@
     "I'll remind you before the warranty ends": "Ti ricorderò prima che finisca la garanzia",
     "Utility not found (:code): choose it by hand.": "Utenza non trovata (:code): va scelta a mano.",
     "No vehicle with the plate :plate.": "Nessun veicolo con targa :plate.",
-    "No policy with the number :number.": "Nessuna polizza con numero :number."
+    "No policy with the number :number.": "Nessuna polizza con numero :number.",
+    "To create the income the amount and the date are needed: enter them or untick the income.": "Per creare l'entrata servono importo e data: inseriscili o togli la spunta dall'entrata.",
+    "To create the expense to pay the amount and the deadline are needed: enter them or untick the expense.": "Per creare la spesa da pagare servono importo e scadenza: inseriscili o togli la spunta dalla spesa.",
+    "To create the expense the amount and the date are needed: enter them or untick the expense.": "Per creare la spesa servono importo e data: inseriscili o togli la spunta dalla spesa.",
+    "To create the health event the person, the type, the date and the title are needed: enter them or untick the event.": "Per creare l'evento di salute servono persona, tipo, data e titolo: inseriscili o togli la spunta dall'evento.",
+    "{1} To create :title :fields is needed: enter it or untick it.|[2,*] To create :title :fields are needed: enter them or untick it.": "{1} Per creare :title serve :fields: inseriscili o togli la spunta.|[2,*] Per creare :title servono :fields: inseriscili o togli la spunta.",
+    "The chosen expense no longer exists: choose another one.": "La spesa scelta non esiste più: scegline un'altra.",
+    "The chosen income no longer exists: choose another one.": "L'entrata scelta non esiste più: scegline un'altra.",
+    "The chosen event no longer exists: choose another one.": "L'evento scelto non esiste più: scegline un altro.",
+    "The chosen card no longer exists: choose another one.": "La scheda scelta non esiste più: scegline un'altra.",
+    "Not linked to the policy :number: the policy was not created. Link it from the document form.": "Non collegato alla polizza :number: la polizza non è stata creata. Collegalo dal form del documento."
 }

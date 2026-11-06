@@ -70,3 +70,15 @@ test('everyone sees a file, and who files documents reads it', function (): void
         ->and($this->rosa->can('read', $file))->toBeTrue()
         ->and($this->marco->can('read', $file))->toBeTrue();
 });
+
+test('everyone of the family imports a waiting file, not one already filed nor one of another family', function (): void {
+    $waiting = uploadAs($this->rosa, 'Fattura Studio Ferri.pdf', 'the invoice');
+    $filed = uploadAs($this->marco, 'Bolletta Edison.pdf', 'the bill of october');
+    $filed->update(['to_sort' => false]);
+    $foreign = File::factory()->create(['to_sort' => true]);
+
+    expect($this->rosa->can('import', $waiting))->toBeTrue()
+        ->and($this->marco->can('import', $waiting))->toBeTrue()
+        ->and($this->marco->can('import', $filed))->toBeFalse()
+        ->and($this->marco->can('import', $foreign))->toBeFalse();
+});

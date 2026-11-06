@@ -10,6 +10,7 @@ use App\Enums\InsurancePolicyType;
 use App\Enums\MaintenanceType;
 use App\Enums\OrganizationType;
 use App\Enums\UtilityType;
+use App\Models\File;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -130,6 +131,18 @@ final class Extraction extends Data
         public ?string $summary = null,
         public ?string $confidence = null,
     ) {}
+
+    /**
+     * What the model read from a file, or an empty reading for a file never read.
+     *
+     * @param  File  $file  the file
+     */
+    public static function ofFile(File $file): self
+    {
+        $extraction = $file->reading['extraction'] ?? null;
+
+        return is_array($extraction) ? self::from($extraction) : new self;
+    }
 
     /**
      * The values of the enum-like fields, by field: what the schema allows and what `parse()` keeps.

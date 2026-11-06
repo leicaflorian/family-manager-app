@@ -32,6 +32,19 @@ final class FilePolicy extends FamilyPolicy
     }
 
     /**
+     * Importing a file in *Import*, with all it does too (the expense, the event, the organization, the cards): anyone
+     * of the family, while the file waits. A `member` creates these only through the import; outside it the
+     * policies of each model stay as they are.
+     *
+     * @param  User  $user  whoever signed in
+     * @param  File  $file  the file
+     */
+    public function import(User $user, File $file): bool
+    {
+        return $this->ofFamily($user, $file) && $file->to_sort;
+    }
+
+    /**
      * Deleting a file: never one that has its document; an `admin` any other, a `member` the files the member
      * uploaded and the copies.
      *

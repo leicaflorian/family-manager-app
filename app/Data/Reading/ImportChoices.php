@@ -99,6 +99,30 @@ final readonly class ImportChoices
     }
 
     /**
+     * The choices with the organization created or linked with the file in the menus *Organization* of the document
+     * and of the movement that are empty: the page sends them empty when the issuer was not found. One picked by hand
+     * stays.
+     *
+     * @param  int  $organizationId  the organization
+     */
+    public function withOrganization(int $organizationId): self
+    {
+        $movement = $this->overrides['movement'];
+        $movement['organization_id'] = self::id($movement['organization_id'] ?? null) ?? $organizationId;
+
+        return new self(
+            document: [...$this->document, 'organization_id' => self::id($this->document['organization_id'] ?? null) ?? $organizationId],
+            movement: $this->movement,
+            event: $this->event,
+            records: $this->records,
+            overrides: [...$this->overrides, 'movement' => $movement],
+            targets: $this->targets,
+            due: $this->due,
+            policy: $this->policy,
+        );
+    }
+
+    /**
      * The corrections of the movement that a movement of this kind has: an income has no category, fee or deadline.
      *
      * @param  string  $kind  `expense` or `income`

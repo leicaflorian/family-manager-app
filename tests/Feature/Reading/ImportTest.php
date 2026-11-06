@@ -3,12 +3,21 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
+use App\Models\Expense;
 use App\Models\File;
+use App\Models\HealthEvent;
+use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\Person;
+use App\Models\PlannedExpense;
 use App\Models\User;
+use App\Models\Utility;
 use App\Models\Vehicle;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -242,4 +251,118 @@ test('a member can import: members add documents', function (): void {
     $this->actingAs($this->laura)->post(route('import.store'), ['files' => [importEntry($file)]])->assertSessionHasNoErrors();
 
     expect(Document::query()->count())->toBe(1);
+});
+
+describe('what each file does too', function (): void {
+    beforeEach(function (): void {
+        Date::setTestNow(CarbonImmutable::parse('2026-10-16 10:00', 'Europe/Rome'));
+        $this->dentist = Organization::factory()->for($this->marco->family)->create(['name' => 'Studio dentistico']);
+        $this->invoice = File::factory()->for($this->marco->family)->read([
+            'kind' => 'invoice', 'title' => 'Cure dentistiche', 'organization_id' => $this->dentist->id, 'total_amount' => 480,
+            'issue_date' => '2026-10-15', 'due_date' => '2026-11-30',
+        ])->create(['to_sort' => true]);
+    });
+
+    afterEach(function (): void {
+        Date::setTestNow();
+    });
+
+    test('the page has the proposal of each file', function (): void {
+        $other = waitingFile();
+
+        $this->actingAs($this->marco)->get(route('import', ['files' => "{$this->invoice->id},{$other->id}"]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+                ->where("proposals.{$this->invoice->id}.fileId", $this->invoice->id)
+                ->where("proposals.{$this->invoice->id}.movement.due.mode", 'new')
+                ->where("proposals.{$this->invoice->id}.movement.due.date", '2026-11-30')
+                ->where("proposals.{$other->id}.fileId", $other->id));
+    });
+
+    test('the check recalculates the proposal of the file it names, with its choices', function (): void {
+        $other = waitingFile();
+
+        $this->actingAs($this->marco)->get(route('import', [
+            'files' => "{$this->invoice->id},{$other->id}",
+            'check' => ['file_id' => $this->invoice->id, 'document' => [], 'also' => ['overrides' => ['movement' => ['due_date' => '2026-12-15']]]],
+        ]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where("proposals.{$this->invoice->id}.movement.due.date", '2026-12-15')
+            ->missing("proposals.{$other->id}")
+            ->reloadOnly('proposals', fn (AssertableInertia $reload): AssertableInertia => $reload
+                ->where("proposals.{$this->invoice->id}.movement.due.date", '2026-12-15')
+                ->missing("proposals.{$other->id}")
+                ->missing('files')));
+
+        // The page keeps the proposals of the other files: the one that comes back is merged with them
+        $this->actingAs($this->marco)->getJson(route('import', ['files' => (string) $this->invoice->id, 'check' => ['file_id' => $this->invoice->id]]), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => (string) resolve(HandleInertiaRequests::class)->version(Request::create('/')),
+            'X-Inertia-Partial-Component' => 'documents/Import',
+            'X-Inertia-Partial-Data' => 'proposals',
+        ])->assertOk()->assertJsonPath('mergeProps', ['proposals']);
+    });
+
+    test('a file of another family is 404 on the check', function (): void {
+        $foreign = File::factory()->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->get(route('import', [
+            'files' => (string) $this->invoice->id,
+            'check' => ['file_id' => $foreign->id, 'document' => [], 'also' => []],
+        ]))->assertNotFound();
+    });
+
+    test('the expense to pay is saved with its document', function (): void {
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice), 'also' => ['movement' => true]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+        expect(PlannedExpense::query()->sole()->start_date?->toDateString())->toBe('2026-11-30')
+            ->and(Document::query()->sole()->planned_expense_id)->toBe(PlannedExpense::query()->sole()->id);
+    });
+
+    test('a chosen expense deleted before the confirm', function (): void {
+        $gone = Expense::factory()->for($this->marco->family)->create();
+        $gone->delete();
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice), 'also' => ['movement' => true, 'targets' => ['movement' => $gone->id]]],
+        ]])->assertSessionHasErrors(['files.0.also.targets.movement' => 'The chosen expense no longer exists: choose another one.']);
+
+        expect(Document::query()->count())->toBe(0)->and(PlannedExpense::query()->count())->toBe(0);
+    });
+
+    test('a chosen card of another family', function (): void {
+        $theirs = Utility::factory()->create();
+        $theirEvent = HealthEvent::factory()->create();
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice), 'also' => ['event' => true, 'records' => ['utility'], 'targets' => ['event' => $theirEvent->id, 'records' => ['utility' => $theirs->id]]]],
+        ]])->assertSessionHasErrors([
+            'files.0.also.targets.records.utility' => 'The chosen card no longer exists: choose another one.',
+            'files.0.also.targets.event' => 'The chosen event no longer exists: choose another one.',
+        ]);
+
+        expect(Document::query()->count())->toBe(0);
+    });
+
+    test('a ticked expense without what it needs is refused', function (): void {
+        $undated = File::factory()->for($this->marco->family)->read(['kind' => 'invoice', 'title' => 'Cure', 'total_amount' => 480])->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($undated), 'also' => ['movement' => true, 'due' => false]],
+        ]])->assertSessionHasErrors(['files.0.also.movement' => 'To create the expense the amount and the date are needed: enter them or untick the expense.']);
+
+        expect(Document::query()->count())->toBe(0);
+    });
+
+    test('a ticked card missing a required field is refused', function (): void {
+        $policy = File::factory()->for($this->marco->family)->read([
+            'kind' => 'insurance', 'policy_number' => '40/123456', 'issue_date' => '2026-10-01', 'organization_id' => $this->dentist->id,
+        ])->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($policy), 'also' => ['records' => ['policy']]],
+        ]])->assertSessionHasErrors(['files.0.also.records.policy' => 'To create the policy 40/123456 · Studio dentistico the type is needed: enter it or untick it.']);
+
+        expect(Document::query()->count())->toBe(0)->and(InsurancePolicy::query()->count())->toBe(0);
+    });
 });

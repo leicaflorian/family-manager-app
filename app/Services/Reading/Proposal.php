@@ -95,7 +95,7 @@ final readonly class Proposal
      */
     private function build(File $file, ImportChoices $choices, array $roundGivers, string $locale): ProposalData
     {
-        $x = $this->extraction($file);
+        $x = Extraction::ofFile($file);
         $context = ReadingContext::for($file);
         $document = $this->documents->of($x, $context, $locale);
         $draft = $this->drafts->of($x, $context, $locale);
@@ -284,18 +284,6 @@ final readonly class Proposal
     private function named(HealthEvent $event): array
     {
         return ['id' => $event->id, 'title' => $event->title, 'date' => $event->date->toDateString()];
-    }
-
-    /**
-     * What the model read from the file, or an empty reading for a file never read.
-     *
-     * @param  File  $file  the file
-     */
-    private function extraction(File $file): Extraction
-    {
-        $extraction = $file->reading['extraction'] ?? null;
-
-        return is_array($extraction) ? Extraction::from($extraction) : new Extraction;
     }
 
     /**

@@ -4,22 +4,46 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Reading;
 
+use App\Data\Reading\DueData;
+use App\Data\Reading\EventProposalData;
+use App\Data\Reading\ImportChoices;
+use App\Data\Reading\MovementProposalData;
+use App\Data\Reading\ProposalData;
+use App\Enums\RecordKind;
 use App\Models\Document;
+use App\Models\Expense;
+use App\Models\File;
+use App\Models\HealthEvent;
+use App\Models\Income;
+use App\Services\Reading\Proposal;
 use App\Support\DocumentRules;
+use App\Support\Reading\ImportErrors;
+use App\Support\Reading\RecordLabel;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\App;
 
 /**
- * Many files of *To sort* made documents at once: for each, the file (of the family and still waiting) and
- * the fields of its document, with the same rules as the form of one document.
+ * Many files of *To sort* imported at once: for each, the file (of the family and still waiting), the fields of its
+ * document, with the same rules as the form of one document, and what it does too (`also`: the boxes, the
+ * corrections and the choices of *What I also do*, cleaned by {@see ImportChoices}).
+ *
+ * Before saving, the proposal of each file is made with those choices: a ticked box that misses what it needs, or a
+ * movement, event or card picked by hand that is no longer there (or is of another family), is refused here, so the
+ * import saves all of a file or nothing of it.
  */
 final class ImportRequest extends FormRequest
 {
     /** Where the document of each file sits in the body. */
     private const string DOCUMENT = 'files.%d.document.';
 
+    /** Where what each file does too sits in the body. */
+    private const string ALSO = 'files.%d.also.';
+
     /**
-     * Whoever adds documents imports them.
+     * Whoever adds documents imports them; each file is authorized by the controller (`FilePolicy::import`).
      */
     public function authorize(): bool
     {
@@ -27,7 +51,7 @@ final class ImportRequest extends FormRequest
     }
 
     /**
-     * The rules of the files and, under each, those of its document.
+     * The rules of the files and, under each, those of its document and of what it does too.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -36,9 +60,17 @@ final class ImportRequest extends FormRequest
         $rules = [
             // A list, so every entry has a numeric place and the rules of its document are built for it
             'files' => ['required', 'array', 'list', 'min:1', 'max:50'],
-            'files.*' => ['required', 'array:file_id,document'],
+            'files.*' => ['required', 'array:file_id,document,also'],
             'files.*.file_id' => [...DocumentRules::fileId(), 'distinct'],
             'files.*.document' => ['required', 'array'],
+            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy'],
+            'files.*.also.movement' => ['sometimes', 'boolean'],
+            'files.*.also.event' => ['sometimes', 'boolean'],
+            'files.*.also.due' => ['sometimes', 'nullable', 'boolean'],
+            'files.*.also.policy' => ['sometimes', 'string', 'max:50'],
+            'files.*.also.records' => ['sometimes', 'array', 'list'],
+            'files.*.also.overrides' => ['sometimes', 'array'],
+            'files.*.also.targets' => ['sometimes', 'array'],
         ];
 
         foreach (array_keys($this->array('files')) as $index) {
@@ -46,6 +78,32 @@ final class ImportRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * The checks that need the proposal of each file, once the rules pass.
+     *
+     * @return list<Closure(Validator):void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            foreach ($this->entries() as $index => $entry) {
+                $file = File::query()->toSort()->find($entry['file_id']);
+                if (! $file instanceof File) {
+                    continue;
+                }
+
+                $proposal = resolve(Proposal::class)->for($file, $entry['choices'], [], App::getLocale());
+                foreach ($this->problems($proposal, $entry['choices']) as $key => $message) {
+                    $validator->errors()->add(sprintf(self::ALSO, $index).$key, $message);
+                }
+            }
+        }];
     }
 
     /**
@@ -62,9 +120,10 @@ final class ImportRequest extends FormRequest
     }
 
     /**
-     * What to save, in the order of the request.
+     * What to import, in the order of the request: the file and the choices of the person, with the validated
+     * fields of the document.
      *
-     * @return list<array{file_id: int, data: array{fields: array<string, mixed>, links: list<array{type: string, id: int}>}}>
+     * @return list<array{file_id: int, choices: ImportChoices}>
      */
     public function entries(): array
     {
@@ -75,15 +134,58 @@ final class ImportRequest extends FormRequest
                 continue;
             }
 
+            $document = array_intersect_key($entry['document'], array_flip(DocumentRules::FIELDS));
+            $document['links'] = DocumentRules::links($entry['document']['links'] ?? []);
+
             $entries[] = [
                 'file_id' => (int) $entry['file_id'],
-                'data' => [
-                    'fields' => array_intersect_key($entry['document'], array_flip(DocumentRules::FIELDS)),
-                    'links' => DocumentRules::links($entry['document']['links'] ?? []),
-                ],
+                'choices' => ImportChoices::fromArray([...(is_array($entry['also'] ?? null) ? $entry['also'] : []), 'document' => $document]),
             ];
         }
 
         return $entries;
+    }
+
+    /**
+     * What stops a file from being imported with these choices, by key under `also`.
+     *
+     * @param  ProposalData  $proposal  the proposal with the choices
+     * @param  ImportChoices  $choices  the choices
+     * @return array<string, string>
+     */
+    private function problems(ProposalData $proposal, ImportChoices $choices): array
+    {
+        $problems = [];
+        $movement = $proposal->movement;
+        $kind = $movement->values->kind ?? 'expense';
+
+        $target = $choices->targets['movement'];
+        if (is_int($target) && ($kind === 'income' ? Income::query()->find($target) : Expense::query()->find($target)) === null) {
+            $problems['targets.movement'] = ImportErrors::gone($kind);
+        } elseif ($choices->movement && $movement instanceof MovementProposalData && $movement->duplicate === null && $movement->blocked !== null) {
+            $problems['movement'] = ImportErrors::movement($kind, $movement->due instanceof DueData && ($choices->due ?? $movement->due->suggested));
+        }
+
+        $target = $choices->targets['event'];
+        if (is_int($target) && HealthEvent::query()->find($target) === null) {
+            $problems['targets.event'] = ImportErrors::gone('event');
+        } elseif ($choices->event && $proposal->event instanceof EventProposalData && $proposal->event->existing === null && $proposal->event->blocked !== null) {
+            $problems['event'] = ImportErrors::event();
+        }
+
+        foreach ($choices->targets['records'] as $kind => $target) {
+            $model = RecordLabel::model(RecordKind::from($kind));
+            if (is_int($target) && $model::query()->find($target) === null) {
+                $problems['targets.records.'.$kind] = ImportErrors::gone('card');
+            }
+        }
+
+        foreach ($proposal->records as $draft) {
+            if (in_array($draft->kind, $choices->records, true) && $draft->existing === null && $draft->missing !== [] && ! isset($problems['targets.records.'.$draft->kind->value])) {
+                $problems['records.'.$draft->kind->value] = ImportErrors::record($draft->title, $draft->missing);
+            }
+        }
+
+        return $problems;
     }
 }

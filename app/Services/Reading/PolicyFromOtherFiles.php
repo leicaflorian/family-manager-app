@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Data\Reading\Extraction;
+use App\Data\Reading\ImportChoices;
 use App\Data\Reading\PolicyGiverData;
+use App\Data\Reading\ProposalData;
+use App\Data\Reading\RecordDraftData;
 use App\Enums\InsurancePolicyStatus;
+use App\Enums\RecordKind;
+use App\Models\File;
 use App\Models\InsurancePolicy;
+use App\Models\Organization;
 use App\Support\Reading\OrganizationKey;
 
 /**
@@ -78,6 +85,51 @@ final class PolicyFromOtherFiles
     }
 
     /**
+     * The policy a file of the import gives to the papers without a number (`giverOf` of the old page): the new
+     * policy it creates, ticked and with its number; the one picked by hand; or the one it found by its number.
+     * The company and the person are those of its document.
+     *
+     * @param  File  $file  the file
+     * @param  ProposalData  $proposal  its proposal, with the choices of the person
+     * @param  ImportChoices  $choices  the choices of the person
+     */
+    public function giver(File $file, ProposalData $proposal, ImportChoices $choices): ?PolicyGiverData
+    {
+        $x = Extraction::ofFile($file);
+        $draft = array_find($proposal->records, static fn (RecordDraftData $record): bool => $record->kind === RecordKind::Policy);
+
+        if ($draft instanceof RecordDraftData && $draft->existing !== null) {
+            [$number, $creates, $type] = [$draft->existing['title'], false, $x->insurance_type];
+        } elseif ($draft instanceof RecordDraftData) {
+            $number = $draft->values['policy_number'] ?? null;
+            if (! in_array(RecordKind::Policy, $choices->records, true) || ! is_string($number) || $number === '') {
+                return null;
+            }
+            $type = $draft->values['type'] ?? null;
+            [$creates, $type] = [true, is_string($type) ? $type : null];
+        } else {
+            $found = array_filter($proposal->document->links, static fn (array $link): bool => $link['type'] === 'insurance_policy') !== [];
+            if (! $found || $x->policy_number === null || $x->policy_number === '') {
+                return null;
+            }
+            [$number, $creates, $type] = [$x->policy_number, false, $x->insurance_type];
+        }
+
+        $organizationId = $this->documentId($choices, 'organization_id', $proposal->document->organization_id);
+
+        return new PolicyGiverData(
+            key: 'file:'.$file->id,
+            fileName: $file->original_name,
+            number: $number,
+            creates: $creates,
+            organizationId: $organizationId,
+            organizationName: $this->companyName($organizationId, $proposal, $choices, $x),
+            personId: $this->documentId($choices, 'person_id', $proposal->document->person_id),
+            type: $type,
+        );
+    }
+
+    /**
      * The files giving a policy first, so that it is there for the others; each group keeps its order.
      *
      * @param  list<int>  $fileIds
@@ -119,6 +171,47 @@ final class PolicyFromOtherFiles
             ->all();
 
         return array_values($givers);
+    }
+
+    /**
+     * An id of the document: the one the person sent, otherwise the proposed one.
+     *
+     * @param  ImportChoices  $choices  the choices of the person
+     * @param  string  $field  `organization_id` or `person_id`
+     * @param  int|null  $proposed  the id of the proposal
+     */
+    private function documentId(ImportChoices $choices, string $field, ?int $proposed): ?int
+    {
+        if (! array_key_exists($field, $choices->document)) {
+            return $proposed;
+        }
+
+        return is_numeric($choices->document[$field]) ? (int) $choices->document[$field] : null;
+    }
+
+    /**
+     * The name of the company of a giver: the organization of the document; without one, the organization the file
+     * creates, when it is ticked; otherwise the name read.
+     *
+     * @param  int|null  $organizationId  the organization of the document
+     * @param  ProposalData  $proposal  the proposal
+     * @param  ImportChoices  $choices  the choices of the person
+     * @param  Extraction  $x  what the model read
+     */
+    private function companyName(?int $organizationId, ProposalData $proposal, ImportChoices $choices, Extraction $x): ?string
+    {
+        if ($organizationId !== null) {
+            return Organization::query()->find($organizationId)?->name;
+        }
+
+        $created = array_find($proposal->records, static fn (RecordDraftData $record): bool => $record->kind === RecordKind::Organization && $record->existing === null);
+        if ($created instanceof RecordDraftData && in_array(RecordKind::Organization, $choices->records, true)) {
+            $name = $created->values['name'] ?? null;
+
+            return is_string($name) ? $name : null;
+        }
+
+        return $x->issuer_name;
     }
 
     /**
