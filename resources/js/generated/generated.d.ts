@@ -692,6 +692,7 @@ export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'sch
 export type BelongingStatus = 'in_use' | 'disposed';
 export type Channel = 'app' | 'email' | 'both';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
+export type DueMode = 'new' | 'existing' | 'exception';
 export type EmploymentStatus = 'active' | 'ended';
 export type EnrollmentStatus = 'active' | 'ended';
 export type EnrollmentType = 'school' | 'sport' | 'course' | 'other';

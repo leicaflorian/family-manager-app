@@ -37,6 +37,11 @@ return [
         'archived' => 'Archived',
         'expired' => 'Expired',
     ],
+    'due_mode' => [
+        'new' => 'New planned expense',
+        'existing' => 'Planned expense already there',
+        'exception' => 'Exception on a due date',
+    ],
     'employment_status' => [
         'active' => 'Active',
         'ended' => 'Ended',

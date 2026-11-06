@@ -37,6 +37,11 @@ return [
         'archived' => 'Archiviato',
         'expired' => 'Scaduto',
     ],
+    'due_mode' => [
+        'new' => 'Nuova spesa prevista',
+        'existing' => 'Spesa prevista già presente',
+        'exception' => 'Eccezione su una scadenza',
+    ],
     'employment_status' => [
         'active' => 'Attivo',
         'ended' => 'Concluso',
