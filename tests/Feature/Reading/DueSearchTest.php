@@ -50,8 +50,8 @@ function findUnpaid(float $amount, string $date, ?int $organization = null, ?Pla
     return test()->search->unpaid($amount, CarbonImmutable::parse($date), $organization, $only);
 }
 
-describe('unpaid', function (): void {
-    test('a payment receipt finds the unpaid occurrence of the same amount', function (): void {
+describe('unpaidOccurrences', function (): void {
+    test('findDue: the unpaid occurrence of a planned expense with the amount of the receipt', function (): void {
         $planned = dueOf();
 
         $found = findUnpaid(480, '2026-11-28');
@@ -62,7 +62,7 @@ describe('unpaid', function (): void {
             ->and($found['others'])->toBe(0);
     });
 
-    test('an occurrence already registered is not found', function (): void {
+    test('findDue: a one-off already paid is not due any more', function (): void {
         Expense::factory()->for($this->bianchi)->create(['planned_expense_id' => dueOf()->id, 'amount' => 480, 'date' => '2026-11-28']);
 
         expect(findUnpaid(480, '2026-11-28'))->toBe(['match' => null, 'others' => 0]);
@@ -131,7 +131,7 @@ describe('unpaid', function (): void {
         expect(findUnpaid(95, '2026-11-12')['match']?->occurrence->originalDate->toDateString())->toBe('2026-12-10');
     });
 
-    test('limited to a commitment: the occurrences of the others are not paid, even with the same amount', function (): void {
+    test('findDue: limited to a commitment: the occurrences of the others are not paid, even with the same amount', function (): void {
         $dentist = dueOf();
         $luce = dueOf(['title' => 'Luce', 'amount' => 120, 'is_recurring' => true, 'interval' => 2, 'start_date' => '2026-01-10']);
 
@@ -139,7 +139,7 @@ describe('unpaid', function (): void {
             ->and(findUnpaid(480, '2026-11-28', null, $dentist)['match']?->planned->id)->toBe($dentist->id);
     });
 
-    test('no planned expenses: nothing is found', function (): void {
+    test('findDue: no planned expenses: nothing is found', function (): void {
         expect(findUnpaid(480, '2026-11-28'))->toBe(['match' => null, 'others' => 0]);
     });
 

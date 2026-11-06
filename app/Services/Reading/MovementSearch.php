@@ -10,6 +10,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\Money;
+use App\Support\Reading\IssuerOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -67,7 +68,7 @@ final class MovementSearch
             ->latest('start_date')->orderByDesc('id')->get();
 
         $rows = $rows->filter(fn (PlannedExpense $planned): bool => $planned->is_recurring
-            || ($day !== null && $planned->start_date !== null && $this->daysApart($planned->start_date, $day) <= self::DUPLICATE_WINDOW_DAYS));
+            || ($day !== null && $planned->start_date !== null && IssuerOrder::daysApart($planned->start_date, $day) <= self::DUPLICATE_WINDOW_DAYS));
 
         return $this->containing($rows, $day);
     }
@@ -127,16 +128,9 @@ final class MovementSearch
 
         $found = Expense::query()->whereBetween('date', $this->window($date, self::PAYMENT_WINDOW_DAYS))->get()
             ->filter(fn (Expense $row): bool => $this->net($row) === Money::cents($net))
-            ->filter(fn (Expense $row): bool => $organizationId === null || $row->organization_id === null || $row->organization_id === $organizationId)
-            ->sort(fn (Expense $a, Expense $b): int => [
-                (int) ($organizationId === null || $a->organization_id !== $organizationId),
-                $this->daysApart($a->date ?? $day, $day),
-                $a->id,
-            ] <=> [
-                (int) ($organizationId === null || $b->organization_id !== $organizationId),
-                $this->daysApart($b->date ?? $day, $day),
-                $b->id,
-            ])
+            ->filter(fn (Expense $row): bool => IssuerOrder::allows($row->organization_id, $organizationId))
+            ->sort(fn (Expense $a, Expense $b): int => IssuerOrder::key($a->organization_id, $organizationId, $a->date ?? $day, $day, $a->id)
+                <=> IssuerOrder::key($b->organization_id, $organizationId, $b->date ?? $day, $day, $b->id))
             ->values();
 
         return ['match' => $found->first(), 'others' => max($found->count() - 1, 0)];
@@ -163,7 +157,7 @@ final class MovementSearch
 
         return $query->orderBy('id')->get()
             ->filter(fn (PlannedExpense $row): bool => Money::cents($row->amount) === Money::cents($amount))
-            ->sortBy(fn (PlannedExpense $row): int => $this->daysApart($row->start_date ?? $day, $day), SORT_NUMERIC)
+            ->sortBy(fn (PlannedExpense $row): int => IssuerOrder::daysApart($row->start_date ?? $day, $day), SORT_NUMERIC)
             ->first();
     }
 
@@ -201,17 +195,6 @@ final class MovementSearch
     private function window(CarbonImmutable $date, int $days): array
     {
         return [$date->subDays($days)->toDateString(), $date->addDays($days)->toDateString()];
-    }
-
-    /**
-     * Whole days between two dates, whichever comes first.
-     *
-     * @param  CarbonImmutable  $a  a date
-     * @param  CarbonImmutable  $b  another date
-     */
-    private function daysApart(CarbonImmutable $a, CarbonImmutable $b): int
-    {
-        return (int) abs($a->startOfDay()->diffInDays($b->startOfDay()));
     }
 
     /**

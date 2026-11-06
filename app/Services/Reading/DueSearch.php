@@ -11,9 +11,9 @@ use App\Services\Occurrences;
 use App\Support\Deadline;
 use App\Support\Money;
 use App\Support\Occurrence;
+use App\Support\Reading\IssuerOrder;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 
 /**
  * "Paid or to pay": whether a bill is offered as to pay, the unpaid due dates a payment receipt can pay, and the
@@ -67,14 +67,11 @@ final readonly class DueSearch
      */
     public function unpaid(float $net, CarbonImmutable $date, ?int $organizationId, ?PlannedExpense $only = null): array
     {
-        /** @var Collection<int, PlannedExpense> $planned */
         $planned = $only instanceof PlannedExpense
             ? PlannedExpense::query()->whereKey($only->id)->whereNotNull('start_date')->get()
             : PlannedExpense::query()->whereNotNull('start_date')->get();
 
-        $planned = $planned->filter(fn (PlannedExpense $row): bool => $organizationId === null
-            || $row->organization_id === null
-            || $row->organization_id === $organizationId);
+        $planned = $planned->filter(fn (PlannedExpense $row): bool => IssuerOrder::allows($row->organization_id, $organizationId));
 
         $day = $date->startOfDay();
         $found = collect($this->deadlines->between(
@@ -84,15 +81,8 @@ final readonly class DueSearch
         ))
             ->filter(fn (Deadline $deadline): bool => ! $deadline->isPaid()
                 && Money::cents($deadline->occurrence->amount) === Money::cents($net))
-            ->sort(fn (Deadline $a, Deadline $b): int => [
-                (int) ($organizationId === null || $a->planned->organization_id !== $organizationId),
-                $this->daysApart($a->occurrence->date, $day),
-                $a->planned->id,
-            ] <=> [
-                (int) ($organizationId === null || $b->planned->organization_id !== $organizationId),
-                $this->daysApart($b->occurrence->date, $day),
-                $b->planned->id,
-            ])
+            ->sort(fn (Deadline $a, Deadline $b): int => IssuerOrder::key($a->planned->organization_id, $organizationId, $a->occurrence->date, $day, $a->planned->id)
+                <=> IssuerOrder::key($b->planned->organization_id, $organizationId, $b->occurrence->date, $day, $b->planned->id))
             ->values();
 
         return ['match' => $found->first(), 'others' => max($found->count() - 1, 0)];
@@ -124,16 +114,5 @@ final readonly class DueSearch
         return $similar instanceof PlannedExpense
             ? ['mode' => DueMode::Existing, 'plan' => $similar, 'occurrence' => null]
             : ['mode' => DueMode::New, 'plan' => null, 'occurrence' => null];
-    }
-
-    /**
-     * Whole days between two dates, whichever comes first.
-     *
-     * @param  CarbonImmutable  $a  a date
-     * @param  CarbonImmutable  $b  another date
-     */
-    private function daysApart(CarbonImmutable $a, CarbonImmutable $b): int
-    {
-        return (int) abs($a->startOfDay()->diffInDays($b->startOfDay()));
     }
 }
