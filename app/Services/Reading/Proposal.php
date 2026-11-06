@@ -9,10 +9,12 @@ use App\Data\Reading\EventProposalData;
 use App\Data\Reading\EventValuesData;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\ImportChoices;
+use App\Data\Reading\MovementProposalData;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
 use App\Enums\RecordKind;
+use App\Models\Expense;
 use App\Models\File;
 use App\Models\HealthEvent;
 use App\Support\CurrentFamily;
@@ -28,6 +30,14 @@ use Illuminate\Support\Facades\App;
  * ({@see MovementProposal}), the health event, the missing cards ({@see RecordsProposal}) and the policy taken from
  * another file or from one registered. It works on the reading saved in `files.reading`, inside the family of the
  * file, with the choices of the person, and writes nothing.
+ *
+ * While it runs the language of the app is the one of the proposal: the card titles of {@see RecordDrafts} and the
+ * sentences of the collaborators are written in the language of the app, while the document and the movement take
+ * it as an argument, so without the switch one proposal could mix two languages. `finally` gives the app its
+ * language back, also when the proposal fails.
+ *
+ * A payment receipt linked to an expense already recorded is filed next to the paper it pays: its document takes the
+ * category of the first document of that expense that has one (`receiptCategory` of the old reader).
  */
 final readonly class Proposal
 {
@@ -94,6 +104,7 @@ final readonly class Proposal
         $movement = $draft['movement'] === null
             ? null
             : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $choices);
+        $document = $this->receiptCategory($x, $document, $movement);
         $amount = $choices->movementOverrides($movement->values->kind ?? 'expense')['amount'] ?? $x->total_amount;
         ['records' => $records, 'warnings' => $warnings] = $this->records->of($x, $side, is_numeric($amount) ? (float) $amount : null, $choices);
 
@@ -106,6 +117,30 @@ final readonly class Proposal
             policy: $this->policy($x, $document, $side, $records, $choices, $roundGivers),
             warnings: $warnings,
         );
+    }
+
+    /**
+     * The document of a payment receipt linked to an expense already recorded, in the category of the first document
+     * of that expense that has one; any other document as the reading proposes it.
+     *
+     * @param  Extraction  $x  what the model read
+     * @param  DocumentProposalData  $document  the document the reading proposes
+     * @param  MovementProposalData|null  $movement  the movement side, with the expense it is linked to
+     */
+    private function receiptCategory(Extraction $x, DocumentProposalData $document, ?MovementProposalData $movement): DocumentProposalData
+    {
+        $expenseId = $movement?->values->kind === 'expense' ? ($movement->duplicate['id'] ?? null) : null;
+
+        if ($x->kind !== 'payment_receipt' || $expenseId === null) {
+            return $document;
+        }
+
+        $category = Expense::query()->find($expenseId)?->documents()
+            ->whereNotNull('documents.category_id')
+            ->orderBy('documents.id')
+            ->value('documents.category_id');
+
+        return is_numeric($category) ? DocumentProposalData::from([...$document->toArray(), 'category_id' => (int) $category]) : $document;
     }
 
     /**

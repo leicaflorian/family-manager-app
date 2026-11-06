@@ -6,11 +6,14 @@ use App\Data\Reading\DueData;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
+use App\Data\Reading\RecordDraftData;
 use App\Enums\DueMode;
 use App\Enums\HealthEventType;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\OrganizationType;
 use App\Enums\RecordKind;
+use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
@@ -21,6 +24,7 @@ use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
+use App\Models\Utility;
 use App\Services\Reading\Proposal;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
@@ -152,7 +156,7 @@ describe('the receipts', function (): void {
             ])
             ->and($movement->warnings)->toBe([])
             ->and($movement->due)->toBeNull()
-            ->and($card->id)->toBeInt();
+            ->and($movement->values->financial_account_id)->toBe($card->id);
     });
 
     test('a receipt whose net amount differs warns and changes nothing', function (): void {
@@ -169,6 +173,24 @@ describe('the receipts', function (): void {
         expect($movement->duplicate['id'])->toBe($expense->id)
             ->and($movement->changes)->toBe([])
             ->and($movement->warnings)->toBe(["La ricevuta è di 480,00\u{a0}€, la spesa di 500,00\u{a0}€: importo e commissione della spesa non cambiano."]);
+    });
+
+    test('a payment receipt linked to an existing expense takes the category of its document', function (): void {
+        $receipts = DocumentCategory::factory()->for($this->family)->create(['name' => 'Ricevute']);
+        $medical = DocumentCategory::factory()->for($this->family)->create(['name' => 'Spese mediche']);
+        $expense = Expense::factory()->for($this->family)->create([
+            'title' => 'Cure dentistiche', 'date' => '2026-11-25', 'amount' => 480, 'fee_amount' => null, 'organization_id' => $this->dentist->id,
+        ]);
+        $uncategorized = Document::factory()->for($this->family)->create(['category_id' => null]);
+        $invoice = Document::factory()->for($this->family)->create(['category_id' => $medical->id]);
+        $expense->documents()->attach([$uncategorized->id, $invoice->id]);
+        $receipt = [
+            'kind' => 'payment_receipt', 'organization_id' => $this->dentist->id, 'total_amount' => 480, 'fee_amount' => 1,
+            'issue_date' => '2026-11-28', 'document_category_id' => $receipts->id,
+        ];
+
+        expect(proposalOf($receipt)->document->category_id)->toBe($medical->id)
+            ->and(proposalOf($receipt, ['targets' => ['movement' => 'new']])->document->category_id)->toBe($receipts->id);
     });
 
     test('a payment receipt that pays an unpaid planned expense proposes the payment', function (): void {
@@ -272,7 +294,7 @@ describe('the whole file', function (): void {
             'overrides' => ['records' => ['belonging' => ['name' => '']]],
         ])->records;
 
-        expect(array_map(fn ($record): RecordKind => $record->kind, $found))->toBe([RecordKind::Organization, RecordKind::Belonging])
+        expect(array_map(fn (RecordDraftData $record): RecordKind => $record->kind, $found))->toBe([RecordKind::Organization, RecordKind::Belonging])
             ->and($found[0]->existing)->toBe(['id' => $ferri->id, 'title' => 'Studio Ferri'])
             ->and($found[1]->reminder)->toBe('Ti ricorderò prima che finisca la garanzia')
             ->and($found[1]->values['warranty_expiry_date'])->toBe('2028-10-22')
@@ -280,6 +302,24 @@ describe('the whole file', function (): void {
             ->and($new[0]->existing)->toBeNull()
             ->and($new[1]->missing)->toBe(['il nome'])
             ->and($new[1]->suggested)->toBeFalse();
+    });
+
+    test('a card picked by hand that is gone is looked for again', function (): void {
+        Utility::factory()->for($this->family)->create(['supply_point_code' => 'IT001E00000001', 'organization_id' => $this->dentist->id]);
+        $bill = ['kind' => 'utility_bill', 'supply_point_code' => 'IT001E00000001', 'utility_type' => 'electricity', 'total_amount' => 80, 'issue_date' => '2026-10-20'];
+
+        expect(proposalOf($bill, ['targets' => ['records' => ['utility' => 999999]]])->records)->toBe([])
+            ->and(array_map(fn (RecordDraftData $record): RecordKind => $record->kind, proposalOf($bill, ['targets' => ['records' => ['utility' => 'new']]])->records))
+            ->toBe([RecordKind::Utility]);
+    });
+
+    test('a policy picked by hand without a number is named by its title', function (): void {
+        $policy = InsurancePolicy::factory()->for($this->family)->create(['title' => 'Assicurazione auto', 'policy_number' => null]);
+
+        $records = proposalOf(['kind' => 'insurance', 'policy_number' => '40/123456', 'insurance_type' => 'car'], ['targets' => ['records' => ['policy' => $policy->id]]])->records;
+
+        expect($records[0]->kind)->toBe(RecordKind::Policy)
+            ->and($records[0]->existing)->toBe(['id' => $policy->id, 'title' => 'Assicurazione auto']);
     });
 
     test('an insurance paper without a number takes the policy of the file confirmed with it', function (): void {

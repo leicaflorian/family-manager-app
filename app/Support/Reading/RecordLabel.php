@@ -14,7 +14,7 @@ use App\Models\Vehicle;
 
 /**
  * How a card the reading found, or the person picked, is named in *What I also do*: `Luce (IT001E…)`,
- * `Panda (GH482TK)`, the number of a policy, `Tagliando (12/10/2026)`.
+ * `Panda (GH482TK)`, the number of a policy (its title without one), `Tagliando (12/10/2026)`.
  */
 final class RecordLabel
 {
@@ -46,7 +46,7 @@ final class RecordLabel
         return match (true) {
             $card instanceof Utility => ucfirst($card->type->label()).($card->supply_point_code === null ? '' : ' ('.$card->supply_point_code.')'),
             $card instanceof Vehicle => $card->name.($card->plate_number === null ? '' : ' ('.$card->plate_number.')'),
-            $card instanceof InsurancePolicy => $card->policy_number ?? (string) $card->id,
+            $card instanceof InsurancePolicy => $card->policy_number ?? $card->title ?? (string) $card->id,
             $card instanceof MaintenanceRecord => $card->title.' ('.$card->date->format('d/m/Y').')',
             $card instanceof Organization, $card instanceof Belonging => $card->name,
         };

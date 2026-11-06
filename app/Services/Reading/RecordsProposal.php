@@ -86,9 +86,11 @@ final readonly class RecordsProposal
             'homes' => $homes,
         ];
 
-        // A card created or picked by hand is proposed even when the search found one
+        // A card created or picked by hand is proposed even when the search found one; one picked and gone is
+        // looked for again, like the movement and the event, and the confirmation tells the person
         foreach ([RecordKind::Utility, RecordKind::Vehicle, RecordKind::Policy] as $kind) {
-            if (($targets[$kind->value] ?? 'auto') !== 'auto') {
+            $target = $targets[$kind->value] ?? 'auto';
+            if ($target === 'new' || (is_int($target) && RecordLabel::model($kind)::query()->whereKey($target)->exists())) {
                 $found[$kind->value] = null;
             }
         }
