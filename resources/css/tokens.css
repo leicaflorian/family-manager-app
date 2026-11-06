@@ -19,7 +19,7 @@
     --hero: #0070e0;
     --hero-end: #0059b3;
     --on-hero: #ffffff;
-    --on-hero-soft: rgba(255, 255, 255, 0.16);
+    --on-hero-soft: rgba(255,255,255,0.16);
     --overdue: #c4283f;
     --overdue-soft: #fdedef;
     --overdue-edge: #f4c7ce;
@@ -28,7 +28,7 @@
     --paid: #1b7f5f;
     --paid-soft: #e6f4ee;
     --paid-edge: #8ccba6;
-    --overlay: rgba(24, 33, 47, 0.45);
+    --overlay: rgba(24,33,47,0.45);
     --home: #f76b15;
     --home-dark: #b4500f;
     --home-text: #b4500f;
@@ -103,7 +103,7 @@
     --hero: #1f5faf;
     --hero-end: #174a8a;
     --on-hero: #ffffff;
-    --on-hero-soft: rgba(255, 255, 255, 0.16);
+    --on-hero-soft: rgba(255,255,255,0.16);
     --overdue: #ff7286;
     --overdue-soft: #3b1820;
     --overdue-edge: #6e2a36;
@@ -112,7 +112,7 @@
     --paid: #4fd1a5;
     --paid-soft: #12352b;
     --paid-edge: #2f6f57;
-    --overlay: rgba(0, 0, 0, 0.6);
+    --overlay: rgba(0,0,0,0.6);
     --home: #f76b15;
     --home-dark: #b4500f;
     --home-text: #ff9a5c;
@@ -166,12 +166,12 @@
     --camera-bg: #101418;
     --camera-surface: #1c232b;
     --camera-raised: #2a323c;
-    --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.45);
-    --shadow-menu: 0 12px 32px rgba(0, 0, 0, 0.55);
-    --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.6);
-    --shadow-fab: 0 6px 16px rgba(0, 0, 0, 0.5);
-    --shadow-focus: 0 0 0 3px rgba(90, 168, 255, 0.35);
+    --shadow-raised: 0 1px 3px rgba(0,0,0,0.5);
+    --shadow-float: 0 10px 30px rgba(0,0,0,0.45);
+    --shadow-menu: 0 12px 32px rgba(0,0,0,0.55);
+    --shadow-dialog: 0 24px 60px rgba(0,0,0,0.6);
+    --shadow-fab: 0 6px 16px rgba(0,0,0,0.5);
+    --shadow-focus: 0 0 0 3px rgba(90,168,255,0.35);
 }
 
 @theme inline {
@@ -344,10 +344,10 @@
     --spacing-line: 1px;
     --spacing-line-field: 1.5px;
     --spacing-line-strong: 2px;
-    --shadow-raised: 0 1px 3px rgba(24, 33, 47, 0.12);
-    --shadow-float: 0 10px 30px rgba(24, 33, 47, 0.1);
-    --shadow-menu: 0 12px 32px rgba(24, 33, 47, 0.16);
-    --shadow-dialog: 0 24px 60px rgba(24, 33, 47, 0.25);
-    --shadow-fab: 0 6px 16px rgba(0, 112, 224, 0.35);
-    --shadow-focus: 0 0 0 3px rgba(0, 112, 224, 0.18);
+    --shadow-raised: 0 1px 3px rgba(24,33,47,0.12);
+    --shadow-float: 0 10px 30px rgba(24,33,47,0.10);
+    --shadow-menu: 0 12px 32px rgba(24,33,47,0.16);
+    --shadow-dialog: 0 24px 60px rgba(24,33,47,0.25);
+    --shadow-fab: 0 6px 16px rgba(0,112,224,0.35);
+    --shadow-focus: 0 0 0 3px rgba(0,112,224,0.18);
 }

@@ -89,6 +89,9 @@ export default defineConfig({
             'resources/js/catalog/catalog.json',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
+            // Copied from Claude Design and read by `npm run tokens`, which writes the CSS as it is: no formatting
+            'resources/design/**',
+            'resources/css/tokens.css',
         ],
         sortTailwindcss: {
             functions: ['clsx', 'cn', 'cva'],
