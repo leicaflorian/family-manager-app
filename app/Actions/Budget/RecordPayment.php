@@ -11,12 +11,10 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Services\Deadlines;
 use App\Services\FileStore;
-use App\Services\Occurrences;
 use App\Support\Deadline;
 use App\Support\DefaultAccount;
 use App\Support\PaymentTitle;
 use App\Support\PlannedKind;
-use App\Support\Schedule;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +27,7 @@ final readonly class RecordPayment
 {
     public function __construct(
         private Deadlines $deadlines,
-        private Occurrences $occurrences,
+        private MovePlannedDocuments $movePlannedDocuments,
         private FileStore $files,
     ) {}
 
@@ -73,7 +71,7 @@ final readonly class RecordPayment
                 : Income::query()->create([...$columns, 'planned_income_id' => $planned->id]);
 
             if ($planned instanceof PlannedExpense && $payment instanceof Expense) {
-                $this->moveDocuments($planned, $current, $payment);
+                $this->movePlannedDocuments->handle($planned, $current->occurrence->date, $payment);
             }
 
             if ($receipt instanceof UploadedFile) {
@@ -82,28 +80,6 @@ final readonly class RecordPayment
 
             return $payment;
         });
-    }
-
-    /**
-     * Moves the documents waiting on the planned expense to the new expense: all of them for a one-off planned
-     * expense, those from one period before the due date to half a period after for a recurring one.
-     *
-     * @param  PlannedExpense  $planned  The planned expense.
-     * @param  Deadline  $deadline  The due date.
-     * @param  Expense  $expense  The expense just created.
-     */
-    private function moveDocuments(PlannedExpense $planned, Deadline $deadline, Expense $expense): void
-    {
-        $query = Document::query()->where('planned_expense_id', $planned->id)->whereDoesntHave('expenses');
-        $schedule = Schedule::of($planned);
-
-        if ($schedule->recurring) {
-            $step = $this->occurrences->stepDays($schedule);
-            $due = $deadline->occurrence->date->startOfDay();
-            $query->whereBetween('date', [$due->subDays((int) round($step)), $due->addDays((int) floor($step / 2))]);
-        }
-
-        $expense->documents()->syncWithoutDetaching($query->pluck('id')->all());
     }
 
     /**
