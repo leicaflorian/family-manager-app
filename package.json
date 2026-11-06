@@ -11,7 +11,8 @@
         "test": "vp test",
         "types": "vue-tsc --noEmit",
         "lint": "vp lint",
-        "catalog": "vp test run resources/js/catalog/catalog.test.ts -u"
+        "catalog": "vp test run resources/js/catalog/catalog.test.ts -u",
+        "tokens": "vp test run resources/js/design/tokens.test.ts -u"
     },
     "dependencies": {
         "@formkit/auto-animate": "^0.10.0",
