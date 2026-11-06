@@ -9,11 +9,10 @@ use App\Data\Reading\Extraction;
 use App\Data\Reading\FoundLineData;
 use App\Enums\UtilityType;
 use App\Models\Employment;
-use App\Models\InsurancePolicy;
-use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use App\Support\Reading\Choices;
+use App\Support\Reading\ReadingText;
 use App\Support\Reading\ValidDate;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Number;
@@ -32,8 +31,9 @@ final readonly class DocumentProposal
 
     /**
      * @param  Matcher  $matcher  the exact searches of the cards
+     * @param  LinkResolver  $links  what the identifiers on the paper point to
      */
-    public function __construct(private Matcher $matcher) {}
+    public function __construct(private Matcher $matcher, private LinkResolver $links) {}
 
     /**
      * The proposal of a document.
@@ -58,30 +58,21 @@ final readonly class DocumentProposal
      */
     private function build(Extraction $x, ReadingContext $context, string $locale): DocumentProposalData
     {
-        $utility = $this->matcher->utility($x->supply_point_code, $x->customer_code);
-        $vehicle = $this->matcher->vehicle($x->plate_number);
-        $policy = $this->matcher->policy($x->policy_number);
-
-        // A policy of a car tells the vehicle even without the plate.
-        $vehicleId = $vehicle->id ?? $policy?->vehicle_id;
-        $organizationId = $utility->organization_id ?? $policy->organization_id ?? Choices::pick($context->organizations, $x->organization_id)
-            ?? $this->matcher->organizationByName($x->issuer_name)?->id;
-        $personId = $this->matcher->personByTaxCode($x->tax_code)->id ?? Choices::pick($context->people, $x->person_id)
-            ?? $utility->person_id ?? $policy?->person_id;
-
-        $issuer = Choices::label($context->organizations, $organizationId) ?? $x->issuer_name;
+        $links = $this->links->resolve($x, $context);
+        $utility = $links->utility;
+        $vehicle = $links->vehicle;
+        $organizationId = $links->organizationId;
+        $personId = $links->personId;
+        $issuer = $links->issuer;
         $date = ValidDate::of($x->issue_date) ?? ValidDate::of($x->due_date);
         $category = Choices::pick($context->documentCategories, $x->document_category_id);
         $titleDate = $x->kind === 'payslip' ? ValidDate::of($x->period_start) ?? $date : $date;
 
-        $subscription = ! $utility instanceof Utility && ! $policy instanceof InsurancePolicy && $vehicleId === null
-            ? $this->matcher->subscription($organizationId)
-            : null;
-        $links = array_values(array_filter([
+        $cards = array_values(array_filter([
             $this->link('utility', $utility?->id),
-            $this->link('vehicle', $vehicleId),
-            $this->link('insurance_policy', $policy?->id),
-            $this->link('subscription', $subscription?->id),
+            $this->link('vehicle', $links->vehicleId),
+            $this->link('insurance_policy', $links->policy?->id),
+            $this->link('subscription', $links->subscription?->id),
             $this->link('employment', $this->employment($x, $context, $category, $personId, $organizationId, $titleDate)?->id),
         ]));
 
@@ -92,7 +83,7 @@ final readonly class DocumentProposal
             organization_id: $organizationId,
             date: $date,
             expiry_date: in_array($x->kind, Extraction::NO_EXPIRY, true) ? null : ValidDate::of($x->expiry_date),
-            links: $links,
+            links: $cards,
             headline: $this->headline($x->kind, $utility->type->value ?? $x->utility_type, $locale),
             found: $this->found($x, $issuer, $locale),
         );
@@ -145,7 +136,7 @@ final readonly class DocumentProposal
     {
         $parsed = ValidDate::carbon($date);
         $year = $parsed?->format('Y');
-        $month = $parsed instanceof CarbonImmutable ? $this->month($parsed, $locale) : null;
+        $month = $parsed instanceof CarbonImmutable ? ReadingText::month($parsed, $locale) : null;
         $with = ['issuer' => $issuer, 'month' => $month, 'year' => $year];
         $put = static fn (string $without, string $withDate): string => __($parsed instanceof CarbonImmutable ? $withDate : $without, $with, $locale);
 
@@ -167,21 +158,6 @@ final readonly class DocumentProposal
             'road_tax' => __($year === null ? 'Road tax :vehicle' : 'Road tax :vehicle :year', [...$with, 'vehicle' => $vehicle->name ?? $x->plate_number ?? __('car', [], $locale)], $locale),
             default => __($parsed instanceof CarbonImmutable ? ':title :month :year' : ':title', [...$with, 'title' => $x->title ?? $issuer], $locale),
         };
-    }
-
-    /**
-     * The month name in the language of the title; the Italian ones are written in lowercase.
-     *
-     * @param  CarbonImmutable  $date  the day
-     * @param  string  $locale  the language
-     */
-    private function month(CarbonImmutable $date, string $locale): string
-    {
-        /** @var CarbonImmutable $localized `locale()` gives back the same kind of date */
-        $localized = $date->locale($locale);
-        $month = $localized->translatedFormat('F');
-
-        return $locale === 'it' ? mb_strtolower($month) : $month;
     }
 
     /**

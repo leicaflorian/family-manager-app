@@ -868,6 +868,7 @@
     "Filter the agenda": "Filtra l'agenda",
     "Clear filters": "Togli i filtri",
     "Period": "Periodo",
+    "Period: :from – :to": "Periodo: :from – :to",
     "{1} :count month|[2,*] :count months": "{1} :count mese|[2,*] :count mesi",
     "Tap an area to hide it; the number stays.": "Tocca un'area per nasconderla; il numero resta.",
     "[0,1] Show :count entry|[2,*] Show :count entries": "[0,1] Mostra :count voce|[2,*] Mostra :count voci",

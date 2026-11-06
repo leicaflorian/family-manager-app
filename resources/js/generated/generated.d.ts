@@ -639,6 +639,16 @@ id: number,
 readonly headline: string,
 readonly found: App.Data.Reading.FoundLineData[],
 };
+export type EventValuesData = {
+readonly title: string | null,
+readonly type: string | null,
+readonly person_id: number | null,
+readonly organization_id: number | null,
+readonly date: string | null,
+readonly next_checkup_date: string | null,
+readonly outcome: string | null,
+readonly notes: string | null,
+};
 export type Extraction = {
 kind: string | null,
 title: string | null,
@@ -683,6 +693,27 @@ confidence: string | null,
 export type FoundLineData = {
 readonly label: string,
 readonly value: string,
+};
+export type MovementValuesData = {
+readonly kind: string,
+readonly title: string | null,
+readonly amount: number | null,
+readonly fee_amount: number | null,
+readonly date: string | null,
+readonly due_date: string | null,
+readonly organization_id: number | null,
+readonly category_id: number | null,
+readonly financial_account_id: number | null,
+readonly person_id: number | null,
+readonly income_type: string | null,
+readonly employment_id: number | null,
+readonly notes: string | null,
+readonly lead: {
+id: number,
+title: string,
+amount: number,
+is_estimated: boolean,
+} | null,
 };
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,
