@@ -1,31 +1,30 @@
 /**
- * The cases of `FmAlsoDoItem` for the component catalogue: ticked with a
- * hint, with a warning, with fields and actions, and disabled.
+ * The cases of `FmAlsoDoItem` for the component catalogue: an expense ticked
+ * with its icon and hint, a health event with fields and actions, a reminder
+ * unticked, a warning, and a disabled one.
  */
+import { Bell, HeartPulse, Wallet } from '@lucide/vue';
 import { h } from 'vue';
 import { defineExamples } from '@/catalog/examples';
 import FmAlsoDoItem from './FmAlsoDoItem.vue';
 
 export default defineExamples(FmAlsoDoItem, [
     {
-        name: 'Ticked, with a hint',
+        name: 'Ticked, with icon and hint',
         props: {
             label: 'Create the expense of 84,20 €',
-            hint: 'It goes in Home, with the bill.',
-            modelValue: true,
-        },
-    },
-    {
-        name: 'With a warning',
-        props: {
-            label: 'Link the policy',
-            warnings: ['More than one policy fits, so I link none.'],
+            hint: 'Already paid on 22/10 · Laura’s card',
+            icon: Wallet,
             modelValue: true,
         },
     },
     {
         name: 'With fields and actions',
-        props: { label: 'Pay the deadline of 15/11/2026', modelValue: true },
+        props: {
+            label: 'Add a health event',
+            icon: HeartPulse,
+            modelValue: true,
+        },
         slots: {
             default: () =>
                 h('p', { class: 'm-0 text-sm' }, 'The fields to correct'),
@@ -39,12 +38,25 @@ export default defineExamples(FmAlsoDoItem, [
     },
     {
         name: 'Unticked',
-        props: { label: 'Create the expense of 84,20 €', modelValue: false },
+        props: {
+            label: 'Remind me to book the checkup',
+            icon: Bell,
+            modelValue: false,
+        },
+    },
+    {
+        name: 'With a warning',
+        props: {
+            label: 'Link the policy',
+            warnings: ['More than one policy fits, so I link none.'],
+            modelValue: true,
+        },
     },
     {
         name: 'Disabled',
         props: {
             label: 'Create the expense of 84,20 €',
+            icon: Wallet,
             modelValue: false,
             disabled: true,
         },

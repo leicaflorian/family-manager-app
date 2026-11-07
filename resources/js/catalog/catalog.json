@@ -224,7 +224,7 @@
   {
     "name": "FmAlsoDo",
     "path": "resources/js/components/fm/FmAlsoDo.vue",
-    "description": "The box *What I do too* of the Import page and of the proposal of a file:\nwhat the reading creates besides the document (an expense, a payment, a\nlink to a card), each one an `FmAlsoDoItem` the person can untick or\ncorrect. The page decides which items there are.",
+    "description": "The block *What I do too* of the Import page and of the proposal of a file,\nas the board *Importa* draws it: a bold heading and, stacked under it, what\nthe reading creates besides the document (an expense, a payment, a link to\na card), each one an `FmAlsoDoItem` the person can untick or correct. The\npage decides which items there are.",
     "group": "sections",
     "props": [
       {
@@ -232,7 +232,7 @@
         "type": "string",
         "required": false,
         "default": "undefined",
-        "description": "The title of the box; without it, *What I do too*."
+        "description": "The heading; without it, *What I do too*."
       }
     ],
     "events": [],
@@ -245,7 +245,7 @@
   {
     "name": "FmAlsoDoItem",
     "path": "resources/js/components/fm/FmAlsoDoItem.vue",
-    "description": "One thing the reading does besides the document, inside `FmAlsoDo`: a\ncheckbox with its text, a hint under it and the warnings in orange. While\nit is ticked the fields to correct show below, and the actions (*Choose\nanother…*, *Create a new …*, *Back to the proposal*) sit under the fields.",
+    "description": "One thing the reading does besides the document, inside `FmAlsoDo`, as the\nboard *Importa* draws it: a box with a tick, an optional icon, the text, a\nline of explanation and the warnings in orange. The whole row is a label, so\na tap on the text ticks it. While it is ticked the box is blue and shows,\nunder the row, the fields to correct and the actions (*Choose another…*,\n*Create a new …*, *Back to the proposal*).",
     "group": "sections",
     "props": [
       {
@@ -268,6 +268,13 @@
         "required": false,
         "default": "[]",
         "description": "What the person should know before leaving it ticked, one line each."
+      },
+      {
+        "name": "icon",
+        "type": "LucideIcon",
+        "required": false,
+        "default": "undefined",
+        "description": "The icon before the text, from `@lucide/vue`."
       },
       {
         "name": "disabled",
@@ -776,7 +783,6 @@
     ],
     "types": [],
     "usedBy": [
-      "components/fm/FmAlsoDo.vue",
       "components/fm/FmCardBudget.vue",
       "components/fm/FmCardPayments.vue",
       "components/fm/FmChecklist.vue",
@@ -2140,6 +2146,7 @@
       "components/fm/FmActiveFilter.vue",
       "components/fm/FmAgendaFilters.vue",
       "components/fm/FmAgendaRow.vue",
+      "components/fm/FmAlsoDoItem.vue",
       "components/fm/FmBackLink.vue",
       "components/fm/FmBell.vue",
       "components/fm/FmBottomBar.vue",

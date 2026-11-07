@@ -25,11 +25,20 @@ describe('FmAlsoDo', () => {
         ).toBeInTheDocument();
     });
 
+    it('is a plain heading, not a titled card', () => {
+        render(FmAlsoDo);
+
+        expect(
+            screen.getByRole('heading', { level: 3, name: 'What I do too' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('region')).not.toBeInTheDocument();
+    });
+
     it('takes another title', () => {
         render(FmAlsoDo, { props: { title: 'And also' } });
 
         expect(
-            screen.getByRole('heading', { name: 'And also' }),
+            screen.getByRole('heading', { level: 3, name: 'And also' }),
         ).toBeInTheDocument();
     });
 });

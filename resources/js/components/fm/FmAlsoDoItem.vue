@@ -1,19 +1,25 @@
 <script setup lang="ts">
 /**
- * One thing the reading does besides the document, inside `FmAlsoDo`: a
- * checkbox with its text, a hint under it and the warnings in orange. While
- * it is ticked the fields to correct show below, and the actions (*Choose
- * another…*, *Create a new …*, *Back to the proposal*) sit under the fields.
+ * One thing the reading does besides the document, inside `FmAlsoDo`, as the
+ * board *Importa* draws it: a box with a tick, an optional icon, the text, a
+ * line of explanation and the warnings in orange. The whole row is a label, so
+ * a tap on the text ticks it. While it is ticked the box is blue and shows,
+ * under the row, the fields to correct and the actions (*Choose another…*,
+ * *Create a new …*, *Back to the proposal*).
  *
  * @group sections
  */
-import { useId } from 'vue';
+import type { LucideIcon } from '@lucide/vue';
+import { Check } from '@lucide/vue';
+import { computed } from 'vue';
 import { cn } from '@/lib/utils';
+import FmIcon from './FmIcon.vue';
 
 const {
     label,
     hint = undefined,
     warnings = [],
+    icon = undefined,
     disabled = false,
 } = defineProps<{
     /** The text of the checkbox, already translated. */
@@ -22,6 +28,8 @@ const {
     hint?: string;
     /** What the person should know before leaving it ticked, one line each. */
     warnings?: string[];
+    /** The icon before the text, from `@lucide/vue`. */
+    icon?: LucideIcon;
     /** It cannot be ticked or unticked. */
     disabled?: boolean;
 }>();
@@ -36,37 +44,69 @@ defineSlots<{
     actions?: () => unknown;
 }>();
 
-const id = useId();
+/** The classes of the box: blue and thicker when ticked, faded when disabled. */
+const boxClass = computed(() =>
+    cn(
+        'flex flex-col gap-3 rounded-[14px] px-3.5 py-3',
+        ticked.value
+            ? 'border-2 border-action bg-action-soft'
+            : 'border-[1.5px] border-edge bg-white',
+        disabled && 'opacity-60',
+    ),
+);
 
-/** The classes of the text of the checkbox. */
-const labelClass = cn('text-[15px] font-semibold', disabled && 'opacity-60');
+/** The classes of the square tick. */
+const tickClass = computed(() =>
+    cn(
+        'flex size-[22px] shrink-0 items-center justify-center rounded-md peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2',
+        ticked.value
+            ? 'bg-action text-white'
+            : 'border-2 border-[#9AA6B6] bg-white',
+    ),
+);
+
+/** The colour of the icon. */
+const iconClass = computed(() =>
+    cn('shrink-0', ticked.value ? 'text-action-dark' : 'text-ink-soft'),
+);
 </script>
 
 <template>
-    <div class="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
-        <div class="flex items-start gap-3">
+    <div :class="boxClass">
+        <label
+            :class="
+                cn(
+                    'flex items-center gap-3',
+                    disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                )
+            "
+        >
             <input
-                :id="id"
                 v-model="ticked"
                 type="checkbox"
                 :disabled="disabled"
-                class="mt-0.5 size-5 shrink-0 accent-action"
+                class="peer sr-only"
             />
-            <div class="flex min-w-0 flex-col gap-0.5">
-                <label :for="id" :class="labelClass">{{ label }}</label>
-                <p v-if="hint" class="m-0 text-sm text-ink-soft">{{ hint }}</p>
-                <p
+            <span :class="tickClass" aria-hidden="true">
+                <FmIcon v-if="ticked" :icon="Check" :size="15" :stroke="3" />
+            </span>
+            <FmIcon v-if="icon" :icon="icon" :size="20" :class="iconClass" />
+            <span class="flex min-w-0 flex-col gap-0.5">
+                <span class="text-base font-semibold">{{ label }}</span>
+                <span v-if="hint" class="text-[13px] text-ink-soft">{{
+                    hint
+                }}</span>
+                <span
                     v-for="warning in warnings"
                     :key="warning"
-                    class="m-0 text-sm text-warning"
+                    class="text-[13px] text-warning"
+                    >{{ warning }}</span
                 >
-                    {{ warning }}
-                </p>
-            </div>
-        </div>
+            </span>
+        </label>
         <div
             v-if="ticked && ($slots.default || $slots.actions)"
-            class="flex flex-col gap-3 pl-8"
+            class="flex flex-col gap-2 pl-[34px]"
         >
             <slot />
             <div v-if="$slots.actions" class="flex flex-wrap gap-3">

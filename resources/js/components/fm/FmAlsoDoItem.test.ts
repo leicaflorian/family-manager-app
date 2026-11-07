@@ -1,3 +1,4 @@
+import { Wallet } from '@lucide/vue';
 import { fireEvent, render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import FmAlsoDoItem from './FmAlsoDoItem.vue';
@@ -76,5 +77,59 @@ describe('FmAlsoDoItem', () => {
         });
 
         expect(screen.getByRole('checkbox')).toBeDisabled();
+    });
+
+    it('toggles when its text is clicked, not only the box', async () => {
+        const view = render(FmAlsoDoItem, {
+            props: { label: 'Create the expense', modelValue: false },
+        });
+
+        await fireEvent.click(screen.getByText('Create the expense'));
+
+        expect(view.emitted('update:modelValue')).toEqual([[true]]);
+    });
+
+    it('does not toggle from its text when it is disabled', async () => {
+        const view = render(FmAlsoDoItem, {
+            props: {
+                label: 'Create the expense',
+                modelValue: false,
+                disabled: true,
+            },
+        });
+
+        await fireEvent.click(screen.getByText('Create the expense'));
+
+        expect(view.emitted('update:modelValue')).toBeUndefined();
+    });
+
+    it('keeps its name as the text of the checkbox with an icon', () => {
+        render(FmAlsoDoItem, {
+            props: {
+                label: 'Create the expense',
+                modelValue: true,
+                icon: Wallet,
+                hint: 'Paid on 22/10',
+            },
+        });
+
+        expect(
+            screen.getByRole('checkbox', { name: /Create the expense/ }),
+        ).toBeChecked();
+    });
+
+    it('hides the fields and the actions while it is unticked', () => {
+        render(FmAlsoDoItem, {
+            props: { label: 'Link the policy', modelValue: false },
+            slots: {
+                default: '<p>Fields</p>',
+                actions: '<button type="button">Choose another</button>',
+            },
+        });
+
+        expect(screen.queryByText('Fields')).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Choose another' }),
+        ).not.toBeInTheDocument();
     });
 });

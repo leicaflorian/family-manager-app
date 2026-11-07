@@ -103,8 +103,8 @@ Read this file before writing a component or a piece of interface in a page: if 
 
 ### Page sections
 
-- [FmAlsoDo](#fmalsodo) — The box *What I do too* of the Import page and of the proposal of a file: what the reading creates besides the document (an expense, a payment, a link to a card), each one an `FmAlsoDoItem` the person can untick or correct.
-- [FmAlsoDoItem](#fmalsodoitem) — One thing the reading does besides the document, inside `FmAlsoDo`: a checkbox with its text, a hint under it and the warnings in orange.
+- [FmAlsoDo](#fmalsodo) — The block *What I do too* of the Import page and of the proposal of a file, as the board *Importa* draws it: a bold heading and, stacked under it, what the reading creates besides the document (an expense, a payment, a link to a card), each one an `FmAlsoDoItem` the person can untick or correct.
+- [FmAlsoDoItem](#fmalsodoitem) — One thing the reading does besides the document, inside `FmAlsoDo`, as the board *Importa* draws it: a box with a tick, an optional icon, the text, a line of explanation and the warnings in orange.
 - [FmCardBudget](#fmcardbudget) — The payments on the page of a card, as the boards of the cards draw them: in the box at the top the oldest open due date (the renewal of a policy, the next instalment of a loan, the salary coming in), which opens *A due date* (with *It arrived* open on a salary); the figures, beside the dates of the card (`tiles`); how far a loan is paid; the open due dates; then the data of the card (the default slot).
 - [FmCardDocumentActions](#fmcarddocumentactions) — The buttons beside a document on the page of a card: *Open in a new tab*, always in sight, and the ⋮ menu with *Edit* (the page of the document, as its row), *Unlink* and *Delete* (for an `admin`), each after asking.
 - [FmCardFiles](#fmcardfiles) — The documents of a card on grey, beside its form, as the file beside *Edit the document*: *Link* beside the title, at the top the zone to add files, then the files chosen and not saved yet, then the documents: those chosen in *Link*, and those already linked, with the menu of the card page.
@@ -400,7 +400,6 @@ a short explanation can go under the card, in `note`.
 
 ### Used by
 
-- `components/fm/FmAlsoDo.vue`
 - `components/fm/FmCardBudget.vue`
 - `components/fm/FmCardPayments.vue`
 - `components/fm/FmChecklist.vue`
@@ -695,6 +694,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 - `components/fm/FmActiveFilter.vue`
 - `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmAgendaRow.vue`
+- `components/fm/FmAlsoDoItem.vue`
 - `components/fm/FmBackLink.vue`
 - `components/fm/FmBell.vue`
 - `components/fm/FmBottomBar.vue`
@@ -3444,16 +3444,17 @@ the family, or a file chosen and not saved yet.
 
 `resources/js/components/fm/FmAlsoDo.vue`
 
-The box *What I do too* of the Import page and of the proposal of a file:
-what the reading creates besides the document (an expense, a payment, a
-link to a card), each one an `FmAlsoDoItem` the person can untick or
-correct. The page decides which items there are.
+The block *What I do too* of the Import page and of the proposal of a file,
+as the board *Importa* draws it: a bold heading and, stacked under it, what
+the reading creates besides the document (an expense, a payment, a link to
+a card), each one an `FmAlsoDoItem` the person can untick or correct. The
+page decides which items there are.
 
 ### Props
 
 | Name | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `title` | `string` | no | `undefined` | The title of the box; without it, *What I do too*. |
+| `title` | `string` | no | `undefined` | The heading; without it, *What I do too*. |
 
 ### Slots
 
@@ -3477,10 +3478,12 @@ correct. The page decides which items there are.
 
 `resources/js/components/fm/FmAlsoDoItem.vue`
 
-One thing the reading does besides the document, inside `FmAlsoDo`: a
-checkbox with its text, a hint under it and the warnings in orange. While
-it is ticked the fields to correct show below, and the actions (*Choose
-another…*, *Create a new …*, *Back to the proposal*) sit under the fields.
+One thing the reading does besides the document, inside `FmAlsoDo`, as the
+board *Importa* draws it: a box with a tick, an optional icon, the text, a
+line of explanation and the warnings in orange. The whole row is a label, so
+a tap on the text ticks it. While it is ticked the box is blue and shows,
+under the row, the fields to correct and the actions (*Choose another…*,
+*Create a new …*, *Back to the proposal*).
 
 ### Props
 
@@ -3489,6 +3492,7 @@ another…*, *Create a new …*, *Back to the proposal*) sit under the fields.
 | `label` | `string` | yes | — | The text of the checkbox, already translated. |
 | `hint` | `string` | no | `undefined` | A line of explanation under the text. |
 | `warnings` | `string[]` | no | `[]` | What the person should know before leaving it ticked, one line each. |
+| `icon` | `LucideIcon` | no | `undefined` | The icon before the text, from `@lucide/vue`. |
 | `disabled` | `boolean` | no | `false` | It cannot be ticked or unticked. |
 | `modelValue` | `boolean` | no | `false` | Whether the item is ticked. |
 
@@ -3504,23 +3508,23 @@ another…*, *Create a new …*, *Back to the proposal*) sit under the fields.
 ### Examples
 
 ```vue
-<!-- Ticked, with a hint -->
-<FmAlsoDoItem label="Create the expense of 84,20 €" hint="It goes in Home, with the bill." modelValue />
-
-<!-- With a warning -->
-<FmAlsoDoItem label="Link the policy" :warnings="warnings" modelValue />
+<!-- Ticked, with icon and hint -->
+<FmAlsoDoItem label="Create the expense of 84,20 €" hint="Already paid on 22/10 · Laura’s card" :icon="icon" modelValue />
 
 <!-- With fields and actions -->
-<FmAlsoDoItem label="Pay the deadline of 15/11/2026" modelValue>
+<FmAlsoDoItem label="Add a health event" :icon="icon" modelValue>
     …
     <template #actions>…</template>
 </FmAlsoDoItem>
 
 <!-- Unticked -->
-<FmAlsoDoItem label="Create the expense of 84,20 €" />
+<FmAlsoDoItem label="Remind me to book the checkup" :icon="icon" />
+
+<!-- With a warning -->
+<FmAlsoDoItem label="Link the policy" :warnings="warnings" modelValue />
 
 <!-- Disabled -->
-<FmAlsoDoItem label="Create the expense of 84,20 €" disabled />
+<FmAlsoDoItem label="Create the expense of 84,20 €" :icon="icon" disabled />
 ```
 
 ## FmCardBudget
