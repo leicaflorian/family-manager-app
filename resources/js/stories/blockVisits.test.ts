@@ -28,9 +28,9 @@ describe('blockVisits', () => {
     });
 
     it('lets no visit through by default', () => {
-        router.get('/dev/components?component=FmRow');
+        router.get('/allowed/page?id=1');
 
-        expect(log).toEqual(['GET /dev/components?component=FmRow']);
+        expect(log).toEqual(['GET /allowed/page?id=1']);
         expect(open).not.toHaveBeenCalled();
     });
 
@@ -59,7 +59,7 @@ describe('blockVisits', () => {
 
     it('lets through the visits to a path it is told to allow', () => {
         stop();
-        stop = blockVisits((entry) => log.push(entry), ['/dev/components']);
+        stop = blockVisits((entry) => log.push(entry), ['/allowed/page']);
         let prevented: boolean | null = null;
         const listener = (event: Event): void => {
             prevented = event.defaultPrevented;
@@ -68,7 +68,7 @@ describe('blockVisits', () => {
         };
         document.addEventListener('inertia:before', listener);
 
-        router.get('/dev/components?component=FmRow');
+        router.get('/allowed/page?id=1');
         document.removeEventListener('inertia:before', listener);
 
         expect(prevented).toBe(false);
@@ -77,11 +77,11 @@ describe('blockVisits', () => {
 
     it('stops a path that only begins like an allowed one', () => {
         stop();
-        stop = blockVisits((entry) => log.push(entry), ['/dev/components']);
+        stop = blockVisits((entry) => log.push(entry), ['/allowed/page']);
 
-        router.get('/dev/componentsX');
+        router.get('/allowed/pageX');
 
-        expect(log).toEqual(['GET /dev/componentsX']);
+        expect(log).toEqual(['GET /allowed/pageX']);
         expect(open).not.toHaveBeenCalled();
     });
 
