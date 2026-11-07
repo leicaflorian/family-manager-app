@@ -52,15 +52,37 @@ function device(dark: boolean): {
     };
 }
 
-/** What Inertia fires after a page is shown: `visit` (server), `history` (Back) or `initial`. */
-function navigate(
-    theme: string | undefined,
-    type: 'initial' | 'visit' | 'history',
-    cached = false,
-): void {
+/**
+ * What Inertia fires after the server answered a visit, also one to the page already
+ * open (@inertiajs/core `Response.handle`, `fireSuccessEvent`): `inertia:success`.
+ * For that same-URL case it fires no `navigate` (`replace` is forced, `visit()` only
+ * fires it when `!replace`).
+ */
+function serverAnswers(theme: string | undefined): void {
+    document.dispatchEvent(
+        new CustomEvent('inertia:success', {
+            detail: { page: { props: { theme } } },
+        }),
+    );
+}
+
+/**
+ * What Inertia fires after a page is shown from the history (`popstate`,
+ * `handlePopstateEvent`): `navigate` of type `history`, and no `success`.
+ */
+function historyRestore(theme: string | undefined): void {
     document.dispatchEvent(
         new CustomEvent('inertia:navigate', {
-            detail: { page: { props: { theme } }, type, cached },
+            detail: { page: { props: { theme } }, type: 'history' },
+        }),
+    );
+}
+
+/** What Inertia fires for the first page. */
+function firstPage(theme: string | undefined): void {
+    document.dispatchEvent(
+        new CustomEvent('inertia:navigate', {
+            detail: { page: { props: { theme } }, type: 'initial' },
         }),
     );
 }
@@ -126,7 +148,7 @@ describe('useTheme', () => {
         useTheme();
         expect(isDark()).toBe(false);
 
-        navigate('dark', 'visit');
+        serverAnswers('dark');
         await nextTick();
         expect(isDark()).toBe(true);
         expect(media.listeners()).toBe(0);
@@ -134,7 +156,7 @@ describe('useTheme', () => {
         media.set(false);
         expect(isDark()).toBe(true);
 
-        navigate('light', 'visit');
+        serverAnswers('light');
         await nextTick();
         expect(isDark()).toBe(false);
     });
@@ -151,11 +173,11 @@ describe('useTheme', () => {
         expect(isDark()).toBe(true);
         expect(media.listeners()).toBe(0);
 
-        navigate('dark', 'initial');
+        firstPage('dark');
         await nextTick();
         expect(isDark()).toBe(true);
 
-        navigate('system', 'visit');
+        serverAnswers('system');
         await nextTick();
         expect(isDark()).toBe(false);
     });
@@ -165,26 +187,14 @@ describe('useTheme', () => {
         shared.page = reactive({ props: { theme: 'system' } });
         const { theme } = useTheme();
 
-        navigate('dark', 'visit');
+        serverAnswers('dark');
         await nextTick();
         expect(isDark()).toBe(true);
 
-        navigate('system', 'history');
+        historyRestore('system');
         await nextTick();
         expect(isDark()).toBe(true);
         expect(theme.value).toBe('dark');
-    });
-
-    it('ignores a page that comes from the prefetch cache', async () => {
-        device(false);
-        useTheme();
-
-        navigate('dark', 'visit');
-        await nextTick();
-        navigate('light', 'visit', true);
-        await nextTick();
-
-        expect(isDark()).toBe(true);
     });
 
     it('gives the theme back', () => {

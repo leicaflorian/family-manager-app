@@ -32,8 +32,8 @@ function themeOf(
  * keeps it right while the app is open: a theme saved after a visit applies at
  * once, and with `system` the page follows the device when its scheme changes.
  *
- * The theme comes only from what the server sent: the first page and every visit
- * answered by the server. A page restored from the history (Back, Forward) or from
+ * The theme comes only from what the server sent: the first page and every answer
+ * of the server (`success`), including a redirect to the page already open. A page restored from the history (Back, Forward) or from
  * the prefetch cache carries the props it had then, and its old theme is ignored.
  * Nothing changes until the first page is loaded.
  *
@@ -49,14 +49,21 @@ export function useTheme(): {
     dispose?.();
     serverTheme.value = themeOf(usePage().props);
 
-    const off = router.on('navigate', (event): void => {
-        const { type, cached } = event.detail;
-        const fromServer =
-            type === 'initial' || (type === 'visit' && cached !== true);
+    // `success` fires after every answer of the server, also for a visit to the page
+    // already open (the redirect back after saving the theme), which fires no
+    // `navigate`. A history restore (Back) and a prefetched page not yet shown fire
+    // none of them as a fresh answer, so their old props never get here.
+    const offSuccess = router.on('success', (event): void => {
+        serverTheme.value = themeOf(event.detail.page.props);
+    });
 
-        // A restored page is only believed when nothing else is known yet
-        // (a reload that the browser answers from its history).
-        if (fromServer || serverTheme.value === undefined) {
+    // The first page is shown with `navigate` (`initial`); a reload the browser answers
+    // from its history (`history`) is only believed when nothing else is known yet.
+    const offNavigate = router.on('navigate', (event): void => {
+        if (
+            event.detail.type === 'initial' ||
+            serverTheme.value === undefined
+        ) {
             serverTheme.value = themeOf(event.detail.page.props);
         }
     });
@@ -98,7 +105,8 @@ export function useTheme(): {
     );
 
     dispose = (): void => {
-        off();
+        offSuccess();
+        offNavigate();
         stop();
     };
 

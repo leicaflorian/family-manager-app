@@ -122,15 +122,14 @@ describe('Changes not saved', () => {
 describe('Theme', () => {
     const props = { account, themes };
 
-    /** The server answers a visit with this theme, as it does after the choice is saved. */
+    /**
+     * The server answers the save with a redirect back to this same page: Inertia
+     * fires `success` and no `navigate` (`Response.handle` and `visit()` in @inertiajs/core).
+     */
     function serverSends(theme: string): void {
         document.dispatchEvent(
-            new CustomEvent('inertia:navigate', {
-                detail: {
-                    page: { props: { theme } },
-                    type: 'visit',
-                    cached: false,
-                },
+            new CustomEvent('inertia:success', {
+                detail: { page: { props: { theme } } },
             }),
         );
     }
