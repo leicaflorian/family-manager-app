@@ -901,6 +901,46 @@ describe('Import', () => {
             expect(getNode('also-due-date-7')?.value).toBe('2026-11-15');
         });
 
+        it('opening a to-pay file with a deadline read changes nothing, and a new date does', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            const due = {
+                ...ferriProposal.movement!.due!,
+                suggested: true,
+                date: '2026-11-15',
+            };
+            // The form of the document fills in with the reading too: that is not a change
+            const read = file({ ...ferri, proposal });
+            renderPage(
+                Import,
+                ferriProps(
+                    {
+                        ...ferriProposal,
+                        movement: { ...ferriProposal.movement!, due },
+                    },
+                    { files: [read] },
+                ),
+            );
+            await settle();
+            await new Promise((resolve) => setTimeout(resolve, 600));
+
+            expect(getNode('also-due-date-7')?.value).toBe('2026-11-15');
+            expect(hasChanges()).toBe(false);
+            expect(reload).not.toHaveBeenCalled();
+
+            await getNode('also-due-date-7')?.input('2026-11-30');
+            await settle();
+            expect(hasChanges()).toBe(true);
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+            expect(sent(post)[0]?.also).toMatchObject({
+                overrides: { movement: { due_date: '2026-11-30' } },
+            });
+        });
+
         it('asks a card for the fields it misses, and sends what the person chose', async () => {
             const post = vi.spyOn(router, 'post').mockImplementation(() => {});
             vi.spyOn(router, 'reload').mockImplementation(() => {});

@@ -1718,6 +1718,13 @@
         "description": "Which fields the proposal may write: the ones not touched, or only the empty ones."
       },
       {
+        "name": "proposalIsStart",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "The form opens with the proposal: what it fills in is the start, not a change not saved (a page that shows the reading as already chosen)."
+      },
+      {
         "name": "errors",
         "type": "Record<string, string>",
         "required": false,

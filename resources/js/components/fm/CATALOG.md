@@ -2893,6 +2893,7 @@ The category, the person and the organization are found by typing.
 | `cancelLabel` | `string` | no | — | The text of the button that gives up, if there is one. |
 | `proposal` | `Partial<DocumentFormValues>` | no | — | What the reading found, as form values: written into the fields the person has not touched. |
 | `fill` | `FillMode` | no | `"untouched"` | Which fields the proposal may write: the ones not touched, or only the empty ones. |
+| `proposalIsStart` | `boolean` | no | `false` | The form opens with the proposal: what it fills in is the start, not a change not saved (a page that shows the reading as already chosen). |
 | `errors` | `Record<string, string>` | no | — | Errors found outside the form (a page that sent many documents), by field: `title`, `tags.0`… |
 
 ### Events
@@ -2914,7 +2915,7 @@ The category, the person and the organization are found by typing.
 <FmDocumentForm :action="action" :initial="initial" :extra="extra" :options="options" submitLabel="Save the document" :proposal="proposal" />
 
 <!-- Without an action -->
-<FmDocumentForm :initial="initial" :options="options" :proposal="proposal" />
+<FmDocumentForm :initial="initial" :options="options" :proposal="proposal" proposalIsStart />
 
 <!-- With errors from the page -->
 <FmDocumentForm :initial="initial" :options="options" :errors="errors" />

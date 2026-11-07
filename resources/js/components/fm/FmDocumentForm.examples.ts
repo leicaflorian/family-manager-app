@@ -50,6 +50,7 @@ export default defineExamples(FmDocumentForm, [
             },
             options: documentFormOptions,
             proposal: { title: 'Luce ottobre', person_id: '1' },
+            proposalIsStart: true,
         },
     },
     {

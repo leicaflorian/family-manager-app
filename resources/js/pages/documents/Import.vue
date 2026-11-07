@@ -667,6 +667,7 @@ function save(): void {
                         :proposal="
                             proposalOf(file.reading_status, file.proposal)
                         "
+                        proposal-is-start
                         :errors="fieldErrorsOf(file)"
                         @change="values[file.id] = $event"
                     />

@@ -39,6 +39,7 @@ const {
     cancelLabel,
     proposal,
     fill = 'untouched',
+    proposalIsStart = false,
     errors: outsideErrors,
 } = defineProps<{
     /**
@@ -60,6 +61,8 @@ const {
     proposal?: Partial<DocumentFormValues>;
     /** Which fields the proposal may write: the ones not touched, or only the empty ones. */
     fill?: FillMode;
+    /** The form opens with the proposal: what it fills in is the start, not a change not saved (a page that shows the reading as already chosen). */
+    proposalIsStart?: boolean;
     /** Errors found outside the form (a page that sent many documents), by field: `title`, `tags.0`… */
     errors?: Record<string, string>;
 }>();
@@ -91,7 +94,7 @@ watch(
 );
 
 /** While the form has changes not saved, leaving the page asks first. */
-useUnsavedChanges(() => form.data());
+const changes = useUnsavedChanges(() => form.data());
 
 // The errors a page gives replace the ones shown
 watch(
@@ -113,7 +116,14 @@ watch(
     () => proposal,
     (values) => {
         if (values) {
+            // Only a form the person has not touched: what they wrote stays a change to lose
+            const untouched = proposalIsStart && !changes.dirty.value;
+
             reading.apply(values);
+
+            if (untouched) {
+                changes.reset();
+            }
         }
     },
     { immediate: true },

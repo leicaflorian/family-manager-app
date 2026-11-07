@@ -436,6 +436,29 @@ describe('Changes not saved', () => {
 
         expect(hasChanges()).toBe(true);
     });
+
+    it('does not count a proposal as a change when it is the start, and counts what the person writes after', async () => {
+        const view = renderPage(FmDocumentForm, {
+            ...props,
+            proposalIsStart: true,
+            proposal: { title: 'Luce ottobre' },
+        });
+        expect(hasChanges()).toBe(false);
+
+        await view.rerender({
+            ...props,
+            proposalIsStart: true,
+            proposal: { title: 'Luce ottobre', person_id: '7' },
+        });
+        expect(hasChanges()).toBe(false);
+
+        await fireEvent.update(
+            screen.getByLabelText('What it is'),
+            'Luce ottobre 2',
+        );
+        await settle();
+        expect(hasChanges()).toBe(true);
+    });
 });
 
 describe('FmDocumentForm without an action', () => {
