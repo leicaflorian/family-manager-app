@@ -8,8 +8,9 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { pendingPayslip } from '@/test/fixtures';
-import { renderPage, screenWidth, settle } from '@/test/page';
+import { hasChanges } from '@/lib/unsavedChanges';
+import { ferriProposal, pendingPayslip } from '@/test/fixtures';
+import { choose, renderPage, screenWidth, settle } from '@/test/page';
 import Import from './Import.vue';
 
 /** A file as the server sends it, over the payslip of the fixtures. */
@@ -72,6 +73,44 @@ function props(
     return { files, failures, presetLinks, ...options };
 }
 
+/** The Studio Ferri invoice, read: its proposal comes in `proposals`. */
+const ferri = file({
+    id: 7,
+    name: 'Telefono 2026-10-25 19.04.pdf',
+    title: 'dentista Giulia',
+    reading_status: 'done',
+    proposal: null,
+});
+
+/** The props of the page with the Studio Ferri invoice and its proposal. */
+function ferriProps(
+    proposal: App.Data.Reading.ProposalData = ferriProposal,
+    extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+    return {
+        ...props([ferri]),
+        people: [{ value: '2', label: 'Giulia Bianchi', help: null }],
+        proposals: { 7: proposal },
+        expenseCategories: [
+            { value: '12', label: 'Salute › Spese mediche', help: null },
+        ],
+        accounts: [{ value: '3', label: 'Carta Laura', help: null }],
+        ...extra,
+    };
+}
+
+/** The body of the last import sent. */
+function sent(
+    post: ReturnType<typeof vi.spyOn>,
+): { file_id: number; also?: Record<string, unknown> }[] {
+    const [, body] = post.mock.calls.at(-1) as unknown as [
+        string,
+        { files: { file_id: number; also?: Record<string, unknown> }[] },
+    ];
+
+    return body.files;
+}
+
 /** The box that leaves the open file out of the import. */
 function leaveOut(): HTMLElement {
     return screen.getByRole('checkbox', { name: 'Do not import this file' });
@@ -102,7 +141,9 @@ describe('Import', () => {
             screen.getByRole('heading', { name: 'Import 3 files' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByText('Check them one by one, then import them together.'),
+            screen.getByText(
+                'Check them one by one, then import them together.',
+            ),
         ).toBeInTheDocument();
         expect(
             within(row('bolletta-luce.pdf')).getByText('You are looking at it'),
@@ -118,7 +159,9 @@ describe('Import', () => {
     it('moves on with Next file, and a file left behind is checked', async () => {
         renderPage(Import, props([light, gas, warranty]));
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Next file' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Next file' }),
+        );
 
         expect(
             within(row('bolletta-luce.pdf')).getByText('Checked'),
@@ -127,7 +170,9 @@ describe('Import', () => {
             within(row('bolletta-gas.pdf')).getByText('You are looking at it'),
         ).toBeInTheDocument();
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Next file' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Next file' }),
+        );
         expect(
             screen.queryByRole('button', { name: 'Next file' }),
         ).not.toBeInTheDocument();
@@ -309,7 +354,9 @@ describe('Import', () => {
         const [title] = screen.getAllByLabelText('What it is');
         await fireEvent.update(title!, 'Luce di ottobre');
         await settle();
-        await fireEvent.click(screen.getByRole('button', { name: 'Next file' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Next file' }),
+        );
         await fireEvent.click(leaveOut());
         await fireEvent.click(
             screen.getByRole('button', { name: 'Import the file' }),
@@ -491,6 +538,329 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
+    describe('what I do too', () => {
+        it('proposes the expense, the event and the organization of the Studio Ferri invoice, ticked', () => {
+            renderPage(Import, ferriProps());
+
+            expect(
+                screen.getByRole('heading', { name: 'What I do too' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('checkbox', {
+                    name: /Create the expense of 120,00 €/,
+                }),
+            ).toBeChecked();
+            expect(
+                screen.getByText('Spese mediche · Giulia Bianchi'),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('checkbox', {
+                    name: /Create the health event/,
+                }),
+            ).toBeChecked();
+            expect(
+                screen.getByText(
+                    '«Visita dal dentista» · Giulia Bianchi · 22/10/2026',
+                ),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByText("I'll remind you to book the checkup"),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('checkbox', {
+                    name: /Create the organization Studio Ferri/,
+                }),
+            ).toBeChecked();
+        });
+
+        it('offers already paid, with the date and the account, or to pay', () => {
+            renderPage(Import, ferriProps());
+
+            expect(
+                screen.getByRole('radio', {
+                    name: 'Already paid on 22/10/2026 with Carta Laura',
+                }),
+            ).toBeChecked();
+            expect(
+                screen.getByRole('radio', { name: 'To pay' }),
+            ).not.toBeChecked();
+        });
+
+        it('sends the boxes ticked with the document', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(Import, ferriProps());
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]).toMatchObject({
+                file_id: 7,
+                also: {
+                    movement: true,
+                    event: true,
+                    records: ['organization'],
+                    targets: { movement: 'auto', event: 'auto', records: {} },
+                    policy: 'auto',
+                },
+            });
+            expect(sent(post)[0]?.also).not.toHaveProperty('due');
+        });
+
+        it('leaves the expense out of what is sent when it is unticked, and that is a change to keep', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(Import, ferriProps());
+            await settle();
+            expect(hasChanges()).toBe(false);
+
+            await fireEvent.click(
+                screen.getByRole('checkbox', {
+                    name: /Create the expense of 120,00 €/,
+                }),
+            );
+            expect(hasChanges()).toBe(true);
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({ movement: false });
+        });
+
+        it('sends to pay when the person chooses it', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(Import, ferriProps());
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('radio', { name: 'To pay' }),
+            );
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({ due: true });
+        });
+
+        it('asks the proposal of the file again after a change, with the choices', async () => {
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            renderPage(Import, ferriProps());
+            await settle();
+            expect(reload).not.toHaveBeenCalled();
+
+            await fireEvent.click(
+                screen.getByRole('radio', { name: 'To pay' }),
+            );
+            await vi.advanceTimersByTimeAsync(400);
+
+            expect(reload).toHaveBeenCalledOnce();
+            expect(reload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    only: ['proposals'],
+                    preserveUrl: true,
+                    data: {
+                        check: expect.objectContaining({
+                            file_id: 7,
+                            also: expect.objectContaining({ due: true }),
+                        }),
+                    },
+                }),
+            );
+        });
+
+        it('links to another expense chosen by hand, and goes back to the proposal', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(Import, ferriProps());
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('button', {
+                    name: 'Link to an expense already registered…',
+                }),
+            );
+            await choose(
+                'The expense to link',
+                'Dentista settembre · 15/09/2026 · 80,00 €',
+            );
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+            expect(sent(post)[0]?.also).toMatchObject({
+                targets: { movement: 41 },
+            });
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Back to the proposal' }),
+            );
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+            expect(sent(post)[0]?.also).toMatchObject({
+                targets: { movement: 'auto' },
+            });
+        });
+
+        it('creates a new card instead of the one found', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const found = {
+                ...ferriProposal,
+                records: [
+                    {
+                        ...ferriProposal.records[0]!,
+                        existing: { id: 5, title: 'Studio dentistico' },
+                    },
+                ],
+            };
+            renderPage(Import, ferriProps(found));
+            await settle();
+
+            expect(
+                screen.getByRole('checkbox', {
+                    name: /Link to the organization "Studio dentistico"/,
+                }),
+            ).toBeChecked();
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Create a new card' }),
+            );
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({
+                targets: { records: { organization: 'new' } },
+            });
+        });
+
+        it('shows an error of the import on the row of the file and in its box', async () => {
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, visit) => {
+                    visit?.onError?.({
+                        'files.0.also.records.organization':
+                            'To create the organization Studio Ferri the name is needed: enter it or untick it.',
+                    });
+                },
+            );
+            renderPage(Import, ferriProps());
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            const message =
+                'To create the organization Studio Ferri the name is needed: enter it or untick it.';
+            expect(
+                within(row('Telefono 2026-10-25 19.04.pdf')).getByText(message),
+            ).toBeInTheDocument();
+            const box = screen
+                .getByRole('checkbox', {
+                    name: /Create the organization Studio Ferri/,
+                })
+                .closest('label')!;
+            expect(within(box).getByText(message)).toBeInTheDocument();
+        });
+
+        it('says what the files already imported say', () => {
+            renderPage(
+                Import,
+                ferriProps(ferriProposal, {
+                    notices: {
+                        9: [
+                            'Not linked to the policy 40/123456: the policy was not created. Link it from the document form.',
+                        ],
+                    },
+                }),
+            );
+
+            expect(
+                screen.getByText(
+                    'Not linked to the policy 40/123456: the policy was not created. Link it from the document form.',
+                ),
+            ).toBeInTheDocument();
+        });
+
+        it('takes the policy of another file, and can leave it', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const giver: App.Data.Reading.PolicyGiverData = {
+                key: 'file:9',
+                fileName: 'Contratto.pdf',
+                number: '40/123456',
+                creates: true,
+                organizationId: null,
+                organizationName: 'UnipolSai',
+                personId: null,
+                type: 'car',
+            };
+            renderPage(
+                Import,
+                ferriProps({
+                    ...ferriProposal,
+                    policy: { need: true, giver, many: false },
+                }),
+            );
+            await settle();
+
+            const box = screen.getByRole('checkbox', {
+                name: /Link to the policy 40\/123456/,
+            });
+            expect(box).toBeChecked();
+            expect(
+                screen.getByText(
+                    'The document is linked to the policy 40/123456, which the file Contratto.pdf creates.',
+                ),
+            ).toBeInTheDocument();
+
+            await fireEvent.click(box);
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+            expect(sent(post)[0]?.also).toMatchObject({ policy: 'none' });
+        });
+
+        it('sends nothing more for a file without a proposal', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(Import, props([light]));
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]).not.toHaveProperty('also');
+            expect(
+                screen.queryByRole('heading', { name: 'What I do too' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('asks the proposal again when the reading of a file ends', async () => {
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            vi.spyOn(router, 'visit').mockImplementation(() => {});
+            const view = renderPage(
+                Import,
+                ferriProps(ferriProposal, {
+                    files: [{ ...ferri, reading_status: 'reading' }],
+                }),
+            );
+            await settle();
+
+            await view.rerender(ferriProps());
+            await vi.advanceTimersByTimeAsync(400);
+
+            expect(reload).toHaveBeenCalledWith(
+                expect.objectContaining({ only: ['proposals'] }),
+            );
+        });
+    });
+
     describe('on the phone', () => {
         beforeEach(() => {
             screenWidth(false);
@@ -539,6 +909,19 @@ describe('Import', () => {
 
             await fireEvent.click(previous);
             expect(screen.getByText('File 2 of 3')).toBeInTheDocument();
+        });
+
+        it('puts what I do too under the form of the document, as the board Importa', () => {
+            renderPage(Import, ferriProps());
+
+            const field = screen.getAllByLabelText('What it is')[0]!;
+            const heading = screen.getByRole('heading', {
+                name: 'What I do too',
+            });
+            expect(
+                field.compareDocumentPosition(heading) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).toBeTruthy();
         });
 
         it('says on the bar which file needs a look', () => {

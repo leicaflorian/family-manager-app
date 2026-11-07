@@ -10,6 +10,7 @@ use App\Data\Reading\ImportChoices;
 use App\Http\Requests\Reading\ImportRequest;
 use App\Models\Document;
 use App\Models\File;
+use App\Services\BudgetFormOptions;
 use App\Services\DocumentFormOptions;
 use App\Services\Reading\ImportProposals;
 use App\Support\ImportPage;
@@ -30,7 +31,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class ImportController extends Controller
 {
     /**
-     * The page with the files of `?files=1,2,3`, in that order, and the proposal of each. A file that is not waiting
+     * The page with the files of `?files=1,2,3`, in that order, the proposal of each, and the expense categories
+     * and accounts that name the expense a file proposes. A file that is not waiting
      * in the family is a 404 before anything else; with no files the person goes back to *To sort*.
      *
      * The page asks the proposal of the file it shows again, with the choices of the person, by reloading only
@@ -61,6 +63,9 @@ final class ImportController extends Controller
             'failures' => is_array($failures) ? $failures : [],
             'notices' => is_array($notices) ? $notices : [],
             'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
+            // The names the boxes of *What I do too* show for the expense: its category and the account it was paid with
+            'expenseCategories' => BudgetFormOptions::categories(...),
+            'accounts' => BudgetFormOptions::accounts(...),
             ...$options->all(),
         ]);
     }

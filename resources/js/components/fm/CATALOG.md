@@ -3474,6 +3474,10 @@ page decides which items there are.
 </FmAlsoDo>
 ```
 
+### Used by
+
+- `pages/documents/Import.vue`
+
 ## FmAlsoDoItem
 
 `resources/js/components/fm/FmAlsoDoItem.vue`
@@ -3526,6 +3530,10 @@ under the row, the fields to correct and the actions (*Choose another…*,
 <!-- Disabled -->
 <FmAlsoDoItem label="Create the expense of 84,20 €" :icon="icon" disabled />
 ```
+
+### Used by
+
+- `pages/documents/Import.vue`
 
 ## FmCardBudget
 

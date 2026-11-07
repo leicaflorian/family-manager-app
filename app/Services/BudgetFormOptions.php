@@ -105,7 +105,7 @@ final class BudgetFormOptions
      *
      * @return list<OptionData>
      */
-    private static function categories(): array
+    public static function categories(): array
     {
         $options = [];
 

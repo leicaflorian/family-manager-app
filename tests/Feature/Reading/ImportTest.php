@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\File;
+use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
@@ -19,6 +20,7 @@ use App\Models\Utility;
 use App\Models\Vehicle;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -62,6 +64,18 @@ test('the page opens with the files asked for, in that order, and the choices of
             ->where('files.0.id', $second->id)->where('files.1.id', $first->id)
             ->has('statuses')->has('categories')->has('people')->has('organizations')->has('links')->has('tags')
             ->where('failures', []));
+});
+
+test('the page names the categories and the accounts of the expense a file proposes', function (): void {
+    $file = waitingFile();
+    $health = ExpenseCategory::factory()->for($this->marco->family)->create(['name' => 'Salute', 'parent_id' => null]);
+    ExpenseCategory::factory()->for($this->marco->family)->create(['name' => 'Spese mediche', 'parent_id' => $health->id]);
+    $card = FinancialAccount::factory()->for($this->marco->family)->create(['name' => 'Carta Laura']);
+
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('expenseCategories', fn (Collection $options): bool => $options->pluck('label')->contains('Salute › Spese mediche'))
+            ->where('accounts', fn (Collection $options): bool => $options->contains(fn (array $option): bool => $option['value'] === (string) $card->id && $option['label'] === 'Carta Laura')));
 });
 
 test('a file of another family is a 404 before anything else', function (): void {

@@ -1647,3 +1647,94 @@ export const seenNotices: App.Data.ReminderNoticeData[] = [
         state: 'done',
     }),
 ];
+
+/**
+ * The proposal of the Studio Ferri invoice, as `ProposalData` comes from the server (the case of
+ * `ProposalTest`): the expense of 120 € paid with Laura's card, the dentist visit of Giulia with its next
+ * checkup, and the organization Studio Ferri to create.
+ */
+export const ferriProposal: App.Data.Reading.ProposalData = {
+    fileId: 7,
+    document: {
+        title: 'Visita dal dentista',
+        category_id: null,
+        person_id: 2,
+        organization_id: null,
+        date: '2026-10-22',
+        expiry_date: null,
+        links: [],
+        headline: 'I found an invoice',
+        found: [],
+    },
+    movement: {
+        values: {
+            kind: 'expense',
+            title: 'Visita dal dentista',
+            amount: 120,
+            fee_amount: null,
+            date: '2026-10-22',
+            due_date: null,
+            organization_id: null,
+            category_id: 12,
+            financial_account_id: 3,
+            person_id: 2,
+            income_type: null,
+            employment_id: null,
+            notes: null,
+            lead: null,
+        },
+        suggested: true,
+        duplicate: null,
+        changes: [],
+        warnings: [],
+        others: 0,
+        blocked: null,
+        due: {
+            suggested: false,
+            date: null,
+            plan: null,
+            occurrence: null,
+            mode: 'new',
+        },
+        pays: null,
+        candidates: [
+            {
+                id: 41,
+                title: 'Dentista settembre',
+                date: '2026-09-15',
+                amount: 80,
+            },
+        ],
+    },
+    event: {
+        values: {
+            title: 'Visita dal dentista',
+            type: 'visit',
+            person_id: 2,
+            organization_id: null,
+            date: '2026-10-22',
+            next_checkup_date: '2027-04-22',
+            outcome: null,
+            notes: null,
+        },
+        suggested: true,
+        existing: null,
+        blocked: null,
+        candidates: [],
+        reminder: "I'll remind you to book the checkup",
+    },
+    records: [
+        {
+            kind: 'organization',
+            title: 'the organization Studio Ferri',
+            values: { name: 'Studio Ferri', types: ['healthcare'] },
+            suggested: true,
+            missing: [],
+            existing: null,
+            candidates: [{ id: 5, label: 'Studio dentistico' }],
+            reminder: null,
+        },
+    ],
+    policy: null,
+    warnings: [],
+};
