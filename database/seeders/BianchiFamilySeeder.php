@@ -6,9 +6,7 @@ namespace Database\Seeders;
 
 use App\Actions\Families\CreateFamily;
 use App\Actions\Reminders\SyncReminders;
-use App\Data\Reading\DocumentProposalData;
 use App\Data\Reading\Extraction;
-use App\Data\Reading\FoundLineData;
 use App\Enums\DocumentStatus;
 use App\Enums\EnrollmentType;
 use App\Enums\ExceptionType;
@@ -54,6 +52,8 @@ use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\FileStore;
+use App\Services\Reading\DocumentProposal;
+use App\Services\Reading\ReadingContext;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -169,10 +169,12 @@ final class BianchiFamilySeeder extends Seeder
     /**
      * @param  CreateFamily  $createFamily  the registration action
      * @param  FileStore  $files  the store the fake files go to
+     * @param  DocumentProposal  $proposals  turns a reading into the stored proposal, as `ReadStoredFile` does
      */
     public function __construct(
         private readonly CreateFamily $createFamily,
         private readonly FileStore $files,
+        private readonly DocumentProposal $proposals,
     ) {}
 
     /**
@@ -726,8 +728,8 @@ final class BianchiFamilySeeder extends Seeder
 
     /**
      * The files in *To sort*: six already read, as the reading leaves them, and a copy of the file of a document.
-     * The readings are written by hand, with no call to the service; the ones without a stored proposal are proposed
-     * by the page from the reading.
+     * The readings are written by hand, with no call to the service; the proposal of each is built from them like a
+     * real reading does.
      */
     private function createFilesToSort(): void
     {
@@ -738,37 +740,14 @@ final class BianchiFamilySeeder extends Seeder
         $this->reading(
             $this->file('bolletta-edison-novembre.pdf', toSort: true, source: FileSource::Mail),
             new Extraction(kind: 'utility_bill', issuer_name: 'Edison', organization_id: $edison->id, total_amount: 91.40, issue_date: '2026-11-03', due_date: '2026-12-05', supply_point_code: 'IT 001 E 12345678', utility_type: 'electricity', confidence: 'high'),
-            new DocumentProposalData(
-                title: __('Electricity bill :month :year', ['month' => 'novembre', 'year' => '2026']),
-                category_id: $this->category('Casa e utenze › Luce')->id,
-                person_id: null,
-                organization_id: $edison->id,
-                date: '2026-11-03',
-                expiry_date: null,
-                links: [['type' => 'utility', 'id' => $this->records['Luce - Edison']->id]],
-                headline: __('I found an electricity bill'),
-                found: [new FoundLineData(__('Who sent it'), 'Edison'), new FoundLineData(__('How much'), '91,40 €'), new FoundLineData(__('Due on'), '05/12/2026')],
-            ),
         );
         $this->reading(
             $this->file('fattura-studio-ferri.pdf', toSort: true, note: $uploaded('Laura')),
-            // No stored proposal: the page proposes from the reading, so the paper is the medical one it reads
             new Extraction(kind: 'medical', issuer_name: 'Studio Ferri', organization_id: $ferri->id, total_amount: 120.0, issue_date: '2026-10-22', person_id: $this->people['Giulia']->id, health_type: 'visit', next_checkup_date: '2027-04-22', confidence: 'high'),
         );
         $this->reading(
             $this->file('garanzia-lavatrice.jpg', 'Garanzia lavatrice.jpg', toSort: true, note: $uploaded('Marco')),
             new Extraction(kind: 'receipt', issue_date: '2025-03-14', durable_good: true, item_name: 'Lavatrice', warranty_expiry_date: '2027-03-14', confidence: 'medium'),
-            new DocumentProposalData(
-                title: 'Garanzia lavatrice',
-                category_id: $this->category('Acquisti, garanzie e abbonamenti › Garanzie e scontrini')->id,
-                person_id: null,
-                organization_id: null,
-                date: '2025-03-14',
-                expiry_date: '2027-03-14',
-                links: [],
-                headline: __('I found a receipt'),
-                found: [],
-            ),
         );
 
         $school = $this->organizations['Scuola Passo a Due'];
@@ -791,17 +770,19 @@ final class BianchiFamilySeeder extends Seeder
     }
 
     /**
-     * Marks a file as read, with the reading and the proposal a real reading would have left.
+     * Marks a file as read, with the reading and the proposal a real reading would have left (built by the same
+     * service as `ReadStoredFile`, in the family of the file and in the seeder's language).
      *
      * @param  File  $file  the file in *To sort*
      * @param  Extraction  $extraction  what the model would have read
-     * @param  DocumentProposalData|null  $proposal  what the form is filled with; none, the page proposes from the extraction
      */
-    private function reading(File $file, Extraction $extraction, ?DocumentProposalData $proposal = null): void
+    private function reading(File $file, Extraction $extraction): void
     {
+        $proposal = $this->proposals->of($extraction, ReadingContext::for($file), self::LOCALE);
+
         $file->forceFill([
             'reading_status' => ReadingStatus::Done,
-            'reading' => ['extraction' => $extraction->toArray(), ...($proposal instanceof DocumentProposalData ? ['proposal' => $proposal->toArray()] : []), 'provider' => 'gemini', 'model' => 'gemini-3.8-flash', 'read_at' => '2026-10-29T10:00:00+01:00'],
+            'reading' => ['extraction' => $extraction->toArray(), 'proposal' => $proposal->toArray(), 'provider' => 'gemini', 'model' => 'gemini-3.8-flash', 'read_at' => '2026-10-29T10:00:00+01:00'],
         ])->save();
     }
 

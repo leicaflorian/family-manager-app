@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Reading\ImportFiles;
 use App\Data\PendingFileData;
+use App\Data\Reading\DocumentProposalData;
 use App\Data\Reading\ImportChoices;
 use App\Enums\FinancialAccountType;
 use App\Enums\MaintenanceType;
@@ -320,8 +321,6 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
         expect($bill?->organization_id)->toBe(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole()->organization_id)
             ->and($bill?->links)->toEqual([['type' => 'utility', 'id' => Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole()->id]])
             ->and($bill?->headline)->toBe('Ho trovato una bolletta della luce')
-            // The visit of Studio Ferri has no stored proposal: the page proposes from the reading, a medical paper
-            ->and($pending['fattura-studio-ferri.pdf']->proposal)->toBeNull()
             ->and($warranty?->title)->not->toBeEmpty()
             ->and($pending['Garanzia lavatrice.jpg']->note)->toContain('Marco');
 
@@ -329,6 +328,27 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
         expect($visit->document->person_id)->toBe(Person::query()->where('first_name', 'Giulia')->sole()->id)
             ->and($visit->document->headline)->not->toBe('Ho trovato una fattura');
         Storage::disk('local')->assertExists(File::query()->where('original_name', 'Garanzia lavatrice.jpg')->sole()->path);
+    });
+});
+
+test('every read file stores its proposal, as a real reading does', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $read = File::query()->where('reading_status', ReadingStatus::Done)->get();
+
+        expect($read)->not->toBeEmpty();
+
+        foreach ($read as $file) {
+            expect(DocumentProposalData::fromFile($file))->not->toBeNull($file->original_name);
+        }
+
+        $visit = DocumentProposalData::fromFile(File::query()->where('original_name', 'fattura-studio-ferri.pdf')->sole());
+
+        expect($visit?->headline)->toBe('Ho trovato un documento medico')
+            ->and($visit->person_id)->toBe(Person::query()->where('first_name', 'Giulia')->sole()->id)
+            ->and($visit->organization_id)->toBe(Organization::query()->where('name', 'Studio Ferri')->sole()->id)
+            ->and($visit->date)->toBe('2026-10-22');
     });
 });
 
