@@ -292,6 +292,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 - `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmAgendaRow.vue`
 - `components/fm/FmBell.vue`
+- `components/fm/FmButton.stories.ts`
 - `components/fm/FmCardDocumentActions.vue`
 - `components/fm/FmCardForm.vue`
 - `components/fm/FmChangeDeadlineSheet.vue`
