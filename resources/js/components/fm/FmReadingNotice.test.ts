@@ -45,7 +45,7 @@ describe('FmReadingNotice', () => {
     });
 
     it('sends again when Read again is pressed, also for a reading that was off', async () => {
-        const { emitted } = render(FmReadingNotice, {
+        const view = render(FmReadingNotice, {
             props: {
                 status: 'off',
                 error: 'Automatic reading is not on.',
@@ -57,7 +57,7 @@ describe('FmReadingNotice', () => {
             screen.getByRole('button', { name: 'Read again' }),
         );
 
-        expect(emitted('again')).toHaveLength(1);
+        expect(view.emitted('again')).toHaveLength(1);
     });
 
     it('offers Read again neither for a file skipped nor without again', () => {

@@ -222,6 +222,79 @@
     ]
   },
   {
+    "name": "FmAlsoDo",
+    "path": "resources/js/components/fm/FmAlsoDo.vue",
+    "description": "The box *What I do too* of the Import page and of the proposal of a file:\nwhat the reading creates besides the document (an expense, a payment, a\nlink to a card), each one an `FmAlsoDoItem` the person can untick or\ncorrect. The page decides which items there are.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "required": false,
+        "default": "undefined",
+        "description": "The title of the box; without it, *What I do too*."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": []
+  },
+  {
+    "name": "FmAlsoDoItem",
+    "path": "resources/js/components/fm/FmAlsoDoItem.vue",
+    "description": "One thing the reading does besides the document, inside `FmAlsoDo`: a\ncheckbox with its text, a hint under it and the warnings in orange. While\nit is ticked the fields to correct show below, and the actions (*Choose\nanother…*, *Create a new …*, *Back to the proposal*) sit under the fields.",
+    "group": "sections",
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "The text of the checkbox, already translated."
+      },
+      {
+        "name": "hint",
+        "type": "string",
+        "required": false,
+        "default": "undefined",
+        "description": "A line of explanation under the text."
+      },
+      {
+        "name": "warnings",
+        "type": "string[]",
+        "required": false,
+        "default": "[]",
+        "description": "What the person should know before leaving it ticked, one line each."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "It cannot be ticked or unticked."
+      },
+      {
+        "name": "modelValue",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Whether the item is ticked."
+      }
+    ],
+    "events": [
+      "update:modelValue"
+    ],
+    "slots": [
+      "default",
+      "actions"
+    ],
+    "types": [],
+    "usedBy": []
+  },
+  {
     "name": "FmAmount",
     "path": "resources/js/components/fm/FmAmount.vue",
     "description": "An amount of the budget: «84,20 €», an estimate as «~72,00 €», a changed\namount with the old one struck through, an income as «+1.720,00 €» in green.",
@@ -703,6 +776,7 @@
     ],
     "types": [],
     "usedBy": [
+      "components/fm/FmAlsoDo.vue",
       "components/fm/FmCardBudget.vue",
       "components/fm/FmCardPayments.vue",
       "components/fm/FmChecklist.vue",

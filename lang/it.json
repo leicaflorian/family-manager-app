@@ -1218,5 +1218,6 @@
     "The chosen income no longer exists: choose another one.": "L'entrata scelta non esiste più: scegline un'altra.",
     "The chosen event no longer exists: choose another one.": "L'evento scelto non esiste più: scegline un altro.",
     "The chosen card no longer exists: choose another one.": "La scheda scelta non esiste più: scegline un'altra.",
-    "Not linked to the policy :number: the policy was not created. Link it from the document form.": "Non collegato alla polizza :number: la polizza non è stata creata. Collegalo dal form del documento."
+    "Not linked to the policy :number: the policy was not created. Link it from the document form.": "Non collegato alla polizza :number: la polizza non è stata creata. Collegalo dal form del documento.",
+    "What I do too": "Cosa faccio anche"
 }
