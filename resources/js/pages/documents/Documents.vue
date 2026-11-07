@@ -276,7 +276,10 @@ function rowHref(document: App.Data.DocumentData): string {
                 />
             </div>
 
-            <section v-if="selected" class="hidden min-w-0 md:block md:sticky lg:top-0">
+            <section
+                v-if="selected"
+                class="hidden min-w-0 md:sticky md:block lg:top-0"
+            >
                 <FmDocumentDetail :document="selected" compact />
             </section>
         </div>
