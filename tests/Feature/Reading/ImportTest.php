@@ -6,8 +6,10 @@ use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
 use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\File;
 use App\Models\HealthEvent;
+use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\Person;
@@ -364,5 +366,41 @@ describe('what each file does too', function (): void {
         ]])->assertSessionHasErrors(['files.0.also.records.policy' => 'To create the policy 40/123456 · Studio dentistico the type is needed: enter it or untick it.']);
 
         expect(Document::query()->count())->toBe(0)->and(InsurancePolicy::query()->count())->toBe(0);
+    });
+
+    test('an id of another family in the corrections is refused, and nothing is saved', function (): void {
+        $theirCategory = ExpenseCategory::factory()->create();
+        $theirHome = Home::factory()->create();
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice), 'also' => ['movement' => true, 'overrides' => [
+                'movement' => ['category_id' => $theirCategory->id],
+                'records' => ['utility' => ['home_id' => $theirHome->id]],
+            ]]],
+        ]])->assertSessionHasErrors(['files.0.also.overrides.movement.category_id', 'files.0.also.overrides.records.utility.home_id']);
+
+        expect(Document::query()->count())->toBe(0)->and(PlannedExpense::query()->count())->toBe(0);
+    });
+
+    test('the corrections of the expense reach the import', function (): void {
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice), 'also' => ['movement' => true, 'overrides' => ['movement' => ['title' => 'Dentista di Giulia']]]],
+        ]])->assertSessionHasNoErrors();
+
+        expect(PlannedExpense::query()->sole()->title)->toBe('Dentista di Giulia');
+    });
+
+    test('a new utility with a new organization: the organization the utility needs is not missing', function (): void {
+        $bill = File::factory()->for($this->marco->family)->read([
+            'kind' => 'utility_bill', 'issuer_name' => 'Iren', 'utility_type' => 'gas', 'total_amount' => 80, 'issue_date' => '2026-10-10',
+            'supply_point_code' => '00881234567890',
+        ])->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($bill), 'also' => ['records' => ['organization', 'utility']]],
+        ]])->assertSessionHasNoErrors();
+
+        $iren = Organization::query()->where('name', 'Iren')->sole();
+        expect(Utility::query()->where('supply_point_code', '00881234567890')->sole()->organization_id)->toBe($iren->id);
     });
 });

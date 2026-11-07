@@ -6,6 +6,7 @@ namespace App\Actions\Reading;
 
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\PolicyGiverData;
+use App\Data\Reading\ProposalData;
 use App\Models\File;
 use App\Services\Reading\ImportProposals;
 use App\Services\Reading\PolicyFromOtherFiles;
@@ -31,17 +32,19 @@ final readonly class ImportFiles
     /**
      * Imports each file.
      *
-     * @param  list<array{file_id: int, choices: ImportChoices}>  $entries  the files with what the person confirmed
+     * @param  list<array{file_id: int, choices: ImportChoices, proposal?: ?ProposalData}>  $entries  the files with what the person confirmed, and the proposal the request checked, if any
      * @return array{failures: array<int, string>, notices: array<int, list<string>>} why each file that was not imported failed, and what the imported ones say (a policy not linked), by file id, in the language of the request
      */
     public function handle(array $entries): array
     {
         $choices = [];
+        $checked = [];
         foreach ($entries as $entry) {
             $choices[$entry['file_id']] = $entry['choices'];
+            $checked[$entry['file_id']] = $entry['proposal'] ?? null;
         }
 
-        $givers = $this->givers($choices);
+        $givers = $this->givers($choices, $checked);
         $order = $this->policies->confirmOrder(array_keys($choices), static fn (int $id): bool => isset($givers[$id]));
         $failures = [];
         $notices = [];
@@ -50,14 +53,15 @@ final readonly class ImportFiles
             $round = array_values(array_filter($givers, static fn (int $giver): bool => $giver !== $id, ARRAY_FILTER_USE_KEY));
 
             try {
-                $warnings = $this->file($id, $choices[$id], $round);
+                $warnings = $this->file($id, $choices[$id], $round, $checked[$id]);
                 if ($warnings === null) {
                     $failures[$id] = __('This file was already filed.');
                 } elseif ($warnings !== []) {
                     $notices[$id] = $warnings;
                 }
             } catch (ValidationException $exception) {
-                $failures[$id] = $exception->getMessage();
+                $message = collect($exception->errors())->flatten()->first();
+                $failures[$id] = is_string($message) ? $message : __('This file could not be saved.');
             } catch (Throwable $exception) {
                 report($exception);
                 $failures[$id] = __('This file could not be saved.');
@@ -71,13 +75,14 @@ final readonly class ImportFiles
      * The policy each file gives, decided before any is saved, as the person saw it.
      *
      * @param  array<int, ImportChoices>  $choices  the choices, by file
+     * @param  array<int, ?ProposalData>  $checked  the proposals the request made, by file
      * @return array<int, PolicyGiverData>
      */
-    private function givers(array $choices): array
+    private function givers(array $choices, array $checked): array
     {
         $entries = [];
         foreach (File::query()->toSort()->whereKey(array_keys($choices))->get() as $file) {
-            $entries[$file->id] = ['file' => $file, 'choices' => $choices[$file->id]];
+            $entries[$file->id] = ['file' => $file, 'choices' => $choices[$file->id], 'proposal' => $checked[$file->id] ?? null];
         }
 
         return $this->proposals->givers($entries, App::getLocale());
@@ -90,16 +95,17 @@ final readonly class ImportFiles
      * @param  int  $id  the file
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  list<PolicyGiverData>  $round  the policies the other files give
+     * @param  ProposalData|null  $checked  the proposal the request made
      * @return list<string>|null what the file says, or null when it no longer waits
      *
      * @throws Throwable
      */
-    private function file(int $id, ImportChoices $choices, array $round): ?array
+    private function file(int $id, ImportChoices $choices, array $round, ?ProposalData $checked): ?array
     {
-        return DB::transaction(function () use ($id, $choices, $round): ?array {
+        return DB::transaction(function () use ($id, $choices, $round, $checked): ?array {
             $file = File::query()->toSort()->lockForUpdate()->find($id);
 
-            return $file instanceof File ? $this->importFile->handle($file, $choices, $round)['warnings'] : null;
+            return $file instanceof File ? $this->importFile->handle($file, $choices, $round, $checked)['warnings'] : null;
         });
     }
 }

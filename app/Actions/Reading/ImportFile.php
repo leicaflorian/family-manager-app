@@ -26,6 +26,7 @@ use App\Models\HealthEvent;
 use App\Models\Income;
 use App\Models\InsurancePolicy;
 use App\Models\PlannedExpense;
+use App\Services\Deadlines;
 use App\Services\Reading\ExpenseChanges;
 use App\Services\Reading\Matcher;
 use App\Services\Reading\Proposal;
@@ -54,9 +55,16 @@ use Throwable;
  * 4. the health event;
  * 5. the intervention, with the expense.
  *
- * The proposal is made again with the cards saved in step 1, as if the reading had found them, and an organization
- * created or linked fills the menus *Organization* left empty. A `member` creates all this too: the import is
- * allowed by `FilePolicy::import`, not by the policies of each model.
+ * The proposal it starts from is the one the request checked, when the caller passes it and the paper takes no
+ * policy from another file (the policies are the only thing the other files change); otherwise it is made here.
+ * When cards are saved in step 1 the proposal is made again, as if the reading had found them (as the old reader
+ * did): the movement and the event of steps 3 and 4 come from that one, so with a new card they can link an expense
+ * or a commitment the person did not see in the page. An organization created or linked fills the menus
+ * *Organization* left empty. A `member` creates all this too: the import is allowed by `FilePolicy::import`, not by
+ * the policies of each model.
+ *
+ * The file is locked and read again first: one no longer waiting is refused, so the action is safe also when called
+ * alone.
  */
 final readonly class ImportFile
 {
@@ -73,6 +81,7 @@ final readonly class ImportFile
      * @param  MovePlannedDocuments  $movePlannedDocuments  the documents of the planned expense paid
      * @param  ExpenseChanges  $expenseChanges  what the expense already recorded takes from the file
      * @param  Matcher  $matcher  the policy taken from another file, by its number
+     * @param  Deadlines  $deadlines  whether a due date is paid
      */
     public function __construct(
         private Proposal $proposals,
@@ -84,6 +93,7 @@ final readonly class ImportFile
         private MovePlannedDocuments $movePlannedDocuments,
         private ExpenseChanges $expenseChanges,
         private Matcher $matcher,
+        private Deadlines $deadlines,
     ) {}
 
     /**
@@ -92,14 +102,26 @@ final readonly class ImportFile
      * @param  File  $file  the file, waiting in *To sort*
      * @param  ImportChoices  $choices  what the person confirmed, the document fields validated
      * @param  list<PolicyGiverData>  $roundGivers  the other files confirmed with this one that give a policy
+     * @param  ProposalData|null  $checked  the proposal the request made with the same choices, without the other files
      * @return array{document: Document, movement: Expense|Income|PlannedExpense|null, event: ?HealthEvent, records: array<string, Model>, warnings: list<string>}
      *
-     * @throws ValidationException if a ticked box misses what it needs, or a due date is already paid
+     * @throws ValidationException if the file no longer waits, a ticked box misses what it needs, or a due date is already paid
      * @throws Throwable if anything else fails: nothing of the file is saved
      */
-    public function handle(File $file, ImportChoices $choices, array $roundGivers): array
+    public function handle(File $file, ImportChoices $choices, array $roundGivers, ?ProposalData $checked = null): array
     {
-        return CurrentFamily::using($file->family_id, fn (): array => DB::transaction(fn (): array => $this->save($file, $choices, $roundGivers)));
+        return CurrentFamily::using($file->family_id, fn (): array => DB::transaction(function () use ($file, $choices, $roundGivers, $checked): array {
+            $waiting = File::query()->whereKey($file->id)->lockForUpdate()->value('to_sort');
+            if ($waiting !== true && $waiting !== 1) {
+                throw ValidationException::withMessages(['file_id' => __('This file was already filed.')]);
+            }
+
+            $first = $checked instanceof ProposalData && ! ($checked->policy['need'] ?? false)
+                ? $checked
+                : $this->proposals->for($file, $choices, $roundGivers, App::getLocale());
+
+            return $this->save($file, $choices, $roundGivers, $first);
+        }));
     }
 
     /**
@@ -108,14 +130,14 @@ final readonly class ImportFile
      * @param  File  $file  the file
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  list<PolicyGiverData>  $roundGivers  the other files that give a policy
+     * @param  ProposalData  $first  the proposal before anything is saved
      * @return array{document: Document, movement: Expense|Income|PlannedExpense|null, event: ?HealthEvent, records: array<string, Model>, warnings: list<string>}
      *
      * @throws ValidationException if a ticked box misses what it needs, or a due date is already paid
      */
-    private function save(File $file, ImportChoices $choices, array $roundGivers): array
+    private function save(File $file, ImportChoices $choices, array $roundGivers, ProposalData $first): array
     {
         $locale = App::getLocale();
-        $first = $this->proposals->for($file, $choices, $roundGivers, $locale);
 
         $before = $this->records->before($first->records, $choices->records);
         if ($before['organization'] !== null) {
@@ -278,10 +300,14 @@ final readonly class ImportFile
     {
         $due = $proposed->due;
         $values = $proposed->values;
-        $deadline = CarbonImmutable::parse((string) $due?->date, 'Europe/Rome');
 
-        if (! $due instanceof DueData || $due->mode === DueMode::New) {
-            $planned = $this->savePlanned->handle('expense', [
+        if (! $due instanceof DueData || $due->date === null) {
+            throw ValidationException::withMessages(['movement' => ImportErrors::movement('expense', true)]);
+        }
+
+        $deadline = CarbonImmutable::parse($due->date, 'Europe/Rome');
+        $planned = $due->mode === DueMode::New
+            ? $this->savePlanned->handle('expense', [
                 'title' => $values->title ?? $document->title,
                 'amount' => $values->amount,
                 'is_recurring' => false,
@@ -292,16 +318,14 @@ final readonly class ImportFile
                 'person_id' => $values->person_id,
                 'notes' => $values->notes,
                 ...$this->card($document),
-            ]);
-        } else {
-            $planned = PlannedExpense::query()->findOrFail($due->plan['id'] ?? 0);
-        }
+            ])
+            : PlannedExpense::query()->findOrFail($due->plan['id'] ?? 0);
 
         if (! $planned instanceof PlannedExpense) {
             throw new ModelNotFoundException('The planned expense was not created.');
         }
 
-        if ($due?->mode === DueMode::Exception && $due->occurrence !== null) {
+        if ($due->mode === DueMode::Exception && $due->occurrence !== null) {
             $this->exception($planned, CarbonImmutable::parse($due->occurrence, 'Europe/Rome'), (float) $values->amount, $deadline);
         }
 
@@ -312,16 +336,24 @@ final readonly class ImportFile
 
     /**
      * The due date of a commitment takes the amount of the bill and, when it differs, its deadline. The other
-     * exceptions of that due date are replaced, keeping their note.
+     * exceptions of that due date are replaced, keeping their note. With the commitment locked, a due date paid
+     * in the meantime fails the file, as *I paid it* does.
      *
      * @param  PlannedExpense  $planned  the commitment
      * @param  CarbonImmutable  $occurrence  the original date of the due date
      * @param  float  $amount  the amount of the bill
      * @param  CarbonImmutable  $deadline  the deadline of the bill
+     *
+     * @throws ValidationException if the due date is already paid
      */
     private function exception(PlannedExpense $planned, CarbonImmutable $occurrence, float $amount, CarbonImmutable $deadline): void
     {
         PlannedKind::lock($planned);
+
+        if ($this->deadlines->find($planned, $occurrence)->isPaid()) {
+            throw ValidationException::withMessages(['occurrence_date' => __('This due date is already paid: choose another one.')]);
+        }
+
         $notes = $planned->exceptions()->whereDate('occurrence_date', $occurrence->toDateString())->whereNotNull('notes')->value('notes');
 
         $this->changeOccurrence->handle(

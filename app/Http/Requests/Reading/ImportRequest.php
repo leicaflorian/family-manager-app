@@ -15,6 +15,7 @@ use App\Models\Expense;
 use App\Models\File;
 use App\Models\HealthEvent;
 use App\Models\Income;
+use App\Rules\OfFamily;
 use App\Services\Reading\Proposal;
 use App\Support\DocumentRules;
 use App\Support\Reading\ImportErrors;
@@ -41,6 +42,13 @@ final class ImportRequest extends FormRequest
 
     /** Where what each file does too sits in the body. */
     private const string ALSO = 'files.%d.also.';
+
+    /**
+     * The proposal of each file made by the checks, by its place in the body: the import starts from it.
+     *
+     * @var array<int, ProposalData>
+     */
+    private array $proposals = [];
 
     /**
      * Whoever adds documents imports them; each file is authorized by the controller (`FilePolicy::import`).
@@ -70,6 +78,14 @@ final class ImportRequest extends FormRequest
             'files.*.also.policy' => ['sometimes', 'string', 'max:50'],
             'files.*.also.records' => ['sometimes', 'array', 'list'],
             'files.*.also.overrides' => ['sometimes', 'array'],
+            'files.*.also.overrides.movement' => ['sometimes', 'array'],
+            // The ids of the corrections go into new rows: only those of the family
+            'files.*.also.overrides.movement.category_id' => ['nullable', new OfFamily('expense_categories')],
+            'files.*.also.overrides.movement.organization_id' => ['nullable', new OfFamily('organizations')],
+            'files.*.also.overrides.movement.financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
+            'files.*.also.overrides.records' => ['sometimes', 'array'],
+            'files.*.also.overrides.records.*' => ['array'],
+            'files.*.also.overrides.records.*.home_id' => ['nullable', new OfFamily('homes')],
             'files.*.also.targets' => ['sometimes', 'array'],
         ];
 
@@ -99,6 +115,7 @@ final class ImportRequest extends FormRequest
                 }
 
                 $proposal = resolve(Proposal::class)->for($file, $entry['choices'], [], App::getLocale());
+                $this->proposals[$index] = $proposal;
                 foreach ($this->problems($proposal, $entry['choices']) as $key => $message) {
                     $validator->errors()->add(sprintf(self::ALSO, $index).$key, $message);
                 }
@@ -120,26 +137,31 @@ final class ImportRequest extends FormRequest
     }
 
     /**
-     * What to import, in the order of the request: the file and the choices of the person, with the validated
-     * fields of the document.
+     * What to import, in the order of the request: the file, the choices of the person with the validated fields of
+     * the document, and the proposal the checks made with them (without the policies of the other files).
      *
-     * @return list<array{file_id: int, choices: ImportChoices}>
+     * `also` is read as sent: its ids were checked by the rules, the rest is cleaned by {@see ImportChoices} (the
+     * validated data would keep only the keys that have a rule).
+     *
+     * @return list<array{file_id: int, choices: ImportChoices, proposal: ?ProposalData}>
      */
     public function entries(): array
     {
         $entries = [];
 
-        foreach ($this->safe()->array('files') as $entry) {
+        foreach ($this->safe()->array('files') as $index => $entry) {
             if (! is_array($entry) || ! is_array($entry['document'] ?? null) || ! is_numeric($entry['file_id'] ?? null)) {
                 continue;
             }
 
             $document = array_intersect_key($entry['document'], array_flip(DocumentRules::FIELDS));
             $document['links'] = DocumentRules::links($entry['document']['links'] ?? []);
+            $also = $this->input(sprintf('files.%d.also', $index));
 
             $entries[] = [
                 'file_id' => (int) $entry['file_id'],
-                'choices' => ImportChoices::fromArray([...(is_array($entry['also'] ?? null) ? $entry['also'] : []), 'document' => $document]),
+                'choices' => ImportChoices::fromArray([...(is_array($also) ? $also : []), 'document' => $document]),
+                'proposal' => is_int($index) ? $this->proposals[$index] ?? null : null,
             ];
         }
 

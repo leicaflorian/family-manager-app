@@ -452,6 +452,41 @@ describe('all or nothing', function (): void {
     });
 });
 
+describe('the confirm under the lock', function (): void {
+    test('a due date of a commitment paid in the meantime fails the bill', function (): void {
+        $utility = Utility::factory()->for($this->family)->create([
+            'type' => UtilityType::Electricity, 'organization_id' => $this->edison->id, 'supply_point_code' => 'IT001E00000001', 'customer_code' => null,
+        ]);
+        $luce = PlannedExpense::factory()->for($this->family)->create([
+            'title' => 'Luce', 'amount' => 120, 'is_recurring' => true, 'interval' => 2, 'interval_unit' => IntervalUnit::Month,
+            'start_date' => '2026-01-10', 'organization_id' => $this->edison->id, 'card_type' => 'utility', 'card_id' => $utility->id,
+        ]);
+        $file = readWaitingFile([
+            'kind' => 'utility_bill', 'organization_id' => $this->edison->id, 'total_amount' => 151.44, 'issue_date' => '2026-10-20',
+            'due_date' => '2026-11-13', 'supply_point_code' => 'IT001E00000001',
+        ]);
+        // Someone records the payment of 10/11 while the person checks the bill
+        Document::created(function () use ($luce): void {
+            Expense::factory()->for($this->family)->create(['planned_expense_id' => $luce->id, 'occurrence_date' => '2026-11-10', 'amount' => 120, 'date' => '2026-11-09']);
+        });
+
+        $result = resolve(ImportFiles::class)->handle([['file_id' => $file->id, 'choices' => ImportChoices::fromArray(['movement' => true])]]);
+
+        expect($result['failures'])->toBe([$file->id => 'Questa scadenza è già pagata: scegline un\'altra.'])
+            ->and(PlannedExpenseException::query()->count())->toBe(0)
+            ->and(Document::query()->count())->toBe(0);
+    });
+
+    test('a file already filed is not imported again, even when the import is called alone', function (): void {
+        $file = readWaitingFile($this->invoice);
+        importReadFile($file, ['due' => false]);
+
+        expect(fn (): array => importReadFile($file, ['due' => false]))->toThrow(ValidationException::class, 'Questo file è già stato archiviato.')
+            ->and(Document::query()->count())->toBe(1)
+            ->and(Expense::query()->count())->toBe(1);
+    });
+});
+
 describe('the files confirmed together', function (): void {
     beforeEach(function (): void {
         $this->unipol = Organization::factory()->for($this->family)->create(['name' => 'UnipolSai']);

@@ -27,7 +27,8 @@ final readonly class ImportProposals
 
     /**
      * The proposals of *Import*, by file. Every file proposes with the boxes it suggests; with `check` only the file
-     * it names is proposed again, with the choices the person made (the page merges it with the others).
+     * it names is proposed again, with the choices the person made (the page merges it with the others). The
+     * policies the untouched files give are worked out once, and only when a paper needs one.
      *
      * @param  Collection<int, File>  $files  the files of the page
      * @param  array{file: File, choices: ImportChoices}|null  $check  the file the person is looking at, with its choices
@@ -37,14 +38,33 @@ final readonly class ImportProposals
     public function forPage(Collection $files, ?array $check, string $locale): array
     {
         if ($check !== null) {
-            $others = $files->reject(static fn (File $file): bool => $file->id === $check['file']->id);
+            $file = $check['file'];
+            $proposal = $this->proposals->for($file, $check['choices'], [], $locale);
+            if (! ($proposal->policy['need'] ?? false)) {
+                return [$file->id => $proposal];
+            }
 
-            return [$check['file']->id => $this->proposeWithGivers($check['file'], $check['choices'], $others, $locale)];
+            $others = $files->reject(static fn (File $other): bool => $other->id === $file->id);
+
+            return [$file->id => $this->withGivers($file, $check['choices'], $proposal, $this->untouchedGivers($others, [], $locale), $locale)];
         }
 
         $proposals = [];
         foreach ($files as $file) {
-            $proposals[$file->id] = $this->proposeWithGivers($file, new ImportChoices, $files->reject(static fn (File $other): bool => $other->id === $file->id), $locale);
+            $proposals[$file->id] = $this->proposals->for($file, new ImportChoices, [], $locale);
+        }
+
+        $needing = array_filter($proposals, static fn (ProposalData $proposal): bool => (bool) ($proposal->policy['need'] ?? false));
+        if ($needing === []) {
+            return $proposals;
+        }
+
+        $givers = $this->untouchedGivers($files, $proposals, $locale);
+        foreach (array_keys($needing) as $id) {
+            $file = $files->first(static fn (File $file): bool => $file->id === $id);
+            if ($file instanceof File) {
+                $proposals[$id] = $this->withGivers($file, new ImportChoices, $proposals[$id], $givers, $locale);
+            }
         }
 
         return $proposals;
@@ -52,20 +72,23 @@ final readonly class ImportProposals
 
     /**
      * The policy each file gives with the choices of the person, by file; the files that give none are left out.
+     * The proposal the request already made for a file is used instead of making it again.
      *
-     * @param  array<int, array{file: File, choices: ImportChoices}>  $entries  the files with their choices, by file
+     * @param  array<int, array{file: File, choices: ImportChoices, proposal?: ?ProposalData}>  $entries  the files with their choices, by file
      * @param  string  $locale  the language of the texts
      * @return array<int, PolicyGiverData>
      */
     public function givers(array $entries, string $locale): array
     {
         $givers = [];
-        foreach ($entries as $id => ['file' => $file, 'choices' => $choices]) {
+        foreach ($entries as $id => $entry) {
+            ['file' => $file, 'choices' => $choices] = $entry;
             if (! $this->mayGive($file, $choices)) {
                 continue;
             }
 
-            $giver = $this->policies->giver($file, $this->proposals->for($file, $choices, [], $locale), $choices);
+            $proposal = ($entry['proposal'] ?? null) ?? $this->proposals->for($file, $choices, [], $locale);
+            $giver = $this->policies->giver($file, $proposal, $choices);
             if ($giver instanceof PolicyGiverData) {
                 $givers[$id] = $giver;
             }
@@ -75,51 +98,51 @@ final readonly class ImportProposals
     }
 
     /**
-     * The proposal of a file; one that needs a policy is proposed again with those the other files give, each with
-     * the boxes it suggests.
+     * The proposal of a file again with the policies the other files give, when it needs one.
      *
      * @param  File  $file  the file
      * @param  ImportChoices  $choices  its choices
-     * @param  Collection<int, File>  $others  the other files of the import
+     * @param  ProposalData  $proposal  its proposal without the other files
+     * @param  array<int, PolicyGiverData>  $givers  the policies the files give, by file
      * @param  string  $locale  the language of the texts
      */
-    private function proposeWithGivers(File $file, ImportChoices $choices, Collection $others, string $locale): ProposalData
+    private function withGivers(File $file, ImportChoices $choices, ProposalData $proposal, array $givers, string $locale): ProposalData
     {
-        $proposal = $this->proposals->for($file, $choices, [], $locale);
-        if (! ($proposal->policy['need'] ?? false) || $others->isEmpty()) {
-            return $proposal;
-        }
+        unset($givers[$file->id]);
 
-        $givers = [];
-        foreach ($others as $other) {
-            $giver = $this->untouchedGiver($other, $locale);
-            if ($giver instanceof PolicyGiverData) {
-                $givers[] = $giver;
-            }
-        }
-
-        return $this->proposals->for($file, $choices, $givers, $locale);
+        return ($proposal->policy['need'] ?? false) && $givers !== []
+            ? $this->proposals->for($file, $choices, array_values($givers), $locale)
+            : $proposal;
     }
 
     /**
-     * The policy a file the person has not touched gives: with the boxes of the cards it suggests ticked.
+     * The policy each file the person has not touched gives, with the boxes of the cards it suggests ticked, by file.
      *
-     * @param  File  $file  the file
+     * @param  Collection<int, File>  $files  the files
+     * @param  array<int, ProposalData>  $proposals  the proposals with no choices already made, by file
      * @param  string  $locale  the language of the texts
+     * @return array<int, PolicyGiverData>
      */
-    private function untouchedGiver(File $file, string $locale): ?PolicyGiverData
+    private function untouchedGivers(Collection $files, array $proposals, string $locale): array
     {
-        if (! $this->mayGive($file, new ImportChoices)) {
-            return null;
+        $givers = [];
+        foreach ($files as $file) {
+            if (! $this->mayGive($file, new ImportChoices)) {
+                continue;
+            }
+
+            $proposal = $proposals[$file->id] ?? $this->proposals->for($file, new ImportChoices, [], $locale);
+            $ticked = array_values(array_map(
+                static fn (RecordDraftData $draft): RecordKind => $draft->kind,
+                array_filter($proposal->records, static fn (RecordDraftData $draft): bool => $draft->suggested),
+            ));
+            $giver = $this->policies->giver($file, $proposal, new ImportChoices(records: $ticked));
+            if ($giver instanceof PolicyGiverData) {
+                $givers[$file->id] = $giver;
+            }
         }
 
-        $proposal = $this->proposals->for($file, new ImportChoices, [], $locale);
-        $ticked = array_values(array_map(
-            static fn (RecordDraftData $draft): RecordKind => $draft->kind,
-            array_filter($proposal->records, static fn (RecordDraftData $draft): bool => $draft->suggested),
-        ));
-
-        return $this->policies->giver($file, $proposal, new ImportChoices(records: $ticked));
+        return $givers;
     }
 
     /**
