@@ -1,8 +1,29 @@
-import { usePage } from '@inertiajs/vue3';
-import type { ComputedRef } from 'vue';
-import { computed, watch } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
+import type { ComputedRef, Ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
+
+/**
+ * The theme the server last sent, or `undefined` until the first page is loaded.
+ * Shared by the app and the pages that show the choice (*My account*).
+ */
+const serverTheme: Ref<App.Enums.Theme | undefined> = ref(undefined);
+
+/** Stops the listeners of the previous `useTheme()` call: only one lives at a time. */
+let dispose: (() => void) | undefined;
+
+/**
+ * Reads the theme out of the props of a page.
+ *
+ * @param props - the props of a page, or `undefined` before the first one
+ * @returns the theme, `system` when the page shares none, `undefined` without props
+ */
+function themeOf(
+    props: { theme?: App.Enums.Theme } | undefined,
+): App.Enums.Theme | undefined {
+    return props === undefined ? undefined : (props.theme ?? 'system');
+}
 
 /**
  * Keeps the `dark` class of `<html>` right for the theme of the account.
@@ -10,10 +31,14 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
  * The server and the inline script of `app.blade.php` draw the first paint; this
  * keeps it right while the app is open: a theme saved after a visit applies at
  * once, and with `system` the page follows the device when its scheme changes.
- * It reads the shared `usePage()` state, which is global, so it also works outside
- * a component (it is called once in `app.ts` and lives as long as the app).
  *
+ * The theme comes only from what the server sent: the first page and every visit
+ * answered by the server. A page restored from the history (Back, Forward) or from
+ * the prefetch cache carries the props it had then, and its old theme is ignored.
  * Nothing changes until the first page is loaded.
+ *
+ * Call it once, in `app.ts`: it listens to the navigations as long as the app lives
+ * (a second call replaces the first).
  *
  * @returns the theme of the account (`system` when the page shares none) and `apply()`, which sets the class now
  */
@@ -21,9 +46,23 @@ export function useTheme(): {
     theme: ComputedRef<App.Enums.Theme>;
     apply: () => void;
 } {
-    const page = usePage();
+    dispose?.();
+    serverTheme.value = themeOf(usePage().props);
+
+    const off = router.on('navigate', (event): void => {
+        const { type, cached } = event.detail;
+        const fromServer =
+            type === 'initial' || (type === 'visit' && cached !== true);
+
+        // A restored page is only believed when nothing else is known yet
+        // (a reload that the browser answers from its history).
+        if (fromServer || serverTheme.value === undefined) {
+            serverTheme.value = themeOf(event.detail.page.props);
+        }
+    });
+
     const theme = computed(
-        (): App.Enums.Theme => page.props?.theme ?? 'system',
+        (): App.Enums.Theme => serverTheme.value ?? 'system',
     );
 
     /** Adds or removes the `dark` class from the theme and, for `system`, from the device. */
@@ -35,14 +74,12 @@ export function useTheme(): {
         document.documentElement.classList.toggle('dark', dark);
     }
 
-    // Until the first page is loaded its props do not exist: the class the server and
-    // the inline script set is right, and a fallback to `system` would undo a dark theme.
-    const loaded = computed((): boolean => page.props !== undefined);
-
-    watch(
-        [loaded, theme],
-        ([isLoaded, value], _previous, onCleanup): void => {
-            if (!isLoaded) {
+    const stop = watch(
+        serverTheme,
+        (value, _previous, onCleanup): void => {
+            // Until the first page is loaded the class the server and the inline script
+            // set is right, and a fallback to `system` would undo a dark theme.
+            if (value === undefined) {
                 return;
             }
 
@@ -60,5 +97,19 @@ export function useTheme(): {
         { immediate: true },
     );
 
+    dispose = (): void => {
+        off();
+        stop();
+    };
+
     return { theme, apply };
+}
+
+/**
+ * The theme of the account as the server last sent it, for the pages that show the choice.
+ *
+ * @returns a read-only view of the theme (`system` until the first page is loaded)
+ */
+export function useServerTheme(): ComputedRef<App.Enums.Theme> {
+    return computed((): App.Enums.Theme => serverTheme.value ?? 'system');
 }

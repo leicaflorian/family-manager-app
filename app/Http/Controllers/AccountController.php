@@ -36,7 +36,6 @@ final class AccountController extends Controller
     {
         return Inertia::render('settings/Account', [
             'account' => AccountData::fromUser($user),
-            'theme' => $user->theme,
             'themes' => OptionData::list(Theme::options()),
         ]);
     }

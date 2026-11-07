@@ -243,3 +243,12 @@ describe('buildTokensCss', () => {
         );
     });
 });
+
+describe('app.css', () => {
+    const css = readFileSync('resources/css/app.css', 'utf8');
+
+    it('declares the colour scheme, so native controls follow the theme', () => {
+        expect(css).toMatch(/:root\s*\{[^}]*color-scheme:\s*light/);
+        expect(css).toMatch(/\.dark\s*\{[^}]*color-scheme:\s*dark/);
+    });
+});

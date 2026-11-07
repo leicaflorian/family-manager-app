@@ -48,7 +48,7 @@ test('my account shows first name, last name, email and whether I am the last ad
         ->where('account.is_last_admin', true));
 });
 
-test('my account offers the themes with their labels and the one chosen', function (): void {
+test('my account offers the themes with their labels, and the theme chosen comes shared', function (): void {
     $this->marco->update(['theme' => 'dark']);
 
     $this->get(route('account.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page

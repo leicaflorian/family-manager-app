@@ -52,6 +52,19 @@ function device(dark: boolean): {
     };
 }
 
+/** What Inertia fires after a page is shown: `visit` (server), `history` (Back) or `initial`. */
+function navigate(
+    theme: string | undefined,
+    type: 'initial' | 'visit' | 'history',
+    cached = false,
+): void {
+    document.dispatchEvent(
+        new CustomEvent('inertia:navigate', {
+            detail: { page: { props: { theme } }, type, cached },
+        }),
+    );
+}
+
 const isDark = (): boolean =>
     document.documentElement.classList.contains('dark');
 
@@ -113,7 +126,7 @@ describe('useTheme', () => {
         useTheme();
         expect(isDark()).toBe(false);
 
-        shared.page!.props!.theme = 'dark';
+        navigate('dark', 'visit');
         await nextTick();
         expect(isDark()).toBe(true);
         expect(media.listeners()).toBe(0);
@@ -121,7 +134,7 @@ describe('useTheme', () => {
         media.set(false);
         expect(isDark()).toBe(true);
 
-        shared.page!.props!.theme = 'light';
+        navigate('light', 'visit');
         await nextTick();
         expect(isDark()).toBe(false);
     });
@@ -138,13 +151,40 @@ describe('useTheme', () => {
         expect(isDark()).toBe(true);
         expect(media.listeners()).toBe(0);
 
-        page.props = { theme: 'dark' };
+        navigate('dark', 'initial');
         await nextTick();
         expect(isDark()).toBe(true);
 
-        page.props = { theme: 'system' };
+        navigate('system', 'visit');
         await nextTick();
         expect(isDark()).toBe(false);
+    });
+
+    it('keeps the theme when a page restored from the history carries an older one', async () => {
+        device(false);
+        shared.page = reactive({ props: { theme: 'system' } });
+        const { theme } = useTheme();
+
+        navigate('dark', 'visit');
+        await nextTick();
+        expect(isDark()).toBe(true);
+
+        navigate('system', 'history');
+        await nextTick();
+        expect(isDark()).toBe(true);
+        expect(theme.value).toBe('dark');
+    });
+
+    it('ignores a page that comes from the prefetch cache', async () => {
+        device(false);
+        useTheme();
+
+        navigate('dark', 'visit');
+        await nextTick();
+        navigate('light', 'visit', true);
+        await nextTick();
+
+        expect(isDark()).toBe(true);
     });
 
     it('gives the theme back', () => {

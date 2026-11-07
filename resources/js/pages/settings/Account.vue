@@ -7,6 +7,7 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { KeyRound, LogOut, Users } from '@lucide/vue';
 import { ref, useTemplateRef } from 'vue';
+import { useServerTheme } from '@/composables/useTheme';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
@@ -28,25 +29,70 @@ import {
 } from '@/routes/account';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
-const { account, theme } = defineProps<{
+const { account } = defineProps<{
     /** My account. */
     account: App.Data.AccountData;
-    /** The theme of the account: `system`, `light` or `dark`. */
-    theme: App.Enums.Theme;
     /** The themes to choose from, with their labels. */
     themes: App.Data.OptionData[];
 }>();
 
+/** The theme of the account as the server last sent it (not the one of a page restored from the history). */
+const theme = useServerTheme();
+
+/** Whether a save of the theme is on its way, and the latest choice made meanwhile. */
+let savingTheme = false;
+let waitingTheme: string | null = null;
+
+/**
+ * Sends a theme to the server unless it is already the one of the account. A second
+ * save never starts before the first is over, so the server gets them in order.
+ *
+ * @param value - the theme to save
+ */
+function saveThemeNow(value: string): void {
+    if (value === theme.value) {
+        return;
+    }
+
+    savingTheme = true;
+    router.put(
+        saveTheme().url,
+        { theme: value },
+        {
+            preserveScroll: true,
+            onFinish: (): void => {
+                savingTheme = false;
+
+                if (waitingTheme !== null) {
+                    const next = waitingTheme;
+
+                    waitingTheme = null;
+                    saveThemeNow(next);
+                }
+            },
+        },
+    );
+}
+
 /**
  * Saves the theme as soon as it is chosen. It is not part of the profile form, so it
- * never counts as a change not saved: the page takes the new theme from the shared prop.
+ * never counts as a change not saved: the page takes the new theme from the server.
+ * A choice made while a save is on its way waits, and only the latest is sent.
  *
  * @param value - the theme chosen
  */
 function chooseTheme(value: unknown): void {
-    if (value !== theme && typeof value === 'string') {
-        router.put(saveTheme().url, { theme: value }, { preserveScroll: true });
+    if (typeof value !== 'string') {
+        return;
     }
+
+    if (savingTheme) {
+        waitingTheme = value;
+
+        return;
+    }
+
+    saveThemeNow(value);
 }
 
 const details = useForm({
