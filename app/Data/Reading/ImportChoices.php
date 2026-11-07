@@ -15,9 +15,9 @@ use App\Support\Reading\ValidDate;
 
 /**
  * What the person chose for one file in *Import*, cleaned: the fields of the document, the boxes ticked in
- * *What I also do*, the corrections of the movement, the event and the cards, the ones picked by hand, "to pay" and
- * the policy taken from another file. An empty value clears a field, an invalid one is dropped (the reading stays);
- * an amount, a date or an event type emptied leave the read ones.
+ * *What I also do*, the corrections of the movement, the event and the cards, the ones picked by hand, "to pay",
+ * the policy taken from another file and *Create the card*. An empty value clears a field, an invalid one is dropped
+ * (the reading stays); an amount, a date or an event type emptied leave the read ones.
  *
  * Ids are only checked to be positive integers here: that they are of the family is the job of the request
  * (`OfFamily`), and the proposal looks them up through the family scope.
@@ -55,6 +55,7 @@ final readonly class ImportChoices
      * @param  array{movement: 'auto'|'new'|int, event: 'auto'|'new'|int, records: array<string, 'auto'|'new'|int>}  $targets  `auto` looks for the one already there, `new` creates one, an id is the one picked by hand
      * @param  bool|null  $due  "to pay" (true) or "already paid" (false); null is the automatic choice
      * @param  string  $policy  `auto`, `none` or the `key` of a policy giver
+     * @param  bool  $createCard  the box *Create the card* is ticked: after the import *New card* opens with the document linked
      */
     public function __construct(
         public array $document = [],
@@ -65,12 +66,13 @@ final readonly class ImportChoices
         public array $targets = ['movement' => 'auto', 'event' => 'auto', 'records' => []],
         public ?bool $due = null,
         public string $policy = 'auto',
+        public bool $createCard = false,
     ) {}
 
     /**
      * The choices as the page sends them, cleaned.
      *
-     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy}`
+     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy, create_card}`
      */
     public static function fromArray(array $raw): self
     {
@@ -95,6 +97,7 @@ final readonly class ImportChoices
             ],
             due: self::bool($raw['due'] ?? null),
             policy: is_string($policy) && ($policy === 'none' || preg_match('/^(file|policy):\d+$/', $policy) === 1) ? $policy : 'auto',
+            createCard: self::bool($raw['create_card'] ?? null) ?? false,
         );
     }
 
@@ -119,6 +122,7 @@ final readonly class ImportChoices
             targets: $this->targets,
             due: $this->due,
             policy: $this->policy,
+            createCard: $this->createCard,
         );
     }
 

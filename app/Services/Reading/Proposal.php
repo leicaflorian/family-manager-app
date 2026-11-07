@@ -107,15 +107,17 @@ final readonly class Proposal
         $document = $this->receiptCategory($x, $document, $movement);
         $amount = $choices->movementOverrides($movement->values->kind ?? 'expense')['amount'] ?? $x->total_amount;
         ['records' => $records, 'warnings' => $warnings] = $this->records->of($x, $side, is_numeric($amount) ? (float) $amount : null, $choices);
+        $event = $draft['event'] === null ? null : $this->event($draft['event'], $draft['eventSuggested'], $side, $choices);
 
         return new ProposalData(
             fileId: $file->id,
             document: $document,
             movement: $movement,
-            event: $draft['event'] === null ? null : $this->event($draft['event'], $draft['eventSuggested'], $side, $choices),
+            event: $event,
             records: $records,
             policy: $this->policy($x, $document, $side, $records, $choices, $roundGivers),
             warnings: $warnings,
+            createCard: $this->namesNoCard($document, $event, $records),
         );
     }
 
@@ -284,6 +286,21 @@ final readonly class Proposal
     private function named(HealthEvent $event): array
     {
         return ['id' => $event->id, 'title' => $event->title, 'date' => $event->date->toDateString()];
+    }
+
+    /**
+     * Whether the paper names no card, so the person is offered to create one (a work contract, an enrolment): no
+     * card to create or to link (an organization is not a card) and no health event, which is a card too.
+     *
+     * @param  DocumentProposalData  $document  the document, with the cards it links
+     * @param  EventProposalData|null  $event  the health event
+     * @param  list<RecordDraftData>  $records  the boxes of the cards
+     */
+    private function namesNoCard(DocumentProposalData $document, ?EventProposalData $event, array $records): bool
+    {
+        $cards = array_filter($records, static fn (RecordDraftData $draft): bool => $draft->kind !== RecordKind::Organization);
+
+        return ! $event instanceof EventProposalData && $cards === [] && $document->links === [];
     }
 
     /**

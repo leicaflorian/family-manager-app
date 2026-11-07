@@ -1,22 +1,41 @@
 <script setup lang="ts">
 /**
  * *New card*: the card types by area, each with what it is for. Choosing one
- * opens the form of that type.
+ * opens the form of that type. On top, as the boards *Nuova* and *Nuova (pc)*,
+ * *Have a document? Start from it* leads to *Upload*, where the reading
+ * proposes the card. Opened after an import with *Create the card*, the
+ * documents travel to the form of the type chosen, already linked, and the
+ * link to *Upload* is not shown.
  */
 import { Head, Link } from '@inertiajs/vue3';
+import { ScanLine } from '@lucide/vue';
 import { computed } from 'vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { areaOf, areaTile } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
-import { areas } from '@/routes';
+import { areas, upload } from '@/routes';
 import { create } from '@/routes/cards';
 
-const { types } = defineProps<{
+const { types, document = null } = defineProps<{
     /** The card types to choose from, grouped by their area. */
     types: App.Data.CardTypeData[];
+    /** The ids of the documents to link to the new card (`1,2`), from an import; null without. */
+    document?: string | null;
 }>();
+
+/**
+ * Where a type leads: its form, with the documents to link.
+ *
+ * @param type - the code of the card type
+ * @returns the address of the form
+ */
+function formUrl(type: string): string {
+    return create({
+        query: { card: type, ...(document === null ? {} : { document }) },
+    }).url;
+}
 
 /** The types grouped by area, the areas in the order they first appear. */
 const groups = computed(() => {
@@ -56,6 +75,24 @@ function tile(area: string): string {
             :back-label="$t('Areas')"
         />
 
+        <Link
+            v-if="document === null"
+            :href="upload().url"
+            class="flex max-w-[760px] items-center gap-3 rounded-2xl bg-action-soft px-4 py-3.5 text-action-dark no-underline"
+        >
+            <FmIcon :icon="ScanLine" :size="24" class="shrink-0" />
+            <span class="flex flex-col gap-0.5">
+                <span class="text-base font-bold">{{
+                    $t('Have a document? Start from it')
+                }}</span>
+                <span class="text-sm text-ink-soft">{{
+                    $t(
+                        'Upload the bill, the policy or the booklet: we propose the card.',
+                    )
+                }}</span>
+            </span>
+        </Link>
+
         <section
             v-for="group in groups"
             :key="group.area"
@@ -70,7 +107,7 @@ function tile(area: string): string {
                 <Link
                     v-for="type in group.types"
                     :key="type.type"
-                    :href="create({ query: { card: type.type } }).url"
+                    :href="formUrl(type.type)"
                     class="flex items-center gap-3 rounded-2xl bg-white p-4 text-inherit no-underline"
                 >
                     <span :class="tile(type.area)">

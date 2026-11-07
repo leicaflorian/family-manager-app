@@ -271,6 +271,29 @@ describe('Edit a card', () => {
             );
         });
 
+        it('starts a new card with the documents it was opened with, linked when it is saved', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(EditCard, {
+                type,
+                fields: policyFields,
+                values: { title: 'RC auto Panda', type: 'car' },
+                card: null,
+                linked: [healthCard],
+            });
+
+            expect(screen.getByText('Tessera sanitaria')).toBeInTheDocument();
+            expect(hasChanges()).toBe(false);
+
+            await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+            await settle();
+
+            expect(post).toHaveBeenCalledWith(
+                '/cards/insurance_policy',
+                expect.objectContaining({ link_documents: [healthCard.id] }),
+                expect.anything(),
+            );
+        });
+
         it('sends no files when none is chosen', async () => {
             const post = vi.spyOn(router, 'post').mockImplementation(() => {});
             renderPage(EditCard, {

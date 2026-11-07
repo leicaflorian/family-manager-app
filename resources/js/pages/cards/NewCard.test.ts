@@ -21,8 +21,34 @@ describe('New card', () => {
         expect(
             screen.getByText('Electricity, gas, water, internet, waste tax'),
         ).toBeInTheDocument();
+    });
+
+    it('starts from a document: Upload proposes the card', () => {
+        renderPage(NewCard, { types: cardTypes });
+
         expect(
-            screen.queryByText('Start from a document'),
+            screen.getByRole('link', {
+                name: /Have a document\? Start from it/,
+            }),
+        ).toHaveAttribute('href', '/upload');
+        expect(
+            screen.getByText(
+                'Upload the bill, the policy or the booklet: we propose the card.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('opened with documents, carries them to the form of the type chosen', () => {
+        renderPage(NewCard, { types: cardTypes, document: '41,42' });
+
+        expect(screen.getByRole('link', { name: /Utility/ })).toHaveAttribute(
+            'href',
+            '/cards/create?card=utility&document=41%2C42',
+        );
+        expect(
+            screen.queryByRole('link', {
+                name: /Have a document\? Start from it/,
+            }),
         ).not.toBeInTheDocument();
     });
 });

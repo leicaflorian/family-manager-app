@@ -39,6 +39,8 @@ export type ImportPicks = {
     due: boolean | null;
     /** `auto`, `none` or the `key` of the policy to take. */
     policy: string;
+    /** *Create the card*: after the import, *New card* opens with the document linked. */
+    createCard: boolean;
 };
 
 /** What one file does too, as the server reads it (`App\Data\Reading\ImportChoices`, without the document). */
@@ -52,6 +54,8 @@ export type ImportAlso = {
     /** Only when the person chose: missing, the server decides. */
     due?: boolean;
     policy: string;
+    /** Only when the paper names no card and the person ticked *Create the card*. */
+    create_card?: true;
 };
 
 /** The choices of one file, and how to ask its proposal again. */
@@ -83,8 +87,8 @@ const WAIT = 400;
 
 /**
  * The choices of *What I do too* of one file in *Import*: the boxes, the
- * expense, event or card picked by hand, the fields written in a box, *To pay*
- * and the policy. Every change, and every change of the document of the file,
+ * expense, event or card picked by hand, the fields written in a box, *To pay*,
+ * the policy and *Create the card*. Every change, and every change of the document of the file,
  * asks the server the proposal again 400 ms after the last one, reloading only
  * `proposals` with `?check={file_id, document, also}` and without changing the
  * address; the server merges it with the others. The fields count too: what
@@ -117,6 +121,7 @@ export function useImportChoices(
         overrides: { movement: {}, event: {}, records: {} },
         due: null,
         policy: 'auto',
+        createCard: false,
     });
 
     /**
@@ -160,6 +165,9 @@ export function useImportChoices(
             ...(corrected() ? { overrides: plainOverrides() } : {}),
             ...(picks.due === null ? {} : { due: picks.due }),
             policy: picks.policy,
+            ...(current.createCard && picks.createCard
+                ? { create_card: true as const }
+                : {}),
         };
     });
 

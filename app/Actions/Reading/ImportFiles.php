@@ -7,6 +7,7 @@ namespace App\Actions\Reading;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
+use App\Models\Document;
 use App\Models\File;
 use App\Services\Reading\ImportProposals;
 use App\Services\Reading\PolicyFromOtherFiles;
@@ -33,7 +34,7 @@ final readonly class ImportFiles
      * Imports each file.
      *
      * @param  list<array{file_id: int, choices: ImportChoices, proposal?: ?ProposalData}>  $entries  the files with what the person confirmed, and the proposal the request checked, if any
-     * @return array{failures: array<int, string>, notices: array<int, list<string>>} why each file that was not imported failed, and what the imported ones say (a policy not linked), by file id, in the language of the request
+     * @return array{failures: array<int, string>, notices: array<int, list<string>>, cards: list<int>} why each file that was not imported failed, and what the imported ones say (a policy not linked), by file id, in the language of the request; and the documents of the files imported with *Create the card*, in the order of the entries
      */
     public function handle(array $entries): array
     {
@@ -48,6 +49,7 @@ final readonly class ImportFiles
         $order = $this->policies->confirmOrder(array_keys($choices), static fn (int $id): bool => isset($givers[$id]));
         $failures = [];
         $notices = [];
+        $documents = [];
         $saved = false;
 
         foreach ($order as $id) {
@@ -56,13 +58,14 @@ final readonly class ImportFiles
             try {
                 // The request proposed every file before anything was saved: once a file is saved, the next ones
                 // propose again, so they find the organization, the cards and the expense it created
-                $warnings = $this->file($id, $choices[$id], $round, $saved ? null : $checked[$id]);
-                if ($warnings === null) {
+                $imported = $this->file($id, $choices[$id], $round, $saved ? null : $checked[$id]);
+                if ($imported === null) {
                     $failures[$id] = __('This file was already filed.');
                 } else {
                     $saved = true;
-                    if ($warnings !== []) {
-                        $notices[$id] = $warnings;
+                    $documents[$id] = $imported['document']->id;
+                    if ($imported['warnings'] !== []) {
+                        $notices[$id] = $imported['warnings'];
                     }
                 }
             } catch (ValidationException $exception) {
@@ -74,7 +77,14 @@ final readonly class ImportFiles
             }
         }
 
-        return ['failures' => $failures, 'notices' => $notices];
+        $cards = [];
+        foreach ($choices as $id => $choice) {
+            if ($choice->createCard && isset($documents[$id])) {
+                $cards[] = $documents[$id];
+            }
+        }
+
+        return ['failures' => $failures, 'notices' => $notices, 'cards' => $cards];
     }
 
     /**
@@ -102,7 +112,7 @@ final readonly class ImportFiles
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  list<PolicyGiverData>  $round  the policies the other files give
      * @param  ProposalData|null  $checked  the proposal the request made
-     * @return list<string>|null what the file says, or null when it no longer waits
+     * @return array{document: Document, warnings: list<string>}|null the document and what the file says, or null when it no longer waits
      *
      * @throws Throwable
      */
@@ -110,8 +120,13 @@ final readonly class ImportFiles
     {
         return DB::transaction(function () use ($id, $choices, $round, $checked): ?array {
             $file = File::query()->toSort()->lockForUpdate()->find($id);
+            if (! $file instanceof File) {
+                return null;
+            }
 
-            return $file instanceof File ? $this->importFile->handle($file, $choices, $round, $checked)['warnings'] : null;
+            $imported = $this->importFile->handle($file, $choices, $round, $checked);
+
+            return ['document' => $imported['document'], 'warnings' => $imported['warnings']];
         });
     }
 }

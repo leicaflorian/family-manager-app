@@ -1295,5 +1295,10 @@
     "Create the expense of :amount (:lead)": "Crea la spesa di :amount (:lead)",
     "Title of the event": "Titolo dell'evento",
     "Type of the event": "Tipo di evento",
-    "Deadline": "Scadenza"
+    "Deadline": "Scadenza",
+    "Create the card": "Crea la scheda",
+    "After the import New card opens, with this document already linked.": "Dopo l'importazione si apre Nuova scheda, con questo documento già collegato.",
+    "Have a document? Start from it": "Hai un documento? Parti da quello",
+    "Upload the bill, the policy or the booklet: we propose the card.": "Carica la bolletta, la polizza o il libretto: la scheda la proponiamo noi.",
+    "Start from a document": "Parti da un documento"
 }

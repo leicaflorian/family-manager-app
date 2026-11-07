@@ -38,6 +38,7 @@ const {
     hasLinkable = false,
     budget = null,
     loanFigures = null,
+    linked = [],
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -63,6 +64,8 @@ const {
     budget?: App.Data.CardBudgetData | null;
     /** The total to pay and the cost of a loan, asked for while the person types; only a loan gets them. */
     loanFigures?: App.Data.LoanFiguresData | null;
+    /** The documents a new card starts linked to (`?document=`, after an import with *Create the card*). */
+    linked?: App.Data.DocumentData[];
 }>();
 
 /** The form is being sent. */
@@ -74,8 +77,8 @@ const serverErrors = ref<Partial<Record<string, string>>>({});
 /** The files of new documents of the card, sent with it. */
 const files = ref<File[]>([]);
 
-/** The documents chosen in *Link*, linked when the card is saved. */
-const link = ref<App.Data.DocumentData[]>([]);
+/** The documents chosen in *Link*, linked when the card is saved; a new card starts from those it was opened with. */
+const link = ref<App.Data.DocumentData[]>([...linked]);
 
 /** The ids of the linked documents to unlink when the card is saved. */
 const unlink = ref<number[]>([]);

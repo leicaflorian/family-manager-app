@@ -3,10 +3,11 @@
  * *Areas*: the nine areas of family life (home, vehicles, insurance…), each
  * with how many cards it has, how many are overdue and its first cards. The
  * search finds a card in every area by its name. An `admin` adds cards; with
- * no cards at all the page invites to create the first one.
+ * no cards at all the page invites to create the first one, or to start from
+ * a document (*Upload*, where the reading proposes the card).
  */
 import { Head, Link } from '@inertiajs/vue3';
-import { Plus, Search, Shapes } from '@lucide/vue';
+import { Camera, Plus, Search, Shapes } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -18,6 +19,7 @@ import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { newCardUrl } from '@/lib/cards';
 import { cardCountText, overdueText } from '@/lib/cardTexts';
 import { cn } from '@/lib/utils';
+import { upload } from '@/routes';
 import { create } from '@/routes/cards';
 import { show } from '@/routes/areas';
 
@@ -104,9 +106,14 @@ function tile(area: string): string {
                 )
             "
         >
-            <FmButton v-if="canCreate" :href="create().url">{{
-                $t('Create the first card')
-            }}</FmButton>
+            <template v-if="canCreate">
+                <FmButton :href="create().url" :icon="Plus">{{
+                    $t('Create the first card')
+                }}</FmButton>
+                <FmButton variant="text" :href="upload().url" :icon="Camera">{{
+                    $t('Start from a document')
+                }}</FmButton>
+            </template>
         </FmEmpty>
 
         <label

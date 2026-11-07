@@ -38,6 +38,7 @@ use Inertia\Inertia;
 use Inertia\MergeProp;
 use Inertia\OptionalProp;
 use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * *New card*, *A card* and its form: everyone sees the cards, only an `admin`
@@ -59,10 +60,14 @@ final class CardController extends Controller
     /**
      * *New card*: the choice of the type (only the ones of `?area=` if given),
      * or the empty form of the type in `?card=`, with the values of the query as presets.
+     * The documents of `?document=1,2` (the files imported with *Create the card*)
+     * travel from the choice to the form, where they are already linked: one that is
+     * not of the family is a 404.
      */
     public function create(Request $request): Response
     {
         $type = $request->query('card');
+        $documents = $this->documentsOf($request->query('document'));
 
         if (is_string($type)) {
             $card = CardTypes::findOrFail($type);
@@ -72,6 +77,7 @@ final class CardController extends Controller
                 ...$this->details->form($card, null, $request->query()),
                 ...$this->loanFigures($request, $card, null),
                 ...$this->linkable($request, []),
+                'linked' => $this->documents->ofModels($documents),
             ]);
         }
 
@@ -79,7 +85,10 @@ final class CardController extends Controller
         $area = $request->query('area');
         $types = is_string($area) ? CardTypes::of(Area::tryFrom($area) ?? abort(404)) : CardTypes::all();
 
-        return Inertia::render('cards/NewCard', ['types' => AreaController::typeData($types)]);
+        return Inertia::render('cards/NewCard', [
+            'types' => AreaController::typeData($types),
+            'document' => $documents->isEmpty() ? null : $documents->implode('id', ','),
+        ]);
     }
 
     /**
@@ -261,6 +270,34 @@ final class CardController extends Controller
             'linkableSearch' => $search,
             'hasLinkable' => $this->documents->exist($filters),
         ];
+    }
+
+    /**
+     * The documents of `?document=` (ids separated by commas), in that order, each found through the family and
+     * allowed to be seen; none without the query.
+     *
+     * @param  mixed  $value  `?document=` as it came
+     * @return Collection<int, Document>
+     *
+     * @throws NotFoundHttpException if an id is not a number or not a document of the family
+     */
+    private function documentsOf(mixed $value): Collection
+    {
+        if ($value === null) {
+            return new Collection;
+        }
+
+        $parts = is_string($value) ? explode(',', $value) : [''];
+        abort_if(array_filter($parts, static fn (string $part): bool => ! ctype_digit($part)) !== [], 404);
+
+        $ids = array_values(array_unique(array_map(intval(...), $parts)));
+        $documents = Document::query()->whereKey($ids)->get();
+        abort_unless($documents->count() === count($ids), 404);
+        foreach ($documents as $document) {
+            Gate::authorize('view', $document);
+        }
+
+        return $documents->sortBy(static fn (Document $document): int|false => array_search($document->id, $ids, true))->values();
     }
 
     /**

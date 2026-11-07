@@ -10,7 +10,7 @@ import {
 } from 'vite-plus/test';
 import { defineComponent, ref } from 'vue';
 import type { DocumentPayload } from '@/lib/documents';
-import { ferriProposal } from '@/test/fixtures';
+import { enrolmentProposal, ferriProposal } from '@/test/fixtures';
 import type { ImportChoices } from './useImportChoices';
 import { useImportChoices } from './useImportChoices';
 
@@ -100,6 +100,18 @@ describe('useImportChoices', () => {
             due: true,
             policy: 'none',
         });
+    });
+
+    it('sends Create the card only when the paper names no card and the person ticks it', () => {
+        const { choices } = mount({ proposal: enrolmentProposal });
+        expect(choices.also.value).not.toHaveProperty('create_card');
+
+        choices.picks.createCard = true;
+        expect(choices.also.value).toMatchObject({ create_card: true });
+
+        const ferri = mount();
+        ferri.choices.picks.createCard = true;
+        expect(ferri.choices.also.value).not.toHaveProperty('create_card');
     });
 
     it('gives nothing to send without a proposal', () => {

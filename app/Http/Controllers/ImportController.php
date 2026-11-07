@@ -77,7 +77,8 @@ final class ImportController extends Controller
     /**
      * Imports the files, each with what it does too, once each file is allowed (`FilePolicy::import`: a `member`
      * creates through the import what the policies of each model do not let it create elsewhere). What fails stays
-     * on the page, each file with its reason; with nothing left to check the person goes to the card the files come
+     * on the page, each file with its reason; with nothing left to check the person goes to *New card* with the
+     * documents of the files imported with *Create the card* (`?document=1,2`), otherwise to the card the files come
      * from (`?link=`), or to *Documents*. What the imported files say (a policy not linked) comes along as
      * `import_notices`.
      */
@@ -88,12 +89,13 @@ final class ImportController extends Controller
             Gate::authorize('import', $file);
         }
 
-        ['failures' => $failures, 'notices' => $notices] = $import->handle($entries);
+        ['failures' => $failures, 'notices' => $notices, 'cards' => $cards] = $import->handle($entries);
         $waiting = File::query()->toSort()->whereKey(array_keys($failures))->get()->map(fn (File $file): int => $file->id)->all();
         $card = PresetLink::from($request->query('link'));
 
         $response = match (true) {
             $waiting !== [] => ImportPage::open($waiting, $request->query('link'))->with('import_failures', $failures),
+            $cards !== [] => to_route('cards.create', ['document' => implode(',', $cards)]),
             $card !== null => to_route('cards.show', $card),
             default => to_route('documents.index'),
         };

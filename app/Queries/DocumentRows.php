@@ -79,6 +79,17 @@ final readonly class DocumentRows
     }
 
     /**
+     * The rows of some documents already found, in their order (the documents linked to a new card from the start).
+     *
+     * @param  Collection<int, Document>  $documents  the documents
+     * @return list<DocumentData>
+     */
+    public function ofModels(Collection $documents): array
+    {
+        return $this->rows($documents->load(self::RELATIONS));
+    }
+
+    /**
      * The rows of some documents, in their order.
      *
      * @param  Collection<int, Document>  $documents  the documents, with the relations of `RELATIONS`

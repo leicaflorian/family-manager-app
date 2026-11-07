@@ -355,6 +355,32 @@ test('the forms of a card offer the documents to link, without those already lin
         ->where('hasLinkable', true));
 });
 
+test('New card opened with a document carries it to the form of each type, already linked', function (): void {
+    $this->actingAs($this->marco);
+    $policy = insideBianchi(fn (): Document => Document::query()->where('title', 'Polizza RC auto 2026')->sole());
+    $both = "{$this->booklet->id},{$policy->id}";
+
+    $this->get(route('cards.create', ['document' => $both]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('cards/NewCard')
+        ->where('document', $both));
+    $this->get(route('cards.create', ['card' => 'vehicle', 'document' => $both]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('cards/EditCard')
+        ->where('linked', fn (Collection $linked): bool => $linked->pluck('id')->all() === [$this->booklet->id, $policy->id])
+        ->where('values', fn (Collection $values): bool => ! $values->has('document')));
+    $this->get(route('cards.create'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('document', null));
+    $this->get(route('cards.create', ['card' => 'vehicle']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('linked', []));
+});
+
+test('a document of another family is 404', function (): void {
+    $theirs = Document::factory()->create();
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.create', ['document' => $theirs->id]))->assertNotFound();
+    $this->get(route('cards.create', ['card' => 'vehicle', 'document' => $theirs->id]))->assertNotFound();
+    $this->get(route('cards.create', ['card' => 'vehicle', 'document' => "{$this->booklet->id},{$theirs->id}"]))->assertNotFound();
+    $this->get(route('cards.create', ['card' => 'vehicle', 'document' => 'abc']))->assertNotFound();
+});
+
 test('a change links and unlinks the documents when it is saved', function (): void {
     $this->actingAs($this->marco);
     $policy = insideBianchi(fn (): Document => Document::query()->where('title', 'Polizza RC auto 2026')->sole());

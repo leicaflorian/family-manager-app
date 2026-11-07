@@ -43,7 +43,7 @@ describe('Areas', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('invites to create the first card, without starting from a document', () => {
+    it('invites to create the first card, or to start from a document', () => {
         renderPage(Areas, {
             areas: allAreas.map((area) => ({
                 ...area,
@@ -60,8 +60,8 @@ describe('Areas', () => {
         ).toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: 'Add' })).toHaveLength(9);
         expect(
-            screen.queryByText('Start from a document'),
-        ).not.toBeInTheDocument();
+            screen.getByRole('link', { name: 'Start from a document' }),
+        ).toHaveAttribute('href', '/upload');
     });
 
     it('lets only an admin create', () => {

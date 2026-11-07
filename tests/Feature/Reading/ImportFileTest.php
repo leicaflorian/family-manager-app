@@ -508,7 +508,7 @@ describe('the files confirmed together', function (): void {
         ]);
 
         $policy = InsurancePolicy::query()->sole();
-        expect($result)->toBe(['failures' => [], 'notices' => []])
+        expect($result)->toBe(['failures' => [], 'notices' => [], 'cards' => []])
             ->and($policy->policy_number)->toBe('40/123456')
             ->and(Document::query()->where('file_id', $this->set->id)->sole()->insurancePolicies()->pluck('insurance_policies.id')->all())->toBe([$policy->id]);
     });

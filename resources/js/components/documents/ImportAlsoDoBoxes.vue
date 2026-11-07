@@ -6,7 +6,8 @@
  * the policy. A ticked box shows the fields the server still needs (the
  * deadline, the title and type of a new event, the required fields of a new
  * card) and the actions *Create a new …*, *Choose another…* and *Back to the
- * proposal*. A part of the page `documents/Import`, not a component of the
+ * proposal*. A paper that names no card offers *Create the card*, unticked:
+ * after the import *New card* opens with its document linked. A part of the page `documents/Import`, not a component of the
  * catalogue: it writes in the choices of the file (`useImportChoices`).
  */
 import type { LucideIcon } from '@lucide/vue';
@@ -18,6 +19,7 @@ import {
     Package,
     Plug,
     Shield,
+    SquarePlus,
     Wallet,
     Wrench,
 } from '@lucide/vue';
@@ -548,6 +550,19 @@ function recordFields(
             :disabled="policy.disabled"
             :icon="Shield"
             @update:model-value="setPolicy($event)"
+        />
+
+        <FmAlsoDoItem
+            v-if="proposal.createCard"
+            :model-value="choices.picks.createCard"
+            :label="$t('Create the card')"
+            :hint="
+                $t(
+                    'After the import New card opens, with this document already linked.',
+                )
+            "
+            :icon="SquarePlus"
+            @update:model-value="choices.picks.createCard = $event"
         />
     </FmAlsoDo>
 </template>

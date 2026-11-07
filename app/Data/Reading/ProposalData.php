@@ -9,7 +9,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * What a read file would do when confirmed, with the choices of the person: the document, the expense or income,
- * the health event, the missing cards and the policy it takes from another file. Nothing is written.
+ * the health event, the missing cards and the policy it takes from another file, or, when it names no card, the
+ * box to create one. Nothing is written.
  */
 #[TypeScript]
 final class ProposalData extends Data
@@ -22,6 +23,7 @@ final class ProposalData extends Data
      * @param  list<RecordDraftData>  $records  the missing cards, or the ones found to link, each with the cards of its kind to pick by hand
      * @param  array{need: bool, giver: ?PolicyGiverData, many: bool}|null  $policy  for an insurance paper: whether it needs the policy of another file or of one registered, the one it takes, and whether more than one fits
      * @param  list<string>  $warnings  the codes on the paper that no card has and no box creates
+     * @param  bool  $createCard  the paper names no card (no card to create or link, no health event): the box *Create the card* opens *New card* with the document linked after the import
      */
     public function __construct(
         public readonly int $fileId,
@@ -31,5 +33,6 @@ final class ProposalData extends Data
         public readonly array $records,
         public readonly ?array $policy,
         public readonly array $warnings,
+        public readonly bool $createCard = false,
     ) {}
 }

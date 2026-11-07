@@ -454,4 +454,102 @@ describe('what each file does too', function (): void {
         $expense = Expense::query()->sole();
         expect($expense->documents()->count())->toBe(2);
     });
+
+    test('a file that names no card proposes to create the card, one that names a card does not', function (): void {
+        $booklet = File::factory()->for($this->marco->family)->read(['kind' => 'other', 'title' => 'Libretto Vespa', 'issue_date' => '2026-10-01'])->create(['to_sort' => true]);
+        $bill = File::factory()->for($this->marco->family)->read([
+            'kind' => 'utility_bill', 'issuer_name' => 'Iren', 'utility_type' => 'gas', 'total_amount' => 80, 'issue_date' => '2026-10-10',
+            'supply_point_code' => '00881234567890',
+        ])->create(['to_sort' => true]);
+        $visit = File::factory()->for($this->marco->family)->read([
+            'kind' => 'medical', 'title' => 'Visita dal dentista', 'person_id' => Person::factory()->for($this->marco->family)->create()->id,
+            'health_type' => 'visit', 'issue_date' => '2026-10-10',
+        ])->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->get(route('import', ['files' => "{$booklet->id},{$this->invoice->id},{$bill->id},{$visit->id}"]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+                ->where("proposals.{$booklet->id}.createCard", true)
+                // An expense or an organization is not a card
+                ->where("proposals.{$this->invoice->id}.createCard", true)
+                ->where("proposals.{$bill->id}.createCard", false)
+                ->where("proposals.{$visit->id}.createCard", false));
+    });
+
+    test('the card opened from an imported document has it linked', function (): void {
+        $booklet = File::factory()->for($this->marco->family)->read(['kind' => 'other', 'title' => 'Libretto Vespa', 'issue_date' => '2026-10-01'])->create(['to_sort' => true]);
+
+        $response = $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($booklet), 'also' => ['create_card' => true]],
+        ]])->assertSessionHasNoErrors();
+
+        $document = Document::query()->sole();
+        $response->assertRedirect(route('cards.create', ['document' => (string) $document->id]));
+
+        $this->get(route('cards.create', ['card' => 'vehicle', 'document' => $document->id]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+                ->component('cards/EditCard')
+                ->has('linked', 1)
+                ->where('linked.0.id', $document->id));
+
+        $this->post(route('cards.store', 'vehicle'), ['name' => 'Vespa', 'link_documents' => [$document->id]])->assertSessionHasNoErrors();
+
+        expect(Vehicle::query()->where('name', 'Vespa')->sole()->documents()->pluck('documents.id')->all())->toBe([$document->id]);
+    });
+
+    test('the documents of every file that creates the card open one New card, linked to all of them', function (): void {
+        $reading = ['kind' => 'other', 'title' => 'Iscrizione palestra', 'issue_date' => '2026-10-01'];
+        $first = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
+        $second = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
+        $third = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
+
+        $response = $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($first), 'also' => ['create_card' => true]],
+            importEntry($second),
+            [...importEntry($third), 'also' => ['create_card' => true]],
+        ]])->assertSessionHasNoErrors();
+
+        $ids = Document::query()->whereIn('file_id', [$first->id, $third->id])->orderBy('id')->pluck('id')->implode(',');
+        $response->assertRedirect(route('cards.create', ['document' => $ids]));
+    });
+
+    test('a file that fails keeps the page, also when another one creates the card', function (): void {
+        $booklet = File::factory()->for($this->marco->family)->read(['kind' => 'other', 'title' => 'Libretto Vespa'])->create(['to_sort' => true]);
+        $bad = waitingFile();
+        Document::creating(function (Document $document) use ($bad): void {
+            if ($document->title === 'Doc '.$bad->id) {
+                throw new RuntimeException('The disk is full');
+            }
+        });
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($booklet), 'also' => ['create_card' => true]],
+            importEntry($bad),
+        ]])->assertRedirect(route('import', ['files' => (string) $bad->id]));
+    });
+
+    test('the UnipolSai policy 40/123456 with the plate GH 482 TK creates the vehicle and the policy, linked', function (): void {
+        $policy = File::factory()->for($this->marco->family)->read([
+            'kind' => 'insurance', 'title' => 'Polizza RC auto', 'issuer_name' => 'UnipolSai', 'policy_number' => '40/123456',
+            'plate_number' => 'GH 482 TK', 'vehicle_model' => 'Panda', 'insurance_type' => 'car', 'issue_date' => '2026-10-01',
+            'period_start' => '2026-10-01', 'expiry_date' => '2027-10-01',
+        ])->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->get(route('import', ['files' => (string) $policy->id]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+                ->where("proposals.{$policy->id}.records", fn (Collection $records): bool => $records->pluck('title')->all() === [
+                    'the organization UnipolSai', 'the vehicle Panda (GH 482 TK)', 'the policy 40/123456 · UnipolSai',
+                ] && $records->every(fn (array $record): bool => $record['suggested']))
+                ->where("proposals.{$policy->id}.createCard", false));
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($policy), 'also' => ['records' => ['organization', 'vehicle', 'policy']]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+        $vehicle = Vehicle::query()->where('plate_number', 'GH 482 TK')->sole();
+        $created = InsurancePolicy::query()->where('policy_number', '40/123456')->sole();
+        $document = Document::query()->sole();
+        expect($created->vehicle_id)->toBe($vehicle->id)
+            ->and($vehicle->documents()->pluck('documents.id')->all())->toBe([$document->id])
+            ->and($created->documents()->pluck('documents.id')->all())->toBe([$document->id]);
+    });
 });

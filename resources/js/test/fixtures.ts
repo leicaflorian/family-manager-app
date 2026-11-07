@@ -1738,4 +1738,19 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
     ],
     policy: null,
     warnings: [],
+    createCard: false,
+};
+
+/**
+ * The proposal of a gym enrolment, a paper that names no card: only the
+ * document, and the box to create the card.
+ */
+export const enrolmentProposal: App.Data.Reading.ProposalData = {
+    ...ferriProposal,
+    fileId: 7,
+    document: { ...ferriProposal.document, title: 'Iscrizione palestra' },
+    movement: null,
+    event: null,
+    records: [],
+    createCard: true,
 };

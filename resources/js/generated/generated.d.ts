@@ -791,6 +791,7 @@ giver: App.Data.Reading.PolicyGiverData | null,
 many: boolean,
 } | null,
 readonly warnings: string[],
+readonly createCard: boolean,
 };
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,

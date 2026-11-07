@@ -11,7 +11,11 @@ import {
     vi,
 } from 'vite-plus/test';
 import { hasChanges } from '@/lib/unsavedChanges';
-import { ferriProposal, pendingPayslip } from '@/test/fixtures';
+import {
+    enrolmentProposal,
+    ferriProposal,
+    pendingPayslip,
+} from '@/test/fixtures';
 import { choose, renderPage, screenWidth, settle } from '@/test/page';
 import Import from './Import.vue';
 
@@ -1013,6 +1017,38 @@ describe('Import', () => {
             await settle();
 
             expect(hasChanges()).toBe(false);
+        });
+
+        it('offers to create the card for a paper that names none, and sends it when ticked', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(Import, ferriProps(enrolmentProposal));
+            await settle();
+
+            const box = screen.getByRole('checkbox', {
+                name: /Create the card/,
+            });
+            expect(box).not.toBeChecked();
+            expect(
+                screen.getByText(
+                    'After the import New card opens, with this document already linked.',
+                ),
+            ).toBeInTheDocument();
+
+            await fireEvent.click(box);
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({ create_card: true });
+        });
+
+        it('does not offer to create the card for a paper that names one', () => {
+            renderPage(Import, ferriProps());
+
+            expect(
+                screen.queryByRole('checkbox', { name: /Create the card/ }),
+            ).not.toBeInTheDocument();
         });
 
         it('sends nothing more for a file without a proposal', async () => {
