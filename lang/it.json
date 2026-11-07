@@ -1300,5 +1300,7 @@
     "After the import New card opens, with this document already linked.": "Dopo l'importazione si apre Nuova scheda, con questo documento già collegato.",
     "Have a document? Start from it": "Hai un documento? Parti da quello",
     "Upload the bill, the policy or the booklet: we propose the card.": "Carica la bolletta, la polizza o il libretto: la scheda la proponiamo noi.",
-    "Start from a document": "Parti da un documento"
+    "Start from a document": "Parti da un documento",
+    "{1} The document is saved.|[2,*] The documents are saved.": "{1} Il documento è salvato.|[2,*] I documenti sono salvati.",
+    "{1} Create its card|[2,*] Create their card": "{1} Crea la sua scheda|[2,*] Crea la loro scheda"
 }

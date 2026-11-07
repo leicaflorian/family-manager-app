@@ -46,6 +46,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class CardController extends Controller
 {
+    /** How many documents `?document=` links to a new card at most, as many as one import holds. */
+    public const int MAX_DOCUMENTS = 50;
+
     /** How many documents a page of *Link a document* holds. */
     private const int LINKABLE_PER_PAGE = 15;
 
@@ -273,13 +276,13 @@ final class CardController extends Controller
     }
 
     /**
-     * The documents of `?document=` (ids separated by commas), in that order, each found through the family and
-     * allowed to be seen; none without the query.
+     * The documents of `?document=` (ids separated by commas, at most 50), in that order, each found through the
+     * family and allowed to be seen; none without the query or with it empty.
      *
      * @param  mixed  $value  `?document=` as it came
      * @return Collection<int, Document>
      *
-     * @throws NotFoundHttpException if an id is not a number or not a document of the family
+     * @throws NotFoundHttpException if an id is not a number or not a document of the family, or there are more than 50
      */
     private function documentsOf(mixed $value): Collection
     {
@@ -291,6 +294,7 @@ final class CardController extends Controller
         abort_if(array_filter($parts, static fn (string $part): bool => ! ctype_digit($part)) !== [], 404);
 
         $ids = array_values(array_unique(array_map(intval(...), $parts)));
+        abort_if(count($ids) > self::MAX_DOCUMENTS, 404);
         $documents = Document::query()->whereKey($ids)->get();
         abort_unless($documents->count() === count($ids), 404);
         foreach ($documents as $document) {

@@ -524,7 +524,37 @@ describe('what each file does too', function (): void {
         $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
             [...importEntry($booklet), 'also' => ['create_card' => true]],
             importEntry($bad),
-        ]])->assertRedirect(route('import', ['files' => (string) $bad->id]));
+        ]])->assertRedirect(route('import', ['files' => (string) $bad->id]))
+            ->assertSessionHas('import_cards', (string) Document::query()->sole()->id);
+
+        // The page that comes back offers to create the card of the documents saved
+        $this->get(route('import', ['files' => (string) $bad->id]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('cardDocuments', (string) Document::query()->sole()->id));
+        $this->get(route('import', ['files' => (string) $bad->id]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('cardDocuments', null));
+    });
+
+    test('a member is never offered to create the card, and is not sent to a page it may not open', function (): void {
+        $booklet = File::factory()->for($this->marco->family)->read(['kind' => 'other', 'title' => 'Libretto Vespa', 'issue_date' => '2026-10-01'])->create(['to_sort' => true]);
+
+        $this->actingAs($this->laura)->get(route('import', ['files' => (string) $booklet->id]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where("proposals.{$booklet->id}.createCard", false));
+
+        $this->actingAs($this->laura)->post(route('import.store'), ['files' => [
+            [...importEntry($booklet), 'also' => ['create_card' => true]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+    });
+
+    test('an import that starts from a card does not offer to create the card', function (): void {
+        $booklet = File::factory()->for($this->marco->family)->read(['kind' => 'other', 'title' => 'Libretto Vespa', 'issue_date' => '2026-10-01'])->create(['to_sort' => true]);
+        $panda = Vehicle::factory()->for($this->marco->family)->create();
+
+        $this->actingAs($this->marco)->get(route('import', ['files' => (string) $booklet->id, 'link' => 'vehicle:'.$panda->id]))
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where("proposals.{$booklet->id}.createCard", false));
+
+        $this->actingAs($this->marco)->post(route('import.store', ['link' => 'vehicle:'.$panda->id]), ['files' => [
+            [...importEntry($booklet), 'also' => ['create_card' => true]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('cards.show', ['type' => 'vehicle', 'id' => $panda->id]));
     });
 
     test('the UnipolSai policy 40/123456 with the plate GH 482 TK creates the vehicle and the policy, linked', function (): void {

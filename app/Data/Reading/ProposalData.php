@@ -35,4 +35,13 @@ final class ProposalData extends Data
         public readonly array $warnings,
         public readonly bool $createCard = false,
     ) {}
+
+    /**
+     * The same proposal without *Create the card*: for whoever may not create cards, or an import that starts from a
+     * card.
+     */
+    public function withoutCreateCard(): self
+    {
+        return new self($this->fileId, $this->document, $this->movement, $this->event, $this->records, $this->policy, $this->warnings);
+    }
 }

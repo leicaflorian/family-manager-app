@@ -1043,6 +1043,39 @@ describe('Import', () => {
             expect(sent(post)[0]?.also).toMatchObject({ create_card: true });
         });
 
+        it('offers the card of the documents saved while other files failed', () => {
+            renderPage(Import, {
+                ...props([light], { 1: 'This file could not be saved.' }),
+                cardDocuments: '41,42',
+            });
+
+            expect(
+                screen.getByText('The documents are saved.'),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: 'Create their card' }),
+            ).toHaveAttribute('href', '/cards/create?document=41%2C42');
+        });
+
+        it('offers the card of one document saved, in the singular, and nothing without', () => {
+            const view = renderPage(Import, {
+                ...props([light]),
+                cardDocuments: '41',
+            });
+            expect(
+                screen.getByText('The document is saved.'),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: 'Create its card' }),
+            ).toHaveAttribute('href', '/cards/create?document=41');
+            view.unmount();
+
+            renderPage(Import, props([light]));
+            expect(
+                screen.queryByRole('link', { name: /Create (its|their) card/ }),
+            ).not.toBeInTheDocument();
+        });
+
         it('does not offer to create the card for a paper that names one', () => {
             renderPage(Import, ferriProps());
 

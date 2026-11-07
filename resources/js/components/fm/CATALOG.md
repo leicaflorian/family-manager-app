@@ -1554,6 +1554,7 @@ every page.
 - `pages/Home.vue`
 - `pages/budget/PlannedItem.vue`
 - `pages/cards/Card.vue`
+- `pages/documents/Import.vue`
 - `pages/notices/Notices.vue`
 - `pages/settings/Notices.vue`
 

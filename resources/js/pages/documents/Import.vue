@@ -14,7 +14,8 @@
  * *Already paid* or *To pay*, the health event, the missing cards and the policy the file proposes, each a box
  * to untick, link to another (*Choose another…*), create anew or bring back to the proposal. Every change asks
  * the server the proposal of the file again (`useImportChoices`), and the choices go with the import (`also`).
- * What the files already imported say (a policy not linked) shows on top.
+ * What the files already imported say (a policy not linked) shows on top, and so do the documents saved with
+ * *Create the card* while other files failed, with the link to *New card* for them (`cardDocuments`).
  */
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleCheck, FileText, X } from '@lucide/vue';
@@ -29,6 +30,7 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmReadingNotice from '@/components/fm/FmReadingNotice.vue';
 import FmReadingProgress from '@/components/fm/FmReadingProgress.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import type { ImportChoices } from '@/composables/useImportChoices';
 import { useImportChoices } from '@/composables/useImportChoices';
@@ -56,7 +58,7 @@ import { linkQuery, newDocument, proposalOf, toPayload } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 import { anyFileReading, isReading, readAgain } from '@/lib/reading';
 import { toSort } from '@/routes';
-import { show as showCard } from '@/routes/cards';
+import { create as createCard, show as showCard } from '@/routes/cards';
 import { store } from '@/routes/import';
 
 const props = defineProps<
@@ -71,6 +73,8 @@ const props = defineProps<
         proposals?: Record<number, App.Data.Reading.ProposalData>;
         /** What the files imported the last time say (a policy not linked), by the id of the file. */
         notices?: Record<number, string[]>;
+        /** The documents imported with *Create the card* the last time while other files failed (`41,42`), to create their card. */
+        cardDocuments?: string | null;
         /** The expense categories, with their path, to name the category of the expense. */
         expenseCategories?: App.Data.OptionData[];
         /** The accounts, to name the one the expense was paid with. */
@@ -197,6 +201,11 @@ const proposal = computed(() =>
     current.value && !leftOut.has(current.value.id)
         ? props.proposals?.[current.value.id]
         : undefined,
+);
+
+/** How many documents wait for their card, from `cardDocuments`. */
+const cardDocumentCount = computed(() =>
+    props.cardDocuments ? props.cardDocuments.split(',').length : 0,
 );
 
 /** What the files imported the last time say, one line each. */
@@ -503,6 +512,28 @@ function save(): void {
         </div>
 
         <FmNotice v-if="listError" tone="warning">{{ listError }}</FmNotice>
+        <FmNotice v-if="cardDocuments" tone="ok">
+            {{
+                $tChoice(
+                    '{1} The document is saved.|[2,*] The documents are saved.',
+                    cardDocumentCount,
+                )
+            }}
+            <template #action>
+                <FmSectionLink
+                    :href="
+                        createCard({ query: { document: cardDocuments } }).url
+                    "
+                >
+                    {{
+                        $tChoice(
+                            '{1} Create its card|[2,*] Create their card',
+                            cardDocumentCount,
+                        )
+                    }}
+                </FmSectionLink>
+            </template>
+        </FmNotice>
         <FmNotice v-if="notices.length > 0" tone="warning">
             <p v-for="notice in notices" :key="notice" class="m-0">
                 {{ notice }}

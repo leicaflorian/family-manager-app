@@ -381,6 +381,21 @@ test('a document of another family is 404', function (): void {
     $this->get(route('cards.create', ['card' => 'vehicle', 'document' => 'abc']))->assertNotFound();
 });
 
+test('New card links at most 50 documents, more is a 404', function (): void {
+    $this->actingAs($this->marco);
+    $ids = Document::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->count(51)->create()->pluck('id');
+
+    $this->get(route('cards.create', ['card' => 'vehicle', 'document' => $ids->take(50)->implode(',')]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('linked', 50));
+    $this->get(route('cards.create', ['card' => 'vehicle', 'document' => $ids->implode(',')]))->assertNotFound();
+});
+
+test('an empty document shows no document, without an error', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get('/cards/create?card=vehicle&document=')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('linked', []));
+});
+
 test('a change links and unlinks the documents when it is saved', function (): void {
     $this->actingAs($this->marco);
     $policy = insideBianchi(fn (): Document => Document::query()->where('title', 'Polizza RC auto 2026')->sole());

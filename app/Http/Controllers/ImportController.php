@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Reading\ImportFiles;
+use App\Cards\CardTypes;
 use App\Data\OptionData;
 use App\Data\PendingFileData;
 use App\Data\Reading\ImportChoices;
+use App\Data\Reading\ProposalData;
 use App\Enums\HealthEventType;
 use App\Http\Requests\Reading\ImportRequest;
 use App\Models\Document;
@@ -58,12 +60,19 @@ final class ImportController extends Controller
         $notices = $request->session()->get('import_notices', []);
         $check = $this->check($request->query('check'), $ordered);
         $locale = App::getLocale();
+        $offersCard = $this->offersCard($request);
+        $cards = $request->session()->get('import_cards');
 
         return Inertia::render('documents/Import', [
             'files' => PendingFileData::fromFiles($ordered),
-            'proposals' => Inertia::merge(fn (): array => $proposals->forPage($ordered, $check, $locale)),
+            'proposals' => Inertia::merge(fn (): array => array_map(
+                static fn (ProposalData $proposal): ProposalData => $offersCard ? $proposal : $proposal->withoutCreateCard(),
+                $proposals->forPage($ordered, $check, $locale),
+            )),
             'failures' => is_array($failures) ? $failures : [],
             'notices' => is_array($notices) ? $notices : [],
+            // The documents imported with *Create the card* while other files failed: the page offers their card
+            'cardDocuments' => is_string($cards) ? $cards : null,
             'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
             // The names the boxes of *What I do too* show for the expense: its category and the account it was paid with
             'expenseCategories' => BudgetFormOptions::categories(...),
@@ -79,7 +88,8 @@ final class ImportController extends Controller
      * creates through the import what the policies of each model do not let it create elsewhere). What fails stays
      * on the page, each file with its reason; with nothing left to check the person goes to *New card* with the
      * documents of the files imported with *Create the card* (`?document=1,2`), otherwise to the card the files come
-     * from (`?link=`), or to *Documents*. What the imported files say (a policy not linked) comes along as
+     * from (`?link=`), or to *Documents*. When some files fail, the documents saved for *Create the card* come back to
+     * the page as `import_cards`, which offers their card. What the imported files say (a policy not linked) comes along as
      * `import_notices`.
      */
     public function store(ImportRequest $request, ImportFiles $import): RedirectResponse
@@ -92,15 +102,32 @@ final class ImportController extends Controller
         ['failures' => $failures, 'notices' => $notices, 'cards' => $cards] = $import->handle($entries);
         $waiting = File::query()->toSort()->whereKey(array_keys($failures))->get()->map(fn (File $file): int => $file->id)->all();
         $card = PresetLink::from($request->query('link'));
+        $cards = $this->offersCard($request) && $cards !== [] ? implode(',', $cards) : null;
 
         $response = match (true) {
             $waiting !== [] => ImportPage::open($waiting, $request->query('link'))->with('import_failures', $failures),
-            $cards !== [] => to_route('cards.create', ['document' => implode(',', $cards)]),
+            $cards !== null => to_route('cards.create', ['document' => $cards]),
             $card !== null => to_route('cards.show', $card),
             default => to_route('documents.index'),
         };
 
+        // Back on the page with files that failed, the documents saved for *Create the card* are not lost
+        if ($waiting !== [] && $cards !== null) {
+            $response->with('import_cards', $cards);
+        }
+
         return $notices === [] ? $response : $response->with('import_notices', $notices);
+    }
+
+    /**
+     * Whether the import offers *Create the card*: only to whoever may create cards (an `admin`), and not when the
+     * files come from a card (`?link=`), whose documents are already linked to it.
+     *
+     * @param  Request  $request  the request, with the card the files come from
+     */
+    private function offersCard(Request $request): bool
+    {
+        return PresetLink::from($request->query('link')) === null && Gate::allows('create', CardTypes::all()[0]->model());
     }
 
     /**
