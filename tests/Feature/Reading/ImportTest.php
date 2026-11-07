@@ -403,4 +403,32 @@ describe('what each file does too', function (): void {
         $iren = Organization::query()->where('name', 'Iren')->sole();
         expect(Utility::query()->where('supply_point_code', '00881234567890')->sole()->organization_id)->toBe($iren->id);
     });
+
+    test('two files of the same new issuer confirmed together make one organization', function (): void {
+        $reading = ['kind' => 'invoice', 'title' => 'Caldaia', 'issuer_name' => 'Termoidraulica Rossi', 'total_amount' => 150, 'issue_date' => '2026-10-10'];
+        $first = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
+        $second = File::factory()->for($this->marco->family)->read([...$reading, 'total_amount' => 90, 'issue_date' => '2026-09-01'])->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($first), 'also' => ['records' => ['organization']]],
+            [...importEntry($second), 'also' => ['records' => ['organization']]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+        $rossi = Organization::query()->where('name', 'Termoidraulica Rossi')->sole();
+        expect(Document::query()->where('file_id', $second->id)->sole()->organization_id)->toBe($rossi->id);
+    });
+
+    test('the second file of an import links to the expense the first one created', function (): void {
+        $reading = ['kind' => 'receipt', 'title' => 'Cure dentistiche', 'organization_id' => $this->dentist->id, 'total_amount' => 150, 'issue_date' => '2026-10-10'];
+        $first = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
+        $second = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($first), 'also' => ['movement' => true, 'due' => false]],
+            [...importEntry($second), 'also' => ['movement' => true, 'due' => false]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+        $expense = Expense::query()->sole();
+        expect($expense->documents()->count())->toBe(2);
+    });
 });

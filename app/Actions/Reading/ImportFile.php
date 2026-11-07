@@ -102,7 +102,7 @@ final readonly class ImportFile
      * @param  File  $file  the file, waiting in *To sort*
      * @param  ImportChoices  $choices  what the person confirmed, the document fields validated
      * @param  list<PolicyGiverData>  $roundGivers  the other files confirmed with this one that give a policy
-     * @param  ProposalData|null  $checked  the proposal the request made with the same choices, without the other files
+     * @param  ProposalData|null  $checked  the proposal the request made with the same choices, without the other files; only while nothing was saved since
      * @return array{document: Document, movement: Expense|Income|PlannedExpense|null, event: ?HealthEvent, records: array<string, Model>, warnings: list<string>}
      *
      * @throws ValidationException if the file no longer waits, a ticked box misses what it needs, or a due date is already paid
@@ -112,7 +112,7 @@ final readonly class ImportFile
     {
         return CurrentFamily::using($file->family_id, fn (): array => DB::transaction(function () use ($file, $choices, $roundGivers, $checked): array {
             $waiting = File::query()->whereKey($file->id)->lockForUpdate()->value('to_sort');
-            if ($waiting !== true && $waiting !== 1) {
+            if (! (bool) $waiting) {
                 throw ValidationException::withMessages(['file_id' => __('This file was already filed.')]);
             }
 

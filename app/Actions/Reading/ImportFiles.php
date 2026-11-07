@@ -48,16 +48,22 @@ final readonly class ImportFiles
         $order = $this->policies->confirmOrder(array_keys($choices), static fn (int $id): bool => isset($givers[$id]));
         $failures = [];
         $notices = [];
+        $saved = false;
 
         foreach ($order as $id) {
             $round = array_values(array_filter($givers, static fn (int $giver): bool => $giver !== $id, ARRAY_FILTER_USE_KEY));
 
             try {
-                $warnings = $this->file($id, $choices[$id], $round, $checked[$id]);
+                // The request proposed every file before anything was saved: once a file is saved, the next ones
+                // propose again, so they find the organization, the cards and the expense it created
+                $warnings = $this->file($id, $choices[$id], $round, $saved ? null : $checked[$id]);
                 if ($warnings === null) {
                     $failures[$id] = __('This file was already filed.');
-                } elseif ($warnings !== []) {
-                    $notices[$id] = $warnings;
+                } else {
+                    $saved = true;
+                    if ($warnings !== []) {
+                        $notices[$id] = $warnings;
+                    }
                 }
             } catch (ValidationException $exception) {
                 $message = collect($exception->errors())->flatten()->first();
