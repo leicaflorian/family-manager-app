@@ -1,9 +1,16 @@
 <script setup lang="ts">
 /**
  * The password field with the eye to see it, as in the sign-in boards.
- * It is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`.
+ * It is a `<FormKit>`: it takes the classes of the fields from `formkit.config.ts`,
+ * so it has their measures (44 px high, corners of 10 px, border of 1.5 px that
+ * turns `action` with a ring in focus, error in `overdue` below).
  *
- * @group forms
+ * Rules: the eye is a 40 px button inside the box, at its right, and shows or
+ * hides the text; its name says what it will do (*Show the password* /
+ * *Hide the password*). Use `new-password` as `autocomplete` when the person
+ * chooses a password, `current-password` when they sign in.
+ *
+ * @group fields
  */
 import { Eye, EyeOff } from '@lucide/vue';
 import { ref } from 'vue';

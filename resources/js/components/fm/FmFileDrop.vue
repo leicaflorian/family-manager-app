@@ -4,7 +4,15 @@
  * HEIC, up to 25 MB each). It does not send them: it gives them to the page,
  * which uploads them (*Upload*) or keeps them for later (*New card*).
  *
- * @group forms
+ * Rules: the zone is a dashed box of 2 px; while a file is dragged over it the
+ * border turns `action` and the background `action-soft`. The large zone is at
+ * least 320 px high (an empty page), `compact` is a small one below a form.
+ * The input stays in the page for the keyboard and screen readers, hidden
+ * with `sr-only`, and is emptied after each choice so the same file can be
+ * chosen again. While the page sends the files `processing` shows
+ * *Uploading…*.
+ *
+ * @group fields
  */
 import { FolderOpen, Upload as UploadIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -72,9 +80,9 @@ function dropped(event: DragEvent): void {
 <template>
     <label
         :for="id"
-        class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-card-lg border-2 border-dashed bg-card text-center text-ink-soft transition-colors"
+        class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-card-lg border-2 border-dashed text-center text-ink-soft transition-colors"
         :class="[
-            dragging ? 'border-action bg-action-soft' : 'border-edge',
+            dragging ? 'border-action bg-action-soft' : 'border-edge bg-card',
             compact ? 'p-5' : 'min-h-[320px] p-8',
         ]"
         @dragover.prevent="dragging = true"

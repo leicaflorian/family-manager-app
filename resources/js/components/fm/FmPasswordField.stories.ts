@@ -6,7 +6,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import FmPasswordField from './FmPasswordField.vue';
 
 const meta = {
-    title: 'Forms/FmPasswordField',
+    title: 'Fields/FmPasswordField',
     component: FmPasswordField,
 } satisfies Meta<typeof FmPasswordField>;
 

@@ -69,4 +69,20 @@ describe('FmFileDrop', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('Uploading…')).toBeInTheDocument();
     });
+
+    it('turns the box blue while a file is over it, and back when it leaves', async () => {
+        render(FmFileDrop);
+        const zone = screen
+            .getByLabelText('Choose the files')
+            .closest('label') as HTMLElement;
+
+        await fireEvent.dragOver(zone);
+        expect(zone).toHaveClass('border-action', 'bg-action-soft');
+        // Only one background: two would fight, and the order of the stylesheet would win
+        expect(zone).not.toHaveClass('bg-card');
+
+        await fireEvent.dragLeave(zone);
+        expect(zone).toHaveClass('border-edge', 'bg-card');
+        expect(zone).not.toHaveClass('bg-action-soft');
+    });
 });

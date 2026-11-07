@@ -15,6 +15,7 @@ export const groups = [
     'forms',
     'figures',
     'files',
+    'fields',
     'sections',
 ] as const;
 
@@ -43,6 +44,8 @@ export function groupLabel(group: Group): string {
             return trans('Figures');
         case 'files':
             return trans('Files');
+        case 'fields':
+            return trans('Fields');
         case 'sections':
             return trans('Page sections');
     }

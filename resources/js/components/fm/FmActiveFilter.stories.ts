@@ -6,7 +6,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import FmActiveFilter from './FmActiveFilter.vue';
 
 const meta = {
-    title: 'Rows/FmActiveFilter',
+    title: 'Fields/FmActiveFilter',
     component: FmActiveFilter,
 } satisfies Meta<typeof FmActiveFilter>;
 
