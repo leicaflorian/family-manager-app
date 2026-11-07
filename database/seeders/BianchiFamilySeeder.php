@@ -725,7 +725,7 @@ final class BianchiFamilySeeder extends Seeder
     }
 
     /**
-     * The files in *To sort*: three already read, as the reading leaves them, and a copy of the file of a document.
+     * The files in *To sort*: six already read, as the reading leaves them, and a copy of the file of a document.
      * The readings are written by hand, with no call to the service.
      */
     private function createFilesToSort(): void
@@ -751,13 +751,13 @@ final class BianchiFamilySeeder extends Seeder
         );
         $this->reading(
             $this->file('fattura-studio-ferri.pdf', toSort: true, note: $uploaded('Laura')),
-            new Extraction(kind: 'invoice', issuer_name: 'Studio Ferri', organization_id: $ferri->id, total_amount: 120.0, issue_date: '2026-10-28', person_id: $this->people['Giulia']->id, confidence: 'high'),
+            new Extraction(kind: 'medical', issuer_name: 'Studio Ferri', organization_id: $ferri->id, total_amount: 120.0, issue_date: '2026-10-22', person_id: $this->people['Giulia']->id, health_type: 'visit', next_checkup_date: '2027-04-22', confidence: 'high'),
             new DocumentProposalData(
                 title: __('Invoice :issuer :month :year', ['issuer' => 'Studio Ferri', 'month' => 'ottobre', 'year' => '2026']),
                 category_id: $this->category('Salute')->id,
                 person_id: $this->people['Giulia']->id,
                 organization_id: $ferri->id,
-                date: '2026-10-28',
+                date: '2026-10-22',
                 expiry_date: null,
                 links: [],
                 headline: __('I found an invoice'),
@@ -780,6 +780,21 @@ final class BianchiFamilySeeder extends Seeder
             ),
         );
 
+        $school = $this->organizations['Scuola Passo a Due'];
+        $unipol = $this->organizations['UnipolSai'];
+        $this->reading(
+            $this->file('ricevuta-pagamento-scuola.pdf', toSort: true, note: $uploaded('Laura')),
+            new Extraction(kind: 'payment_receipt', issuer_name: 'Scuola Passo a Due', organization_id: $school->id, total_amount: 60.0, fee_amount: 1.5, issue_date: '2026-10-30', confidence: 'high'),
+        );
+        $this->reading(
+            $this->file('contratto-unipolsai.pdf', toSort: true, note: $uploaded('Marco')),
+            new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, insurance_type: 'car', policy_number: '40/123456', plate_number: 'GH 482 TK', contract_start_date: '2026-11-21', expiry_date: '2027-11-21', confidence: 'high'),
+        );
+        $this->reading(
+            $this->file('set-informativo-unipolsai.pdf', toSort: true, note: $uploaded('Marco')),
+            new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, insurance_type: 'car', policy_number: '40/123456', plate_number: 'GH 482 TK', confidence: 'medium'),
+        );
+
         // The same file as the October bill, which is the file of a document: the page tells it is a copy
         $this->file('bolletta-luce-ottobre.pdf', toSort: true, note: $uploaded('Laura'));
     }
@@ -789,13 +804,13 @@ final class BianchiFamilySeeder extends Seeder
      *
      * @param  File  $file  the file in *To sort*
      * @param  Extraction  $extraction  what the model would have read
-     * @param  DocumentProposalData  $proposal  what the form is filled with
+     * @param  DocumentProposalData|null  $proposal  what the form is filled with; none, the page proposes from the extraction
      */
-    private function reading(File $file, Extraction $extraction, DocumentProposalData $proposal): void
+    private function reading(File $file, Extraction $extraction, ?DocumentProposalData $proposal = null): void
     {
         $file->forceFill([
             'reading_status' => ReadingStatus::Done,
-            'reading' => ['extraction' => $extraction->toArray(), 'proposal' => $proposal->toArray(), 'provider' => 'gemini', 'model' => 'gemini-3.8-flash', 'read_at' => '2026-10-29T10:00:00+01:00'],
+            'reading' => ['extraction' => $extraction->toArray(), ...($proposal === null ? [] : ['proposal' => $proposal->toArray()]), 'provider' => 'gemini', 'model' => 'gemini-3.8-flash', 'read_at' => '2026-10-29T10:00:00+01:00'],
         ])->save();
     }
 

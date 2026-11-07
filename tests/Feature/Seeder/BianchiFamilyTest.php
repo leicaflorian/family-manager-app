@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Actions\Reading\ImportFiles;
 use App\Data\PendingFileData;
+use App\Data\Reading\ImportChoices;
 use App\Enums\FinancialAccountType;
 use App\Enums\MaintenanceType;
 use App\Enums\ReadingStatus;
@@ -30,6 +32,7 @@ use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Deadlines;
+use App\Services\Reading\Proposal;
 use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use Carbon\CarbonImmutable;
@@ -305,9 +308,9 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
         $pending = collect(PendingFileData::waiting())->keyBy('name');
 
         expect(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->count())->toBe(1)
-            ->and($pending->keys()->sort()->values()->all())->toBe(['Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'fattura-studio-ferri.pdf'])
-            ->and(File::query()->toSort()->where('reading_status', ReadingStatus::Done)->count())->toBe(3)
-            ->and(File::query()->toSort()->notCopies()->count())->toBe(3)
+            ->and($pending->keys()->sort()->values()->all())->toBe(['Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'contratto-unipolsai.pdf', 'fattura-studio-ferri.pdf', 'ricevuta-pagamento-scuola.pdf', 'set-informativo-unipolsai.pdf'])
+            ->and(File::query()->toSort()->where('reading_status', ReadingStatus::Done)->count())->toBe(6)
+            ->and(File::query()->toSort()->notCopies()->count())->toBe(6)
             ->and($pending['bolletta-luce-ottobre.pdf']->copy_of)->toBe('bolletta-luce-ottobre.pdf')
             ->and($pending['bolletta-luce-ottobre.pdf']->reading_status)->toBeNull();
 
@@ -322,6 +325,25 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
             ->and($warranty?->title)->not->toBeEmpty()
             ->and($pending['Garanzia lavatrice.jpg']->note)->toContain('Marco');
         Storage::disk('local')->assertExists(File::query()->where('original_name', 'Garanzia lavatrice.jpg')->sole()->path);
+    });
+});
+
+test('the seeded files to sort can be imported', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $files = File::query()->toSort()->notCopies()->where('reading_status', ReadingStatus::Done)->orderBy('id')->get();
+        $proposals = resolve(Proposal::class);
+
+        foreach ($files as $file) {
+            expect($proposals->for($file, ImportChoices::fromArray([]), [], 'it')->warnings)->toBe([], $file->original_name);
+        }
+
+        $result = resolve(ImportFiles::class)->handle($files->map(fn (File $file): array => ['file_id' => $file->id, 'choices' => ImportChoices::fromArray([])])->all());
+
+        expect($result['failures'])->toBe([])
+            ->and(File::query()->whereIn('id', $files->modelKeys())->where('to_sort', true)->count())->toBe(0)
+            ->and(Document::query()->whereIn('file_id', $files->modelKeys())->count())->toBe(6);
     });
 });
 
