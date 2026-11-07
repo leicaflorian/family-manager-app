@@ -6,6 +6,9 @@
  * Every section uses it, so the links beside the titles look the same on
  * every page.
  *
+ * Use it instead of `FmButton` for the action beside a section title, or any
+ * secondary action that reads as a link. The action of a page is a `FmButton`.
+ *
  * @group navigation
  */
 import type { LucideIcon } from '@lucide/vue';

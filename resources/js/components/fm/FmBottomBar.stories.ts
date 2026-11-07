@@ -34,3 +34,9 @@ export const MoreIsMarked: Story = {
     name: 'More is marked',
     args: { items, active: 'family' },
 };
+
+/** The + of Upload: 60 px, with the `fab` shadow, rising over the bar. */
+export const UploadButton: Story = {
+    name: 'Upload button',
+    args: { items, active: 'home' },
+};

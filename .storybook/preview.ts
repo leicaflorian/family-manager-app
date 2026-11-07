@@ -14,7 +14,15 @@ import { i18nOptions } from '../resources/js/lib/i18n';
 import type { InertiaConfig } from '@inertiajs/core';
 import { blockVisits } from '../resources/js/stories/blockVisits';
 import { setStoryPage } from '../resources/js/stories/inertia';
+import { parseDoc } from '../resources/js/stories/doc';
 import '../resources/css/app.css';
+
+// The source of every component: the description of the Docs page is its TSDoc.
+// vue-component-meta does not read the comment of a `<script setup>`
+const sources: Record<string, string> = import.meta.glob(
+    '../resources/js/components/fm/*.vue',
+    { eager: true, query: '?raw', import: 'default' },
+);
 
 /** The language a story opens in. */
 const defaultLocale = 'it';
@@ -59,7 +67,25 @@ const withApp: Decorator = (story, context) => {
     return story();
 };
 
+/**
+ * The text of the Docs page of a component: the TSDoc at the top of its
+ * `<script setup>`, with the rules of use.
+ *
+ * @param component - The component of the story, which knows its file name.
+ * @returns The description in Markdown, or '' for a component without one.
+ */
+function describeComponent(component: unknown): string {
+    const name = (component as { __name?: string } | undefined)?.__name;
+    const source = Object.entries(sources).find(([path]) =>
+        path.endsWith(`/${name}.vue`),
+    );
+
+    return source ? parseDoc(source[1]).description : '';
+}
+
 const preview: Preview = {
+    // A Docs page for every component: its TSDoc (the rules of use), props and stories
+    tags: ['autodocs'],
     globalTypes: {
         locale: {
             description: 'Language of the texts',
@@ -74,6 +100,7 @@ const preview: Preview = {
             },
         },
     },
+    parameters: { docs: { extractComponentDescription: describeComponent } },
     initialGlobals: { locale: defaultLocale },
     decorators: [
         withThemeByClassName({

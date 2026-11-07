@@ -3,6 +3,7 @@
  * compact (only the bin) and with another name.
  */
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
+import { userEvent, within } from 'storybook/test';
 import FmDeleteButton from './FmDeleteButton.vue';
 
 const asks = {
@@ -21,6 +22,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+/** Closed, as the page shows it: the panel opens with the tap. */
 export const WithTheText: Story = {
     name: 'With the text',
     args: asks,
@@ -33,4 +35,13 @@ export const Compact: Story = {
 export const WithAnotherName: Story = {
     name: 'With another name',
     args: { ...asks, label: 'Delete the copy', compact: true },
+};
+
+/** The panel that asks again, opened as the person does: tapping *Delete*. */
+export const AskingToConfirm: Story = {
+    name: 'Asking to confirm',
+    args: asks,
+    play: async ({ canvasElement }) => {
+        await userEvent.click(within(canvasElement).getByRole('button'));
+    },
 };

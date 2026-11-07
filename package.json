@@ -53,6 +53,7 @@
         "concurrently": "^10.0.3",
         "jsdom": "^29.1.1",
         "storybook": "10.6.3",
+        "storybook-addon-pseudo-states": "10.6.3",
         "typescript": "^5.2.2",
         "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
         "vite-plus": "1.4.0",

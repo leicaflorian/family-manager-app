@@ -41,6 +41,7 @@ const config: StorybookConfig = {
         '@storybook/addon-themes',
         '@storybook/addon-a11y',
         '@storybook/addon-docs',
+        'storybook-addon-pseudo-states',
     ],
     async viteFinal(viteConfig) {
         return mergeConfig(

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 /**
- * The button of the canvas, in five variants. Only one solid button per page:
- * the one done most often. With `href` it becomes an Inertia link.
+ * The button of the canvas, in five variants. With `href` it becomes an Inertia link.
+ *
+ * Rules of use:
+ * - Only one solid button per page: the one done most often.
+ * - Red only to delete, and it asks first: use `FmDeleteButton`.
+ * - Icon only: always with `label`, which screen readers say.
+ * - The text is a verb, informal (*Save*, *Choose a file*).
+ * - Size: 44 px; 52 px in the panels from below.
  *
  * @group basics
  */
