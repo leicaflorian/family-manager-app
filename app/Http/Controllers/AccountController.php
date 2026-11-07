@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\Account\ChangePhoto;
 use App\Actions\Account\UpdateAccount;
 use App\Data\AccountData;
+use App\Data\OptionData;
 use App\Enums\Theme;
 use App\Http\Requests\Settings\ChangePasswordRequest;
 use App\Http\Requests\Settings\DeleteAccountRequest;
@@ -33,7 +34,11 @@ final class AccountController extends Controller
      */
     public function edit(#[CurrentUser] User $user): Response
     {
-        return Inertia::render('settings/Account', ['account' => AccountData::fromUser($user)]);
+        return Inertia::render('settings/Account', [
+            'account' => AccountData::fromUser($user),
+            'theme' => $user->theme,
+            'themes' => OptionData::list(Theme::options()),
+        ]);
     }
 
     /**

@@ -1,14 +1,14 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
-import { account } from '@/test/fixtures';
+import { account, themes } from '@/test/fixtures';
 import { pressSave, renderPage, settle } from '@/test/page';
 import Account from './Account.vue';
 import { answerLeave, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
 
 describe('My account', () => {
     it('shows first name, last name and email to change, and the photo', () => {
-        renderPage(Account, { account });
+        renderPage(Account, { account, theme: 'system', themes });
 
         expect(screen.getByLabelText('First name')).toHaveValue('Marco');
         expect(screen.getByLabelText('Last name')).toHaveValue('Bianchi');
@@ -27,7 +27,7 @@ describe('My account', () => {
     });
 
     it('changes the password in the panel, with the current one', async () => {
-        renderPage(Account, { account });
+        renderPage(Account, { account, theme: 'system', themes });
 
         await fireEvent.click(screen.getByRole('button', { name: /Password/ }));
 
@@ -41,7 +41,7 @@ describe('My account', () => {
     });
 
     it('tells the last admin why they cannot delete themselves', () => {
-        renderPage(Account, { account });
+        renderPage(Account, { account, theme: 'system', themes });
 
         expect(
             screen.queryByRole('button', { name: 'Delete my account' }),
@@ -53,6 +53,8 @@ describe('My account', () => {
 
     it('lets the others delete their account with the password', async () => {
         renderPage(Account, {
+            theme: 'system',
+            themes,
             account: {
                 ...account,
                 role: 'Family member',
@@ -79,7 +81,7 @@ describe('My account', () => {
 
     it('saves first name, last name and email with ⌘S too', () => {
         const patch = vi.spyOn(router, 'patch').mockImplementation(() => {});
-        renderPage(Account, { account });
+        renderPage(Account, { account, theme: 'system', themes });
 
         pressSave();
 
@@ -89,7 +91,7 @@ describe('My account', () => {
 
 describe('Changes not saved', () => {
     it('has them once a detail changes', async () => {
-        renderPage(Account, { account });
+        renderPage(Account, { account, theme: 'system', themes });
         expect(hasChanges()).toBe(false);
 
         await fireEvent.update(
@@ -102,7 +104,7 @@ describe('Changes not saved', () => {
     });
 
     it('asks before closing the password panel with the × once something is written', async () => {
-        renderPage(Account, { account });
+        renderPage(Account, { account, theme: 'system', themes });
         await fireEvent.click(screen.getByRole('button', { name: /Password/ }));
         await fireEvent.update(
             await screen.findByLabelText('Current password'),
@@ -114,5 +116,58 @@ describe('Changes not saved', () => {
 
         expect(leaveQuestion.open).toBe(true);
         answerLeave(false);
+    });
+});
+
+describe('Theme', () => {
+    const props = { account, theme: 'system', themes };
+
+    it('shows Theme with Automatic, Light and Dark, on the current one', () => {
+        renderPage(Account, { ...props, theme: 'light' });
+
+        expect(
+            screen.getByRole('heading', { name: 'Theme', level: 2 }),
+        ).toBeInTheDocument();
+        for (const label of ['Automatic', 'Light', 'Dark']) {
+            expect(
+                screen.getByRole('button', { name: label }),
+            ).toBeInTheDocument();
+        }
+        expect(screen.getByRole('button', { name: 'Light' })).toHaveAttribute(
+            'aria-pressed',
+            'true',
+        );
+        expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute(
+            'aria-pressed',
+            'false',
+        );
+        expect(
+            screen.getByText(/Automatic follows your phone or computer/),
+        ).toBeInTheDocument();
+    });
+
+    it('saves the theme as soon as I choose it', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Account, props);
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
+        await settle();
+
+        expect(put).toHaveBeenCalledWith(
+            '/settings/account/theme',
+            { theme: 'dark' },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('does not count the theme as an unsaved change of the profile', async () => {
+        vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Account, props);
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
+        await settle();
+
+        expect(hasChanges()).toBe(false);
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
     });
 });

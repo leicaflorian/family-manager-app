@@ -1178,5 +1178,7 @@
     "{1} Check it, then import it.|[2,*] Check them one by one, then import them together.": "{1} Controllalo, poi importalo.|[2,*] Controllali uno per uno, poi importali insieme.",
     "File :current of :total": "File :current di :total",
     "Next file": "Successivo",
-    "Previous file": "Prima"
+    "Previous file": "Prima",
+    "Theme": "Tema",
+    "Automatic follows your phone or computer. The choice applies on all your devices.": "Automatico segue il telefono o il computer. La scelta vale su tutti i tuoi dispositivi."
 }

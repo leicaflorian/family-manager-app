@@ -19,13 +19,35 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { logout, settings } from '@/routes';
-import { destroy, password, photo, update } from '@/routes/account';
+import {
+    destroy,
+    password,
+    photo,
+    theme as saveTheme,
+    update,
+} from '@/routes/account';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
-const { account } = defineProps<{
+const { account, theme } = defineProps<{
     /** My account. */
     account: App.Data.AccountData;
+    /** The theme of the account: `system`, `light` or `dark`. */
+    theme: App.Enums.Theme;
+    /** The themes to choose from, with their labels. */
+    themes: App.Data.OptionData[];
 }>();
+
+/**
+ * Saves the theme as soon as it is chosen. It is not part of the profile form, so it
+ * never counts as a change not saved: the page takes the new theme from the shared prop.
+ *
+ * @param value - the theme chosen
+ */
+function chooseTheme(value: unknown): void {
+    if (value !== theme && typeof value === 'string') {
+        router.put(saveTheme().url, { theme: value }, { preserveScroll: true });
+    }
+}
 
 const details = useForm({
     first_name: account.first_name,
@@ -179,6 +201,25 @@ function deleteAccount(): void {
                 </div>
             </FmCard>
         </form>
+
+        <section class="flex flex-col gap-2">
+            <h2 class="m-0 text-[17px] font-bold">{{ $t('Theme') }}</h2>
+            <FormKit
+                type="togglebuttons"
+                enforced
+                :model-value="theme"
+                :options="themes"
+                name="theme"
+                @input="chooseTheme"
+            />
+            <p class="m-0 text-sm text-ink-soft">
+                {{
+                    $t(
+                        'Automatic follows your phone or computer. The choice applies on all your devices.',
+                    )
+                }}
+            </p>
+        </section>
 
         <FmCard :title="$t('Access')" list>
             <FmRow
