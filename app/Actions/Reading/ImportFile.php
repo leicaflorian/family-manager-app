@@ -64,12 +64,16 @@ use Throwable;
  * the policies of each model.
  *
  * The file is locked and read again first: one no longer waiting is refused, so the action is safe also when called
- * alone.
+ * alone. The proposal passed by the caller was made before that lock: two imports at the same time of two different
+ * files of the same new issuer may both create the organization (a known, small window).
  */
 final readonly class ImportFile
 {
     /** The cards a new expense or planned expense refers to, in the order the first is taken from the document. */
     private const array MOVEMENT_CARDS = ['utility', 'insurance_policy', 'vehicle', 'subscription'];
+
+    /** The columns of an expense its commitment fills when they are empty ({@see PlannedKind::paymentColumns()}). */
+    private const array PLANNED_GIVES = ['organization_id', 'financial_account_id', 'person_id', 'category_id', 'card_type', 'card_id'];
 
     /**
      * @param  Proposal  $proposals  what the file does
@@ -159,8 +163,8 @@ final readonly class ImportFile
     }
 
     /**
-     * The policy a paper without a number takes from another file or from those registered: a new one only when the
-     * file that creates it was saved before.
+     * The policy a paper without a number takes from another file or from those registered: a registered one by its
+     * id (`policy:<id>`); a new one by its number, only when the file that creates it was saved before.
      *
      * @param  PolicyGiverData|null  $giver  the giver the proposal chose, before anything was saved
      * @return array{?InsurancePolicy, list<string>} the policy and, when it is not there, why
@@ -262,13 +266,14 @@ final readonly class ImportFile
 
     /**
      * The movement already recorded, or picked by hand: it takes the document and, for an expense, what the file
-     * changes on it.
+     * changes on it. A commitment taken pays the due date the day of the expense falls on.
      *
      * @param  File  $file  the file
      * @param  MovementProposalData  $proposed  the movement side
      * @param  Document  $document  the document
      *
      * @throws ModelNotFoundException if it is no longer there
+     * @throws ValidationException if the due date of the commitment was paid in the meantime
      */
     private function linked(File $file, MovementProposalData $proposed, Document $document): Expense|Income
     {
@@ -276,14 +281,26 @@ final readonly class ImportFile
         $movement = $proposed->values->kind === 'income' ? Income::query()->findOrFail($id) : Expense::query()->findOrFail($id);
         $movement->documents()->syncWithoutDetaching([$document->id]);
 
-        if ($movement instanceof Expense) {
-            $changes = $this->expenseChanges->of($movement, $proposed->values, Extraction::ofFile($file), ReadingContext::for($file));
-            if ($changes['data'] !== []) {
-                $movement->update($changes['data']);
-            }
+        if (! $movement instanceof Expense) {
+            return $movement;
         }
 
-        return $movement;
+        $data = $this->expenseChanges->of($movement, $proposed->values, Extraction::ofFile($file), ReadingContext::for($file))['data'];
+        if (! array_key_exists('planned_expense_id', $data)) {
+            if ($data !== []) {
+                $movement->update($data);
+            }
+
+            return $movement;
+        }
+
+        // The commitment goes through SaveMovement: it locks it, names the due date the day of the expense pays
+        // (`occurrence_date`) and refuses one paid since the proposal. Its fill of the empty columns from the commitment
+        // must not touch what the expense already has, so those are sent as they are.
+        $columns = [...$movement->only(self::PLANNED_GIVES), ...$data, 'planned_id' => $data['planned_expense_id']];
+        unset($columns['planned_expense_id']);
+
+        return $this->saveMovement->handle('expense', $columns, $movement);
     }
 
     /**

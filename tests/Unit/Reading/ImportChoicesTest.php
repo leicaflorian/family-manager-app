@@ -26,6 +26,13 @@ describe('cleanOverrides', function (): void {
             ->and(ImportChoices::fromArray(['overrides' => ['movement' => ['fee_amount' => -1, 'amount' => '84.204']]])->movementOverrides('expense'))->toBe(['amount' => 84.2]);
     });
 
+    test('an amount below zero or above the bound of the forms, or a text longer than 255, is dropped', function (): void {
+        expect(ImportChoices::fromArray(['overrides' => ['movement' => ['amount' => -5, 'title' => str_repeat('a', 256)]]])->movementOverrides('expense'))->toBe([])
+            ->and(ImportChoices::fromArray(['overrides' => ['movement' => ['amount' => 100000000]]])->movementOverrides('expense'))->toBe([])
+            ->and(ImportChoices::fromArray(['overrides' => ['movement' => ['amount' => 99999999, 'title' => str_repeat('a', 255)]]])->movementOverrides('expense'))
+            ->toBe(['title' => str_repeat('a', 255), 'amount' => 99999999.0]);
+    });
+
     test('an event type emptied leaves the read one; an unknown type is ignored', function (): void {
         expect(ImportChoices::fromArray(['overrides' => ['event' => ['type' => '', 'outcome' => '', 'next_checkup_date' => '2027-04-22']]])->overrides['event'])
             ->toBe(['outcome' => null, 'next_checkup_date' => '2027-04-22'])

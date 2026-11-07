@@ -65,7 +65,8 @@ final class PolicyFromOtherFiles
 
     /**
      * The giver of a paper looking at the files of the same import first and, only when none of them fits, at the
-     * registered policies; a `policy:` key picked by hand goes straight to the registered ones.
+     * registered policies; a `policy:` key picked by hand is looked for among both (a file may give a registered
+     * policy too).
      *
      * @param  array{organizationId: ?int, organizationName: ?string, personId: ?int, type: ?string}  $need
      * @param  list<PolicyGiverData>  $fileGivers
@@ -77,7 +78,11 @@ final class PolicyFromOtherFiles
             return null;
         }
 
-        if (! str_starts_with($choice, 'policy:') && $this->matching($need, $fileGivers) !== []) {
+        if (str_starts_with($choice, 'policy:')) {
+            return $this->chosen($need, [...$fileGivers, ...$this->registered()], $choice);
+        }
+
+        if ($this->matching($need, $fileGivers) !== []) {
             return $this->chosen($need, $fileGivers, $choice);
         }
 
@@ -86,8 +91,9 @@ final class PolicyFromOtherFiles
 
     /**
      * The policy a file of the import gives to the papers without a number (`giverOf` of the old page): the new
-     * policy it creates, ticked and with its number; the one picked by hand; or the one it found by its number.
-     * The company and the person are those of its document.
+     * policy it creates, ticked and with its number (key `file:<id>`); the one picked by hand, or the one it found by
+     * its number (key `policy:<id>`, so the import links it by id). The company and the person are those of its
+     * document.
      *
      * @param  File  $file  the file
      * @param  ProposalData  $proposal  its proposal, with the choices of the person
@@ -98,8 +104,13 @@ final class PolicyFromOtherFiles
         $x = Extraction::ofFile($file);
         $draft = array_find($proposal->records, static fn (RecordDraftData $record): bool => $record->kind === RecordKind::Policy);
 
+        // A policy already registered is carried by its id: one picked by hand may have no number to find it by
+        $policyId = null;
         if ($draft instanceof RecordDraftData && $draft->existing !== null) {
-            [$number, $creates, $type] = [$draft->existing['title'], false, $x->insurance_type];
+            $policyId = $draft->existing['id'];
+            $registered = InsurancePolicy::query()->find($policyId)?->policy_number;
+            $number = is_string($registered) && $registered !== '' ? $registered : $draft->existing['title'];
+            [$creates, $type] = [false, $x->insurance_type];
         } elseif ($draft instanceof RecordDraftData) {
             $number = $draft->values['policy_number'] ?? null;
             if (! in_array(RecordKind::Policy, $choices->records, true) || ! is_string($number) || $number === '') {
@@ -108,17 +119,17 @@ final class PolicyFromOtherFiles
             $type = $draft->values['type'] ?? null;
             [$creates, $type] = [true, is_string($type) ? $type : null];
         } else {
-            $found = array_filter($proposal->document->links, static fn (array $link): bool => $link['type'] === 'insurance_policy') !== [];
-            if (! $found || $x->policy_number === null || $x->policy_number === '') {
+            $found = array_find($proposal->document->links, static fn (array $link): bool => $link['type'] === 'insurance_policy');
+            if ($found === null || $x->policy_number === null || $x->policy_number === '') {
                 return null;
             }
-            [$number, $creates, $type] = [$x->policy_number, false, $x->insurance_type];
+            [$policyId, $number, $creates, $type] = [$found['id'], $x->policy_number, false, $x->insurance_type];
         }
 
         $organizationId = $this->documentId($choices, 'organization_id', $proposal->document->organization_id);
 
         return new PolicyGiverData(
-            key: 'file:'.$file->id,
+            key: $policyId === null ? 'file:'.$file->id : 'policy:'.$policyId,
             fileName: $file->original_name,
             number: $number,
             creates: $creates,

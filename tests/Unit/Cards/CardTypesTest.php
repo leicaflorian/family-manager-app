@@ -10,11 +10,13 @@ use App\Cards\FieldKind;
 use App\Enums\Area;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\NoticeTone;
+use App\Enums\Role;
 use App\Enums\UtilityType;
 use App\Models\FinancialAccount;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\MaintenanceRecord;
+use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -60,6 +62,15 @@ function cardField(string $type, string $column): ?CardField
 {
     return collect(cardType($type)->fields())->first(fn (CardField $field): bool => $field->column === $column);
 }
+
+test('only an admin may create cards; no one signed in may not', function (): void {
+    $marco = registerFamily();
+    $laura = User::factory()->for($marco->family)->create(['role' => Role::Member]);
+
+    expect(CardTypes::canCreate($marco))->toBeTrue()
+        ->and(CardTypes::canCreate($laura))->toBeFalse()
+        ->and(CardTypes::canCreate(null))->toBeFalse();
+});
 
 test('it has the 13 card types in the areas of the canvas', function (): void {
     $types = fn (Area $area): array => array_map(fn (CardType $card): string => $card->type(), CardTypes::of($area));

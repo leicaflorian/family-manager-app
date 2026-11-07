@@ -315,15 +315,19 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
             ->and($pending['bolletta-luce-ottobre.pdf']->reading_status)->toBeNull();
 
         $bill = $pending['bolletta-edison-novembre.pdf']->proposal;
-        $invoice = $pending['fattura-studio-ferri.pdf']->proposal;
         $warranty = $pending['Garanzia lavatrice.jpg']->proposal;
 
         expect($bill?->organization_id)->toBe(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole()->organization_id)
             ->and($bill?->links)->toEqual([['type' => 'utility', 'id' => Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole()->id]])
             ->and($bill?->headline)->toBe('Ho trovato una bolletta della luce')
-            ->and($invoice?->person_id)->toBe(Person::query()->where('first_name', 'Giulia')->sole()->id)
+            // The visit of Studio Ferri has no stored proposal: the page proposes from the reading, a medical paper
+            ->and($pending['fattura-studio-ferri.pdf']->proposal)->toBeNull()
             ->and($warranty?->title)->not->toBeEmpty()
             ->and($pending['Garanzia lavatrice.jpg']->note)->toContain('Marco');
+
+        $visit = resolve(Proposal::class)->for(File::query()->where('original_name', 'fattura-studio-ferri.pdf')->sole(), ImportChoices::fromArray([]), [], 'it');
+        expect($visit->document->person_id)->toBe(Person::query()->where('first_name', 'Giulia')->sole()->id)
+            ->and($visit->document->headline)->not->toBe('Ho trovato una fattura');
         Storage::disk('local')->assertExists(File::query()->where('original_name', 'Garanzia lavatrice.jpg')->sole()->path);
     });
 });

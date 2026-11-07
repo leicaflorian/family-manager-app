@@ -726,7 +726,8 @@ final class BianchiFamilySeeder extends Seeder
 
     /**
      * The files in *To sort*: six already read, as the reading leaves them, and a copy of the file of a document.
-     * The readings are written by hand, with no call to the service.
+     * The readings are written by hand, with no call to the service; the ones without a stored proposal are proposed
+     * by the page from the reading.
      */
     private function createFilesToSort(): void
     {
@@ -751,18 +752,8 @@ final class BianchiFamilySeeder extends Seeder
         );
         $this->reading(
             $this->file('fattura-studio-ferri.pdf', toSort: true, note: $uploaded('Laura')),
+            // No stored proposal: the page proposes from the reading, so the paper is the medical one it reads
             new Extraction(kind: 'medical', issuer_name: 'Studio Ferri', organization_id: $ferri->id, total_amount: 120.0, issue_date: '2026-10-22', person_id: $this->people['Giulia']->id, health_type: 'visit', next_checkup_date: '2027-04-22', confidence: 'high'),
-            new DocumentProposalData(
-                title: __('Invoice :issuer :month :year', ['issuer' => 'Studio Ferri', 'month' => 'ottobre', 'year' => '2026']),
-                category_id: $this->category('Salute')->id,
-                person_id: $this->people['Giulia']->id,
-                organization_id: $ferri->id,
-                date: '2026-10-22',
-                expiry_date: null,
-                links: [],
-                headline: __('I found an invoice'),
-                found: [new FoundLineData(__('Who sent it'), 'Studio Ferri'), new FoundLineData(__('How much'), '120,00 €')],
-            ),
         );
         $this->reading(
             $this->file('garanzia-lavatrice.jpg', 'Garanzia lavatrice.jpg', toSort: true, note: $uploaded('Marco')),
@@ -788,11 +779,11 @@ final class BianchiFamilySeeder extends Seeder
         );
         $this->reading(
             $this->file('contratto-unipolsai.pdf', toSort: true, note: $uploaded('Marco')),
-            new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, insurance_type: 'car', policy_number: '40/123456', plate_number: 'GH 482 TK', contract_start_date: '2026-11-21', expiry_date: '2027-11-21', confidence: 'high'),
+            new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, expiry_date: '2027-11-21', policy_number: '40/123456', plate_number: 'GH 482 TK', insurance_type: 'car', contract_start_date: '2026-11-21', confidence: 'high'),
         );
         $this->reading(
             $this->file('set-informativo-unipolsai.pdf', toSort: true, note: $uploaded('Marco')),
-            new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, insurance_type: 'car', policy_number: '40/123456', plate_number: 'GH 482 TK', confidence: 'medium'),
+            new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, policy_number: '40/123456', plate_number: 'GH 482 TK', insurance_type: 'car', confidence: 'medium'),
         );
 
         // The same file as the October bill, which is the file of a document: the page tells it is a copy
@@ -810,7 +801,7 @@ final class BianchiFamilySeeder extends Seeder
     {
         $file->forceFill([
             'reading_status' => ReadingStatus::Done,
-            'reading' => ['extraction' => $extraction->toArray(), ...($proposal === null ? [] : ['proposal' => $proposal->toArray()]), 'provider' => 'gemini', 'model' => 'gemini-3.8-flash', 'read_at' => '2026-10-29T10:00:00+01:00'],
+            'reading' => ['extraction' => $extraction->toArray(), ...($proposal instanceof DocumentProposalData ? ['proposal' => $proposal->toArray()] : []), 'provider' => 'gemini', 'model' => 'gemini-3.8-flash', 'read_at' => '2026-10-29T10:00:00+01:00'],
         ])->save();
     }
 

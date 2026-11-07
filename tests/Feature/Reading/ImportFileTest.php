@@ -30,6 +30,8 @@ use App\Models\PlannedExpenseException;
 use App\Models\Reminder;
 use App\Models\Utility;
 use App\Models\Vehicle;
+use App\Services\Deadlines;
+use App\Services\Reading\Proposal;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -220,6 +222,48 @@ describe('Da pagare: the bill of a recurring commitment', function (): void {
         importReadFile(readWaitingFile([...$this->bill, 'due_date' => '2026-11-10']));
 
         expect(luceExceptions())->toBe([['amount_override', '2026-11-10', '151.44']]);
+    });
+
+    test('the bill linked to an expense recorded by hand pays the due date of the commitment', function (): void {
+        Date::setTestNow(CarbonImmutable::parse('2026-11-20 10:00', 'Europe/Rome'));
+        $byHand = Expense::factory()->for($this->family)->create([
+            'title' => 'Bolletta luce', 'amount' => 151.44, 'fee_amount' => 0, 'date' => '2026-11-12', 'organization_id' => $this->edison->id,
+            'planned_expense_id' => null, 'occurrence_date' => null,
+        ]);
+
+        $result = importReadFile(readWaitingFile($this->bill));
+
+        $byHand->refresh();
+        $deadline = resolve(Deadlines::class)->find($this->luce, CarbonImmutable::parse('2026-11-10', 'Europe/Rome'));
+        expect($result['movement']?->is($byHand))->toBeTrue()
+            ->and(Expense::query()->count())->toBe(1)
+            ->and($byHand->planned_expense_id)->toBe($this->luce->id)
+            ->and($byHand->occurrence_date?->toDateString())->toBe('2026-11-10')
+            ->and($deadline->isPaid())->toBeTrue()
+            ->and($deadline->payment?->is($byHand))->toBeTrue();
+    });
+
+    test('a due date already paid is not linked twice: the expense recorded by hand stays without the commitment', function (): void {
+        Date::setTestNow(CarbonImmutable::parse('2026-11-20 10:00', 'Europe/Rome'));
+        $paid = Expense::factory()->for($this->family)->create([
+            'title' => 'Luce novembre 2026', 'amount' => 120, 'fee_amount' => 0, 'date' => '2026-10-20', 'organization_id' => $this->edison->id,
+            'planned_expense_id' => $this->luce->id, 'occurrence_date' => '2026-11-10',
+        ]);
+        $byHand = Expense::factory()->for($this->family)->create([
+            'title' => 'Bolletta luce', 'amount' => 151.44, 'fee_amount' => 0, 'date' => '2026-11-12', 'organization_id' => $this->edison->id,
+            'planned_expense_id' => null, 'occurrence_date' => null,
+        ]);
+
+        $file = readWaitingFile($this->bill);
+        $proposal = resolve(Proposal::class)->for($file, ImportChoices::fromArray(['movement' => true]), [], 'it');
+        $result = importReadFile($file);
+
+        $byHand->refresh();
+        expect($proposal->movement?->changes)->not->toContain('Spesa fissa: Luce')
+            ->and($result['movement']?->is($byHand))->toBeTrue()
+            ->and($byHand->planned_expense_id)->toBeNull()
+            ->and($byHand->occurrence_date)->toBeNull()
+            ->and(resolve(Deadlines::class)->find($this->luce, CarbonImmutable::parse('2026-11-10', 'Europe/Rome'))->payment?->is($paid))->toBeTrue();
     });
 
     test('a commitment ended before the deadline: a one-off planned expense linked to the utility', function (): void {
@@ -511,6 +555,21 @@ describe('the files confirmed together', function (): void {
         expect($result)->toBe(['failures' => [], 'notices' => [], 'cards' => []])
             ->and($policy->policy_number)->toBe('40/123456')
             ->and(Document::query()->where('file_id', $this->set->id)->sole()->insurancePolicies()->pluck('insurance_policies.id')->all())->toBe([$policy->id]);
+    });
+
+    test('a contract with a policy picked by hand gives that policy, also when it has no number', function (): void {
+        $picked = InsurancePolicy::factory()->for($this->family)->create([
+            'title' => 'Polizza auto di Marco', 'policy_number' => null, 'organization_id' => $this->unipol->id, 'person_id' => $this->marco->id,
+        ]);
+
+        $result = resolve(ImportFiles::class)->handle([
+            ['file_id' => $this->set->id, 'choices' => ImportChoices::fromArray([])],
+            ['file_id' => $this->contract->id, 'choices' => ImportChoices::fromArray(['records' => ['policy'], 'targets' => ['records' => ['policy' => $picked->id]]])],
+        ]);
+
+        expect($result)->toBe(['failures' => [], 'notices' => [], 'cards' => []])
+            ->and(InsurancePolicy::query()->count())->toBe(1)
+            ->and(Document::query()->where('file_id', $this->set->id)->sole()->insurancePolicies()->pluck('insurance_policies.id')->all())->toBe([$picked->id]);
     });
 
     test('when the contract fails, the set is saved without the policy and says so', function (): void {

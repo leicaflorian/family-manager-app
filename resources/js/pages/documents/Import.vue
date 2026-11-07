@@ -208,8 +208,15 @@ const cardDocumentCount = computed(() =>
     props.cardDocuments ? props.cardDocuments.split(',').length : 0,
 );
 
-/** What the files imported the last time say, one line each. */
-const notices = computed(() => Object.values(props.notices ?? {}).flat());
+/**
+ * What the files imported the last time say, one line each, keyed by the file and the place of the line: two files
+ * can say the same thing.
+ */
+const notices = computed((): { key: string; text: string }[] =>
+    Object.entries(props.notices ?? {}).flatMap(([fileId, lines]) =>
+        lines.map((text, index) => ({ key: `${fileId}-${index}`, text })),
+    ),
+);
 
 /** The files that will be imported. */
 const included = computed(() =>
@@ -535,8 +542,8 @@ function save(): void {
             </template>
         </FmNotice>
         <FmNotice v-if="notices.length > 0" tone="warning">
-            <p v-for="notice in notices" :key="notice" class="m-0">
-                {{ notice }}
+            <p v-for="notice in notices" :key="notice.key" class="m-0">
+                {{ notice.text }}
             </p>
         </FmNotice>
 

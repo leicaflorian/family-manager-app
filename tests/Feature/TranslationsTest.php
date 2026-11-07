@@ -6,7 +6,7 @@ use App\Support\DefaultCategories;
 use Illuminate\Support\Facades\File;
 
 /**
- * Every text the code passes to the translator: `__()`, `trans_choice()` in PHP
+ * Every text the code passes to the translator: `__()`, `Translated::text()`, `trans_choice()` in PHP
  * and Blade, `$t()`, `trans()`, `transChoice()` in Vue and TypeScript.
  *
  * @return list<string>
@@ -21,7 +21,7 @@ function translatedTexts(): array
         || str_contains($file->getPathname(), '/wayfinder/') || str_contains($file->getPathname(), '/actions/')
         || str_contains($file->getPathname(), '/routes/'));
 
-    $pattern = '/(?<![\w$])(?:__|trans_choice|\$t|\$tChoice|trans|wTrans|transChoice|wTransChoice)\(\s*(?:\'((?:[^\'\\\\]|\\\\.)*)\'|"((?:[^"\\\\]|\\\\.)*)")/';
+    $pattern = '/(?<![\w$])(?:__|Translated::text|trans_choice|\$t|\$tChoice|trans|wTrans|transChoice|wTransChoice)\(\s*(?:\'((?:[^\'\\\\]|\\\\.)*)\'|"((?:[^"\\\\]|\\\\.)*)")/';
     $texts = [];
 
     foreach ($files as $file) {

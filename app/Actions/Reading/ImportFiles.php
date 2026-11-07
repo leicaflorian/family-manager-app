@@ -20,6 +20,10 @@ use Throwable;
  * Imports many waiting files, one after the other, each with what it does too ({@see ImportFile}) and in its own
  * transaction: a file that does not save leaves nothing of itself and the others saved, and the reason is kept for
  * its row. The files that give a policy go first, so that the papers without a number find it.
+ *
+ * Known, small window: the proposal the request made is reused for the first file, and it was made outside the lock
+ * of the file. Two imports running at the same time, of two different files of the same new issuer, can therefore
+ * both create that organization.
  */
 final readonly class ImportFiles
 {

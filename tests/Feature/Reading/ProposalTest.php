@@ -268,6 +268,7 @@ describe('the whole file', function (): void {
     test('the event already there is linked, and a new one needs its fields', function (): void {
         $visit = HealthEvent::factory()->for($this->family)->create([
             'title' => 'Dentista di Giulia', 'person_id' => $this->giulia->id, 'date' => '2026-10-22', 'type' => HealthEventType::Visit,
+            'next_checkup_date' => '2027-03-01',
         ]);
 
         $event = proposalOf($this->ferri)->event;
@@ -277,6 +278,26 @@ describe('the whole file', function (): void {
             ->and(array_column($event->candidates, 'id'))->toBe([$visit->id])
             ->and(proposalOf([...$this->ferri, 'person_id' => null], ['targets' => ['event' => 'new']])->event->blocked)
             ->toBe("Per creare l'evento di salute manca la persona.");
+    });
+
+    test('the event already there without a next checkup takes the one read, and the reminder is said', function (): void {
+        HealthEvent::factory()->for($this->family)->create([
+            'title' => 'Dentista di Giulia', 'person_id' => $this->giulia->id, 'date' => '2026-10-22', 'type' => HealthEventType::Visit,
+            'next_checkup_date' => null,
+        ]);
+
+        $event = proposalOf($this->ferri)->event;
+
+        expect($event->existing)->not->toBeNull()
+            ->and($event->reminder)->toBe('Ti ricorderò di prenotare il controllo')
+            ->and(proposalOf([...$this->ferri, 'next_checkup_date' => null])->event->reminder)->toBeNull();
+    });
+
+    test('without an issue date the event is dated on the deadline', function (): void {
+        $event = proposalOf([...$this->ferri, 'issue_date' => null, 'due_date' => '2026-11-05'])->event;
+
+        expect($event->values->date)->toBe('2026-11-05')
+            ->and($event->blocked)->toBeNull();
     });
 
     test('the cards follow the corrections and the choices of the person', function (): void {

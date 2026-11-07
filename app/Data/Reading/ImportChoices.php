@@ -30,6 +30,12 @@ final readonly class ImportChoices
         'fee_amount' => 'fee', 'financial_account_id' => 'id', 'due_date' => 'date',
     ];
 
+    /** The longest text correction, as a text field of the forms. */
+    private const int MAX_TEXT = 255;
+
+    /** The largest amount, as in the expense form. */
+    private const int MAX_AMOUNT = 99999999;
+
     /** The fields of the movement that only an expense has. */
     private const array EXPENSE_ONLY = ['category_id', 'fee_amount', 'due_date'];
 
@@ -229,11 +235,10 @@ final readonly class ImportChoices
     private static function check(string $rule, mixed $value): mixed
     {
         return match ($rule) {
-            'title', 'text' => is_string($value) && trim($value) !== '' ? trim($value) : null,
+            'title', 'text' => is_string($value) && trim($value) !== '' && mb_strlen(trim($value)) <= self::MAX_TEXT ? trim($value) : null,
             'date' => is_string($value) ? ValidDate::of($value) : null,
             'id' => self::id($value),
-            'price' => is_numeric($value) ? round((float) $value, 2) : null,
-            'fee' => is_numeric($value) && (float) $value >= 0 ? round((float) $value, 2) : null,
+            'price', 'fee' => is_numeric($value) && (float) $value >= 0 && (float) $value <= self::MAX_AMOUNT ? round((float) $value, 2) : null,
             'year' => self::id($value) !== null && self::id($value) > 1900 ? self::id($value) : null,
             'health' => self::oneOf($value, HealthEventType::cases()),
             'utility' => self::oneOf($value, UtilityType::cases()),

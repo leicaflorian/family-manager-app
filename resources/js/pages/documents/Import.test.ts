@@ -791,6 +791,34 @@ describe('Import', () => {
             ).toBeInTheDocument();
         });
 
+        it('says two identical notices of two files twice, without warnings', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const notice =
+                'Not linked to the policy 40/123456: the policy was not created. Link it from the document form.';
+
+            // Vue checks the keys of a list only when it reorders it, not when it first draws it
+            const view = renderPage(
+                Import,
+                ferriProps(ferriProposal, {
+                    notices: { 9: ['The file was saved.'] },
+                }),
+            );
+            await view.rerender(
+                structuredClone(
+                    ferriProps(ferriProposal, {
+                        notices: { 9: [notice], 10: [notice] },
+                    }),
+                ),
+            );
+
+            expect(screen.getAllByText(notice)).toHaveLength(2);
+            expect(
+                warn.mock.calls.some((call) =>
+                    String(call[0]).includes('Duplicate keys'),
+                ),
+            ).toBe(false);
+        });
+
         it('takes the policy of another file, and can leave it', async () => {
             const post = vi.spyOn(router, 'post').mockImplementation(() => {});
             vi.spyOn(router, 'reload').mockImplementation(() => {});

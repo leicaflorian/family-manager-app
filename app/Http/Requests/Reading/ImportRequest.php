@@ -43,6 +43,12 @@ final class ImportRequest extends FormRequest
     /** Where what each file does too sits in the body. */
     private const string ALSO = 'files.%d.also.';
 
+    /** A text correction, as long as a text field of the forms. */
+    private const array TEXT = ['nullable', 'string', 'max:255'];
+
+    /** An amount correction, bound as the amount of the expense form. */
+    private const array PRICE = ['nullable', 'numeric', 'min:0', 'max:99999999'];
+
     /**
      * The proposal of each file made by the checks, by its place in the body: the import starts from it.
      *
@@ -88,7 +94,27 @@ final class ImportRequest extends FormRequest
             'files.*.also.overrides.records.*' => ['array'],
             'files.*.also.overrides.records.*.home_id' => ['nullable', new OfFamily('homes')],
             'files.*.also.targets' => ['sometimes', 'array'],
+            // The corrections are bound as in the forms of the expense and of the cards
+            'files.*.also.overrides.movement.title' => self::TEXT,
+            'files.*.also.overrides.movement.amount' => self::PRICE,
+            'files.*.also.overrides.movement.fee_amount' => self::PRICE,
+            'files.*.also.overrides.event' => ['sometimes', 'array'],
+            'files.*.also.overrides.event.title' => self::TEXT,
+            'files.*.also.overrides.event.outcome' => self::TEXT,
         ];
+
+        foreach (ImportChoices::RECORD_FIELDS as $kind => $fields) {
+            foreach ($fields as $field => $check) {
+                $bound = match ($check) {
+                    'text' => self::TEXT,
+                    'fee' => self::PRICE,
+                    default => null,
+                };
+                if ($bound !== null) {
+                    $rules[sprintf('files.*.also.overrides.records.%s.%s', $kind, $field)] = $bound;
+                }
+            }
+        }
 
         foreach (array_keys($this->array('files')) as $index) {
             $rules += DocumentRules::rules($this->input(sprintf('files.%s.document.links', $index)), sprintf(self::DOCUMENT, $index));

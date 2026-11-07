@@ -14,6 +14,7 @@ use App\Enums\HealthEventType;
 use App\Http\Requests\Reading\ImportRequest;
 use App\Models\Document;
 use App\Models\File;
+use App\Models\User;
 use App\Services\BudgetFormOptions;
 use App\Services\DocumentFormOptions;
 use App\Services\Reading\ImportProposals;
@@ -127,7 +128,9 @@ final class ImportController extends Controller
      */
     private function offersCard(Request $request): bool
     {
-        return PresetLink::from($request->query('link')) === null && Gate::allows('create', CardTypes::all()[0]->model());
+        $user = $request->user();
+
+        return PresetLink::from($request->query('link')) === null && CardTypes::canCreate($user instanceof User ? $user : null);
     }
 
     /**

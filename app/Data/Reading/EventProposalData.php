@@ -20,7 +20,7 @@ final class EventProposalData extends Data
      * @param  array{id: int, title: string, date: string}|null  $existing  the event already there (or picked by hand) the document is linked to
      * @param  string|null  $blocked  what is missing to create the event; null when nothing is
      * @param  list<array{id: int, title: string, date: string}>  $candidates  the events of the person within a month of the date, the closest first, to pick another by hand
-     * @param  string|null  $reminder  the reminder the new event makes (`I'll remind you to book the checkup`)
+     * @param  string|null  $reminder  the reminder the event makes when the import gives it its next checkup (`I'll remind you to book the checkup`)
      */
     public function __construct(
         public readonly EventValuesData $values,

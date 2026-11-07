@@ -91,11 +91,11 @@ final class CardTypes
     /**
      * Whether the person may add cards (any type: the permission is the same for all).
      *
-     * @param  User  $user  whoever signed in
+     * @param  User|null  $user  whoever signed in; no one may not
      */
-    public static function canCreate(User $user): bool
+    public static function canCreate(?User $user): bool
     {
-        return $user->can('create', self::all()[0]->model());
+        return $user?->can('create', self::all()[0]->model()) ?? false;
     }
 
     /**

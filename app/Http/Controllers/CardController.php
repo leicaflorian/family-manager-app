@@ -84,7 +84,8 @@ final class CardController extends Controller
             ]);
         }
 
-        Gate::authorize('create', CardTypes::all()[0]->model());
+        $user = $request->user();
+        abort_unless(CardTypes::canCreate($user instanceof User ? $user : null), 403);
         $area = $request->query('area');
         $types = is_string($area) ? CardTypes::of(Area::tryFrom($area) ?? abort(404)) : CardTypes::all();
 

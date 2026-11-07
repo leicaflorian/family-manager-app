@@ -405,6 +405,21 @@ describe('what each file does too', function (): void {
         expect(Document::query()->count())->toBe(0)->and(PlannedExpense::query()->count())->toBe(0);
     });
 
+    test('the corrections are bound as in the forms: a negative amount or a text too long is refused, and nothing is saved', function (): void {
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice), 'also' => ['movement' => true, 'overrides' => [
+                'movement' => ['amount' => -5, 'fee_amount' => 100000000, 'title' => str_repeat('a', 256)],
+                'event' => ['title' => str_repeat('b', 256)],
+                'records' => ['belonging' => ['name' => str_repeat('c', 256), 'purchase_price' => -1]],
+            ]]],
+        ]])->assertSessionHasErrors([
+            'files.0.also.overrides.movement.amount', 'files.0.also.overrides.movement.fee_amount', 'files.0.also.overrides.movement.title',
+            'files.0.also.overrides.event.title', 'files.0.also.overrides.records.belonging.name', 'files.0.also.overrides.records.belonging.purchase_price',
+        ]);
+
+        expect(Document::query()->count())->toBe(0)->and(PlannedExpense::query()->count())->toBe(0);
+    });
+
     test('the corrections of the expense reach the import', function (): void {
         $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
             [...importEntry($this->invoice), 'also' => ['movement' => true, 'overrides' => ['movement' => ['title' => 'Dentista di Giulia']]]],

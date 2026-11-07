@@ -189,7 +189,10 @@ final readonly class Proposal
                 ? null
                 : trans_choice('{1} To create the health event :fields is missing.|[2,*] To create the health event :fields are missing.', count($lacking), ['fields' => implode(', ', $lacking)]),
             candidates: $values->person_id === null ? [] : $this->events($values->person_id, $day ?? DueSearch::today()),
-            reminder: ! $existing instanceof HealthEvent && $values->next_checkup_date !== null ? Translated::text("I'll remind you to book the checkup") : null,
+            // The import fills the next checkup of an event already there only when it has none: then the reminder is born too
+            reminder: $values->next_checkup_date !== null && (! $existing instanceof HealthEvent || $existing->next_checkup_date === null)
+                ? Translated::text("I'll remind you to book the checkup")
+                : null,
         );
     }
 
