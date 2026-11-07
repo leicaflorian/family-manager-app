@@ -32,7 +32,7 @@ const config: StorybookConfig = {
     framework: {
         name: '@storybook/vue3-vite',
         options: {
-            // Props are read from the types, like the component catalogue does
+            // Props are read from the types, as the check of the stories reads them
             docgen: 'vue-component-meta',
         },
     },

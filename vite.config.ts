@@ -97,8 +97,6 @@ export default defineConfig({
             'lang/**',
             '**/*.md',
             'resources/js/generated/**',
-            // Written by `npm run catalog` with JSON.stringify: the catalogue test compares it as it is
-            'resources/js/catalog/catalog.json',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
             // Copied from Claude Design and read by `npm run tokens`, which writes the CSS as it is: no formatting
