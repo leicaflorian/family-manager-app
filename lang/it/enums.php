@@ -215,6 +215,11 @@ return [
         'web' => 'Domini, hosting ed email',
         'other' => 'Altro',
     ],
+    'theme' => [
+        'system' => 'Automatico',
+        'light' => 'Chiaro',
+        'dark' => 'Scuro',
+    ],
     'utility_status' => [
         'active' => 'Attiva',
         'terminated' => 'Cessata',

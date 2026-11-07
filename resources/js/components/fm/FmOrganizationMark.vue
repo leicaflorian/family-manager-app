@@ -28,7 +28,7 @@ const {
 
 <template>
     <span
-        class="flex shrink-0 items-center justify-center overflow-hidden text-[#4A5565]"
+        class="flex shrink-0 items-center justify-center overflow-hidden text-ink-soft"
     >
         <img
             v-if="logo"

@@ -157,7 +157,7 @@ const titleTone = computed(() =>
             v-else-if="arrow && (href || button)"
             :icon="ChevronRight"
             :size="20"
-            class="text-[#9AA6B6]"
+            class="text-ink-faint"
         />
     </component>
 </template>

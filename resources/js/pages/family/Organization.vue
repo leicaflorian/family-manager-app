@@ -111,7 +111,7 @@ const actions = computed((): Action[] => [
                     :logo="organization.logo"
                     :name="organization.name"
                     :icon-size="28"
-                    class="size-14 rounded-2xl bg-white lg:size-16"
+                    class="size-14 rounded-card bg-card lg:size-16"
                 />
                 <div class="flex flex-col gap-1">
                     <h1
@@ -173,7 +173,7 @@ const actions = computed((): Action[] => [
                 </a>
                 <p
                     v-if="organization.notes"
-                    class="m-0 flex gap-1.5 px-4 py-3 text-sm leading-normal whitespace-pre-line text-[#4A5565]"
+                    class="m-0 flex gap-1.5 px-4 py-3 text-sm leading-normal whitespace-pre-line text-ink-soft"
                 >
                     <FmIcon
                         :icon="StickyNote"

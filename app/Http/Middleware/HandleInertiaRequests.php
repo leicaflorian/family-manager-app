@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Data\FamilyData;
+use App\Enums\Theme;
 use App\Models\File;
 use App\Models\ReminderNotice;
 use App\Models\User;
@@ -59,6 +60,8 @@ class HandleInertiaRequests extends Middleware
             // The number on *Upload*: the files waiting for their document, the copies left out
             'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
             'locale' => app()->getLocale(),
+            // The theme of the account (`system` for a guest): the layout puts it on <html>
+            'theme' => $request->user()?->theme->value ?? Theme::System->value,
         ];
     }
 

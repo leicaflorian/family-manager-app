@@ -162,7 +162,7 @@ function readChosen(): void {
         <template v-else>
             <ul
                 v-auto-animate
-                class="m-0 flex list-none flex-col divide-y divide-divider rounded-[20px] bg-white p-0"
+                class="m-0 flex list-none flex-col divide-y divide-divider rounded-card-lg bg-card p-0"
             >
                 <li v-for="file in files" :key="file.id" class="py-1">
                     <div class="flex items-center gap-1 pr-2 pl-4">

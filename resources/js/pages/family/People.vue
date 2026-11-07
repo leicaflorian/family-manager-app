@@ -84,7 +84,7 @@ const { people, family, canEdit } = defineProps<{
                 v-for="person in people"
                 :key="person.id"
                 :href="show.url(person.id)"
-                class="flex flex-col gap-3.5 rounded-[20px] bg-white p-[22px] text-inherit no-underline"
+                class="flex flex-col gap-3.5 rounded-card-lg bg-card p-[22px] text-inherit no-underline"
             >
                 <span class="flex items-center gap-3.5">
                     <FmAvatar
@@ -134,10 +134,10 @@ const { people, family, canEdit } = defineProps<{
         <Link
             v-if="canEdit"
             :href="invite().url"
-            class="flex items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-[#9AA6B6] bg-white px-4 py-3.5 text-action no-underline lg:hidden"
+            class="flex items-center gap-3 rounded-card border-[1.5px] border-dashed border-ink-faint bg-card px-4 py-3.5 text-action no-underline lg:hidden"
         >
             <span
-                class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
+                class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
             >
                 <FmIcon :icon="UserPlus" :size="22" />
             </span>

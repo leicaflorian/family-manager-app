@@ -100,7 +100,7 @@ const hasEstimate = computed(() =>
 
         <template v-else>
             <div class="grid gap-3 sm:grid-cols-2">
-                <div class="flex flex-col gap-1 rounded-2xl bg-white p-4">
+                <div class="flex flex-col gap-1 rounded-card bg-card p-4">
                     <span class="text-sm text-ink-soft">{{
                         $t('Going out, on average')
                     }}</span>
@@ -115,7 +115,7 @@ const hasEstimate = computed(() =>
                         )
                     }}</span>
                 </div>
-                <div class="flex flex-col gap-1 rounded-2xl bg-white p-4">
+                <div class="flex flex-col gap-1 rounded-card bg-card p-4">
                     <span class="text-sm text-ink-soft">{{
                         $t('Coming in')
                     }}</span>

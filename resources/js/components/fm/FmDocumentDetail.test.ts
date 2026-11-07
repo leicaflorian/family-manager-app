@@ -30,6 +30,15 @@ describe('FmDocumentDetail', () => {
         ).toHaveAttribute('src', '/files/12/preview');
     });
 
+    it('writes an active status in dark text on the green badge, to be read', () => {
+        renderPage(FmDocumentDetail, { document: documentDetail });
+
+        expect(screen.getByText('Active')).toHaveClass(
+            'bg-paid-soft',
+            'text-ink',
+        );
+    });
+
     it('in the panel beside the list only Download and the ⋯ menu are on top', () => {
         renderPage(FmDocumentDetail, {
             document: documentDetail,

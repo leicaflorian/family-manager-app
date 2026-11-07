@@ -7,6 +7,7 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { KeyRound, LogOut, Users } from '@lucide/vue';
 import { ref, useTemplateRef } from 'vue';
+import { useServerTheme } from '@/composables/useTheme';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
@@ -19,13 +20,80 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { logout, settings } from '@/routes';
-import { destroy, password, photo, update } from '@/routes/account';
+import {
+    destroy,
+    password,
+    photo,
+    theme as saveTheme,
+    update,
+} from '@/routes/account';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const { account } = defineProps<{
     /** My account. */
     account: App.Data.AccountData;
+    /** The themes to choose from, with their labels. */
+    themes: App.Data.OptionData[];
 }>();
+
+/** The theme of the account as the server last sent it (not the one of a page restored from the history). */
+const theme = useServerTheme();
+
+/** Whether a save of the theme is on its way, and the latest choice made meanwhile. */
+let savingTheme = false;
+let waitingTheme: string | null = null;
+
+/**
+ * Sends a theme to the server unless it is already the one of the account. A second
+ * save never starts before the first is over, so the server gets them in order.
+ *
+ * @param value - the theme to save
+ */
+function saveThemeNow(value: string): void {
+    if (value === theme.value) {
+        return;
+    }
+
+    savingTheme = true;
+    router.put(
+        saveTheme().url,
+        { theme: value },
+        {
+            preserveScroll: true,
+            onFinish: (): void => {
+                savingTheme = false;
+
+                if (waitingTheme !== null) {
+                    const next = waitingTheme;
+
+                    waitingTheme = null;
+                    saveThemeNow(next);
+                }
+            },
+        },
+    );
+}
+
+/**
+ * Saves the theme as soon as it is chosen. It is not part of the profile form, so it
+ * never counts as a change not saved: the page takes the new theme from the server.
+ * A choice made while a save is on its way waits, and only the latest is sent.
+ *
+ * @param value - the theme chosen
+ */
+function chooseTheme(value: unknown): void {
+    if (typeof value !== 'string') {
+        return;
+    }
+
+    if (savingTheme) {
+        waitingTheme = value;
+
+        return;
+    }
+
+    saveThemeNow(value);
+}
 
 const details = useForm({
     first_name: account.first_name,
@@ -180,6 +248,25 @@ function deleteAccount(): void {
             </FmCard>
         </form>
 
+        <section class="flex flex-col gap-2">
+            <h2 class="m-0 text-[17px] font-bold">{{ $t('Theme') }}</h2>
+            <FormKit
+                type="togglebuttons"
+                enforced
+                :model-value="theme"
+                :options="themes"
+                name="theme"
+                @input="chooseTheme"
+            />
+            <p class="m-0 text-sm text-ink-soft">
+                {{
+                    $t(
+                        'Automatic follows your phone or computer. The choice applies on all your devices.',
+                    )
+                }}
+            </p>
+        </section>
+
         <FmCard :title="$t('Access')" list>
             <FmRow
                 :title="$t('Password')"
@@ -189,7 +276,7 @@ function deleteAccount(): void {
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-canvas text-[#4A5565]"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-ink-soft"
                     >
                         <FmIcon :icon="KeyRound" :size="22" />
                     </span>
@@ -217,7 +304,7 @@ function deleteAccount(): void {
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-canvas text-[#4A5565]"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-ink-soft"
                     >
                         <FmIcon :icon="Users" :size="22" />
                     </span>

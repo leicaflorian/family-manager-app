@@ -25,10 +25,10 @@ defineSlots<{
 
 <template>
     <div
-        class="flex flex-col items-center gap-3 rounded-[20px] bg-white px-6 py-10 text-center"
+        class="flex flex-col items-center gap-3 rounded-card-lg bg-card px-6 py-10 text-center"
     >
         <span
-            class="flex size-14 items-center justify-center rounded-2xl bg-action-soft text-action-dark"
+            class="flex size-14 items-center justify-center rounded-card bg-action-soft text-action-dark"
         >
             <FmIcon :icon="icon" :size="28" />
         </span>

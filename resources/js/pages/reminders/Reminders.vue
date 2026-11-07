@@ -351,7 +351,7 @@ function askDelete(item: ReminderItem): void {
 
         <div
             v-if="shown.length === 0 && filtered"
-            class="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-5"
+            class="flex flex-wrap items-center gap-3 rounded-card bg-card p-5"
         >
             <span class="text-[15px]">{{
                 $t('No reminders with these filters')
@@ -401,7 +401,7 @@ function askDelete(item: ReminderItem): void {
                 <button
                     v-if="visible(group).length < group.items.length"
                     type="button"
-                    class="flex h-[52px] cursor-pointer items-center justify-center gap-1.5 border-0 bg-white text-[15px] font-semibold text-action"
+                    class="flex h-[52px] cursor-pointer items-center justify-center gap-1.5 border-0 bg-card text-[15px] font-semibold text-action"
                     @click="expanded = [...expanded, group.key]"
                 >
                     {{

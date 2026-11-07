@@ -30,7 +30,7 @@ const hint = computed((): string | null =>
 </script>
 
 <template>
-    <div class="flex min-w-0 flex-col gap-1 rounded-2xl bg-white p-4">
+    <div class="flex min-w-0 flex-col gap-1 rounded-card bg-card p-4">
         <span class="text-[13px] font-semibold text-ink-soft">{{
             number.label
         }}</span>

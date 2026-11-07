@@ -34,10 +34,14 @@ defineSlots<{
 
 const styles: Record<NoticeTone, { classes: string; icon: LucideIcon }> = {
     info: {
-        classes: cn('bg-canvas text-[#4A5565] [&>svg]:text-action'),
+        classes: cn('bg-canvas text-ink-soft [&>svg]:text-action'),
         icon: Info,
     },
-    ok: { classes: cn('bg-[#E6F4EE] text-[#14533F]'), icon: MailCheck },
+    // Green text on paid-soft reads under 4.5:1: the text is ink, the icon green
+    ok: {
+        classes: cn('bg-paid-soft text-ink [&>svg]:text-paid'),
+        icon: MailCheck,
+    },
     warning: {
         classes: cn('bg-warning-soft text-warning'),
         icon: CircleAlert,
@@ -52,7 +56,7 @@ const styles: Record<NoticeTone, { classes: string; icon: LucideIcon }> = {
 <template>
     <div
         :role="tone === 'danger' ? 'alert' : 'status'"
-        class="flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-sm leading-[1.45]"
+        class="flex items-start gap-2.5 rounded-lg px-3.5 py-3 text-sm leading-[1.45]"
         :class="styles[tone].classes"
     >
         <FmIcon :icon="icon ?? styles[tone].icon" :size="20" class="mt-px" />

@@ -3,6 +3,7 @@ import { plugin as formkit } from '@formkit/vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { I18n, i18nVue } from 'laravel-vue-i18n';
 import formkitConfig from '@/formkit.config';
+import { useTheme } from '@/composables/useTheme';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { i18nOptions } from '@/lib/i18n';
 import { pageLayout } from '@/lib/pageLayout';
@@ -33,12 +34,17 @@ void createInertiaApp({
         });
     },
     progress: {
-        color: '#0070E0',
+        // Inertia writes the colour into its CSS: the token follows the theme
+        color: 'var(--action)',
     },
     defaults: {
         visitOptions: (_href, options) => pageVisitOptions(options),
     },
 });
+
+// Keeps the `dark` class of <html> right while the app is open. usePage() is global,
+// so it works here, outside a component; the page props arrive with the first visit.
+useTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();

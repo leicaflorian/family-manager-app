@@ -36,7 +36,7 @@ const {
     />
     <span
         v-else
-        class="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
+        class="flex shrink-0 items-center justify-center rounded-full font-bold text-on-action"
         :class="color"
         :style="{
             width: `${size}px`,

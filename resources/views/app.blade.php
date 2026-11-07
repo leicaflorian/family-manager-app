@@ -1,13 +1,20 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($page['props']['theme'] ?? null) === 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        {{-- Draws the page in the theme of the account before the first paint, so it never flashes. The server sets `dark` on <html> for a dark theme; only `system` (or no theme, as for a guest) lets the device decide. --}}
+        <script>
+            if (@js($page['props']['theme'] ?? 'system') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        </script>
+
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: var(--canvas);
             }
         </style>
 

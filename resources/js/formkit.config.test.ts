@@ -94,7 +94,7 @@ describe('formkit.config', () => {
 
         expect(list).toHaveClass(
             'in-data-expanded:opacity-100',
-            'bg-white',
+            'bg-card',
             'shadow-menu',
         );
         expect(list.parentElement).toHaveClass('absolute');
@@ -130,7 +130,7 @@ describe('formkit.config', () => {
             name: 'Expiring soon',
         });
 
-        expect(box).toHaveClass('appearance-none', 'border-edge', 'rounded-md');
+        expect(box).toHaveClass('appearance-none', 'border-edge', 'rounded-sm');
         await waitFor(() => {
             expect(container.querySelector('label svg')).not.toBeNull();
         });
@@ -192,7 +192,7 @@ describe('formkit.config', () => {
         expect(active).toHaveAttribute('aria-pressed', 'true');
         // A label on two lines makes every segment taller, centred, and the white one fills it
         expect(active).toHaveClass(
-            'aria-pressed:bg-white',
+            'aria-pressed:bg-card',
             'min-h-[38px]',
             'h-full',
         );

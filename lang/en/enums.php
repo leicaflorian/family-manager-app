@@ -215,6 +215,11 @@ return [
         'web' => 'Domains, hosting and email',
         'other' => 'Other',
     ],
+    'theme' => [
+        'system' => 'Automatic',
+        'light' => 'Light',
+        'dark' => 'Dark',
+    ],
     'utility_status' => [
         'active' => 'Active',
         'terminated' => 'Terminated',

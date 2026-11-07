@@ -48,6 +48,18 @@ test('my account shows first name, last name, email and whether I am the last ad
         ->where('account.is_last_admin', true));
 });
 
+test('my account offers the themes with their labels, and the theme chosen comes shared', function (): void {
+    $this->marco->update(['theme' => 'dark']);
+
+    $this->get(route('account.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('theme', 'dark')
+        ->where('themes', [
+            ['value' => 'system', 'label' => 'Automatic', 'help' => null],
+            ['value' => 'light', 'label' => 'Light', 'help' => null],
+            ['value' => 'dark', 'label' => 'Dark', 'help' => null],
+        ]));
+});
+
 test('first name, last name and email change on the person too', function (): void {
     $this->patch(route('account.update'), ['first_name' => 'Marcello', 'last_name' => 'Bianchi', 'email' => 'marcello@example.com'])
         ->assertSessionHasNoErrors()->assertRedirect(route('account.edit'));

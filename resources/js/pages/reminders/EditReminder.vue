@@ -212,7 +212,7 @@ useSaveShortcut(save, () => !form.processing);
             <FmNotice>{{ recipientsSentence(recipients) }}</FmNotice>
 
             <div
-                class="sticky bottom-0 -mx-5 flex gap-2.5 bg-white px-5 pt-2 pb-1 lg:static lg:m-0 lg:justify-end lg:p-0 lg:pt-2"
+                class="sticky bottom-0 -mx-5 flex gap-2.5 bg-card px-5 pt-2 pb-1 lg:static lg:m-0 lg:justify-end lg:p-0 lg:pt-2"
             >
                 <FmDeleteButton
                     class="lg:mr-auto"
@@ -247,7 +247,7 @@ useSaveShortcut(save, () => !form.processing);
     </template>
     <div
         v-else
-        class="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 rounded-3xl bg-white p-5"
+        class="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 rounded-sheet bg-card p-5"
     >
         <div class="flex items-center justify-between gap-3">
             <h1 class="m-0 text-xl font-extrabold">

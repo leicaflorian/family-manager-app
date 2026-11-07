@@ -38,7 +38,7 @@ const tile = computed((): string => {
     const area = areaOf(card.area);
 
     return cn(
-        'flex size-10 shrink-0 items-center justify-center rounded-xl',
+        'flex size-10 shrink-0 items-center justify-center rounded-lg',
         card.closed || area === undefined
             ? 'bg-canvas text-ink-soft'
             : areaTile[area],

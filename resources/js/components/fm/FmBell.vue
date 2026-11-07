@@ -96,7 +96,7 @@ function markAll(): void {
             <span
                 v-if="count > 0"
                 aria-hidden="true"
-                class="absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-overdue px-1 text-[11px] font-bold text-white"
+                class="absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-overdue px-1 text-[11px] font-bold text-on-action"
                 >{{ count > 99 ? '99+' : count }}</span
             >
         </PopoverTrigger>
@@ -105,7 +105,7 @@ function markAll(): void {
                 align="end"
                 :side-offset="8"
                 :collision-padding="16"
-                class="z-30 flex max-h-[min(720px,var(--reka-popover-content-available-height))] w-[min(380px,calc(100vw-32px))] flex-col gap-4 overflow-y-auto rounded-[18px] border border-edge bg-canvas p-5 text-ink shadow-[0_12px_32px_rgba(24,33,47,0.18)] duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                class="z-30 flex max-h-[min(720px,var(--reka-popover-content-available-height))] w-[min(380px,calc(100vw-32px))] flex-col gap-4 overflow-y-auto rounded-[18px] border border-edge bg-canvas p-5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             >
                 <div class="flex items-center justify-between gap-3">
                     <h2 class="m-0 text-[22px] font-extrabold">

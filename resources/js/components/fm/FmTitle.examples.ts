@@ -29,7 +29,7 @@ export default defineExamples(FmTitle, [
             beside: () =>
                 h(
                     'span',
-                    { class: 'rounded-xl bg-[#E6EAF0] px-4 py-2' },
+                    { class: 'rounded-lg bg-[#E6EAF0] px-4 py-2' },
                     'Deadlines · Reminders',
                 ),
         },

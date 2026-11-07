@@ -83,7 +83,7 @@ const shown = computed(() =>
 
         <template v-else>
             <label
-                class="flex h-11.5 items-center gap-2.5 rounded-[10px] border border-edge bg-white px-3.5 text-ink-soft"
+                class="flex h-control-md items-center gap-2.5 rounded-md border border-edge bg-card px-3.5 text-ink-soft"
             >
                 <FmIcon :icon="Search" :size="20" />
                 <input
@@ -108,8 +108,8 @@ const shown = computed(() =>
                     class="flex h-[38px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold whitespace-nowrap"
                     :class="
                         type === filter.value
-                            ? 'border-action bg-action text-white'
-                            : 'border-edge bg-white text-ink'
+                            ? 'border-action bg-action text-on-action'
+                            : 'border-edge bg-card text-ink'
                     "
                     @click="type = filter.value"
                 >
@@ -122,7 +122,7 @@ const shown = computed(() =>
 
             <div
                 v-if="shown.length > 0"
-                class="overflow-hidden rounded-2xl bg-white lg:grid lg:grid-cols-[repeat(auto-fill,minmax(420px,1fr))]"
+                class="overflow-hidden rounded-card bg-card lg:grid lg:grid-cols-[repeat(auto-fill,minmax(420px,1fr))]"
             >
                 <FmRow
                     v-for="organization in shown"
@@ -137,7 +137,7 @@ const shown = computed(() =>
                             :types="organization.types"
                             :logo="organization.logo"
                             :name="organization.name"
-                            class="size-10 rounded-xl bg-canvas"
+                            class="size-10 rounded-lg bg-canvas"
                         />
                     </template>
                 </FmRow>

@@ -160,7 +160,7 @@ function save(): void {
         :before-close="changes.confirmClose"
         :title="income ? $t('It arrived') : $t('I paid it')"
     >
-        <p class="m-0 text-[15px] text-[#4A5565]">
+        <p class="m-0 text-[15px] text-ink-soft">
             {{ deadline.title }}
             <template v-if="income && deadline.card">
                 · {{ deadline.card.label }}
@@ -212,7 +212,7 @@ function save(): void {
             <div class="flex flex-col gap-1.5">
                 <button
                     type="button"
-                    class="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-[#9AA6B6] bg-white px-3 text-[15px] font-semibold text-action"
+                    class="flex h-control-lg cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed border-ink-faint bg-card px-3 text-[15px] font-semibold text-action"
                     @click="picker?.click()"
                 >
                     <FmIcon :icon="Paperclip" :size="18" />

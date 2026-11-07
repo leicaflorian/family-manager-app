@@ -127,7 +127,7 @@ function save(): void {
         :before-close="changes.confirmClose"
         :title="$t('Change this due date')"
     >
-        <div class="flex items-center gap-3 rounded-2xl bg-canvas p-3.5">
+        <div class="flex items-center gap-3 rounded-card bg-canvas p-3.5">
             <span class="flex min-w-0 grow flex-col">
                 <span class="truncate text-base font-bold">{{
                     deadline.planned_title
@@ -145,7 +145,7 @@ function save(): void {
         </div>
         <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
             <fieldset class="m-0 flex flex-col gap-2.5 border-0 p-0">
-                <legend class="mb-1.5 p-0 text-sm font-semibold text-[#4A5565]">
+                <legend class="mb-1.5 p-0 text-sm font-semibold text-ink-soft">
                     {{
                         $t(
                             'What changes this time (more than one thing is fine)',

@@ -127,7 +127,7 @@ function done(withoutHome = false): void {
             <fieldset
                 v-for="(person, i) in form.people"
                 :key="i"
-                class="m-0 flex flex-col gap-3 rounded-2xl border-[1.5px] border-edge p-4"
+                class="m-0 flex flex-col gap-3 rounded-card border-[1.5px] border-edge p-4"
             >
                 <legend class="sr-only">
                     {{ $t('Person :number', { number: String(i + 1) }) }}

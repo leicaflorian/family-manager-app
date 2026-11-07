@@ -47,10 +47,10 @@ defineSlots<{
 /** The classes of the box: blue and thicker when ticked, faded when disabled. */
 const boxClass = computed(() =>
     cn(
-        'flex flex-col gap-3 rounded-[14px] px-3.5 py-3',
+        'flex flex-col gap-3 rounded-xl px-3.5 py-3',
         ticked.value
             ? 'border-2 border-action bg-action-soft'
-            : 'border-[1.5px] border-edge bg-white',
+            : 'border-[1.5px] border-edge bg-card',
         disabled && 'opacity-60',
     ),
 );
@@ -58,10 +58,10 @@ const boxClass = computed(() =>
 /** The classes of the square tick. */
 const tickClass = computed(() =>
     cn(
-        'flex size-[22px] shrink-0 items-center justify-center rounded-md peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2',
+        'flex size-[22px] shrink-0 items-center justify-center rounded-sm peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2',
         ticked.value
-            ? 'bg-action text-white'
-            : 'border-2 border-[#9AA6B6] bg-white',
+            ? 'bg-action text-on-action'
+            : 'border-2 border-ink-faint bg-card',
     ),
 );
 

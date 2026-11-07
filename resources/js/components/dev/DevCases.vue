@@ -154,7 +154,7 @@ onBeforeUnmount(() => {
                         {{ $t('Open') }}
                     </FmButton>
                 </div>
-                <div class="rounded-xl border border-edge bg-white p-4">
+                <div class="rounded-lg border border-edge bg-card p-4">
                     <component :is="item.view" />
                 </div>
             </section>
@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
             <div
                 role="log"
                 :aria-labelledby="eventsId"
-                class="max-h-96 overflow-y-auto rounded-xl border border-edge bg-white p-3 font-mono text-xs text-ink"
+                class="max-h-96 overflow-y-auto rounded-lg border border-edge bg-card p-3 font-mono text-xs text-ink"
             >
                 <ol
                     v-if="log.length"

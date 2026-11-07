@@ -42,7 +42,7 @@ defineSlots<{
 }>();
 
 const classes = cn(
-    'flex h-11 w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 text-left text-base whitespace-nowrap outline-none data-highlighted:bg-action-soft',
+    'flex h-11 w-full cursor-pointer items-center gap-3 rounded-md px-3 text-left text-base whitespace-nowrap outline-none data-highlighted:bg-action-soft',
     danger ? 'text-overdue' : 'text-ink',
 );
 </script>

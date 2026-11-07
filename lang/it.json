@@ -204,6 +204,7 @@
     "New category": "Nuova categoria",
     "New organization": "Nuovo ente",
     "new password": "password nuova",
+    "theme": "tema",
     "New password": "Nuova password",
     "New person": "Nuova persona",
     "Next": "Avanti",
@@ -1302,5 +1303,7 @@
     "Upload the bill, the policy or the booklet: we propose the card.": "Carica la bolletta, la polizza o il libretto: la scheda la proponiamo noi.",
     "Start from a document": "Parti da un documento",
     "{1} The document is saved.|[2,*] The documents are saved.": "{1} Il documento è salvato.|[2,*] I documenti sono salvati.",
-    "{1} Create its card|[2,*] Create their card": "{1} Crea la sua scheda|[2,*] Crea la loro scheda"
+    "{1} Create its card|[2,*] Create their card": "{1} Crea la sua scheda|[2,*] Crea la loro scheda",
+    "Theme": "Tema",
+    "Automatic follows your phone or computer. The choice applies on all your devices.": "Automatico segue il telefono o il computer. La scelta vale su tutti i tuoi dispositivi."
 }

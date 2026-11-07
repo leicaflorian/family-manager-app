@@ -42,7 +42,7 @@ const subtitle = computed(() =>
     <FmRow :title="row.title" :subtitle="subtitle" :href="href" :arrow="false">
         <template #before>
             <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-xl"
+                class="flex size-10 shrink-0 items-center justify-center rounded-lg"
                 :style="colorTile(row.color)"
             >
                 <FmIcon :icon="expenseIcon(row.icon)" :size="20" />

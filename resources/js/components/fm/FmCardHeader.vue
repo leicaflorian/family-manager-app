@@ -32,7 +32,7 @@ const background = computed((): string => {
     const area = areaOf(card.area);
 
     return cn(
-        'flex flex-wrap items-end justify-between gap-4 rounded-3xl p-5 text-white lg:p-7',
+        'flex flex-wrap items-end justify-between gap-4 rounded-sheet p-5 text-on-hero lg:p-7',
         area === undefined ? 'bg-general-dark' : areaHeader[area],
     );
 });

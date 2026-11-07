@@ -347,7 +347,7 @@ function recordFields(
                             accounts,
                         )"
                         :key="String(choice.due)"
-                        class="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[10px] bg-white px-3 text-[15px]"
+                        class="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md bg-card px-3 text-[15px]"
                         :class="
                             choice.checked
                                 ? 'border-2 border-action'

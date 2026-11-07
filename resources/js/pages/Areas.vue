@@ -72,7 +72,7 @@ function tile(area: string): string {
     const code = areaOf(area);
 
     return cn(
-        'flex size-11 shrink-0 items-center justify-center rounded-xl',
+        'flex size-11 shrink-0 items-center justify-center rounded-lg',
         code === undefined ? 'bg-canvas text-ink-soft' : areaTile[code],
     );
 }
@@ -118,7 +118,7 @@ function tile(area: string): string {
 
         <label
             v-else
-            class="flex items-center gap-2.5 rounded-xl border border-edge bg-white px-3.5"
+            class="flex items-center gap-2.5 rounded-lg border border-edge bg-card px-3.5"
         >
             <FmIcon :icon="Search" :size="20" />
             <input
@@ -126,14 +126,14 @@ function tile(area: string): string {
                 type="search"
                 :placeholder="$t('Search all cards')"
                 :aria-label="$t('Search all cards')"
-                class="h-11 min-w-0 flex-1 border-0 bg-transparent text-base outline-none"
+                class="h-control-md min-w-0 flex-1 border-0 bg-transparent text-base outline-none"
             />
         </label>
 
         <div v-if="query.trim() !== ''" v-auto-animate class="flex flex-col">
             <div
                 v-if="found.length > 0"
-                class="flex flex-col divide-y divide-divider overflow-hidden rounded-2xl bg-white"
+                class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
             >
                 <FmCardRow
                     v-for="card in found"
@@ -154,7 +154,7 @@ function tile(area: string): string {
             <section
                 v-for="area in areas"
                 :key="area.area"
-                class="flex flex-col overflow-hidden rounded-[20px] bg-white"
+                class="flex flex-col overflow-hidden rounded-card-lg bg-card"
             >
                 <div class="flex items-center gap-2 pr-4">
                     <Link

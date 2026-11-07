@@ -30,7 +30,7 @@ const open = computed(
 <template>
     <section class="flex flex-col gap-2">
         <h2 class="m-0 text-lg font-extrabold">{{ $t('Links') }}</h2>
-        <div class="rounded-2xl bg-white px-4 pt-1">
+        <div class="rounded-card bg-card px-4 pt-1">
             <template v-if="open || reminders">
                 <div class="flex gap-4 overflow-x-auto border-b border-edge">
                     <button
@@ -42,7 +42,7 @@ const open = computed(
                         :class="
                             group.type === open.type
                                 ? 'border-action text-action-dark'
-                                : 'border-transparent text-[#4A5565]'
+                                : 'border-transparent text-ink-soft'
                         "
                         @click="chosen = group.type"
                     >
@@ -54,7 +54,7 @@ const open = computed(
                     <Link
                         v-if="reminders"
                         :href="reminders.href"
-                        class="flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent px-0.5 text-[15px] whitespace-nowrap text-[#4A5565] no-underline"
+                        class="flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent px-0.5 text-[15px] whitespace-nowrap text-ink-soft no-underline"
                     >
                         {{ $t('Reminders') }}
                         <span class="font-semibold text-ink-soft">{{

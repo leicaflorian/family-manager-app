@@ -2384,7 +2384,7 @@
   {
     "name": "FmLogo",
     "path": "resources/js/components/fm/FmLogo.vue",
-    "description": "The Family Manager logo: the roof and the family, white on the light blue square.\nThe white version, without the square, goes on the blue panel of the sign-in pages.",
+    "description": "The Family Manager logo: the roof and the family, white (`on-hero`, white in\nboth themes) on the light blue square (`brand`).\nThe white version, without the square, goes on the blue panel of the sign-in pages.",
     "group": "basics",
     "props": [
       {

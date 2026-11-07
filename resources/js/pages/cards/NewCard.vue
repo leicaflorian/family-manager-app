@@ -58,7 +58,7 @@ function tile(area: string): string {
     const code = areaOf(area);
 
     return cn(
-        'flex size-11 shrink-0 items-center justify-center rounded-xl',
+        'flex size-11 shrink-0 items-center justify-center rounded-lg',
         code === undefined ? 'bg-canvas text-ink-soft' : areaTile[code],
     );
 }
@@ -78,7 +78,7 @@ function tile(area: string): string {
         <Link
             v-if="document === null"
             :href="upload().url"
-            class="flex max-w-[760px] items-center gap-3 rounded-2xl bg-action-soft px-4 py-3.5 text-action-dark no-underline"
+            class="flex max-w-[760px] items-center gap-3 rounded-card bg-action-soft px-4 py-3.5 text-action-dark no-underline"
         >
             <FmIcon :icon="ScanLine" :size="24" class="shrink-0" />
             <span class="flex flex-col gap-0.5">
@@ -108,7 +108,7 @@ function tile(area: string): string {
                     v-for="type in group.types"
                     :key="type.type"
                     :href="formUrl(type.type)"
-                    class="flex items-center gap-3 rounded-2xl bg-white p-4 text-inherit no-underline"
+                    class="flex items-center gap-3 rounded-card bg-card p-4 text-inherit no-underline"
                 >
                     <span :class="tile(type.area)">
                         <FmIcon :icon="cardIcon(type.type)" :size="22" />

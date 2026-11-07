@@ -86,7 +86,7 @@ const confirmingDelete = ref(false);
                 :change-url="file.url(document.id)"
             />
             <section
-                class="flex flex-col gap-4 rounded-3xl bg-white p-5 lg:p-7"
+                class="flex flex-col gap-4 rounded-sheet bg-card p-5 lg:p-7"
             >
                 <div
                     v-if="reading.can_read && !running"

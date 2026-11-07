@@ -147,7 +147,7 @@ describe('the FormKit Pro fields of the app', () => {
         );
         const calendar = await screen.findByRole('dialog');
 
-        expect(calendar).toHaveClass('absolute', 'bg-white', 'shadow-menu');
+        expect(calendar).toHaveClass('absolute', 'bg-card', 'shadow-menu');
         expect(
             within(calendar).getByRole('gridcell', { selected: true })
                 .firstElementChild,
@@ -271,7 +271,7 @@ describe('the FormKit Pro fields of the app', () => {
         // today would not show
         expect(marked[0]?.firstElementChild).toHaveClass(
             'in-data-today:ring-1',
-            'in-aria-selected:text-white!',
+            'in-aria-selected:text-on-action!',
         );
     });
 

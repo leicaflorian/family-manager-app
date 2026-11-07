@@ -43,7 +43,7 @@ function go(step: number): void {
     <div class="flex items-center gap-1">
         <button
             type="button"
-            class="flex size-11 cursor-pointer items-center justify-center rounded-xl border-0 bg-transparent text-ink hover:bg-action-soft"
+            class="flex size-11 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-ink hover:bg-action-soft"
             :aria-label="$t('Previous month')"
             @click="go(-1)"
         >
@@ -54,7 +54,7 @@ function go(step: number): void {
         }}</span>
         <button
             type="button"
-            class="flex size-11 cursor-pointer items-center justify-center rounded-xl border-0 bg-transparent text-ink hover:bg-action-soft"
+            class="flex size-11 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-ink hover:bg-action-soft"
             :aria-label="$t('Next month')"
             @click="go(1)"
         >

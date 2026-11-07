@@ -51,13 +51,13 @@ describe('FmTabs', () => {
         render(FmTabs, { props: { tabs, label: 'Agenda', variant: 'pill' } });
 
         expect(screen.getByRole('navigation', { name: 'Agenda' })).toHaveClass(
-            'bg-[#E6EAF0]',
+            'bg-segment',
         );
         expect(screen.getByRole('link', { name: /Reminders/ })).toHaveClass(
-            'bg-white',
+            'bg-card',
         );
         expect(screen.getByRole('link', { name: 'Deadlines' })).not.toHaveClass(
-            'bg-white',
+            'bg-card',
         );
     });
 

@@ -48,16 +48,16 @@ export const areaFill: Record<Area, string> = {
 
 /** The soft background and the icon colour of each area, for the icon tiles. */
 export const areaTile: Record<Area, string> = {
-    home: cn('bg-home/15 text-home'),
-    vehicles: cn('bg-vehicles/15 text-vehicles'),
-    insurance: cn('bg-insurance/15 text-insurance'),
-    banks: cn('bg-banks/15 text-banks'),
-    health: cn('bg-health/15 text-health'),
-    school: cn('bg-school/15 text-school'),
-    work: cn('bg-work/15 text-work'),
-    subscriptions: cn('bg-subscriptions/15 text-subscriptions'),
-    paperwork: cn('bg-paperwork/15 text-paperwork'),
-    general: cn('bg-general/15 text-general'),
+    home: cn('bg-home-soft text-home-text'),
+    vehicles: cn('bg-vehicles-soft text-vehicles-text'),
+    insurance: cn('bg-insurance-soft text-insurance-text'),
+    banks: cn('bg-banks-soft text-banks-text'),
+    health: cn('bg-health-soft text-health-text'),
+    school: cn('bg-school-soft text-school-text'),
+    work: cn('bg-work-soft text-work-text'),
+    subscriptions: cn('bg-subscriptions-soft text-subscriptions-text'),
+    paperwork: cn('bg-paperwork-soft text-paperwork-text'),
+    general: cn('bg-general-soft text-general-text'),
 };
 
 /** The dark background of the top of a card page. */

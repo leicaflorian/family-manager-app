@@ -311,7 +311,7 @@ const exceptionIcons = {
                             v-if="detail.can_edit && exception.deadline"
                             type="button"
                             :aria-label="$t('Edit')"
-                            class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-ink-soft hover:bg-action-soft"
+                            class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-tag border-0 bg-transparent text-ink-soft hover:bg-action-soft"
                             @click="changeException(exception)"
                         >
                             <FmIcon :icon="Pencil" :size="18" />

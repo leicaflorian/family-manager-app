@@ -70,7 +70,7 @@ function itemClasses(marked: boolean): string {
 <template>
     <nav
         :aria-label="$t('Sections')"
-        class="grid h-[84px] shrink-0 grid-cols-5 items-center border-t border-[#E3E8EF] bg-white px-1 pb-3"
+        class="grid h-[84px] shrink-0 grid-cols-5 items-center border-t border-edge-soft bg-card px-1 pb-3"
     >
         <template v-for="(item, i) in inBar" :key="item.section">
             <span v-if="i === 2" class="flex justify-center">
@@ -83,13 +83,13 @@ function itemClasses(marked: boolean): string {
                               })
                             : $t('Upload a document')
                     "
-                    class="relative -mt-7 flex size-15 items-center justify-center rounded-full bg-action text-white shadow-[0_6px_16px_rgba(0,112,224,0.35)]"
+                    class="relative -mt-7 flex size-15 items-center justify-center rounded-full bg-action text-on-action shadow-fab"
                 >
                     <FmIcon :icon="Plus" :size="28" :stroke="2.5" />
                     <span
                         v-if="uploadCount > 0"
                         aria-hidden="true"
-                        class="absolute -top-1 -right-1 min-w-5 rounded-full bg-overdue px-1 text-center text-xs font-semibold text-white"
+                        class="absolute -top-1 -right-1 min-w-5 rounded-full bg-overdue px-1 text-center text-xs font-semibold text-on-action"
                         >{{ uploadBadge }}</span
                     >
                 </Link>
@@ -116,7 +116,7 @@ function itemClasses(marked: boolean): string {
 
     <FmBottomSheet v-model:open="moreOpen" :title="$t('More')">
         <div
-            class="flex flex-col divide-y divide-divider rounded-2xl border border-divider"
+            class="flex flex-col divide-y divide-divider rounded-card border border-divider"
         >
             <FmRow
                 v-for="item in inMore"

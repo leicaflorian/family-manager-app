@@ -58,9 +58,9 @@ defineSlots<{
 </script>
 
 <template>
-    <div class="flex min-h-dvh bg-white text-ink lg:bg-canvas">
+    <div class="flex min-h-dvh bg-card text-ink lg:bg-canvas">
         <aside
-            class="hidden w-[42%] max-w-[600px] flex-col justify-between gap-5 bg-linear-160 from-action to-action-dark p-12 text-white lg:flex"
+            class="hidden w-[42%] max-w-[600px] flex-col justify-between gap-5 bg-linear-160 from-hero to-hero-end p-12 text-on-hero lg:flex"
         >
             <div class="flex items-center gap-3">
                 <FmLogo white :size="44" />
@@ -94,7 +94,7 @@ defineSlots<{
             class="flex grow items-stretch justify-center lg:items-center lg:p-12"
         >
             <div
-                class="flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-3xl lg:bg-white lg:p-9"
+                class="flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-sheet lg:bg-card lg:p-9"
             >
                 <div class="flex items-center gap-2.5 lg:hidden">
                     <FmLogo :size="36" />
@@ -108,7 +108,7 @@ defineSlots<{
                 </div>
                 <p
                     v-if="otherWay"
-                    class="m-0 text-center text-[15px] text-[#4A5565]"
+                    class="m-0 text-center text-[15px] text-ink-soft"
                 >
                     {{ otherWay.text }}
                     <Link

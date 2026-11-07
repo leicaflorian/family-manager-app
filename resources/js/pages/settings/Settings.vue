@@ -60,7 +60,7 @@ const { account, mainCategories, mainExpenseCategories } = defineProps<{
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="CalendarDays" :size="22" />
                     </span>
@@ -75,7 +75,7 @@ const { account, mainCategories, mainExpenseCategories } = defineProps<{
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="Bell" :size="22" />
                     </span>
@@ -93,7 +93,7 @@ const { account, mainCategories, mainExpenseCategories } = defineProps<{
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="FolderTree" :size="22" />
                     </span>
@@ -111,7 +111,7 @@ const { account, mainCategories, mainExpenseCategories } = defineProps<{
             >
                 <template #before>
                     <span
-                        class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-action-soft text-action-dark"
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="Tags" :size="22" />
                     </span>

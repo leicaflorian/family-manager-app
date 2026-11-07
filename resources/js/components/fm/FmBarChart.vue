@@ -125,14 +125,14 @@ const description = computed(() =>
 </script>
 
 <template>
-    <figure class="m-0 flex flex-col gap-2.5 rounded-2xl bg-white p-4">
+    <figure class="m-0 flex flex-col gap-2.5 rounded-card bg-card p-4">
         <figcaption
             class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
         >
             <span class="text-base font-bold">{{
                 $t('Expenses, the last 6 months')
             }}</span>
-            <span class="flex flex-wrap gap-4 text-[13px] text-[#4A5565]">
+            <span class="flex flex-wrap gap-4 text-[13px] text-ink-soft">
                 <span class="flex items-center gap-1.5"
                     ><span class="size-3 rounded-[3px] bg-action" />{{
                         $t('Spent')
@@ -191,7 +191,7 @@ const description = computed(() =>
                     :x2="bar.centre + barWidth * 0.75"
                     :y1="bar.plannedY"
                     :y2="bar.plannedY"
-                    stroke="#fff"
+                    class="stroke-card"
                     stroke-width="6"
                 />
                 <line

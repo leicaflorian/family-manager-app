@@ -21,7 +21,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmFaces](#fmfaces) — The faces of the family, one over the other: the circles with the initials, as in the *Invitation accepted* board.
 - [FmFold](#fmfold) — A folded part of a page, such as the closed cards or the planned expenses that ended: a button with its title and, when opened, the content in a card of rows.
 - [FmIcon](#fmicon) — A Lucide icon with the sizes of the canvas: stroke 2, rounded, 24 px.
-- [FmLogo](#fmlogo) — The Family Manager logo: the roof and the family, white on the light blue square.
+- [FmLogo](#fmlogo) — The Family Manager logo: the roof and the family, white (`on-hero`, white in both themes) on the light blue square (`brand`).
 - [FmNotice](#fmnotice) — A message inside the page, with its icon: some information, something done (green), something that needs attention (orange) or that is late (red).
 - [FmOrganizationMark](#fmorganizationmark) — The mark of an organization: its logo or, without one, the icon of its type.
 - [FmPayButton](#fmpaybutton) — *Record payment* (or *Record income*) of a card: it opens *A due date* with the panel of *I paid it* on the oldest open due date.
@@ -756,7 +756,8 @@ Without a label it is only decoration and screen reader users do not hear it.
 
 `resources/js/components/fm/FmLogo.vue`
 
-The Family Manager logo: the roof and the family, white on the light blue square.
+The Family Manager logo: the roof and the family, white (`on-hero`, white in
+both themes) on the light blue square (`brand`).
 The white version, without the square, goes on the blue panel of the sign-in pages.
 
 ### Props

@@ -144,7 +144,7 @@ function save(data: Record<string, unknown>): void {
                 <Link
                     :href="back"
                     :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
+                    class="flex size-11 items-center justify-center rounded-lg border border-edge bg-card text-ink"
                 >
                     <FmIcon :icon="X" :size="20" />
                 </Link>
@@ -178,7 +178,7 @@ function save(data: Record<string, unknown>): void {
                     />
                 </div>
             </div>
-            <div class="rounded-3xl bg-white p-5 lg:p-7">
+            <div class="rounded-sheet bg-card p-5 lg:p-7">
                 <FmCardForm
                     :fields="fields"
                     :values="values"

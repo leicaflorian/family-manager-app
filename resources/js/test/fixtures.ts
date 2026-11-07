@@ -16,6 +16,13 @@ export const account: App.Data.AccountData = {
     family: 'Bianchi',
 };
 
+/** The themes of *My account*, as the server sends them. */
+export const themes: App.Data.OptionData[] = [
+    { value: 'system', label: 'Automatic', help: null },
+    { value: 'light', label: 'Light', help: null },
+    { value: 'dark', label: 'Dark', help: null },
+];
+
 /** A document of the Bianchis, as *A document* receives it. */
 export const documentDetail: App.Data.DocumentDetailData = {
     id: 5,

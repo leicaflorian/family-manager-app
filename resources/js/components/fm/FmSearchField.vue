@@ -22,9 +22,11 @@ const text = defineModel<string>({ required: true });
 
 <template>
     <label
-        class="flex shrink-0 items-center rounded-[10px] border border-edge bg-white text-ink-soft"
+        class="flex shrink-0 items-center rounded-md border border-edge bg-card text-ink-soft"
         :class="
-            small ? 'h-9 gap-2 px-3 text-sm' : 'h-11.5 gap-2.5 px-3.5 text-base'
+            small
+                ? 'h-9 gap-2 px-3 text-sm'
+                : 'h-control-md gap-2.5 px-3.5 text-base'
         "
     >
         <FmIcon :icon="Search" :size="small ? 18 : 20" />

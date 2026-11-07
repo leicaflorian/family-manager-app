@@ -37,7 +37,7 @@ const distance = computed((): { text: string; expired: boolean } => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-1 rounded-2xl bg-white p-4">
+    <div class="flex flex-col gap-1 rounded-card bg-card p-4">
         <span class="text-[13px] font-semibold text-ink-soft">{{
             date.label
         }}</span>

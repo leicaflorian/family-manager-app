@@ -44,8 +44,8 @@ defineProps<{
                     class="flex size-7 shrink-0 items-center justify-center rounded-full"
                     :class="
                         step.done
-                            ? 'bg-paid text-white'
-                            : 'border-2 border-edge bg-white'
+                            ? 'bg-paid text-on-action'
+                            : 'border-2 border-edge bg-card'
                     "
                 >
                     <template v-if="step.done">

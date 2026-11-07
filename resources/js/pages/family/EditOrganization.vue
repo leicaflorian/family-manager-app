@@ -77,7 +77,7 @@ useSaveShortcut(save, () => !form.processing);
                 <Link
                     :href="back"
                     :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-xl border border-edge bg-white text-ink"
+                    class="flex size-11 items-center justify-center rounded-lg border border-edge bg-card text-ink"
                 >
                     <FmIcon :icon="X" :size="20" />
                 </Link>
@@ -100,12 +100,12 @@ useSaveShortcut(save, () => !form.processing);
                         :logo="image"
                         :name="form.name"
                         :icon-size="64"
-                        class="size-40 rounded-3xl bg-white"
+                        class="size-40 rounded-sheet bg-card"
                     />
                 </template>
             </FmImagePanel>
             <form
-                class="flex flex-col gap-3.5 rounded-3xl bg-white p-5 lg:p-7"
+                class="flex flex-col gap-3.5 rounded-sheet bg-card p-5 lg:p-7"
                 novalidate
                 @submit.prevent="save"
             >
@@ -126,7 +126,7 @@ useSaveShortcut(save, () => !form.processing);
                     :options="types"
                     options-class="$reset m-0 flex list-none flex-wrap gap-2 p-0"
                     option-class="$reset"
-                    input-class="$reset h-10 cursor-pointer rounded-full border border-edge bg-white px-4 text-[15px] text-ink transition-[background-color,border-color,color] duration-150 ease-out aria-pressed:border-action aria-pressed:bg-action aria-pressed:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
+                    input-class="$reset h-10 cursor-pointer rounded-full border border-edge bg-card px-4 text-[15px] text-ink transition-[background-color,border-color,color] duration-150 ease-out aria-pressed:border-action aria-pressed:bg-action aria-pressed:text-on-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
                     :errors="typeErrors"
                 />
                 <div class="grid grid-cols-2 gap-3">
