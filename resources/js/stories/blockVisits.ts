@@ -1,26 +1,30 @@
 /**
- * Keeps the page of the catalogue where it is: the examples are the real
+ * Keeps the page of a story where it is: the stories show the real
  * components, and a *Delete* or a form in them would send a real visit.
  */
 import { router } from '@inertiajs/vue3';
 
-/** The pages of the catalogue: the only visits that may leave. */
-const catalogue = '/dev/components';
-
 /**
- * Stops every Inertia visit outside the catalogue, of the router, of a reload
- * and of `useForm`, and writes it in the log.
+ * Stops every Inertia visit, of the router, of a reload and of `useForm`, and
+ * writes it in the log. Only the visits to an allowed path (or below it) leave.
  *
  * @param log - Receives each stopped visit, as `DELETE /documents/3`.
+ * @param allowed - Paths whose visits may leave, as `/dev/components`: none for a story.
  * @returns The function that stops listening.
  */
-export function blockVisits(log: (entry: string) => void): () => void {
+export function blockVisits(
+    log: (entry: string) => void,
+    allowed: readonly string[] = [],
+): () => void {
     return router.on('before', (event) => {
         const { method, url } = event.detail.visit;
 
         if (
-            url.pathname === catalogue ||
-            url.pathname.startsWith(`${catalogue}/`)
+            allowed.some(
+                (path) =>
+                    url.pathname === path ||
+                    url.pathname.startsWith(`${path}/`),
+            )
         ) {
             return;
         }

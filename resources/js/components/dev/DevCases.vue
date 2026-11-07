@@ -20,7 +20,7 @@ import {
     useId,
 } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import { blockVisits } from '@/catalog/blockVisits';
+import { blockVisits } from '@/stories/blockVisits';
 import catalog from '@/catalog/catalog.json';
 import type { Example } from '@/catalog/examples';
 import { loadExamples } from '@/catalog/examples';
@@ -123,7 +123,10 @@ function describe(value: unknown): string {
 let stopBlocking: (() => void) | null = null;
 
 onMounted(() => {
-    stopBlocking = blockVisits((visit) => log.value.push(visit));
+    stopBlocking = blockVisits(
+        (visit) => log.value.push(visit),
+        ['/dev/components'],
+    );
 });
 
 onBeforeUnmount(() => {

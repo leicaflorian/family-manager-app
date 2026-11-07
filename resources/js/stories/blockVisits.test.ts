@@ -27,14 +27,21 @@ describe('blockVisits', () => {
         window.history.replaceState(null, '', '/');
     });
 
-    it('stops a router visit outside the catalogue and logs it', () => {
+    it('lets no visit through by default', () => {
+        router.get('/dev/components?component=FmRow');
+
+        expect(log).toEqual(['GET /dev/components?component=FmRow']);
+        expect(open).not.toHaveBeenCalled();
+    });
+
+    it('stops a router visit and logs it', () => {
         router.post('/budget/x');
 
         expect(log).toEqual(['POST /budget/x']);
         expect(open).not.toHaveBeenCalled();
     });
 
-    it('stops a reload of a page outside the catalogue', () => {
+    it('stops a reload of the page', () => {
         window.history.replaceState(null, '', '/budget/2026-10');
 
         router.reload();
@@ -50,7 +57,9 @@ describe('blockVisits', () => {
         expect(open).not.toHaveBeenCalled();
     });
 
-    it('lets the visits of the catalogue through', () => {
+    it('lets through the visits to a path it is told to allow', () => {
+        stop();
+        stop = blockVisits((entry) => log.push(entry), ['/dev/components']);
         let prevented: boolean | null = null;
         const listener = (event: Event): void => {
             prevented = event.defaultPrevented;
@@ -66,7 +75,10 @@ describe('blockVisits', () => {
         expect(log).toEqual([]);
     });
 
-    it('stops a path that only begins like the catalogue', () => {
+    it('stops a path that only begins like an allowed one', () => {
+        stop();
+        stop = blockVisits((entry) => log.push(entry), ['/dev/components']);
+
         router.get('/dev/componentsX');
 
         expect(log).toEqual(['GET /dev/componentsX']);

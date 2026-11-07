@@ -52,11 +52,24 @@ const config: StorybookConfig = {
             },
             {
                 resolve: {
-                    alias: {
-                        '@': fileURLToPath(
-                            new URL('../resources/js', import.meta.url),
-                        ),
-                    },
+                    alias: [
+                        {
+                            find: '@',
+                            replacement: fileURLToPath(
+                                new URL('../resources/js', import.meta.url),
+                            ),
+                        },
+                        // The stories get a fake `usePage`. Exact match: the shim reaches the real package as `@inertiajs/vue3-actual` (alias in vite.config.ts), which this one leaves alone
+                        {
+                            find: /^@inertiajs\/vue3$/,
+                            replacement: fileURLToPath(
+                                new URL(
+                                    '../resources/js/stories/inertia.ts',
+                                    import.meta.url,
+                                ),
+                            ),
+                        },
+                    ],
                 },
             },
         );
