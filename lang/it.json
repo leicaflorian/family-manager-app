@@ -1159,7 +1159,7 @@
     "Delete this file?": "Eliminare questo file?",
     "The file is deleted for good.": "Il file viene eliminato per sempre.",
     "Delete the file": "Elimina il file",
-    "{0} Read and import files|{1} Read and import :count file|[2,*] Read and import :count files": "{0} Leggi e importa i file|{1} Leggi e importa :count file|[2,*] Leggi e importa :count file",
+    "{0} Read and review files|{1} Read and review :count file|[2,*] Read and review :count files": "{0} Leggi e controlla i file|{1} Leggi e controlla :count file|[2,*] Leggi e controlla :count file",
     "{1} :count file to sort|[2,*] :count files to sort": "{1} :count file da smistare|[2,*] :count file da smistare",
     "Import more files": "Importa più file",
     "Files to import": "File da importare",
@@ -1305,5 +1305,9 @@
     "{1} The document is saved.|[2,*] The documents are saved.": "{1} Il documento è salvato.|[2,*] I documenti sono salvati.",
     "{1} Create its card|[2,*] Create their card": "{1} Crea la sua scheda|[2,*] Crea la loro scheda",
     "Theme": "Tema",
-    "Automatic follows your phone or computer. The choice applies on all your devices.": "Automatico segue il telefono o il computer. La scelta vale su tutti i tuoi dispositivi."
+    "Automatic follows your phone or computer. The choice applies on all your devices.": "Automatico segue il telefono o il computer. La scelta vale su tutti i tuoi dispositivi.",
+    "Nothing is saved yet: you see what was read, and you can read it again or change it before importing.": "Non si salva ancora niente: vedi cosa ha letto, e prima di importare puoi farlo rileggere o cambiarlo.",
+    "No results": "Nessun risultato",
+    "Upload a document from the computer": "Carica un documento dal computer",
+    "{1} :count file to sort: go and read and import it|[2,*] :count files to sort: go and read and import them": "{1} :count file da smistare: vai a leggerlo e importarlo|[2,*] :count file da smistare: vai a leggerli e importarli"
 }

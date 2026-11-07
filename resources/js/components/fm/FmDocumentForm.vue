@@ -8,6 +8,7 @@
  *
  * @group forms
  */
+import type { FormKitNode } from '@formkit/core';
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -160,27 +161,27 @@ const linkLabels = computed(
 const linkChoices = computed(() => {
     const chosen = new Set(form.links.map(linkKey));
 
-    return [
-        { value: '', label: trans('Choose a record') },
-        ...options.links
-            .map((group) => ({
-                group: group.label,
-                options: group.options
-                    .map((option) => ({
-                        value: linkKey({
-                            type: group.type,
-                            id: Number(option.value),
-                        }),
-                        label: option.label,
-                    }))
-                    .filter((option) => !chosen.has(option.value)),
-            }))
-            .filter((group) => group.options.length > 0),
-    ];
+    return options.links
+        .map((group) => ({
+            group: group.label,
+            options: group.options
+                .map((option) => ({
+                    value: linkKey({
+                        type: group.type,
+                        id: Number(option.value),
+                    }),
+                    label: option.label,
+                }))
+                .filter((option) => !chosen.has(option.value)),
+        }))
+        .filter((group) => group.options.length > 0);
 });
 
 /** The value of the menu of the links: a choice adds the record, and the menu goes back to empty. */
 const linkChoice = ref('');
+
+/** The field of the menu of the links, to empty its search box after a choice. */
+const linkNode = ref<FormKitNode>();
 
 watch(linkChoice, (key) => {
     const link = parseLinkKey(key);
@@ -188,6 +189,10 @@ watch(linkChoice, (key) => {
     if (link) {
         form.links.push(link);
         linkChoice.value = '';
+        // FormKit keeps the name of the chosen record in the box, though the value is empty again
+        if (linkNode.value) {
+            linkNode.value.props.inputText = '';
+        }
     }
 });
 
@@ -395,10 +400,13 @@ useSaveShortcut(save, () => !form.processing);
         />
         <FormKit
             v-model="linkChoice"
-            type="dropdown"
+            type="autocomplete"
+            open-on-click
             :label="$t('Link it to')"
+            :placeholder="$t('Choose a record')"
             name="link"
             :options="linkChoices"
+            @node="linkNode = $event"
             :help="
                 options.links.length === 0
                     ? $t(

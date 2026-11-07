@@ -335,6 +335,36 @@ describe('the FormKit Pro fields of the app', () => {
         },
     );
 
+    it.each(['dropdown', 'autocomplete'])(
+        'draws a light grey line under the name of each group of a %s',
+        async (type) => {
+            render(
+                {
+                    render: () =>
+                        h(FormKit, {
+                            type,
+                            label: 'Link it to',
+                            options: [
+                                {
+                                    group: 'Homes',
+                                    options: [{ value: '1', label: 'Casa' }],
+                                },
+                            ],
+                        }),
+                },
+                { global: { plugins: [[formkit, formkitConfig]] } },
+            );
+
+            const field = await screen.findByLabelText('Link it to');
+            await userEvent.click(field);
+
+            expect(await screen.findByText('Homes')).toHaveClass(
+                'border-b',
+                'border-divider',
+            );
+        },
+    );
+
     it('closes the dropdown after choosing the empty option, as after any other', async () => {
         render(
             {

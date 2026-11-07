@@ -194,6 +194,44 @@ describe('FmDocumentForm', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('searches the records to link by their name, keeping their groups', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            options: {
+                ...options,
+                links: [
+                    ...options.links,
+                    {
+                        type: 'utility',
+                        label: 'Utilities',
+                        options: [
+                            { value: '5', label: 'Acqua - Hera', help: null },
+                            { value: '6', label: 'Gas - Enel', help: null },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        const list = await search('Link it to', 'hera');
+
+        expect(shown(list)).toEqual(['Acqua - Hera']);
+        expect(within(list).getByText('Utilities')).toBeInTheDocument();
+        await userEvent.click(
+            within(list).getByRole('option', { name: 'Acqua - Hera' }),
+        );
+        await settle();
+
+        expect(
+            await screen.findByRole('button', {
+                name: 'Remove the link Acqua - Hera',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('combobox', { name: 'Link it to' }),
+        ).toHaveValue('');
+    });
+
     it('asks before removing a link that is already saved, and keeps it on Cancel', async () => {
         renderPage(FmDocumentForm, {
             ...props,

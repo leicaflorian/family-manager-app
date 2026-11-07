@@ -7,7 +7,8 @@
  * on the computer which file it is the same as). The filters at the top (*All*,
  * *By mail*, *From the phone*, *Uploaded here*) show how many files each has,
  * and one with none cannot be chosen. The files are chosen with a box (a copy
- * is left out) and *Read and import* has them read, then opens the import. While
+ * is left out) and *Read and review* has them read, then opens the import,
+ * where the person checks and changes what was read before importing. While
  * a file is queued or read the page asks for its state every 2 seconds.
  */
 import { Head, router } from '@inertiajs/vue3';
@@ -179,12 +180,14 @@ function readChosen(): void {
                                 )
                             "
                         />
+                        <!-- Not on the edge of a card, so its light under the mouse has its own corners -->
                         <FmRow
                             :title="file.name"
                             :subtitle="subtitle(file)"
                             :href="file.url"
                             external
                             :arrow="false"
+                            class="rounded-md"
                         />
                         <FmDeleteButton
                             v-if="file.can_delete"
@@ -233,15 +236,29 @@ function readChosen(): void {
                 </li>
             </ul>
 
-            <FmButton :disabled="chosenIds.length === 0" @click="readChosen">
+            <FmButton
+                :disabled="chosenIds.length === 0"
+                aria-describedby="to-sort-review"
+                @click="readChosen"
+            >
                 {{
                     $tChoice(
-                        '{0} Read and import files|{1} Read and import :count file|[2,*] Read and import :count files',
+                        '{0} Read and review files|{1} Read and review :count file|[2,*] Read and review :count files',
                         chosenIds.length,
                         { count: String(chosenIds.length) },
                     )
                 }}
             </FmButton>
+            <p
+                id="to-sort-review"
+                class="-mt-2 text-center text-[13px] text-ink-soft"
+            >
+                {{
+                    $t(
+                        'Nothing is saved yet: you see what was read, and you can read it again or change it before importing.',
+                    )
+                }}
+            </p>
         </template>
     </div>
 </template>

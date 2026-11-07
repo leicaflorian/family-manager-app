@@ -110,6 +110,14 @@ describe('ToSort', () => {
         expect(within(photo).getByText(/1 page/)).toBeInTheDocument();
     });
 
+    it('rounds the corners of a file that lights up under the mouse, as the box beside it', () => {
+        renderPage(ToSort, page);
+
+        expect(
+            screen.getByRole('link', { name: /Garanzia lavatrice\.jpg/ }),
+        ).toHaveClass('rounded-md');
+    });
+
     it('shows the note and the state of the reading of each file', () => {
         renderPage(ToSort, page);
 
@@ -207,7 +215,7 @@ describe('ToSort', () => {
         renderPage(ToSort, page);
 
         expect(
-            screen.getByRole('button', { name: 'Read and import files' }),
+            screen.getByRole('button', { name: 'Read and review files' }),
         ).toBeDisabled();
 
         await fireEvent.click(
@@ -217,11 +225,21 @@ describe('ToSort', () => {
             screen.getByRole('checkbox', { name: 'Garanzia lavatrice.jpg' }),
         );
         const button = screen.getByRole('button', {
-            name: 'Read and import 2 files',
+            name: 'Read and review 2 files',
         });
         await fireEvent.click(button);
 
         expect(post).toHaveBeenCalledWith('/to-sort/read', { ids: [5, 4] });
+    });
+
+    it('says on the button that nothing is imported before the person checks it', () => {
+        renderPage(ToSort, page);
+
+        expect(
+            screen.getByRole('button', { name: 'Read and review files' }),
+        ).toHaveAccessibleDescription(
+            'Nothing is saved yet: you see what was read, and you can read it again or change it before importing.',
+        );
     });
 
     it('says one file in the singular', async () => {
@@ -232,7 +250,7 @@ describe('ToSort', () => {
         );
 
         expect(
-            screen.getByRole('button', { name: 'Read and import 1 file' }),
+            screen.getByRole('button', { name: 'Read and review 1 file' }),
         ).toBeEnabled();
     });
 
@@ -279,7 +297,7 @@ describe('ToSort', () => {
 
         expect(screen.getByText('Nothing to sort')).toBeInTheDocument();
         expect(
-            screen.queryByRole('button', { name: /Read and import/ }),
+            screen.queryByRole('button', { name: /Read and review/ }),
         ).not.toBeInTheDocument();
     });
 });

@@ -27,25 +27,34 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /*
  * The Pest tests in Feature start from an empty database and use the app's
  * TestCase. The class-based tests of the starter kit declare what they need
  * on their own. No test calls a real service: a request without its
- * `Http::fake()` fails (the reading of documents talks to an AI service).
+ * `Http::fake()` fails (the reading of documents talks to an AI service). No
+ * test writes to the real disk: the `local` disk, where the files of the
+ * families go, is faked (the seeder of the Bianchi stores files too).
  */
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    ->beforeEach(fn () => Http::preventStrayRequests())
+    ->beforeEach(function (): void {
+        Http::preventStrayRequests();
+        Storage::fake('local');
+    })
     ->in('Feature');
 
 /*
- * The tests in Unit have the app booted too: those that use the database add
- * RefreshDatabase in their own file.
+ * The tests in Unit have the app booted too, with the same fakes: those that
+ * use the database add RefreshDatabase in their own file.
  */
 pest()->extend(TestCase::class)
-    ->beforeEach(fn () => Http::preventStrayRequests())
+    ->beforeEach(function (): void {
+        Http::preventStrayRequests();
+        Storage::fake('local');
+    })
     ->in('Unit');
 
 /**

@@ -28,8 +28,8 @@ describe('AppLayout', () => {
         page.toSort = 0;
 
         expect(
-            screen.getByRole('link', { name: 'Upload 4' }),
-        ).toBeInTheDocument();
+            screen.getByRole('link', { name: '4 files to sort' }),
+        ).toHaveAttribute('href', '/to-sort');
         expect(
             screen.getByRole('link', { name: 'Upload a document, 4 to sort' }),
         ).toBeInTheDocument();

@@ -3484,7 +3484,7 @@
   {
     "name": "FmSidebar",
     "path": "resources/js/components/fm/FmSidebar.vue",
-    "description": "The sidebar of the computer (from 1024 px): the logo and the family, Upload,\nthe sections with the areas under *Areas*, and at the bottom *My account*,\nwhich opens Settings and Log out.",
+    "description": "The sidebar of the computer (from 1024 px): the logo and the family, Upload\n(with a part on the right that goes to *To sort* while files wait there,\nand a tooltip on each that says what it does),\nthe sections with the areas under *Areas*, and at the bottom *My account*,\nwhich opens Settings and Log out.",
     "group": "navigation",
     "props": [
       {
@@ -3534,7 +3534,7 @@
         "type": "number",
         "required": false,
         "default": "0",
-        "description": "The files waiting to be sorted: the number on *Upload*; nothing at zero, 99+ above 99."
+        "description": "The files waiting to be sorted: the number on the part of *Upload* that goes to *To sort*; nothing at zero, 99+ above 99."
       }
     ],
     "events": [],
@@ -3681,6 +3681,36 @@
     "usedBy": [
       "pages/documents/Documents.vue",
       "pages/documents/Upload.vue"
+    ]
+  },
+  {
+    "name": "FmTooltip",
+    "path": "resources/js/components/fm/FmTooltip.vue",
+    "description": "A short text that says what an element does, in a dark bubble beside it:\nit opens under the mouse after a moment, or when the element is reached with\nTab, and goes away with Escape. The phone has no mouse, so it is only for\nhints the computer adds: nothing the person needs on the phone goes here.\nIts slot is the element, which keeps its own role and name.",
+    "group": "basics",
+    "props": [
+      {
+        "name": "text",
+        "type": "string",
+        "required": true,
+        "default": null,
+        "description": "What the element does, for example «Upload a document from the computer»."
+      },
+      {
+        "name": "side",
+        "type": "\"top\" | \"right\" | \"bottom\" | \"left\"",
+        "required": false,
+        "default": "\"bottom\"",
+        "description": "The side of the element where the bubble opens."
+      }
+    ],
+    "events": [],
+    "slots": [
+      "default"
+    ],
+    "types": [],
+    "usedBy": [
+      "components/fm/FmSidebar.vue"
     ]
   },
   {

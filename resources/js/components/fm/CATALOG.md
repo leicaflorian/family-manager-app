@@ -28,6 +28,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmReadingNotice](#fmreadingnotice) — What the reading of a file says once it ended: when it is done, the sentence of what was found with the invitation to check it; when it failed, is off or was skipped, the reason, with *Read again* beside when the page offers it and asking again can help (failed or off).
 - [FmReadingProgress](#fmreadingprogress) — The wait while a file is read: a line that runs, «Reading the document…», a note that it takes a few seconds and, on the computer, the name of the file with its pages and the lines found so far (who it is from, the amount…).
 - [FmTitle](#fmtitle) — The title at the top of a page: 28 px on the phone, 32 px on the computer, with the sentence below and, on the right and centred on them, the actions of the page.
+- [FmTooltip](#fmtooltip) — A short text that says what an element does, in a dark bubble beside it: it opens under the mouse after a moment, or when the element is reached with Tab, and goes away with Escape.
 
 ### Navigation
 
@@ -42,7 +43,7 @@ Read this file before writing a component or a piece of interface in a page: if 
 - [FmNewTabLink](#fmnewtablink) — A link that opens its address in a new tab, with the ↗ icon beside the text: the person, the organization or the card a card names, so the card stays open behind.
 - [FmPager](#fmpager) — *Previous* and *Next* under a list shown a page at a time (the documents, the documents of a card); nothing when the list fits in one page.
 - [FmSectionLink](#fmsectionlink) — The link beside the title of a section (`FmCard`), as *Upload*, *Add* or *Record payment*: blue text with its icon, normal weight, no box around it, underlined on hover.
-- [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload, the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
+- [FmSidebar](#fmsidebar) — The sidebar of the computer (from 1024 px): the logo and the family, Upload (with a part on the right that goes to *To sort* while files wait there, and a tooltip on each that says what it does), the sections with the areas under *Areas*, and at the bottom *My account*, which opens Settings and Log out.
 - [FmTabs](#fmtabs) — The tabs at the top of a set of pages (the three of the budget, *Deadlines* and *Reminders* of the Agenda).
 - [FmToSortLink](#fmtosortlink) — The link to *To sort* that sits beside the title of *Documents* and *Upload*: a soft button that says how many files wait there.
 
@@ -1100,6 +1101,45 @@ organization.
 - `pages/settings/Notices.vue`
 - `pages/settings/Settings.vue`
 
+## FmTooltip
+
+`resources/js/components/fm/FmTooltip.vue`
+
+A short text that says what an element does, in a dark bubble beside it:
+it opens under the mouse after a moment, or when the element is reached with
+Tab, and goes away with Escape. The phone has no mouse, so it is only for
+hints the computer adds: nothing the person needs on the phone goes here.
+Its slot is the element, which keeps its own role and name.
+
+### Props
+
+| Name | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `text` | `string` | yes | — | What the element does, for example «Upload a document from the computer». |
+| `side` | `"top" \| "right" \| "bottom" \| "left"` | no | `"bottom"` | The side of the element where the bubble opens. |
+
+### Slots
+
+- `default`
+
+### Examples
+
+```vue
+<!-- Under -->
+<FmTooltip text="Upload a document from the computer">
+    …
+</FmTooltip>
+
+<!-- Beside -->
+<FmTooltip text="Upload a document from the computer" side="right">
+    …
+</FmTooltip>
+```
+
+### Used by
+
+- `components/fm/FmSidebar.vue`
+
 ## FmBackLink
 
 `resources/js/components/fm/FmBackLink.vue`
@@ -1563,7 +1603,9 @@ every page.
 
 `resources/js/components/fm/FmSidebar.vue`
 
-The sidebar of the computer (from 1024 px): the logo and the family, Upload,
+The sidebar of the computer (from 1024 px): the logo and the family, Upload
+(with a part on the right that goes to *To sort* while files wait there,
+and a tooltip on each that says what it does),
 the sections with the areas under *Areas*, and at the bottom *My account*,
 which opens Settings and Log out.
 
@@ -1577,7 +1619,7 @@ which opens Settings and Log out.
 | `areas` | `App.Data.AreaCountData[]` | yes | — | The areas with their active cards, in order. |
 | `family` | `string` | yes | — | The name of the family, for example «Bianchi». |
 | `user` | `string` | yes | — | The name of who is signed in. |
-| `uploadCount` | `number` | no | `0` | The files waiting to be sorted: the number on *Upload*; nothing at zero, 99+ above 99. |
+| `uploadCount` | `number` | no | `0` | The files waiting to be sorted: the number on the part of *Upload* that goes to *To sort*; nothing at zero, 99+ above 99. |
 
 ### Examples
 

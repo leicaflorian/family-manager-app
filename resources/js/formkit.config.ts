@@ -12,6 +12,7 @@ import { defaultConfig } from '@formkit/vue';
 import { chooseDateOnClick, markToday } from '@/lib/formkitDatepicker';
 import { DROPDOWNS, openOnTheSideWithRoom } from '@/lib/formkitDropdownSide';
 import { closeOnEmptyChoice, showEmptyChoice } from '@/lib/formkitEmptyChoice';
+import { sayNoResults } from '@/lib/formkitNoResults';
 import { openOnFocus } from '@/lib/formkitOpenOnFocus';
 import { toggleAsSwitch } from '@/lib/formkitSwitch';
 import { tabChoosesSuggestion } from '@/lib/formkitTagTab';
@@ -78,6 +79,7 @@ export default defaultConfig({
         tabChoosesSuggestion,
         openOnTheSideWithRoom,
         openOnFocus,
+        sayNoResults,
     ],
     locales: { en, it },
     // The server writes the language in <html lang>; the tests have no document language
@@ -202,6 +204,9 @@ export default defaultConfig({
                     'order-last ml-auto flex size-4 shrink-0 text-action',
                 option: 'min-w-0 grow truncate',
                 emptyMessage: 'px-3 py-2.5 text-[15px] text-ink-soft',
+                // The name of a group of options (*Homes*, *Utilities*) sits over a
+                // light line, which divides it from its options
+                groupLabel: 'mb-1 block border-b border-divider pt-2 pb-1.5',
             },
             // The taglist: the tags are grey chips in the box, which grows with them;
             // there is no list to open, so no arrow. The box keeps the classes of

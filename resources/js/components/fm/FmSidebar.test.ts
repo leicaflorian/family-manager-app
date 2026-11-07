@@ -162,22 +162,65 @@ describe('FmSidebar', () => {
         );
     });
 
-    it('shows how many files wait to be sorted on Upload, nothing at zero and 99+ above 99', () => {
-        const none = bar('home', '/', 0);
+    it('has only Upload when no file waits to be sorted', () => {
+        bar('home', '/', 0);
+
         expect(screen.getByRole('link', { name: 'Upload' })).toHaveTextContent(
             /^\s*Upload\s*$/,
         );
-        none.unmount();
-
-        const four = bar('home', '/', 4);
         expect(
-            screen.getByRole('link', { name: 'Upload 4' }),
-        ).toBeInTheDocument();
+            screen.queryByRole('link', { name: /to sort/ }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('splits Upload with a part on the right that goes to To sort, with how many files wait', () => {
+        const four = bar('home', '/', 4);
+        expect(screen.getByRole('link', { name: 'Upload' })).toHaveAttribute(
+            'href',
+            '/upload',
+        );
+        const toSort = screen.getByRole('link', { name: '4 files to sort' });
+        expect(toSort).toHaveAttribute('href', '/to-sort');
+        expect(toSort).toHaveTextContent(/^\s*4\s*$/);
         four.unmount();
+
+        const one = bar('home', '/', 1);
+        expect(
+            screen.getByRole('link', { name: '1 file to sort' }),
+        ).toBeInTheDocument();
+        one.unmount();
 
         bar('home', '/', 120);
         expect(
-            screen.getByRole('link', { name: 'Upload 99+' }),
-        ).toBeInTheDocument();
+            screen.getByRole('link', { name: '120 files to sort' }),
+        ).toHaveTextContent(/^\s*99\+\s*$/);
+    });
+    it('says what Upload and its part on the right do, in a tooltip', async () => {
+        bar('home', '/', 4);
+
+        await userEvent.tab();
+        expect(screen.getByRole('link', { name: 'Upload' })).toHaveFocus();
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            'Upload a document from the computer',
+        );
+
+        await userEvent.tab();
+        expect(
+            screen.getByRole('link', { name: '4 files to sort' }),
+        ).toHaveFocus();
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            '4 files to sort: go and read and import them',
+        );
+    });
+
+    it('says one file in the singular in the tooltip', async () => {
+        bar('home', '/', 1);
+
+        await userEvent.tab();
+        await userEvent.tab();
+
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            '1 file to sort: go and read and import it',
+        );
     });
 });

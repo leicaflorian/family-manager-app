@@ -40,6 +40,9 @@ export default defineConfig({
                 '**/.cursor/**',
                 '**/.junie/**',
                 '**/vendor/**',
+                // The files of the families, the logs and the caches: not code, and
+                // watching their thousands of files took Vite to gigabytes of memory
+                '**/storage/**',
             ],
         },
     },
