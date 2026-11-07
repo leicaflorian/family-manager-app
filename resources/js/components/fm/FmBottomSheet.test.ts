@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { defineComponent, h } from 'vue';
 import { provideOnColor } from '@/composables/useOnColor';
+import { FormKit } from '@formkit/vue';
+import { formPlugins } from '@/lib/formPlugins';
+import { search } from '@/test/page';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
 
@@ -27,6 +30,36 @@ async function openSheet(open = true) {
 }
 
 describe('FmBottomSheet', () => {
+    it('marks its content as a panel, for the size of the controls', async () => {
+        await openSheet();
+
+        expect(
+            screen.getByRole('dialog', { name: 'Filter the documents' }),
+        ).toHaveAttribute('data-sheet');
+    });
+
+    it('keeps the open menu of a field inside the panel', async () => {
+        render(FmBottomSheet, {
+            props: { open: true, title: 'Filter the documents' },
+            slots: {
+                default: defineComponent({
+                    setup: () => () =>
+                        h(FormKit, {
+                            type: 'autocomplete',
+                            label: 'Category',
+                            options: [{ value: 1, label: 'Home' }],
+                        }),
+                }),
+            },
+            global: { plugins: formPlugins },
+        });
+        await screen.findByRole('dialog');
+
+        const list = await search('Category', 'Ho');
+
+        expect(list.closest('[data-sheet]')).not.toBeNull();
+    });
+
     it('is not visible when closed', async () => {
         await openSheet(false);
 

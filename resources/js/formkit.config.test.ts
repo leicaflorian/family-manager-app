@@ -193,7 +193,7 @@ describe('formkit.config', () => {
         // A label on two lines makes every segment taller, centred, and the white one fills it
         expect(active).toHaveClass(
             'aria-pressed:bg-card',
-            'min-h-[38px]',
+            'min-h-[calc(var(--control-height)-8px)]',
             'h-full',
         );
         expect(active.closest('ul')).toHaveClass('flex', 'bg-segment', 'p-1');

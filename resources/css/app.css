@@ -21,7 +21,25 @@
     --main-width: 1120px;
 }
 
+/*
+ * The size of buttons and fields: 44 px with a radius of 10 px on the page, 52 px
+ * with 14 px inside a panel from below (FmBottomSheet marks its content with
+ * data-sheet). h-control, min-h-control and rounded-control read the variables.
+ */
+:root {
+    --control-height: var(--spacing-control-md);
+    --control-radius: var(--radius-md);
+}
+
+[data-sheet] {
+    --control-height: var(--spacing-control-lg);
+    --control-radius: var(--radius-xl);
+}
+
 @theme inline {
+    --spacing-control: var(--control-height);
+    --radius-control: var(--control-radius);
+
     --color-background: var(--background);
     --color-foreground: var(--foreground);
 

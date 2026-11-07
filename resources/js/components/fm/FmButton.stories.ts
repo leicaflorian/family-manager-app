@@ -108,7 +108,7 @@ export const OnColour: Story = {
     }),
 };
 
-/** The same buttons in a panel from below: 44 px, 52 px once Task 6 lands. */
+/** The same buttons in a panel from below: 52 px high with corners of 14 px, with no class to pass. */
 export const InASheet: Story = {
     name: 'In a sheet',
     render: () =>
