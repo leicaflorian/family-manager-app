@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { ferriProposal } from '@/test/fixtures';
 import {
+    actionTexts,
+    candidateOptions,
+    dueChoices,
     dueInEffect,
+    eventSubtitle,
+    movementSubtitle,
     eventHint,
     eventLabel,
     eventWarnings,
@@ -38,6 +43,22 @@ describe('movementLabel', () => {
         expect(
             movementLabel(movement({}, { kind: 'income', amount: 1500 })),
         ).toBe('Create the income of 1.500,00 €');
+    });
+
+    it('names the planned expense or income the movement belongs to', () => {
+        const lead = {
+            id: 6,
+            title: 'Stipendio Marco',
+            amount: 1500,
+            is_estimated: false,
+        };
+
+        expect(
+            movementLabel(movement({}, { kind: 'income', amount: 1480, lead })),
+        ).toBe('Create the income of 1.480,00 € (Stipendio Marco)');
+        expect(
+            movementLabel(movement({}, { kind: 'income', amount: null, lead })),
+        ).toBe('Create the income (Stipendio Marco)');
     });
 
     it('creates it without an amount when none was read', () => {
@@ -456,5 +477,123 @@ describe('policyBox', () => {
             ticked: false,
             disabled: true,
         });
+    });
+});
+
+const people = [{ value: '2', label: 'Giulia Bianchi', help: null }];
+
+describe('movementSubtitle', () => {
+    it('names the category, without the main one, and the person', () => {
+        expect(
+            movementSubtitle(expense, {
+                categories: [
+                    {
+                        value: '12',
+                        label: 'Salute › Spese mediche',
+                        help: null,
+                    },
+                ],
+                people,
+            }),
+        ).toBe('Spese mediche · Giulia Bianchi');
+    });
+
+    it('leaves out what it does not know', () => {
+        expect(movementSubtitle(expense, { categories: [], people: [] })).toBe(
+            '',
+        );
+    });
+});
+
+describe('eventSubtitle', () => {
+    it('names the title, the person and the date', () => {
+        expect(eventSubtitle(event, people)).toBe(
+            '«Visita dal dentista» · Giulia Bianchi · 22/10/2026',
+        );
+        expect(
+            eventSubtitle(
+                {
+                    ...event,
+                    values: { ...event.values, title: null, date: null },
+                },
+                [],
+            ),
+        ).toBe('');
+    });
+});
+
+describe('dueChoices', () => {
+    const accounts = [{ value: '3', label: 'Carta Laura', help: null }];
+
+    it('offers already paid, with the date and the account, and to pay', () => {
+        expect(dueChoices(expense, false, accounts)).toEqual([
+            {
+                label: 'Already paid on 22/10/2026 with Carta Laura',
+                due: false,
+                checked: true,
+            },
+            { label: 'To pay', due: true, checked: false },
+        ]);
+    });
+
+    it('says the deadline, and leaves out the date or the account it does not know', () => {
+        const due = { ...expense.due!, date: '2026-11-30' };
+
+        expect(
+            dueChoices(movement({ due }, { date: null }), true, accounts).map(
+                (choice) => [choice.label, choice.checked],
+            ),
+        ).toEqual([
+            ['Already paid', false],
+            ['To pay by 30/11/2026', true],
+        ]);
+        expect(dueChoices(expense, false, [])[0]?.label).toBe(
+            'Already paid on 22/10/2026',
+        );
+    });
+});
+
+describe('actionTexts', () => {
+    it('speaks of the expense, the income, the event or the card', () => {
+        expect(actionTexts('movement', true, false)).toEqual({
+            create: 'Create a new expense',
+            choose: 'Choose another…',
+            menu: 'The expense to link',
+        });
+        expect(actionTexts('movement', false, true)).toEqual({
+            create: 'Create a new income',
+            choose: 'Link to an income already registered…',
+            menu: 'The income to link',
+        });
+        expect(actionTexts('event', true, false)).toEqual({
+            create: 'Create a new event',
+            choose: 'Choose another event…',
+            menu: 'The event to link',
+        });
+        expect(actionTexts('vehicle', false, false)).toEqual({
+            create: 'Create a new card',
+            choose: 'Link to a card already registered…',
+            menu: 'The card to link',
+        });
+    });
+});
+
+describe('candidateOptions', () => {
+    it('names an expense by title, date and amount, an event by title and date, a card by its label', () => {
+        expect(candidateOptions(expense.candidates)).toEqual([
+            {
+                value: '41',
+                label: 'Dentista settembre · 15/09/2026 · 80,00 €',
+                help: null,
+            },
+        ]);
+        expect(
+            candidateOptions([
+                { id: 3, title: 'Dentista', date: '2026-10-22' },
+            ]),
+        ).toEqual([{ value: '3', label: 'Dentista · 22/10/2026', help: null }]);
+        expect(candidateOptions(organization.candidates)).toEqual([
+            { value: '5', label: 'Studio dentistico', help: null },
+        ]);
     });
 });

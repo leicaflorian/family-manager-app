@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Cards\CardField;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Data\Reading\Extraction;
@@ -245,20 +246,30 @@ final class RecordDrafts
      */
     private static function required(RecordKind $kind): array
     {
+        return $kind === RecordKind::Organization
+            ? ['name']
+            : array_map(static fn (CardField $field): string => $field->column, self::requiredFields($kind));
+    }
+
+    /**
+     * The fields of the card class a card cannot be created without, except the ones that depend on another choice;
+     * none for an organization, which has no card class and only needs its name.
+     *
+     * @param  RecordKind  $kind  which card
+     * @return list<CardField>
+     */
+    public static function requiredFields(RecordKind $kind): array
+    {
         $type = $kind->cardType();
         $card = $type === null ? null : CardTypes::find($type);
         if (! $card instanceof CardType) {
-            return ['name'];
+            return [];
         }
 
-        $columns = [];
-        foreach ($card->fields() as $field) {
-            if ($field->required && ! $field->virtual && $field->showWhen === []) {
-                $columns[] = $field->column;
-            }
-        }
-
-        return $columns;
+        return array_values(array_filter(
+            $card->fields(),
+            static fn (CardField $field): bool => $field->required && ! $field->virtual && $field->showWhen === [],
+        ));
     }
 
     /**

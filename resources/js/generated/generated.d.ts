@@ -807,6 +807,7 @@ id: number,
 label: string,
 }[],
 readonly reminder: string | null,
+readonly fields: App.Data.CardFieldData[],
 };
 }
 }

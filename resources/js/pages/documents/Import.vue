@@ -17,26 +17,10 @@
  * What the files already imported say (a policy not linked) shows on top.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import type { LucideIcon } from '@lucide/vue';
-import {
-    Bell,
-    Building2,
-    Car,
-    CircleCheck,
-    FileText,
-    HeartPulse,
-    Package,
-    Plug,
-    Shield,
-    Wallet,
-    Wrench,
-    X,
-} from '@lucide/vue';
-import { createReusableTemplate, useMediaQuery } from '@vueuse/core';
-import { trans } from 'laravel-vue-i18n';
+import { CircleCheck, FileText, X } from '@lucide/vue';
+import { useMediaQuery } from '@vueuse/core';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
-import FmAlsoDo from '@/components/fm/FmAlsoDo.vue';
-import FmAlsoDoItem from '@/components/fm/FmAlsoDoItem.vue';
+import ImportAlsoDoBoxes from '@/components/documents/ImportAlsoDoBoxes.vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
@@ -50,7 +34,6 @@ import type { ImportChoices } from '@/composables/useImportChoices';
 import { useImportChoices } from '@/composables/useImportChoices';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import type { ImportTarget } from '@/lib/alsoDo';
 import {
     dueInEffect,
     eventHint,
@@ -70,7 +53,6 @@ import type {
     DocumentLink,
 } from '@/lib/documents';
 import { linkQuery, newDocument, proposalOf, toPayload } from '@/lib/documents';
-import { formatDate, formatEuro } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { anyFileReading, isReading, readAgain } from '@/lib/reading';
 import { toSort } from '@/routes';
@@ -93,31 +75,13 @@ const props = defineProps<
         expenseCategories?: App.Data.OptionData[];
         /** The accounts, to name the one the expense was paid with. */
         accounts?: App.Data.OptionData[];
+        /** The types of a health event, for the box of a new event. */
+        healthTypes?: App.Data.OptionData[];
     } & DocumentFormOptions
 >();
 
 /** The state of a file in the list. */
 type FileState = 'looking' | 'checked' | 'to-check' | 'left-out';
-
-/** A box of *What I do too* that links to something: the expense or income, the event, or a card. */
-type Side = 'movement' | 'event' | App.Enums.RecordKind;
-
-/** The icon of the box of each card. */
-const RECORD_ICONS: Record<App.Enums.RecordKind, LucideIcon> = {
-    organization: Building2,
-    vehicle: Car,
-    utility: Plug,
-    policy: Shield,
-    belonging: Package,
-    maintenance: Wrench,
-};
-
-/** The actions of a box while it is ticked: create a new one, choose another, back to the proposal. */
-const [DefineActions, ReuseActions] = createReusableTemplate<{
-    side: Side;
-    existing: boolean;
-    candidates: App.Data.OptionData[];
-}>();
 
 const options = computed<DocumentFormOptions>(() => ({
     categories: props.categories,
@@ -187,7 +151,25 @@ const choices = new Map<number, ImportChoices>(
 );
 
 /** While a choice of *What I do too* changed, leaving the page asks first; the forms ask for their own fields. */
-useUnsavedChanges(() => [...choices.values()].map((choice) => choice.picks));
+// Only the files still on the page: the choices of a file saved are not a change to lose
+useUnsavedChanges(() =>
+    props.files
+        .filter((file) => choices.get(file.id)?.changed.value)
+        .map((file) => file.id),
+);
+
+// A file saved leaves the page: its choices go, and nothing asks its proposal any more
+watch(
+    (): number[] => props.files.map((file) => file.id),
+    (ids) => {
+        for (const [id, choice] of choices) {
+            if (!ids.includes(id)) {
+                choice.cancel();
+                choices.delete(id);
+            }
+        }
+    },
+);
 
 // A reading that ends gives the file a proposal to ask again, with what the person chose meanwhile
 watch(
@@ -216,26 +198,6 @@ const proposal = computed(() =>
         ? props.proposals?.[current.value.id]
         : undefined,
 );
-
-/** What the file open sends as `also`: the boxes ticked. */
-const ticked = computed(() => chosen.value?.also.value);
-
-/** Whether the expense of the file open is to pay. */
-const toPay = computed((): boolean =>
-    proposal.value?.movement
-        ? dueInEffect(proposal.value.movement, chosen.value?.picks.due)
-        : false,
-);
-
-/** The box of the policy of the file open, when its paper takes one. */
-const policy = computed(() =>
-    proposal.value
-        ? policyBox(proposal.value.policy, chosen.value?.picks.policy ?? 'auto')
-        : undefined,
-);
-
-/** The menu of a box open to choose another, as `<file>:<side>`. */
-const picking = ref<string | undefined>();
 
 /** What the files imported the last time say, one line each. */
 const notices = computed(() => Object.values(props.notices ?? {}).flat());
@@ -285,295 +247,6 @@ function fieldErrorsOf(file: App.Data.PendingFileData): Record<string, string> {
             ([field]) => field !== 'file_id' && !field.startsWith('also.'),
         ),
     );
-}
-
-/**
- * The errors of the server about a box of *What I do too* of the file open.
- *
- * @param keys - where they sit under `also` (`movement`, `targets.movement`)
- * @returns the messages
- */
-function alsoErrors(...keys: string[]): string[] {
-    const found = current.value ? (errors.value[current.value.id] ?? {}) : {};
-
-    return keys.flatMap((key) => found[`also.${key}`] ?? []);
-}
-
-/**
- * The warnings of a box, with the errors of the server first and each line once.
- *
- * @param lines - the errors and the warnings
- * @returns the lines
- */
-function lines(...lines: string[][]): string[] {
-    return [...new Set(lines.flat())];
-}
-
-/**
- * The name of an option, by its value.
- *
- * @param options - the options
- * @param id - the id, if there is one
- * @returns the name, or an empty string
- */
-function nameOf(
-    options: App.Data.OptionData[] | undefined,
-    id: number | null,
-): string {
-    return options?.find((option) => option.value === String(id))?.label ?? '';
-}
-
-/**
- * The line under the box of a new expense: its category, without the main one, and its person.
- *
- * @param movement - the expense of the proposal
- * @returns for example `Spese mediche · Giulia Bianchi`
- */
-function movementSubtitle(
-    movement: App.Data.Reading.MovementProposalData,
-): string {
-    const category = nameOf(
-        props.expenseCategories,
-        movement.values.category_id,
-    )
-        .split(' › ')
-        .at(-1);
-
-    return [category, nameOf(props.people, movement.values.person_id)]
-        .filter((part) => part)
-        .join(' · ');
-}
-
-/**
- * The line under the box of a new health event: its title, person and date.
- *
- * @param event - the event of the proposal
- * @returns for example `«Visita dal dentista» · Giulia Bianchi · 22/10/2026`
- */
-function eventSubtitle(event: App.Data.Reading.EventProposalData): string {
-    const { title, person_id: person, date } = event.values;
-
-    return [
-        title ? `«${title}»` : '',
-        nameOf(props.people, person),
-        date ? formatDate(date) : '',
-    ]
-        .filter((part) => part)
-        .join(' · ');
-}
-
-/**
- * The two choices under the box of the expense: already paid, with its date and account, or to pay.
- *
- * @param movement - the expense of the proposal
- * @returns each choice, whether it is in effect and what it sends
- */
-function dueChoices(
-    movement: App.Data.Reading.MovementProposalData,
-): { label: string; due: boolean; checked: boolean }[] {
-    const { date, financial_account_id: account } = movement.values;
-    const accountName = nameOf(props.accounts, account);
-    let paid = trans('Already paid');
-
-    if (date && accountName) {
-        paid = trans('Already paid on :date with :account', {
-            date: formatDate(date),
-            account: accountName,
-        });
-    } else if (date) {
-        paid = trans('Already paid on :date', { date: formatDate(date) });
-    }
-
-    const deadline = movement.due?.date;
-
-    return [
-        { label: paid, due: false, checked: !toPay.value },
-        {
-            label: deadline
-                ? trans('To pay by :date', { date: formatDate(deadline) })
-                : trans('To pay'),
-            due: true,
-            checked: toPay.value,
-        },
-    ];
-}
-
-/**
- * What a box is linked to.
- *
- * @param side - the box
- * @returns the target chosen by the person, `auto` if none
- */
-function targetOf(side: Side): ImportTarget {
-    const targets = chosen.value?.picks.targets;
-
-    if (side === 'movement' || side === 'event') {
-        return targets?.[side] ?? 'auto';
-    }
-
-    return targets?.records[side] ?? 'auto';
-}
-
-/**
- * Links a box to something else: a new one, one chosen, or back to the proposal.
- *
- * @param side - the box
- * @param target - `auto`, `new` or the id chosen
- */
-function setTarget(side: Side, target: ImportTarget): void {
-    const targets = chosen.value?.picks.targets;
-
-    if (!targets) {
-        return;
-    }
-
-    if (side === 'movement' || side === 'event') {
-        targets[side] = target;
-    } else {
-        targets.records[side] = target;
-    }
-
-    picking.value = undefined;
-}
-
-/**
- * Ticks or unticks a box.
- *
- * @param side - the box
- * @param value - ticked or not
- */
-function setTicked(side: Side, value: boolean): void {
-    const picks = chosen.value?.picks;
-
-    if (!picks) {
-        return;
-    }
-
-    if (side === 'movement' || side === 'event') {
-        picks[side] = value;
-    } else {
-        picks.records[side] = value;
-    }
-}
-
-/**
- * The key of the menu to choose another for a box of the file open.
- *
- * @param side - the box
- * @returns `<file>:<side>`
- */
-function pickKey(side: Side): string {
-    return `${current.value?.id}:${side}`;
-}
-
-/**
- * The texts of the actions of a box.
- *
- * @param side - the box
- * @param existing - whether it is linked to one already there
- * @returns the texts of *Create a new …*, of the button that chooses another and of its menu
- */
-function actionTexts(
-    side: Side,
-    existing: boolean,
-): { create: string; choose: string; menu: string } {
-    if (side === 'movement') {
-        const income = proposal.value?.movement?.values.kind === 'income';
-
-        return {
-            create: trans(
-                income ? 'Create a new income' : 'Create a new expense',
-            ),
-            choose: existing
-                ? trans('Choose another…')
-                : trans(
-                      income
-                          ? 'Link to an income already registered…'
-                          : 'Link to an expense already registered…',
-                  ),
-            menu: trans(income ? 'The income to link' : 'The expense to link'),
-        };
-    }
-
-    if (side === 'event') {
-        return {
-            create: trans('Create a new event'),
-            choose: existing
-                ? trans('Choose another event…')
-                : trans('Link to an event already registered…'),
-            menu: trans('The event to link'),
-        };
-    }
-
-    return {
-        create: trans('Create a new card'),
-        choose: existing
-            ? trans('Choose another…')
-            : trans('Link to a card already registered…'),
-        menu: trans('The card to link'),
-    };
-}
-
-/**
- * The expenses or incomes a box can be linked to instead, as options.
- *
- * @param movement - the expense or income of the proposal
- * @returns the options
- */
-function movementCandidates(
-    movement: App.Data.Reading.MovementProposalData,
-): App.Data.OptionData[] {
-    return movement.candidates.map((candidate) => ({
-        value: String(candidate.id),
-        label: `${candidate.title} · ${formatDate(candidate.date)} · ${formatEuro(candidate.amount)}`,
-        help: null,
-    }));
-}
-
-/**
- * The events the box can be linked to instead, as options.
- *
- * @param event - the event of the proposal
- * @returns the options
- */
-function eventCandidates(
-    event: App.Data.Reading.EventProposalData,
-): App.Data.OptionData[] {
-    return event.candidates.map((candidate) => ({
-        value: String(candidate.id),
-        label: `${candidate.title} · ${formatDate(candidate.date)}`,
-        help: null,
-    }));
-}
-
-/**
- * The cards a box can be linked to instead, as options.
- *
- * @param draft - the card of the proposal
- * @returns the options
- */
-function recordCandidates(
-    draft: App.Data.Reading.RecordDraftData,
-): App.Data.OptionData[] {
-    return draft.candidates.map((candidate) => ({
-        value: String(candidate.id),
-        label: candidate.label,
-        help: null,
-    }));
-}
-
-/**
- * Takes the one chosen in the menu of a box.
- *
- * @param side - the box
- * @param value - the id chosen, as the menu gives it
- */
-function pick(side: Side, value: unknown): void {
-    const id = Number(value);
-
-    if (Number.isInteger(id) && id > 0) {
-        setTarget(side, id);
-    }
 }
 
 /**
@@ -712,7 +385,11 @@ function save(): void {
         },
         {
             preserveScroll: true,
-            onStart: () => (processing.value = true),
+            onStart: () => {
+                processing.value = true;
+                // What was sent is saved with these choices: a proposal asked meanwhile would check a file saved
+                choices.forEach((choice) => choice.cancel());
+            },
             onFinish: () => (processing.value = false),
             onError: (received) => {
                 errors.value = errorsByFile(received, sent);
@@ -732,40 +409,6 @@ function save(): void {
 
 <template>
     <Head :title="$t('Import more files')" />
-
-    <DefineActions v-slot="{ side, existing, candidates }">
-        <template v-if="picking === pickKey(side)">
-            <FormKit
-                type="autocomplete"
-                open-on-click
-                :label="actionTexts(side, existing).menu"
-                :name="`pick-${side}`"
-                :options="candidates"
-                @input="pick(side, $event)"
-            />
-        </template>
-        <FmButton
-            v-if="existing && targetOf(side) !== 'new'"
-            variant="text"
-            @click="setTarget(side, 'new')"
-        >
-            {{ actionTexts(side, existing).create }}
-        </FmButton>
-        <FmButton
-            v-if="candidates.length > 0 && picking !== pickKey(side)"
-            variant="text"
-            @click="picking = pickKey(side)"
-        >
-            {{ actionTexts(side, existing).choose }}
-        </FmButton>
-        <FmButton
-            v-if="targetOf(side) !== 'auto'"
-            variant="text"
-            @click="setTarget(side, 'auto')"
-        >
-            {{ $t('Back to the proposal') }}
-        </FmButton>
-    </DefineActions>
 
     <div class="flex flex-col gap-6">
         <template v-if="desktop">
@@ -990,184 +633,18 @@ function save(): void {
                         @change="values[file.id] = $event"
                     />
 
-                    <FmAlsoDo v-if="proposal && ticked">
-                        <FmAlsoDoItem
-                            v-if="proposal.movement"
-                            :model-value="ticked.movement"
-                            :label="movementLabel(proposal.movement, toPay)"
-                            :hint="
-                                movementHint(
-                                    proposal.movement,
-                                    {
-                                        ticked: ticked.movement,
-                                        due: toPay,
-                                        target: targetOf('movement'),
-                                    },
-                                    movementSubtitle(proposal.movement),
-                                )
-                            "
-                            :warnings="
-                                lines(
-                                    alsoErrors('movement', 'targets.movement'),
-                                    movementWarnings(proposal.movement, {
-                                        ticked: ticked.movement,
-                                        due: toPay,
-                                    }),
-                                )
-                            "
-                            :icon="Wallet"
-                            @update:model-value="setTicked('movement', $event)"
-                        >
-                            <fieldset
-                                v-if="
-                                    proposal.movement.due &&
-                                    !proposal.movement.duplicate
-                                "
-                                class="m-0 flex flex-col gap-2 border-0 p-0"
-                            >
-                                <legend class="sr-only">
-                                    {{ $t('When it is paid') }}
-                                </legend>
-                                <label
-                                    v-for="choice in dueChoices(
-                                        proposal.movement,
-                                    )"
-                                    :key="String(choice.due)"
-                                    class="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[10px] bg-white px-3 text-[15px]"
-                                    :class="
-                                        choice.checked
-                                            ? 'border-2 border-action'
-                                            : 'border-[1.5px] border-edge'
-                                    "
-                                >
-                                    <input
-                                        type="radio"
-                                        :name="`due-${current.id}`"
-                                        class="m-0 size-[18px] shrink-0 accent-action"
-                                        :checked="choice.checked"
-                                        @change="
-                                            chosen &&
-                                            (chosen.picks.due = choice.due)
-                                        "
-                                    />
-                                    {{ choice.label }}
-                                </label>
-                            </fieldset>
-                            <template #actions>
-                                <ReuseActions
-                                    side="movement"
-                                    :existing="
-                                        proposal.movement.duplicate !== null
-                                    "
-                                    :candidates="
-                                        movementCandidates(proposal.movement)
-                                    "
-                                />
-                            </template>
-                        </FmAlsoDoItem>
-
-                        <FmAlsoDoItem
-                            v-if="proposal.event"
-                            :model-value="ticked.event"
-                            :label="eventLabel(proposal.event)"
-                            :hint="
-                                eventHint(
-                                    proposal.event,
-                                    {
-                                        ticked: ticked.event,
-                                        target: targetOf('event'),
-                                    },
-                                    eventSubtitle(proposal.event),
-                                )
-                            "
-                            :warnings="
-                                lines(
-                                    alsoErrors('event', 'targets.event'),
-                                    eventWarnings(proposal.event, ticked.event),
-                                )
-                            "
-                            :icon="HeartPulse"
-                            @update:model-value="setTicked('event', $event)"
-                        >
-                            <p
-                                v-if="
-                                    proposal.event.reminder &&
-                                    !proposal.event.existing
-                                "
-                                class="m-0 flex items-center gap-1.5 text-[13px] text-ink-soft"
-                            >
-                                <FmIcon :icon="Bell" :size="14" />
-                                {{ proposal.event.reminder }}
-                            </p>
-                            <template #actions>
-                                <ReuseActions
-                                    side="event"
-                                    :existing="proposal.event.existing !== null"
-                                    :candidates="
-                                        eventCandidates(proposal.event)
-                                    "
-                                />
-                            </template>
-                        </FmAlsoDoItem>
-
-                        <FmAlsoDoItem
-                            v-for="draft in proposal.records"
-                            :key="draft.kind"
-                            :model-value="ticked.records.includes(draft.kind)"
-                            :label="recordLabel(draft)"
-                            :hint="
-                                recordHint(draft, {
-                                    ticked: ticked.records.includes(draft.kind),
-                                    target: targetOf(draft.kind),
-                                })
-                            "
-                            :warnings="
-                                lines(
-                                    alsoErrors(
-                                        `records.${draft.kind}`,
-                                        `targets.records.${draft.kind}`,
-                                    ),
-                                    recordWarnings(
-                                        draft,
-                                        ticked.records.includes(draft.kind),
-                                    ),
-                                )
-                            "
-                            :icon="RECORD_ICONS[draft.kind]"
-                            @update:model-value="setTicked(draft.kind, $event)"
-                        >
-                            <p
-                                v-if="draft.reminder && !draft.existing"
-                                class="m-0 flex items-center gap-1.5 text-[13px] text-ink-soft"
-                            >
-                                <FmIcon :icon="Bell" :size="14" />
-                                {{ draft.reminder }}
-                            </p>
-                            <template #actions>
-                                <ReuseActions
-                                    :side="draft.kind"
-                                    :existing="draft.existing !== null"
-                                    :candidates="recordCandidates(draft)"
-                                />
-                            </template>
-                        </FmAlsoDoItem>
-
-                        <FmAlsoDoItem
-                            v-if="policy"
-                            :model-value="policy.ticked"
-                            :label="policy.label"
-                            :hint="policy.hint"
-                            :warnings="
-                                lines(alsoErrors('policy'), policy.warnings)
-                            "
-                            :disabled="policy.disabled"
-                            :icon="Shield"
-                            @update:model-value="
-                                chosen &&
-                                (chosen.picks.policy = $event ? 'auto' : 'none')
-                            "
-                        />
-                    </FmAlsoDo>
+                    <ImportAlsoDoBoxes
+                        v-if="proposal && chosen"
+                        :key="current.id"
+                        :file-id="current.id"
+                        :proposal="proposal"
+                        :choices="chosen"
+                        :errors="errors[current.id] ?? {}"
+                        :people="people"
+                        :expense-categories="expenseCategories ?? []"
+                        :accounts="accounts ?? []"
+                        :health-types="healthTypes ?? []"
+                    />
 
                     <div
                         class="mt-1.5 flex flex-wrap items-center justify-between gap-2.5"

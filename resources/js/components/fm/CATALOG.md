@@ -287,6 +287,7 @@ export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
 ### Used by
 
 - `components/dev/DevCases.vue`
+- `components/documents/ImportAlsoDoBoxes.vue`
 - `components/fm/FmActions.vue`
 - `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmAgendaRow.vue`
@@ -691,6 +692,7 @@ Without a label it is only decoration and screen reader users do not hear it.
 
 ### Used by
 
+- `components/documents/ImportAlsoDoBoxes.vue`
 - `components/fm/FmActiveFilter.vue`
 - `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmAgendaRow.vue`
@@ -3476,7 +3478,7 @@ page decides which items there are.
 
 ### Used by
 
-- `pages/documents/Import.vue`
+- `components/documents/ImportAlsoDoBoxes.vue`
 
 ## FmAlsoDoItem
 
@@ -3533,7 +3535,7 @@ under the row, the fields to correct and the actions (*Choose another…*,
 
 ### Used by
 
-- `pages/documents/Import.vue`
+- `components/documents/ImportAlsoDoBoxes.vue`
 
 ## FmCardBudget
 

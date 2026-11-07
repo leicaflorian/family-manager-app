@@ -351,7 +351,7 @@ final readonly class CardDetails
     /**
      * A field of the form with its choices.
      */
-    private function fieldData(CardField $field): CardFieldData
+    public function fieldData(CardField $field): CardFieldData
     {
         return new CardFieldData(
             column: $field->column,

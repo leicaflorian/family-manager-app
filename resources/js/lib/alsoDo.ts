@@ -9,6 +9,21 @@ import { formatDate, formatEuro } from '@/lib/format';
 /** What a box is linked to: the one found (`auto`), a new one whatever is found, or the one picked by hand. */
 export type ImportTarget = 'auto' | 'new' | number;
 
+/** A box of *What I do too* that links to something: the expense or income, the event, or a card. */
+export type AlsoSide = 'movement' | 'event' | App.Enums.RecordKind;
+
+/** Something a box can be linked to instead: a card has a label, an expense a title, a date and an amount. */
+export type Candidate = {
+    id: number;
+    label?: string;
+    title?: string;
+    date?: string;
+    amount?: number;
+};
+
+/** One of the two choices under the box of the expense. */
+export type DueChoice = { label: string; due: boolean; checked: boolean };
+
 /** The box of the policy taken from another file or from one already registered. */
 export type PolicyBox = {
     label: string;
@@ -113,6 +128,24 @@ export function movementLabel(
             'Record the payment of ":title" of :date',
             named(movement.pays),
         );
+    }
+
+    const lead = movement.values.lead?.title;
+
+    if (lead) {
+        return euro === ''
+            ? trans(
+                  income
+                      ? 'Create the income (:lead)'
+                      : 'Create the expense (:lead)',
+                  { lead },
+              )
+            : trans(
+                  income
+                      ? 'Create the income of :amount (:lead)'
+                      : 'Create the expense of :amount (:lead)',
+                  { amount: euro, lead },
+              );
     }
 
     if (euro === '') {
@@ -425,4 +458,174 @@ export function policyBox(
     }
 
     return undefined;
+}
+
+/**
+ * The name of an option, by its value.
+ *
+ * @param options - the options
+ * @param id - the id, if there is one
+ * @returns the name, or an empty string
+ */
+function nameOf(options: App.Data.OptionData[], id: number | null): string {
+    return options.find((option) => option.value === String(id))?.label ?? '';
+}
+
+/**
+ * The line under the box of a new expense: its category, without the main one, and its person.
+ *
+ * @param movement - the expense of the proposal
+ * @param options - the expense categories, with their path, and the people
+ * @returns for example `Spese mediche · Giulia Bianchi`
+ */
+export function movementSubtitle(
+    movement: App.Data.Reading.MovementProposalData,
+    options: {
+        categories: App.Data.OptionData[];
+        people: App.Data.OptionData[];
+    },
+): string {
+    const category = nameOf(options.categories, movement.values.category_id)
+        .split(' › ')
+        .at(-1);
+
+    return [category, nameOf(options.people, movement.values.person_id)]
+        .filter((part) => part)
+        .join(' · ');
+}
+
+/**
+ * The line under the box of a new health event: its title, person and date.
+ *
+ * @param event - the event of the proposal
+ * @param people - the people
+ * @returns for example `«Visita dal dentista» · Giulia Bianchi · 22/10/2026`
+ */
+export function eventSubtitle(
+    event: App.Data.Reading.EventProposalData,
+    people: App.Data.OptionData[],
+): string {
+    const { title, person_id: person, date } = event.values;
+
+    return [
+        title ? `«${title}»` : '',
+        nameOf(people, person),
+        date ? formatDate(date) : '',
+    ]
+        .filter((part) => part)
+        .join(' · ');
+}
+
+/**
+ * The two choices under the box of the expense: already paid, with its date and account, or to pay.
+ *
+ * @param movement - the expense of the proposal
+ * @param toPay - whether *To pay* is in effect
+ * @param accounts - the accounts, to name the one it was paid with
+ * @returns each choice, whether it is in effect and what it sends
+ */
+export function dueChoices(
+    movement: App.Data.Reading.MovementProposalData,
+    toPay: boolean,
+    accounts: App.Data.OptionData[],
+): DueChoice[] {
+    const { date, financial_account_id: account } = movement.values;
+    const accountName = nameOf(accounts, account);
+    let paid = trans('Already paid');
+
+    if (date && accountName) {
+        paid = trans('Already paid on :date with :account', {
+            date: formatDate(date),
+            account: accountName,
+        });
+    } else if (date) {
+        paid = trans('Already paid on :date', { date: formatDate(date) });
+    }
+
+    const deadline = movement.due?.date;
+
+    return [
+        { label: paid, due: false, checked: !toPay },
+        {
+            label: deadline
+                ? trans('To pay by :date', { date: formatDate(deadline) })
+                : trans('To pay'),
+            due: true,
+            checked: toPay,
+        },
+    ];
+}
+
+/**
+ * The texts of the actions of a box.
+ *
+ * @param side - the box
+ * @param existing - whether it is linked to one already there
+ * @param income - whether the movement is an income
+ * @returns the texts of *Create a new …*, of the button that chooses another and of its menu
+ */
+export function actionTexts(
+    side: AlsoSide,
+    existing: boolean,
+    income: boolean,
+): { create: string; choose: string; menu: string } {
+    if (side === 'movement') {
+        return {
+            create: trans(
+                income ? 'Create a new income' : 'Create a new expense',
+            ),
+            choose: existing
+                ? trans('Choose another…')
+                : trans(
+                      income
+                          ? 'Link to an income already registered…'
+                          : 'Link to an expense already registered…',
+                  ),
+            menu: trans(income ? 'The income to link' : 'The expense to link'),
+        };
+    }
+
+    if (side === 'event') {
+        return {
+            create: trans('Create a new event'),
+            choose: existing
+                ? trans('Choose another event…')
+                : trans('Link to an event already registered…'),
+            menu: trans('The event to link'),
+        };
+    }
+
+    return {
+        create: trans('Create a new card'),
+        choose: existing
+            ? trans('Choose another…')
+            : trans('Link to a card already registered…'),
+        menu: trans('The card to link'),
+    };
+}
+
+/**
+ * What a box can be linked to instead, as the options of its menu.
+ *
+ * @param candidates - the expenses, events or cards of the proposal
+ * @returns the options: a card by its label, the others by title, date and amount
+ */
+export function candidateOptions(
+    candidates: Candidate[],
+): App.Data.OptionData[] {
+    return candidates.map((candidate) => ({
+        value: String(candidate.id),
+        label:
+            candidate.label ??
+            [
+                candidate.title,
+                candidate.date ? formatDate(candidate.date) : '',
+                candidate.amount === undefined
+                    ? ''
+                    : formatEuro(candidate.amount),
+            ]
+                .filter((part) => part)
+                .join(' · '),
+        help: null,
+    }));
 }

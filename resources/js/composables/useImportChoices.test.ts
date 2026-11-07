@@ -129,20 +129,22 @@ describe('useImportChoices', () => {
 
         await vi.advanceTimersByTimeAsync(1);
         expect(reload).toHaveBeenCalledOnce();
-        expect(reload).toHaveBeenCalledWith({
-            only: ['proposals'],
-            preserveUrl: true,
-            data: {
-                check: {
-                    file_id: 7,
-                    document,
-                    also: expect.objectContaining({
-                        movement: false,
-                        due: true,
-                    }),
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['proposals'],
+                preserveUrl: true,
+                data: {
+                    check: {
+                        file_id: 7,
+                        document,
+                        also: expect.objectContaining({
+                            movement: false,
+                            due: true,
+                        }),
+                    },
                 },
-            },
-        });
+            }),
+        );
     });
 
     it('asks again when the document changes', async () => {
@@ -188,5 +190,93 @@ describe('useImportChoices', () => {
         await vi.advanceTimersByTimeAsync(1000);
 
         expect(reload).not.toHaveBeenCalled();
+    });
+
+    it('sends only the corrections the person wrote, in the shape of the server', () => {
+        const { choices } = mount();
+
+        choices.setOverride('movement', 'due_date', '2026-11-30');
+        choices.setOverride('event', 'type', 'visit');
+        choices.setOverride('policy', 'type', 'car');
+
+        expect(choices.overrideOf('movement', 'due_date')).toBe('2026-11-30');
+        expect(choices.overrideOf('event', 'title')).toBeUndefined();
+        expect(choices.also.value?.overrides).toEqual({
+            movement: { due_date: '2026-11-30' },
+            event: { type: 'visit' },
+            records: { policy: { type: 'car' } },
+        });
+    });
+
+    it('ticks, unticks and links each box', () => {
+        const { choices } = mount();
+
+        choices.setTicked('movement', false);
+        choices.setTicked('organization', false);
+        choices.setTarget('event', 41);
+        choices.setTarget('organization', 'new');
+
+        expect(choices.targetOf('event')).toBe(41);
+        expect(choices.targetOf('organization')).toBe('new');
+        expect(choices.targetOf('vehicle')).toBe('auto');
+        expect(choices.also.value).toMatchObject({
+            movement: false,
+            records: [],
+            targets: { event: 41, records: { organization: 'new' } },
+        });
+    });
+
+    it('cancels the request still running when it asks again, so an older proposal never comes after a newer one', async () => {
+        const tokens: { cancel: ReturnType<typeof vi.fn> }[] = [];
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            const token = { cancel: vi.fn() };
+            tokens.push(token);
+            options?.onCancelToken?.(token);
+        });
+        const { choices } = mount();
+
+        choices.setTicked('movement', false);
+        await vi.advanceTimersByTimeAsync(400);
+        choices.setTicked('event', false);
+        await vi.advanceTimersByTimeAsync(400);
+
+        expect(tokens).toHaveLength(2);
+        expect(tokens[0]!.cancel).toHaveBeenCalledOnce();
+        expect(tokens[1]!.cancel).not.toHaveBeenCalled();
+    });
+
+    it('cancels the request running when the page goes away', async () => {
+        const token = { cancel: vi.fn() };
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onCancelToken?.(token);
+        });
+        const { choices, unmount } = mount();
+
+        choices.setTicked('movement', false);
+        await vi.advanceTimersByTimeAsync(400);
+        unmount();
+
+        expect(token.cancel).toHaveBeenCalledOnce();
+    });
+
+    it('asks nothing after cancel, until the next change', async () => {
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        const { choices } = mount();
+
+        choices.setTicked('movement', false);
+        await vi.advanceTimersByTimeAsync(100);
+        choices.cancel();
+        await vi.advanceTimersByTimeAsync(1000);
+
+        expect(reload).not.toHaveBeenCalled();
+    });
+
+    it('knows whether the person changed anything', () => {
+        const { choices } = mount();
+        expect(choices.changed.value).toBe(false);
+
+        choices.setOverride('event', 'title', 'Controllo');
+
+        expect(choices.changed.value).toBe(true);
     });
 });

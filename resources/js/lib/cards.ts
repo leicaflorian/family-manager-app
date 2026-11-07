@@ -1,5 +1,6 @@
 /**
- * What the pages of the cards know about each type: its icon. The colours of the areas are in `areas.ts`.
+ * What the pages of the cards know about each type and each field: the icon of a type, the input of a field. The
+ * colours of the areas are in `areas.ts`.
  */
 import type { LucideIcon } from '@lucide/vue';
 import { create } from '@/routes/cards';
@@ -65,4 +66,42 @@ export function newCardUrl(
     return only !== undefined && ofArea.length === 1
         ? create({ query: { card: only.type } }).url
         : create({ query: { area } }).url;
+}
+
+/** The FormKit input of each kind of field of a card. */
+const inputs: Record<string, string> = {
+    text: 'text',
+    textarea: 'textarea',
+    number: 'number',
+    currency: 'currency',
+    date: 'datepicker',
+    toggle: 'toggle',
+    choice: 'togglebuttons',
+    dropdown: 'autocomplete',
+    person: 'autocomplete',
+    organization: 'autocomplete',
+    card: 'autocomplete',
+};
+
+/** The kinds whose input is a menu that can be left empty. */
+const menus = new Set(['dropdown', 'person', 'organization', 'card']);
+
+/**
+ * The FormKit input that draws a field of a card.
+ *
+ * @param kind - the kind of the field (`CardFieldData.kind`)
+ * @returns the type of the FormKit input, `text` for an unknown kind
+ */
+export function fieldInput(kind: string): string {
+    return inputs[kind] ?? 'text';
+}
+
+/**
+ * Whether a field of a card is a menu that can be left empty.
+ *
+ * @param kind - the kind of the field (`CardFieldData.kind`)
+ * @returns true for a menu
+ */
+export function isMenuField(kind: string): boolean {
+    return menus.has(kind);
 }

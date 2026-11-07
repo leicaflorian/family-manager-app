@@ -1,5 +1,7 @@
+import { getNode } from '@formkit/core';
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import {
     afterEach,
     beforeEach,
@@ -822,6 +824,195 @@ describe('Import', () => {
                 screen.getByRole('button', { name: 'Import the file' }),
             );
             expect(sent(post)[0]?.also).toMatchObject({ policy: 'none' });
+        });
+
+        it('to pay with no deadline read, offers the empty deadline and sends the one written', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(Import, ferriProps());
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('radio', { name: 'To pay' }),
+            );
+            const deadline = getNode('also-due-date-7');
+            expect(deadline?.value ?? '').toBe('');
+            // The calendar of the datepicker cannot be driven in jsdom: the day is set on the field
+            await deadline?.input('2026-11-30');
+            await settle();
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({
+                due: true,
+                overrides: { movement: { due_date: '2026-11-30' } },
+            });
+        });
+
+        it('starts the deadline from the one read', async () => {
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const due = {
+                ...ferriProposal.movement!.due!,
+                suggested: true,
+                date: '2026-11-15',
+            };
+            renderPage(
+                Import,
+                ferriProps({
+                    ...ferriProposal,
+                    movement: { ...ferriProposal.movement!, due },
+                }),
+            );
+            await settle();
+
+            expect(getNode('also-due-date-7')?.value).toBe('2026-11-15');
+        });
+
+        it('asks a card for the fields it misses, and sends what the person chose', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const policy: App.Data.Reading.RecordDraftData = {
+                kind: 'policy',
+                title: 'the policy 40/123456 · UnipolSai',
+                values: { policy_number: '40/123456' },
+                suggested: false,
+                missing: ['the type'],
+                existing: null,
+                candidates: [],
+                reminder: null,
+                fields: [
+                    {
+                        column: 'type',
+                        label: 'Policy type',
+                        kind: 'dropdown',
+                        required: true,
+                        options: [
+                            { value: 'car', label: 'Car', help: null },
+                            { value: 'home', label: 'Home', help: null },
+                        ],
+                        show_when: {},
+                        label_when: {},
+                    },
+                ],
+            };
+            renderPage(
+                Import,
+                ferriProps({ ...ferriProposal, records: [policy] }),
+            );
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('checkbox', {
+                    name: /Create the policy 40\/123456/,
+                }),
+            );
+            expect(
+                screen.getByText('To create it the type is missing.'),
+            ).toBeInTheDocument();
+            await choose('Policy type', 'Car');
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({
+                records: ['policy'],
+                overrides: { records: { policy: { type: 'car' } } },
+            });
+        });
+
+        it('asks a new health event for its title and type when the reading has none', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const event = {
+                ...ferriProposal.event!,
+                values: {
+                    ...ferriProposal.event!.values,
+                    title: null,
+                    type: null,
+                },
+                blocked:
+                    'To create the health event the type, the title are missing.',
+            };
+            renderPage(
+                Import,
+                ferriProps(
+                    { ...ferriProposal, event },
+                    {
+                        healthTypes: [
+                            { value: 'visit', label: 'Visit', help: null },
+                            { value: 'exam', label: 'Exam', help: null },
+                        ],
+                    },
+                ),
+            );
+            await settle();
+
+            await userEvent.type(
+                screen.getByRole('textbox', { name: 'Title of the event' }),
+                'Controllo',
+            );
+            await choose('Type of the event', 'Exam');
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({
+                overrides: { event: { title: 'Controllo', type: 'exam' } },
+            });
+        });
+
+        it('does not ask the proposal of a file being imported', async () => {
+            const reload = vi
+                .spyOn(router, 'reload')
+                .mockImplementation(() => {});
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, visit) => {
+                    visit?.onStart?.({} as never);
+                },
+            );
+            renderPage(Import, ferriProps());
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('radio', { name: 'To pay' }),
+            );
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+            await vi.advanceTimersByTimeAsync(1000);
+
+            expect(reload).not.toHaveBeenCalled();
+        });
+
+        it('forgets the changes of a file saved when the page comes back without it', async () => {
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const other = file({
+                id: 8,
+                name: 'altro.pdf',
+                reading_status: 'done',
+                proposal: null,
+            });
+            const both = {
+                ...ferriProps(),
+                files: [ferri, other],
+                proposals: {
+                    7: ferriProposal,
+                    8: { ...ferriProposal, fileId: 8 },
+                },
+            };
+            const view = renderPage(Import, both);
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('radio', { name: 'To pay' }),
+            );
+            expect(hasChanges()).toBe(true);
+
+            await view.rerender({ ...both, files: [other] });
+            await settle();
+
+            expect(hasChanges()).toBe(false);
         });
 
         it('sends nothing more for a file without a proposal', async () => {

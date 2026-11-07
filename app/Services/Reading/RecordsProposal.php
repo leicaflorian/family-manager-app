@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Cards\CardField;
+use App\Data\CardFieldData;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\RecordDraftData;
@@ -14,6 +16,7 @@ use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Utility;
 use App\Models\Vehicle;
+use App\Services\CardDetails;
 use App\Support\Reading\RecordLabel;
 use App\Support\Translated;
 use Carbon\CarbonImmutable;
@@ -46,8 +49,9 @@ final readonly class RecordsProposal
     /**
      * @param  Matcher  $matcher  the cards by code, plate, number and name
      * @param  RecordSearch  $search  the terminated utility, the homes, the belonging and the intervention
+     * @param  CardDetails  $details  the fields of a card as its form draws them
      */
-    public function __construct(private Matcher $matcher, private RecordSearch $search) {}
+    public function __construct(private Matcher $matcher, private RecordSearch $search, private CardDetails $details) {}
 
     /**
      * The boxes of the cards and the codes that no card has and no box creates.
@@ -134,7 +138,31 @@ final readonly class RecordsProposal
             reminder: $draft->kind === RecordKind::Belonging && $existing === null && is_string($warranty) && $warranty !== ''
                 ? Translated::text("I'll remind you before the warranty ends")
                 : null,
+            fields: $existing === null ? $this->fields($draft->kind, $values) : [],
         );
+    }
+
+    /**
+     * The required fields of a new card still empty that the person can write in its box, as the card form draws
+     * them; the ones that come from the document (the date of an intervention) are written in its form instead.
+     *
+     * @param  RecordKind  $kind  which card
+     * @param  array<string, mixed>  $values  the fields it would be created with
+     * @return list<CardFieldData>
+     */
+    private function fields(RecordKind $kind, array $values): array
+    {
+        // An organization has no card class: its box exists only with the name read, and emptying the name drops it
+        $empty = static fn (string $column): bool => ($values[$column] ?? null) === null || $values[$column] === '';
+        $editable = ImportChoices::RECORD_FIELDS[$kind->value];
+
+        return array_values(array_map(
+            $this->details->fieldData(...),
+            array_filter(
+                RecordDrafts::requiredFields($kind),
+                static fn (CardField $field): bool => array_key_exists($field->column, $editable) && $empty($field->column),
+            ),
+        ));
     }
 
     /**

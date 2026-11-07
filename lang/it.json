@@ -1288,5 +1288,12 @@
     "The income to link": "L'entrata da collegare",
     "The event to link": "L'evento da collegare",
     "The card to link": "La scheda da collegare",
-    "Back to the proposal": "Torna alla proposta"
+    "Back to the proposal": "Torna alla proposta",
+    "Create the income (:lead)": "Crea l'entrata (:lead)",
+    "Create the expense (:lead)": "Crea la spesa (:lead)",
+    "Create the income of :amount (:lead)": "Crea l'entrata di :amount (:lead)",
+    "Create the expense of :amount (:lead)": "Crea la spesa di :amount (:lead)",
+    "Title of the event": "Titolo dell'evento",
+    "Type of the event": "Tipo di evento",
+    "Deadline": "Scadenza"
 }

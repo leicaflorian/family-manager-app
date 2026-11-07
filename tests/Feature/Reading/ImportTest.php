@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\HealthEventType;
 use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
@@ -76,6 +77,14 @@ test('the page names the categories and the accounts of the expense a file propo
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('expenseCategories', fn (Collection $options): bool => $options->pluck('label')->contains('Salute › Spese mediche'))
             ->where('accounts', fn (Collection $options): bool => $options->contains(fn (array $option): bool => $option['value'] === (string) $card->id && $option['label'] === 'Carta Laura')));
+});
+
+test('the page gives the types of a health event, for the box of the event', function (): void {
+    $file = waitingFile();
+
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('healthTypes', fn (Collection $options): bool => $options->pluck('value')->all() === array_column(HealthEventType::cases(), 'value')));
 });
 
 test('a file of another family is a 404 before anything else', function (): void {

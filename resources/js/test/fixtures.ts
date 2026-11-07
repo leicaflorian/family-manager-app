@@ -1733,6 +1733,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             existing: null,
             candidates: [{ id: 5, label: 'Studio dentistico' }],
             reminder: null,
+            fields: [],
         },
     ],
     policy: null,

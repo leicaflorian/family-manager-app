@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Data\CardFieldData;
+use App\Data\OptionData;
 use App\Data\Reading\DueData;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\PolicyGiverData;
@@ -302,6 +304,31 @@ describe('the whole file', function (): void {
             ->and($new[0]->existing)->toBeNull()
             ->and($new[1]->missing)->toBe(['il nome'])
             ->and($new[1]->suggested)->toBeFalse();
+    });
+
+    test('a new card offers the fields it still needs and the person can write, as the card form draws them', function (): void {
+        $policy = proposalOf(['kind' => 'insurance', 'policy_number' => '40/123456', 'issue_date' => '2026-10-01'])->records;
+        $typed = proposalOf(['kind' => 'insurance', 'policy_number' => '40/123456', 'issue_date' => '2026-10-01'], [
+            'overrides' => ['records' => ['policy' => ['type' => 'car']]],
+        ])->records;
+        $belonging = array_find(proposalOf([
+            'kind' => 'receipt', 'total_amount' => 549, 'issue_date' => '2026-10-22', 'durable_good' => true, 'item_name' => 'Lavatrice',
+        ], ['overrides' => ['records' => ['belonging' => ['name' => '']]]])->records, fn (RecordDraftData $record): bool => $record->kind === RecordKind::Belonging);
+        $maintenance = proposalOf(['kind' => 'invoice', 'maintenance_type' => 'boiler_service', 'issuer_name' => 'Termoidraulica', 'total_amount' => 90]);
+
+        $type = $policy[0]->fields[0];
+        expect($policy[0]->kind)->toBe(RecordKind::Policy)
+            ->and(array_map(fn (CardFieldData $field): string => $field->column, $policy[0]->fields))->toBe(['type'])
+            ->and($type->kind)->toBe('dropdown')
+            ->and(array_column(array_map(fn (OptionData $option): array => $option->toArray(), $type->options), 'value'))->toContain('car')
+            ->and($typed[0]->fields)->toBe([])
+            ->and(array_map(fn (CardFieldData $field): string => $field->column, $belonging->fields ?? []))->toBe(['name'])
+            ->and($belonging?->fields[0]->kind)->toBe('text');
+
+        // The date of an intervention is the document's: it is written in the form of the document, not here
+        $draft = array_find($maintenance->records, fn (RecordDraftData $record): bool => $record->kind === RecordKind::Maintenance);
+        expect($draft?->missing)->not->toBe([])
+            ->and(array_map(fn (CardFieldData $field): string => $field->column, $draft->fields ?? []))->not->toContain('date');
     });
 
     test('a card picked by hand that is gone is looked for again', function (): void {

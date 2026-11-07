@@ -18,6 +18,7 @@ import { router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
+import { fieldInput, isMenuField } from '@/lib/cards';
 import { errors } from '@/lib/errors';
 import { isEmpty } from '@/lib/forms';
 import FmButton from './FmButton.vue';
@@ -52,24 +53,6 @@ defineSlots<{
     /** On the left of the *Save* button, for example *Delete*. */
     start?: () => unknown;
 }>();
-
-/** The FormKit input of each kind of field. */
-const inputs: Record<string, string> = {
-    text: 'text',
-    textarea: 'textarea',
-    number: 'number',
-    currency: 'currency',
-    date: 'datepicker',
-    toggle: 'toggle',
-    choice: 'togglebuttons',
-    dropdown: 'autocomplete',
-    person: 'autocomplete',
-    organization: 'autocomplete',
-    card: 'autocomplete',
-};
-
-/** The kinds whose input is a menu that can be left empty. */
-const menus = new Set(['dropdown', 'person', 'organization', 'card']);
 
 /** The kinds whose value is the id of a record and whose options have text values. */
 const references = new Set(['person', 'organization', 'card']);
@@ -199,7 +182,7 @@ function optionsOf(
 ): { value: string; label: string }[] {
     const options = field.options.map(({ value, label }) => ({ value, label }));
 
-    return menus.has(field.kind) && !field.required
+    return isMenuField(field.kind) && !field.required
         ? [{ value: '', label: trans('None') }, ...options]
         : options;
 }
@@ -238,15 +221,15 @@ useSaveShortcut(save, () => !processing);
         <template v-for="field in shown" :key="field.column">
             <FormKit
                 v-model="data[field.column]"
-                :type="inputs[field.kind] ?? 'text'"
+                :type="fieldInput(field.kind)"
                 :name="field.column"
                 :label="$t(labelOf(field))"
                 :options="
-                    field.kind === 'choice' || menus.has(field.kind)
+                    field.kind === 'choice' || isMenuField(field.kind)
                         ? optionsOf(field)
                         : undefined
                 "
-                :open-on-click="menus.has(field.kind) ? true : undefined"
+                :open-on-click="isMenuField(field.kind) ? true : undefined"
                 :enforced="
                     field.kind === 'choice' && field.required ? true : undefined
                 "

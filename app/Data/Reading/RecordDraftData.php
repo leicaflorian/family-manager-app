@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\Reading;
 
+use App\Data\CardFieldData;
 use App\Enums\RecordKind;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -23,6 +24,7 @@ final class RecordDraftData extends Data
      * @param  array{id: int, title: string}|null  $existing  the organization, belonging or intervention already there, to link
      * @param  list<array{id: int, label: string}>  $candidates  the cards of this kind, to pick one by hand
      * @param  string|null  $reminder  the reminder the new card makes (`I'll remind you before the warranty ends`)
+     * @param  list<CardFieldData>  $fields  the required fields still empty that the person can write in the box, as the card form draws them
      */
     public function __construct(
         public readonly RecordKind $kind,
@@ -33,5 +35,6 @@ final class RecordDraftData extends Data
         public readonly ?array $existing = null,
         public readonly array $candidates = [],
         public readonly ?string $reminder = null,
+        public readonly array $fields = [],
     ) {}
 }

@@ -37,7 +37,7 @@ final readonly class ImportChoices
     private const array EVENT_FIELDS = ['title' => 'title', 'type' => 'health', 'outcome' => 'text', 'next_checkup_date' => 'date'];
 
     /** The fields of each card the person can correct, by column; issuer, person and date are the document's. */
-    private const array RECORD_FIELDS = [
+    public const array RECORD_FIELDS = [
         'organization' => ['name' => 'text', 'types' => 'types'],
         'vehicle' => ['name' => 'text', 'plate_number' => 'text', 'brand' => 'text', 'model' => 'text', 'registration_year' => 'year'],
         'utility' => ['type' => 'utility', 'supply_point_code' => 'text', 'customer_code' => 'text', 'home_id' => 'id', 'activation_date' => 'date'],

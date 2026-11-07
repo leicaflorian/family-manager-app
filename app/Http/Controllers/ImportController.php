@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Reading\ImportFiles;
+use App\Data\OptionData;
 use App\Data\PendingFileData;
 use App\Data\Reading\ImportChoices;
+use App\Enums\HealthEventType;
 use App\Http\Requests\Reading\ImportRequest;
 use App\Models\Document;
 use App\Models\File;
@@ -32,7 +34,7 @@ final class ImportController extends Controller
 {
     /**
      * The page with the files of `?files=1,2,3`, in that order, the proposal of each, and the expense categories
-     * and accounts that name the expense a file proposes. A file that is not waiting
+     * and accounts that name the expense a file proposes, and the types of a health event. A file that is not waiting
      * in the family is a 404 before anything else; with no files the person goes back to *To sort*.
      *
      * The page asks the proposal of the file it shows again, with the choices of the person, by reloading only
@@ -66,6 +68,8 @@ final class ImportController extends Controller
             // The names the boxes of *What I do too* show for the expense: its category and the account it was paid with
             'expenseCategories' => BudgetFormOptions::categories(...),
             'accounts' => BudgetFormOptions::accounts(...),
+            // The types the box of a new health event offers when the reading found none
+            'healthTypes' => fn (): array => OptionData::list(HealthEventType::options()),
             ...$options->all(),
         ]);
     }
