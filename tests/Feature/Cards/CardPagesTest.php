@@ -42,7 +42,7 @@ beforeEach(function (): void {
 test('it shows the areas, an area and a card to every account', function (User $user): void {
     $this->actingAs($user);
 
-    $this->get(route('areas'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Areas')->has('areas', 9));
+    $this->get(route('areas'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Areas')->has('groups', 9));
     $this->get(route('areas.show', 'home'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Area')->where('area.area', 'home'));
     $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->component('cards/Card')

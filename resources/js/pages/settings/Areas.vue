@@ -183,10 +183,11 @@ function cardsStay(count: number): string {
                             class="size-3 shrink-0 rounded-full"
                             :class="dot(item.area)"
                         />
-                        <div class="flex min-w-0 grow flex-col">
-                            <span class="text-base font-semibold text-ink">{{
-                                item.label
-                            }}</span>
+                        <div class="flex min-w-0 flex-1 flex-col">
+                            <span
+                                class="text-base font-semibold break-words text-ink"
+                                >{{ item.label }}</span
+                            >
                             <span class="text-[13px] text-ink-soft">
                                 {{ cardCountText(item.count)
                                 }}<template v-if="hidden.includes(item.area)">
@@ -210,6 +211,7 @@ function cardsStay(count: number): string {
                                     $t('Show :area', { area: item.label })
                                 "
                                 outer-class="$reset"
+                                label-class="sr-only sm:not-sr-only"
                                 :model-value="!hidden.includes(item.area)"
                                 @input="
                                     (value: unknown) =>

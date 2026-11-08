@@ -40,12 +40,14 @@ test('the sidebar areas follow the order of the family and skip the hidden ones'
 test('Areas sends every area in the order of the family, the hidden one marked and with its cards, and the card types without the hidden ones', function (): void {
     $this->actingAs($this->marco)->get(route('areas'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->component('Areas')
-        ->has('areas', 9)
-        ->where('areas.0.hidden', false)
-        ->where('areas.1.area', 'health')
-        ->where('areas.6.area', 'work')
-        ->where('areas.6.hidden', true)
-        ->where('areas.6.cards', fn ($cards): bool => in_array('Marco - Studio Rinaldi', array_column($cards->toArray(), 'label'), true))
+        ->has('groups', 9)
+        ->where('groups.0.hidden', false)
+        ->where('groups.1.area', 'health')
+        ->where('groups.6.area', 'work')
+        ->where('groups.6.hidden', true)
+        ->where('groups.6.cards', fn ($cards): bool => in_array('Marco - Studio Rinaldi', array_column($cards->toArray(), 'label'), true))
+        ->has('areas', 8)
+        ->where('areas', fn ($areas): bool => ! in_array('work', array_column($areas->toArray(), 'area'), true))
         ->where('types', fn ($types): bool => ! in_array('employment', array_column($types->toArray(), 'type'), true)
             && in_array('vehicle', array_column($types->toArray(), 'type'), true)));
 });

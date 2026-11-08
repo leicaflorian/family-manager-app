@@ -27,9 +27,9 @@ import { show } from '@/routes/areas';
 /** How many cards of an area are shown under its name. */
 const PREVIEW = 3;
 
-const { areas, types, canCreate } = defineProps<{
+const { groups, types, canCreate } = defineProps<{
     /** The areas of the family in its order, the hidden ones too, each with its cards. */
-    areas: App.Data.AreaData[];
+    groups: App.Data.AreaData[];
     /** The card types, to know where *Add* leads. */
     types: App.Data.CardTypeData[];
     /** Whoever is looking adds cards (an `admin`). */
@@ -40,16 +40,16 @@ const { areas, types, canCreate } = defineProps<{
 const query = ref('');
 
 /** There is no card in any area, the hidden ones too. */
-const empty = computed(() => areas.every((area) => area.count === 0));
+const empty = computed(() => groups.every((area) => area.count === 0));
 
 /** The areas shown in the grid: the ones the family did not hide. */
-const shown = computed(() => areas.filter((area) => !area.hidden));
+const shown = computed(() => groups.filter((area) => !area.hidden));
 
 /** The cards whose name or subtitle holds the search, from every area, the hidden ones too. */
 const found = computed((): App.Data.CardData[] => {
     const text = query.value.trim().toLowerCase();
 
-    return areas
+    return groups
         .flatMap((area) => area.cards)
         .filter((card) =>
             `${card.label} ${card.subtitle}`.toLowerCase().includes(text),

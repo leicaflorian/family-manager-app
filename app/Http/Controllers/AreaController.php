@@ -28,8 +28,9 @@ final class AreaController extends Controller
      */
     public function index(#[CurrentUser] User $user): Response
     {
+        // Not named `areas`: a page prop would replace the shared `areas` (visible areas with counts) of the sidebar
         return Inertia::render('Areas', [
-            'areas' => $this->summaries->areas(),
+            'groups' => $this->summaries->areas(),
             'types' => self::typeData(CardTypes::ofAreas($this->familyAreas->visible())),
             'canCreate' => CardTypes::canCreate($user),
         ]);
