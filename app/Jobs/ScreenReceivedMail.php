@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Actions\Mail\NotifyMail;
 use App\Actions\Reading\QueueReading;
+use App\Data\Mail\MailScreeningAnswer;
 use App\Enums\FileSource;
 use App\Enums\MailOutcome;
 use App\Enums\ReadingPurpose;
@@ -118,7 +119,8 @@ final class ScreenReceivedMail implements ShouldQueue
 
     /**
      * The decisions of `afterScreen`: a held notice to discard ends the mail; files to discard stay unread; otherwise
-     * the held notice is saved and the files are read.
+     * the held notice is saved and the files are read. The answer of the model is kept on the mail as soon as it
+     * comes: a try after a failure uses it again instead of asking (and paying) twice, and finds the notice it saved.
      *
      * @param  ReceivedMail  $mail  the mail, saved or held
      * @param  MailScreening  $screening  the question to the AI
@@ -126,18 +128,33 @@ final class ScreenReceivedMail implements ShouldQueue
      * @param  FileStore  $files  where the held notice is saved
      * @param  NotifyMail  $notify  the notice of the bell
      *
-     * @throws Throwable when the held notice is not saved
+     * @throws Throwable when the held notice is not saved, or the readings are not sent
      */
     private function screen(ReceivedMail $mail, MailScreening $screening, QueueReading $readings, FileStore $files, NotifyMail $notify): void
     {
-        $held = $mail->outcome === MailOutcome::Held;
-        $decision = MailFlow::afterScreen($screening->ask($mail), $held);
-        $notes = $decision['note'] === null ? [] : [$decision['note']];
+        $notice = $this->notice($mail);
 
-        // *Salva come avviso* may have saved the held notice while the model was answering: then it did it all
-        if ($held && $this->noticeSaved($mail)) {
-            return;
+        if ($mail->screening === null) {
+            // A notice and no answer yet: *Salva come avviso* saved it, and did it all
+            if ($notice instanceof File) {
+                return;
+            }
+
+            $answer = $screening->ask($mail);
+            $mail->forceFill(['screening' => ['verdict' => $answer?->verdict, 'reason' => $answer?->reason]])->save();
+
+            // ... or it saved it while the model was answering
+            if ($this->notice($mail) instanceof File) {
+                return;
+            }
+        } else {
+            $answer = $this->storedAnswer($mail->screening);
         }
+
+        // A notice with an answer was saved by a try before: the mail was held
+        $held = $mail->outcome === MailOutcome::Held || $notice instanceof File;
+        $decision = MailFlow::afterScreen($answer, $held);
+        $notes = $decision['note'] === null ? [] : [$decision['note']];
 
         if ($decision['action'] === 'discard') {
             $mail->outcome = MailOutcome::Discarded;
@@ -155,7 +172,7 @@ final class ScreenReceivedMail implements ShouldQueue
         }
 
         if ($held) {
-            $notice = $this->saveNotice($mail, $files);
+            $notice ??= $this->saveNotice($mail, $files);
 
             if (! $notice instanceof File) {
                 $mail->forceFill(['outcome' => MailOutcome::Empty])->save();
@@ -175,6 +192,20 @@ final class ScreenReceivedMail implements ShouldQueue
     }
 
     /**
+     * The answer kept on the mail by a try before: null when the model was not asked (a known sender, the reading
+     * off or the readings of the month used up).
+     *
+     * @param  array<array-key, mixed>  $stored  the column `screening`
+     */
+    private function storedAnswer(array $stored): ?MailScreeningAnswer
+    {
+        $verdict = $stored['verdict'] ?? null;
+        $reason = $stored['reason'] ?? null;
+
+        return in_array($verdict, ['discard', 'keep', 'unsure'], true) ? new MailScreeningAnswer($verdict, is_string($reason) ? $reason : null) : null;
+    }
+
+    /**
      * Sends the readings of some files in one batch, whose end sends the notice; with nothing to read the notice
      * goes now. A file already queued or read (by a try before) is not read again; with the reading off or the
      * readings of the month used up the files are marked `off`.
@@ -184,6 +215,8 @@ final class ScreenReceivedMail implements ShouldQueue
      * @param  ReadingPurpose  $purpose  the notice or an attachment, as `ai_readings` records it
      * @param  QueueReading  $readings  marks the files to read
      * @param  NotifyMail  $notify  the notice of the bell
+     *
+     * @throws Throwable when the batch is not sent; the files are unread again
      */
     private function read(ReceivedMail $mail, array $toRead, ReadingPurpose $purpose, QueueReading $readings, NotifyMail $notify): void
     {
@@ -207,13 +240,20 @@ final class ScreenReceivedMail implements ShouldQueue
         $familyId = $this->familyId;
         $fileIds = array_map(static fn (ReadFile $job): int => $job->fileId, $jobs);
 
-        Bus::batch($jobs)
-            ->name("mail {$mailId}")
-            ->allowFailures()
-            ->finally(static function () use ($mailId, $familyId, $fileIds): void {
-                ScreenReceivedMail::afterReadings($mailId, $familyId, $fileIds);
-            })
-            ->dispatch();
+        try {
+            Bus::batch($jobs)
+                ->name("mail {$mailId}")
+                ->allowFailures()
+                ->finally(static function () use ($mailId, $familyId, $fileIds): void {
+                    ScreenReceivedMail::afterReadings($mailId, $familyId, $fileIds);
+                })
+                ->dispatch();
+        } catch (Throwable $error) {
+            // Not sent: the files go back unread, so that the try after reads them instead of waiting forever
+            File::query()->whereIn('id', $fileIds)->update(['reading_status' => null, 'reading_error' => null]);
+
+            throw $error;
+        }
     }
 
     /**
@@ -253,23 +293,26 @@ final class ScreenReceivedMail implements ShouldQueue
     }
 
     /**
-     * Whether the notice of the mail is saved already.
+     * The notice of the mail, when it is saved already.
      *
      * @param  ReceivedMail  $mail  the mail
      */
-    private function noticeSaved(ReceivedMail $mail): bool
+    private function notice(ReceivedMail $mail): ?File
     {
-        return File::query()->where('mail_key', AttachmentRules::mailKey($mail->event_id, -1))->exists();
+        return File::query()->where('mail_key', AttachmentRules::mailKey($mail->event_id, -1))->first();
     }
 
     /**
-     * Adds notes to the mail and saves it, with whatever else changed on it.
+     * Adds notes to the mail and saves it, with whatever else changed on it. A note the mail has already (written
+     * by a try before) is not added again.
      *
      * @param  ReceivedMail  $mail  the mail
      * @param  list<string>  $notes  the notes to add
      */
     private static function addNotes(ReceivedMail $mail, array $notes): void
     {
-        $mail->forceFill(['notes' => [...$mail->notes, ...$notes]])->save();
+        $new = array_values(array_filter($notes, static fn (string $note): bool => ! in_array($note, $mail->notes, true)));
+
+        $mail->forceFill(['notes' => [...$mail->notes, ...$new]])->save();
     }
 }

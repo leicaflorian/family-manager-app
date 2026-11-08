@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property array<array-key, mixed>|null $body
  * @property string|null $gmail_code
  * @property int|null $organization_id
+ * @property array<array-key, mixed>|null $screening
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -49,7 +50,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['event_id', 'sender', 'sender_address', 'recipient', 'recipients', 'subject', 'received_at', 'deliveries', 'outcome', 'notes', 'skipped', 'body', 'gmail_code', 'organization_id'])]
+#[Fillable(['event_id', 'sender', 'sender_address', 'recipient', 'recipients', 'subject', 'received_at', 'deliveries', 'outcome', 'notes', 'skipped', 'body', 'gmail_code', 'organization_id', 'screening'])]
 final class ReceivedMail extends FamilyModel
 {
     /** @use HasFactory<ReceivedMailFactory> */
@@ -107,6 +108,7 @@ final class ReceivedMail extends FamilyModel
             'notes' => 'array',
             'skipped' => 'array',
             'body' => 'array',
+            'screening' => 'array',
         ];
     }
 }
