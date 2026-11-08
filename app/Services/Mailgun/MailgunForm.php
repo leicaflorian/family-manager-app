@@ -26,6 +26,12 @@ final class MailgunForm
     public const int MAX_EVENT_ID_CHARS = 255;
 
     /**
+     * The longest subject kept. Its column holds 65,535 bytes, and the subject goes in the note of each file too:
+     * longer, every delivery would fail with 500 until Mailgun gives up.
+     */
+    public const int MAX_SUBJECT_CHARS = 1000;
+
+    /**
      * The headers of the mail, from the JSON string `message-headers`: a list of [name, value].
      *
      * @param  array<string, mixed>  $fields  the fields of the call
@@ -68,7 +74,7 @@ final class MailgunForm
 
         $headers = self::headersOf($fields);
         $from = self::text($fields, 'from');
-        $subject = self::text($fields, 'subject');
+        $subject = mb_substr(self::text($fields, 'subject'), 0, self::MAX_SUBJECT_CHARS);
         $date = self::headerValues($headers, $fields, 'Date')[0] ?? '';
         $messageId = trim(trim(self::headerValues($headers, $fields, 'Message-Id')[0] ?? ''), '<>');
 

@@ -494,3 +494,29 @@ test('Giulia\'s health card has one open automatic reminder on 20/10/2026', func
             ->and(DB::table('remindables')->where('reminder_id', $reminder->id)->where('remindable_type', $card->getMorphClass())->where('remindable_id', $card->id)->count())->toBe(1);
     });
 });
+
+test('online the Bianchis keep the random address they got at sign-up, never the one of the README', function (): void {
+    app()->detectEnvironment(fn (): string => 'staging');
+    config(['services.mailgun.inbox_domain' => 'bollette.familymanager.test']);
+
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $address = FamilySetting::query()->sole()->mail_inbox_recipient;
+        expect($address)->toMatch('/^bianchi\.[a-z0-9]{6}@bollette\.familymanager\.test$/')
+            ->not->toBe('bianchi.k7m2x9@bollette.familymanager.test')
+            ->and(ReceivedMail::query()->pluck('recipient')->unique()->all())->toBe([$address]);
+    });
+});
+
+test('online without a domain the Bianchis still get a random address', function (): void {
+    app()->detectEnvironment(fn (): string => 'staging');
+    config(['services.mailgun.inbox_domain' => '']);
+
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        expect(FamilySetting::query()->sole()->mail_inbox_recipient)->toMatch('/^bianchi\.[a-z0-9]{6}@bollette\.familymanager\.test$/')
+            ->not->toBe('bianchi.k7m2x9@bollette.familymanager.test');
+    });
+});

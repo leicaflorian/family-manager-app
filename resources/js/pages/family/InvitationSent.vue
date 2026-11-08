@@ -18,7 +18,8 @@ const { invitation } = defineProps<{
 }>();
 
 const { date } = useFormat();
-const { copied, copy: copyText } = useCopy();
+/** `failed`: the browser refused to copy, so the person selects the link and copies it by hand. */
+const { copied, failed: copyFailed, copy: copyText } = useCopy();
 
 /**
  * Copies the link to the clipboard.
@@ -64,6 +65,9 @@ async function copy(): Promise<void> {
             <FmButton :icon="copied ? Check : Copy" @click="copy">{{
                 copied ? $t('Copied') : $t('Copy the link')
             }}</FmButton>
+            <span v-if="copyFailed" role="status" class="self-center text-sm">{{
+                $t('Could not copy: select the text and copy it by hand.')
+            }}</span>
             <FmButton variant="text" :href="family().url">{{
                 $t('Back to the family')
             }}</FmButton>

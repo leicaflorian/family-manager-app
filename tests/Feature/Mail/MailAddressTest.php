@@ -124,6 +124,32 @@ describe('findByMailRecipient', function (): void {
     });
 });
 
+describe('the addresses of every family', function (): void {
+    test('an address taken by another family is taken from inside any family', function (): void {
+        $family = Family::factory()->create();
+        FamilySetting::factory()->for($family)->create(['mail_inbox_recipient' => 'bianchi.k7m2x9@bollette.familymanager.test']);
+
+        CurrentFamily::using(Family::factory()->create()->id, function (): void {
+            expect(FamilySetting::addressTaken('BIANCHI.k7m2x9@bollette.familymanager.test'))->toBeTrue()
+                ->and(FamilySetting::addressTaken('rossi.k7m2x9@bollette.familymanager.test'))->toBeFalse();
+        });
+    });
+
+    test('the families with an address are those whose settings have one', function (): void {
+        $with = Family::factory()->create();
+        $without = Family::factory()->create();
+        $noSettings = Family::factory()->create();
+        FamilySetting::factory()->for($with)->create(['mail_inbox_recipient' => 'rossi.k7m2x9@bollette.familymanager.test']);
+        FamilySetting::factory()->for($without)->create(['mail_inbox_recipient' => null]);
+
+        CurrentFamily::using($without->id, function () use ($with, $without, $noSettings): void {
+            expect(FamilySetting::familiesWithAddress())->toContain($with->id)
+                ->not->toContain($without->id)
+                ->not->toContain($noSettings->id);
+        });
+    });
+});
+
 describe('notifyUsers', function (): void {
     test('with null gives all the accounts of the family', function (): void {
         $family = Family::factory()->create();

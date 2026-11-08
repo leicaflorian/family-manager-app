@@ -114,6 +114,7 @@ test('the copy brings the family with its records, links, categories and account
 
     $utility = DB::table('utilities')->sole();
     expect(DB::table('remindables')->where('remindable_type', 'utility')->sole())->remindable_type->toBe('utility')->remindable_id->toBe($utility->id)
+        // written in Directus with capitals and spaces: the app finds the address in lower case
         ->and(DB::table('family_settings')->sole()->mail_inbox_recipient)->toBe('documenti@example.com');
 });
 

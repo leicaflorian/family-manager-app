@@ -225,4 +225,4 @@ CREATE TABLE family_settings (
     family_name varchar(255) NULL
 );
 INSERT INTO family_settings (date_updated, mail_inbox_recipient, mail_inbox_notify, mail_inbox_notify_attachments_only, mail_inbox_ai_filter, anthropic_api_key, reminders_cron, family_name) VALUES
-    ('2026-10-20 08:00:00', 'documenti@example.com', '["Laura.Verdi@example.com","nobody.here@example.com"]', 0, 1, 'sk-not-a-key', '0 8 * * *', 'Verdi');
+    ('2026-10-20 08:00:00', ' Documenti@Example.com ', '["Laura.Verdi@example.com","nobody.here@example.com"]', 0, 1, 'sk-not-a-key', '0 8 * * *', 'Verdi');

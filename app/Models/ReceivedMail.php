@@ -59,6 +59,14 @@ final class ReceivedMail extends FamilyModel
     use HasFactory;
 
     /**
+     * The columns a row of a list needs (*Received mail*, the bell, the Home): never the text of the mail, which can be
+     * more than a megabyte, nor the answer of the screening.
+     *
+     * @var list<string>
+     */
+    public const array SUMMARY_COLUMNS = ['id', 'family_id', 'event_id', 'sender', 'sender_address', 'subject', 'received_at', 'deliveries', 'outcome', 'saved_files', 'organization_id'];
+
+    /**
      * The files saved from the mail.
      *
      * @return HasMany<File, $this>

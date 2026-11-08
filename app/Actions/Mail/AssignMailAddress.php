@@ -43,7 +43,7 @@ final readonly class AssignMailAddress
         for ($try = 0; $try < self::MAX_TRIES; $try++) {
             $address = strtolower($maker($family->name, trim($domain)));
 
-            if (FamilySetting::query()->withoutGlobalScopes()->where('mail_inbox_recipient', $address)->exists()) {
+            if (FamilySetting::addressTaken($address)) {
                 continue;
             }
 

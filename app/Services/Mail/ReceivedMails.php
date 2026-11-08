@@ -27,6 +27,7 @@ final class ReceivedMails
     public function recent(int $limit): array
     {
         $mails = ReceivedMail::query()
+            ->select(ReceivedMail::SUMMARY_COLUMNS)
             ->where('outcome', MailOutcome::Saved)
             ->whereHas('files')
             ->with(['organization', 'files.document', ...$this->cardRelations()])

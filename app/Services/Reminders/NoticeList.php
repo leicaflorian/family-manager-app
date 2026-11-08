@@ -12,8 +12,10 @@ use App\Models\Reminder;
 use App\Models\ReminderNotice;
 use App\Support\Reminders\DueText;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 
@@ -99,10 +101,25 @@ final readonly class NoticeList
     {
         return ReminderNotice::query()
             ->where('user_id', $userId)
-            ->with(['reminder.link', 'mail.organization'])
+            ->with($this->relations())
             ->orderByRaw('read_at IS NOT NULL')
             ->latest('sent_at')
             ->latest('id');
+    }
+
+    /**
+     * What a row of a notice reads with it: the reminder and its card, or the mail without its text (it can be more
+     * than a megabyte) and the organization of its sender.
+     *
+     * @return array<int|string, string|Closure>
+     */
+    private function relations(): array
+    {
+        return [
+            'reminder.link',
+            'mail' => static fn (BelongsTo $query): BelongsTo => $query->select(ReceivedMail::SUMMARY_COLUMNS),
+            'mail.organization',
+        ];
     }
 
     /**
@@ -113,7 +130,7 @@ final readonly class NoticeList
      */
     public function hrefOf(ReminderNotice $notice, CarbonImmutable $today): string
     {
-        $notice->load(['reminder.link', 'mail.organization']);
+        $notice->load($this->relations());
 
         return $this->rows(new Collection([$notice]), $today)[0]->href;
     }

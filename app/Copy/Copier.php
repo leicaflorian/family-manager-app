@@ -298,7 +298,7 @@ final class Copier
     /**
      * The row of the settings of the app. The accounts told about the mail are the ones copied, found by email (the
      * accounts were copied before, `DirectusMap::order()`), and the switch for the mails with attachments is on when
-     * Directus never had it.
+     * Directus never had it. The address is kept in lower case, without spaces.
      *
      * @param  array<string, mixed>  $copy  the row of `DirectusMap`
      * @return array<string, mixed>
@@ -312,6 +312,10 @@ final class Copier
 
         return [
             ...$copy,
+            // `findByMailRecipient()` compares in lower case: an address written with capitals would find nobody
+            'mail_inbox_recipient' => is_string($copy['mail_inbox_recipient'] ?? null) && trim($copy['mail_inbox_recipient']) !== ''
+                ? mb_strtolower(trim($copy['mail_inbox_recipient']))
+                : null,
             'mail_inbox_notify' => $ids === null ? null : json_encode($ids),
             'mail_inbox_notify_attachments_only' => ($copy['mail_inbox_notify_attachments_only'] ?? null) === null ? true : (bool) $copy['mail_inbox_notify_attachments_only'],
         ];

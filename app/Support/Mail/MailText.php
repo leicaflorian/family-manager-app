@@ -25,6 +25,9 @@ final class MailText
     /** The namespace of HTML tags: any other is svg or math. */
     private const string HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
 
+    /** The tags whose `target` says where a page opens: always a new tab. */
+    private const array TARGETED = ['a', 'area', 'form'];
+
     /** White with dark text whatever the theme of the app: mails are made for a white page. */
     private const string STYLE = 'html { background: #fff; color: #1f2933; color-scheme: light; } '
         .'body { margin: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; } '
@@ -53,7 +56,8 @@ final class MailText
 
     /**
      * The content read as a browser reads it, with every `meta` and `base` of the mail taken out, and every `svg`
-     * and `math` with what they hold, and the tags of the page put first in its head. A `meta` of the mail could
+     * and `math` with what they hold, every link and form sent to a new tab, and the tags of the page put first in
+     * its head. A `meta` of the mail could
      * move the frame to a page of strangers (`refresh`, which the sandbox allows) or loosen the policy: with a real
      * parser no spelling, entity or broken tag slips past, as it would past a pattern. Inside `svg` and `math` a
      * text written out again can be read by the browser as tags, so they go too (a bill does not need them, and
@@ -74,6 +78,11 @@ final class MailText
         foreach (iterator_to_array($document->getElementsByTagName('*'), false) as $element) {
             if ($element->namespaceURI !== self::HTML_NAMESPACE || in_array($element->localName, ['meta', 'base'], true)) {
                 $element->remove();
+            } elseif (in_array($element->localName, self::TARGETED, true)) {
+                // a target of the mail (`_self`, `_top`…) would win over the `base` and open the site inside the frame
+                $element->setAttribute('target', '_blank');
+            } else {
+                $element->removeAttribute('formtarget');
             }
         }
 
@@ -114,7 +123,7 @@ final class MailText
 
     /**
      * Whether the page, read again as the browser will read it, has only the `meta` and `base` tags of the page,
-     * in their place, and no `svg` or `math`.
+     * in their place, no `svg` or `math`, and every link opening in a new tab.
      *
      * @param  string  $page  the page written out
      */
@@ -124,6 +133,12 @@ final class MailText
 
         if (! $document instanceof HTMLDocument) {
             return false;
+        }
+
+        foreach (iterator_to_array($document->getElementsByTagName('*'), false) as $element) {
+            if (in_array($element->localName, self::TARGETED, true) ? $element->getAttribute('target') !== '_blank' : $element->hasAttribute('formtarget')) {
+                return false;
+            }
         }
 
         $tags = array_map(

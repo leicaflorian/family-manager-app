@@ -13,6 +13,7 @@ use App\Models\Organization;
 use App\Models\ReceivedMail;
 use App\Services\FileStore;
 use App\Support\Mail\AttachmentRules;
+use App\Support\Mail\MailAddress;
 use App\Support\Mail\MailFlow;
 use App\Support\Mail\NoticeText;
 use App\Support\Mail\StoredBody;
@@ -25,7 +26,7 @@ use Carbon\CarbonImmutable;
  */
 final readonly class BianchiMails
 {
-    /** The part before the `@` of the address of the Bianchis. */
+    /** The part before the `@` of the address of the Bianchis, on a local machine and in the tests. */
     public const string ADDRESS_NAME = 'bianchi.k7m2x9';
 
     /** The domain used when `MAIL_INBOX_DOMAIN` is empty. */
@@ -74,13 +75,22 @@ final readonly class BianchiMails
     }
 
     /**
-     * The address of the family: the name of the Bianchis on the domain of the installation.
+     * The address of the family. On a local machine and in the tests the fixed one of the README, on the domain of
+     * the installation. Anywhere else the README is public, so the family keeps the random address it got at sign-up,
+     * or gets a random one when there is no domain.
      */
     private function address(): string
     {
         $domain = config('services.mailgun.inbox_domain');
+        $domain = is_string($domain) && trim($domain) !== '' ? trim($domain) : self::DEFAULT_DOMAIN;
 
-        return self::ADDRESS_NAME.'@'.(is_string($domain) && trim($domain) !== '' ? trim($domain) : self::DEFAULT_DOMAIN);
+        if (app()->environment('local', 'testing')) {
+            return self::ADDRESS_NAME.'@'.$domain;
+        }
+
+        $given = FamilySetting::query()->value('mail_inbox_recipient');
+
+        return is_string($given) && $given !== '' ? $given : MailAddress::make('Bianchi', $domain);
     }
 
     /**

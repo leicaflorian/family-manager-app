@@ -13,6 +13,7 @@ use App\Models\MailInboxCall;
 use App\Models\ReceivedMail;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Services\Mailgun\MailgunRequest;
 use App\Support\Mail\AttachmentRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Tests\Support\MailgunCall;
 
 const BIANCHI_ADDRESS = 'bianchi.k7m2x9@bollette.familymanager.test';
@@ -95,6 +97,60 @@ test('a call without signature, too old, too far ahead or with a wrong one is re
     'a day and a second ahead' => fn (): MailgunCall => enelBill()->signedAt(now()->getTimestamp() + 86401),
     'another key' => fn (): MailgunCall => enelBill()->signedWith('not-the-key'),
 ]);
+
+/**
+ * Posts the fields of a call exactly as given, signature included, as Mailgun or whoever copied a call would.
+ *
+ * @param  array<string, string>  $fields  the fields of the form
+ */
+function postMailgunFields(array $fields): TestResponse
+{
+    return test()->call('POST', MailgunRequest::PATH, $fields, [], [], ['CONTENT_TYPE' => MailgunRequest::CONTENT_TYPE, 'HTTP_ACCEPT' => 'application/json']);
+}
+
+/**
+ * The fields of a mail to the Bianchis, with no file, signed with this token.
+ *
+ * @param  string  $token  the token of the signature
+ * @param  string  $key  the key it is signed with
+ * @return array<string, string>
+ */
+function signedWithToken(string $token, string $key): array
+{
+    $timestamp = (string) now()->getTimestamp();
+    $fields = MailgunRequest::mailFields(BIANCHI_ADDRESS, 'Enel <bollette@enel.example>', 'La tua bolletta', str_repeat('La tua bolletta è disponibile. ', 4), '', MailgunRequest::newMessageId(), BIANCHI_ADDRESS, 0);
+
+    return $fields + ['timestamp' => $timestamp, 'token' => $token, 'signature' => hash_hmac('sha256', $timestamp.$token, $key)];
+}
+
+test('a signed call sent again as it is, with the same token, is refused and saves nothing', function (): void {
+    $fields = signedWithToken('token-di-una-sola-volta', config()->string('services.mailgun.signing_key'));
+    postMailgunFields($fields)->assertOk();
+
+    // whoever copied a signed call cannot use it again, for another mail neither
+    postMailgunFields($fields)->assertUnauthorized();
+    postMailgunFields(['subject' => 'Falsa', 'Message-Id' => '<falsa@mail.example>'] + $fields)->assertUnauthorized();
+
+    expect(mailCalls())->toHaveCount(2)
+        ->and(mailCalls()[1]->outcome)->toBe(CallOutcome::Rejected)
+        ->and(mailCalls()[1]->payload)->toBe([])
+        ->and(insideFamilyOf($this->admin, fn (): int => ReceivedMail::query()->count()))->toBe(1);
+});
+
+test('the token of a call with a wrong signature is not remembered', function (): void {
+    postMailgunFields(signedWithToken('token-conteso', 'not-the-key'))->assertUnauthorized();
+
+    postMailgunFields(signedWithToken('token-conteso', config()->string('services.mailgun.signing_key')))->assertOk();
+});
+
+test('every call of the same mail is signed with a new token, so deliveries again pass', function (): void {
+    $call = enelBill();
+
+    $call->send()->assertOk();
+    $call->send()->assertOk();
+
+    expect(array_map(fn (MailInboxCall $row): CallOutcome => $row->outcome, mailCalls()))->toBe([CallOutcome::Saved, CallOutcome::Empty]);
+});
 
 test('the refused calls leave at most one row a minute', function (): void {
     enelBill()->unsigned()->send()->assertUnauthorized();
@@ -328,16 +384,81 @@ test('the 101st mail of the day is limited and tells the admins once', function 
         ->and(mailCalls()[2]->outcome)->toBe(CallOutcome::Limited);
 });
 
-test('over the limit a mail already received is still delivered again', function (): void {
+test('over the limit a mail whose delivery failed is still delivered again', function (): void {
+    $disk = (object) ['full' => true];
+    File::creating(function () use ($disk): void {
+        if ($disk->full) {
+            throw new RuntimeException('The disk is full.');
+        }
+    });
     $call = enelBill();
-    $call->send()->assertOk();
+    $call->send()->assertStatus(500);
     insideFamilyOf($this->admin, function (): void {
         ReceivedMail::factory()->count(100)->create(['family_id' => $this->admin->family_id, 'received_at' => today()->setTime(0, 5)]);
     });
 
+    $disk->full = false;
+    $call->send()->assertOk()->assertJson(['saved' => 1]);
+
+    expect(mailCalls()[1]->outcome)->toBe(CallOutcome::Saved);
+});
+
+test('a mail already received with the same Message-Id and new attachments saves nothing new', function (): void {
+    $call = enelBill();
     $call->send()->assertOk();
 
+    // the sender chooses the Message-Id: the same one with more attachments is not a new mail
+    $call->attach('altro.pdf', BILL_PDF.'altro', 'application/pdf')->send()->assertOk()->assertJson(['saved' => 0]);
+
+    insideFamilyOf($this->admin, function (): void {
+        $mail = ReceivedMail::query()->sole();
+        expect(File::query()->pluck('original_name')->all())->toBe(['bolletta_ottobre.pdf'])
+            ->and($mail->deliveries)->toBe(2)
+            ->and($mail->saved_files)->toHaveCount(1)
+            ->and($mail->outcome)->toBe(MailOutcome::Saved);
+    });
     expect(mailCalls()[1]->outcome)->toBe(CallOutcome::Empty);
+    Queue::assertPushed(ScreenReceivedMail::class, 1);
+});
+
+test('a mail already received does not save again the files the family deleted', function (): void {
+    $call = enelBill();
+    $call->send()->assertOk();
+    insideFamilyOf($this->admin, fn () => File::query()->delete());
+
+    $call->send()->assertOk()->assertJson(['saved' => 0]);
+
+    insideFamilyOf($this->admin, function (): void {
+        expect(File::query()->count())->toBe(0)
+            ->and(ReceivedMail::query()->sole()->deliveries)->toBe(2);
+    });
+});
+
+test('the same Message-Id sent again over the limit is limited and saves nothing', function (): void {
+    $call = enelBill();
+    $call->send()->assertOk();
+    insideFamilyOf($this->admin, function (): void {
+        ReceivedMail::factory()->count(99)->create(['family_id' => $this->admin->family_id, 'received_at' => today()->setTime(0, 5)]);
+    });
+
+    foreach (range(1, 3) as $round) {
+        $call->attach("altro_{$round}.pdf", BILL_PDF.$round, 'application/pdf')->send()->assertOk();
+    }
+
+    insideFamilyOf($this->admin, function (): void {
+        expect(File::query()->count())->toBe(1)
+            ->and(ReceivedMail::query()->where('event_id', 'like', 'mailgun:%')->sole()->deliveries)->toBe(1);
+    });
+    expect(array_map(static fn (MailInboxCall $row): CallOutcome => $row->outcome, array_slice(mailCalls(), 1)))
+        ->toBe([CallOutcome::Limited, CallOutcome::Limited, CallOutcome::Limited]);
+});
+
+test('a subject longer than its column is cut, not answered with 500 at every delivery', function (): void {
+    enelBill()->subject(str_repeat('Bolletta ', 9000))->send()->assertOk()->assertJson(['saved' => 1]);
+
+    insideFamilyOf($this->admin, function (): void {
+        expect(mb_strlen((string) ReceivedMail::query()->sole()->subject))->toBe(1000);
+    });
 });
 
 test('the door opens no session and sets no cookie', function (): void {
@@ -348,8 +469,12 @@ test('the door opens no session and sets no cookie', function (): void {
 
 test('a failure of the database keeps the text of the mail out of the log of the calls and of the app', function (): void {
     Exceptions::fake();
-    // MySQL refuses a subject longer than its TEXT column: the error of the query holds every value of the insert
-    $call = MailgunCall::to(BIANCHI_ADDRESS)->subject(str_repeat('Oggetto lunghissimo ', 4000))
+    // MySQL refuses a subject longer than its TEXT column: the error of the query holds every value of the insert.
+    // The form cuts a long subject, so it is made longer here, on its way to the database
+    ReceivedMail::creating(function (ReceivedMail $mail): void {
+        $mail->subject = str_repeat($mail->subject.' ', 4000);
+    });
+    $call = MailgunCall::to(BIANCHI_ADDRESS)->subject('Oggetto lunghissimo')
         ->text('PAROLA-SEGRETA del corpo della mail, che non deve finire nel registro.');
 
     $call->send()->assertStatus(500);

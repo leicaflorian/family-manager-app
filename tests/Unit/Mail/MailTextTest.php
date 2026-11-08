@@ -82,7 +82,7 @@ test('the policy of the page comes before anything of the mail', function (): vo
 test('the mail keeps its images, links and the look of its body', function (): void {
     $page = (string) MailText::document(['html' => '<body bgcolor="#eeeeee" style="margin:0"><p>Ciao <img src="https://tracker.example/x.png"> <a href="https://e.x/?a=1&amp;b=2">link</a></p></body>'], false);
 
-    expect($page)->toContain('<p>Ciao <img src="https://tracker.example/x.png"> <a href="https://e.x/?a=1&amp;b=2">link</a></p>')
+    expect($page)->toContain('<p>Ciao <img src="https://tracker.example/x.png"> <a href="https://e.x/?a=1&amp;b=2" target="_blank">link</a></p>')
         ->toContain('bgcolor="#eeeeee"')
         ->toContain('style="margin:0"');
 });
@@ -115,4 +115,20 @@ test('a mail as long as the stored limit is ready in a moment', function (): voi
 
     expect(microtime(true) - $start)->toBeLessThan(2.0)
         ->and(framePageMetas($page))->toBe(['', 'content-security-policy']);
+});
+
+test('every link opens in a new tab, whatever target the mail gives it', function (): void {
+    $page = (string) MailText::document(['plainText' => null, 'html' => '<a href="https://a.example" target="_self">a</a>'
+        .'<a href="https://b.example" target="_parent">b</a><a href="https://c.example" TARGET="_top">c</a>'
+        .'<a href="https://d.example">d</a><map><area href="https://e.example" target="_self"></map>'
+        .'<form action="https://f.example" target="_top"><button formtarget="_self">f</button></form>'], false);
+    $document = HTMLDocument::createFromString($page, LIBXML_NOERROR, 'UTF-8');
+
+    $targets = array_map(
+        static fn (Element $element): string => $element->localName.'|'.($element->getAttribute('target') ?? ''),
+        iterator_to_array($document->querySelectorAll('a, area, form'), false),
+    );
+
+    expect($targets)->toBe(['a|_blank', 'a|_blank', 'a|_blank', 'a|_blank', 'area|_blank', 'form|_blank'])
+        ->and($document->querySelector('[formtarget]'))->toBeNull();
 });

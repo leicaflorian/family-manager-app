@@ -313,11 +313,18 @@ test('gemini screens a mail from the sender and the subject and the call is reco
         ->and($row->output_tokens)->toBe(20 + 35);
 });
 
-test('a screening that the service refuses is a failure', function (): void {
-    Http::fake(['api.anthropic.com/*' => Http::response(aiAnswer('anthropic-refusal'))]);
+test('a screening that the service refuses or cuts is a failure, and is still paid and counted', function (string $provider, string $model, string $host, string $answer, string $message): void {
+    Http::fake([$host => Http::response(aiAnswer($answer))]);
+    $family = Family::factory()->create();
 
-    $failed = aiFailure(fn (): MailScreeningAnswer => aiReader('anthropic', 'claude-opus-5-5')->screen('a@b.it', 'x', 'it'));
+    $failed = CurrentFamily::using($family->id, fn (): ?ReadingFailed => aiFailure(fn (): MailScreeningAnswer => aiReader($provider, $model)->screen('a@b.it', 'x', 'it')));
 
-    expect($failed?->getMessage())->toBe('The model refused to read the document.');
-    expect(AiReading::query()->withoutGlobalScopes()->count())->toBe(0);
-});
+    // the call was paid: it counts against the readings of the month
+    expect($failed?->getMessage())->toBe($message)
+        ->and(AiReading::query()->withoutGlobalScopes()->sole())
+        ->purpose->toBe(ReadingPurpose::MailFilter)
+        ->family_id->toBe($family->id);
+})->with([
+    'refused' => ['anthropic', 'claude-opus-5-5', 'api.anthropic.com/*', 'anthropic-refusal', 'The model refused to read the document.'],
+    'cut short' => ['gemini', 'gemini-3.8-flash', 'generativelanguage.googleapis.com/*', 'gemini-truncated', 'The answer of the model was cut short.'],
+]);

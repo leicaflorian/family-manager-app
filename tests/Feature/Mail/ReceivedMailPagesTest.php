@@ -337,6 +337,25 @@ test('save as notice: a notice already there is not saved twice', function (): v
     Queue::assertNothingPushed();
 });
 
+test('save as notice: the notice the job saves at the same moment answers with the message, not an error', function (): void {
+    $mail = bianchiMail(['outcome' => MailOutcome::Held, 'body' => ['plainText' => str_repeat('Testo della mail. ', 10), 'html' => null]]);
+    $raced = false;
+    // the job writes its notice after the button found none, just before the button writes its own
+    File::creating(function (File $file) use ($mail, &$raced): void {
+        if (! $raced && $file->mail_key === AttachmentRules::mailKey($mail->event_id, -1)) {
+            $raced = true;
+            File::factory()->create(['family_id' => $mail->family_id, 'mail_key' => $file->mail_key]);
+        }
+    });
+
+    $this->actingAs($this->marco)->from(route('mail.show', $mail))->post(route('mail.notice', $mail))
+        ->assertRedirect(route('mail.show', $mail))
+        ->assertSessionHasErrors(['notice' => 'The notice is already in To sort']);
+
+    expect($raced)->toBeTrue();
+    Queue::assertNothingPushed();
+});
+
 test('save as notice: a mail that saved its files has no notice to save', function (): void {
     $mail = boardMails()['tari'];
 

@@ -20,6 +20,7 @@ use App\Support\Mail\MailFlow;
 use App\Support\Mail\NoticeText;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
@@ -34,7 +35,11 @@ use Throwable;
  * the failures in the notes of the mail and sends the notice (`afterReadings`). A job that fails leaves the mail
  * as it was, *In esame* for a held notice: the queue tries again, and after the last try *Salva come avviso*
  * recovers it.
+ *
+ * A try lasts at most 80 seconds: less than the 90 of `retry_after` of the queue, after which another worker would
+ * start the same mail (and pay the question twice), more than the 30 of the question to the service.
  */
+#[Timeout(80)]
 #[Tries(3)]
 final class ScreenReceivedMail implements ShouldQueue
 {

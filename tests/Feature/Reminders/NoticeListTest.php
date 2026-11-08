@@ -146,3 +146,18 @@ test('the number on the bell counts the notices of mails and of the limit, as th
     expect($props['unread_notices'])->toBe(2)
         ->and($props['unread'])->toHaveCount(2);
 });
+
+test('the bell never reads the text of the mails', function (): void {
+    $notice = mailNoticeFor($this->admin);
+    $columns = [];
+    ReceivedMail::retrieved(function (ReceivedMail $mail) use (&$columns): void {
+        $columns = [...$columns, ...array_keys($mail->getAttributes())];
+    });
+
+    bellRows($this->admin);
+    insideFamilyOf($this->admin, fn (): string => resolve(NoticeList::class)->hrefOf($notice, CarbonImmutable::today('Europe/Rome')));
+
+    expect($columns)->not->toBeEmpty()
+        ->not->toContain('body')
+        ->not->toContain('screening');
+});

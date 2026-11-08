@@ -105,3 +105,19 @@ test('listing the mails does not ask the database once per mail', function (): v
 
     expect($two)->toBe($one)->and($three)->toBe($one);
 });
+
+test('the latest mails never read the text of the mails', function (): void {
+    $columns = [];
+    ReceivedMail::retrieved(function (ReceivedMail $mail) use (&$columns): void {
+        $columns = [...$columns, ...array_keys($mail->getAttributes())];
+    });
+
+    insideFamilyOf($this->marco, function (): void {
+        mailWithFile();
+        resolve(ReceivedMails::class)->recent(3);
+    });
+
+    expect($columns)->not->toBeEmpty()
+        ->not->toContain('body')
+        ->not->toContain('screening');
+});

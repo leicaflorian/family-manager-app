@@ -146,7 +146,7 @@ final class ReceivedMailController extends Controller
         $like = '%'.addcslashes($search, '%_\\').'%';
 
         return ReceivedMail::query()
-            ->select(['id', 'family_id', 'event_id', 'sender', 'sender_address', 'subject', 'received_at', 'deliveries', 'outcome', 'saved_files', 'organization_id'])
+            ->select(ReceivedMail::SUMMARY_COLUMNS)
             ->with(['files:id,family_id,received_mail_id,mail_key,original_name', 'organization:id,family_id,name'])
             ->when($search !== '', static fn (Builder $query): Builder => $query->where(static fn (Builder $query): Builder => $query
                 ->whereLike('sender', $like)

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Extraction;
@@ -23,9 +24,11 @@ use App\Support\CurrentFamily;
 use App\Support\Mail\AttachmentRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\BatchRepository;
+use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Laravel\Ai\Attributes\Timeout as AgentTimeout;
 use Tests\Support\FakeDocumentReader;
 use Tests\Support\MailgunCall;
 
@@ -412,4 +415,16 @@ test('a question the AI cannot answer counts as unsure, and the notice is saved'
         ->and($mail->screening)->toEqual(['verdict' => 'unsure', 'reason' => null])
         ->and(mailFiles($this->admin))->toHaveCount(1)
         ->and($mail->notes)->toBe(['AI reading failed: Notice - La tua fattura è disponibile.txt: The model refused to read the document.']);
+});
+
+test('a slow question to the AI ends before the queue gives the mail to another worker', function (): void {
+    $job = new ScreenReceivedMail(1, 1);
+    $timeout = new ReflectionClass($job)->getAttributes(Timeout::class);
+    $call = new ReflectionClass(MailScreeningAgent::class)->getAttributes(AgentTimeout::class)[0]->newInstance();
+
+    // a try that outlived `retry_after` would start again on another worker, and pay the question twice
+    expect($timeout)->toHaveCount(1)
+        ->and($timeout[0]->newInstance()->timeout)->toBe(80)
+        ->toBeLessThan(config('queue.connections.database.retry_after'))
+        ->toBeGreaterThan($call->value);
 });

@@ -36,6 +36,13 @@ describe('headersOf', function (): void {
 });
 
 describe('parse', function (): void {
+    test('keeps at most 1000 characters of the subject, well inside its column and the note of each file', function (): void {
+        $mail = MailgunForm::parse(['recipient' => 'bills@example.test', 'subject' => str_repeat('è', 1200)], []);
+
+        expect($mail?->subject)->toBe(str_repeat('è', MailgunForm::MAX_SUBJECT_CHARS))
+            ->and(MailgunForm::MAX_SUBJECT_CHARS)->toBe(1000);
+    });
+
     test('keeps at most 255 characters of the id, the length of the column', function (): void {
         $long = str_repeat('a', 300).'@mail.example';
         $mail = MailgunForm::parse(['recipient' => 'bills@example.test', 'Message-Id' => "<{$long}>"], []);

@@ -33,12 +33,10 @@ final class MailInboxAddresses extends Command
         }
 
         $made = 0;
+        $withAddress = FamilySetting::familiesWithAddress();
 
-        foreach (Family::query()->orderBy('id')->get() as $family) {
-            $has = FamilySetting::query()->withoutGlobalScopes()
-                ->where('family_id', $family->id)->whereNotNull('mail_inbox_recipient')->exists();
-
-            if (! $has && $assign->handle($family) !== null) {
+        foreach (Family::query()->whereKeyNot($withAddress)->orderBy('id')->get() as $family) {
+            if ($assign->handle($family) !== null) {
                 $made++;
             }
         }

@@ -128,8 +128,7 @@ final readonly class AiDocumentReader implements DocumentReader
 
         $response = $this->ask(new MailScreeningAgent($model), MailScreeningAgent::request($sender, $subject, $locale), [], $provider, $model);
 
-        $this->assertComplete($response);
-
+        // the call is paid even when refused or cut: it is written first, so it counts against the readings of the month
         $this->recorder->handle(
             $provider,
             filled($response->meta->model) ? $response->meta->model : $model,
@@ -137,6 +136,8 @@ final readonly class AiDocumentReader implements DocumentReader
             $response->usage->outputTokens,
             $response->usage->cacheReadInputTokens ?? 0,
         );
+
+        $this->assertComplete($response);
 
         return MailScreeningAgent::parse($response instanceof StructuredAgentResponse && $response->structured !== [] ? $response->structured : $response->text);
     }

@@ -53,8 +53,8 @@ final class FamilySetting extends FamilyModel
     }
 
     /**
-     * The settings that have this address for the bills. It looks outside the current family, like
-     * `Invitation::findValid()`: the mail arrives when nobody is signed in, and the address says the family.
+     * The settings that have this address for the bills. It looks outside the current family (with `addressTaken()`
+     * and `familiesWithAddress()`, the only lookups of the settings that do), like `Invitation::findValid()`: the mail arrives when nobody is signed in, and the address says the family.
      *
      * @param  string  $address  the address the mail was sent to; case and surrounding spaces do not matter
      * @return self|null the settings, or null when it is not one address, or nobody has it
@@ -68,6 +68,28 @@ final class FamilySetting extends FamilyModel
         }
 
         return self::query()->withoutGlobalScope(FamilyScope::class)->where('mail_inbox_recipient', $address)->first();
+    }
+
+    /**
+     * Whether some family already has this address for the bills, whichever family is current: a new address must
+     * be nobody's.
+     *
+     * @param  string  $address  the address; case and surrounding spaces do not matter
+     */
+    public static function addressTaken(string $address): bool
+    {
+        return self::findByMailRecipient($address) instanceof self;
+    }
+
+    /**
+     * The families that have an address for the bills, whichever family is current: `mail-inbox:addresses` gives
+     * one to the others, and runs with no family signed in.
+     *
+     * @return list<int> the ids of the families
+     */
+    public static function familiesWithAddress(): array
+    {
+        return array_values(self::query()->withoutGlobalScope(FamilyScope::class)->whereNotNull('mail_inbox_recipient')->get(['family_id'])->map(static fn (self $settings): int => $settings->family_id)->all());
     }
 
     /**

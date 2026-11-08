@@ -57,7 +57,7 @@ The seeder creates the Bianchi family from the design board. The password is `pa
 
 Giulia, the daughter, has no account.
 
-The Bianchis also have the address for the bills, `bianchi.k7m2x9@` followed by `MAIL_INBOX_DOMAIN` (`bianchi.k7m2x9@bollette.familymanager.test` with the `.env.example` value), and the six mails of the *Posta ricevuta* board, the newest first:
+The Bianchis also have the address for the bills, `bianchi.k7m2x9@` followed by `MAIL_INBOX_DOMAIN` (`bianchi.k7m2x9@bollette.familymanager.test` with the `.env.example` value; only on a local machine and in the tests: anywhere else the seeder gives them a random address, shown in *Address for the bills*), and the six mails of the *Posta ricevuta* board, the newest first:
 
 | Arrived | From | Subject | Outcome |
 | --- | --- | --- | --- |

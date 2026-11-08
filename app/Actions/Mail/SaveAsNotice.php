@@ -12,6 +12,7 @@ use App\Jobs\ReadFile;
 use App\Models\File;
 use App\Models\ReceivedMail;
 use App\Support\Mail\MailFlow;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -41,25 +42,30 @@ final readonly class SaveAsNotice
      */
     public function handle(ReceivedMail $mail): File
     {
-        $notice = DB::transaction(function () use ($mail): File {
-            $mail = ReceivedMail::query()->whereKey($mail->id)->lockForUpdate()->firstOrFail();
+        try {
+            $notice = DB::transaction(function () use ($mail): File {
+                $mail = ReceivedMail::query()->whereKey($mail->id)->lockForUpdate()->firstOrFail();
 
-            if ($this->notices->find($mail) instanceof File) {
-                throw ValidationException::withMessages(['notice' => __('The notice is already in To sort')]);
-            }
+                if ($this->notices->find($mail) instanceof File) {
+                    throw $this->alreadySaved();
+                }
 
-            $notice = MailFlow::canSaveAsNotice($mail->outcome, count($mail->savedEntries()))
-                ? $this->notices->handle($mail)
-                : null;
+                $notice = MailFlow::canSaveAsNotice($mail->outcome, count($mail->savedEntries()))
+                    ? $this->notices->handle($mail)
+                    : null;
 
-            if (! $notice instanceof File) {
-                throw ValidationException::withMessages(['notice' => __('This mail has no notice to save.')]);
-            }
+                if (! $notice instanceof File) {
+                    throw ValidationException::withMessages(['notice' => __('This mail has no notice to save.')]);
+                }
 
-            $mail->forceFill(['outcome' => MailOutcome::Saved])->save();
+                $mail->forceFill(['outcome' => MailOutcome::Saved])->save();
 
-            return $notice;
-        });
+                return $notice;
+            });
+        } catch (UniqueConstraintViolationException) {
+            // the job saved the same notice after the check above: the unique key of the mail said no
+            throw $this->alreadySaved();
+        }
 
         // The notice was written without a person, in the language of the installation: so is its reading
         $locale = Config::string('app.locale');
@@ -69,5 +75,13 @@ final readonly class SaveAsNotice
         }
 
         return $notice;
+    }
+
+    /**
+     * The answer when the notice of the mail is in *To sort* already.
+     */
+    private function alreadySaved(): ValidationException
+    {
+        return ValidationException::withMessages(['notice' => __('The notice is already in To sort')]);
     }
 }

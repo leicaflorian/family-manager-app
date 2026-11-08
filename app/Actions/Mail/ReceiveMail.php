@@ -38,10 +38,12 @@ use Throwable;
  *
  * The checks go in this order, each with its answer (analysis, point 4): no signing key 404; a body over 40 MB 406,
  * looked at from `Content-Length` before the body is read (past `post_max_size` PHP drops the body and the call
- * would look unsigned: a 401 that Mailgun tries again for 8 hours); a body that is not a form or a wrong signature
- * 401; no recipient 200 `other`; an address of nobody 200 `unknown`; over the mails a day of the family 200
- * `limited`. Then the mail is saved inside its family: 200 `saved`, `held`, `confirmation` or `empty`, or 500
- * `error` when the saving fails, so that Mailgun delivers it again and the files already saved are skipped.
+ * would look unsigned: a 401 that Mailgun tries again for 8 hours); a body that is not a form, a wrong signature or
+ * a token used before 401; no recipient 200 `other`; an address of nobody 200 `unknown`; over the mails a day of
+ * the family 200 `limited` (a delivery again after an `error` does not count); a mail already received in any other
+ * state 200 `empty`, only counted. Then the mail is saved inside its family: 200 `saved`, `held`, `confirmation` or
+ * `empty`, or 500 `error` when the saving fails, so that Mailgun delivers it again and the files already saved are
+ * skipped.
  */
 final readonly class ReceiveMail
 {
@@ -133,14 +135,20 @@ final readonly class ReceiveMail
      */
     private function deliver(IncomingMail $mail, int $familyId, array $payload): JsonResponse
     {
-        $known = ReceivedMail::query()->where('event_id', $mail->eventId)->exists();
+        $known = ReceivedMail::query()->select(['id', 'family_id', 'outcome', 'skipped'])->where('event_id', $mail->eventId)->first();
+        // Mailgun delivers a mail again only after an error: that delivery finishes the first, and it is not a new mail
+        $again = $known?->outcome === MailOutcome::Error;
 
-        // a delivery again of a mail already received is not a new mail: only new mails count
-        if (! $known && $this->overLimit()) {
+        if (! $again && $this->overLimit()) {
             $this->tellLimit();
             $this->log->handle(CallOutcome::Limited, 200, $mail, $familyId, null, $payload, null);
 
             return $this->answer(200, 'Too many mails today.');
+        }
+
+        // the sender chooses the Message-Id: the same one again, with other attachments, adds nothing to the mail
+        if ($known instanceof ReceivedMail && ! $again) {
+            return $this->repeated($mail, $known, $familyId, $payload);
         }
 
         /** @var list<File> $stored */
@@ -168,6 +176,23 @@ final readonly class ReceiveMail
         $this->log->handle($result['outcome'], 200, $mail, $familyId, $result['mail']->id, $payload, null, $result['saved']);
 
         return new JsonResponse(['saved' => $result['saved'], 'skipped' => count($result['mail']->skipped)]);
+    }
+
+    /**
+     * A mail already received, delivered again although its delivery did not fail: only counted, nothing saved. The
+     * sender controls the Message-Id, so new attachments under an old one would skip the limit and the screening.
+     *
+     * @param  IncomingMail  $mail  the mail
+     * @param  ReceivedMail  $known  its row
+     * @param  int  $familyId  the current family
+     * @param  array<string, mixed>  $payload  what the log keeps of the call
+     */
+    private function repeated(IncomingMail $mail, ReceivedMail $known, int $familyId, array $payload): JsonResponse
+    {
+        ReceivedMail::query()->whereKey($known->id)->increment('deliveries');
+        $this->log->handle(CallOutcome::Empty, 200, $mail, $familyId, $known->id, $payload, null);
+
+        return new JsonResponse(['saved' => 0, 'skipped' => count($known->skipped)]);
     }
 
     /**
@@ -389,21 +414,21 @@ final readonly class ReceiveMail
     }
 
     /**
-     * Why a signature that can be checked is refused, or null when it is the one of the key.
+     * Why a signature that can be checked is refused, or null when it is the one of the key and its token is new.
      *
      * @param  string  $key  the signing key
      * @param  array<string, mixed>  $fields  the fields of the call
      */
     private function wrongSignature(string $key, array $fields): ?string
     {
-        $signed = MailgunSignature::verify(
-            $key,
-            MailgunForm::text($fields, 'timestamp'),
-            MailgunForm::text($fields, 'token'),
-            MailgunForm::text($fields, 'signature'),
-        );
+        $token = MailgunForm::text($fields, 'token');
+        $signed = MailgunSignature::verify($key, MailgunForm::text($fields, 'timestamp'), $token, MailgunForm::text($fields, 'signature'));
 
-        return $signed ? null : 'wrong signature';
+        return match (true) {
+            ! $signed => 'wrong signature',
+            ! MailgunSignature::firstUse($token) => 'token used before',
+            default => null,
+        };
     }
 
     /**
