@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Families;
 
+use App\Actions\Mail\AssignMailAddress;
 use App\Enums\PersonRole;
 use App\Enums\Role;
 use App\Models\DocumentCategory;
@@ -22,8 +23,13 @@ use Illuminate\Support\Facades\DB;
 /**
  * Registers a new family: the family, its first account and what it needs to start.
  */
-final class CreateFamily
+final readonly class CreateFamily
 {
+    /**
+     * @param  AssignMailAddress  $assignMailAddress  Gives the family its address for the bills.
+     */
+    public function __construct(private AssignMailAddress $assignMailAddress) {}
+
     /**
      * Creates in one transaction the family, the `admin` account, its person, the
      * starting categories, the settings row and the alert groups.
@@ -60,6 +66,7 @@ final class CreateFamily
                 $this->createTree(DocumentCategory::class, DefaultCategories::documents(), DefaultCategories::documentLooks());
                 $this->createTree(ExpenseCategory::class, DefaultCategories::expenses());
                 FamilySetting::query()->create([]);
+                $this->assignMailAddress->handle($family);
 
                 foreach (DefaultReminderGroups::all() as $group) {
                     ReminderGroup::query()->create($group);

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Scopes\FamilyScope;
 use Carbon\CarbonImmutable;
 use Database\Factories\FamilySettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
@@ -48,5 +50,38 @@ final class FamilySetting extends FamilyModel
             'mail_inbox_notify' => 'array',
             'mail_inbox_notify_attachments_only' => 'boolean',
         ];
+    }
+
+    /**
+     * The settings that have this address for the bills. It looks outside the current family, like
+     * `Invitation::findValid()`: the mail arrives when nobody is signed in, and the address says the family.
+     *
+     * @param  string  $address  the address the mail was sent to; case and surrounding spaces do not matter
+     * @return self|null the settings, or null when it is not one address, or nobody has it
+     */
+    public static function findByMailRecipient(string $address): ?self
+    {
+        $address = strtolower(trim($address));
+
+        if (filter_var($address, FILTER_VALIDATE_EMAIL) === false) {
+            return null;
+        }
+
+        return self::query()->withoutGlobalScope(FamilyScope::class)->where('mail_inbox_recipient', $address)->first();
+    }
+
+    /**
+     * The accounts of the family that are told about the mail received: the ones in `mail_inbox_notify`, all of
+     * them when it is null.
+     *
+     * @return Collection<int, User>
+     */
+    public function notifyUsers(): Collection
+    {
+        return User::query()
+            ->where('family_id', $this->family_id)
+            ->when($this->mail_inbox_notify !== null, fn ($query) => $query->whereIn('id', $this->mail_inbox_notify))
+            ->orderBy('id')
+            ->get();
     }
 }
