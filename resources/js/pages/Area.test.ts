@@ -181,4 +181,45 @@ describe('Area', () => {
             ).queryByText(/€/),
         ).not.toBeInTheDocument();
     });
+
+    it('says when the family hid the area, with the way to show it again', () => {
+        renderPage(Area, {
+            area: homeArea,
+            types: cardTypes.slice(0, 2),
+            canCreate: true,
+            hidden: true,
+            can_show: true,
+        });
+
+        expect(screen.getByText('This area is hidden.')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Show it' })).toHaveAttribute(
+            'href',
+            '/settings/areas',
+        );
+    });
+
+    it('says the area is hidden without the link to whoever cannot show it', () => {
+        renderPage(Area, {
+            area: homeArea,
+            types: cardTypes.slice(0, 2),
+            canCreate: false,
+            hidden: true,
+            can_show: false,
+        });
+
+        expect(screen.getByText('This area is hidden.')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Show it' })).toBeNull();
+    });
+
+    it('says nothing of the kind for an area in sight', () => {
+        renderPage(Area, {
+            area: homeArea,
+            types: cardTypes.slice(0, 2),
+            canCreate: true,
+            hidden: false,
+            can_show: true,
+        });
+
+        expect(screen.queryByText('This area is hidden.')).toBeNull();
+    });
 });

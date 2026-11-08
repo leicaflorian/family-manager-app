@@ -15,6 +15,7 @@ use App\Http\Requests\AgendaRequest;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Agenda;
+use App\Services\FamilyAreas;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +28,7 @@ use Inertia\Response;
  */
 final class AgendaController extends Controller
 {
-    public function __construct(private readonly Agenda $agenda) {}
+    public function __construct(private readonly Agenda $agenda, private readonly FamilyAreas $familyAreas) {}
 
     /**
      * The Agenda of `?months=1|3|6|12`: the period asked is used and remembered, the remembered one is used when
@@ -57,8 +58,9 @@ final class AgendaController extends Controller
                 to: $until->toDateString(),
                 people: PersonData::ofFamily($user),
                 filters: $shown,
-                areas: AgendaData::areas(),
+                areas: AgendaData::areas($this->familyAreas),
                 open_reminders: Reminder::query()->open()->count(),
+                family_hidden: $this->familyAreas->hiddenValues(),
             ),
         ]);
     }

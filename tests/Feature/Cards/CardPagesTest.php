@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Area;
 use App\Enums\ExceptionType;
 use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -14,6 +15,7 @@ use App\Models\PlannedExpenseException;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\FamilyAreas;
 use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Http\Request;
@@ -40,7 +42,7 @@ beforeEach(function (): void {
 test('it shows the areas, an area and a card to every account', function (User $user): void {
     $this->actingAs($user);
 
-    $this->get(route('areas'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Areas')->has('areas', 9));
+    $this->get(route('areas'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Areas')->has('groups', 9));
     $this->get(route('areas.show', 'home'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Area')->where('area.area', 'home'));
     $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->component('cards/Card')
@@ -181,6 +183,22 @@ test('it creates a vehicle and opens it', function (): void {
     $vespa = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Vespa')->sole());
     $response->assertRedirect(route('cards.show', ['type' => 'vehicle', 'id' => $vespa->id]));
     expect($vespa->inspection_due_date?->toDateString())->toBe('2027-03-01');
+});
+
+test('a new card puts its hidden area back, an edited one does not', function (): void {
+    $this->actingAs($this->marco);
+    $hideVehicles = fn (): mixed => insideBianchi(function (): void {
+        $areas = resolve(FamilyAreas::class);
+        $areas->save($areas->ordered(), [Area::Vehicles]);
+    });
+    $isHidden = fn (): bool => insideBianchi(fn (): bool => resolve(FamilyAreas::class)->isHidden(Area::Vehicles));
+
+    $hideVehicles();
+    $this->put(route('cards.update', $this->pandaUrl), ['name' => 'Fiat Panda', 'status' => 'active', 'is_owned' => true]);
+    expect($isHidden())->toBeTrue();
+
+    $this->post(route('cards.store', 'vehicle'), ['name' => 'Vespa', 'status' => 'active', 'is_owned' => true]);
+    expect($isHidden())->toBeFalse();
 });
 
 test('it deletes a card and goes back to its area', function (): void {

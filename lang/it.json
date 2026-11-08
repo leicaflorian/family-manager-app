@@ -86,6 +86,7 @@
     "Donations": "Donazioni",
     "Done, let's go in": "Fatto, entriamo",
     "Download": "Scarica",
+    "Drag to move": "Trascina per spostare",
     "Drag the files here, or choose them": "Trascina qui i file, oppure sceglili",
     "Each file can be at most 25 MB.": "Ogni file può essere al massimo di 25 MB.",
     "Edit": "Modifica",
@@ -1327,5 +1328,18 @@
     "Complete :fields in the form above.": "Completa :fields nel modulo qui sopra.",
     "Fill in :fields here below.": "Inserisci :fields qui sotto.",
     "Needed by What I do too.": "Serve per «Cosa faccio anche».",
-    "Amount not found: tick the box if you want to keep it among the items, with the warranty.": "Importo non trovato: spunta la casella se vuoi tenerlo tra i beni, con la garanzia."
+    "Amount not found: tick the box if you want to keep it among the items, with the warranty.": "Importo non trovato: spunta la casella se vuoi tenerlo tra i beni, con la garanzia.",
+    "I put :area back among the areas.": "Ho rimesso :area tra le aree.",
+    "Show": "Mostra",
+    "Show :area": "Mostra :area",
+    "Hidden": "Nascosta",
+    "Move up": "Sposta su",
+    "Move down": "Sposta giù",
+    "Back to the default order": "Torna all'ordine predefinito",
+    "Their order, and the ones you hide": "Il loro ordine, e quelle che nascondi",
+    "{1} Has 1 card: it stays, with its deadlines.|[2,*] Has :count cards: they stay, with their deadlines.": "{1} Ha 1 scheda: resta, con le sue scadenze.|[2,*] Ha :count schede: restano, con le loro scadenze.",
+    "This area is hidden.": "Quest'area è nascosta.",
+    "Show it": "Mostrala",
+    ":count areas": ":count aree",
+    "{1} :total areas, 1 hidden|[2,*] :total areas, :count hidden": "{1} :total aree, 1 nascosta|[2,*] :total aree, :count nascoste"
 }

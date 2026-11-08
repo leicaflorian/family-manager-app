@@ -19,6 +19,7 @@ use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Services\BudgetFormOptions;
 use App\Services\DocumentLinks;
+use App\Services\FamilyAreas;
 use App\Services\Reminders\GroupRecipients;
 use App\Services\Reminders\ReminderList;
 use App\Support\ModelId;
@@ -37,7 +38,7 @@ use Inertia\Response;
  */
 final class ReminderController extends Controller
 {
-    public function __construct(private readonly ReminderList $list) {}
+    public function __construct(private readonly ReminderList $list, private readonly FamilyAreas $familyAreas) {}
 
     /**
      * *Reminders*: the open ones and the done ones, of everybody or of the person chosen in *Who*.
@@ -59,7 +60,7 @@ final class ReminderController extends Controller
         $viewer = $request->user();
         abort_unless($viewer instanceof User, 401);
 
-        return new RemindersPageData($lists['open'], $lists['done'], PersonData::ofFamily($viewer), $personId, Reminder::query()->open()->count(), AgendaData::areas());
+        return new RemindersPageData($lists['open'], $lists['done'], PersonData::ofFamily($viewer), $personId, Reminder::query()->open()->count(), AgendaData::areas($this->familyAreas), $this->familyAreas->hiddenValues());
     }
 
     /**

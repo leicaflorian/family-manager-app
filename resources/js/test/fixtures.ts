@@ -378,6 +378,7 @@ export const homeArea: App.Data.AreaData = {
     label: 'Home',
     count: 2,
     overdue: 1,
+    hidden: false,
     cards: [
         {
             ...pandaRow,
@@ -415,6 +416,7 @@ export const allAreas: App.Data.AreaData[] = [
         label: 'Vehicles',
         count: 1,
         overdue: 0,
+        hidden: false,
         cards: [pandaRow],
     },
     ...(
@@ -432,6 +434,7 @@ export const allAreas: App.Data.AreaData[] = [
         label: area,
         count: 0,
         overdue: 0,
+        hidden: false,
         cards: [],
     })),
 ];
@@ -1601,6 +1604,7 @@ export const remindersPage: App.Data.RemindersPageData = {
     person_id: null,
     open_total: 10,
     areas: agendaAreas,
+    family_hidden: [],
 };
 
 /** The alert groups of the form, with the people who get their notices. */
@@ -1790,4 +1794,27 @@ export const enrolmentProposal: App.Data.Reading.ProposalData = {
     event: null,
     records: [],
     createCard: true,
+};
+
+/** *Settings → Areas* of the Bianchis as the server sends it: the default order, nothing hidden, *Work* with 2 cards. */
+export const areaSettings: App.Data.AreaSettingsData = {
+    areas: (
+        [
+            ['home', 'Home', 2],
+            ['vehicles', 'Vehicles', 1],
+            ['insurance', 'Insurance', 0],
+            ['banks', 'Banks and loans', 0],
+            ['health', 'Health', 0],
+            ['school', 'School and activities', 0],
+            ['work', 'Work', 2],
+            ['subscriptions', 'Subscriptions', 0],
+            ['paperwork', 'Paperwork', 0],
+        ] as const
+    ).map(([area, label, count]): App.Data.AreaSettingData => ({
+        area,
+        label,
+        count,
+        hidden: false,
+    })),
+    can_change: true,
 };

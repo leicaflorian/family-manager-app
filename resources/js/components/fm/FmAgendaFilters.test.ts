@@ -93,6 +93,27 @@ describe('FmAgendaFilters', () => {
             ).toHaveTextContent('0');
         });
 
+        it('leaves out an area the family hid, unless it has entries', async () => {
+            render(FmAgendaFilters, {
+                props: props({
+                    familyHidden: ['work', 'school'],
+                    counts: { home: 3, work: 2, general: 2 },
+                }),
+            });
+
+            await openAreas();
+
+            expect(
+                await screen.findByRole('button', { name: /Work/ }),
+            ).toHaveTextContent('2');
+            expect(
+                screen.queryByRole('button', { name: /School and activities/ }),
+            ).toBeNull();
+            expect(
+                screen.getAllByRole('button', { pressed: true }),
+            ).toHaveLength(9);
+        });
+
         it('turns an area off', async () => {
             const view = render(FmAgendaFilters, { props: props() });
 

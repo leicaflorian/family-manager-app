@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { agenda } from '@/routes';
 import { filters as saveFilters } from '@/routes/agenda';
+import { useVisitQueue } from './useVisitQueue';
 
 /** What `useAgendaFilters` gives to the page. */
 export type UseAgendaFilters = {
@@ -44,32 +45,7 @@ export function useAgendaFilters(
         hidden_areas: [...initial.hidden_areas],
     });
 
-    /** Visits waiting for the one on its way; each starts when the one before it finishes. */
-    const queue: Array<() => void> = [];
-    let busy = false;
-
-    /** Starts the next visit in the queue, or frees the line when there is none. */
-    function next(): void {
-        const start = queue.shift();
-
-        busy = start !== undefined;
-        start?.();
-    }
-
-    /**
-     * Runs a visit now, or after the ones already on their way. Inertia cancels a visit still on its way when
-     * another starts, which could leave the account with a period that the page does not show; so there is
-     * one visit at a time, and each reads the filters when it starts, so it sends the latest ones.
-     *
-     * @param start - starts the visit and calls `done` when it finishes
-     */
-    function enqueue(start: (done: () => void) => void): void {
-        queue.push(() => start(next));
-
-        if (!busy) {
-            next();
-        }
-    }
+    const { enqueue } = useVisitQueue();
 
     /** Saves the filters in use. */
     function put(done: () => void): void {

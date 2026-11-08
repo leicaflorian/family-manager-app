@@ -326,6 +326,7 @@ function askDelete(item: ReminderItem): void {
             :filters="filters"
             :people="reminders.people"
             :areas="reminders.areas"
+            :family-hidden="reminders.family_hidden"
             :views="views"
             :search-label="desktop ? $t('Search a reminder') : undefined"
             :counts="counts"

@@ -22,6 +22,7 @@ use App\Queries\DocumentRows;
 use App\Services\CardBudgets;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
+use App\Services\FamilyAreas;
 use App\Services\FileStore;
 use App\Support\ImportPage;
 use App\Support\LoanTerms;
@@ -58,6 +59,7 @@ final class CardController extends Controller
         private readonly DocumentRows $documents,
         private readonly CardBudgets $budgets,
         private readonly RefreshLoan $loans,
+        private readonly FamilyAreas $familyAreas,
     ) {}
 
     /**
@@ -87,7 +89,7 @@ final class CardController extends Controller
         $user = $request->user();
         abort_unless(CardTypes::canCreate($user instanceof User ? $user : null), 403);
         $area = $request->query('area');
-        $types = is_string($area) ? CardTypes::of(Area::tryFrom($area) ?? abort(404)) : CardTypes::all();
+        $types = is_string($area) ? CardTypes::of(Area::tryFrom($area) ?? abort(404)) : CardTypes::ofAreas($this->familyAreas->visible());
 
         return Inertia::render('cards/NewCard', [
             'types' => AreaController::typeData($types),

@@ -7,6 +7,7 @@ namespace App\Http\Requests;
 use App\Data\AgendaData;
 use App\Data\AgendaFiltersData;
 use App\Rules\OfFamily;
+use App\Services\FamilyAreas;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -35,7 +36,7 @@ final class AgendaFiltersRequest extends FormRequest
             'months' => ['required', 'integer', Rule::in(AgendaData::PERIODS)],
             'person_id' => ['nullable', 'integer', new OfFamily('people')],
             'hidden_areas' => ['present', 'array'],
-            'hidden_areas.*' => ['string', Rule::in(array_column(AgendaData::areas(), 'value'))],
+            'hidden_areas.*' => ['string', Rule::in(array_column(AgendaData::areas(resolve(FamilyAreas::class)), 'value'))],
         ];
     }
 

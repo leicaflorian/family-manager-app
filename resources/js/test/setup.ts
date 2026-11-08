@@ -54,6 +54,15 @@ if (typeof window !== 'undefined' && !('scrollIntoView' in Element.prototype)) {
     });
 }
 
+// jsdom has no elementFromPoint, which the drag-and-drop of `FmSortableList` reads on every pointer press in a row.
+if (typeof document !== 'undefined' && !('elementFromPoint' in document)) {
+    Object.defineProperty(document, 'elementFromPoint', {
+        value: (): Element | null => null,
+        writable: true,
+        configurable: true,
+    });
+}
+
 // The tests read the texts in English, the language they are written in.
 config.global.plugins.push([i18nVue, i18nOptions('en')]);
 

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { account } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
@@ -10,6 +10,8 @@ describe('Settings', () => {
             account,
             mainCategories: 10,
             mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
         });
 
         expect(
@@ -47,8 +49,59 @@ describe('Settings', () => {
             account,
             mainCategories: 1,
             mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
         });
 
         expect(screen.getByText('1 main category')).toBeInTheDocument();
+    });
+
+    it('leads to the areas, and says how many are hidden', () => {
+        const view = renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+        });
+
+        expect(screen.getByRole('link', { name: /Areas/ })).toHaveAttribute(
+            'href',
+            '/settings/areas',
+        );
+        expect(screen.getByText('9 areas')).toBeInTheDocument();
+
+        view.unmount();
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 2,
+        });
+
+        expect(screen.getByText('9 areas, 2 hidden')).toBeInTheDocument();
+    });
+
+    it('puts Areas after Expense categories, in The family', () => {
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+        });
+
+        const family = screen.getByRole('region', { name: 'The family' });
+        expect(
+            within(family)
+                .getAllByRole('link')
+                .map((link) => link.getAttribute('href')),
+        ).toEqual([
+            '/settings/notices',
+            '/settings/categories',
+            '/settings/expense-categories',
+            '/settings/areas',
+        ]);
     });
 });

@@ -20,8 +20,10 @@ use InvalidArgumentException;
  * Lists the cards of the current family as rows and groups them by area, for
  * *Areas* and *Area*.
  */
-final class CardSummaries
+final readonly class CardSummaries
 {
+    public function __construct(private FamilyAreas $familyAreas) {}
+
     /**
      * The row of a card.
      *
@@ -56,30 +58,44 @@ final class CardSummaries
     }
 
     /**
-     * All the areas, in the order of `Area`, the empty ones too.
+     * Every area in the order of the family, the empty ones and the hidden ones too: the page shows only the
+     * visible ones, but its search still finds the cards of a hidden area.
      *
      * @return list<AreaData>
      */
     public function areas(): array
     {
-        $rows = $this->rows(CardTypes::all());
+        $ordered = $this->familyAreas->ordered();
+        $hidden = $this->familyAreas->hidden();
+        $rows = $this->rows(CardTypes::ofAreas($ordered));
 
-        return array_map(fn (Area $area): AreaData => $this->areaData($area, $rows[$area->value] ?? []), Area::cases());
+        return array_map(fn (Area $area): AreaData => $this->areaData($area, $rows[$area->value] ?? [], in_array($area, $hidden, true)), $ordered);
     }
 
     /**
-     * All the areas with the number of their active cards, in the order of
-     * `Area`: one count per card type, without reading the cards.
+     * The visible areas with the number of their active cards, in the order of
+     * the family: one count per card type, without reading the cards.
      *
      * @return list<AreaCountData>
      */
     public function counts(): array
     {
+        return $this->countsFor($this->familyAreas->visible());
+    }
+
+    /**
+     * Some areas, in the given order, with the number of their active cards.
+     *
+     * @param  list<Area>  $areas  the areas to count
+     * @return list<AreaCountData>
+     */
+    public function countsFor(array $areas): array
+    {
         return array_map(fn (Area $area): AreaCountData => new AreaCountData(
             area: $area->value,
             label: $area->label(),
             count: array_sum(array_map(static fn (CardType $type): int => $type->countActive(), CardTypes::of($area))),
-        ), Area::cases());
+        ), $areas);
     }
 
     /**
@@ -89,7 +105,7 @@ final class CardSummaries
     {
         $rows = $this->rows(CardTypes::of($area), withDue: true);
 
-        return $this->areaData($area, $rows[$area->value] ?? []);
+        return $this->areaData($area, $rows[$area->value] ?? [], $this->familyAreas->isHidden($area));
     }
 
     /**
@@ -118,9 +134,13 @@ final class CardSummaries
     }
 
     /**
+     * The data of an area, with its rows sorted: the open ones by name, then the closed ones.
+     *
+     * @param  Area  $area  the area
      * @param  list<CardData>  $rows  the unsorted rows of the area
+     * @param  bool  $hidden  whether the family hid the area
      */
-    private function areaData(Area $area, array $rows): AreaData
+    private function areaData(Area $area, array $rows, bool $hidden): AreaData
     {
         usort($rows, static fn (CardData $a, CardData $b): int => [$a->closed, mb_strtolower($a->label)] <=> [$b->closed, mb_strtolower($b->label)]);
 
@@ -130,6 +150,7 @@ final class CardSummaries
             count: count(array_filter($rows, static fn (CardData $row): bool => ! $row->closed)),
             overdue: count(array_filter($rows, static fn (CardData $row): bool => $row->overdue)),
             cards: $rows,
+            hidden: $hidden,
         );
     }
 

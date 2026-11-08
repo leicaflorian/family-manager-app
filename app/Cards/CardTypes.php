@@ -145,6 +145,17 @@ final class CardTypes
     }
 
     /**
+     * The card types of some areas, grouped by area in the order given.
+     *
+     * @param  list<Area>  $areas  the areas, in the order wanted
+     * @return list<CardType>
+     */
+    public static function ofAreas(array $areas): array
+    {
+        return array_merge(...array_map(self::of(...), $areas));
+    }
+
+    /**
      * The card type of a card.
      *
      * @param  Model  $card  a record of one of the 13 models

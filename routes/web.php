@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\AreaSettingsController;
 use App\Http\Controllers\Budget\ComparisonController;
 use App\Http\Controllers\Budget\DeadlineController;
 use App\Http\Controllers\Budget\MovementController;
@@ -136,6 +137,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
+        Route::get('settings/areas', [AreaSettingsController::class, 'edit'])->name('settings.areas.edit');
+        Route::put('settings/areas', [AreaSettingsController::class, 'update'])->name('settings.areas.update');
+        Route::post('settings/areas/reset', [AreaSettingsController::class, 'reset'])->name('settings.areas.reset');
         Route::resource('settings/categories', CategoryController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['categories' => 'category'])

@@ -24,6 +24,7 @@ readonly filters: App.Data.AgendaFiltersData,
 readonly areas: App.Data.OptionData[],
 readonly open_reminders: number,
 readonly periods: number[],
+readonly family_hidden: string[],
 };
 export type AgendaEntryData = {
 readonly key: string,
@@ -63,6 +64,17 @@ readonly label: string,
 readonly count: number,
 readonly overdue: number,
 readonly cards: App.Data.CardData[],
+readonly hidden: boolean,
+};
+export type AreaSettingData = {
+readonly area: string,
+readonly label: string,
+readonly count: number,
+readonly hidden: boolean,
+};
+export type AreaSettingsData = {
+readonly areas: App.Data.AreaSettingData[],
+readonly can_change: boolean,
 };
 export type CalendarSettingsData = {
 readonly on: boolean,
@@ -609,6 +621,7 @@ readonly people: App.Data.PersonData[],
 readonly person_id: number | null,
 readonly open_total: number,
 readonly areas: App.Data.OptionData[],
+readonly family_hidden: string[],
 };
 export type SentInvitationData = {
 readonly email: string,
