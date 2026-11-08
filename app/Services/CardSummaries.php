@@ -78,11 +78,22 @@ final class CardSummaries
      */
     public function counts(): array
     {
+        return $this->countsFor($this->familyAreas->visible());
+    }
+
+    /**
+     * Some areas, in the given order, with the number of their active cards.
+     *
+     * @param  list<Area>  $areas  the areas to count
+     * @return list<AreaCountData>
+     */
+    public function countsFor(array $areas): array
+    {
         return array_map(fn (Area $area): AreaCountData => new AreaCountData(
             area: $area->value,
             label: $area->label(),
             count: array_sum(array_map(static fn (CardType $type): int => $type->countActive(), CardTypes::of($area))),
-        ), $this->familyAreas->visible());
+        ), $areas);
     }
 
     /**

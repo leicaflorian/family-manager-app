@@ -65,6 +65,16 @@ readonly count: number,
 readonly overdue: number,
 readonly cards: App.Data.CardData[],
 };
+export type AreaSettingData = {
+readonly area: string,
+readonly label: string,
+readonly count: number,
+readonly hidden: boolean,
+};
+export type AreaSettingsData = {
+readonly areas: App.Data.AreaSettingData[],
+readonly can_change: boolean,
+};
 export type CalendarSettingsData = {
 readonly on: boolean,
 readonly url: string | null,
