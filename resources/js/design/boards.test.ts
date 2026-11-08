@@ -62,6 +62,21 @@ describe('boards.json', () => {
         expect(misplaced).toEqual([]);
     });
 
+    it('names every component once', () => {
+        // JSON.parse keeps only the last of two equal keys, so the raw text is
+        // read: a second line for the same component would hide the first.
+        const names = [
+            ...readFileSync('resources/design/boards.json', 'utf8').matchAll(
+                /^\s*"(Fm\w+)"\s*:/gm,
+            ),
+        ].map((match) => match[1]);
+        const repeated = names.filter(
+            (name, index) => names.indexOf(name) !== index,
+        );
+
+        expect(repeated).toEqual([]);
+    });
+
     it('names no component that is gone', () => {
         const gone = Object.keys(boards.components).filter(
             (name) => !components.has(name),
