@@ -36,7 +36,7 @@ final class MailText
         $html = is_string($body['html'] ?? null) ? $body['html'] : '';
 
         $content = match (true) {
-            $html !== '' && (! $plain || $text === '') => $html,
+            $html !== '' && (! $plain || $text === '') => self::withoutRefresh($html),
             $text !== '' => '<pre class="plain">'.htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>',
             default => null,
         };
@@ -50,5 +50,16 @@ final class MailText
             .'<base target="_blank">'
             .'<style>'.self::STYLE.'</style>'
             .'</head><body>'.$content.'</body></html>';
+    }
+
+    /**
+     * The HTML without its `<meta http-equiv="refresh">`: the sandbox lets it move the frame to a page of
+     * strangers, which would then look like a page of the app.
+     *
+     * @param  string  $html  the HTML of the mail
+     */
+    private static function withoutRefresh(string $html): string
+    {
+        return (string) preg_replace('/<meta\b[^>]*http-equiv\s*=\s*["\']?\s*refresh[^>]*>/i', '', $html);
     }
 }

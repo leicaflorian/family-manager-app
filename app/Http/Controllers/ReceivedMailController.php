@@ -12,6 +12,7 @@ use App\Models\FamilySetting;
 use App\Models\ReceivedMail;
 use App\Support\Mail\MailText;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -68,6 +69,7 @@ final class ReceivedMailController extends Controller
             'Content-Type' => 'text/html; charset=UTF-8',
             'Content-Security-Policy' => 'sandbox allow-popups allow-popups-to-escape-sandbox; '.MailText::POLICY,
             'X-Content-Type-Options' => 'nosniff',
+            'Referrer-Policy' => 'no-referrer',
         ]);
     }
 
@@ -106,7 +108,8 @@ final class ReceivedMailController extends Controller
     }
 
     /**
-     * The page: a block of the list (added below those already shown) and the mail open, if any.
+     * The page: a block of the list (added below those already shown) and the mail open, if any. Every prop is
+     * worked out only when asked: the poll asks only for the list, a click on a row only for the mail.
      *
      * @param  Request  $request  the request with the search and the page
      * @param  ReceivedMail|null  $open  the mail open
@@ -115,9 +118,36 @@ final class ReceivedMailController extends Controller
     {
         $search = $request->string('search')->trim()->value();
         $page = max(1, $request->integer('page'));
+        $block = null;
+        // One query for both `mails` and `next`, run the first time either is asked
+        $mails = function () use (&$block, $search, $page): Collection {
+            return $block ??= $this->block($search, $page);
+        };
+
+        return Inertia::render('mail/ReceivedMails', [
+            'address' => fn (): mixed => FamilySetting::query()->value('mail_inbox_recipient'),
+            'search' => $search,
+            'mails' => Inertia::merge(fn (): array => $mails()->take(self::PER_PAGE)->map(ReceivedMailRowData::fromMail(...))->values()->all())->matchOn('id'),
+            'next' => fn (): ?int => $mails()->count() > self::PER_PAGE ? $page + 1 : null,
+            'mail' => fn (): ?ReceivedMailData => $open instanceof ReceivedMail ? ReceivedMailData::fromMail($open) : null,
+        ]);
+    }
+
+    /**
+     * A block of the list, newest first, with one mail more than shown to know whether another block follows.
+     * Only the columns the rows need: never the text of the mails, which can be more than a megabyte each.
+     *
+     * @param  string  $search  what is searched in the sender, the subject and the recipients; empty for all
+     * @param  int  $page  the number of the block, from 1
+     * @return Collection<int, ReceivedMail>
+     */
+    private function block(string $search, int $page): Collection
+    {
         $like = '%'.addcslashes($search, '%_\\').'%';
-        $mails = ReceivedMail::query()
-            ->with(['files', 'organization'])
+
+        return ReceivedMail::query()
+            ->select(['id', 'family_id', 'event_id', 'sender', 'sender_address', 'subject', 'received_at', 'deliveries', 'outcome', 'saved_files', 'organization_id'])
+            ->with(['files:id,family_id,received_mail_id,mail_key,original_name', 'organization:id,family_id,name'])
             ->when($search !== '', static fn (Builder $query): Builder => $query->where(static fn (Builder $query): Builder => $query
                 ->whereLike('sender', $like)
                 ->orWhereLike('subject', $like)
@@ -129,13 +159,5 @@ final class ReceivedMailController extends Controller
             ->skip(($page - 1) * self::PER_PAGE)
             ->take(self::PER_PAGE + 1)
             ->get();
-
-        return Inertia::render('mail/ReceivedMails', [
-            'address' => FamilySetting::query()->value('mail_inbox_recipient'),
-            'search' => $search,
-            'mails' => Inertia::merge(fn (): array => $mails->take(self::PER_PAGE)->map(ReceivedMailRowData::fromMail(...))->values()->all())->matchOn('id'),
-            'next' => $mails->count() > self::PER_PAGE ? $page + 1 : null,
-            'mail' => $open instanceof ReceivedMail ? ReceivedMailData::fromMail($open) : null,
-        ]);
     }
 }

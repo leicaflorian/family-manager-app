@@ -11,7 +11,7 @@
  * come avviso* for a mail discarded or under review, and its text in a
  * sandboxed frame. An `admin` deletes it.
  */
-import { Head, Link, router, usePoll, WhenVisible } from '@inertiajs/vue3';
+import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
 import {
     Check,
     ChevronRight,
@@ -22,7 +22,7 @@ import {
     Mail,
     X,
 } from '@lucide/vue';
-import { watchDebounced } from '@vueuse/core';
+import { useIntervalFn, watchDebounced } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -57,6 +57,14 @@ const POLL_INTERVAL = 15_000;
 
 /** The text in the search box. */
 const text = ref(props.search);
+
+// Back to another search brings its text back in the box
+watch(
+    () => props.search,
+    (search) => {
+        text.value = search;
+    },
+);
 
 /** The query that keeps the search in the addresses of the page. */
 const query = computed(() =>
@@ -100,8 +108,23 @@ watchDebounced(
     { debounce: 300 },
 );
 
-// Only the list: a mail open and what is typed stay as they are
-usePoll(POLL_INTERVAL, { only: ['mails'] });
+// Only the list, asked to the address of the list and not to the one of the
+// mail open: a mail deleted meanwhile by someone else would answer 404. The
+// address shown stays, and so do the mail open and what is typed.
+useIntervalFn(() => {
+    if (document.visibilityState === 'hidden') {
+        return;
+    }
+
+    router.visit(index.url({ query: query.value }), {
+        only: ['mails'],
+        preserveUrl: true,
+        preserveState: true,
+        preserveScroll: true,
+        async: true,
+        showProgress: false,
+    });
+}, POLL_INTERVAL);
 
 /** Why *Salva come avviso* did not save, from the server. */
 const noticeError = ref<string | null>(null);
@@ -406,7 +429,10 @@ async function copyCode(): Promise<void> {
                         :label="mail.row.outcome_label"
                         :tone="mail.row.tone"
                     />
-                    <template v-for="file in mail.files" :key="file.name">
+                    <template
+                        v-for="(file, position) in mail.files"
+                        :key="position"
+                    >
                         <component
                             :is="
                                 file.state === 'gone'
@@ -459,19 +485,23 @@ async function copyCode(): Promise<void> {
                         }}
                     </FmNotice>
                     <span
-                        v-for="skipped in mail.skipped"
-                        :key="skipped.name"
+                        v-for="(skipped, position) in mail.skipped"
+                        :key="position"
                         class="text-[13px] text-ink-soft"
                         >{{
-                            $t('Not saved: :name, :reason.', {
-                                name: skipped.name,
-                                reason: skipped.reason.toLocaleLowerCase(),
-                            })
+                            skipped.reason === ''
+                                ? $t('Not saved: :name.', {
+                                      name: skipped.name,
+                                  })
+                                : $t('Not saved: :name, :reason.', {
+                                      name: skipped.name,
+                                      reason: skipped.reason.toLocaleLowerCase(),
+                                  })
                         }}</span
                     >
                     <FmNotice
-                        v-for="note in mail.notes"
-                        :key="note"
+                        v-for="(note, position) in mail.notes"
+                        :key="position"
                         tone="warning"
                         >{{ note }}</FmNotice
                     >

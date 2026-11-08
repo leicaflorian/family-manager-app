@@ -1383,5 +1383,6 @@
     "The original is too large (:size) and was not kept": "L'originale è troppo grande (:size) e non è stato conservato",
     "Original": "Originale",
     "Plain text": "Testo semplice",
-    "Text of the mail": "Testo della mail"
+    "Text of the mail": "Testo della mail",
+    "Not saved: :name.": "Non salvato: :name."
 }

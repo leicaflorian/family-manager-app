@@ -184,6 +184,72 @@ describe('ReceivedMails', () => {
         );
     });
 
+    it('asks for the list from the address of the list while a mail is open, so a mail deleted meanwhile is no error', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(ReceivedMails, {
+            ...page,
+            search: 'TARI',
+            mail: openTari(),
+        });
+
+        await vi.advanceTimersByTimeAsync(15_000);
+
+        expect(visit).toHaveBeenCalledWith(
+            '/mail?search=TARI',
+            expect.objectContaining({
+                only: ['mails'],
+                preserveUrl: true,
+                preserveState: true,
+            }),
+        );
+    });
+
+    it('puts the search of the page back in the box, as after Back', async () => {
+        const view = renderPage(ReceivedMails, { ...page, search: 'hera' });
+
+        await view.rerender({ ...page, search: 'enel' });
+
+        expect(
+            screen.getByRole('searchbox', { name: 'Search sender or subject' }),
+        ).toHaveValue('enel');
+    });
+
+    it('lists two attachments with the same name, each once, without a warning', () => {
+        const warn = vi.spyOn(console, 'warn');
+        renderPage(ReceivedMails, {
+            ...page,
+            mail: openTari({
+                files: [
+                    {
+                        name: 'image001.png',
+                        state: 'gone',
+                        url: null,
+                        document_title: null,
+                    },
+                    {
+                        name: 'image001.png',
+                        state: 'gone',
+                        url: null,
+                        document_title: null,
+                    },
+                ],
+                skipped: [
+                    { name: 'logo.png', reason: 'Too small' },
+                    { name: 'logo.png', reason: 'Too small' },
+                    { name: 'strano.bin', reason: '' },
+                ],
+            }),
+        });
+
+        expect(screen.getAllByText('image001.png')).toHaveLength(2);
+        expect(
+            screen.getAllByText('Not saved: logo.png, too small.'),
+        ).toHaveLength(2);
+        // A reason not known is left out
+        expect(screen.getByText('Not saved: strano.bin.')).toBeInTheDocument();
+        expect(warn).not.toHaveBeenCalled();
+    });
+
     it('opens a mail with who wrote, to whom, and what was done with it', () => {
         renderPage(ReceivedMails, { ...page, mail: openTari() });
 

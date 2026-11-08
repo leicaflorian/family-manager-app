@@ -173,7 +173,8 @@ final class FileStore
     }
 
     /**
-     * Deletes a file: the row, the file on the disk and its preview, if any.
+     * Deletes a file: the row, then the file on the disk and its preview, if any. The disk is touched only once
+     * the row is gone for good: inside a transaction that fails, the file stays with its row.
      *
      * @param  File  $file  the file to delete
      */
@@ -181,8 +182,10 @@ final class FileStore
     {
         DB::transaction(function () use ($file): void {
             $file->delete();
-            Storage::disk($file->disk)->delete($file->path);
-            resolve(FilePreviews::class)->deleteOf($file);
+            DB::afterCommit(static function () use ($file): void {
+                Storage::disk($file->disk)->delete($file->path);
+                resolve(FilePreviews::class)->deleteOf($file);
+            });
         });
     }
 

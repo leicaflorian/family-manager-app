@@ -9,6 +9,7 @@ use App\Enums\MailOutcome;
 use App\Enums\ReadingPurpose;
 use App\Enums\ReadingStatus;
 use App\Enums\Role;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Jobs\ReadFile;
 use App\Models\Document;
 use App\Models\File;
@@ -18,8 +19,11 @@ use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Support\Mail\AttachmentRules;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
 use Tests\Support\FakeDocumentReader;
 
@@ -362,3 +366,92 @@ function receivedMailLabel(?ReceivedMail $mail): string
 {
     return ReceivedMailRowData::fromMail($mail ?? throw new RuntimeException('No mail'))->outcome_label;
 }
+
+/**
+ * A partial reload of the page, as Inertia asks it: only some props.
+ *
+ * @param  list<string>  $only  the props asked
+ */
+function partialMailPage(string $url, array $only): TestResponse
+{
+    return test()->actingAs(test()->marco)->getJson($url, [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) resolve(HandleInertiaRequests::class)->version(Request::create('/')),
+        'X-Inertia-Partial-Component' => 'mail/ReceivedMails',
+        'X-Inertia-Partial-Data' => implode(',', $only),
+    ])->assertOk();
+}
+
+test('the list reads only what its rows need, never the text of the mails', function (): void {
+    boardMails();
+    $columns = [];
+    ReceivedMail::retrieved(function (ReceivedMail $mail) use (&$columns): void {
+        $columns = [...$columns, ...array_keys($mail->getAttributes())];
+    });
+
+    $this->actingAs($this->marco)->get(route('mail.index'))->assertOk();
+
+    expect($columns)->not->toBeEmpty()
+        ->not->toContain('body')
+        ->not->toContain('screening');
+});
+
+test('reloading the mail open does not read the list, reloading the list does not build the mail', function (): void {
+    $mails = boardMails();
+    $filed = File::query()->withoutGlobalScopes()->where('received_mail_id', $mails['tari']->id)->sole();
+    $filed->forceFill(['to_sort' => false])->save();
+    Document::factory()->create(['family_id' => $filed->family_id, 'file_id' => $filed->id]);
+    $mailsRead = 0;
+    $documentsRead = 0;
+    ReceivedMail::retrieved(function () use (&$mailsRead): void {
+        $mailsRead++;
+    });
+    Document::retrieved(function () use (&$documentsRead): void {
+        $documentsRead++;
+    });
+
+    $mail = partialMailPage(route('mail.show', $mails['tari']), ['mail'])->json('props');
+    expect(array_keys($mail))->toContain('mail')->not->toContain('mails')
+        ->and($mailsRead)->toBe(1);
+
+    $documentsRead = 0;
+    $list = partialMailPage(route('mail.show', $mails['tari']), ['mails'])->json('props');
+    expect(array_keys($list))->toContain('mails')->not->toContain('mail')
+        ->and($list['mails'])->toHaveCount(6)
+        ->and($documentsRead)->toBe(0);
+});
+
+test('the text of the mail cannot move the frame elsewhere, and sends no address to the links', function (): void {
+    $mail = bianchiMail(['body' => ['plainText' => null, 'html' => '<meta http-equiv="refresh" content="0;url=https://phishing.example"><META HTTP-EQUIV=Refresh CONTENT="1; URL=https://x.example"><p>Ciao</p>']]);
+
+    $response = $this->actingAs($this->marco)->get(route('mail.text', $mail));
+
+    $response->assertHeader('Referrer-Policy', 'no-referrer');
+    expect(strtolower((string) $response->getContent()))->not->toContain('refresh')
+        ->toContain('<p>ciao</p>');
+});
+
+test('a mail that cannot be deleted keeps its notice, on the disk too', function (): void {
+    $mail = boardMails()['hera'];
+    $notice = File::query()->withoutGlobalScopes()->where('received_mail_id', $mail->id)->sole();
+    Storage::disk('local')->put($notice->path, 'Avviso');
+    ReceivedMail::deleting(function (): never {
+        throw new RuntimeException('The database went away.');
+    });
+
+    $this->withoutExceptionHandling();
+    expect(fn () => $this->actingAs($this->marco)->delete(route('mail.destroy', $mail)))->toThrow(RuntimeException::class);
+
+    expect(Storage::disk('local')->exists($notice->path))->toBeTrue()
+        ->and(insideFamilyOf($this->marco, fn (): bool => File::query()->whereKey($notice->id)->exists()))->toBeTrue();
+});
+
+test('deleting a mail takes its notice off the disk', function (): void {
+    $mail = boardMails()['hera'];
+    $notice = File::query()->withoutGlobalScopes()->where('received_mail_id', $mail->id)->sole();
+    Storage::disk('local')->put($notice->path, 'Avviso');
+
+    $this->actingAs($this->marco)->delete(route('mail.destroy', $mail))->assertRedirect(route('mail.index'));
+
+    expect(Storage::disk('local')->exists($notice->path))->toBeFalse();
+});
