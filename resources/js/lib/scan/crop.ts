@@ -43,15 +43,19 @@ const PHONE_FOCAL = 0.75;
 /** How much the sheet must be tilted, each of the two ways, for the focal length to be worked out from its corners. */
 const TILTED = 0.08;
 
+/** A three-number vector, for the homogeneous coordinates of `shapeOf`. */
 type Vector = [number, number, number];
 
+/** The distance between two points. */
 const distance = (a: Point, b: Point): number =>
     Math.hypot(a.x - b.x, a.y - b.y);
+/** The cross product of two vectors. */
 const crossOf = (a: Vector, b: Vector): Vector => [
     a[1] * b[2] - a[2] * b[1],
     a[2] * b[0] - a[0] * b[2],
     a[0] * b[1] - a[1] * b[0],
 ];
+/** The dot product of two vectors. */
 const dot = (a: Vector, b: Vector): number =>
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
