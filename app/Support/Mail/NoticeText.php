@@ -101,6 +101,22 @@ final class NoticeText
     }
 
     /**
+     * How a file of a mail arrived, for *To sort*: «Arrivato per posta il 23/10/2026 da …: «…»».
+     *
+     * @param  string  $senderAddress  the address of the sender
+     * @param  string|null  $subject  the subject of the mail
+     * @param  CarbonImmutable  $receivedAt  when the mail arrived (day of Rome)
+     */
+    public static function note(string $senderAddress, ?string $subject, CarbonImmutable $receivedAt): string
+    {
+        return self::translate('Arrived by mail on :date from :sender: «:subject»', [
+            'date' => $receivedAt->setTimezone('Europe/Rome')->format('d/m/Y'),
+            'sender' => $senderAddress,
+            'subject' => $subject === null || $subject === '' ? self::translate('no subject') : $subject,
+        ]);
+    }
+
+    /**
      * What a reading says, for the notification: "Edison, 84,20 €, scade il 30/10/2026".
      *
      * @param  string|null  $issuer  who sent the document

@@ -7,6 +7,7 @@ namespace App\Services\Reminders;
 use App\Data\AgendaData;
 use App\Data\ReminderNoticeData;
 use App\Enums\ReminderStatus;
+use App\Models\ReceivedMail;
 use App\Models\Reminder;
 use App\Models\ReminderNotice;
 use App\Support\Reminders\DueText;
@@ -98,9 +99,7 @@ final readonly class NoticeList
     {
         return ReminderNotice::query()
             ->where('user_id', $userId)
-            // The notices of a received mail have no reminder: the bell shows them from a later task
-            ->whereNotNull('reminder_id')
-            ->with(['reminder.link'])
+            ->with(['reminder.link', 'mail.organization'])
             ->orderByRaw('read_at IS NOT NULL')
             ->latest('sent_at')
             ->latest('id');
@@ -114,7 +113,7 @@ final readonly class NoticeList
      */
     public function hrefOf(ReminderNotice $notice, CarbonImmutable $today): string
     {
-        $notice->load('reminder.link');
+        $notice->load(['reminder.link', 'mail.organization']);
 
         return $this->rows(new Collection([$notice]), $today)[0]->href;
     }
@@ -122,21 +121,22 @@ final readonly class NoticeList
     /**
      * The rows of some notices, with the things they refer to read together.
      *
-     * @param  Collection<int, ReminderNotice>  $notices  the notices, with `reminder.link` loaded
+     * @param  Collection<int, ReminderNotice>  $notices  the notices, with `reminder.link` and `mail.organization` loaded
      * @param  CarbonImmutable  $today  today in Rome
      * @return list<ReminderNoticeData>
      */
     private function rows(Collection $notices, CarbonImmutable $today): array
     {
-        // The notices of a received mail have no reminder and are not rows of this list yet
-        $notices = $notices->filter(static fn (ReminderNotice $notice): bool => $notice->reminder instanceof Reminder && $notice->due_date instanceof CarbonImmutable);
-
         $this->reminders->loadSubjects(new Collection($notices->map(static fn (ReminderNotice $notice): ?Reminder => $notice->reminder)->filter()->unique('id')->values()->all()));
 
         return array_values($notices->map(function (ReminderNotice $notice) use ($today): ReminderNoticeData {
             $reminder = $notice->reminder;
             $dueDate = $notice->due_date;
-            assert($reminder instanceof Reminder && $dueDate instanceof CarbonImmutable);
+
+            if (! $reminder instanceof Reminder || ! $dueDate instanceof CarbonImmutable) {
+                return $this->mailRow($notice);
+            }
+
             $subject = $this->reminders->subject($reminder->link);
             $title = $this->reminders->titleOf($reminder);
             $sentOn = $notice->sent_at->setTimezone('Europe/Rome');
@@ -157,5 +157,33 @@ final readonly class NoticeList
                 href: $this->reminders->hrefOf($reminder, $subject),
             );
         })->all());
+    }
+
+    /**
+     * The row of a notice without a reminder: a received mail, which it leads to, or the limit of the mails a day,
+     * which leads to the address for the bills. The first line of the notice is the line under the title.
+     *
+     * @param  ReminderNotice  $notice  the notice, with `mail.organization` loaded
+     */
+    private function mailRow(ReminderNotice $notice): ReminderNoticeData
+    {
+        $mail = $notice->mail;
+        $lines = $notice->lines ?? [];
+        $first = $lines[0] ?? null;
+
+        // The routes of *Received mail* and of the address come with their pages (tasks 11 and 12)
+        return new ReminderNoticeData(
+            id: $notice->id,
+            title: $mail instanceof ReceivedMail
+                ? __('Arrived by mail · :subject', ['subject' => $mail->subject ?? __('no subject')])
+                : __('Too many mails today'),
+            subject: $mail?->senderName(),
+            area: AgendaData::GENERAL_AREA,
+            due_text: is_string($first) ? $first : '',
+            sent_at: $notice->sent_at->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
+            read: $notice->read_at !== null,
+            state: null,
+            href: $mail instanceof ReceivedMail ? url('mail/'.$mail->id) : url('settings/mail'),
+        );
     }
 }

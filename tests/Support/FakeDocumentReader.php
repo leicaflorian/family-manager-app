@@ -27,6 +27,13 @@ final class FakeDocumentReader implements DocumentReader
     /** The error every reading throws, if any. */
     private ?ReadingFailed $failure = null;
 
+    /**
+     * The error one reading throws, by its number from 1, while the others answer.
+     *
+     * @var array{reading: int, failure: ReadingFailed}|null
+     */
+    private ?array $failureAt = null;
+
     /** Whether the reading is on. */
     private bool $active = true;
 
@@ -87,6 +94,19 @@ final class FakeDocumentReader implements DocumentReader
     }
 
     /**
+     * Only the reading with this number (from 1) fails, with this error; the others answer.
+     *
+     * @param  int  $reading  the number of the reading that fails
+     * @param  ReadingFailed  $failure  its error
+     */
+    public function failsAt(int $reading, ReadingFailed $failure): self
+    {
+        $this->failureAt = ['reading' => $reading, 'failure' => $failure];
+
+        return $this;
+    }
+
+    /**
      * The reading is off, as without a key.
      */
     public function off(): self
@@ -128,7 +148,7 @@ final class FakeDocumentReader implements DocumentReader
      * @param  ReadingContext  $context  the lists the model picks from
      * @param  string  $locale  the language of who uploaded the file
      *
-     * @throws ReadingFailed when `fails()` was called
+     * @throws ReadingFailed when `fails()` was called, or this is the reading of `failsAt()`
      */
     public function read(ReadingSource $source, ReadingContext $context, string $locale): Reading
     {
@@ -136,6 +156,10 @@ final class FakeDocumentReader implements DocumentReader
 
         if ($this->failure instanceof ReadingFailed) {
             throw $this->failure;
+        }
+
+        if ($this->failureAt !== null && $this->failureAt['reading'] === $this->reads) {
+            throw $this->failureAt['failure'];
         }
 
         return new Reading($this->extraction, 'gemini', 'gemini-3.8-flash', inputTokens: 1200, outputTokens: 300, cacheReadTokens: 0);

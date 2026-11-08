@@ -1339,5 +1339,8 @@
     "not read: :reason": "non letti: :reason",
     "AI reading failed: :name: :message": "lettura AI non riuscita: :name: :message",
     "Arrived by mail on :date from :sender: «:subject»": "Arrivato per posta il :date da :sender: «:subject»",
-    "More than :count mails arrived today: the others are not saved. If they are spam, change the address.": "Oggi sono arrivate più di :count mail: le altre non vengono salvate. Se è pubblicità, cambia l'indirizzo."
+    "More than :count mails arrived today: the others are not saved. If they are spam, change the address.": "Oggi sono arrivate più di :count mail: le altre non vengono salvate. Se è pubblicità, cambia l'indirizzo.",
+    "Arrived by mail · :subject": "Arrivato per posta · :subject",
+    "Too many mails today": "Troppe mail oggi",
+    "Gmail confirmation code: :code": "Codice di conferma di Gmail: :code"
 }

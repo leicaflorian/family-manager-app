@@ -12,6 +12,7 @@ use App\Models\File;
 use App\Models\User;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
+use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -29,7 +30,8 @@ use Throwable;
  *
  * A try lasts at most 80 seconds: less than the 90 of `retry_after` of the queue, after which another worker would
  * start the same reading (and pay it twice), more than the 60 of the call to the service. `DeleteWhenMissingModels`
- * drops a job whose models are gone; the file travels as an id, so `handle()` checks it as well.
+ * drops a job whose models are gone; the file travels as an id, so `handle()` checks it as well. The files of a mail
+ * are read in a batch (`Batchable`), whose end sends the notice of the bell.
  */
 #[Backoff([10, 30, 90])]
 #[DeleteWhenMissingModels]
@@ -37,6 +39,7 @@ use Throwable;
 #[Tries(3)]
 final class ReadFile implements ShouldBeUnique, ShouldQueue
 {
+    use Batchable;
     use Localizable;
     use Queueable;
 
@@ -90,7 +93,9 @@ final class ReadFile implements ShouldBeUnique, ShouldQueue
                     throw $failure;
                 }
 
-                // Asking again gets the same answer: the job ends here, and `failed()` writes why
+                // Asking again gets the same answer: the job ends here. Why is written first: a batch ends (and the
+                // notice of a mail is written) before the queue calls `failed()`
+                $this->markFailed($failure);
                 $this->fail($failure);
             }
         });
@@ -104,11 +109,21 @@ final class ReadFile implements ShouldBeUnique, ShouldQueue
     public function failed(?Throwable $exception): void
     {
         $this->inFamilyAndLanguage(function () use ($exception): void {
-            File::query()->find($this->fileId)?->markReading(
-                ReadingStatus::Failed,
-                $exception instanceof ReadingFailed ? __($exception->key) : __('The file could not be read.'),
-            );
+            $this->markFailed($exception);
         });
+    }
+
+    /**
+     * Marks the file `failed` with the message of the failure; inside the family and the language of the file.
+     *
+     * @param  Throwable|null  $exception  why the reading ended
+     */
+    private function markFailed(?Throwable $exception): void
+    {
+        File::query()->find($this->fileId)?->markReading(
+            ReadingStatus::Failed,
+            $exception instanceof ReadingFailed ? __($exception->key) : __('The file could not be read.'),
+        );
     }
 
     /**

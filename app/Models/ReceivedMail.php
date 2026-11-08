@@ -76,6 +76,23 @@ final class ReceivedMail extends FamilyModel
     }
 
     /**
+     * Who wrote, as the family reads it: the organization of a known sender, otherwise the name in the `From`
+     * header, otherwise the address.
+     */
+    public function senderName(): string
+    {
+        if ($this->organization instanceof Organization) {
+            return $this->organization->name;
+        }
+
+        if (preg_match('/^\s*"?([^"<]*?)"?\s*<[^>]*>\s*$/u', $this->sender, $match) === 1 && $match[1] !== '') {
+            return $match[1];
+        }
+
+        return $this->sender_address;
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, mixed>

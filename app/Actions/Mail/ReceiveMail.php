@@ -223,8 +223,9 @@ final readonly class ReceiveMail
                 default => CallOutcome::Empty,
             },
             'saved' => count($stored),
-            // the job goes on only for a mail that has not had it yet: a first delivery, or one after a failure
-            'screen' => in_array($outcome, [MailOutcome::Saved, MailOutcome::Held], true)
+            // the job goes on only for a mail that has not had it yet: a first delivery, or one after a failure.
+            // For the confirmation of Gmail it only tells the bell (decision 8)
+            'screen' => in_array($outcome, [MailOutcome::Saved, MailOutcome::Held, MailOutcome::Confirmation], true)
                 && ($before === null || $before === MailOutcome::Error),
         ];
     }
@@ -243,7 +244,7 @@ final readonly class ReceiveMail
     private function saveAttachments(IncomingMail $mail, ReceivedMail $record, array &$stored): array
     {
         $maxBytes = config()->integer('services.mailgun.max_attachment_mb') * 1024 * 1024;
-        $note = $this->noteOf($mail);
+        $note = NoticeText::note($mail->senderAddress, $mail->subject, now());
         $skipped = [];
         $listed = [];
         $present = 0;
@@ -372,20 +373,6 @@ final readonly class ReceiveMail
         } catch (Throwable $error) {
             report(MailFailure::from($error));
         }
-    }
-
-    /**
-     * How a file of the mail arrived, for *To sort*: «Arrivato per posta il 23/10/2026 da …: «…»».
-     *
-     * @param  IncomingMail  $mail  the mail
-     */
-    private function noteOf(IncomingMail $mail): string
-    {
-        return NoticeText::translate('Arrived by mail on :date from :sender: «:subject»', [
-            'date' => now('Europe/Rome')->format('d/m/Y'),
-            'sender' => $mail->senderAddress,
-            'subject' => $mail->subject === '' ? NoticeText::translate('no subject') : $mail->subject,
-        ]);
     }
 
     /**

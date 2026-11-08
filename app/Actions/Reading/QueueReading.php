@@ -50,20 +50,39 @@ final readonly class QueueReading
             return $status;
         }
 
+        $status = $this->prepare($file, $locale);
+
+        if ($status === ReadingStatus::Queued) {
+            dispatch(new ReadFile($file->id, $file->family_id, $user?->id, $locale, ReadingPurpose::Document))->afterCommit();
+        }
+
+        return $status;
+    }
+
+    /**
+     * Checks the service, the file and the limit, inside the family of the file and in the language given, and
+     * marks the file: `queued` when it is to be read, otherwise `off` or `skipped` with the reason. It sends no job:
+     * for `queued` whoever calls sends the `ReadFile` (alone, or with the other files of a mail).
+     *
+     * @param  File  $file  the file to read
+     * @param  string  $locale  the language of the messages (`it` or `en`)
+     * @return ReadingStatus `queued`, `off` or `skipped`
+     */
+    public function prepare(File $file, string $locale): ReadingStatus
+    {
         return $this->withLocale($locale, fn (): ReadingStatus => CurrentFamily::using(
             $file->family_id,
-            fn (): ReadingStatus => $this->queue($file, $user, $locale),
+            fn (): ReadingStatus => $this->check($file, $locale),
         ));
     }
 
     /**
-     * Checks the service, the file and the limit, then sends the job; inside the family of the file.
+     * Checks the service, the file and the limit, and marks the file; inside the family of the file.
      *
      * @param  File  $file  the file to read
-     * @param  User|null  $user  who uploaded it
-     * @param  string  $locale  the language of who uploaded it
+     * @param  string  $locale  the language of the messages
      */
-    private function queue(File $file, ?User $user, string $locale): ReadingStatus
+    private function check(File $file, string $locale): ReadingStatus
     {
         if (! $this->reader->isActive()) {
             return $this->stop($file, ReadingStatus::Off, __('Automatic reading is not on.'));
@@ -82,7 +101,6 @@ final readonly class QueueReading
         }
 
         $file->markReading(ReadingStatus::Queued);
-        dispatch(new ReadFile($file->id, $file->family_id, $user?->id, $locale, ReadingPurpose::Document))->afterCommit();
 
         return ReadingStatus::Queued;
     }

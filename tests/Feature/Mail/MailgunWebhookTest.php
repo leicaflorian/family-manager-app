@@ -234,7 +234,8 @@ test('the confirmation of Gmail keeps its code and saves no file', function (): 
             ->and(File::query()->count())->toBe(0);
     });
     expect(mailCalls()[0]->outcome)->toBe(CallOutcome::Confirmation);
-    Queue::assertNotPushed(ScreenReceivedMail::class);
+    // the job only tells the bell (decision 8): no question, no reading
+    Queue::assertPushed(ScreenReceivedMail::class, 1);
 });
 
 test('a failure answers 500 and the delivery after it saves the files once', function (): void {
