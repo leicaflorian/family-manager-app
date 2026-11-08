@@ -90,6 +90,8 @@
         "FmChecklist": "pages",
         "FmDocumentDetail": "pages",
         "FmLinkedRecords": "pages",
+        "FmMailOutcome": "pages",
+        "FmMailText": "pages",
         "FmNoticeList": "pages",
         "FmPaymentYears": "pages",
         "FmReminderGroup": "pages",
