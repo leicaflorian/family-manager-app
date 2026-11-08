@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Mail;
 
 use App\Data\Mail\MailScreeningAnswer;
+use App\Enums\MailOutcome;
 
 /**
  * The decisions of the work done after Mailgun has its answer. The notes are kept on the mail and shown to the
@@ -57,7 +58,7 @@ final class MailFlow
      */
     public static function alreadyHeld(string $outcome): bool
     {
-        return in_array($outcome, ['held', 'discarded'], true);
+        return in_array($outcome, [MailOutcome::Held->value, MailOutcome::Discarded->value], true);
     }
 
     /**

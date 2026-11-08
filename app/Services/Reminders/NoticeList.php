@@ -98,6 +98,8 @@ final readonly class NoticeList
     {
         return ReminderNotice::query()
             ->where('user_id', $userId)
+            // The notices of a received mail have no reminder: the bell shows them from a later task
+            ->whereNotNull('reminder_id')
             ->with(['reminder.link'])
             ->orderByRaw('read_at IS NOT NULL')
             ->latest('sent_at')
@@ -126,10 +128,15 @@ final readonly class NoticeList
      */
     private function rows(Collection $notices, CarbonImmutable $today): array
     {
-        $this->reminders->loadSubjects(new Collection($notices->map(static fn (ReminderNotice $notice): Reminder => $notice->reminder)->unique('id')->values()->all()));
+        // The notices of a received mail have no reminder and are not rows of this list yet
+        $notices = $notices->filter(static fn (ReminderNotice $notice): bool => $notice->reminder instanceof Reminder && $notice->due_date instanceof CarbonImmutable);
+
+        $this->reminders->loadSubjects(new Collection($notices->map(static fn (ReminderNotice $notice): ?Reminder => $notice->reminder)->filter()->unique('id')->values()->all()));
 
         return array_values($notices->map(function (ReminderNotice $notice) use ($today): ReminderNoticeData {
             $reminder = $notice->reminder;
+            $dueDate = $notice->due_date;
+            assert($reminder instanceof Reminder && $dueDate instanceof CarbonImmutable);
             $subject = $this->reminders->subject($reminder->link);
             $title = $this->reminders->titleOf($reminder);
             $sentOn = $notice->sent_at->setTimezone('Europe/Rome');
@@ -139,7 +146,7 @@ final readonly class NoticeList
                 title: ReminderList::joinTitle($title, $subject?->label),
                 subject: $subject?->label,
                 area: $subject->area ?? AgendaData::GENERAL_AREA,
-                due_text: DueText::when($sentOn->startOfDay(), $notice->due_date, ! $reminder->is_automatic),
+                due_text: DueText::when($sentOn->startOfDay(), $dueDate, ! $reminder->is_automatic),
                 sent_at: $sentOn->format('Y-m-d\TH:i'),
                 read: $notice->read_at !== null,
                 state: match (true) {

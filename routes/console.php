@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\MailInboxCall;
 use App\Models\ReminderNotice;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -16,4 +17,4 @@ Schedule::command('loans:refresh')->dailyAt('00:05')->timezone('Europe/Rome');
 
 // Cards that expire, reminders in line with them, and the notices and the email of the morning
 Schedule::command('reminders:run')->dailyAt(config()->string('reminders.time'))->timezone('Europe/Rome')->withoutOverlapping()->onOneServer();
-Schedule::command('model:prune', ['--model' => [ReminderNotice::class]])->daily();
+Schedule::command('model:prune', ['--model' => [ReminderNotice::class, MailInboxCall::class]])->daily();

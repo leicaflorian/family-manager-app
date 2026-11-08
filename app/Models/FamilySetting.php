@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property bool $mail_inbox_notify_attachments_only
  * @property-read Family $family
  *
  * @method static FamilySettingFactory factory($count = null, $state = [])
@@ -30,7 +31,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['mail_inbox_recipient', 'mail_inbox_notify'])]
+#[Fillable(['mail_inbox_recipient', 'mail_inbox_notify', 'mail_inbox_notify_attachments_only'])]
 final class FamilySetting extends FamilyModel
 {
     /** @use HasFactory<FamilySettingFactory> */
@@ -45,6 +46,7 @@ final class FamilySetting extends FamilyModel
     {
         return [
             'mail_inbox_notify' => 'array',
+            'mail_inbox_notify_attachments_only' => 'boolean',
         ];
     }
 }

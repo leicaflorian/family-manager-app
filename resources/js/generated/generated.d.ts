@@ -624,6 +624,12 @@ label: string,
 count: number,
 }[],
 };
+namespace Mail {
+export type MailScreeningAnswer = {
+readonly verdict: unknown,
+readonly reason: string | null,
+};
+}
 namespace Reading {
 export type DocumentProposalData = {
 readonly title: string | null,
@@ -816,6 +822,7 @@ namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BelongingStatus = 'in_use' | 'disposed';
+export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited';
 export type Channel = 'app' | 'email' | 'both';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type DueMode = 'new' | 'existing' | 'exception';
@@ -835,6 +842,7 @@ export type InsurancePolicyStatus = 'active' | 'expired' | 'cancelled';
 export type InsurancePolicyType = 'car' | 'life' | 'home' | 'health' | 'accident' | 'fund' | 'other';
 export type IntervalUnit = 'week' | 'month' | 'year';
 export type LoanStatus = 'active' | 'paid_off';
+export type MailOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation';
 export type MaintenanceTarget = 'home' | 'belonging' | 'vehicle';
 export type MaintenanceType = 'service' | 'inspection' | 'repair' | 'boiler_service' | 'other';
 export type NoticeTone = 'info' | 'warning' | 'danger';

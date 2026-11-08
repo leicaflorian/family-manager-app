@@ -43,6 +43,8 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property FileSource $source upload, mail, phone or scanner
  * @property string|null $note
  * @property string|null $checksum SHA-256 of the content, to find copies
+ * @property int|null $received_mail_id
+ * @property string|null $mail_key
  * @property-read Collection<int, AiReading> $aiReadings
  * @property-read int|null $ai_readings_count
  * @property-read Document|null $document
@@ -57,7 +59,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size', 'to_sort', 'link_type', 'link_id', 'source', 'note', 'checksum'])]
+#[Fillable(['disk', 'path', 'original_name', 'mime_type', 'size', 'to_sort', 'link_type', 'link_id', 'source', 'note', 'checksum', 'received_mail_id', 'mail_key'])]
 final class File extends FamilyModel
 {
     /** @use HasFactory<FileFactory> */
