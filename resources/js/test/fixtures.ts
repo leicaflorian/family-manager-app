@@ -1601,6 +1601,7 @@ export const remindersPage: App.Data.RemindersPageData = {
     person_id: null,
     open_total: 10,
     areas: agendaAreas,
+    family_hidden: [],
 };
 
 /** The alert groups of the form, with the people who get their notices. */

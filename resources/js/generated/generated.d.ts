@@ -24,6 +24,7 @@ readonly filters: App.Data.AgendaFiltersData,
 readonly areas: App.Data.OptionData[],
 readonly open_reminders: number,
 readonly periods: number[],
+readonly family_hidden: string[],
 };
 export type AgendaEntryData = {
 readonly key: string,
@@ -609,6 +610,7 @@ readonly people: App.Data.PersonData[],
 readonly person_id: number | null,
 readonly open_total: number,
 readonly areas: App.Data.OptionData[],
+readonly family_hidden: string[],
 };
 export type SentInvitationData = {
 readonly email: string,

@@ -8,8 +8,10 @@ use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Data\CardTypeData;
 use App\Enums\Area;
+use App\Models\FamilySetting;
 use App\Models\User;
 use App\Services\CardSummaries;
+use App\Services\FamilyAreas;
 use Illuminate\Container\Attributes\CurrentUser;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,7 +21,7 @@ use Inertia\Response;
  */
 final class AreaController extends Controller
 {
-    public function __construct(private readonly CardSummaries $summaries) {}
+    public function __construct(private readonly CardSummaries $summaries, private readonly FamilyAreas $familyAreas) {}
 
     /**
      * *Areas*: every area with its cards, and the card types for *New card*.
@@ -28,13 +30,13 @@ final class AreaController extends Controller
     {
         return Inertia::render('Areas', [
             'areas' => $this->summaries->areas(),
-            'types' => self::typeData(CardTypes::all()),
+            'types' => self::typeData(CardTypes::ofAreas($this->familyAreas->visible())),
             'canCreate' => CardTypes::canCreate($user),
         ]);
     }
 
     /**
-     * *An area*: its cards and its card types. An unknown area answers 404.
+     * *An area*: its cards and its card types, and whether the family hid it (a hidden area still opens). An unknown area answers 404.
      */
     public function show(Area $area, #[CurrentUser] User $user): Response
     {
@@ -42,6 +44,8 @@ final class AreaController extends Controller
             'area' => $this->summaries->area($area),
             'types' => self::typeData(CardTypes::of($area)),
             'canCreate' => CardTypes::canCreate($user),
+            'hidden' => $this->familyAreas->isHidden($area),
+            'can_show' => $user->can('create', FamilySetting::class),
         ]);
     }
 

@@ -12,6 +12,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\FamilyAreas;
 use App\Services\Reminders\ReminderList;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
@@ -99,7 +100,7 @@ test('the page sends the people with their circles and the areas, for the filter
 
     expect(array_column($page['people'], 'first_name'))->toBe(['Marco', 'Laura', 'Giulia'])
         ->and($page['people'][0])->toHaveKeys(['id', 'initials', 'photo'])
-        ->and(array_column($page['areas'], 'value'))->toBe(array_column(AgendaData::areas(), 'value'));
+        ->and(array_column($page['areas'], 'value'))->toBe(array_column(insideFamilyOf($this->marco, fn (): array => AgendaData::areas(resolve(FamilyAreas::class))), 'value'));
 });
 
 test('each row says whether whoever looks may edit and delete it', function (): void {

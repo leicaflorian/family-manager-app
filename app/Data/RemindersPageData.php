@@ -20,6 +20,7 @@ final class RemindersPageData extends Data
      * @param  int|null  $person_id  the person chosen in *Who*
      * @param  int  $open_total  how many reminders of the whole family are still to do, whatever the filter, for the tab
      * @param  list<OptionData>  $areas  the areas in the order of the board, for the menu of the areas
+     * @param  list<string>  $family_hidden  the values of the areas the family hid
      */
     public function __construct(
         public readonly array $open,
@@ -28,5 +29,6 @@ final class RemindersPageData extends Data
         public readonly ?int $person_id,
         public readonly int $open_total,
         public readonly array $areas = [],
+        public readonly array $family_hidden = [],
     ) {}
 }

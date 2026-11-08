@@ -42,6 +42,7 @@ function agenda(
             areas,
             periods: [1, 3, 6, 12],
             open_reminders: 10,
+            family_hidden: [],
             ...change,
         },
     };

@@ -22,6 +22,8 @@ use InvalidArgumentException;
  */
 final class CardSummaries
 {
+    public function __construct(private readonly FamilyAreas $familyAreas) {}
+
     /**
      * The row of a card.
      *
@@ -56,20 +58,21 @@ final class CardSummaries
     }
 
     /**
-     * All the areas, in the order of `Area`, the empty ones too.
+     * The visible areas, in the order of the family, the empty ones too.
      *
      * @return list<AreaData>
      */
     public function areas(): array
     {
-        $rows = $this->rows(CardTypes::all());
+        $visible = $this->familyAreas->visible();
+        $rows = $this->rows(CardTypes::ofAreas($visible));
 
-        return array_map(fn (Area $area): AreaData => $this->areaData($area, $rows[$area->value] ?? []), Area::cases());
+        return array_map(fn (Area $area): AreaData => $this->areaData($area, $rows[$area->value] ?? []), $visible);
     }
 
     /**
-     * All the areas with the number of their active cards, in the order of
-     * `Area`: one count per card type, without reading the cards.
+     * The visible areas with the number of their active cards, in the order of
+     * the family: one count per card type, without reading the cards.
      *
      * @return list<AreaCountData>
      */
@@ -79,7 +82,7 @@ final class CardSummaries
             area: $area->value,
             label: $area->label(),
             count: array_sum(array_map(static fn (CardType $type): int => $type->countActive(), CardTypes::of($area))),
-        ), Area::cases());
+        ), $this->familyAreas->visible());
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data;
 
 use App\Enums\Area;
+use App\Services\FamilyAreas;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -28,9 +29,10 @@ final class AgendaData extends Data
      * @param  string  $to  the last day of the period, `yyyy-mm-dd`
      * @param  list<PersonData>  $people  the people of the family
      * @param  AgendaFiltersData  $filters  the filters
-     * @param  list<OptionData>  $areas  the ten areas in the order of the board, with the names the Agenda gives them
+     * @param  list<OptionData>  $areas  the areas in the order of the family, with the names the Agenda gives them
      * @param  int  $open_reminders  how many reminders of the family are still to do, for the number on the tab
      * @param  list<int>  $periods  the periods the person can choose, in months
+     * @param  list<string>  $family_hidden  the values of the areas the family hid, to tell them apart in the filter
      */
     public function __construct(
         #[DataCollectionOf(AgendaEntryData::class)]
@@ -45,18 +47,20 @@ final class AgendaData extends Data
         public readonly array $areas,
         public readonly int $open_reminders,
         public readonly array $periods = self::PERIODS,
+        public readonly array $family_hidden = [],
     ) {}
 
     /**
-     * The ten areas in the order of the board: the ones of the cards, then `general`, which in the Agenda is
-     * the area of the documents and of the people.
+     * The ten areas for the filters: the visible ones in the order of the family, then the hidden ones, then
+     * `general`, which in the Agenda is the area of the documents and of the people.
      *
+     * @param  FamilyAreas  $areas  the order and the hidden areas of the current family
      * @return list<OptionData>
      */
-    public static function areas(): array
+    public static function areas(FamilyAreas $areas): array
     {
         return [
-            ...array_map(static fn (Area $area): OptionData => new OptionData($area->value, $area->label()), Area::cases()),
+            ...array_map(static fn (Area $area): OptionData => new OptionData($area->value, $area->label()), [...$areas->visible(), ...$areas->hidden()]),
             new OptionData(self::GENERAL_AREA, __('People and documents')),
         ];
     }
