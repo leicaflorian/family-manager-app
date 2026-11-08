@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Mail;
 
 use App\Enums\CallOutcome;
+use App\Exceptions\Mail\MailFailure;
 use App\Models\MailInboxCall;
 use App\Support\Mail\IncomingMail;
 use Throwable;
@@ -42,7 +43,8 @@ final readonly class LogMailCall
                 'received_mail_id' => $mailId,
             ]);
         } catch (Throwable $exception) {
-            report($exception);
+            // the query would carry the subject and the sender into the log of the app
+            report(MailFailure::from($exception));
         }
     }
 }

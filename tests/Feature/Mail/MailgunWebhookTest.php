@@ -6,6 +6,7 @@ use App\Enums\CallOutcome;
 use App\Enums\FileSource;
 use App\Enums\MailOutcome;
 use App\Enums\Role;
+use App\Exceptions\Mail\MailFailure;
 use App\Jobs\ScreenReceivedMail;
 use App\Models\File;
 use App\Models\MailInboxCall;
@@ -14,7 +15,9 @@ use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Support\Mail\AttachmentRules;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\MailgunCall;
@@ -255,7 +258,7 @@ test('a failure answers 500 and the delivery after it saves the files once', fun
     expect(Storage::disk('local')->allFiles())->toBe([])
         ->and(mailCalls()[0]->outcome)->toBe(CallOutcome::Error)
         ->and(mailCalls()[0]->http_status)->toBe(500)
-        ->and(mailCalls()[0]->error)->toBe('The disk is full.');
+        ->and(mailCalls()[0]->error)->toBe('RuntimeException: The disk is full.');
     Queue::assertNotPushed(ScreenReceivedMail::class);
 
     $disk->full = false;
@@ -336,4 +339,78 @@ test('the door opens no session and sets no cookie', function (): void {
     $response = enelBill()->send()->assertOk();
 
     expect($response->headers->get('Set-Cookie'))->toBeNull();
+});
+
+test('a failure of the database keeps the text of the mail out of the log of the calls and of the app', function (): void {
+    Exceptions::fake();
+    // MySQL refuses a subject longer than its TEXT column: the error of the query holds every value of the insert
+    $call = MailgunCall::to(BIANCHI_ADDRESS)->subject(str_repeat('Oggetto lunghissimo ', 4000))
+        ->text('PAROLA-SEGRETA del corpo della mail, che non deve finire nel registro.');
+
+    $call->send()->assertStatus(500);
+
+    $error = (string) mailCalls()[0]->error;
+    expect(mailCalls()[0]->outcome)->toBe(CallOutcome::Error)
+        ->and(mailCalls()[0]->http_status)->toBe(500)
+        ->and($error)->toStartWith('QueryException: SQLSTATE[22001]')
+        ->and($error)->toContain("Data too long for column 'subject'")
+        ->and($error)->not->toContain('PAROLA-SEGRETA')
+        ->and($error)->not->toContain('Oggetto lunghissimo')
+        ->and(mb_strlen($error))->toBeLessThanOrEqual(300);
+    Exceptions::assertNotReported(QueryException::class);
+    Exceptions::assertReported(fn (MailFailure $reported): bool => ! str_contains($reported->getMessage(), 'PAROLA-SEGRETA')
+        && ! str_contains($reported->getMessage(), 'Oggetto lunghissimo')
+        && ! $reported->getPrevious() instanceof Throwable);
+});
+
+test('an attachment bigger than the upload limit of PHP is left out as too large', function (): void {
+    enelBill()->attachBroken('scansione_enorme.pdf', UPLOAD_ERR_INI_SIZE)->send()->assertOk();
+
+    insideFamilyOf($this->admin, function (): void {
+        expect(ReceivedMail::query()->sole()->skipped)->toBe([['name' => 'scansione_enorme.pdf', 'reason' => 'too_large']])
+            ->and(File::query()->count())->toBe(1);
+    });
+});
+
+test('an upload that failed on the server answers 500, so Mailgun delivers again', function (int $error): void {
+    enelBill()->attachBroken('dettaglio.pdf', $error)->send()->assertStatus(500);
+
+    insideFamilyOf($this->admin, function (): void {
+        expect(File::query()->count())->toBe(0)
+            ->and(ReceivedMail::query()->sole()->outcome)->toBe(MailOutcome::Error);
+    });
+    expect(mailCalls()[0]->outcome)->toBe(CallOutcome::Error)
+        ->and(Storage::disk('local')->allFiles())->toBe([]);
+})->with(['no temporary folder' => UPLOAD_ERR_NO_TMP_DIR, 'partial' => UPLOAD_ERR_PARTIAL, 'cannot write' => UPLOAD_ERR_CANT_WRITE]);
+
+test('the limit counts the day of Rome, not the one of UTC', function (): void {
+    // 00:30 of Rome on 25/10/2026 is still 24/10/2026 in UTC
+    Date::setTestNow(CarbonImmutable::parse('2026-10-25 00:30', 'Europe/Rome'));
+    insideFamilyOf($this->admin, function (): void {
+        ReceivedMail::factory()->count(100)->create(['family_id' => $this->admin->family_id, 'received_at' => CarbonImmutable::parse('2026-10-24 23:50', 'Europe/Rome')]);
+    });
+
+    enelBill()->send()->assertOk();
+    expect(mailCalls()[0]->outcome)->toBe(CallOutcome::Saved);
+
+    insideFamilyOf($this->admin, function (): void {
+        ReceivedMail::factory()->count(99)->create(['family_id' => $this->admin->family_id, 'received_at' => CarbonImmutable::parse('2026-10-25 00:10', 'Europe/Rome')]);
+    });
+    enelBill()->send()->assertOk();
+
+    expect(mailCalls()[1]->outcome)->toBe(CallOutcome::Limited);
+});
+
+test('a log of the calls that cannot be written does not change the answer', function (): void {
+    Exceptions::fake();
+    MailInboxCall::creating(fn () => throw new RuntimeException('The log is gone.'));
+
+    enelBill()->send()->assertOk()->assertJson(['saved' => 1]);
+
+    insideFamilyOf($this->admin, function (): void {
+        expect(ReceivedMail::query()->sole()->outcome)->toBe(MailOutcome::Saved)
+            ->and(File::query()->count())->toBe(1);
+    });
+    expect(MailInboxCall::query()->count())->toBe(0);
+    Exceptions::assertReported(fn (MailFailure $reported): bool => $reported->getMessage() === 'RuntimeException: The log is gone.');
 });

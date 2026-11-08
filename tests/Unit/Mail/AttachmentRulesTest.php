@@ -63,6 +63,12 @@ describe('sniff', function (): void {
 });
 
 describe('verdict', function (): void {
+    test('a file bigger than the upload limit of PHP is too large, whatever arrived of it', function (int $error): void {
+        $attachment = new IncomingAttachment('huge.pdf', 'application/pdf', 0, '', 1, $error);
+
+        expect(AttachmentRules::verdict($attachment, '', RULES_MAX_BYTES))->toBe(SkipReason::TooLarge);
+    })->with(['ini size' => UPLOAD_ERR_INI_SIZE, 'form size' => UPLOAD_ERR_FORM_SIZE]);
+
     test('a PDF is a document, even a small one', function (): void {
         expect(AttachmentRules::verdict(ruleAttachment('bill.pdf', 'application/pdf', 1000), ruleBytes('pdf'), RULES_MAX_BYTES))->toBeNull();
     });

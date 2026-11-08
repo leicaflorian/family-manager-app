@@ -15,6 +15,7 @@ final readonly class IncomingAttachment
      * @param  int  $size  the size in bytes
      * @param  string  $path  the temporary file PHP made for the upload
      * @param  int  $index  the number of the field `attachment-N`: the same on every delivery of the same mail
+     * @param  int  $uploadError  the error of PHP for the upload (`UPLOAD_ERR_OK` when the file arrived whole)
      */
     public function __construct(
         public string $filename,
@@ -22,5 +23,6 @@ final readonly class IncomingAttachment
         public int $size,
         public string $path,
         public int $index,
+        public int $uploadError = UPLOAD_ERR_OK,
     ) {}
 }

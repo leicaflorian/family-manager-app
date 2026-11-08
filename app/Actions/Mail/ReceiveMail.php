@@ -8,6 +8,7 @@ use App\Enums\CallOutcome;
 use App\Enums\FileSource;
 use App\Enums\MailOutcome;
 use App\Enums\SkipReason;
+use App\Exceptions\Mail\MailFailure;
 use App\Jobs\ScreenReceivedMail;
 use App\Models\FamilySetting;
 use App\Models\File;
@@ -27,6 +28,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -149,10 +151,12 @@ final readonly class ReceiveMail
                 return $this->save($mail, $stored);
             });
         } catch (Throwable $error) {
-            report($error);
+            // the error of a query holds the text of the mail: only its safe description is reported and logged
+            $failure = MailFailure::from($error);
+            report($failure);
             // the rows of the files went back with the transaction: their files go too, Mailgun delivers again
             Storage::disk(FileStore::DISK)->delete(array_map(static fn (File $file): string => $file->path, $stored));
-            $this->log->handle(CallOutcome::Error, 500, $mail, $familyId, $this->saveFailure($mail), $payload, $error->getMessage());
+            $this->log->handle(CallOutcome::Error, 500, $mail, $familyId, $this->saveFailure($mail), $payload, $failure->getMessage());
 
             return $this->answer(500, 'Could not save the attachments.');
         }
@@ -233,6 +237,7 @@ final readonly class ReceiveMail
      * @param  list<File>  $stored  filled with the files written
      * @return array{skipped: list<array{name: string, reason: string}>, present: int} the files left out and why, and how many were there already
      *
+     * @throws RuntimeException when the server lost an attachment
      * @throws Throwable when a file is not written
      */
     private function saveAttachments(IncomingMail $mail, ReceivedMail $record, array &$stored): array
@@ -244,7 +249,12 @@ final readonly class ReceiveMail
         $present = 0;
 
         foreach ($mail->attachments as $attachment) {
-            $head = (string) @file_get_contents($attachment->path, false, null, 0, self::SNIFF_BYTES);
+            if (! in_array($attachment->uploadError, [UPLOAD_ERR_OK, UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+                // the server lost the file (no temporary folder, a partial upload…): Mailgun delivers it again
+                throw new RuntimeException("The upload of attachment {$attachment->index} failed with error {$attachment->uploadError}.");
+            }
+
+            $head = $attachment->path === '' ? '' : (string) @file_get_contents($attachment->path, false, null, 0, self::SNIFF_BYTES);
             $reason = AttachmentRules::verdict($attachment, $head, $maxBytes);
             $same = AttachmentRules::sameFileKey($attachment);
 
@@ -327,7 +337,7 @@ final readonly class ReceiveMail
 
             return $record->id;
         } catch (Throwable $error) {
-            report($error);
+            report(MailFailure::from($error));
 
             return null;
         }
@@ -360,7 +370,7 @@ final readonly class ReceiveMail
         try {
             $this->notifyLimit->handle(config()->integer('services.mailgun.daily_limit'));
         } catch (Throwable $error) {
-            report($error);
+            report(MailFailure::from($error));
         }
     }
 

@@ -84,6 +84,17 @@ describe('parse', function (): void {
             ->and($mail->attachments[1]->index)->toBe(2);
     });
 
+    test('an attachment whose upload failed keeps the error of PHP', function (): void {
+        $mail = MailgunForm::parse(['recipient' => 'bills@example.test'], [
+            'attachment-1' => new UploadedFile('', 'huge.pdf', 'application/pdf', UPLOAD_ERR_INI_SIZE, true),
+            'attachment-2' => mailgunUpload('fine.pdf', 'application/pdf', '%PDF-1.4'),
+        ]);
+
+        expect($mail?->attachments[0]->uploadError)->toBe(UPLOAD_ERR_INI_SIZE)
+            ->and($mail?->attachments[0]->filename)->toBe('huge.pdf')
+            ->and($mail?->attachments[1]->uploadError)->toBe(UPLOAD_ERR_OK);
+    });
+
     test('the attachments are ordered by their number, not as text', function (): void {
         $files = [];
         foreach ([10, 2, 1] as $number) {

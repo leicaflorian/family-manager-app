@@ -183,7 +183,8 @@ final class MailgunForm
     }
 
     /**
-     * The files of the fields `attachment-N`, in the order of N; any other file is left out.
+     * The files of the fields `attachment-N`, in the order of N; any other file is left out. A file whose upload
+     * failed is kept with the error of PHP, so its name and why it is missing are not lost.
      *
      * @param  array<string, mixed>  $files
      * @return list<IncomingAttachment>
@@ -206,6 +207,7 @@ final class MailgunForm
                 size: (int) $file->getSize(),
                 path: $file->getPathname(),
                 index: $index,
+                uploadError: $file->getError(),
             );
         }
 

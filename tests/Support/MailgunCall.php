@@ -33,7 +33,7 @@ final class MailgunCall
     /** The `To` header, the recipient when null. */
     private ?string $toHeader = null;
 
-    /** @var list<array{name: string, contents: string, mime: string}> */
+    /** @var list<array{name: string, contents: string, mime: string, error: int}> */
     private array $attachments = [];
 
     private bool $signed = true;
@@ -107,7 +107,20 @@ final class MailgunCall
      */
     public function attach(string $name, string $contents, string $mime): self
     {
-        $this->attachments[] = ['name' => $name, 'contents' => $contents, 'mime' => $mime];
+        $this->attachments[] = ['name' => $name, 'contents' => $contents, 'mime' => $mime, 'error' => UPLOAD_ERR_OK];
+
+        return $this;
+    }
+
+    /**
+     * One more file attached to the mail, whose upload PHP did not finish: nothing of it arrives.
+     *
+     * @param  string  $name  the name the sender gave it
+     * @param  int  $error  the error of PHP (`UPLOAD_ERR_INI_SIZE`, `UPLOAD_ERR_NO_TMP_DIR`…)
+     */
+    public function attachBroken(string $name, int $error): self
+    {
+        $this->attachments[] = ['name' => $name, 'contents' => '', 'mime' => 'application/pdf', 'error' => $error];
 
         return $this;
     }
@@ -256,8 +269,9 @@ final class MailgunCall
         $files = [];
 
         foreach ($this->attachments as $index => $attachment) {
-            $file = FakeFile::createWithContent($attachment['name'], $attachment['contents']);
-            $files['attachment-'.($index + 1)] = $file->mimeType($attachment['mime']);
+            $files['attachment-'.($index + 1)] = $attachment['error'] === UPLOAD_ERR_OK
+                ? FakeFile::createWithContent($attachment['name'], $attachment['contents'])->mimeType($attachment['mime'])
+                : new UploadedFile('', $attachment['name'], $attachment['mime'], $attachment['error'], true);
         }
 
         return $files;

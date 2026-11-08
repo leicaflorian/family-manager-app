@@ -51,6 +51,8 @@ final class AttachmentRules
     public static function verdict(IncomingAttachment $attachment, string $firstBytes, int $maxBytes): ?SkipReason
     {
         return match (true) {
+            // bigger than the upload limit of PHP: nothing of it arrived, but it is a file too large
+            in_array($attachment->uploadError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) => SkipReason::TooLarge,
             self::sniff($firstBytes) === null => SkipReason::NotADocument,
             $attachment->size > $maxBytes => SkipReason::TooLarge,
             self::sniff($firstBytes) !== 'pdf' && $attachment->size < self::MIN_IMAGE_BYTES => SkipReason::TooSmall,
