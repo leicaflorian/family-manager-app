@@ -21,10 +21,40 @@ function framePageMetas(string $page): array
     );
 }
 
+/**
+ * The `base` elements of the page for the frame, as a browser reads them.
+ *
+ * @return list<string> the `href` and `target` of each
+ */
+function framePageBases(string $page): array
+{
+    $document = HTMLDocument::createFromString($page, LIBXML_NOERROR, 'UTF-8');
+
+    return array_map(
+        static fn (Element $base): string => ($base->getAttribute('href') ?? '').'|'.($base->getAttribute('target') ?? ''),
+        iterator_to_array($document->getElementsByTagName('base'), false),
+    );
+}
+
+/**
+ * The tags of the page for the frame, as a browser reads them, that are not HTML (svg, math and what they hold).
+ */
+function frameForeignElements(string $page): int
+{
+    $document = HTMLDocument::createFromString($page, LIBXML_NOERROR, 'UTF-8');
+
+    return count(array_filter(
+        iterator_to_array($document->getElementsByTagName('*'), false),
+        static fn (Element $element): bool => $element->namespaceURI !== 'http://www.w3.org/1999/xhtml',
+    ));
+}
+
 test('the page keeps only its own meta tags, whatever the mail writes', function (string $html): void {
-    $page = (string) MailText::document(['plainText' => null, 'html' => $html.'<p>Ciao</p>'], false);
+    $page = (string) MailText::document(['plainText' => null, 'html' => '<p>Ciao</p>'.$html], false);
 
     expect(framePageMetas($page))->toBe(['', 'content-security-policy'])
+        ->and(framePageBases($page))->toBe(['|_blank'])
+        ->and(frameForeignElements($page))->toBe(0)
         ->and($page)->toContain('<p>Ciao</p>');
 })->with([
     'refresh' => '<meta http-equiv="refresh" content="0;url=https://phishing.example">',
@@ -34,14 +64,17 @@ test('the page keeps only its own meta tags, whatever the mail writes', function
     'an encoded value' => '<meta http-equiv="&#114;efresh" content="0;url=//e.x">',
     'a policy of its own' => '<meta http-equiv="Content-Security-Policy" content="default-src *">',
     'inside svg' => '<svg><meta http-equiv="refresh" content="0;url=//e.x"></svg>',
+    'a base of its own' => '<base href="https://e.x/" target="_self">',
+    'written again from math' => '<math><mtext><table><mglyph><style><!--</style><img title="--&gt;&lt;/mglyph&gt;&lt;meta http-equiv=refresh content=0;url=//e.x&gt;">',
+    'written again from svg' => '<svg><style><img title="</style><meta http-equiv=refresh content=0;url=//e.x>">',
     'a whole page' => '<!doctype html><html><head><meta charset="iso-8859-1"><meta http-equiv="refresh" content="0;url=//e.x"></head><body>',
 ]);
 
 test('the policy of the page comes before anything of the mail', function (): void {
-    $page = (string) MailText::document(['html' => '<html><head><style>p { color: red; }</style><base href="https://e.x/"></head><body><p>Ciao</p></body></html>'], false);
+    $page = (string) MailText::document(['html' => '<html><head><style>p { color: red; }</style></head><body><p>Ciao</p></body></html>'], false);
 
     expect(strpos($page, 'Content-Security-Policy'))->toBeLessThan((int) strpos($page, 'color: red'))
-        ->and(strpos($page, '<base target="_blank">'))->toBeLessThan((int) strpos($page, 'https://e.x/'))
+        ->and(strpos($page, '<base target="_blank">'))->toBeLessThan((int) strpos($page, 'color: red'))
         ->and($page)->toStartWith('<!doctype html>')
         ->toContain('<style>p { color: red; }</style>');
 });
