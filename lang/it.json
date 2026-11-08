@@ -1337,5 +1337,7 @@
     "discarded: :reason": "scartata: :reason",
     "not read": "non letti",
     "not read: :reason": "non letti: :reason",
-    "AI reading failed: :name: :message": "lettura AI non riuscita: :name: :message"
+    "AI reading failed: :name: :message": "lettura AI non riuscita: :name: :message",
+    "Arrived by mail on :date from :sender: «:subject»": "Arrivato per posta il :date da :sender: «:subject»",
+    "More than :count mails arrived today: the others are not saved. If they are spam, change the address.": "Oggi sono arrivate più di :count mail: le altre non vengono salvate. Se è pubblicità, cambia l'indirizzo."
 }

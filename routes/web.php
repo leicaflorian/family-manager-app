@@ -23,6 +23,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
+use App\Http\Controllers\MailgunWebhookController;
 use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\OrganizationController;
@@ -52,6 +53,14 @@ Route::get('calendar/{token}.ics', CalendarFeedController::class)
     ->middleware('throttle:60,1')
     ->withoutMiddleware('web')
     ->name('calendar.feed');
+
+// The mail of the families, forwarded by the route of Mailgun for the whole domain and signed with its key. Outside
+// the web group like the calendar: no session, no cookie, no CSRF token (Mailgun has none), and the language of the
+// texts is the one of the installation. The throttle is high: every mail of every family comes from Mailgun.
+Route::post('mail/mailgun', MailgunWebhookController::class)
+    ->middleware('throttle:300,1')
+    ->withoutMiddleware('web')
+    ->name('mail.mailgun');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('welcome', [WelcomeController::class, 'show'])->name('welcome');

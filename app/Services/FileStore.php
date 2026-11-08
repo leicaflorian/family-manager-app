@@ -9,9 +9,11 @@ use App\Models\File;
 use App\Support\CurrentFamily;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File as Filesystem;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 /**
  * The file store of a family, on the private `local` disk.
@@ -32,11 +34,13 @@ final class FileStore
      * @param  array{type: string, id: int}|null  $link  the card a file of *Upload* comes from, from `PresetLink`
      * @param  FileSource  $source  where the file came from
      * @param  string|null  $note  how it arrived, for *To sort* and for the reading
+     * @param  array{received_mail_id?: int, mail_key?: string}  $mail  the mail a file came from, and its key against a second delivery
      * @return File the row of the saved file, with the SHA-256 of its content to find its copies
      *
      * @throws RuntimeException if the family is missing or the disk does not write
+     * @throws Throwable if the row is not written: the file just written is removed from the disk first
      */
-    public function store(UploadedFile $file, bool $toSort = false, ?array $link = null, FileSource $source = FileSource::Upload, ?string $note = null): File
+    public function store(UploadedFile $file, bool $toSort = false, ?array $link = null, FileSource $source = FileSource::Upload, ?string $note = null, array $mail = []): File
     {
         $family = CurrentFamily::id() ?? throw new RuntimeException('No family to save the file for.');
         $checksum = $this->checksum($file->getPathname());
@@ -44,19 +48,79 @@ final class FileStore
         $path = $file->storeAs($this->folder($family), $this->newName($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? '')), self::DISK)
             ?: throw new RuntimeException('The file was not saved.');
 
-        return File::query()->create([
-            'disk' => self::DISK,
-            'path' => $path,
-            'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
-            'size' => $file->getSize() ?: 0,
-            'to_sort' => $toSort,
-            'link_type' => $link['type'] ?? null,
-            'link_id' => $link['id'] ?? null,
-            'source' => $source,
-            'note' => $note,
-            'checksum' => $checksum,
-        ]);
+        try {
+            return File::query()->create([
+                ...$mail,
+                'disk' => self::DISK,
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
+                'size' => $file->getSize() ?: 0,
+                'to_sort' => $toSort,
+                'link_type' => $link['type'] ?? null,
+                'link_id' => $link['id'] ?? null,
+                'source' => $source,
+                'note' => $note,
+                'checksum' => $checksum,
+            ]);
+        } catch (Throwable $error) {
+            // without its row nobody would ever find the file again
+            Storage::disk(self::DISK)->delete($path);
+
+            throw $error;
+        }
+    }
+
+    /**
+     * Saves a file that is not an upload (an attachment of a mail) as `store()` does: same folder, checksum and row.
+     *
+     * @param  string  $path  the file on the local disk of PHP
+     * @param  string  $name  the name it is downloaded with, whose extension the stored file takes
+     * @param  string  $mime  the type it declares
+     * @param  bool  $toSort  true for a file that waits in *To sort*
+     * @param  FileSource  $source  where the file came from
+     * @param  string|null  $note  how it arrived
+     * @param  array{received_mail_id?: int, mail_key?: string}  $mail  the mail it came from, and its key
+     * @return File the row of the saved file
+     *
+     * @throws RuntimeException if the family is missing or the disk does not write
+     * @throws Throwable if the row is not written
+     */
+    public function storePath(string $path, string $name, string $mime, bool $toSort, FileSource $source, ?string $note, array $mail = []): File
+    {
+        // a local file, not an upload of this request: test mode skips the check of PHP that it was uploaded
+        return $this->store(new UploadedFile($path, $name, $mime, null, true), $toSort, null, $source, $note, $mail);
+    }
+
+    /**
+     * Saves a text made by the app (the notice of a mail without attachments) as a file: it is written to a
+     * temporary file and stored as an upload, so checksum, preview and folder are those of every other file.
+     *
+     * @param  string  $contents  the bytes of the file
+     * @param  string  $name  the name it is downloaded with
+     * @param  string  $mime  its type
+     * @param  bool  $toSort  true for a file that waits in *To sort*
+     * @param  FileSource  $source  where the file came from
+     * @param  string|null  $note  how it arrived
+     * @param  array{received_mail_id?: int, mail_key?: string}  $mail  the mail it came from, and its key
+     * @return File the row of the saved file
+     *
+     * @throws RuntimeException if the temporary file is not written, the family is missing or the disk does not write
+     * @throws Throwable if the row is not written
+     */
+    public function storeContents(string $contents, string $name, string $mime, bool $toSort, FileSource $source, ?string $note, array $mail = []): File
+    {
+        $temporary = tempnam(sys_get_temp_dir(), 'fm-file-') ?: throw new RuntimeException('No temporary file for the contents.');
+
+        try {
+            if (file_put_contents($temporary, $contents) === false) {
+                throw new RuntimeException('The temporary file was not written.');
+            }
+
+            return $this->storePath($temporary, $name, $mime, $toSort, $source, $note, $mail);
+        } finally {
+            Filesystem::delete($temporary);
+        }
     }
 
     /**

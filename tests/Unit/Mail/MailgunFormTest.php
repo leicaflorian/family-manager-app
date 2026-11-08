@@ -36,6 +36,13 @@ describe('headersOf', function (): void {
 });
 
 describe('parse', function (): void {
+    test('keeps at most 255 characters of the id, the length of the column', function (): void {
+        $long = str_repeat('a', 300).'@mail.example';
+        $mail = MailgunForm::parse(['recipient' => 'bills@example.test', 'Message-Id' => "<{$long}>"], []);
+
+        expect($mail?->eventId)->toBe(mb_substr("mailgun:{$long}:bills@example.test", 0, 255));
+    });
+
     test('reads a complete form', function (): void {
         $mail = MailgunForm::parse([
             'recipient' => 'Bills@Example.test',

@@ -22,6 +22,9 @@ final class MailgunForm
     /** The fields of Mailgun kept in the log as they are. */
     private const array LOGGED_FIELDS = ['recipient', 'sender', 'from', 'subject', 'attachment-count', 'timestamp'];
 
+    /** The longest id of a mail, the length of the column `event_id`. */
+    public const int MAX_EVENT_ID_CHARS = 255;
+
     /**
      * The headers of the mail, from the JSON string `message-headers`: a list of [name, value].
      *
@@ -76,9 +79,10 @@ final class MailgunForm
         ]));
 
         return new IncomingMail(
-            eventId: $messageId !== ''
+            // cut to the column: the files of the mail are keyed by the id as it is kept
+            eventId: mb_substr($messageId !== ''
                 ? "mailgun:{$messageId}:{$address}"
-                : 'mailgun:'.hash('sha256', implode("\n", [$from, $address, $subject, $date])),
+                : 'mailgun:'.hash('sha256', implode("\n", [$from, $address, $subject, $date])), 0, self::MAX_EVENT_ID_CHARS),
             sender: $from,
             senderAddress: self::addressOf($from),
             recipient: str_replace(' ', '', $address),

@@ -31,6 +31,7 @@
         <env name="DOCUMENT_READER_PROVIDER" value="" force="true"/>
         <env name="GEMINI_API_KEY" value="" force="true"/>
         <env name="ANTHROPIC_API_KEY" value="" force="true"/>
+        <env name="MAILGUN_SIGNING_KEY" value="test-signing-key" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
