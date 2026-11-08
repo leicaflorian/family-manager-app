@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int $family_id
  * @property string|null $mail_inbox_recipient
  * @property array<array-key, mixed>|null $mail_inbox_notify
+ * @property array<array-key, mixed>|null $areas
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -30,7 +31,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['mail_inbox_recipient', 'mail_inbox_notify'])]
+#[Fillable(['mail_inbox_recipient', 'mail_inbox_notify', 'areas'])]
 final class FamilySetting extends FamilyModel
 {
     /** @use HasFactory<FamilySettingFactory> */
@@ -45,6 +46,7 @@ final class FamilySetting extends FamilyModel
     {
         return [
             'mail_inbox_notify' => 'array',
+            'areas' => 'array',
         ];
     }
 }
