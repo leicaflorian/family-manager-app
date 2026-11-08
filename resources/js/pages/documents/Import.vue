@@ -37,6 +37,7 @@ import { useImportChoices } from '@/composables/useImportChoices';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import {
+    documentNeeds,
     dueInEffect,
     eventHint,
     eventLabel,
@@ -202,6 +203,13 @@ const proposal = computed(() =>
         ? props.proposals?.[current.value.id]
         : undefined,
 );
+
+/** The empty fields of the document of the file open that its ticked boxes need: its form says so under them. */
+const needed = computed((): string[] => {
+    const also = chosen.value?.also.value;
+
+    return proposal.value && also ? documentNeeds(proposal.value, also) : [];
+});
 
 /** How many documents wait for their card, from `cardDocuments`. */
 const cardDocumentCount = computed(() =>
@@ -669,6 +677,7 @@ function save(): void {
                         "
                         proposal-is-start
                         :errors="fieldErrorsOf(file)"
+                        :needed="file.id === current.id ? needed : []"
                         @change="values[file.id] = $event"
                     />
 

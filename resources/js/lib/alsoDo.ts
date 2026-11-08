@@ -45,6 +45,55 @@ const RECORD_UNTICKED: Record<App.Enums.RecordKind, string> = {
     maintenance: 'Tick the box to create the intervention.',
 };
 
+/** The labels of the fields of the document form a box may need, as the form names them. */
+const DOCUMENT_LABELS: Record<string, string> = {
+    date: 'Date',
+    person_id: 'Whose it is',
+    organization_id: 'Who it is from',
+};
+
+/** The labels of the fields the box of the expense or income shows when they are missing. */
+const MOVEMENT_LABELS: Record<string, string> = {
+    amount: 'Amount',
+    date: 'Date',
+    due_date: 'Deadline',
+};
+
+/** The labels of the fields the box of the health event shows when they are missing. */
+const EVENT_LABELS: Record<string, string> = {
+    title: 'Title of the event',
+    type: 'Type of the event',
+};
+
+/**
+ * What a ticked box still needs, as lines: the fields of the document form to
+ * complete, then the fields to fill in the box.
+ *
+ * @param complete - the fields of the document form, by column
+ * @param fill - the labels of the fields of the box, not translated yet
+ * @returns the lines, none when nothing is missing
+ */
+function neededLines(complete: string[], fill: string[]): string[] {
+    const quoted = (labels: string[]): string =>
+        labels.map((label) => `«${trans(label)}»`).join(', ');
+    const document = complete.map(
+        (column) => DOCUMENT_LABELS[column] ?? column,
+    );
+
+    return [
+        ...(document.length > 0
+            ? [
+                  trans('Complete :fields in the form above.', {
+                      fields: quoted(document),
+                  }),
+              ]
+            : []),
+        ...(fill.length > 0
+            ? [trans('Fill in :fields here below.', { fields: quoted(fill) })]
+            : []),
+    ];
+}
+
 /** How a box speaks of a card already there, by its kind: `Link to the vehicle "…"`. */
 const LINK_TO: Record<App.Enums.RecordKind, string> = {
     organization: 'Link to the organization ":title"',
@@ -278,7 +327,10 @@ export function movementWarnings(
     }
 
     return [
-        ...(movement.blocked ? [movement.blocked] : []),
+        ...neededLines(
+            movement.complete,
+            movement.fill.map((column) => MOVEMENT_LABELS[column] ?? column),
+        ),
         ...movement.warnings,
         ...(movement.pays && !state.due && movement.pays.others > 0
             ? [
@@ -333,7 +385,12 @@ export function eventWarnings(
     event: App.Data.Reading.EventProposalData,
     ticked: boolean,
 ): string[] {
-    return ticked && !event.existing && event.blocked ? [event.blocked] : [];
+    return ticked && !event.existing
+        ? neededLines(
+              event.complete,
+              event.fill.map((column) => EVENT_LABELS[column] ?? column),
+          )
+        : [];
 }
 
 /**
@@ -341,15 +398,21 @@ export function eventWarnings(
  * linked to.
  *
  * @param draft - the card of the proposal
- * @param state - whether it is ticked, and its target
+ * @param state - whether it is ticked, its target, and the amount of the
+ *   expense (null when it was not read; missing when the paper has no expense)
  * @returns the line, if there is one
  */
 export function recordHint(
     draft: App.Data.Reading.RecordDraftData,
-    state: { ticked: boolean; target: ImportTarget },
+    state: { ticked: boolean; target: ImportTarget; amount?: number | null },
 ): string | undefined {
     if (!state.ticked && !draft.suggested && !draft.existing) {
-        return trans(RECORD_UNTICKED[draft.kind]);
+        // The 100 € rule says nothing about a purchase whose amount was not read
+        return draft.kind === 'belonging' && state.amount === null
+            ? trans(
+                  'Amount not found: tick the box if you want to keep it among the items, with the warranty.',
+              )
+            : trans(RECORD_UNTICKED[draft.kind]);
     }
 
     if (state.ticked && draft.existing) {
@@ -376,6 +439,15 @@ export function recordWarnings(
 ): string[] {
     if (!ticked || draft.existing || draft.missing.length === 0) {
         return [];
+    }
+
+    const needed = neededLines(
+        draft.complete,
+        draft.fields.map((field) => field.label),
+    );
+
+    if (needed.length > 0) {
+        return needed;
     }
 
     return [
@@ -628,4 +700,39 @@ export function candidateOptions(
                 .join(' · '),
         help: null,
     }));
+}
+
+/**
+ * The empty fields of the document form that the ticked boxes of *What I do
+ * too* need (the date of the expense, the person of the health event), once
+ * each: the form says so under them. A box linked to one already there needs
+ * nothing.
+ *
+ * @param proposal - the proposal of the file
+ * @param ticked - the boxes ticked, as the file sends them
+ * @returns the columns, in the order the boxes come
+ */
+export function documentNeeds(
+    proposal: App.Data.Reading.ProposalData,
+    ticked: {
+        movement: boolean;
+        event: boolean;
+        records: App.Enums.RecordKind[];
+    },
+): string[] {
+    const { movement, event, records } = proposal;
+    const columns = [
+        ...(movement && ticked.movement && !movement.duplicate
+            ? movement.complete
+            : []),
+        ...(event && ticked.event && !event.existing ? event.complete : []),
+        ...records
+            .filter(
+                (draft) =>
+                    ticked.records.includes(draft.kind) && !draft.existing,
+            )
+            .flatMap((draft) => draft.complete),
+    ];
+
+    return [...new Set(columns)];
 }

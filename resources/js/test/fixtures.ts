@@ -1729,6 +1729,8 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             mode: 'new',
         },
         pays: null,
+        fill: [],
+        complete: [],
         candidates: [
             {
                 id: 41,
@@ -1754,6 +1756,8 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
         blocked: null,
         candidates: [],
         reminder: "I'll remind you to book the checkup",
+        fill: [],
+        complete: [],
     },
     records: [
         {
@@ -1766,6 +1770,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             candidates: [{ id: 5, label: 'Studio dentistico' }],
             reminder: null,
             fields: [],
+            complete: [],
         },
     ],
     policy: null,

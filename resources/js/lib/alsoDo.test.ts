@@ -4,6 +4,7 @@ import {
     actionTexts,
     candidateOptions,
     dueChoices,
+    documentNeeds,
     dueInEffect,
     eventSubtitle,
     movementSubtitle,
@@ -263,15 +264,41 @@ describe('movementWarnings', () => {
 
     it('says what is missing to create it, only while it is ticked', () => {
         const blocked = movement({
-            blocked: 'To create the expense the amount is missing.',
+            blocked: 'Amount or date not found.',
+            fill: ['amount'],
         });
 
         expect(movementWarnings(blocked, ticked)).toEqual([
-            'To create the expense the amount is missing.',
+            'Fill in «Amount» here below.',
         ]);
         expect(movementWarnings(blocked, { ...ticked, ticked: false })).toEqual(
             [],
         );
+    });
+
+    it('says which fields of the document to complete, and which to fill in the box', () => {
+        expect(
+            movementWarnings(
+                movement({
+                    blocked: 'Amount or date not found.',
+                    fill: ['amount', 'due_date'],
+                    complete: ['date'],
+                }),
+                ticked,
+            ),
+        ).toEqual([
+            'Complete «Date» in the form above.',
+            'Fill in «Amount», «Deadline» here below.',
+        ]);
+    });
+
+    it('says nothing is missing once the proposal needs nothing', () => {
+        expect(
+            movementWarnings(
+                movement({ blocked: null, fill: [], complete: [] }),
+                ticked,
+            ),
+        ).toEqual([]);
     });
 
     it('says what changes on the expense found, and how many others were as close', () => {
@@ -342,10 +369,16 @@ describe('eventHint', () => {
 
 describe('eventWarnings', () => {
     it('says what a new event misses, while it is ticked', () => {
-        const blocked = { ...event, blocked: 'The person is missing.' };
+        const blocked = {
+            ...event,
+            blocked: 'The person is missing.',
+            complete: ['person_id', 'date'],
+            fill: ['type'],
+        };
 
         expect(eventWarnings(blocked, true)).toEqual([
-            'The person is missing.',
+            'Complete «Whose it is», «Date» in the form above.',
+            'Fill in «Type of the event» here below.',
         ]);
         expect(eventWarnings(blocked, false)).toEqual([]);
     });
@@ -371,6 +404,17 @@ describe('recordHint', () => {
         );
     });
 
+    it('does not speak of 100 € when the amount is not known', () => {
+        expect(
+            recordHint(
+                { ...organization, kind: 'belonging', suggested: false },
+                { ticked: false, target: 'auto', amount: null },
+            ),
+        ).toBe(
+            'Amount not found: tick the box if you want to keep it among the items, with the warranty.',
+        );
+    });
+
     it('says the card is already there, or the one chosen is linked', () => {
         const existing = {
             ...organization,
@@ -387,6 +431,34 @@ describe('recordHint', () => {
 });
 
 describe('recordWarnings', () => {
+    it('says which fields to fill in the box and which to complete in the form', () => {
+        const field: App.Data.CardFieldData = {
+            column: 'name',
+            label: 'Name',
+            kind: 'text',
+            required: true,
+            options: [],
+            show_when: {},
+            label_when: {},
+        };
+
+        expect(
+            recordWarnings(
+                {
+                    ...organization,
+                    kind: 'maintenance',
+                    missing: ['the title', 'the date'],
+                    fields: [field],
+                    complete: ['date'],
+                },
+                true,
+            ),
+        ).toEqual([
+            'Complete «Date» in the form above.',
+            'Fill in «Name» here below.',
+        ]);
+    });
+
     it('says what a new card misses, while it is ticked', () => {
         expect(
             recordWarnings({ ...organization, missing: ['the name'] }, true),
@@ -595,5 +667,59 @@ describe('candidateOptions', () => {
         expect(candidateOptions(organization.candidates)).toEqual([
             { value: '5', label: 'Studio dentistico', help: null },
         ]);
+    });
+});
+
+describe('documentNeeds', () => {
+    const proposal: App.Data.Reading.ProposalData = {
+        ...ferriProposal,
+        movement: { ...expense, complete: ['date'] },
+        event: { ...event, complete: ['person_id', 'date'] },
+        records: [{ ...organization, kind: 'maintenance', complete: ['date'] }],
+    };
+    const all = {
+        movement: true,
+        event: true,
+        records: ['maintenance'] as App.Enums.RecordKind[],
+    };
+
+    it('gathers the fields of the document the ticked boxes need, once each', () => {
+        expect(documentNeeds(proposal, all)).toEqual(['date', 'person_id']);
+    });
+
+    it('leaves out the boxes not ticked, and those linked to one already there', () => {
+        expect(
+            documentNeeds(proposal, {
+                movement: true,
+                event: false,
+                records: [],
+            }),
+        ).toEqual(['date']);
+        expect(
+            documentNeeds(
+                {
+                    ...proposal,
+                    movement: {
+                        ...proposal.movement!,
+                        duplicate: { id: 1, title: 'Luce', date: '2026-10-01' },
+                    },
+                    event: {
+                        ...proposal.event!,
+                        existing: {
+                            id: 2,
+                            title: 'Visita',
+                            date: '2026-10-01',
+                        },
+                    },
+                    records: [
+                        {
+                            ...proposal.records[0]!,
+                            existing: { id: 3, title: 'Caldaia' },
+                        },
+                    ],
+                },
+                all,
+            ),
+        ).toEqual([]);
     });
 });

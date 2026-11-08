@@ -25,6 +25,7 @@ import type {
 import { linkKey, parseLinkKey, toPayload } from '@/lib/documents';
 import { errors, listErrors } from '@/lib/errors';
 import { withNone } from '@/lib/forms';
+import { cn } from '@/lib/utils';
 import type { RouteDefinition } from '@/wayfinder';
 import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
@@ -42,6 +43,7 @@ const {
     fill = 'untouched',
     proposalIsStart = false,
     errors: outsideErrors,
+    needed = [],
 } = defineProps<{
     /**
      * Where the form is sent: a new document or a change. Without it the form has no buttons and sends
@@ -66,6 +68,8 @@ const {
     proposalIsStart?: boolean;
     /** Errors found outside the form (a page that sent many documents), by field: `title`, `tags.0`… */
     errors?: Record<string, string>;
+    /** The empty fields a box of *What I do too* needs (`date`, `person_id`, `organization_id`): each says so under it. */
+    needed?: string[];
 }>();
 
 const emit = defineEmits<{
@@ -136,6 +140,21 @@ const categories = computed(() => [
     ...categoryOptions(options.categories),
 ]);
 const people = computed(() => withNone(options.people));
+
+/** The classes of the line under a field needed below: the warning colour in place of the soft one. */
+const neededClass = cn('$reset mt-1 text-[13px] text-warning');
+
+/**
+ * The line under a field when a box of *What I do too* needs it.
+ *
+ * @param field - the column
+ * @returns the line, undefined when the field is not needed
+ */
+function neededHelp(field: string): string | undefined {
+    return needed.includes(field)
+        ? trans('Needed by What I do too.')
+        : undefined;
+}
 const organizations = computed(() => withNone(options.organizations));
 
 /** The name of each record that can be linked, by `linkKey()`. */
@@ -315,6 +334,8 @@ useSaveShortcut(save, () => !form.processing);
                 type="autocomplete"
                 :label="$t('Whose it is')"
                 name="person_id"
+                :help="neededHelp('person_id')"
+                :help-class="neededClass"
                 :options="people"
                 open-on-click
                 :errors="errors(form.errors.person_id)"
@@ -325,6 +346,8 @@ useSaveShortcut(save, () => !form.processing);
                 open-on-click
                 :label="$t('Who it is from')"
                 name="organization_id"
+                :help="neededHelp('organization_id')"
+                :help-class="neededClass"
                 :options="organizations"
                 :errors="errors(form.errors.organization_id)"
             />
@@ -333,6 +356,8 @@ useSaveShortcut(save, () => !form.processing);
                 type="datepicker"
                 :label="$t('Date')"
                 name="date"
+                :help="neededHelp('date')"
+                :help-class="neededClass"
                 :errors="errors(form.errors.date)"
             />
             <FormKit

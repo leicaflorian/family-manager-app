@@ -967,6 +967,7 @@ describe('Import', () => {
                         label_when: {},
                     },
                 ],
+                complete: [],
             };
             renderPage(
                 Import,
@@ -980,7 +981,7 @@ describe('Import', () => {
                 }),
             );
             expect(
-                screen.getByText('To create it the type is missing.'),
+                screen.getByText('Fill in «Policy type» here below.'),
             ).toBeInTheDocument();
             await choose('Policy type', 'Car');
             await fireEvent.click(
@@ -991,6 +992,85 @@ describe('Import', () => {
                 records: ['policy'],
                 overrides: { records: { policy: { type: 'car' } } },
             });
+        });
+
+        it('asks the expense for the amount not read in its box, and sends the one written', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const movement = {
+                ...ferriProposal.movement!,
+                values: { ...ferriProposal.movement!.values, amount: null },
+                blocked: 'Amount or date not found.',
+                fill: ['amount'],
+            };
+            renderPage(Import, ferriProps({ ...ferriProposal, movement }));
+            await settle();
+
+            expect(
+                screen.getByText('Fill in «Amount» here below.'),
+            ).toBeInTheDocument();
+            await fireEvent.update(screen.getByLabelText('Amount'), '84,20');
+            await settle();
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Import the file' }),
+            );
+
+            expect(sent(post)[0]?.also).toMatchObject({
+                overrides: { movement: { amount: '84.20' } },
+            });
+        });
+
+        it('asks to complete the date of the document for the expense, and stops once the new proposal has it', async () => {
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const movement = {
+                ...ferriProposal.movement!,
+                values: { ...ferriProposal.movement!.values, date: null },
+                blocked: 'Amount or date not found.',
+                complete: ['date'],
+            };
+            const view = renderPage(
+                Import,
+                ferriProps({ ...ferriProposal, movement }),
+            );
+            await settle();
+
+            expect(
+                screen.getByText('Complete «Date» in the form above.'),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByText('Needed by What I do too.'),
+            ).toBeInTheDocument();
+
+            // The person writes the date: the proposal asked again comes back with it
+            await view.rerender(ferriProps(structuredClone(ferriProposal)));
+            await settle();
+
+            expect(
+                screen.queryByText('Complete «Date» in the form above.'),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByText('Needed by What I do too.'),
+            ).not.toBeInTheDocument();
+        });
+
+        it('does not ask the document for the date of an expense left unticked', async () => {
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            const movement = {
+                ...ferriProposal.movement!,
+                complete: ['date'],
+            };
+            renderPage(Import, ferriProps({ ...ferriProposal, movement }));
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('checkbox', {
+                    name: /Create the expense/,
+                }),
+            );
+
+            expect(
+                screen.queryByText('Needed by What I do too.'),
+            ).not.toBeInTheDocument();
         });
 
         it('asks a new health event for its title and type when the reading has none', async () => {

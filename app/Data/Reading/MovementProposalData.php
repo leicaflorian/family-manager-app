@@ -26,6 +26,8 @@ final class MovementProposalData extends Data
      * @param  DueData|null  $due  "already paid" or "to pay"; null for an income and for a movement already recorded
      * @param  array{planned: int, title: string, date: string, occurrence: string, others: int}|null  $pays  the unpaid due date a payment receipt pays: the planned expense, its title, the date shown, the original date, the other ones that fit
      * @param  list<array{id: int, title: string, date: string, amount: float}>  $candidates  the expenses (or incomes) within a month of the date, the closest first, to pick another by hand
+     * @param  list<string>  $fill  what (`amount`, `due_date`) a new movement still needs that the person writes in its box
+     * @param  list<string>  $complete  what (`date`) a new movement still needs that the person writes in the form of the document
      */
     public function __construct(
         public readonly MovementValuesData $values,
@@ -38,5 +40,7 @@ final class MovementProposalData extends Data
         public readonly ?DueData $due,
         public readonly ?array $pays,
         public readonly array $candidates,
+        public readonly array $fill = [],
+        public readonly array $complete = [],
     ) {}
 }

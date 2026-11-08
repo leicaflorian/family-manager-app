@@ -21,6 +21,8 @@ final class EventProposalData extends Data
      * @param  string|null  $blocked  what is missing to create the event; null when nothing is
      * @param  list<array{id: int, title: string, date: string}>  $candidates  the events of the person within a month of the date, the closest first, to pick another by hand
      * @param  string|null  $reminder  the reminder the event makes when the import gives it its next checkup (`I'll remind you to book the checkup`)
+     * @param  list<string>  $fill  what (`type`, `title`) a new event still needs that the person writes in its box
+     * @param  list<string>  $complete  what (`person_id`, `date`) a new event still needs that the person writes in the form of the document
      */
     public function __construct(
         public readonly EventValuesData $values,
@@ -29,5 +31,7 @@ final class EventProposalData extends Data
         public readonly ?string $blocked,
         public readonly array $candidates,
         public readonly ?string $reminder,
+        public readonly array $fill = [],
+        public readonly array $complete = [],
     ) {}
 }

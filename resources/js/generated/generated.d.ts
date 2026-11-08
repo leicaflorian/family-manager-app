@@ -665,6 +665,8 @@ title: string,
 date: string,
 }[],
 readonly reminder: string | null,
+readonly fill: string[],
+readonly complete: string[],
 };
 export type EventValuesData = {
 readonly title: string | null,
@@ -747,6 +749,8 @@ title: string,
 date: string,
 amount: number,
 }[],
+readonly fill: string[],
+readonly complete: string[],
 };
 export type MovementValuesData = {
 readonly kind: string,
@@ -809,6 +813,7 @@ label: string,
 }[],
 readonly reminder: string | null,
 readonly fields: App.Data.CardFieldData[],
+readonly complete: string[],
 };
 }
 }

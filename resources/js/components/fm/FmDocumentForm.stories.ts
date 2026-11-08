@@ -76,6 +76,20 @@ export const WithErrorsFromThePage: Story = {
     },
 };
 
+export const WithFieldsNeededBelow: Story = {
+    name: 'With fields needed below',
+    args: {
+        // The dates are filled for the console (an empty datepicker warns): the line shows whatever the value
+        initial: {
+            ...newDocument('Bolletta luce'),
+            date: fromToday(0),
+            expiry_date: fromToday(365),
+        },
+        options: documentFormOptions,
+        needed: ['date', 'person_id'],
+    },
+};
+
 export const Edit: Story = {
     args: {
         action: { url: '/documents/5', method: 'put' },

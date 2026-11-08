@@ -44,8 +44,9 @@ final readonly class MovementProposal
      * @param  MovementValuesData  $draft  the movement the reading proposes ({@see MovementDraft})
      * @param  bool  $suggested  whether its box starts ticked
      * @param  ImportChoices  $choices  the choices of the person
+     * @param  CarbonImmutable|null  $documentDate  the date of the document as it will be saved: the movement takes it when it has none
      */
-    public function of(Extraction $x, ReadingContext $context, MovementValuesData $draft, bool $suggested, ImportChoices $choices): MovementProposalData
+    public function of(Extraction $x, ReadingContext $context, MovementValuesData $draft, bool $suggested, ImportChoices $choices, ?CarbonImmutable $documentDate = null): MovementProposalData
     {
         $kind = $draft->kind;
         $expense = $kind === 'expense';
@@ -57,8 +58,9 @@ final readonly class MovementProposal
         $dueAuto = $expense && DueSearch::suggested($x->kind, $suggested, ValidDate::carbon($dueDate), DueSearch::today());
         $wantsDue = $expense && ($choices->due ?? $dueAuto);
 
-        // 3. The date: the movement's, or the deadline of one to pay
-        $date = $values->date ?? ($wantsDue ? $dueDate : null);
+        // 3. The date: the movement's, or the deadline of one to pay, otherwise the document's (the person may have written it there)
+        $date = $values->date ?? ($wantsDue ? $dueDate : $documentDate?->toDateString());
+        $values = $values->date === null && ! $wantsDue && $date !== null ? MovementValuesData::from([...$values->toArray(), 'date' => $date]) : $values;
         $day = ValidDate::carbon($date);
         $chosen = $this->chosen($kind, $choices->targets['movement']);
         $target = $chosen instanceof Model || ! is_int($choices->targets['movement']) ? $choices->targets['movement'] : 'auto';
@@ -94,7 +96,15 @@ final readonly class MovementProposal
             ? $this->pays($net, $day, $values->organization_id, $lead)
             : null;
 
-        // 8. What the expense found takes from the file
+        // 8. What a new movement still needs, and where the person writes it
+        $new = ! $duplicate instanceof Model;
+        $fill = $new ? array_values(array_filter([
+            $values->amount === null ? 'amount' : null,
+            $wantsDue && ! ValidDate::carbon($dueDate) instanceof CarbonImmutable ? 'due_date' : null,
+        ])) : [];
+        $complete = $new && ! $wantsDue && ! $day instanceof CarbonImmutable ? ['date'] : [];
+
+        // 9. What the expense found takes from the file
         $changes = $duplicate instanceof Expense ? $this->changes->of($duplicate, $values, $x, $context) : ['changes' => [], 'warnings' => []];
 
         return new MovementProposalData(
@@ -108,6 +118,8 @@ final readonly class MovementProposal
             due: $due,
             pays: $pays,
             candidates: $this->search->near($kind, $day ?? DueSearch::today()),
+            fill: $fill,
+            complete: $complete,
         );
     }
 

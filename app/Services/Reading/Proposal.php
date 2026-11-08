@@ -103,7 +103,7 @@ final readonly class Proposal
 
         $movement = $draft['movement'] === null
             ? null
-            : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $choices);
+            : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $choices, $side['date']);
         $document = $this->receiptCategory($x, $document, $movement);
         $amount = $choices->movementOverrides($movement->values->kind ?? 'expense')['amount'] ?? $x->total_amount;
         ['records' => $records, 'warnings' => $warnings] = $this->records->of($x, $side, is_numeric($amount) ? (float) $amount : null, $choices);
@@ -174,6 +174,14 @@ final readonly class Proposal
             default => $this->search->event($values->person_id, $day, $values->organization_id, $values->type),
         };
 
+        $complete = $existing instanceof HealthEvent ? [] : array_values(array_filter([
+            $values->person_id === null ? 'person_id' : null,
+            $values->date === null ? 'date' : null,
+        ]));
+        $fill = $existing instanceof HealthEvent ? [] : array_values(array_filter([
+            $this->blank($values->type) ? 'type' : null,
+            $this->blank($values->title) ? 'title' : null,
+        ]));
         $lacking = $existing instanceof HealthEvent ? [] : array_values(array_filter([
             $values->person_id === null ? Translated::text('the person') : null,
             $this->blank($values->type) ? Translated::text('the type') : null,
@@ -193,6 +201,8 @@ final readonly class Proposal
             reminder: $values->next_checkup_date !== null && (! $existing instanceof HealthEvent || $existing->next_checkup_date === null)
                 ? Translated::text("I'll remind you to book the checkup")
                 : null,
+            fill: $fill,
+            complete: $complete,
         );
     }
 

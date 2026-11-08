@@ -172,6 +172,14 @@ describe('Da pagare: a one-off planned expense', function (): void {
             ->and((float) $planned->amount)->toBe(480.0);
     });
 
+    test('no date read at all, "Già pagata" and the date written in the document: the expense on that date', function (): void {
+        $file = readWaitingFile([...$this->invoice, 'issue_date' => null, 'due_date' => null]);
+
+        importReadFile($file, ['due' => false, 'document' => ['date' => '2026-11-05']]);
+
+        expect(Expense::query()->sole()->date?->toDateString())->toBe('2026-11-05');
+    });
+
     test('the expense not ticked: only the document', function (): void {
         $result = importReadFile(readWaitingFile($this->invoice), ['movement' => false]);
 

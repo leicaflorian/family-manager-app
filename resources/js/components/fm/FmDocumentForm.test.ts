@@ -624,3 +624,22 @@ describe('FmDocumentForm with errors from outside', () => {
         ).not.toBeInTheDocument();
     });
 });
+
+describe('FmDocumentForm with fields needed below', () => {
+    const { action: _action, submitLabel: _label, ...bare } = props;
+
+    it('says under each field needed that the boxes below need it, and stops when they no longer do', async () => {
+        const view = renderPage(FmDocumentForm, {
+            ...bare,
+            needed: ['date', 'person_id'],
+        });
+
+        expect(screen.getAllByText('Needed by What I do too.')).toHaveLength(2);
+
+        await view.rerender({ ...bare, needed: [] });
+
+        expect(
+            screen.queryByText('Needed by What I do too.'),
+        ).not.toBeInTheDocument();
+    });
+});

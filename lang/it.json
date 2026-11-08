@@ -1323,5 +1323,9 @@
     "Drag the files here, or choose them from the computer": "Trascina qui i file, oppure scegli dal computer",
     "Uploaded manually on :date by :name": "Caricato manualmente il :date da :name",
     "Uploaded manually": "Caricati manualmente",
-    "The files that arrive by mail, from the phone or uploaded manually stay until you import or delete them.": "I file arrivati per posta, dal telefono o caricati manualmente restano finché non li importi o li elimini."
+    "The files that arrive by mail, from the phone or uploaded manually stay until you import or delete them.": "I file arrivati per posta, dal telefono o caricati manualmente restano finché non li importi o li elimini.",
+    "Complete :fields in the form above.": "Completa :fields nel modulo qui sopra.",
+    "Fill in :fields here below.": "Inserisci :fields qui sotto.",
+    "Needed by What I do too.": "Serve per «Cosa faccio anche».",
+    "Amount not found: tick the box if you want to keep it among the items, with the warranty.": "Importo non trovato: spunta la casella se vuoi tenerlo tra i beni, con la garanzia."
 }

@@ -25,6 +25,7 @@ final class RecordDraftData extends Data
      * @param  list<array{id: int, label: string}>  $candidates  the cards of this kind, to pick one by hand
      * @param  string|null  $reminder  the reminder the new card makes (`I'll remind you before the warranty ends`)
      * @param  list<CardFieldData>  $fields  the required fields still empty that the person can write in the box, as the card form draws them
+     * @param  list<string>  $complete  the (`date`, `person_id`, `organization_id`) required fields still empty that come from the document, written in its form
      */
     public function __construct(
         public readonly RecordKind $kind,
@@ -36,5 +37,6 @@ final class RecordDraftData extends Data
         public readonly array $candidates = [],
         public readonly ?string $reminder = null,
         public readonly array $fields = [],
+        public readonly array $complete = [],
     ) {}
 }

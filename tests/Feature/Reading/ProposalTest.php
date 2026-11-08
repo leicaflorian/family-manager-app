@@ -397,3 +397,74 @@ describe('the whole file', function (): void {
         expect(rowCounts())->toBe($before);
     });
 });
+
+describe('what a box still needs, and where it is written', function (): void {
+    beforeEach(function (): void {
+        $this->giulia = Person::factory()->for($this->family)->create(['first_name' => 'Giulia', 'last_name' => 'Bianchi']);
+        $this->visit = [
+            'kind' => 'invoice', 'title' => 'Visita dal dentista', 'total_amount' => 120, 'issue_date' => '2026-10-22',
+            'person_id' => $this->giulia->id, 'health_type' => HealthEventType::Visit->value,
+        ];
+    });
+
+    test('an expense without its amount asks for it in its box', function (): void {
+        $movement = proposalOf([...$this->invoice, 'total_amount' => null], ['due' => false])->movement;
+
+        expect($movement->fill)->toBe(['amount'])
+            ->and($movement->complete)->toBe([])
+            ->and($movement->blocked)->not->toBeNull();
+    });
+
+    test('an expense without a date takes the date written in the form of the document', function (): void {
+        $movement = proposalOf(
+            [...$this->invoice, 'issue_date' => null, 'due_date' => null],
+            ['due' => false, 'document' => ['date' => '2026-11-05']],
+        )->movement;
+
+        expect($movement->values->date)->toBe('2026-11-05')
+            ->and($movement->fill)->toBe([])
+            ->and($movement->complete)->toBe([])
+            ->and($movement->blocked)->toBeNull();
+    });
+
+    test('an expense without any date asks to complete the date of the document', function (): void {
+        $movement = proposalOf([...$this->invoice, 'issue_date' => null, 'due_date' => null], ['due' => false])->movement;
+
+        expect($movement->complete)->toBe(['date'])
+            ->and($movement->fill)->toBe([]);
+    });
+
+    test('an expense to pay without a deadline asks for it in its box', function (): void {
+        $movement = proposalOf([...$this->invoice, 'due_date' => null], ['due' => true])->movement;
+
+        expect($movement->fill)->toBe(['due_date'])
+            ->and($movement->complete)->toBe([]);
+    });
+
+    test('an expense linked to one already recorded needs nothing', function (): void {
+        $expense = Expense::factory()->for($this->family)->create(['title' => 'Cure', 'date' => '2026-10-01', 'amount' => 10]);
+
+        $movement = proposalOf([...$this->invoice, 'total_amount' => null], ['targets' => ['movement' => $expense->id]])->movement;
+
+        expect($movement->fill)->toBe([])
+            ->and($movement->complete)->toBe([]);
+    });
+
+    test('a new health event asks the person and the date in the form of the document', function (): void {
+        $event = proposalOf(
+            [...$this->visit, 'person_id' => null, 'issue_date' => null],
+            ['targets' => ['event' => 'new'], 'event' => true],
+        )->event;
+
+        expect($event->complete)->toBe(['person_id', 'date'])
+            ->and($event->fill)->toBe([]);
+    });
+
+    test('an intervention without a date asks to complete the date of the document', function (): void {
+        $records = proposalOf(['kind' => 'invoice', 'maintenance_type' => 'boiler_service', 'issuer_name' => 'Termoidraulica', 'total_amount' => 90])->records;
+        $draft = array_find($records, fn (RecordDraftData $record): bool => $record->kind === RecordKind::Maintenance);
+
+        expect($draft?->complete)->toBe(['date'])
+            ->and(array_find($records, fn (RecordDraftData $record): bool => $record->kind === RecordKind::Organization)?->complete)->toBe([]);
+    });
+});

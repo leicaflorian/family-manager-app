@@ -139,7 +139,31 @@ final readonly class RecordsProposal
                 ? Translated::text("I'll remind you before the warranty ends")
                 : null,
             fields: $existing === null ? $this->fields($draft->kind, $values) : [],
+            complete: $existing === null ? $this->fromDocument($draft->kind, $values) : [],
         );
+    }
+
+    /**
+     * The required fields of a new card still empty that come from the document (the date of an intervention): the
+     * person writes them in the form of the document, not in the box.
+     *
+     * @param  RecordKind  $kind  which card
+     * @param  array<string, mixed>  $values  the fields it would be created with
+     * @return list<string>
+     */
+    private function fromDocument(RecordKind $kind, array $values): array
+    {
+        $editable = ImportChoices::RECORD_FIELDS[$kind->value];
+        $complete = [];
+        foreach (RecordDrafts::requiredFields($kind) as $field) {
+            $column = $field->column;
+            if (! array_key_exists($column, $editable) && in_array($column, ['date', 'person_id', 'organization_id'], true)
+                && (($values[$column] ?? null) === null || $values[$column] === '')) {
+                $complete[] = $column;
+            }
+        }
+
+        return $complete;
     }
 
     /**

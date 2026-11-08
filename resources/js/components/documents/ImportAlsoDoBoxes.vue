@@ -241,6 +241,25 @@ function eventFieldShown(field: 'title' | 'type'): boolean {
 }
 
 /**
+ * Whether a field of a new expense or income is shown: when the proposal still
+ * needs it in the box, or the person already wrote in it (once written the
+ * proposal no longer lists it, and it must stay on screen).
+ *
+ * @param field - `amount`
+ * @returns true to show it
+ */
+function movementFieldShown(field: 'amount'): boolean {
+    const movement = props.proposal.movement;
+
+    return (
+        movement !== null &&
+        movement.duplicate === null &&
+        (movement.fill.includes(field) ||
+            props.choices.overrideOf('movement', field) !== undefined)
+    );
+}
+
+/**
  * The fields to write in the box of a new card: the ones it misses, and the
  * ones the person already wrote in.
  *
@@ -333,6 +352,25 @@ function recordFields(
             :icon="Wallet"
             @update:model-value="choices.setTicked('movement', $event)"
         >
+            <FormKit
+                v-if="movementFieldShown('amount')"
+                :id="`also-amount-${fileId}`"
+                type="currency"
+                name="movement_amount"
+                :label="$t('Amount')"
+                validation="required"
+                :model-value="
+                    shown('movement', 'amount', proposal.movement.values.amount)
+                "
+                @update:model-value="
+                    write(
+                        'movement',
+                        'amount',
+                        proposal.movement.values.amount,
+                        $event,
+                    )
+                "
+            />
             <template
                 v-if="proposal.movement.due && !proposal.movement.duplicate"
             >
@@ -370,6 +408,7 @@ function recordFields(
                     type="datepicker"
                     name="due_date"
                     :label="$t('Deadline')"
+                    validation="required"
                     :model-value="
                         shown(
                             'movement',
@@ -425,6 +464,7 @@ function recordFields(
                     type="text"
                     name="event_title"
                     :label="$t('Title of the event')"
+                    validation="required"
                     :model-value="
                         shown('event', 'title', proposal.event.values.title)
                     "
@@ -442,6 +482,7 @@ function recordFields(
                     type="dropdown"
                     name="event_type"
                     :label="$t('Type of the event')"
+                    validation="required"
                     :options="healthTypes"
                     :model-value="
                         shown('event', 'type', proposal.event.values.type)
@@ -481,6 +522,9 @@ function recordFields(
                 recordHint(draft, {
                     ticked: ticked.records.includes(draft.kind),
                     target: choices.targetOf(draft.kind),
+                    amount: proposal.movement
+                        ? proposal.movement.values.amount
+                        : undefined,
                 })
             "
             :warnings="
@@ -502,6 +546,7 @@ function recordFields(
                     :type="fieldInput(field.kind)"
                     :name="`${draft.kind}_${field.column}`"
                     :label="$t(field.label)"
+                    validation="required"
                     :options="
                         field.kind === 'choice' || isMenuField(field.kind)
                             ? field.options
