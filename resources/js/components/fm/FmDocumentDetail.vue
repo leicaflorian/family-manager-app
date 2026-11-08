@@ -4,7 +4,7 @@
  * grey and, beside it, its data, the linked records (one type at a time) and
  * the notes. On its own page the buttons are next to the title of the page; in
  * the panel beside the list it is one card, with the title, the date and the
- * buttons (`FmDocumentActions`) on top.
+ * buttons (`FmDocumentActions`, then the `actions` slot) on top.
  * Used by *A document* and, on the computer, on the right of *Documents*.
  *
  * @group sections
@@ -29,6 +29,11 @@ const { document, compact = false } = defineProps<{
      * and, on their right, *Download* and the ⋯ menu, icons only.
      */
     compact?: boolean;
+}>();
+
+defineSlots<{
+    /** Beside the list: more buttons after *Download* and ⋯, as the × of a floating panel. */
+    actions?: () => unknown;
 }>();
 
 const { date } = useFormat();
@@ -98,7 +103,10 @@ const shownGroup = computed(
                     $t('Arrived on :date', { date: date(document.date) })
                 }}</span>
             </div>
-            <FmDocumentActions :document="document" compact />
+            <div class="flex shrink-0 items-center gap-1.5">
+                <FmDocumentActions :document="document" compact />
+                <slot name="actions" />
+            </div>
         </div>
 
         <div

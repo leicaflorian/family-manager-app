@@ -2,15 +2,16 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { documentDetail, documentFilterOptions } from '@/test/fixtures';
-import { choose, renderPage } from '@/test/page';
+import { choose, renderPage, screenWidth } from '@/test/page';
 import Documents from './Documents.vue';
 
 const shared = vi.hoisted(() => ({ to_sort_count: 0 }));
+const address = vi.hoisted(() => ({ url: '/documents' }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     Head: { render: () => null },
-    usePage: () => ({ url: '/documents', props: { ...shared } }),
+    usePage: () => ({ url: address.url, props: { ...shared } }),
 }));
 
 const none = {
@@ -47,7 +48,9 @@ const props = {
 
 afterEach(() => {
     shared.to_sort_count = 0;
+    address.url = '/documents';
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('Documents', () => {
@@ -186,5 +189,44 @@ describe('Documents', () => {
         expect(
             screen.getByRole('button', { name: 'More actions' }),
         ).toBeInTheDocument();
+    });
+    it('from 1440 px shows the chosen document in a third column', () => {
+        screenWidth(1440);
+        renderPage(Documents, { ...props, selected: documentDetail });
+
+        expect(
+            screen.getByRole('heading', {
+                name: 'Busta paga di ottobre',
+                level: 2,
+            }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Close' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('narrower, shows it in a floating panel that the × closes, keeping filters and page', async () => {
+        screenWidth(1280);
+        address.url = '/documents?person=3&page=2&document=5';
+        const visit = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            filters: { ...none, person: 3 },
+            selected: documentDetail,
+        });
+
+        const panel = screen.getByRole('dialog', {
+            name: 'Busta paga di ottobre',
+        });
+        expect(panel).toHaveTextContent('Lavoro › Buste paga');
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(visit).toHaveBeenCalledWith(
+            '/documents?person=3&page=2',
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
     });
 });

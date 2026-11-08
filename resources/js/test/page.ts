@@ -196,19 +196,36 @@ export async function tapCancel(name = 'Cancel'): Promise<void> {
 }
 
 /**
- * Makes the page believe it is on a computer (wider than every `min-width` it asks about) or on a phone.
+ * Makes the page believe it is on a computer (wider than every `min-width` it asks about), on a phone,
+ * or on a screen of the given width in pixels (only the `min-width: Npx` queries up to it match).
  * Reduced motion stays on, as in `setup.ts`: jsdom cannot animate. `vi.unstubAllGlobals()` puts it back.
  *
- * @param computer - true for a computer, false for a phone
+ * @param computer - true for a computer, false for a phone, or the width in pixels
  */
-export function screenWidth(computer: boolean): void {
+export function screenWidth(computer: boolean | number): void {
+    /**
+     * Whether a `min-width` query matches the chosen screen.
+     *
+     * @param query - the media query the page asks about
+     * @returns true when the screen is at least that wide
+     */
+    const wideEnough = (query: string): boolean => {
+        if (typeof computer === 'boolean') {
+            return computer && query.includes('min-width');
+        }
+
+        const pixels = /min-width:\s*(\d+)px/.exec(query)?.[1];
+
+        return pixels !== undefined && computer >= Number(pixels);
+    };
+
     vi.stubGlobal(
         'matchMedia',
         (query: string): MediaQueryList =>
             ({
                 matches:
                     query.includes('prefers-reduced-motion') ||
-                    (computer && query.includes('min-width')),
+                    wideEnough(query),
                 media: query,
                 onchange: null,
                 addEventListener: () => {},

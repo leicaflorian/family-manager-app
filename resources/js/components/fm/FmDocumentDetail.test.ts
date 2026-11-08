@@ -1,7 +1,9 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { h } from 'vue';
+import { formPlugins } from '@/lib/formPlugins';
 import { documentDetail } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import FmDocumentDetail from './FmDocumentDetail.vue';
@@ -11,6 +13,25 @@ afterEach(() => {
 });
 
 describe('FmDocumentDetail', () => {
+    it('beside the list, puts more buttons after Download and the ⋯ menu', () => {
+        render(FmDocumentDetail, {
+            props: { document: documentDetail, compact: true },
+            slots: { actions: () => h('button', 'Close') },
+            global: { plugins: formPlugins },
+        });
+
+        const buttons = screen
+            .getAllByRole('button')
+            .map(
+                (button) =>
+                    button.getAttribute('aria-label') ?? button.textContent,
+            );
+
+        expect(buttons.indexOf('Close')).toBe(
+            buttons.indexOf('More actions') + 1,
+        );
+    });
+
     it('shows the data, the links and the notes of the document', () => {
         renderPage(FmDocumentDetail, { document: documentDetail });
 

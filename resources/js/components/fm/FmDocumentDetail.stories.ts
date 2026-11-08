@@ -1,10 +1,15 @@
 /**
  * The stories of `FmDocumentDetail`: a document as
- * its own page, as the panel beside the list, for a `member` who cannot edit,
+ * its own page, as the panel beside the list (also with the × of the floating
+ * panel), for a `member` who cannot edit,
  * and without links, tags or notes.
  */
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
+import { X } from '@lucide/vue';
+import { h } from 'vue';
+import { withSlots } from '@/stories/slots';
 import { documentDetail } from '@/test/fixtures';
+import FmButton from './FmButton.vue';
 import FmDocumentDetail from './FmDocumentDetail.vue';
 
 /** A small inline picture of a page, as the server would draw a preview. */
@@ -36,6 +41,20 @@ export const Page: Story = {
 export const BesideTheList: Story = {
     name: 'Beside the list',
     args: { document, compact: true },
+};
+
+export const WithClose: Story = {
+    name: 'Beside the list, with ×',
+    args: { document, compact: true },
+    render: withSlots({
+        actions: () =>
+            h(FmButton, {
+                variant: 'soft',
+                icon: X,
+                label: 'Close',
+                small: true,
+            }),
+    }),
 };
 
 export const Member: Story = {

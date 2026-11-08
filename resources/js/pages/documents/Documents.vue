@@ -2,12 +2,13 @@
 /**
  * *Documents*: the search, the filters (in the panel from below on the phone,
  * open on the left on the computer), the list, 30 at a time, and on the
- * computer the chosen document on the right. Without any document, the card
+ * computer the chosen document on the right: in a third column from 1440 px,
+ * in a panel floating over the list below that. Without any document, the card
  * that invites to upload the first one.
  */
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
-import { FileText, ListFilter, Search } from '@lucide/vue';
+import { FileText, ListFilter, Search, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import FmActiveFilter from '@/components/fm/FmActiveFilter.vue';
@@ -21,6 +22,7 @@ import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
+import FmSidePanel from '@/components/fm/FmSidePanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useToSortCount } from '@/composables/useToSortCount';
@@ -53,6 +55,23 @@ const props = defineProps<{
 }>();
 
 const desktop = useMediaQuery('(min-width: 1024px)');
+
+/** Wide enough for the chosen document in a third column, as the board draws it. */
+const wide = useMediaQuery('(min-width: 1440px)');
+
+const page = usePage();
+
+/** Closes the floating panel: the same list, filters and page, without the chosen document. */
+function closeSelected(): void {
+    const address = new URL(page.url, window.location.origin);
+    address.searchParams.delete('document');
+
+    router.get(
+        address.pathname + address.search,
+        {},
+        { preserveState: true, preserveScroll: true },
+    );
+}
 
 /** The panel of the filters, on the phone. */
 const filtersOpen = ref(false);
@@ -211,8 +230,8 @@ function rowHref(document: App.Data.DocumentData): string {
             v-else
             :class="[
                 'flex flex-col gap-6 md:grid md:items-start',
-                selected
-                    ? 'md:grid-cols-[55%_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,3fr)_minmax(0,2fr)]'
+                selected && wide
+                    ? 'xl:grid-cols-[16rem_minmax(0,3fr)_minmax(0,2fr)]'
                     : 'xl:grid-cols-[16rem_minmax(0,1fr)]',
             ]"
         >
@@ -276,13 +295,28 @@ function rowHref(document: App.Data.DocumentData): string {
                 />
             </div>
 
-            <section
-                v-if="selected"
-                class="hidden min-w-0 md:sticky md:block lg:top-0"
-            >
+            <section v-if="selected && wide" class="sticky top-0 min-w-0">
                 <FmDocumentDetail :document="selected" compact />
             </section>
         </div>
+
+        <FmSidePanel
+            v-if="selected && !wide"
+            :label="selected.title"
+            @close="closeSelected"
+        >
+            <FmDocumentDetail :document="selected" compact>
+                <template #actions>
+                    <FmButton
+                        variant="soft"
+                        :icon="X"
+                        :label="$t('Close')"
+                        small
+                        @click="closeSelected"
+                    />
+                </template>
+            </FmDocumentDetail>
+        </FmSidePanel>
 
         <FmBottomSheet v-model:open="filtersOpen" :title="$t('Filters')">
             <FmDocumentFilters
