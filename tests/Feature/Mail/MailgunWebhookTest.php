@@ -151,7 +151,8 @@ test('the attachments are saved in To sort with where they came from', function 
             ->and($file->source)->toBe(FileSource::Mail)
             ->and($file->note)->toBe('Arrived by mail on 25/10/2026 from bollette@enel.it: «La tua bolletta di ottobre»')
             ->and($file->received_mail_id)->toBe($mail->id)
-            ->and($file->mail_key)->toBe(AttachmentRules::mailKey($mail->event_id, 1));
+            ->and($file->mail_key)->toBe(AttachmentRules::mailKey($mail->event_id, 1))
+            ->and($mail->saved_files)->toBe([['key' => $file->mail_key, 'name' => 'bolletta_ottobre.pdf']]);
 
         Queue::assertPushed(ScreenReceivedMail::class, fn (ScreenReceivedMail $job): bool => $job->mailId === $mail->id && $job->familyId === $this->admin->family_id);
     });
@@ -269,7 +270,9 @@ test('a failure answers 500 and the delivery after it saves the files once', fun
         $mail = ReceivedMail::query()->sole();
         expect($mail->outcome)->toBe(MailOutcome::Saved)
             ->and($mail->deliveries)->toBe(2)
-            ->and(File::query()->pluck('original_name')->sort()->values()->all())->toBe(['bolletta_ottobre.pdf', 'dettaglio.pdf']);
+            ->and(File::query()->pluck('original_name')->sort()->values()->all())->toBe(['bolletta_ottobre.pdf', 'dettaglio.pdf'])
+            // the files of the failed delivery were taken away: only those of the second are recorded, once
+            ->and(collect($mail->saved_files)->pluck('name')->sort()->values()->all())->toBe(['bolletta_ottobre.pdf', 'dettaglio.pdf']);
     });
     expect(Storage::disk('local')->allFiles())->toHaveCount(2)
         ->and(mailCalls()[1]->outcome)->toBe(CallOutcome::Saved)
@@ -286,6 +289,7 @@ test('a delivery repeated after a success finds its files and saves nothing', fu
     insideFamilyOf($this->admin, function (): void {
         $mail = ReceivedMail::query()->sole();
         expect(File::query()->count())->toBe(1)
+            ->and($mail->saved_files)->toHaveCount(1)
             ->and($mail->deliveries)->toBe(2)
             ->and($mail->outcome)->toBe(MailOutcome::Saved);
     });

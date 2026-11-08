@@ -207,6 +207,7 @@ final readonly class ReceiveMail
             default => MailOutcome::Empty,
         };
 
+        $record->recordSaved(...$stored);
         $record->forceFill([
             'deliveries' => $record->deliveries + 1,
             'outcome' => $this->best($before, $outcome),

@@ -28,6 +28,7 @@ use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PersonController;
+use App\Http\Controllers\ReceivedMailController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
@@ -164,6 +165,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
+        Route::get('mail', [ReceivedMailController::class, 'index'])->name('mail.index');
+        Route::get('mail/{receivedMail}', [ReceivedMailController::class, 'show'])->name('mail.show')->whereNumber('receivedMail');
+        Route::get('mail/{receivedMail}/text', [ReceivedMailController::class, 'text'])->name('mail.text')->whereNumber('receivedMail');
+        Route::delete('mail/{receivedMail}', [ReceivedMailController::class, 'destroy'])->name('mail.destroy')->whereNumber('receivedMail');
+        Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->name('mail.notice')->whereNumber('receivedMail');
         Route::resource('documents', DocumentController::class)->except(['create', 'store']);
         Route::post('documents/{document}/file', [DocumentController::class, 'file'])->name('documents.file');
 

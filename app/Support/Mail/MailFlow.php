@@ -62,6 +62,18 @@ final class MailFlow
     }
 
     /**
+     * Whether a mail can be saved as a notice by hand (*Salva come avviso*): the model discarded it or it is still
+     * under review, and it saved no file.
+     *
+     * @param  MailOutcome  $outcome  the outcome of the mail
+     * @param  int  $savedFiles  how many files the mail saved
+     */
+    public static function canSaveAsNotice(MailOutcome $outcome, int $savedFiles): bool
+    {
+        return $savedFiles === 0 && in_array($outcome, [MailOutcome::Held, MailOutcome::Discarded], true);
+    }
+
+    /**
      * Whether the mail is the one Gmail sends to confirm a forwarding address.
      *
      * @param  IncomingMail  $mail  the mail

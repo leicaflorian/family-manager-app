@@ -5,19 +5,17 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Actions\Mail\NotifyMail;
+use App\Actions\Mail\SaveMailNotice;
 use App\Actions\Reading\QueueReading;
 use App\Data\Mail\MailScreeningAnswer;
-use App\Enums\FileSource;
 use App\Enums\MailOutcome;
 use App\Enums\ReadingPurpose;
 use App\Enums\ReadingStatus;
 use App\Models\File;
 use App\Models\ReceivedMail;
-use App\Services\FileStore;
 use App\Services\Mail\MailScreening;
 use App\Support\CurrentFamily;
 use App\Support\Mail\AttachmentRules;
-use App\Support\Mail\IncomingMail;
 use App\Support\Mail\MailFlow;
 use App\Support\Mail\NoticeText;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +23,6 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Config;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -58,14 +55,14 @@ final class ScreenReceivedMail implements ShouldQueue
      *
      * @param  MailScreening  $screening  the question to the AI
      * @param  QueueReading  $readings  marks the files to read
-     * @param  FileStore  $files  where the held notice is saved
+     * @param  SaveMailNotice  $notices  finds and saves the held notice
      * @param  NotifyMail  $notify  the notice of the bell
      *
      * @throws Throwable when the held notice is not saved, so that the queue tries again
      */
-    public function handle(MailScreening $screening, QueueReading $readings, FileStore $files, NotifyMail $notify): void
+    public function handle(MailScreening $screening, QueueReading $readings, SaveMailNotice $notices, NotifyMail $notify): void
     {
-        CurrentFamily::using($this->familyId, function () use ($screening, $readings, $files, $notify): void {
+        CurrentFamily::using($this->familyId, function () use ($screening, $readings, $notices, $notify): void {
             $mail = ReceivedMail::query()->find($this->mailId);
 
             if (! $mail instanceof ReceivedMail) {
@@ -79,7 +76,7 @@ final class ScreenReceivedMail implements ShouldQueue
             }
 
             if ($mail->outcome === MailOutcome::Saved || $mail->outcome === MailOutcome::Held) {
-                $this->screen($mail, $screening, $readings, $files, $notify);
+                $this->screen($mail, $screening, $readings, $notices, $notify);
             }
         });
     }
@@ -125,14 +122,14 @@ final class ScreenReceivedMail implements ShouldQueue
      * @param  ReceivedMail  $mail  the mail, saved or held
      * @param  MailScreening  $screening  the question to the AI
      * @param  QueueReading  $readings  marks the files to read
-     * @param  FileStore  $files  where the held notice is saved
+     * @param  SaveMailNotice  $notices  finds and saves the held notice
      * @param  NotifyMail  $notify  the notice of the bell
      *
      * @throws Throwable when the held notice is not saved, or the readings are not sent
      */
-    private function screen(ReceivedMail $mail, MailScreening $screening, QueueReading $readings, FileStore $files, NotifyMail $notify): void
+    private function screen(ReceivedMail $mail, MailScreening $screening, QueueReading $readings, SaveMailNotice $notices, NotifyMail $notify): void
     {
-        $notice = $this->notice($mail);
+        $notice = $notices->find($mail);
 
         if ($mail->screening === null) {
             // A notice and no answer yet: *Salva come avviso* saved it, and did it all
@@ -144,7 +141,7 @@ final class ScreenReceivedMail implements ShouldQueue
             $mail->forceFill(['screening' => ['verdict' => $answer?->verdict, 'reason' => $answer?->reason]])->save();
 
             // ... or it saved it while the model was answering
-            if ($this->notice($mail) instanceof File) {
+            if ($notices->find($mail) instanceof File) {
                 return;
             }
         } else {
@@ -172,7 +169,7 @@ final class ScreenReceivedMail implements ShouldQueue
         }
 
         if ($held) {
-            $notice ??= $this->saveNotice($mail, $files);
+            $notice ??= $notices->handle($mail);
 
             if (! $notice instanceof File) {
                 $mail->forceFill(['outcome' => MailOutcome::Empty])->save();
@@ -254,52 +251,6 @@ final class ScreenReceivedMail implements ShouldQueue
 
             throw $error;
         }
-    }
-
-    /**
-     * Saves the held notice in *To sort*: the text of the mail as `Notice - <subject>.txt`, with the key of the
-     * position -1.
-     *
-     * @param  ReceivedMail  $mail  the held mail
-     * @param  FileStore  $files  where it is saved
-     * @return File|null the notice, null when the mail kept no text to save
-     *
-     * @throws RuntimeException if the file is not written
-     * @throws Throwable if its row is not written
-     */
-    private function saveNotice(ReceivedMail $mail, FileStore $files): ?File
-    {
-        $body = $mail->body ?? [];
-        $plain = is_string($body['plainText'] ?? null) ? $body['plainText'] : '';
-        $html = is_string($body['html'] ?? null) ? $body['html'] : '';
-        $text = NoticeText::textOf($plain, $html);
-
-        if ($text === null) {
-            return null;
-        }
-
-        $subject = (string) $mail->subject;
-        $incoming = new IncomingMail($mail->event_id, $mail->sender, $mail->sender_address, $mail->recipient, [], $subject, null, $plain, $html, []);
-
-        return $files->storeContents(
-            NoticeText::file($incoming, $mail->received_at, $text),
-            NoticeText::name($subject),
-            'text/plain',
-            true,
-            FileSource::Mail,
-            NoticeText::note($mail->sender_address, $mail->subject, $mail->received_at),
-            ['received_mail_id' => $mail->id, 'mail_key' => AttachmentRules::mailKey($mail->event_id, -1)],
-        );
-    }
-
-    /**
-     * The notice of the mail, when it is saved already.
-     *
-     * @param  ReceivedMail  $mail  the mail
-     */
-    private function notice(ReceivedMail $mail): ?File
-    {
-        return File::query()->where('mail_key', AttachmentRules::mailKey($mail->event_id, -1))->first();
     }
 
     /**

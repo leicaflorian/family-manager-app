@@ -152,6 +152,7 @@ test('a held notice is saved in To sort and read', function (): void {
         ->and($files[0]->note)->toBe('Arrived by mail on 25/10/2026 from bollette@hera.example: «La tua fattura è disponibile»')
         ->and($files[0]->received_mail_id)->toBe($mail->id)
         ->and($files[0]->mail_key)->toBe(AttachmentRules::mailKey($mail->event_id, -1))
+        ->and($mail->saved_files)->toBe([['key' => $files[0]->mail_key, 'name' => 'Notice - La tua fattura è disponibile.txt']])
         ->and($files[0]->reading_status)->toBe(ReadingStatus::Done)
         ->and(insideFamilyOf($this->admin, fn (): array => AiReading::query()->whereNotNull('file_id')->pluck('purpose')->all()))->toBe([ReadingPurpose::MailNotice])
         ->and(mailNotices($this->admin)[0]->lines)->toBe(["Notice - La tua fattura è disponibile.txt — Edison, 84,20\u{A0}€, due on 30/10/2026"]);
@@ -318,6 +319,7 @@ test('a try that fails after the notice was saved is retried without asking agai
         ->and(aiCalls($this->admin, ReadingPurpose::MailNotice))->toBe(1)
         ->and(aiCalls($this->admin, ReadingPurpose::MailFile))->toBe(0)
         ->and(screenedMail($this->admin)->outcome)->toBe(MailOutcome::Saved)
+        ->and(screenedMail($this->admin)->saved_files)->toHaveCount(1)
         ->and(screenedMail($this->admin)->screening)->toEqual(['verdict' => 'unsure', 'reason' => null])
         ->and(mailNotices($this->admin))->toHaveCount(1);
 });

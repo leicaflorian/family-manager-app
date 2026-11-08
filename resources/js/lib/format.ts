@@ -78,6 +78,65 @@ export function formatDate(date: string | Date): string {
     return format(toDate(date), 'DD/MM/YYYY', 'it');
 }
 
+/** The day, month, year, hours and minutes of a moment, in the time of Rome. */
+const romeMoment = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Rome',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+});
+
+/**
+ * The parts of a moment in the time of Rome, whatever the clock of the computer.
+ *
+ * @param moment - a moment of the server, ISO with its offset
+ * @returns the day, the month, the year, the hours and the minutes, two digits each (four for the year)
+ */
+function romeParts(
+    moment: string,
+): Record<'day' | 'month' | 'year' | 'hour' | 'minute', string> {
+    const parts = Object.fromEntries(
+        romeMoment
+            .formatToParts(new Date(moment))
+            .map((part) => [part.type, part.value]),
+    );
+
+    return {
+        day: parts.day ?? '',
+        month: parts.month ?? '',
+        year: parts.year ?? '',
+        hour: parts.hour ?? '',
+        minute: parts.minute ?? '',
+    };
+}
+
+/**
+ * Writes the day and the time of a moment, in the time of Rome.
+ *
+ * @param moment - a moment of the server, ISO with its offset
+ * @returns for example `25/10/2026 09:41`
+ */
+export function formatDateTime(moment: string): string {
+    const { day, month, year, hour, minute } = romeParts(moment);
+
+    return `${day}/${month}/${year} ${hour}:${minute}`;
+}
+
+/**
+ * Writes the day without the year and the time of a moment, in the time of Rome, as the phone shows them.
+ *
+ * @param moment - a moment of the server, ISO with its offset
+ * @returns for example `25/10 · 09:41`
+ */
+export function formatShortDateTime(moment: string): string {
+    const { day, month, hour, minute } = romeParts(moment);
+
+    return `${day}/${month} · ${hour}:${minute}`;
+}
+
 /**
  * Writes the day of a date as the server does, in local time.
  *

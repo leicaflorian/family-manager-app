@@ -84,7 +84,7 @@ test('a notice of a mail is a row that leads to the mail', function (): void {
         ->and($row['sent_at'])->toBe('2026-10-25T09:42')
         ->and($row['read'])->toBeFalse()
         ->and($row['state'])->toBeNull()
-        ->and($row['href'])->toBe(url('mail/'.$notice->received_mail_id));
+        ->and($row['href'])->toBe(route('mail.show', $notice->received_mail_id));
 });
 
 test('the row of a mail names the organization of a known sender, or the address without a name', function (): void {
@@ -130,7 +130,7 @@ test('reading a notice of a mail goes to the mail, the one of the limit to the a
     $mail = mailNoticeFor($this->admin);
     $limit = limitNoticeFor($this->admin);
 
-    $this->actingAs($this->admin)->post("/notices/{$mail->id}/read")->assertRedirect(url('mail/'.$mail->received_mail_id));
+    $this->actingAs($this->admin)->post("/notices/{$mail->id}/read")->assertRedirect(route('mail.show', $mail->received_mail_id));
     $this->actingAs($this->admin)->post("/notices/{$limit->id}/read")->assertRedirect(url('settings/mail'));
 
     expect($mail->fresh()?->read_at)->not->toBeNull()

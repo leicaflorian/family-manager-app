@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\MailOutcome;
+use App\Support\Mail\AttachmentRules;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReceivedMailFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -30,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property MailOutcome $outcome
  * @property array<array-key, mixed> $notes
  * @property array<array-key, mixed> $skipped
+ * @property array<array-key, mixed>|null $saved_files
  * @property array<array-key, mixed>|null $body
  * @property string|null $gmail_code
  * @property int|null $organization_id
@@ -50,7 +52,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['event_id', 'sender', 'sender_address', 'recipient', 'recipients', 'subject', 'received_at', 'deliveries', 'outcome', 'notes', 'skipped', 'body', 'gmail_code', 'organization_id', 'screening'])]
+#[Fillable(['event_id', 'sender', 'sender_address', 'recipient', 'recipients', 'subject', 'received_at', 'deliveries', 'outcome', 'notes', 'skipped', 'saved_files', 'body', 'gmail_code', 'organization_id', 'screening'])]
 final class ReceivedMail extends FamilyModel
 {
     /** @use HasFactory<ReceivedMailFactory> */
@@ -94,6 +96,78 @@ final class ReceivedMail extends FamilyModel
     }
 
     /**
+     * The files the mail saved, whether they are still there or not: the key against a second delivery and the
+     * name of each, in the order they were saved.
+     *
+     * @return list<array{key: string, name: string}>
+     */
+    public function savedFiles(): array
+    {
+        $saved = [];
+
+        foreach ($this->saved_files ?? [] as $entry) {
+            if (is_array($entry) && is_string($entry['key'] ?? null) && is_string($entry['name'] ?? null)) {
+                $saved[] = ['key' => $entry['key'], 'name' => $entry['name']];
+            }
+        }
+
+        return $saved;
+    }
+
+    /**
+     * Writes on the mail that it saved some files, and saves it: once deleted, a file is still known as saved
+     * («File eliminato»). A file already written (by a delivery before) is not written twice.
+     *
+     * @param  File  ...$files  the files just saved, with their `mail_key`
+     */
+    public function recordSaved(File ...$files): void
+    {
+        $saved = $this->savedFiles();
+        $keys = array_column($saved, 'key');
+
+        foreach ($files as $file) {
+            if ($file->mail_key !== null && ! in_array($file->mail_key, $keys, true)) {
+                $saved[] = ['key' => $file->mail_key, 'name' => $file->original_name];
+                $keys[] = $file->mail_key;
+            }
+        }
+
+        $this->forceFill(['saved_files' => $saved])->save();
+    }
+
+    /**
+     * Each file the mail saved with the file itself, null once it was deleted: those written on the mail, then
+     * those linked to it and not written (saved before the mail kept the list).
+     *
+     * @return list<array{key: string, name: string, file: File|null}>
+     */
+    public function savedEntries(): array
+    {
+        $files = $this->files->keyBy(static fn (File $file): string => $file->mail_key ?? 'file-'.$file->id);
+        $entries = array_map(
+            static fn (array $saved): array => [...$saved, 'file' => $files->get($saved['key'])],
+            $this->savedFiles(),
+        );
+        $written = array_column($entries, 'key');
+
+        foreach ($files as $key => $file) {
+            if (! in_array($key, $written, true)) {
+                $entries[] = ['key' => (string) $key, 'name' => $file->original_name, 'file' => $file];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * The key of the notice of the mail, the text saved as a file: the position -1, which no attachment has.
+     */
+    public function noticeKey(): string
+    {
+        return AttachmentRules::mailKey($this->event_id, -1);
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, mixed>
@@ -107,6 +181,7 @@ final class ReceivedMail extends FamilyModel
             'outcome' => MailOutcome::class,
             'notes' => 'array',
             'skipped' => 'array',
+            'saved_files' => 'array',
             'body' => 'array',
             'screening' => 'array',
         ];

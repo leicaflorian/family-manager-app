@@ -547,6 +547,37 @@ readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
 };
+export type ReceivedMailData = {
+readonly row: App.Data.ReceivedMailRowData,
+readonly from: string,
+readonly recipient: string,
+readonly recipients: string[],
+readonly files: App.Data.ReceivedMailFileData[],
+readonly skipped: Array<{ name: string; reason: string }>,
+readonly notes: string[],
+readonly gmail_code: string | null,
+readonly has_text: boolean,
+readonly has_both_texts: boolean,
+readonly html_too_large: number | null,
+readonly text_url: string,
+readonly can_save_as_notice: boolean,
+readonly can_delete: boolean,
+readonly pending_notice: string | null,
+};
+export type ReceivedMailFileData = {
+readonly name: string,
+readonly state: 'to_sort' | 'document' | 'saved' | 'gone',
+readonly url: string | null,
+readonly document_title: string | null,
+};
+export type ReceivedMailRowData = {
+readonly id: number,
+readonly sender: string,
+readonly subject: string | null,
+readonly received_at: string,
+readonly outcome_label: string,
+readonly tone: 'success' | 'info' | 'neutral' | 'warning' | 'danger',
+};
 export type ReminderData = {
 readonly id: number,
 readonly title: string,

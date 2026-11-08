@@ -171,7 +171,7 @@ final readonly class NoticeList
         $lines = $notice->lines ?? [];
         $first = $lines[0] ?? null;
 
-        // The routes of *Received mail* and of the address come with their pages (tasks 11 and 12)
+        // The route of the address comes with its page (task 12)
         return new ReminderNoticeData(
             id: $notice->id,
             title: $mail instanceof ReceivedMail
@@ -183,7 +183,7 @@ final readonly class NoticeList
             sent_at: $notice->sent_at->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             read: $notice->read_at !== null,
             state: null,
-            href: $mail instanceof ReceivedMail ? url('mail/'.$mail->id) : url('settings/mail'),
+            href: $mail instanceof ReceivedMail ? route('mail.show', $mail) : url('settings/mail'),
         );
     }
 }
