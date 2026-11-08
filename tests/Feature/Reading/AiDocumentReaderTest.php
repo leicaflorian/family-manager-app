@@ -2,13 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
+use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Reading;
+use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
+use App\Models\AiReading;
+use App\Models\Family;
 use App\Models\File;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingPrompt;
 use App\Services\Reading\ReadingSource;
+use App\Support\CurrentFamily;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -279,4 +285,39 @@ test('a text notice is sent as text', function (): void {
     Http::assertSent(fn (Request $request): bool => $request['input'][0]['content'] === [
         ['type' => 'text', 'text' => $notice."\n\n".ReadingPrompt::instructions($this->context, 'it')],
     ]);
+});
+
+test('gemini screens a mail from the sender and the subject and the call is recorded', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-screen'))]);
+    $family = Family::factory()->create();
+
+    $answer = CurrentFamily::using($family->id, fn (): MailScreeningAnswer => aiReader('gemini', 'gemini-3.8-flash')->screen('Promo <promo@offerte-energia.it>', 'Nuove offerte luce e gas', 'it'));
+
+    Http::assertSent(function (Request $request): bool {
+        $content = $request['input'][0]['content'];
+
+        return $request['system_instruction'] === MailScreeningAgent::SYSTEM
+            && $request['response_format']['schema']['required'] === ['verdict', 'reason']
+            && $content[0] === ['type' => 'text', 'text' => MailScreeningAgent::request('Promo <promo@offerte-energia.it>', 'Nuove offerte luce e gas', 'it')]
+            && count($content) === 1;
+    });
+    $row = AiReading::query()->withoutGlobalScopes()->sole();
+    expect($answer->verdict)->toBe('discard')
+        ->and($answer->reason)->toBe('offerta commerciale')
+        ->and($row->purpose)->toBe(ReadingPurpose::MailFilter)
+        ->and($row->family_id)->toBe($family->id)
+        ->and($row->file_id)->toBeNull()
+        ->and($row->user_id)->toBeNull()
+        ->and($row->provider)->toBe('gemini')
+        ->and($row->input_tokens)->toBe(210)
+        ->and($row->output_tokens)->toBe(20 + 35);
+});
+
+test('a screening that the service refuses is a failure', function (): void {
+    Http::fake(['api.anthropic.com/*' => Http::response(aiAnswer('anthropic-refusal'))]);
+
+    $failed = aiFailure(fn (): MailScreeningAnswer => aiReader('anthropic', 'claude-opus-5-5')->screen('a@b.it', 'x', 'it'));
+
+    expect($failed?->getMessage())->toBe('The model refused to read the document.');
+    expect(AiReading::query()->withoutGlobalScopes()->count())->toBe(0);
 });

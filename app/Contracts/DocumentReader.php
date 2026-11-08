@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
+use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Reading;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingContext;
@@ -31,4 +32,17 @@ interface DocumentReader
      * @throws LogicException when the reading is off
      */
     public function read(ReadingSource $source, ReadingContext $context, string $locale): Reading;
+
+    /**
+     * Asks whether a mail is worth reading, from its sender and subject only, and records the call in `ai_readings`
+     * (purpose `mail_filter`, no file, no account) in the current family. Called only when `isActive()` is true.
+     *
+     * @param  string  $sender  the sender, as the mail shows it
+     * @param  string  $subject  the subject
+     * @param  string  $locale  the language of the reason (`it` or `en`)
+     *
+     * @throws ReadingFailed when the service gives no answer
+     * @throws LogicException when the reading is off
+     */
+    public function screen(string $sender, string $subject, string $locale): MailScreeningAnswer;
 }

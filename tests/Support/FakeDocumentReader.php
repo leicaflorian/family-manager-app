@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Actions\Mail\RecordMailFilterCall;
 use App\Contracts\DocumentReader;
+use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
 use App\Exceptions\Reading\ReadingFailed;
@@ -28,6 +30,12 @@ final class FakeDocumentReader implements DocumentReader
     /** Whether the reading is on. */
     private bool $active = true;
 
+    /** What a screening of a mail gives, until `screens()` says otherwise: unsure. */
+    private MailScreeningAnswer $screening;
+
+    /** The screenings asked so far. */
+    private int $screenings = 0;
+
     /** The readings asked so far. */
     private int $reads = 0;
 
@@ -37,6 +45,7 @@ final class FakeDocumentReader implements DocumentReader
     public function __construct()
     {
         $this->extraction = Extraction::from(['kind' => 'other', 'confidence' => 'low']);
+        $this->screening = new MailScreeningAnswer('unsure', null);
     }
 
     /**
@@ -47,6 +56,19 @@ final class FakeDocumentReader implements DocumentReader
     public function returns(Extraction $extraction): self
     {
         $this->extraction = $extraction;
+        $this->failure = null;
+
+        return $this;
+    }
+
+    /**
+     * Every screening of a mail gives this answer.
+     *
+     * @param  MailScreeningAnswer  $answer  what the model answers
+     */
+    public function screens(MailScreeningAnswer $answer): self
+    {
+        $this->screening = $answer;
         $this->failure = null;
 
         return $this;
@@ -83,6 +105,14 @@ final class FakeDocumentReader implements DocumentReader
     }
 
     /**
+     * How many screenings of a mail were asked.
+     */
+    public function screenings(): int
+    {
+        return $this->screenings;
+    }
+
+    /**
      * Whether the reading is on: true unless `off()` was called.
      */
     public function isActive(): bool
@@ -109,5 +139,28 @@ final class FakeDocumentReader implements DocumentReader
         }
 
         return new Reading($this->extraction, 'gemini', 'gemini-3.8-flash', inputTokens: 1200, outputTokens: 300, cacheReadTokens: 0);
+    }
+
+    /**
+     * Counts the screening, then gives the answer of `screens()` or throws the error of `fails()`. As the real one,
+     * it records the call (Gemini 3.8 Flash, 300 tokens in and 40 out) in the current family.
+     *
+     * @param  string  $sender  the sender of the mail
+     * @param  string  $subject  the subject of the mail
+     * @param  string  $locale  the language of the reason
+     *
+     * @throws ReadingFailed when `fails()` was called
+     */
+    public function screen(string $sender, string $subject, string $locale): MailScreeningAnswer
+    {
+        $this->screenings++;
+
+        if ($this->failure instanceof ReadingFailed) {
+            throw $this->failure;
+        }
+
+        (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 300, 40, 0);
+
+        return $this->screening;
     }
 }

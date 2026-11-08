@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Actions\Mail\RecordMailFilterCall;
 use App\Ai\Agents\DocumentReaderAgent;
+use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
+use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Reading;
 use App\Exceptions\Reading\ReadingFailed;
 use Illuminate\Http\Client\RequestException;
@@ -25,8 +28,13 @@ use LogicException;
 /**
  * Reads a document with the service and the model of `config/document_reader.php`, through the Laravel AI SDK.
  */
-final class AiDocumentReader implements DocumentReader
+final readonly class AiDocumentReader implements DocumentReader
 {
+    /**
+     * @param  RecordMailFilterCall  $recorder  writes the call of a screening in `ai_readings`
+     */
+    public function __construct(private RecordMailFilterCall $recorder) {}
+
     /** The statuses with which a service refuses the key. */
     private const array KEY_REFUSED = [401, 403];
 
@@ -83,13 +91,7 @@ final class AiDocumentReader implements DocumentReader
             $model,
         );
 
-        $finish = $response->steps->last();
-
-        match ($finish instanceof Step ? $finish->finishReason : null) {
-            FinishReason::ContentFilter => throw ReadingFailed::refused(),
-            FinishReason::Length => throw ReadingFailed::cutShort(),
-            default => null,
-        };
+        $this->assertComplete($response);
 
         $answer = $response instanceof StructuredAgentResponse && $response->structured !== [] ? $response->structured : $response->text;
 
@@ -105,9 +107,44 @@ final class AiDocumentReader implements DocumentReader
     }
 
     /**
+     * Asks the model whether a mail is worth reading, from the sender and the subject. The call is recorded right
+     * after the answer, before anything else can fail. Called only when `isActive()` is true.
+     *
+     * @param  string  $sender  the sender, as the mail shows it
+     * @param  string  $subject  the subject
+     * @param  string  $locale  the language of the reason (`it` or `en`)
+     *
+     * @throws ReadingFailed when the service does not answer
+     * @throws LogicException when the reading is off
+     */
+    public function screen(string $sender, string $subject, string $locale): MailScreeningAnswer
+    {
+        if (! $this->isActive()) {
+            throw new LogicException('The reading is off: call screen() only when isActive() is true.');
+        }
+
+        $provider = Config::string('document_reader.provider');
+        $model = Config::string('document_reader.model');
+
+        $response = $this->ask(new MailScreeningAgent($model), MailScreeningAgent::request($sender, $subject, $locale), [], $provider, $model);
+
+        $this->assertComplete($response);
+
+        $this->recorder->handle(
+            $provider,
+            filled($response->meta->model) ? $response->meta->model : $model,
+            $response->usage->inputTokens,
+            $response->usage->outputTokens,
+            $response->usage->cacheReadInputTokens ?? 0,
+        );
+
+        return MailScreeningAgent::parse($response instanceof StructuredAgentResponse && $response->structured !== [] ? $response->structured : $response->text);
+    }
+
+    /**
      * Sends the request, with the errors of the service as failures of the reading.
      *
-     * @param  DocumentReaderAgent  $agent  the model and its options
+     * @param  DocumentReaderAgent|MailScreeningAgent  $agent  the model and its options
      * @param  string  $message  the text of the message
      * @param  list<Base64Document|Base64Image>  $attachments  the file, unless it is a text
      * @param  string  $provider  the service
@@ -115,7 +152,7 @@ final class AiDocumentReader implements DocumentReader
      *
      * @throws ReadingFailed when the service does not answer
      */
-    private function ask(DocumentReaderAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
+    private function ask(DocumentReaderAgent|MailScreeningAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
     {
         try {
             return $agent->prompt($message, attachments: $attachments, provider: $provider, model: $model);
@@ -128,6 +165,24 @@ final class AiDocumentReader implements DocumentReader
         } catch (AiException $e) {
             throw ReadingFailed::serviceError($e);
         }
+    }
+
+    /**
+     * Checks that the model finished its answer.
+     *
+     * @param  AgentResponse  $response  the answer of the service
+     *
+     * @throws ReadingFailed when the model refused or the answer was cut short
+     */
+    private function assertComplete(AgentResponse $response): void
+    {
+        $finish = $response->steps->last();
+
+        match ($finish instanceof Step ? $finish->finishReason : null) {
+            FinishReason::ContentFilter => throw ReadingFailed::refused(),
+            FinishReason::Length => throw ReadingFailed::cutShort(),
+            default => null,
+        };
     }
 
     /**
