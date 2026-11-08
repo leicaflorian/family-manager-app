@@ -37,6 +37,13 @@ describe('textOf', function (): void {
         expect(NoticeText::textOf('', '<p>&#0; &#1114112; &#x110000; &#x41;</p>'))->toBe('&#0; &#1114112; &#x110000; A');
     });
 
+    test('a numeric entity too long for an integer is left as written, without an error', function (): void {
+        $hex = '&#x'.str_repeat('F', 22).';';
+        $decimal = '&#'.str_repeat('9', 30).';';
+
+        expect(NoticeText::textOf('', "<p>{$hex} {$decimal} &#x41;</p>"))->toBe("{$hex} {$decimal} A");
+    });
+
     test('a plain text of at least MIN_PLAIN_CHARS is taken as it is', function (): void {
         $plain = str_repeat('p', NoticeText::MIN_PLAIN_CHARS);
         expect(NoticeText::MIN_PLAIN_CHARS)->toBe(80);

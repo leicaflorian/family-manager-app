@@ -177,8 +177,9 @@ final class NoticeText
         $entity = $match[1];
 
         if ($entity[0] === '#') {
-            $code = strtolower($entity[1]) === 'x' ? (int) hexdec(substr($entity, 2)) : (int) substr($entity, 1);
-            $char = $code > 0 && $code <= 0x10FFFF ? mb_chr($code, 'UTF-8') : false;
+            // hexdec() gives a float past the integer range, so the value is compared as a number before any cast.
+            $code = strtolower($entity[1]) === 'x' ? hexdec(substr($entity, 2)) : (float) substr($entity, 1);
+            $char = $code > 0 && $code <= 0x10FFFF ? mb_chr((int) $code, 'UTF-8') : false;
 
             return $char === false ? $match[0] : $char;
         }
