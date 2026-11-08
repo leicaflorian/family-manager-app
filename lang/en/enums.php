@@ -204,6 +204,12 @@ return [
         'admin' => 'Administrator',
         'member' => 'Family member',
     ],
+    'skip_reason' => [
+        'too_small' => 'Too small',
+        'too_large' => 'Too large',
+        'not_a_document' => 'Not a PDF or a photo',
+        'duplicate' => 'Copy of another attachment',
+    ],
     'subscription_status' => [
         'active' => 'Active',
         'cancelled' => 'Cancelled',

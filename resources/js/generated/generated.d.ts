@@ -845,6 +845,7 @@ export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped'
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance';
 export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
+export type SkipReason = 'too_small' | 'too_large' | 'not_a_document' | 'duplicate';
 export type SubscriptionStatus = 'active' | 'cancelled';
 export type SubscriptionType = 'streaming' | 'software' | 'cloud' | 'web' | 'other';
 export type Theme = 'system' | 'light' | 'dark';

@@ -204,6 +204,12 @@ return [
         'admin' => 'Amministratore',
         'member' => 'Familiare',
     ],
+    'skip_reason' => [
+        'too_small' => 'Troppo piccolo',
+        'too_large' => 'Troppo grande',
+        'not_a_document' => 'Non è un PDF né una foto',
+        'duplicate' => 'Copia di un altro allegato',
+    ],
     'subscription_status' => [
         'active' => 'Attivo',
         'cancelled' => 'Disdetto',
