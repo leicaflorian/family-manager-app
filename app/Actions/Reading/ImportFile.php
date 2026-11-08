@@ -107,14 +107,15 @@ final readonly class ImportFile
      * @param  ImportChoices  $choices  what the person confirmed, the document fields validated
      * @param  list<PolicyGiverData>  $roundGivers  the other files confirmed with this one that give a policy
      * @param  ProposalData|null  $checked  the proposal the request made with the same choices, without the other files; only while nothing was saved since
+     * @param  list<array{type: string, id: int}>  $roundCards  the cards the files saved before in this import created
      * @return array{document: Document, movement: Expense|Income|PlannedExpense|null, event: ?HealthEvent, records: array<string, Model>, warnings: list<string>}
      *
      * @throws ValidationException if the file no longer waits, a ticked box misses what it needs, or a due date is already paid
      * @throws Throwable if anything else fails: nothing of the file is saved
      */
-    public function handle(File $file, ImportChoices $choices, array $roundGivers, ?ProposalData $checked = null): array
+    public function handle(File $file, ImportChoices $choices, array $roundGivers, ?ProposalData $checked = null, array $roundCards = []): array
     {
-        return CurrentFamily::using($file->family_id, fn (): array => DB::transaction(function () use ($file, $choices, $roundGivers, $checked): array {
+        return CurrentFamily::using($file->family_id, fn (): array => DB::transaction(function () use ($file, $choices, $roundGivers, $checked, $roundCards): array {
             $waiting = File::query()->whereKey($file->id)->lockForUpdate()->value('to_sort');
             if (! (bool) $waiting) {
                 throw ValidationException::withMessages(['file_id' => __('This file was already filed.')]);
@@ -124,7 +125,7 @@ final readonly class ImportFile
                 ? $checked
                 : $this->proposals->for($file, $choices, $roundGivers, App::getLocale());
 
-            return $this->save($file, $choices, $roundGivers, $first);
+            return $this->save($file, $choices, $roundGivers, $first, $roundCards);
         }));
     }
 
@@ -135,11 +136,12 @@ final readonly class ImportFile
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  list<PolicyGiverData>  $roundGivers  the other files that give a policy
      * @param  ProposalData  $first  the proposal before anything is saved
+     * @param  list<array{type: string, id: int}>  $roundCards  the cards the files saved before in this import created
      * @return array{document: Document, movement: Expense|Income|PlannedExpense|null, event: ?HealthEvent, records: array<string, Model>, warnings: list<string>}
      *
      * @throws ValidationException if a ticked box misses what it needs, or a due date is already paid
      */
-    private function save(File $file, ImportChoices $choices, array $roundGivers, ProposalData $first): array
+    private function save(File $file, ImportChoices $choices, array $roundGivers, ProposalData $first, array $roundCards): array
     {
         $locale = App::getLocale();
 
@@ -151,7 +153,10 @@ final readonly class ImportFile
         $proposal = $before['records'] === [] ? $first : $this->proposals->for($file, $choices, $roundGivers, $locale);
         [$policy, $warnings] = $this->policy($first->policy['giver'] ?? null);
 
-        $document = $this->document($file, $proposal, $choices, $before['links'], $policy);
+        // The form was filled before the other files of the import were saved: the cards they created, which this file
+        // names too (a second paper with the number of the policy the first one created), are not in it
+        $found = array_values(array_filter($proposal->document->links, static fn (array $link): bool => in_array($link, $roundCards, true)));
+        $document = $this->document($file, $proposal, $choices, [...$before['links'], ...$found], $policy);
         $movement = $choices->movement && $proposal->movement instanceof MovementProposalData
             ? $this->movement($file, $proposal->movement, $choices, $document)
             : null;

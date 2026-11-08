@@ -9,6 +9,7 @@ use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
 use App\Models\Document;
 use App\Models\File;
+use App\Models\Organization;
 use App\Services\Reading\ImportProposals;
 use App\Services\Reading\PolicyFromOtherFiles;
 use Illuminate\Support\Facades\App;
@@ -55,6 +56,7 @@ final readonly class ImportFiles
         $notices = [];
         $documents = [];
         $saved = false;
+        $created = [];
 
         foreach ($order as $id) {
             $round = array_values(array_filter($givers, static fn (int $giver): bool => $giver !== $id, ARRAY_FILTER_USE_KEY));
@@ -62,11 +64,12 @@ final readonly class ImportFiles
             try {
                 // The request proposed every file before anything was saved: once a file is saved, the next ones
                 // propose again, so they find the organization, the cards and the expense it created
-                $imported = $this->file($id, $choices[$id], $round, $saved ? null : $checked[$id]);
+                $imported = $this->file($id, $choices[$id], $round, $saved ? null : $checked[$id], $created);
                 if ($imported === null) {
                     $failures[$id] = __('This file was already filed.');
                 } else {
                     $saved = true;
+                    $created = [...$created, ...$imported['created']];
                     $documents[$id] = $imported['document']->id;
                     if ($imported['warnings'] !== []) {
                         $notices[$id] = $imported['warnings'];
@@ -116,21 +119,31 @@ final readonly class ImportFiles
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  list<PolicyGiverData>  $round  the policies the other files give
      * @param  ProposalData|null  $checked  the proposal the request made
-     * @return array{document: Document, warnings: list<string>}|null the document and what the file says, or null when it no longer waits
+     * @param  list<array{type: string, id: int}>  $created  the cards the files saved before in this import created
+     * @return array{document: Document, warnings: list<string>, created: list<array{type: string, id: int}>}|null the document, what the file says and the cards it created, or null when it no longer waits
      *
      * @throws Throwable
      */
-    private function file(int $id, ImportChoices $choices, array $round, ?ProposalData $checked): ?array
+    private function file(int $id, ImportChoices $choices, array $round, ?ProposalData $checked, array $created): ?array
     {
-        return DB::transaction(function () use ($id, $choices, $round, $checked): ?array {
+        return DB::transaction(function () use ($id, $choices, $round, $checked, $created): ?array {
             $file = File::query()->toSort()->lockForUpdate()->find($id);
             if (! $file instanceof File) {
                 return null;
             }
 
-            $imported = $this->importFile->handle($file, $choices, $round, $checked);
+            $imported = $this->importFile->handle($file, $choices, $round, $checked, $created);
 
-            return ['document' => $imported['document'], 'warnings' => $imported['warnings']];
+            $cards = [];
+            foreach ($imported['records'] as $card) {
+                $key = $card->getKey();
+                // An organization is not a link of a document: the next files find it by name
+                if ($card->wasRecentlyCreated && ! $card instanceof Organization && is_int($key)) {
+                    $cards[] = ['type' => $card->getMorphClass(), 'id' => $key];
+                }
+            }
+
+            return ['document' => $imported['document'], 'warnings' => $imported['warnings'], 'created' => $cards];
         });
     }
 }

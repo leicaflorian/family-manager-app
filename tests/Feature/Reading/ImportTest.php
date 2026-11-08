@@ -456,6 +456,52 @@ describe('what each file does too', function (): void {
         expect(Document::query()->where('file_id', $second->id)->sole()->organization_id)->toBe($rossi->id);
     });
 
+    test('the second file of a new issuer takes the organization the first one created, also when its form sends the issuer empty', function (): void {
+        $reading = ['kind' => 'invoice', 'title' => 'Caldaia', 'issuer_name' => 'Termoidraulica Rossi', 'total_amount' => 150, 'issue_date' => '2026-10-10'];
+        $first = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
+        $second = File::factory()->for($this->marco->family)->read([...$reading, 'total_amount' => 90, 'issue_date' => '2026-09-01'])->create(['to_sort' => true]);
+
+        // The page sends every field of the form: the issuer was empty when the person saw the second file
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($first, ['organization_id' => null, 'links' => []]), 'also' => ['records' => ['organization']]],
+            [...importEntry($second, ['organization_id' => null, 'links' => []]), 'also' => ['records' => ['organization']]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+        $rossi = Organization::query()->where('name', 'Termoidraulica Rossi')->sole();
+        expect(Document::query()->where('file_id', $second->id)->sole()->organization_id)->toBe($rossi->id);
+    });
+
+    test('the second file with the number of the policy the first one created is linked to that policy', function (): void {
+        $unipol = Organization::factory()->for($this->marco->family)->create(['name' => 'UnipolSai']);
+        $reading = ['kind' => 'insurance', 'organization_id' => $unipol->id, 'policy_number' => '40/123456', 'insurance_type' => 'car', 'issue_date' => '2026-10-01'];
+        $contract = File::factory()->for($this->marco->family)->read([...$reading, 'title' => 'Contratto RC auto'])->create(['to_sort' => true]);
+        $set = File::factory()->for($this->marco->family)->read([...$reading, 'title' => 'Set informativo'])->create(['to_sort' => true]);
+
+        // Both papers proposed to create the policy: the person ticked the box on both, the links of the form were empty
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($contract, ['links' => []]), 'also' => ['records' => ['policy']]],
+            [...importEntry($set, ['links' => []]), 'also' => ['records' => ['policy']]],
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+        $policy = InsurancePolicy::query()->sole();
+        expect(Document::query()->where('file_id', $set->id)->sole()->insurancePolicies()->pluck('insurance_policies.id')->all())->toBe([$policy->id]);
+    });
+
+    test('a card that was already there is not added to a later file whose form leaves it out', function (): void {
+        $panda = Vehicle::factory()->for($this->marco->family)->create(['plate_number' => 'GH 482 TK']);
+        $reading = ['kind' => 'other', 'plate_number' => 'GH 482 TK', 'issue_date' => '2026-10-01'];
+        $first = File::factory()->for($this->marco->family)->read([...$reading, 'title' => 'Libretto'])->create(['to_sort' => true]);
+        $second = File::factory()->for($this->marco->family)->read([...$reading, 'title' => 'Foto'])->create(['to_sort' => true]);
+
+        // The person kept the vehicle on the first file and took it off the second
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            importEntry($first, ['links' => [['type' => 'vehicle', 'id' => $panda->id]]]),
+            importEntry($second, ['links' => []]),
+        ]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+        expect(Document::query()->where('file_id', $second->id)->sole()->vehicles()->count())->toBe(0);
+    });
+
     test('the second file of an import links to the expense the first one created', function (): void {
         $reading = ['kind' => 'receipt', 'title' => 'Cure dentistiche', 'organization_id' => $this->dentist->id, 'total_amount' => 150, 'issue_date' => '2026-10-10'];
         $first = File::factory()->for($this->marco->family)->read($reading)->create(['to_sort' => true]);
