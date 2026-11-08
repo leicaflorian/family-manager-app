@@ -23,9 +23,9 @@ final class MailgunSignature
      */
     public static function check(array $fields, int $now): ?string
     {
-        $token = self::text($fields, 'token');
-        $timestamp = self::text($fields, 'timestamp');
-        $signature = self::text($fields, 'signature');
+        $token = MailgunForm::text($fields, 'token');
+        $timestamp = MailgunForm::text($fields, 'timestamp');
+        $signature = MailgunForm::text($fields, 'signature');
 
         if ($token === '' || $timestamp === '' || preg_match('/^[0-9a-f]{64}$/i', $signature) !== 1) {
             return 'no signature';
@@ -49,17 +49,5 @@ final class MailgunSignature
     public static function verify(string $key, string $timestamp, string $token, string $signature): bool
     {
         return hash_equals(hash_hmac('sha256', $timestamp.$token, $key), strtolower($signature));
-    }
-
-    /**
-     * A field as text, empty when it is missing or not a text.
-     *
-     * @param  array<string, mixed>  $fields
-     */
-    private static function text(array $fields, string $name): string
-    {
-        $value = $fields[$name] ?? '';
-
-        return is_string($value) ? $value : '';
     }
 }

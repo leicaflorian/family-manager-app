@@ -213,7 +213,7 @@ final class MailgunForm
      *
      * @param  array<string, mixed>  $fields
      */
-    private static function text(array $fields, string $name): string
+    public static function text(array $fields, string $name): string
     {
         $value = $fields[$name] ?? '';
 
