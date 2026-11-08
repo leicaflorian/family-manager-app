@@ -56,6 +56,7 @@ use App\Services\Reading\DocumentProposal;
 use App\Services\Reading\ReadingContext;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
+use Database\Seeders\Support\BianchiMails;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
@@ -170,11 +171,13 @@ final class BianchiFamilySeeder extends Seeder
      * @param  CreateFamily  $createFamily  the registration action
      * @param  FileStore  $files  the store the fake files go to
      * @param  DocumentProposal  $proposals  turns a reading into the stored proposal, as `ReadStoredFile` does
+     * @param  BianchiMails  $mails  the address for the bills and the mails received
      */
     public function __construct(
         private readonly CreateFamily $createFamily,
         private readonly FileStore $files,
         private readonly DocumentProposal $proposals,
+        private readonly BianchiMails $mails,
     ) {}
 
     /**
@@ -195,6 +198,7 @@ final class BianchiFamilySeeder extends Seeder
                 $this->createRecords();
                 $this->createDocuments();
                 $this->createFilesToSort();
+                $this->mails->handle($this->organizations);
                 $this->createBudget();
             });
 

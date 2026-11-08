@@ -13,6 +13,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 
@@ -114,6 +115,25 @@ test('the copy brings the family with its records, links, categories and account
     $utility = DB::table('utilities')->sole();
     expect(DB::table('remindables')->where('remindable_type', 'utility')->sole())->remindable_type->toBe('utility')->remindable_id->toBe($utility->id)
         ->and(DB::table('family_settings')->sole()->mail_inbox_recipient)->toBe('documenti@example.com');
+});
+
+test('the mail settings come over with the accounts told by id, and the switch for the mails with attachments', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    $laura = User::query()->where('email', 'laura.verdi@example.com')->sole();
+    $settings = DB::table('family_settings')->sole();
+
+    // the email without an account is left out, the AI filter is not a setting any more
+    expect(json_decode((string) $settings->mail_inbox_notify, true))->toBe([$laura->id])
+        ->and((bool) $settings->mail_inbox_notify_attachments_only)->toBeFalse()
+        ->and(Schema::hasColumn('family_settings', 'mail_inbox_ai_filter'))->toBeFalse();
+});
+
+test('the mails and the log of the calls of Directus are not copied', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    expect(DB::table('received_mails')->count())->toBe(0)
+        ->and(DB::table('mail_inbox_calls')->count())->toBe(0);
 });
 
 test('the copied family reads its Edison with both documents of Luce in the app', function (): void {

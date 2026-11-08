@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Services\Mailgun\MailgunRequest;
 use Illuminate\Http\Testing\File as FakeFile;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Pest\TestSuite;
 use RuntimeException;
@@ -46,7 +46,7 @@ final class MailgunCall
 
     private ?int $contentLength = null;
 
-    private string $contentType = 'multipart/form-data; boundary=----mailgun';
+    private string $contentType = MailgunRequest::CONTENT_TYPE;
 
     private readonly string $messageId;
 
@@ -55,7 +55,7 @@ final class MailgunCall
      */
     private function __construct(private readonly string $recipient)
     {
-        $this->messageId = '<'.Str::random(20).'@mail.example>';
+        $this->messageId = MailgunRequest::newMessageId();
     }
 
     /**
@@ -216,7 +216,7 @@ final class MailgunCall
             $server['CONTENT_LENGTH'] = (string) $this->contentLength;
         }
 
-        return $test->call('POST', '/mail/mailgun', $this->fields(), [], $this->files(), $server);
+        return $test->call('POST', MailgunRequest::PATH, $this->fields(), [], $this->files(), $server);
     }
 
     /**
@@ -226,34 +226,19 @@ final class MailgunCall
      */
     private function fields(): array
     {
-        $headers = [
-            ['Message-Id', $this->messageId],
-            ['From', $this->from],
-            ['To', $this->toHeader ?? $this->recipient],
-            ['Subject', $this->subject],
-            ['Date', 'Sun, 25 Oct 2026 08:40:00 +0100'],
-        ];
-
-        $fields = [
-            'recipient' => $this->recipient,
-            'sender' => $this->from,
-            'from' => $this->from,
-            'subject' => $this->subject,
-            'body-plain' => $this->text,
-            'body-html' => $this->html,
-            'message-headers' => (string) json_encode($headers),
-            'attachment-count' => (string) count($this->attachments),
-        ];
-
-        if ($this->recipient === '') {
-            unset($fields['recipient']);
-        }
+        $fields = MailgunRequest::mailFields(
+            $this->recipient,
+            $this->from,
+            $this->subject,
+            $this->text,
+            $this->html,
+            $this->messageId,
+            $this->toHeader ?? $this->recipient,
+            count($this->attachments),
+        );
 
         if ($this->signed) {
-            $timestamp = (string) ($this->timestamp ?? now()->getTimestamp());
-            $token = Str::random(50);
-            $key = $this->key ?? config()->string('services.mailgun.signing_key');
-            $fields += ['timestamp' => $timestamp, 'token' => $token, 'signature' => hash_hmac('sha256', $timestamp.$token, $key)];
+            $fields = MailgunRequest::sign($fields, $this->key ?? config()->string('services.mailgun.signing_key'), $this->timestamp);
         }
 
         return $fields;

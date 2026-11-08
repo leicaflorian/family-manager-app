@@ -57,6 +57,33 @@ The seeder creates the Bianchi family from the design board. The password is `pa
 
 Giulia, the daughter, has no account.
 
+The Bianchis also have the address for the bills, `bianchi.k7m2x9@` followed by `MAIL_INBOX_DOMAIN` (`bianchi.k7m2x9@bollette.familymanager.test` with the `.env.example` value), and the six mails of the *Posta ricevuta* board, the newest first:
+
+| Arrived | From | Subject | Outcome |
+| --- | --- | --- | --- |
+| 25/10/2026 09:41 | Enel Energia | La tua bolletta | 1 file saved |
+| 25/10/2026 09:12 | Fastweb | Fattura disponibile | 1 file saved |
+| 24/10/2026 17:30 | Hera | La tua fattura è disponibile | Notice saved (no attachment) |
+| 23/10/2026 11:05 | Comune di Bologna | TARI 2026 - avviso di pagamento | 1 file saved, the logo left out (too small) |
+| 22/10/2026 08:03 | promo@offerte-energia.it | Nuove offerte luce e gas | Discarded |
+| 14/10/2026 07:58 | Edison | Bolletta di settembre | 1 file saved, 2 deliveries |
+
+Their files are in *To sort*; the PDFs are fake ones in `database/seeders/files/`.
+
+## Incoming mail
+
+Mailgun calls `POST mail/mailgun` (see `AGENTS.md`). Without Mailgun, on a local machine only:
+
+```bash
+# Delivers a mail (with a PDF) to the Bianchis: the PDF goes to To sort, the mail to Posta ricevuta
+./vendor/bin/sail artisan mail-inbox:try bianchi.k7m2x9@bollette.familymanager.test --subject="Bolletta gas" --file=storage/app/prova.pdf
+
+# The log of the calls for the owner (no text, no payload): --family=<id> --outcome=saved --since=2026-10-25
+./vendor/bin/sail artisan mail-inbox:calls
+```
+
+`mail-inbox:try` hands a call signed like Mailgun's straight to the action in the same process, with the signing key of `.env` or, if there is none, a key made for that call. Outside local it refuses.
+
 ## Commands
 
 The full list of commands, with the code rules, is in `AGENTS.md`. The most used:

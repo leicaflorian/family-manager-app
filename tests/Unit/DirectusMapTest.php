@@ -39,7 +39,7 @@ test('the author fields and the Directus dates get the Laravel names', function 
     expect($row)->toBe(['updated_at' => '2026-10-01 10:00:00', 'mail_inbox_notify' => '[]']);
 });
 
-test('family_settings loses the AI keys, the models and the schedules', function (): void {
+test('family_settings loses the AI keys, the models, the schedules and the AI filter, and keeps who is told and the attachments switch', function (): void {
     $asked = [];
     $row = DirectusMap::row('family_settings', [
         'id' => 1, 'anthropic_api_key' => 'k', 'gemini_api_key' => 'k', 'document_reader_provider' => 'anthropic', 'document_reader_model' => 'm',
@@ -49,8 +49,25 @@ test('family_settings loses the AI keys, the models and the schedules', function
         'mail_inbox_recipient' => 'bollette@example.com', 'mail_inbox_notify' => '["florian"]',
     ], shifted($asked));
 
-    expect($row)->toBe(['mail_inbox_recipient' => 'bollette@example.com', 'mail_inbox_notify' => '["florian"]']);
+    expect($row)->toBe(['mail_inbox_notify_attachments_only' => 1, 'mail_inbox_recipient' => 'bollette@example.com', 'mail_inbox_notify' => '["florian"]']);
 });
+
+test('the emails of who is told become the ids of their accounts', function (mixed $stored, ?array $expected): void {
+    $accounts = ['laura.verdi@example.com' => 7, 'paolo@example.com' => 9];
+
+    expect(DirectusMap::notifyIds($stored, $accounts))->toBe($expected);
+})->with([
+    'a json list' => ['["laura.verdi@example.com","paolo@example.com"]', [7, 9]],
+    'a list already decoded' => [['paolo@example.com'], [9]],
+    'case and spaces do not matter' => ['[" Laura.Verdi@Example.com "]', [7]],
+    'an email without an account is left out' => ['["laura.verdi@example.com","ghost@example.com"]', [7]],
+    'the same account twice is one' => ['["paolo@example.com","PAOLO@example.com"]', [9]],
+    'none left is null' => ['["ghost@example.com"]', null],
+    'an empty list is null' => ['[]', null],
+    'null is null' => [null, null],
+    'a broken json is null' => ['{not json', null],
+    'things that are not emails are left out' => ['[1, null, {"a": 1}, "paolo@example.com"]', [9]],
+]);
 
 test('people lose the upload token and get their account as user_id', function (): void {
     $asked = [];

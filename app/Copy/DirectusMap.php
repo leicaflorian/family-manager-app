@@ -62,7 +62,7 @@ final class DirectusMap
         'family_settings' => [
             'reminders_cron', 'loans_cron', 'inbox_cleanup_cron', 'inbox_cleanup_days', 'mail_inbox_max_megabytes',
             'document_reader_provider', 'document_reader_model', 'document_reader_crop_model', 'anthropic_api_key',
-            'gemini_api_key', 'calendar_feed_token', 'family_name', 'mail_inbox_notify_attachments_only', 'mail_inbox_ai_filter',
+            'gemini_api_key', 'calendar_feed_token', 'family_name', 'mail_inbox_ai_filter',
         ],
         'reminder_groups' => ['settings'],
     ];
@@ -162,6 +162,36 @@ final class DirectusMap
         }
 
         return isset(self::SYSTEM[$table]) ? self::system($table, $row) : self::record($table, $row, $newId);
+    }
+
+    /**
+     * The accounts told about the mail received, as ids: Directus keeps the emails of the people, the app the ids of the
+     * accounts. An email without an account is left out, and when none is left it is `null`, which in the app means
+     * every account of the family.
+     *
+     * @param  mixed  $stored  `mail_inbox_notify` as Directus has it: a JSON list of emails, or the list already decoded
+     * @param  array<string, int>  $accounts  the id of each account of the family, by its email in lower case
+     * @return list<int>|null the ids, in the order of the emails and without repeats; null when there are none
+     */
+    public static function notifyIds(mixed $stored, array $accounts): ?array
+    {
+        $emails = is_string($stored) ? json_decode($stored, true) : $stored;
+
+        if (! is_array($emails)) {
+            return null;
+        }
+
+        $ids = [];
+
+        foreach ($emails as $email) {
+            $id = is_string($email) ? ($accounts[mb_strtolower(trim($email))] ?? null) : null;
+
+            if ($id !== null && ! in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids === [] ? null : $ids;
     }
 
     /**
