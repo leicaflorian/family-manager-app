@@ -16,6 +16,9 @@
  * others on the phone, which choose without opening the panel; and with
  * `searchLabel` the toolbar has a search box before the areas.
  *
+ * An area the family hid in the settings (`familyHidden`) is left out of the
+ * menu of the areas, unless it still has entries.
+ *
  * @group forms
  */
 import { ChevronDown, UsersRound } from '@lucide/vue';
@@ -67,6 +70,9 @@ const {
     periods = [],
     views,
     searchLabel,
+    areas,
+    counts,
+    familyHidden = [],
 } = defineProps<{
     /** A bar above the list on the computer, buttons and a panel from below on the phone. */
     variant?: AgendaFiltersVariant;
@@ -84,6 +90,8 @@ const {
     searchLabel?: string;
     /** How many entries each area has for the person chosen, hidden areas too. */
     counts: Record<string, number>;
+    /** The areas the family hid in the settings: one shows only while it has entries. */
+    familyHidden?: string[];
     /** How many entries the list shows with these filters. */
     shown: number;
 }>();
@@ -135,6 +143,14 @@ function periodText(months: number): string {
         count: String(months),
     });
 }
+
+/** The areas in the menu: an area the family hid stays only while it has entries, so none of them is lost. */
+const shownAreas = computed(() =>
+    areas.filter(
+        (area) =>
+            !familyHidden.includes(area.value) || (counts[area.value] ?? 0) > 0,
+    ),
+);
 
 /** The person chosen, or undefined for everyone. */
 const chosenPerson = computed(() =>
@@ -356,7 +372,7 @@ const chip = cn(
                 :class="compact ? 'grid-cols-1' : 'grid-cols-2'"
             >
                 <button
-                    v-for="area in areas"
+                    v-for="area in shownAreas"
                     :key="area.value"
                     type="button"
                     :aria-pressed="isOn(area.value)"

@@ -4,7 +4,9 @@
  * how many are overdue, grouped by type when the area has more types (an
  * empty type is left out); the closed ones stay folded under *Closed*. An
  * `admin` adds a card with *New*, which opens the choice of the type of the
- * area, or the form when the area has only one.
+ * area, or the form when the area has only one. When the family hid the
+ * area in the settings the page still opens, with a notice on top and, for
+ * whoever can change the settings, the link to show it again.
  */
 import { Head } from '@inertiajs/vue3';
 import { Plus, Shapes } from '@lucide/vue';
@@ -14,18 +16,31 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFold from '@/components/fm/FmFold.vue';
+import FmNotice from '@/components/fm/FmNotice.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { newCardUrl } from '@/lib/cards';
 import { areaSummary } from '@/lib/cardTexts';
 import { areas } from '@/routes';
+import { edit as areasSettings } from '@/routes/settings/areas';
 
-const { area, types, canCreate } = defineProps<{
+const {
+    area,
+    types,
+    canCreate,
+    hidden = false,
+    can_show = false,
+} = defineProps<{
     /** The area with its cards, the open ones first. */
     area: App.Data.AreaData;
     /** The card types of the area. */
     types: App.Data.CardTypeData[];
     /** Whoever is looking adds cards (an `admin`). */
     canCreate: boolean;
+    /** The family hid the area in the settings. */
+    hidden?: boolean;
+    /** Whoever is looking can show the area again (an `admin`). */
+    can_show?: boolean;
 }>();
 
 /** The cards still open. */
@@ -85,6 +100,15 @@ const closed = computed(() => area.cards.filter((card) => card.closed));
                 />
             </template>
         </FmTitle>
+
+        <FmNotice v-if="hidden">
+            {{ $t('This area is hidden.') }}
+            <template v-if="can_show" #action>
+                <FmSectionLink :href="areasSettings().url">{{
+                    $t('Show it')
+                }}</FmSectionLink>
+            </template>
+        </FmNotice>
 
         <FmEmpty
             v-if="area.cards.length === 0"

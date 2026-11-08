@@ -251,6 +251,22 @@ describe('Agenda', () => {
         expect(put).toHaveBeenCalled();
     });
 
+    it('leaves out of the menu of the areas an area the family hid, when it has no entries', async () => {
+        screenWidth(true);
+        renderPage(Agenda, agenda({ family_hidden: ['school'] }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'All areas' }),
+        );
+
+        expect(
+            await screen.findByRole('button', { name: /Work/ }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: /School and activities/ }),
+        ).toBeNull();
+    });
+
     it('opens the filters from the buttons of the phone', async () => {
         renderPage(Agenda, agenda());
 

@@ -270,6 +270,19 @@ describe('Reminders', () => {
         expect(titles()).toHaveLength(2);
     });
 
+    it('keeps in the menu an area the family hid only while it has reminders', async () => {
+        renderPage(Reminders, props({ family_hidden: ['vehicles', 'work'] }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'All areas' }),
+        );
+
+        expect(
+            await screen.findByRole('button', { name: /Vehicles/ }),
+        ).toHaveTextContent('Vehicles1');
+        expect(screen.queryByRole('button', { name: /Work/ })).toBeNull();
+    });
+
     it('says when nothing matches the filters, and takes them off', async () => {
         renderPage(Reminders, props({ person_id: 2 }));
 

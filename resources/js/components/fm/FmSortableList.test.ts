@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { beforeAll, describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it } from 'vite-plus/test';
 import FmSortableList from './FmSortableList.vue';
 
 const items = [
@@ -25,11 +25,6 @@ function show(props: { disabled?: boolean } = {}) {
 }
 
 describe('FmSortableList', () => {
-    beforeAll(() => {
-        // jsdom has no `elementFromPoint`, which the library reads on every pointer press in a row
-        document.elementFromPoint = () => null;
-    });
-
     it('shows a named list with a row and a handle for each item', () => {
         show();
 

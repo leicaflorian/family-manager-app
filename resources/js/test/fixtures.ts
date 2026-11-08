@@ -1792,3 +1792,26 @@ export const enrolmentProposal: App.Data.Reading.ProposalData = {
     records: [],
     createCard: true,
 };
+
+/** *Settings → Areas* of the Bianchis as the server sends it: the default order, nothing hidden, *Work* with 2 cards. */
+export const areaSettings: App.Data.AreaSettingsData = {
+    areas: (
+        [
+            ['home', 'Home', 2],
+            ['vehicles', 'Vehicles', 1],
+            ['insurance', 'Insurance', 0],
+            ['banks', 'Banks and loans', 0],
+            ['health', 'Health', 0],
+            ['school', 'School and activities', 0],
+            ['work', 'Work', 2],
+            ['subscriptions', 'Subscriptions', 0],
+            ['paperwork', 'Paperwork', 0],
+        ] as const
+    ).map(([area, label, count]): App.Data.AreaSettingData => ({
+        area,
+        label,
+        count,
+        hidden: false,
+    })),
+    can_change: true,
+};

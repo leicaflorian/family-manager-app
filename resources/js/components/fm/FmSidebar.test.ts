@@ -123,6 +123,32 @@ describe('FmSidebar', () => {
         expect(list.getAllByRole('link')).toHaveLength(10);
     });
 
+    it('follows the areas it receives: the order of the family, without the hidden ones', () => {
+        const ordered = [
+            areaCounts[1]!,
+            areaCounts[0]!,
+            ...areaCounts.slice(2).filter((area) => area.area !== 'work'),
+        ];
+        render(FmSidebar, {
+            props: {
+                active: 'areas',
+                path: '/areas',
+                items: navigationItems(),
+                areas: ordered,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+            },
+        });
+
+        const links = within(areaList() as HTMLElement).getAllByRole('link');
+        expect(links).toHaveLength(9);
+        expect(links[1]).toHaveAttribute('href', '/areas/vehicles');
+        expect(links[2]).toHaveAttribute('href', '/areas/home');
+        expect(links.map((link) => link.getAttribute('href'))).not.toContain(
+            '/areas/work',
+        );
+    });
+
     it('marks the open area, or All areas on the page of all of them', () => {
         bar('areas', '/areas/vehicles');
 

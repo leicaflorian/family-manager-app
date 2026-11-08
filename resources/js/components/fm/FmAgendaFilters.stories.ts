@@ -2,7 +2,8 @@
  * The stories of `FmAgendaFilters`: the toolbar of
  * the computer, also with a person and an area turned off, and the buttons of
  * the phone with their panel (opened with the `open` control), and
- * the same two for *Reminders*: the lists in place of the period, and the search.
+ * the same two for *Reminders*: the lists in place of the period, and the search;
+ * and the toolbar with areas the family hid in the settings.
  */
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { agendaAreas, agendaPeriods } from '@/test/fixtures';
@@ -63,6 +64,21 @@ export const ToolbarFiltered: Story = {
         periods: agendaPeriods,
         counts,
         shown: 10,
+    },
+};
+
+/** The family hid *Work* and *School*: *Work* stays in the menu because it still has entries, *School* does not. */
+export const WithHiddenAreasOfTheFamily: Story = {
+    name: 'With hidden areas of the family',
+    args: {
+        variant: 'toolbar',
+        filters: { months: 1, person_id: null, hidden_areas: [] },
+        people,
+        areas: agendaAreas,
+        periods: agendaPeriods,
+        counts,
+        familyHidden: ['work', 'school'],
+        shown: 12,
     },
 };
 
