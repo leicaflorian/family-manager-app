@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Support\Mail;
 
+use Dom\Element;
+use Dom\HTMLDocument;
+use Throwable;
+
 /**
  * The page the text of a received mail is shown with, inside a frame (`previewDocument` of Directus). The HTML goes
- * in as it came, not cleaned: scripts and requests are stopped by the browser, with the sandbox of the frame and the
- * policy of the page.
+ * in as it came except its `meta` tags: scripts and requests are stopped by the browser, with the sandbox of the frame
+ * and the policy of the page.
  */
 final class MailText
 {
@@ -34,32 +38,66 @@ final class MailText
     {
         $text = is_string($body['plainText'] ?? null) ? $body['plainText'] : '';
         $html = is_string($body['html'] ?? null) ? $body['html'] : '';
+        $escaped = $text === '' ? null : '<pre class="plain">'.htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>';
 
-        $content = match (true) {
-            $html !== '' && (! $plain || $text === '') => self::withoutRefresh($html),
-            $text !== '' => '<pre class="plain">'.htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>',
-            default => null,
-        };
-
-        if ($content === null) {
-            return null;
+        if ($html !== '' && (! $plain || $escaped === null)) {
+            return self::page($html) ?? ($escaped === null ? null : self::page($escaped));
         }
 
-        return '<!doctype html><html><head><meta charset="utf-8">'
-            .'<meta http-equiv="Content-Security-Policy" content="'.self::POLICY.'">'
-            .'<base target="_blank">'
-            .'<style>'.self::STYLE.'</style>'
-            .'</head><body>'.$content.'</body></html>';
+        return $escaped === null ? null : self::page($escaped);
     }
 
     /**
-     * The HTML without its `<meta http-equiv="refresh">`: the sandbox lets it move the frame to a page of
-     * strangers, which would then look like a page of the app.
+     * The content read as a browser reads it, with every `meta` of the mail taken out and the ones of the page put
+     * first in its head. A `meta` of the mail could move the frame to a page of strangers (`refresh`, which the
+     * sandbox allows) or loosen the policy: with a real parser no spelling, entity or broken tag slips past, as
+     * it would past a pattern.
      *
-     * @param  string  $html  the HTML of the mail
+     * @param  string  $content  the HTML of the mail, or its plain text already escaped
+     * @return string|null the page, null when the content cannot be read
      */
-    private static function withoutRefresh(string $html): string
+    private static function page(string $content): ?string
     {
-        return (string) preg_replace('/<meta\b[^>]*http-equiv\s*=\s*["\']?\s*refresh[^>]*>/i', '', $html);
+        try {
+            $document = HTMLDocument::createFromString($content, LIBXML_NOERROR, 'UTF-8');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+
+        foreach (iterator_to_array($document->getElementsByTagName('meta'), false) as $meta) {
+            $meta->remove();
+        }
+
+        $document->head?->prepend(
+            self::element($document, 'meta', ['charset' => 'utf-8']),
+            self::element($document, 'meta', ['http-equiv' => 'Content-Security-Policy', 'content' => self::POLICY]),
+            self::element($document, 'base', ['target' => '_blank']),
+            self::element($document, 'style', [], self::STYLE),
+        );
+
+        return $document->documentElement instanceof Element ? '<!doctype html>'.$document->saveHtml($document->documentElement) : null;
+    }
+
+    /**
+     * An element of the page, with its attributes and its text.
+     *
+     * @param  HTMLDocument  $document  the page
+     * @param  string  $name  the tag
+     * @param  array<string, string>  $attributes  the attributes, in order
+     * @param  string  $text  the text inside
+     */
+    private static function element(HTMLDocument $document, string $name, array $attributes, string $text = ''): Element
+    {
+        $element = $document->createElement($name);
+
+        foreach ($attributes as $attribute => $value) {
+            $element->setAttribute($attribute, $value);
+        }
+
+        $element->textContent = $text;
+
+        return $element;
     }
 }
