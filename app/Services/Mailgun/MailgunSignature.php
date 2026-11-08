@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Cache;
 /**
  * The signature Mailgun puts on every call: an HMAC-SHA256 of `timestamp` followed by `token`, made with the
  * signing key. The signature covers nothing else: the age of the `timestamp` keeps an old call out, and each token
- * is taken once (`firstUse`), so a signed call copied by someone cannot be sent again with another mail inside.
+ * is taken once (`firstUse`), so a signed call copied by someone cannot be sent again with another mail inside;
+ * the token of a call that ended in a 500 is forgotten (`forget`), so that call can be sent again as it was.
  * Mailgun signs every delivery again, a delivery after a 500 too, with a new token.
  */
 final class MailgunSignature
@@ -63,6 +64,26 @@ final class MailgunSignature
      */
     public static function firstUse(string $token): bool
     {
-        return Cache::add('mailgun-token:'.hash('sha256', $token), true, 2 * self::MAX_AGE_SECONDS);
+        return Cache::add(self::cacheKey($token), true, 2 * self::MAX_AGE_SECONDS);
+    }
+
+    /**
+     * Forgets the token of a call that ended in a 500: nothing was saved, so the same call sent again is let in.
+     *
+     * @param  string  $token  the token of the call
+     */
+    public static function forget(string $token): void
+    {
+        Cache::forget(self::cacheKey($token));
+    }
+
+    /**
+     * Where a token is remembered: its hash, so the cache never holds a token itself.
+     *
+     * @param  string  $token  the token of the call
+     */
+    private static function cacheKey(string $token): string
+    {
+        return 'mailgun-token:'.hash('sha256', $token);
     }
 }

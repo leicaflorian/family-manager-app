@@ -137,6 +137,27 @@ test('a signed call sent again as it is, with the same token, is refused and sav
         ->and(insideFamilyOf($this->admin, fn (): int => ReceivedMail::query()->count()))->toBe(1);
 });
 
+test('a call that failed with 500 can be sent again with the same token, and is saved', function (): void {
+    $failing = (object) ['on' => true];
+    ReceivedMail::saving(function () use ($failing): void {
+        if ($failing->on) {
+            throw new RuntimeException('The database went away.');
+        }
+    });
+    $fields = signedWithToken('token-della-consegna-fallita', config()->string('services.mailgun.signing_key'));
+
+    postMailgunFields($fields)->assertStatus(500);
+
+    // should Mailgun deliver again with the same signature, the mail is not lost
+    $failing->on = false;
+    postMailgunFields($fields)->assertOk();
+    // once saved, the token is taken again
+    postMailgunFields($fields)->assertUnauthorized();
+
+    expect(insideFamilyOf($this->admin, fn (): int => ReceivedMail::query()->count()))->toBe(1)
+        ->and(array_map(fn (MailInboxCall $row): CallOutcome => $row->outcome, mailCalls()))->toBe([CallOutcome::Error, CallOutcome::Held, CallOutcome::Rejected]);
+});
+
 test('the token of a call with a wrong signature is not remembered', function (): void {
     postMailgunFields(signedWithToken('token-conteso', 'not-the-key'))->assertUnauthorized();
 

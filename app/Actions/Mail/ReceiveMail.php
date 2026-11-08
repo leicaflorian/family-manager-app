@@ -122,7 +122,14 @@ final readonly class ReceiveMail
 
         $familyId = $settings->family_id;
 
-        return CurrentFamily::using($familyId, fn (): Response => $this->deliver($mail, $familyId, $payload));
+        $response = CurrentFamily::using($familyId, fn (): Response => $this->deliver($mail, $familyId, $payload));
+
+        if ($response->getStatusCode() === 500) {
+            // nothing was saved: should Mailgun deliver again with the same signature, the call is let in
+            MailgunSignature::forget(MailgunForm::text($fields, 'token'));
+        }
+
+        return $response;
     }
 
     /**
