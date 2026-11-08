@@ -6,7 +6,9 @@ use App\Actions\Reading\ImportFiles;
 use App\Data\PendingFileData;
 use App\Data\Reading\DocumentProposalData;
 use App\Data\Reading\ImportChoices;
+use App\Enums\FileSource;
 use App\Enums\FinancialAccountType;
+use App\Enums\MailOutcome;
 use App\Enums\MaintenanceType;
 use App\Enums\ReadingStatus;
 use App\Enums\ReminderStatus;
@@ -14,6 +16,7 @@ use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
+use App\Models\FamilySetting;
 use App\Models\File;
 use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
@@ -26,6 +29,7 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Models\ReceivedMail;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\Subscription;
@@ -309,9 +313,9 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
         $pending = collect(PendingFileData::waiting())->keyBy('name');
 
         expect(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->count())->toBe(1)
-            ->and($pending->keys()->sort()->values()->all())->toBe(['Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'contratto-unipolsai.pdf', 'fattura-studio-ferri.pdf', 'ricevuta-pagamento-scuola.pdf', 'set-informativo-unipolsai.pdf'])
+            ->and($pending->keys()->sort()->values()->all())->toBe(['Avviso - La tua fattura è disponibile.txt', 'Avviso TARI 2026.pdf', 'Bolletta Edison settembre.pdf', 'Bolletta Enel ottobre.pdf', 'Fattura Fastweb ottobre.pdf', 'Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'contratto-unipolsai.pdf', 'fattura-studio-ferri.pdf', 'ricevuta-pagamento-scuola.pdf', 'set-informativo-unipolsai.pdf'])
             ->and(File::query()->toSort()->where('reading_status', ReadingStatus::Done)->count())->toBe(6)
-            ->and(File::query()->toSort()->notCopies()->count())->toBe(6)
+            ->and(File::query()->toSort()->notCopies()->count())->toBe(11)
             ->and($pending['bolletta-luce-ottobre.pdf']->copy_of)->toBe('bolletta-luce-ottobre.pdf')
             ->and($pending['bolletta-luce-ottobre.pdf']->reading_status)->toBeNull();
 
@@ -329,6 +333,53 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
             ->and($visit->document->headline)->not->toBe('Ho trovato una fattura');
         Storage::disk('local')->assertExists(File::query()->where('original_name', 'Garanzia lavatrice.jpg')->sole()->path);
     });
+});
+
+test('the Bianchis have the address for the bills and the six mails of the canvas', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $mails = ReceivedMail::query()->orderByDesc('received_at')->get()->keyBy('subject');
+        $outcomes = $mails->map(fn (ReceivedMail $mail): string => $mail->outcome->value)->all();
+
+        expect(FamilySetting::query()->sole()->mail_inbox_recipient)->toBe('bianchi.k7m2x9@bollette.familymanager.test')
+            ->and($mails->keys()->all())->toBe(['La tua bolletta', 'Fattura disponibile', 'La tua fattura è disponibile', 'TARI 2026 - avviso di pagamento', 'Nuove offerte luce e gas', 'Bolletta di settembre'])
+            ->and($outcomes)->toBe([
+                'La tua bolletta' => 'saved', 'Fattura disponibile' => 'saved', 'La tua fattura è disponibile' => 'saved',
+                'TARI 2026 - avviso di pagamento' => 'saved', 'Nuove offerte luce e gas' => 'discarded', 'Bolletta di settembre' => 'saved',
+            ])
+            ->and($mails['La tua bolletta']->received_at->setTimezone('Europe/Rome')->format('d/m/Y H:i'))->toBe('25/10/2026 09:41')
+            ->and($mails['Bolletta di settembre']->deliveries)->toBe(2)
+            ->and($mails['La tua bolletta']->deliveries)->toBe(1)
+            ->and($mails['La tua bolletta']->organization?->name)->toBe('Enel Energia')
+            ->and($mails['Nuove offerte luce e gas']->senderName())->toBe('promo@offerte-energia.it')
+            ->and($mails['TARI 2026 - avviso di pagamento']->skipped)->toBe([['name' => 'logo_comune.png', 'reason' => 'too_small']])
+            ->and($mails['Nuove offerte luce e gas']->savedEntries())->toBe([])
+            ->and($mails['Nuove offerte luce e gas']->notes)->not->toBeEmpty();
+
+        foreach ($mails->reject(fn (ReceivedMail $mail): bool => $mail->outcome === MailOutcome::Discarded) as $mail) {
+            $entries = $mail->savedEntries();
+            expect($entries)->toHaveCount(1, $mail->subject)
+                ->and($entries[0]['file'])->toBeInstanceOf(File::class)
+                ->and($entries[0]['file']->received_mail_id)->toBe($mail->id)
+                ->and($entries[0]['file']->to_sort)->toBeTrue()
+                ->and($entries[0]['file']->source)->toBe(FileSource::Mail);
+        }
+
+        $notice = $mails['La tua fattura è disponibile']->savedEntries()[0]['file'];
+        expect($notice?->mime_type)->toBe('text/plain')
+            ->and($notice->mail_key)->toBe($mails['La tua fattura è disponibile']->noticeKey())
+            ->and(Storage::disk('local')->get($notice->path))->toContain('Hera');
+        Storage::disk('local')->assertExists($mails['TARI 2026 - avviso di pagamento']->savedEntries()[0]['file']?->path ?? 'missing');
+    });
+});
+
+test('the mails of the Bianchis stay inside their family', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+    $other = familyWithMailAddress('Rossi', 'paolo@example.com', 'rossi.p4r8tw@bollette.familymanager.test');
+
+    expect(insideFamilyOf($other, fn (): int => ReceivedMail::query()->count()))->toBe(0)
+        ->and(insideFamilyOf($other, fn (): int => File::query()->where('source', FileSource::Mail)->count()))->toBe(0);
 });
 
 test('every read file stores its proposal, as a real reading does', function (): void {
@@ -441,5 +492,31 @@ test('Giulia\'s health card has one open automatic reminder on 20/10/2026', func
             ->and($reminder->is_automatic)->toBeTrue()
             ->and($reminder->person?->first_name)->toBe('Giulia')
             ->and(DB::table('remindables')->where('reminder_id', $reminder->id)->where('remindable_type', $card->getMorphClass())->where('remindable_id', $card->id)->count())->toBe(1);
+    });
+});
+
+test('online the Bianchis keep the random address they got at sign-up, never the one of the README', function (): void {
+    app()->detectEnvironment(fn (): string => 'staging');
+    config(['services.mailgun.inbox_domain' => 'bollette.familymanager.test']);
+
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $address = FamilySetting::query()->sole()->mail_inbox_recipient;
+        expect($address)->toMatch('/^bianchi\.[a-z0-9]{6}@bollette\.familymanager\.test$/')
+            ->not->toBe('bianchi.k7m2x9@bollette.familymanager.test')
+            ->and(ReceivedMail::query()->pluck('recipient')->unique()->all())->toBe([$address]);
+    });
+});
+
+test('online without a domain the Bianchis still get a random address', function (): void {
+    app()->detectEnvironment(fn (): string => 'staging');
+    config(['services.mailgun.inbox_domain' => '']);
+
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        expect(FamilySetting::query()->sole()->mail_inbox_recipient)->toMatch('/^bianchi\.[a-z0-9]{6}@bollette\.familymanager\.test$/')
+            ->not->toBe('bianchi.k7m2x9@bollette.familymanager.test');
     });
 });

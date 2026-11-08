@@ -5,17 +5,21 @@ declare(strict_types=1);
 use App\Enums\ExceptionType;
 use App\Enums\FilingStatus;
 use App\Enums\FilingType;
+use App\Enums\MailOutcome;
 use App\Enums\PersonRole;
 use App\Enums\Role;
+use App\Enums\UtilityType;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\File;
 use App\Models\Filing;
 use App\Models\InsurancePolicy;
 use App\Models\Invitation;
+use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
+use App\Models\ReceivedMail;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
@@ -372,4 +376,52 @@ test('the Home says what is missing: the registration document of a vehicle and 
     });
 
     expect(homeFor($marco)['missing'])->toBe([]);
+});
+
+test('the Home shows the last three mails that brought files, with the card their document is linked to, and none without mail', function (): void {
+    $marco = boardFamilyUpToDate();
+
+    expect(homeFor($marco)['mails'])->toBe([]);
+
+    insideFamilyOf($marco, function (): void {
+        $enel = Organization::factory()->create(['family_id' => CurrentFamily::id(), 'name' => 'Enel Energia']);
+        $gas = Utility::factory()->create(['family_id' => CurrentFamily::id(), 'type' => UtilityType::Gas, 'organization_id' => $enel->id]);
+        $mails = [
+            ['La tua bolletta', '2026-10-25 09:41', $enel->id, $gas],
+            ['Fattura disponibile', '2026-10-25 09:12', null, null],
+            ['Terza', '2026-10-24 17:30', null, null],
+            ['Quarta, too old', '2026-10-23 11:05', null, null],
+        ];
+
+        foreach ($mails as [$subject, $at, $organization, $card]) {
+            $mail = ReceivedMail::factory()->create(['family_id' => CurrentFamily::id(), 'subject' => $subject, 'received_at' => $at, 'organization_id' => $organization]);
+            $file = File::factory()->create(['family_id' => CurrentFamily::id(), 'received_mail_id' => $mail->id, 'mail_key' => $mail->event_id.':0']);
+            $mail->recordSaved($file);
+
+            if ($card instanceof Utility) {
+                Document::factory()->create(['family_id' => CurrentFamily::id(), 'file_id' => $file->id])->utilities()->attach($card);
+            }
+        }
+
+        ReceivedMail::factory()->create(['family_id' => CurrentFamily::id(), 'subject' => 'Advert', 'received_at' => '2026-10-25 20:00', 'outcome' => MailOutcome::Discarded]);
+    });
+
+    $mails = homeFor($marco)['mails'];
+
+    expect(array_column($mails, 'subject'))->toBe(['La tua bolletta', 'Fattura disponibile', 'Terza'])
+        ->and($mails[0]['sender'])->toBe('Enel Energia')
+        ->and($mails[0]['received_at'])->toBe('2026-10-25T09:41:00+01:00')
+        ->and($mails[0]['links'])->toBe(['Gas - Enel Energia'])
+        ->and($mails[1]['links'])->toBe([]);
+});
+
+test('the mail of another family is not on the Home', function (): void {
+    $marco = boardFamilyUpToDate();
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    insideFamilyOf($rossi, function (): void {
+        $mail = ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]);
+        $mail->recordSaved(File::factory()->create(['family_id' => CurrentFamily::id(), 'received_mail_id' => $mail->id, 'mail_key' => 'k:0']));
+    });
+
+    expect(homeFor($marco)['mails'])->toBe([]);
 });

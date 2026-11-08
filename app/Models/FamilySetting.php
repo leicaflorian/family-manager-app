@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Scopes\FamilyScope;
 use Carbon\CarbonImmutable;
 use Database\Factories\FamilySettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
@@ -22,6 +24,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property bool $mail_inbox_notify_attachments_only
  * @property-read Family $family
  *
  * @method static FamilySettingFactory factory($count = null, $state = [])
@@ -31,7 +34,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['mail_inbox_recipient', 'mail_inbox_notify', 'areas'])]
+#[Fillable(['mail_inbox_recipient', 'mail_inbox_notify', 'mail_inbox_notify_attachments_only', 'areas'])]
 final class FamilySetting extends FamilyModel
 {
     /** @use HasFactory<FamilySettingFactory> */
@@ -46,7 +49,63 @@ final class FamilySetting extends FamilyModel
     {
         return [
             'mail_inbox_notify' => 'array',
+            'mail_inbox_notify_attachments_only' => 'boolean',
             'areas' => 'array',
         ];
+    }
+
+    /**
+     * The settings that have this address for the bills. It looks outside the current family (with `addressTaken()`
+     * and `familiesWithAddress()`, the only lookups of the settings that do), like `Invitation::findValid()`: the mail arrives when nobody is signed in, and the address says the family.
+     *
+     * @param  string  $address  the address the mail was sent to; case and surrounding spaces do not matter
+     * @return self|null the settings, or null when it is not one address, or nobody has it
+     */
+    public static function findByMailRecipient(string $address): ?self
+    {
+        $address = strtolower(trim($address));
+
+        if (filter_var($address, FILTER_VALIDATE_EMAIL) === false) {
+            return null;
+        }
+
+        return self::query()->withoutGlobalScope(FamilyScope::class)->where('mail_inbox_recipient', $address)->first();
+    }
+
+    /**
+     * Whether some family already has this address for the bills, whichever family is current: a new address must
+     * be nobody's.
+     *
+     * @param  string  $address  the address; case and surrounding spaces do not matter
+     */
+    public static function addressTaken(string $address): bool
+    {
+        return self::findByMailRecipient($address) instanceof self;
+    }
+
+    /**
+     * The families that have an address for the bills, whichever family is current: `mail-inbox:addresses` gives
+     * one to the others, and runs with no family signed in.
+     *
+     * @return list<int> the ids of the families
+     */
+    public static function familiesWithAddress(): array
+    {
+        return array_values(self::query()->withoutGlobalScope(FamilyScope::class)->whereNotNull('mail_inbox_recipient')->get(['family_id'])->map(static fn (self $settings): int => $settings->family_id)->all());
+    }
+
+    /**
+     * The accounts of the family that are told about the mail received: the ones in `mail_inbox_notify`, all of
+     * them when it is null.
+     *
+     * @return Collection<int, User>
+     */
+    public function notifyUsers(): Collection
+    {
+        return User::query()
+            ->where('family_id', $this->family_id)
+            ->when($this->mail_inbox_notify !== null, fn ($query) => $query->whereIn('id', $this->mail_inbox_notify))
+            ->orderBy('id')
+            ->get();
     }
 }

@@ -24,10 +24,13 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
+use App\Http\Controllers\MailgunWebhookController;
+use App\Http\Controllers\MailSettingsController;
 use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PersonController;
+use App\Http\Controllers\ReceivedMailController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
@@ -53,6 +56,14 @@ Route::get('calendar/{token}.ics', CalendarFeedController::class)
     ->middleware('throttle:60,1')
     ->withoutMiddleware('web')
     ->name('calendar.feed');
+
+// The mail of the families, forwarded by the route of Mailgun for the whole domain and signed with its key. Outside
+// the web group like the calendar: no session, no cookie, no CSRF token (Mailgun has none), and the language of the
+// texts is the one of the installation. The throttle is high: every mail of every family comes from Mailgun.
+Route::post('mail/mailgun', MailgunWebhookController::class)
+    ->middleware('throttle:300,1')
+    ->withoutMiddleware('web')
+    ->name('mail.mailgun');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('welcome', [WelcomeController::class, 'show'])->name('welcome');
@@ -135,6 +146,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
+        Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
+        Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
+        Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::get('settings/areas', [AreaSettingsController::class, 'edit'])->name('settings.areas.edit');
@@ -159,6 +173,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
+        Route::get('mail', [ReceivedMailController::class, 'index'])->name('mail.index');
+        Route::get('mail/{receivedMail}', [ReceivedMailController::class, 'show'])->name('mail.show')->whereNumber('receivedMail');
+        Route::get('mail/{receivedMail}/text', [ReceivedMailController::class, 'text'])->name('mail.text')->whereNumber('receivedMail');
+        Route::delete('mail/{receivedMail}', [ReceivedMailController::class, 'destroy'])->name('mail.destroy')->whereNumber('receivedMail');
+        Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->name('mail.notice')->whereNumber('receivedMail');
         Route::resource('documents', DocumentController::class)->except(['create', 'store']);
         Route::post('documents/{document}/file', [DocumentController::class, 'file'])->name('documents.file');
 

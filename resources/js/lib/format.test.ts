@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vite-plus/test';
 import {
     formatDate,
+    formatDateTime,
+    formatShortDateTime,
     formatEuro,
     formatLongDate,
     formatSize,
@@ -84,6 +86,24 @@ describe('todayInRome', () => {
         // 23:30 in London on the 1st is already the 2nd in Rome
         expect(todayInRome(new Date('2026-11-01T23:30:00Z'))).toBe(
             '2026-11-02',
+        );
+    });
+});
+
+describe('formatDateTime', () => {
+    it('writes the day and the time in Rome, from a moment of the server', () => {
+        expect(formatDateTime('2026-10-25T09:41:00+01:00')).toBe(
+            '25/10/2026 09:41',
+        );
+        // 22:30 UTC on 31/10 is 23:30 in Rome
+        expect(formatDateTime('2026-10-31T22:30:00Z')).toBe('31/10/2026 23:30');
+    });
+});
+
+describe('formatShortDateTime', () => {
+    it('writes the day without the year and the time, as the phone shows them', () => {
+        expect(formatShortDateTime('2026-10-14T07:58:00+02:00')).toBe(
+            '14/10 · 07:58',
         );
     });
 });

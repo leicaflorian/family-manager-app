@@ -34,4 +34,23 @@ describe('Invitation sent', () => {
             await screen.findByRole('button', { name: 'Copied' }),
         ).toBeInTheDocument();
     });
+
+    it('says so when the browser refuses to copy', async () => {
+        const copy = vi.fn().mockRejectedValue(new Error('denied'));
+        Object.assign(navigator, { clipboard: { writeText: copy } });
+        renderPage(InvitationSent, { invitation });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Copy the link' }),
+        );
+
+        expect(
+            await screen.findByText(
+                'Could not copy: select the text and copy it by hand.',
+            ),
+        ).toHaveAttribute('role', 'status');
+        expect(
+            screen.getByRole('button', { name: 'Copy the link' }),
+        ).toBeInTheDocument();
+    });
 });

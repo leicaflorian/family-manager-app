@@ -1,0 +1,32 @@
+{
+    "id": "v1_ChdpbnRlcmFjdGlvbi1iaWxsLTAx",
+    "object": "interaction",
+    "model": "gemini-3.8-flash",
+    "status": "completed",
+    "created": "2026-10-25T18:04:12Z",
+    "updated": "2026-10-25T18:04:19Z",
+    "role": "model",
+    "steps": [
+        {
+            "type": "thought",
+            "signature": "Q2lRQlZLaHVkR2hwYm1jPQ==",
+            "summary": []
+        },
+        {
+            "type": "model_output",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "{\"verdict\": \"discard\", \"reason\": \"offerta commerciale\"}"
+                }
+            ]
+        }
+    ],
+    "usage": {
+        "total_input_tokens": 210,
+        "total_cached_tokens": 0,
+        "total_output_tokens": 20,
+        "total_thought_tokens": 35,
+        "total_tokens": 265
+    }
+}

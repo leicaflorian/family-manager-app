@@ -12,6 +12,7 @@ use App\Enums\UtilityType;
 use App\Models\Document;
 use App\Models\Employment;
 use App\Models\Family;
+use App\Models\FamilySetting;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
 use App\Models\Organization;
@@ -173,4 +174,24 @@ function boardFamily(): User
     });
 
     return $marco;
+}
+
+/**
+ * A family registered through `CreateFamily` with its address for the bills, for the tests of the mail that
+ * reaches it from Mailgun.
+ *
+ * @param  string  $lastName  the last name, which is also the name of the family
+ * @param  string  $email  the email of the `admin` account
+ * @param  string  $address  the address for the bills
+ * @return User the `admin` account
+ */
+function familyWithMailAddress(string $lastName, string $email, string $address): User
+{
+    $admin = registerFamily($lastName, $email);
+
+    insideFamilyOf($admin, function () use ($address): void {
+        FamilySetting::query()->firstOrCreate([])->forceFill(['mail_inbox_recipient' => $address])->save();
+    });
+
+    return $admin;
 }

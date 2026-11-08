@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
 use App\Exceptions\Reading\ReadingFailed;
+use App\Models\Family;
 use App\Models\File;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingSource;
+use App\Support\CurrentFamily;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeDocumentReader;
 
@@ -38,4 +41,16 @@ test('the fake reader fails with its error', function (): void {
     expect(fn (): Reading => $reader->read($this->source, $this->context, 'it'))
         ->toThrow(ReadingFailed::class, 'The model refused to read the document.')
         ->and($reader->reads())->toBe(1);
+});
+
+test('the fake reader screens a mail with its answer and counts the screenings', function (): void {
+    $reader = (new FakeDocumentReader)->screens(new MailScreeningAnswer('keep', 'bolletta del gas'));
+
+    $family = Family::factory()->create();
+
+    $answer = CurrentFamily::using($family->id, fn (): MailScreeningAnswer => $reader->screen('a@b.it', 'Bolletta', 'it'));
+
+    expect($answer->verdict)->toBe('keep')
+        ->and($reader->screenings())->toBe(1)
+        ->and($reader->reads())->toBe(0);
 });

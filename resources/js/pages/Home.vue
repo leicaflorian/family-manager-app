@@ -7,11 +7,13 @@
  * computer: the box and the deadlines on the left, the incomes on the right.
  * *Something is missing* (on the right, only when a card lacks a document,
  * with the page that uploads it) and the bell of the notices beside the
- * greeting, whose menu loads the notices when it opens. The recently uploaded documents and the mail come with their own
- * items.
+ * greeting, whose menu loads the notices when it opens. *Mail that arrived* (on the right, between the incomes and
+ * what is missing, only when mail with files arrived) lists the last three mails with the card their documents are
+ * linked to, each opening *Received mail*. The recently uploaded documents come with their own item.
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
+import { Mail } from '@lucide/vue';
 import { computed } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
@@ -20,12 +22,15 @@ import FmBell from '@/components/fm/FmBell.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChecklist from '@/components/fm/FmChecklist.vue';
 import FmFileTile from '@/components/fm/FmFileTile.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
-import { formatLongDate, formatSize } from '@/lib/format';
+import { capitalized } from '@/lib/budget';
+import { formatLongDate, formatSize, relativeDays } from '@/lib/format';
 import { agenda, areas, toSort, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
+import { index as receivedMail } from '@/routes/mail';
 import { create as invite } from '@/routes/family/invitations';
 
 const { home, notices } = defineProps<{
@@ -105,8 +110,40 @@ const beginning = computed(() => steps.value.length > 0);
 /** Whether the right column has something to show; without it the left one takes the whole width. */
 const hasRightColumn = computed(
     () =>
-        home.incoming.length > 0 || home.missing.length > 0 || beginning.value,
+        home.incoming.length > 0 ||
+        home.missing.length > 0 ||
+        home.mails.length > 0 ||
+        beginning.value,
 );
+
+/**
+ * The second line of a mail of *Mail that arrived*: the day it arrived and, when its documents are linked to cards, which.
+ *
+ * @param mail - the mail, as the server sends it
+ * @returns «Yesterday · linked to Gas - Enel Energia», or only the day
+ */
+function mailLine(mail: App.Data.HomeMailData): string {
+    const day = capitalized(relativeDays(mail.received_at));
+
+    return mail.links.length === 0
+        ? day
+        : trans(':day · linked to :cards', {
+              day,
+              cards: mail.links.join(', '),
+          });
+}
+
+/**
+ * The first line of a mail of *Mail that arrived*: who wrote and the subject, or only who wrote.
+ *
+ * @param mail - the mail, as the server sends it
+ * @returns «Enel Energia · La tua bolletta»
+ */
+function mailTitle(mail: App.Data.HomeMailData): string {
+    return mail.subject === null
+        ? mail.sender
+        : `${mail.sender} · ${mail.subject}`;
+}
 </script>
 
 <template>
@@ -198,7 +235,9 @@ const hasRightColumn = computed(
                 class="flex flex-col gap-5 lg:col-span-2"
                 :class="{
                     'max-lg:hidden':
-                        home.incoming.length === 0 && home.missing.length === 0,
+                        home.incoming.length === 0 &&
+                        home.missing.length === 0 &&
+                        home.mails.length === 0,
                 }"
             >
                 <FmCard
@@ -221,6 +260,28 @@ const hasRightColumn = computed(
                             )
                         }}
                     </p>
+                </FmCard>
+                <FmCard
+                    v-if="home.mails.length > 0"
+                    :title="$t('Mail that arrived')"
+                    list
+                >
+                    <FmRow
+                        v-for="mail in home.mails"
+                        :key="mail.id"
+                        :title="mailTitle(mail)"
+                        :subtitle="mailLine(mail)"
+                        :href="receivedMail().url"
+                    >
+                        <template #before>
+                            <span
+                                aria-hidden="true"
+                                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                            >
+                                <FmIcon :icon="Mail" :size="20" />
+                            </span>
+                        </template>
+                    </FmRow>
                 </FmCard>
                 <FmCard
                     v-if="home.missing.length > 0"

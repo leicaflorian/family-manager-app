@@ -3,7 +3,8 @@
  * *Where they come from*, beside the list of *To sort* on the computer, as the
  * board *Da smistare-pc* draws it: each filter with its icon, its longer name
  * and how many files it has; the one chosen is light blue, and one with no
- * file cannot be chosen. Below the box, how long the files stay. On the phone
+ * file cannot be chosen. Below the box, the row that opens *Received mail* and
+ * how long the files stay. On the phone
  * and the tablet the page shows the same filters as tabs.
  */
 import type { LucideIcon } from '@lucide/vue';
@@ -12,7 +13,9 @@ import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmRow from '@/components/fm/FmRow.vue';
 import { toSort } from '@/routes';
+import { index as receivedMail } from '@/routes/mail';
 
 const { filters, source } = defineProps<{
     /** The filters in order, with their names and how many files each has. */
@@ -126,6 +129,22 @@ const sources = computed((): Source[] =>
                 </Link>
             </template>
         </nav>
+        <div class="overflow-hidden rounded-card bg-card">
+            <FmRow
+                :title="$t('Received mail')"
+                :subtitle="$t('The mails and what was done with them')"
+                :href="receivedMail().url"
+            >
+                <template #before>
+                    <span
+                        aria-hidden="true"
+                        class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="Mail" :size="18" />
+                    </span>
+                </template>
+            </FmRow>
+        </div>
         <p class="m-0 px-1 text-[13px] leading-relaxed text-ink-soft">
             {{
                 $t(

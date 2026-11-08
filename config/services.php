@@ -30,6 +30,16 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'mailgun' => [
+        'signing_key' => env('MAILGUN_SIGNING_KEY'),
+        'api_key' => env('MAILGUN_API_KEY'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'https://api.eu.mailgun.net'),
+        'inbox_domain' => env('MAIL_INBOX_DOMAIN'),
+        'max_attachment_mb' => 20,
+        'max_body_mb' => 40,
+        'daily_limit' => 100,
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

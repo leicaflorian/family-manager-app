@@ -341,6 +341,14 @@ readonly pending: App.Data.PendingFileData[],
 readonly pending_count: number,
 readonly checklist: App.Data.ChecklistStepData[],
 readonly missing: App.Data.MissingDocumentData[],
+readonly mails: App.Data.HomeMailData[],
+};
+export type HomeMailData = {
+readonly id: number,
+readonly sender: string,
+readonly subject: string | null,
+readonly received_at: string,
+readonly links: string[],
 };
 export type InvitationData = {
 readonly first_name: string,
@@ -358,6 +366,24 @@ readonly options: App.Data.OptionData[],
 export type LoanFiguresData = {
 readonly total_to_pay: number | null,
 readonly cost: number | null,
+};
+export type MailAccountData = {
+readonly id: number,
+readonly name: string,
+readonly email: string,
+readonly chosen: boolean,
+};
+export type MailSenderData = {
+readonly name: string,
+readonly address: string,
+};
+export type MailSettingsData = {
+readonly address: string | null,
+readonly senders: App.Data.MailSenderData[],
+readonly accounts: App.Data.MailAccountData[],
+readonly people_without_account: string[],
+readonly attachments_only: boolean,
+readonly can_edit: boolean,
 };
 export type MissingDocumentData = {
 readonly key: string,
@@ -559,6 +585,37 @@ readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
 };
+export type ReceivedMailData = {
+readonly row: App.Data.ReceivedMailRowData,
+readonly from: string,
+readonly recipient: string,
+readonly recipients: string[],
+readonly files: App.Data.ReceivedMailFileData[],
+readonly skipped: Array<{ name: string; reason: string }>,
+readonly notes: string[],
+readonly gmail_code: string | null,
+readonly has_text: boolean,
+readonly has_both_texts: boolean,
+readonly html_too_large: number | null,
+readonly text_url: string,
+readonly can_save_as_notice: boolean,
+readonly can_delete: boolean,
+readonly pending_notice: string | null,
+};
+export type ReceivedMailFileData = {
+readonly name: string,
+readonly state: 'to_sort' | 'document' | 'saved' | 'gone',
+readonly url: string | null,
+readonly document_title: string | null,
+};
+export type ReceivedMailRowData = {
+readonly id: number,
+readonly sender: string,
+readonly subject: string | null,
+readonly received_at: string,
+readonly outcome_label: string,
+readonly tone: 'success' | 'info' | 'neutral' | 'warning' | 'danger',
+};
 export type ReminderData = {
 readonly id: number,
 readonly title: string,
@@ -637,6 +694,12 @@ label: string,
 count: number,
 }[],
 };
+namespace Mail {
+export type MailScreeningAnswer = {
+readonly verdict: unknown,
+readonly reason: string | null,
+};
+}
 namespace Reading {
 export type DocumentProposalData = {
 readonly title: string | null,
@@ -834,6 +897,7 @@ namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BelongingStatus = 'in_use' | 'disposed';
+export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited';
 export type Channel = 'app' | 'email' | 'both';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type DueMode = 'new' | 'existing' | 'exception';
@@ -853,6 +917,7 @@ export type InsurancePolicyStatus = 'active' | 'expired' | 'cancelled';
 export type InsurancePolicyType = 'car' | 'life' | 'home' | 'health' | 'accident' | 'fund' | 'other';
 export type IntervalUnit = 'week' | 'month' | 'year';
 export type LoanStatus = 'active' | 'paid_off';
+export type MailOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation';
 export type MaintenanceTarget = 'home' | 'belonging' | 'vehicle';
 export type MaintenanceType = 'service' | 'inspection' | 'repair' | 'boiler_service' | 'other';
 export type NoticeTone = 'info' | 'warning' | 'danger';
@@ -863,6 +928,7 @@ export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped'
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance';
 export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
+export type SkipReason = 'too_small' | 'too_large' | 'not_a_document' | 'duplicate';
 export type SubscriptionStatus = 'active' | 'cancelled';
 export type SubscriptionType = 'streaming' | 'software' | 'cloud' | 'web' | 'other';
 export type Theme = 'system' | 'light' | 'dark';

@@ -14,11 +14,12 @@ final class Translated
      *
      * @param  string  $key  the English text
      * @param  array<string, string|int>  $replace  the values of the placeholders
+     * @param  string|null  $locale  the language to write in, the current one when null
      * @return string the translation, or the key itself when it has none
      */
-    public static function text(string $key, array $replace = []): string
+    public static function text(string $key, array $replace = [], ?string $locale = null): string
     {
-        $text = __($key, $replace);
+        $text = __($key, $replace, $locale);
 
         return is_string($text) ? $text : $key;
     }

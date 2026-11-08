@@ -28,6 +28,7 @@ final class HomeData extends Data
      * @param  int  $pending_count  how many files wait
      * @param  list<ChecklistStepData>  $checklist  the steps of *To begin*; empty when all are done
      * @param  list<MissingDocumentData>  $missing  the documents the cards expect and do not have; empty when nothing is missing
+     * @param  list<HomeMailData>  $mails  the last mails that brought files, three at most; empty when none
      */
     public function __construct(
         public readonly string $first_name,
@@ -43,5 +44,7 @@ final class HomeData extends Data
         public readonly array $checklist,
         #[DataCollectionOf(MissingDocumentData::class)]
         public readonly array $missing,
+        #[DataCollectionOf(HomeMailData::class)]
+        public readonly array $mails,
     ) {}
 }

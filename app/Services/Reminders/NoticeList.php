@@ -7,12 +7,15 @@ namespace App\Services\Reminders;
 use App\Data\AgendaData;
 use App\Data\ReminderNoticeData;
 use App\Enums\ReminderStatus;
+use App\Models\ReceivedMail;
 use App\Models\Reminder;
 use App\Models\ReminderNotice;
 use App\Support\Reminders\DueText;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 
@@ -98,10 +101,25 @@ final readonly class NoticeList
     {
         return ReminderNotice::query()
             ->where('user_id', $userId)
-            ->with(['reminder.link'])
+            ->with($this->relations())
             ->orderByRaw('read_at IS NOT NULL')
             ->latest('sent_at')
             ->latest('id');
+    }
+
+    /**
+     * What a row of a notice reads with it: the reminder and its card, or the mail without its text (it can be more
+     * than a megabyte) and the organization of its sender.
+     *
+     * @return array<int|string, string|Closure>
+     */
+    private function relations(): array
+    {
+        return [
+            'reminder.link',
+            'mail' => static fn (BelongsTo $query): BelongsTo => $query->select(ReceivedMail::SUMMARY_COLUMNS),
+            'mail.organization',
+        ];
     }
 
     /**
@@ -112,7 +130,7 @@ final readonly class NoticeList
      */
     public function hrefOf(ReminderNotice $notice, CarbonImmutable $today): string
     {
-        $notice->load('reminder.link');
+        $notice->load($this->relations());
 
         return $this->rows(new Collection([$notice]), $today)[0]->href;
     }
@@ -120,16 +138,22 @@ final readonly class NoticeList
     /**
      * The rows of some notices, with the things they refer to read together.
      *
-     * @param  Collection<int, ReminderNotice>  $notices  the notices, with `reminder.link` loaded
+     * @param  Collection<int, ReminderNotice>  $notices  the notices, with `reminder.link` and `mail.organization` loaded
      * @param  CarbonImmutable  $today  today in Rome
      * @return list<ReminderNoticeData>
      */
     private function rows(Collection $notices, CarbonImmutable $today): array
     {
-        $this->reminders->loadSubjects(new Collection($notices->map(static fn (ReminderNotice $notice): Reminder => $notice->reminder)->unique('id')->values()->all()));
+        $this->reminders->loadSubjects(new Collection($notices->map(static fn (ReminderNotice $notice): ?Reminder => $notice->reminder)->filter()->unique('id')->values()->all()));
 
         return array_values($notices->map(function (ReminderNotice $notice) use ($today): ReminderNoticeData {
             $reminder = $notice->reminder;
+            $dueDate = $notice->due_date;
+
+            if (! $reminder instanceof Reminder || ! $dueDate instanceof CarbonImmutable) {
+                return $this->mailRow($notice);
+            }
+
             $subject = $this->reminders->subject($reminder->link);
             $title = $this->reminders->titleOf($reminder);
             $sentOn = $notice->sent_at->setTimezone('Europe/Rome');
@@ -139,7 +163,7 @@ final readonly class NoticeList
                 title: ReminderList::joinTitle($title, $subject?->label),
                 subject: $subject?->label,
                 area: $subject->area ?? AgendaData::GENERAL_AREA,
-                due_text: DueText::when($sentOn->startOfDay(), $notice->due_date, ! $reminder->is_automatic),
+                due_text: DueText::when($sentOn->startOfDay(), $dueDate, ! $reminder->is_automatic),
                 sent_at: $sentOn->format('Y-m-d\TH:i'),
                 read: $notice->read_at !== null,
                 state: match (true) {
@@ -150,5 +174,33 @@ final readonly class NoticeList
                 href: $this->reminders->hrefOf($reminder, $subject),
             );
         })->all());
+    }
+
+    /**
+     * The row of a notice without a reminder: a received mail, which it leads to, or the limit of the mails a day,
+     * which leads to the address for the bills. The first line of the notice is the line under the title.
+     *
+     * @param  ReminderNotice  $notice  the notice, with `mail.organization` loaded
+     */
+    private function mailRow(ReminderNotice $notice): ReminderNoticeData
+    {
+        $mail = $notice->mail;
+        $lines = $notice->lines ?? [];
+        $first = $lines[0] ?? null;
+
+        // The route of the address comes with its page (task 12)
+        return new ReminderNoticeData(
+            id: $notice->id,
+            title: $mail instanceof ReceivedMail
+                ? __('Arrived by mail · :subject', ['subject' => $mail->subject ?? __('no subject')])
+                : __('Too many mails today'),
+            subject: $mail?->senderName(),
+            area: AgendaData::GENERAL_AREA,
+            due_text: is_string($first) ? $first : '',
+            sent_at: $notice->sent_at->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
+            read: $notice->read_at !== null,
+            state: null,
+            href: $mail instanceof ReceivedMail ? route('mail.show', $mail) : route('mail-settings.edit'),
+        );
     }
 }

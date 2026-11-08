@@ -191,6 +191,7 @@ final class Copier
             $copy = match ($target) {
                 'users' => $this->account($copy, $accounts[$this->key($row['id'] ?? null)] ?? null),
                 'files' => $this->file($copy, $row, $familyId, $withFiles),
+                'family_settings' => $this->settings($copy, $familyId),
                 default => $copy,
             };
 
@@ -291,6 +292,32 @@ final class Copier
             'email_verified_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
+        ];
+    }
+
+    /**
+     * The row of the settings of the app. The accounts told about the mail are the ones copied, found by email (the
+     * accounts were copied before, `DirectusMap::order()`), and the switch for the mails with attachments is on when
+     * Directus never had it. The address is kept in lower case, without spaces.
+     *
+     * @param  array<string, mixed>  $copy  the row of `DirectusMap`
+     * @return array<string, mixed>
+     */
+    private function settings(array $copy, int $familyId): array
+    {
+        $accounts = DB::table('users')->where('family_id', $familyId)->pluck('id', 'email')
+            ->mapWithKeys(fn (mixed $id, mixed $email): array => [mb_strtolower($this->text($email)) => (int) (is_numeric($id) ? $id : 0)])
+            ->all();
+        $ids = DirectusMap::notifyIds($copy['mail_inbox_notify'] ?? null, $accounts);
+
+        return [
+            ...$copy,
+            // `findByMailRecipient()` compares in lower case: an address written with capitals would find nobody
+            'mail_inbox_recipient' => is_string($copy['mail_inbox_recipient'] ?? null) && trim($copy['mail_inbox_recipient']) !== ''
+                ? mb_strtolower(trim($copy['mail_inbox_recipient']))
+                : null,
+            'mail_inbox_notify' => $ids === null ? null : json_encode($ids),
+            'mail_inbox_notify_attachments_only' => ($copy['mail_inbox_notify_attachments_only'] ?? null) === null ? true : (bool) $copy['mail_inbox_notify_attachments_only'],
         ];
     }
 

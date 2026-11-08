@@ -1,0 +1,274 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Jobs;
+
+use App\Actions\Mail\NotifyMail;
+use App\Actions\Mail\SaveMailNotice;
+use App\Actions\Reading\QueueReading;
+use App\Data\Mail\MailScreeningAnswer;
+use App\Enums\MailOutcome;
+use App\Enums\ReadingPurpose;
+use App\Enums\ReadingStatus;
+use App\Models\File;
+use App\Models\ReceivedMail;
+use App\Services\Mail\MailScreening;
+use App\Support\CurrentFamily;
+use App\Support\Mail\AttachmentRules;
+use App\Support\Mail\MailFlow;
+use App\Support\Mail\NoticeText;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Config;
+use Throwable;
+
+/**
+ * What is done with a received mail after Mailgun has its answer (analysis, point 9): the question to the AI, the
+ * notice held, the readings and the one notice in the bell. It runs in the queue, where nobody is signed in, so it
+ * carries the family of the mail and works inside it, whatever family is set around it.
+ *
+ * The readings are `ReadFile` jobs in one batch, at most 5 (`AttachmentRules::toRead`); the end of the batch writes
+ * the failures in the notes of the mail and sends the notice (`afterReadings`). A job that fails leaves the mail
+ * as it was, *In esame* for a held notice: the queue tries again, and after the last try *Salva come avviso*
+ * recovers it.
+ *
+ * A try lasts at most 80 seconds: less than the 90 of `retry_after` of the queue, after which another worker would
+ * start the same mail (and pay the question twice), more than the 30 of the question to the service.
+ */
+#[Timeout(80)]
+#[Tries(3)]
+final class ScreenReceivedMail implements ShouldQueue
+{
+    use Queueable;
+
+    /**
+     * @param  int  $mailId  the received mail
+     * @param  int  $familyId  the family of the mail
+     */
+    public function __construct(
+        public readonly int $mailId,
+        public readonly int $familyId,
+    ) {}
+
+    /**
+     * Works on the mail inside its family. The confirmation of Gmail only tells the bell (decision 8); a mail that
+     * is not saved or held any more (discarded by a try before) is left as it is.
+     *
+     * @param  MailScreening  $screening  the question to the AI
+     * @param  QueueReading  $readings  marks the files to read
+     * @param  SaveMailNotice  $notices  finds and saves the held notice
+     * @param  NotifyMail  $notify  the notice of the bell
+     *
+     * @throws Throwable when the held notice is not saved, so that the queue tries again
+     */
+    public function handle(MailScreening $screening, QueueReading $readings, SaveMailNotice $notices, NotifyMail $notify): void
+    {
+        CurrentFamily::using($this->familyId, function () use ($screening, $readings, $notices, $notify): void {
+            $mail = ReceivedMail::query()->find($this->mailId);
+
+            if (! $mail instanceof ReceivedMail) {
+                return;
+            }
+
+            if ($mail->outcome === MailOutcome::Confirmation) {
+                $notify->handle($mail);
+
+                return;
+            }
+
+            if ($mail->outcome === MailOutcome::Saved || $mail->outcome === MailOutcome::Held) {
+                $this->screen($mail, $screening, $readings, $notices, $notify);
+            }
+        });
+    }
+
+    /**
+     * The end of the readings of a mail: the files whose reading failed go in its notes, then the notice of the
+     * bell. Called by the batch when its last job ended, in a worker where no family is set.
+     *
+     * @param  int  $mailId  the mail
+     * @param  int  $familyId  the family of the mail
+     * @param  list<int>  $fileIds  the files that were read
+     */
+    public static function afterReadings(int $mailId, int $familyId, array $fileIds): void
+    {
+        CurrentFamily::using($familyId, static function () use ($mailId, $fileIds): void {
+            $mail = ReceivedMail::query()->find($mailId);
+
+            if (! $mail instanceof ReceivedMail) {
+                return;
+            }
+
+            // A file still `queued` or `reading` failed too: the batch ends before the queue calls `failed()`
+            $failures = array_values(File::query()->whereIn('id', $fileIds)->orderBy('id')->get()
+                ->filter(static fn (File $file): bool => in_array($file->reading_status, [ReadingStatus::Failed, ReadingStatus::Queued, ReadingStatus::Reading], true))
+                ->map(static fn (File $file): string => MailFlow::readFailure(
+                    $file->original_name,
+                    $file->reading_status === ReadingStatus::Failed && $file->reading_error !== null
+                        ? $file->reading_error
+                        : NoticeText::translate('The file could not be read.'),
+                ))
+                ->all());
+
+            self::addNotes($mail, $failures);
+            resolve(NotifyMail::class)->handle($mail);
+        });
+    }
+
+    /**
+     * The decisions of `afterScreen`: a held notice to discard ends the mail; files to discard stay unread; otherwise
+     * the held notice is saved and the files are read. The answer of the model is kept on the mail as soon as it
+     * comes: a try after a failure uses it again instead of asking (and paying) twice, and finds the notice it saved.
+     *
+     * @param  ReceivedMail  $mail  the mail, saved or held
+     * @param  MailScreening  $screening  the question to the AI
+     * @param  QueueReading  $readings  marks the files to read
+     * @param  SaveMailNotice  $notices  finds and saves the held notice
+     * @param  NotifyMail  $notify  the notice of the bell
+     *
+     * @throws Throwable when the held notice is not saved, or the readings are not sent
+     */
+    private function screen(ReceivedMail $mail, MailScreening $screening, QueueReading $readings, SaveMailNotice $notices, NotifyMail $notify): void
+    {
+        $notice = $notices->find($mail);
+
+        if ($mail->screening === null) {
+            // A notice and no answer yet: *Salva come avviso* saved it, and did it all
+            if ($notice instanceof File) {
+                return;
+            }
+
+            $answer = $screening->ask($mail);
+            $mail->forceFill(['screening' => ['verdict' => $answer?->verdict, 'reason' => $answer?->reason]])->save();
+
+            // ... or it saved it while the model was answering
+            if ($notices->find($mail) instanceof File) {
+                return;
+            }
+        } else {
+            $answer = $this->storedAnswer($mail->screening);
+        }
+
+        // A notice with an answer was saved by a try before: the mail was held
+        $held = $mail->outcome === MailOutcome::Held || $notice instanceof File;
+        $decision = MailFlow::afterScreen($answer, $held);
+        $notes = $decision['note'] === null ? [] : [$decision['note']];
+
+        if ($decision['action'] === 'discard') {
+            $mail->outcome = MailOutcome::Discarded;
+            self::addNotes($mail, $notes);
+
+            return;
+        }
+
+        self::addNotes($mail, $notes);
+
+        if ($decision['action'] === 'unread') {
+            $notify->handle($mail);
+
+            return;
+        }
+
+        if ($held) {
+            $notice ??= $notices->handle($mail);
+
+            if (! $notice instanceof File) {
+                $mail->forceFill(['outcome' => MailOutcome::Empty])->save();
+
+                return;
+            }
+
+            $mail->forceFill(['outcome' => MailOutcome::Saved])->save();
+            $this->read($mail, [$notice], ReadingPurpose::MailNotice, $readings, $notify);
+
+            return;
+        }
+
+        $saved = $mail->files()->orderBy('id')->get();
+        $ids = AttachmentRules::toRead(array_values($saved->map(static fn (File $file): array => ['id' => $file->id, 'type' => $file->mime_type])->all()));
+        $this->read($mail, array_values($saved->whereIn('id', $ids)->all()), ReadingPurpose::MailFile, $readings, $notify);
+    }
+
+    /**
+     * The answer kept on the mail by a try before: null when the model was not asked (a known sender, the reading
+     * off or the readings of the month used up).
+     *
+     * @param  array<array-key, mixed>  $stored  the column `screening`
+     */
+    private function storedAnswer(array $stored): ?MailScreeningAnswer
+    {
+        $verdict = $stored['verdict'] ?? null;
+        $reason = $stored['reason'] ?? null;
+
+        return in_array($verdict, ['discard', 'keep', 'unsure'], true) ? new MailScreeningAnswer($verdict, is_string($reason) ? $reason : null) : null;
+    }
+
+    /**
+     * Sends the readings of some files in one batch, whose end sends the notice; with nothing to read the notice
+     * goes now. A file already queued or read (by a try before) is not read again; with the reading off or the
+     * readings of the month used up the files are marked `off`.
+     *
+     * @param  ReceivedMail  $mail  the mail
+     * @param  list<File>  $toRead  the files to read
+     * @param  ReadingPurpose  $purpose  the notice or an attachment, as `ai_readings` records it
+     * @param  QueueReading  $readings  marks the files to read
+     * @param  NotifyMail  $notify  the notice of the bell
+     *
+     * @throws Throwable when the batch is not sent; the files are unread again
+     */
+    private function read(ReceivedMail $mail, array $toRead, ReadingPurpose $purpose, QueueReading $readings, NotifyMail $notify): void
+    {
+        // The mails have no person to write for: the messages are in the language of the installation
+        $locale = Config::string('app.locale');
+        $jobs = [];
+
+        foreach ($toRead as $file) {
+            if ($file->reading_status === null && $readings->prepare($file, $locale) === ReadingStatus::Queued) {
+                $jobs[] = new ReadFile($file->id, $this->familyId, null, $locale, $purpose);
+            }
+        }
+
+        if ($jobs === []) {
+            $notify->handle($mail);
+
+            return;
+        }
+
+        $mailId = $mail->id;
+        $familyId = $this->familyId;
+        $fileIds = array_map(static fn (ReadFile $job): int => $job->fileId, $jobs);
+
+        try {
+            Bus::batch($jobs)
+                ->name("mail {$mailId}")
+                ->allowFailures()
+                ->finally(static function () use ($mailId, $familyId, $fileIds): void {
+                    ScreenReceivedMail::afterReadings($mailId, $familyId, $fileIds);
+                })
+                ->dispatch();
+        } catch (Throwable $error) {
+            // Not sent: the files go back unread, so that the try after reads them instead of waiting forever
+            File::query()->whereIn('id', $fileIds)->update(['reading_status' => null, 'reading_error' => null]);
+
+            throw $error;
+        }
+    }
+
+    /**
+     * Adds notes to the mail and saves it, with whatever else changed on it. A note the mail has already (written
+     * by a try before) is not added again.
+     *
+     * @param  ReceivedMail  $mail  the mail
+     * @param  list<string>  $notes  the notes to add
+     */
+    private static function addNotes(ReceivedMail $mail, array $notes): void
+    {
+        $new = array_values(array_filter($notes, static fn (string $note): bool => ! in_array($note, $mail->notes, true)));
+
+        $mail->forceFill(['notes' => [...$mail->notes, ...$new]])->save();
+    }
+}

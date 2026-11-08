@@ -5,10 +5,10 @@
  */
 import { Head } from '@inertiajs/vue3';
 import { Check, Copy } from '@lucide/vue';
-import { ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useCopy } from '@/composables/useCopy';
 import { useFormat } from '@/composables/useFormat';
 import { family } from '@/routes';
 
@@ -18,14 +18,14 @@ const { invitation } = defineProps<{
 }>();
 
 const { date } = useFormat();
-const copied = ref(false);
+/** `failed`: the browser refused to copy, so the person selects the link and copies it by hand. */
+const { copied, failed: copyFailed, copy: copyText } = useCopy();
 
 /**
  * Copies the link to the clipboard.
  */
 async function copy(): Promise<void> {
-    await navigator.clipboard.writeText(invitation.link);
-    copied.value = true;
+    await copyText(invitation.link);
 }
 </script>
 
@@ -65,6 +65,9 @@ async function copy(): Promise<void> {
             <FmButton :icon="copied ? Check : Copy" @click="copy">{{
                 copied ? $t('Copied') : $t('Copy the link')
             }}</FmButton>
+            <span v-if="copyFailed" role="status" class="self-center text-sm">{{
+                $t('Could not copy: select the text and copy it by hand.')
+            }}</span>
             <FmButton variant="text" :href="family().url">{{
                 $t('Back to the family')
             }}</FmButton>

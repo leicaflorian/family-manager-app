@@ -1,2 +1,8 @@
 [phases.setup]
 aptPkgs = ["...", "poppler-utils", "libheif-examples"]
+
+[variables]
+# PHP reads docker/8.5/php.ini after its own files (the leading ':' keeps the default folder): the limits of the
+# body of a call of Mailgun and of the uploads (post_max_size, upload_max_filesize, max_file_uploads). To check with
+# `php -i | grep post_max_size` at the first build online.
+PHP_INI_SCAN_DIR = ":/app/docker/8.5"

@@ -14,22 +14,25 @@ use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A notice of the bell: one reminder, for one account, on the day the morning round sent it (`reminder_notices`).
+ * A notice of the bell: one reminder (or one received mail), for one account, on the day the morning round sent it (`reminder_notices`).
  *
  * @property int $id
  * @property int $family_id
- * @property int $reminder_id
+ * @property int|null $reminder_id
  * @property int $user_id
- * @property CarbonImmutable $due_date
- * @property int $offset
+ * @property CarbonImmutable|null $due_date
+ * @property int|null $offset
  * @property CarbonImmutable $sent_at
  * @property CarbonImmutable|null $read_at
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property int|null $received_mail_id
+ * @property array<array-key, mixed>|null $lines
  * @property-read Family $family
- * @property-read Reminder $reminder
+ * @property-read ReceivedMail|null $mail
+ * @property-read Reminder|null $reminder
  * @property-read User $user
  *
  * @method static ReminderNoticeFactory factory($count = null, $state = [])
@@ -40,7 +43,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['reminder_id', 'user_id', 'due_date', 'offset', 'sent_at', 'read_at'])]
+#[Fillable(['reminder_id', 'user_id', 'due_date', 'offset', 'sent_at', 'read_at', 'received_mail_id', 'lines'])]
 final class ReminderNotice extends FamilyModel
 {
     /** @use HasFactory<ReminderNoticeFactory> */
@@ -83,6 +86,16 @@ final class ReminderNotice extends FamilyModel
     }
 
     /**
+     * The mail the notice is about, for a notice that is not about a reminder.
+     *
+     * @return BelongsTo<ReceivedMail, $this>
+     */
+    public function mail(): BelongsTo
+    {
+        return $this->belongsTo(ReceivedMail::class, 'received_mail_id');
+    }
+
+    /**
      * The account the notice is for.
      *
      * @return BelongsTo<User, $this>
@@ -102,6 +115,7 @@ final class ReminderNotice extends FamilyModel
         return [
             'due_date' => 'immutable_date',
             'offset' => 'integer',
+            'lines' => 'array',
             'sent_at' => 'immutable_datetime',
             'read_at' => 'immutable_datetime',
         ];

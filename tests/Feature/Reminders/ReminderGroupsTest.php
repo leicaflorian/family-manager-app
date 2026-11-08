@@ -176,7 +176,8 @@ test('a new group is created', function (): void {
 });
 
 test('a person of another family or without an account is refused', function (): void {
-    $stranger = Person::factory()->for(Family::factory())->create();
+    // a fixed name: the faker can draw «Bianchi», and insideBianchi() would find two families
+    $stranger = Person::factory()->for(Family::factory()->state(['name' => 'Rossi']))->create();
     $row = ['name' => 'Promemoria', 'days' => 3, 'timing' => 'before', 'channels' => 'app'];
 
     foreach ([$stranger->id, personWithoutAccount()->id, 999999] as $id) {
@@ -190,7 +191,7 @@ test('a person of another family or without an account is refused', function ():
 });
 
 test('a group of another family is refused', function (): void {
-    $other = ReminderGroup::factory()->create(['is_default' => true]);
+    $other = ReminderGroup::factory()->for(Family::factory()->state(['name' => 'Rossi']))->create(['is_default' => true]);
     $groups = [...sentGroups(), ['id' => $other->id, 'name' => 'Hijacked', 'is_default' => false, 'deadline_types' => [], 'notifications' => []]];
 
     test()->actingAs($this->marco)->put('/settings/notices', ['groups' => $groups])->assertSessionHasErrors('groups.3.id');

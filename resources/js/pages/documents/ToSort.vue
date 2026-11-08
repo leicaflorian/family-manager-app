@@ -9,10 +9,11 @@
  * The bar at the top of the list chooses all the files (a copy is left out),
  * counts the ones chosen and has *Read and review* read them, then opens the
  * import, where the person checks and changes what was read before importing.
- * While a file is queued or read the page asks for its state every 2 seconds.
+ * The link to *Received mail* is an icon beside the title on the phone and the tablet, and a row under the
+ * filters on the computer. While a file is queued or read the page asks for its state every 2 seconds.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { Inbox, Sparkles } from '@lucide/vue';
+import { Inbox, Mail, Sparkles } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
 import ToSortSources from '@/components/documents/ToSortSources.vue';
@@ -28,6 +29,7 @@ import { useFileUpload } from '@/composables/useFileUpload';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { anyFileReading } from '@/lib/reading';
 import { toSort } from '@/routes';
+import { index as receivedMail } from '@/routes/mail';
 import { read } from '@/routes/to-sort';
 
 const props = defineProps<{
@@ -130,7 +132,17 @@ function readChosen(): void {
                       )
                     : undefined
             "
-        />
+        >
+            <!-- On the computer the same link is the row under the filters -->
+            <template #actions>
+                <FmButton
+                    class="lg:hidden"
+                    :icon="Mail"
+                    :label="$t('Received mail')"
+                    :href="receivedMail().url"
+                />
+            </template>
+        </FmTitle>
 
         <FmTabs
             class="lg:hidden"
