@@ -232,6 +232,57 @@ describe('FmDocumentForm', () => {
         ).toHaveValue('');
     });
 
+    it('empties the menu of the links after a choice, and offers a removed record again unselected', async () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            options: {
+                ...options,
+                links: [
+                    ...options.links,
+                    {
+                        type: 'utility',
+                        label: 'Utilities',
+                        options: [
+                            { value: '5', label: 'Acqua - Hera', help: null },
+                            { value: '6', label: 'Gas - Enel', help: null },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        await choose('Link it to', 'Gas - Enel');
+        await userEvent.keyboard('{Escape}');
+        let list = await openMenu('Link it to');
+
+        expect(shown(list)).toEqual([
+            'Laura - Comune di Bologna',
+            'Acqua - Hera',
+        ]);
+        expect(
+            within(list).queryByRole('option', { selected: true }),
+        ).not.toBeInTheDocument();
+        await userEvent.keyboard('{Escape}');
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Remove the link Gas - Enel' }),
+        );
+        await settle();
+
+        expect(
+            screen.getByRole('combobox', { name: 'Link it to' }),
+        ).toHaveValue('');
+        list = await openMenu('Link it to');
+        expect(shown(list)).toEqual([
+            'Laura - Comune di Bologna',
+            'Acqua - Hera',
+            'Gas - Enel',
+        ]);
+        expect(
+            within(list).queryByRole('option', { selected: true }),
+        ).not.toBeInTheDocument();
+    });
+
     it('asks before removing a link that is already saved, and keeps it on Cancel', async () => {
         renderPage(FmDocumentForm, {
             ...props,

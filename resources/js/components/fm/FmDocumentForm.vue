@@ -180,7 +180,7 @@ const linkChoices = computed(() => {
 /** The value of the menu of the links: a choice adds the record, and the menu goes back to empty. */
 const linkChoice = ref('');
 
-/** The field of the menu of the links, to empty its search box after a choice. */
+/** The field of the menu of the links, emptied through FormKit after a choice. */
 const linkNode = ref<FormKitNode>();
 
 watch(linkChoice, (key) => {
@@ -188,11 +188,11 @@ watch(linkChoice, (key) => {
 
     if (link) {
         form.links.push(link);
-        linkChoice.value = '';
-        // FormKit keeps the name of the chosen record in the box, though the value is empty again
-        if (linkNode.value) {
-            linkNode.value.props.inputText = '';
-        }
+        // Setting `linkChoice` back to '' is not enough: '' → key → '' happens in one Vue
+        // flush, so the `modelValue` prop of the field never changes and FormKit keeps the
+        // record as its value (its name comes back in the box and it stays ticked in the list).
+        // The field is emptied through its node, which also empties the model.
+        linkNode.value?.input('', false);
     }
 });
 
