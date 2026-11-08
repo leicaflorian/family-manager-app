@@ -30,6 +30,22 @@ describe('FmButton', () => {
         ).toHaveAttribute('type', 'button');
     });
 
+    it('with text follows the size of the controls: 44 px, 52 px inside a panel', () => {
+        render(FmButton, { slots: { default: 'Save' } });
+
+        const button = screen.getByRole('button', { name: 'Save' });
+        expect(button).toHaveClass('h-control', 'rounded-control');
+        expect(button).not.toHaveClass('h-control-md', 'rounded-md');
+    });
+
+    it('with label keeps its own size inside a panel', () => {
+        render(FmButton, { props: { icon: Pencil, label: 'Edit' } });
+
+        const button = screen.getByRole('button', { name: 'Edit' });
+        expect(button).toHaveClass('size-control-md', 'rounded-md');
+        expect(button).not.toHaveClass('h-control', 'rounded-control');
+    });
+
     it('with label shows only the icon, and says the label on hover and to screen readers', () => {
         render(FmButton, {
             props: { icon: Pencil, label: 'Edit', href: '/documents/5/edit' },

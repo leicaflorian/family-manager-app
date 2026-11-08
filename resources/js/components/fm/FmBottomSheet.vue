@@ -101,6 +101,7 @@ function keepOpenForMenu(event: KeyboardEvent): void {
             />
             <DialogContent
                 :aria-describedby="undefined"
+                data-sheet
                 @keydown.capture="noteEscape"
                 @escape-key-down="keepOpenForMenu"
                 :class="above ? 'z-[70]' : 'z-50'"

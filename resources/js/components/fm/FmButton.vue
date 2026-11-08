@@ -1,7 +1,13 @@
 <script setup lang="ts">
 /**
- * The button of the canvas, in five variants. Only one solid button per page:
- * the one done most often. With `href` it becomes an Inertia link.
+ * The button of the canvas, in five variants. With `href` it becomes an Inertia link.
+ *
+ * Rules of use:
+ * - Only one solid button per page: the one done most often.
+ * - Red only to delete, and it asks first: use `FmDeleteButton`.
+ * - Icon only: always with `label`, which screen readers say.
+ * - The text is a verb, informal (*Save*, *Choose a file*).
+ * - Size: 44 px; 52 px in the panels from below.
  *
  * @group basics
  */
@@ -85,13 +91,16 @@ const onColor = useOnColor();
 const classes = computed((): string =>
     cn(
         // Every variant has the same size: two buttons side by side must match
-        'inline-flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md text-base whitespace-nowrap transition-colors',
+        'inline-flex shrink-0 items-center justify-center gap-2 text-base whitespace-nowrap transition-colors',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
         'disabled:cursor-not-allowed disabled:border-0 disabled:bg-edge disabled:text-ink-soft',
+        // With a text the height follows the panel; the icon squares do not
+        !label && 'h-control rounded-control',
         styles[variant],
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
-        label && 'size-control-md border-0 bg-canvas px-0 hover:bg-divider',
+        label &&
+            'size-control-md rounded-md border-0 bg-canvas px-0 hover:bg-divider',
         label && small && 'size-10',
         label && xsmall && 'size-7.5 rounded-tag',
         label && plain && 'bg-transparent hover:bg-canvas',

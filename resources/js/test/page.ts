@@ -3,15 +3,13 @@
  * The Inertia `<Head>` and the translations are set up by `setup.ts` for all
  * the tests.
  */
-import { autoAnimatePlugin } from '@formkit/auto-animate/vue';
-import { plugin as formkit } from '@formkit/vue';
 import { fireEvent, render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import type { RenderResult } from '@testing-library/vue';
 import type { Component } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { vi } from 'vite-plus/test';
-import formkitConfig from '@/formkit.config';
+import { formPlugins } from '@/lib/formPlugins';
 import { guardVisits } from '@/lib/unsavedChanges';
 
 /**
@@ -28,7 +26,7 @@ export function renderPage(
     return render(page, {
         props,
         global: {
-            plugins: [[formkit, formkitConfig], autoAnimatePlugin],
+            plugins: formPlugins,
         },
     });
 }

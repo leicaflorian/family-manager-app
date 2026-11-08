@@ -31,9 +31,8 @@ const files: Record<string, string> = import.meta.glob(
     [
         '../**/*.{vue,ts}',
         '!../**/*.test.ts',
-        '!../**/*.examples.ts',
+        '!../**/*.stories.ts',
         '!../test/**',
-        '!../catalog/**',
         '!../generated/**',
         '!../wayfinder/**',
         '!../actions/**',

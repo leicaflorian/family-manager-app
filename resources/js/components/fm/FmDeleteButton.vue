@@ -3,6 +3,10 @@
  * *Delete*, red, which asks again in the panel from below before deleting:
  * the question, what happens, *Cancel* and the button that deletes.
  *
+ * Use it instead of a red `FmButton` every time something is deleted: a red
+ * button that deletes at once is never right. `compact` leaves only the bin,
+ * with `label` as its name, where a row or a panel has no room for the text.
+ *
  * @group basics
  */
 import { Trash2 } from '@lucide/vue';

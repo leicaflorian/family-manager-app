@@ -69,10 +69,10 @@ The full list of commands, with the code rules, is in `AGENTS.md`. The most used
 | `./vendor/bin/sail artisan migrate:fresh --seed` | Rebuilds the database with the Bianchi family |
 | `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copies a family from Directus |
 | `./vendor/bin/sail artisan loans:refresh` | Works out again the instalments paid of the active loans of every family (the scheduler runs it every night) |
-| `./vendor/bin/sail npm run catalog` | Rewrites the component catalogue, `resources/js/components/fm/CATALOG.md` |
+| `./vendor/bin/sail npm run storybook` | Starts Storybook on http://localhost:6006 (`npm run build-storybook` builds it) |
 | `./vendor/bin/sail npm run tokens` | Rewrites `resources/css/tokens.css` from `resources/design/tokens.json` |
 
-The components of `resources/js/components/fm/` are listed, with their props and examples, in `CATALOG.md`, which is generated and never edited by hand: read it before writing a new component. Locally they can be tried on http://localhost:8090/dev/components (signed in; the page does not exist outside `APP_ENV=local`).
+The components of `resources/js/components/fm/` are shown in Storybook, with their props, events, slots and one story for each case (`<Name>.stories.ts` next to the component): look there before writing a new component.
 
 Colours, text styles, radii, shadows and sizes come from the "Family Manager" design system on Claude Design: `resources/design/tokens.json` is an exact copy of its `project/tokens.json` and is never edited by hand. To change the look, copy the new `tokens.json` there and run `npm run tokens`; components use the token classes (`bg-card`, `text-ink-soft`, `rounded-card`…), never a colour written by hand.
 

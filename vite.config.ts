@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
 import { google } from 'laravel-vite-plugin/fonts';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
@@ -32,6 +33,17 @@ export default defineConfig({
             formVariants: true,
         }),
     ]),
+    resolve: {
+        alias: {
+            // The real Inertia by its file, past the `exports` of the package: Storybook swaps `@inertiajs/vue3` for resources/js/stories/inertia.ts, which needs the real one
+            '@inertiajs/vue3-actual': fileURLToPath(
+                new URL(
+                    './node_modules/@inertiajs/vue3/dist/index.js',
+                    import.meta.url,
+                ),
+            ),
+        },
+    },
     server: {
         watch: {
             ignored: [
@@ -88,8 +100,6 @@ export default defineConfig({
             'lang/**',
             '**/*.md',
             'resources/js/generated/**',
-            // Written by `npm run catalog` with JSON.stringify: the catalogue test compares it as it is
-            'resources/js/catalog/catalog.json',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
             // Copied from Claude Design and read by `npm run tokens`, which writes the CSS as it is: no formatting

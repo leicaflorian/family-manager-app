@@ -2,7 +2,12 @@
 /**
  * A chosen filter, above a list: it is removed with the ×.
  *
- * @group rows
+ * Rules: a pill of 28 px, `action-soft` with `action-dark` text, bold at 14 px;
+ * the whole pill is the button. Its name for a screen reader is *Remove the
+ * filter «label»*, unless `removeLabel` says something more exact. A long
+ * label is written whole: the pill grows with it.
+ *
+ * @group fields
  */
 import { X } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';

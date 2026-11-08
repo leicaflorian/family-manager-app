@@ -8,7 +8,7 @@
  * card) and the actions *Create a new …*, *Choose another…* and *Back to the
  * proposal*. A paper that names no card offers *Create the card*, unticked:
  * after the import *New card* opens with its document linked. A part of the page `documents/Import`, not a component of the
- * catalogue: it writes in the choices of the file (`useImportChoices`).
+ * canvas: it writes in the choices of the file (`useImportChoices`).
  */
 import type { LucideIcon } from '@lucide/vue';
 import {

@@ -4,6 +4,9 @@
  * the middle, Areas and More. More opens a panel with Agenda, Documents, Family,
  * Settings and Log out, and stays marked when one of those pages is open.
  *
+ * The + of Upload (60 px, `fab` shadow) is the only round button of the app and
+ * lives only here: it is not a `FmButton`, which is rectangular and goes in the page.
+ *
  * @group navigation
  */
 import { Link } from '@inertiajs/vue3';

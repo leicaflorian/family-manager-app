@@ -4,7 +4,14 @@
  * links a document to a card and, `small`, in the toolbar of *Reminders*. What
  * it does with the text is up to the page.
  *
- * @group forms
+ * Rules: the box is 44 px high (`h-control-md`) and, `small`, 36 px with a
+ * smaller text and icon, as high as the buttons of a toolbar; the border is
+ * `edge`, the icon and the placeholder are `ink-soft`; the label of the prop
+ * is both the placeholder and the name for a screen reader, so it says what is
+ * searched («Search the documents»). It has no button: the page reacts to the
+ * text as it is typed.
+ *
+ * @group fields
  */
 import { Search } from '@lucide/vue';
 import FmIcon from './FmIcon.vue';

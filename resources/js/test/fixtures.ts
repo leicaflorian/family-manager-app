@@ -1,6 +1,7 @@
 /**
  * Fake data for the tests of the pages, the data more than one file needs.
  */
+import type { InertiaConfig } from '@inertiajs/core';
 import type { MovementFormOptions } from '@/lib/budget';
 
 /** My account: Marco Bianchi, the only administrator. */
@@ -14,6 +15,30 @@ export const account: App.Data.AccountData = {
     photo: null,
     is_last_admin: true,
     family: 'Bianchi',
+};
+
+/**
+ * The props every page shares, as `HandleInertiaRequests` sends them to Marco
+ * Bianchi: the default of the pages in Storybook.
+ */
+export const sharedPageProps: InertiaConfig['sharedPageProps'] = {
+    name: 'Family Manager',
+    auth: {
+        user: {
+            id: 1,
+            name: 'Marco Bianchi',
+            email: 'marco@example.com',
+            email_verified_at: '2026-10-01T08:00:00.000000Z',
+            created_at: '2026-10-01T08:00:00.000000Z',
+            updated_at: '2026-10-01T08:00:00.000000Z',
+        },
+    },
+    family: { name: 'Bianchi' },
+    areas: [],
+    unread_notices: 0,
+    to_sort_count: 0,
+    locale: 'en',
+    theme: 'system',
 };
 
 /** The themes of *My account*, as the server sends them. */
