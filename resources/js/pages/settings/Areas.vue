@@ -22,6 +22,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useVisitQueue } from '@/composables/useVisitQueue';
 import type { Area } from '@/lib/areas';
 import { areaFill, areaOf } from '@/lib/areas';
+import { cardCountText } from '@/lib/cardTexts';
 import { settings } from '@/routes';
 import { reset, update } from '@/routes/settings/areas';
 
@@ -59,15 +60,32 @@ const rows = computed((): AreaRow[] =>
 
 const { enqueue } = useVisitQueue();
 
-/** Saves the choice of the page as it is when the visit starts: the visits before it may have changed it. */
+/**
+ * Saves the choice of the page as it is when the visit starts: the visits
+ * before it may have changed it. A save that does not succeed (a 422, a 500,
+ * a lost connection) puts the page back as the server has it.
+ */
 function save(): void {
-    enqueue((done) =>
+    enqueue((done) => {
+        let saved = false;
+
         router.put(
             update.url(),
             { order: [...order.value], hidden: [...hidden.value] },
-            { preserveScroll: true, onError: fromServer, onFinish: done },
-        ),
-    );
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    saved = true;
+                },
+                onFinish: () => {
+                    if (!saved) {
+                        fromServer();
+                    }
+                    done();
+                },
+            },
+        );
+    });
 }
 
 /**
@@ -89,6 +107,7 @@ function sort(keys: string[]): void {
 function setShown(area: string, value: unknown): void {
     const show = value === true;
 
+    // FormKit fires @input also when the model is set from the server: nothing changed, nothing to save
     if (show === !hidden.value.includes(area)) {
         return;
     }
@@ -169,11 +188,7 @@ function cardsStay(count: number): string {
                                 item.label
                             }}</span>
                             <span class="text-[13px] text-ink-soft">
-                                {{
-                                    $tChoice(
-                                        '{0} No cards|{1} :count card|[2,*] :count cards',
-                                        item.count,
-                                    )
+                                {{ cardCountText(item.count)
                                 }}<template v-if="hidden.includes(item.area)">
                                     · {{ $t('Hidden') }}</template
                                 >

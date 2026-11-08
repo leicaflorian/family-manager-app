@@ -52,9 +52,7 @@ describe('Areas', () => {
             canCreate: true,
         });
 
-        expect(
-            screen.getByRole('link', { name: /^Home/ }),
-        ).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /^Home/ })).toBeInTheDocument();
         expect(
             screen.queryByRole('link', { name: /^Vehicles/ }),
         ).not.toBeInTheDocument();

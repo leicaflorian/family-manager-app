@@ -97,12 +97,8 @@ describe('Settings, Areas', () => {
     it('names each switch Show with its area', () => {
         renderPage(Areas, { settings: areaSettings });
 
-        expect(
-            screen.getByRole('switch', { name: 'Show Work' }),
-        ).toBeChecked();
-        expect(
-            screen.getByRole('switch', { name: 'Show Home' }),
-        ).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Show Work' })).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Show Home' })).toBeChecked();
         expect(screen.queryAllByRole('switch', { name: 'Show' })).toHaveLength(
             0,
         );
@@ -186,6 +182,7 @@ describe('Settings, Areas', () => {
 
         expect(put).toHaveBeenCalledTimes(1);
 
+        options(0).onSuccess?.({} as never);
         options(0).onFinish?.({} as never);
 
         expect(put).toHaveBeenCalledTimes(2);
@@ -209,6 +206,32 @@ describe('Settings, Areas', () => {
         expect(rows()[0]).toHaveTextContent('Home');
         expect(screen.getByLabelText('Show Work')).toBeChecked();
         expect(row('Work')).not.toHaveTextContent('Hidden');
+    });
+
+    it('a save that ends without success resets the rows to the server props', async () => {
+        renderPage(Areas, { settings: areaSettings });
+
+        await move('Home', 'Move down');
+        await flip('Work');
+        // A 500 or a lost connection: no onError, no onSuccess, only onFinish
+        options(0).onFinish?.({} as never);
+        options(1).onFinish?.({} as never);
+        await settle();
+
+        expect(rows()[0]).toHaveTextContent('Home');
+        expect(screen.getByLabelText('Show Work')).toBeChecked();
+        expect(row('Work')).not.toHaveTextContent('Hidden');
+    });
+
+    it('keeps the order of the page after a save that succeeds', async () => {
+        renderPage(Areas, { settings: areaSettings });
+
+        await move('Home', 'Move down');
+        options(0).onSuccess?.({} as never);
+        options(0).onFinish?.({} as never);
+        await settle();
+
+        expect(rows()[0]).toHaveTextContent('Vehicles');
     });
 
     it('goes back to the default order', async () => {

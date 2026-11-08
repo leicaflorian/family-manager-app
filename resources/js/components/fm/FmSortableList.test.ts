@@ -28,7 +28,10 @@ describe('FmSortableList', () => {
     it('shows a named list with a row and a handle for each item', () => {
         show();
 
-        expect(screen.getByRole('list', { name: 'Areas' })).toBeInTheDocument();
+        expect(screen.getByRole('list', { name: 'Areas' })).toHaveAttribute(
+            'role',
+            'list',
+        );
         expect(screen.getAllByRole('listitem')).toHaveLength(3);
         expect(screen.getAllByLabelText('Drag to move')).toHaveLength(3);
         expect(screen.getByText('Health')).toBeInTheDocument();

@@ -92,7 +92,8 @@ function move(index: number, step: -1 | 1): void {
 </script>
 
 <template>
-    <ul ref="list" :aria-label="label">
+    <!-- role="list": Safari and VoiceOver drop the list semantics of a <ul> with list-style: none -->
+    <ul ref="list" :aria-label="label" role="list">
         <li
             v-for="(item, index) in values"
             :key="item.key"
