@@ -735,7 +735,7 @@ final class BianchiFamilySeeder extends Seeder
     {
         $edison = $this->organizations['Edison'];
         $ferri = $this->organizations['Studio Ferri'];
-        $uploaded = static fn (string $name): string => __('Uploaded here on :date by :name', ['date' => '29/10/2026', 'name' => $name]);
+        $uploaded = static fn (string $name): string => __('Uploaded manually on :date by :name', ['date' => '29/10/2026', 'name' => $name]);
 
         $this->reading(
             $this->file('bolletta-edison-novembre.pdf', toSort: true, source: FileSource::Mail),

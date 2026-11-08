@@ -1,9 +1,36 @@
 import { Wallet } from '@lucide/vue';
 import { fireEvent, render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 import FmAlsoDoItem from './FmAlsoDoItem.vue';
 
+const observer = globalThis.ResizeObserver;
+
+afterEach(() => {
+    globalThis.ResizeObserver = observer;
+});
+
 describe('FmAlsoDoItem', () => {
+    it('watches the size of its content, to animate its height when the content changes', () => {
+        const watched: Element[] = [];
+        globalThis.ResizeObserver = class {
+            /** @param element - the element to watch */
+            observe(element: Element): void {
+                watched.push(element);
+            }
+            /** Nothing to stop watching. */
+            unobserve(): void {}
+            /** Nothing to disconnect. */
+            disconnect(): void {}
+        } as unknown as typeof ResizeObserver;
+
+        render(FmAlsoDoItem, { props: { label: 'Create the expense' } });
+
+        expect(watched).toHaveLength(1);
+        expect(watched[0]).toContainElement(
+            screen.getByRole('checkbox', { name: 'Create the expense' }),
+        );
+    });
+
     it('is a checkbox with its text', () => {
         render(FmAlsoDoItem, {
             props: { label: 'Create the expense', modelValue: true },

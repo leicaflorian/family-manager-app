@@ -62,7 +62,7 @@ return [
         'date_override' => 'Data diversa',
     ],
     'file_source' => [
-        'upload' => 'Caricati qui',
+        'upload' => 'Caricati manualmente',
         'mail' => 'Per posta',
         'phone' => 'Dal telefono',
         'scanner' => 'Scansionati',

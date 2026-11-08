@@ -16,15 +16,24 @@ export type UseFileUpload = {
     errors: ComputedRef<string[]>;
 };
 
+/** How `useFileUpload` sends the files. */
+export type FileUploadOptions = {
+    /** The files stay in *To sort* (the page they are dropped on) instead of opening *Import*. */
+    stay?: boolean;
+};
+
 /**
  * Sends the files of documents to *Upload*, where they wait for their
- * document; the server then opens *Import more files* with them.
+ * document; the server then opens *Import more files* with them, or with
+ * `stay` goes back to *To sort*.
  *
  * @param link - the card the files come from, linked from the start of their form
+ * @param options - whether the files stay in *To sort*
  * @returns `send` for the files of `FmFileDrop`, whether they are being sent and the messages of those refused
  */
 export function useFileUpload(
     link: () => DocumentLink | undefined,
+    { stay = false }: FileUploadOptions = {},
 ): UseFileUpload {
     const form = useForm<{ files: File[] }>({ files: [] });
 
@@ -35,11 +44,14 @@ export function useFileUpload(
      */
     function send(files: File[]): void {
         form.files = files;
-        form.submit(store(linkQuery(link())), {
-            forceFormData: true,
-            preserveScroll: true,
-            onFinish: () => form.reset(),
-        });
+        form.submit(
+            stay ? store({ query: { stay: 1 } }) : store(linkQuery(link())),
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onFinish: () => form.reset(),
+            },
+        );
     }
 
     return {

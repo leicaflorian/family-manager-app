@@ -61,7 +61,7 @@ test('the example of the analysis: five files, one copy, four to sort', function
             ['value' => null, 'label' => 'All', 'count' => 5],
             ['value' => 'mail', 'label' => 'By mail', 'count' => 1],
             ['value' => 'phone', 'label' => 'From the phone', 'count' => 2],
-            ['value' => 'upload', 'label' => 'Uploaded here', 'count' => 2],
+            ['value' => 'upload', 'label' => 'Uploaded manually', 'count' => 2],
         ])
         ->where('files.3.source_label', 'From the phone')
         ->where('files.2.source_label', 'By mail')

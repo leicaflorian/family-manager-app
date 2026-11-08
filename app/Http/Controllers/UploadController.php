@@ -40,8 +40,9 @@ final class UploadController extends Controller
     /**
      * Saves the chosen files, which then wait for their document, each with the card
      * the person comes from, so its form starts linked to it, and opens *Import* with
-     * them; the card stays in the address too, for going back to it. Each file is read
-     * by itself, in the queue.
+     * them; the card stays in the address too, for going back to it. Files dropped in
+     * *To sort* (`?stay=1`) stay there instead, with the others waiting. Each file is
+     * read by itself, in the queue.
      */
     public function store(UploadRequest $request, FileStore $store, QueueReading $queue, #[CurrentUser] User $user): RedirectResponse
     {
@@ -55,7 +56,9 @@ final class UploadController extends Controller
             $ids[] = $stored->id;
         }
 
-        return ImportPage::open($ids, $request->query('link'));
+        return $request->boolean('stay')
+            ? to_route('to-sort')
+            : ImportPage::open($ids, $request->query('link'));
     }
 
     /**
@@ -73,14 +76,14 @@ final class UploadController extends Controller
     }
 
     /**
-     * How the files arrived, «Uploaded here on 22/10/2026 by Marco»: in the language of the request (`SetLocale`),
+     * How the files arrived, «Uploaded manually on 22/10/2026 by Marco»: in the language of the request (`SetLocale`),
      * like the titles of the reminders; with the first name of the person of the account, as the Home greets it.
      *
      * @param  User  $user  who uploads
      */
     private function note(User $user): string
     {
-        return __('Uploaded here on :date by :name', [
+        return __('Uploaded manually on :date by :name', [
             'date' => CarbonImmutable::now('Europe/Rome')->format('d/m/Y'),
             'name' => $user->person->first_name ?? $user->name,
         ]);

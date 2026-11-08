@@ -74,7 +74,7 @@ function filters(
         { value: null, label: 'All', count: all },
         { value: 'mail', label: 'By mail', count: mail },
         { value: 'phone', label: 'From the phone', count: phone },
-        { value: 'upload', label: 'Uploaded here', count: upload },
+        { value: 'upload', label: 'Uploaded manually', count: upload },
     ];
 }
 
@@ -94,28 +94,67 @@ afterEach(() => {
 });
 
 describe('ToSort', () => {
-    it('lists each file with its date, its size or pages and where it came from', () => {
-        renderPage(ToSort, page);
-
-        const row = screen
-            .getByText('Avviso - La tua fattura è disponibile.txt')
-            .closest('li') as HTMLElement;
-        expect(within(row).getByText(/22\/10\/2026/)).toBeInTheDocument();
-        expect(within(row).getByText(/2 KB/)).toBeInTheDocument();
-        expect(within(row).getByText(/By mail/)).toBeInTheDocument();
-
-        const photo = screen
-            .getByText('Garanzia lavatrice.jpg')
-            .closest('li') as HTMLElement;
-        expect(within(photo).getByText(/1 page/)).toBeInTheDocument();
-    });
-
-    it('rounds the corners of a file that lights up under the mouse, as the box beside it', () => {
+    it('says how many files wait, under the title', () => {
         renderPage(ToSort, page);
 
         expect(
-            screen.getByRole('link', { name: /Garanzia lavatrice\.jpg/ }),
-        ).toHaveClass('rounded-md');
+            screen.getByText('5 files waiting to be imported'),
+        ).toBeInTheDocument();
+    });
+
+    it('lists each file with its pages and size, or what it is, and its short date', () => {
+        renderPage(ToSort, { ...page, files: [warranty, tari, hera, phone] });
+
+        const row = (name: string): HTMLElement =>
+            screen.getByText(name, { selector: 'a' }).closest('li')!;
+        expect(
+            within(row('Avviso TARI 2026.pdf')).getByText('117 KB'),
+        ).toBeInTheDocument();
+        expect(
+            within(row('Avviso TARI 2026.pdf')).getByText('22/10'),
+        ).toBeInTheDocument();
+        expect(
+            within(row('Telefono 2026-10-25 19.04.pdf')).getByText('25/10'),
+        ).toBeInTheDocument();
+        expect(
+            within(row('Garanzia lavatrice.jpg')).getByText('Photo · 117 KB'),
+        ).toBeInTheDocument();
+        expect(
+            within(row('Avviso - La tua fattura è disponibile.txt')).getByText(
+                'Text of the email',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('lists the pages of a PDF beside its size', () => {
+        renderPage(ToSort, {
+            ...page,
+            files: [file({ id: 9, name: 'Bolletta.pdf', pages: 3 })],
+        });
+
+        expect(screen.getByText('3 pages · 117 KB')).toBeInTheDocument();
+    });
+
+    it('opens the file from its name, in a new tab', () => {
+        renderPage(ToSort, page);
+
+        expect(
+            screen.getByRole('link', { name: 'Avviso TARI 2026.pdf' }),
+        ).toHaveAttribute('target', '_blank');
+    });
+
+    it('lights the whole row of a chosen file', async () => {
+        renderPage(ToSort, page);
+
+        await fireEvent.click(
+            screen.getByRole('checkbox', { name: 'Avviso TARI 2026.pdf' }),
+        );
+
+        expect(
+            screen
+                .getByRole('checkbox', { name: 'Avviso TARI 2026.pdf' })
+                .closest('li'),
+        ).toHaveClass('bg-action-soft');
     });
 
     it('shows the note and the state of the reading of each file', () => {
@@ -128,15 +167,14 @@ describe('ToSort', () => {
             screen.getByText('The file could not be read.'),
         ).toBeInTheDocument();
         expect(screen.getByText('Reading the document…')).toBeInTheDocument();
-        expect(screen.getAllByText('Read')).toHaveLength(2);
+        // Read is the usual end of a reading: it is not written
+        expect(screen.queryByText('Read')).not.toBeInTheDocument();
     });
 
     it('says a copy is a copy, and which file it is the same as', () => {
         renderPage(ToSort, page);
 
-        expect(
-            screen.getByText('It is a copy: you can delete it'),
-        ).toBeInTheDocument();
+        expect(screen.getByText('Copy')).toBeInTheDocument();
         expect(
             screen.getByText('Same as Telefono 2026-10-25 19.04.pdf'),
         ).toBeInTheDocument();
@@ -155,25 +193,96 @@ describe('ToSort', () => {
         ).toBeEnabled();
     });
 
-    it('shows the filters with their numbers, and a filter with none cannot be chosen', () => {
+    it('shows the filters as tabs with their numbers, and a filter with none cannot be chosen', () => {
         renderPage(ToSort, {
             ...page,
             filters: filters(5, 0, 2, 3),
         });
+        const tabs = screen.getByRole('navigation', { name: 'Files to sort' });
 
-        expect(screen.getByRole('link', { name: 'All 5' })).toHaveAttribute(
-            'href',
-            '/to-sort',
-        );
         expect(
-            screen.getByRole('link', { name: 'From the phone 2' }),
+            within(tabs).getByRole('link', { name: 'All 5' }),
+        ).toHaveAttribute('href', '/to-sort');
+        expect(
+            within(tabs).getByRole('link', { name: 'From the phone 2' }),
         ).toHaveAttribute('href', '/to-sort?source=phone');
         expect(
-            screen.getByRole('link', { name: 'Uploaded here 3' }),
+            within(tabs).getByRole('link', { name: 'Uploaded manually 3' }),
         ).toHaveAttribute('href', '/to-sort?source=upload');
         expect(
-            screen.queryByRole('link', { name: /^By mail/ }),
+            within(tabs).queryByRole('link', { name: /^By mail/ }),
         ).not.toBeInTheDocument();
+    });
+
+    it('lists where the files come from in the panel beside the list, with their numbers', () => {
+        renderPage(ToSort, { ...page, filters: filters(5, 0, 2, 3) });
+
+        const panel = screen.getByRole('navigation', {
+            name: 'Where they come from',
+        });
+        expect(
+            within(panel).getByRole('link', { name: 'All 5' }),
+        ).toHaveAttribute('aria-current', 'page');
+        expect(
+            within(panel).getByRole('link', {
+                name: 'Uploaded from the phone 2',
+            }),
+        ).toHaveAttribute('href', '/to-sort?source=phone');
+        expect(
+            within(panel).getByRole('link', { name: 'Uploaded manually 3' }),
+        ).toHaveAttribute('href', '/to-sort?source=upload');
+        // With no file, it is there but cannot be chosen
+        expect(
+            within(panel).queryByRole('link', { name: /Arrived by mail/ }),
+        ).not.toBeInTheDocument();
+        expect(within(panel).getByText('Arrived by mail')).toBeInTheDocument();
+    });
+
+    it('chooses every file but the copies with the box at the top, and lets them all go', async () => {
+        renderPage(ToSort, page);
+
+        const all = screen.getByRole('checkbox', { name: 'Choose all' });
+        expect(screen.getByText('0 files chosen of 5')).toBeInTheDocument();
+
+        await fireEvent.click(all);
+        expect(screen.getByText('4 files chosen of 5')).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Read and review 4 files' }),
+        ).toBeEnabled();
+        expect(all).toBeChecked();
+
+        await fireEvent.click(all);
+        expect(screen.getByText('0 files chosen of 5')).toBeInTheDocument();
+    });
+
+    it('says nothing is saved yet in the tooltip of the button', async () => {
+        renderPage(ToSort, page);
+
+        await fireEvent.click(
+            screen.getByRole('checkbox', { name: 'Avviso TARI 2026.pdf' }),
+        );
+        screen.getByRole('button', { name: 'Read and review 1 file' }).focus();
+
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            'Nothing is saved yet: you see what was read, and you can read it again or change it before importing.',
+        );
+    });
+
+    it('keeps the files dropped here among those to sort', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(ToSort, page);
+
+        await fireEvent.change(screen.getByLabelText('Choose the files'), {
+            target: {
+                files: [
+                    new File(['%PDF'], 'Bolletta.pdf', {
+                        type: 'application/pdf',
+                    }),
+                ],
+            },
+        });
+
+        expect(post.mock.calls[0]?.[0]).toBe('/upload?stay=1');
     });
 
     it('marks the filter chosen', () => {
@@ -230,16 +339,6 @@ describe('ToSort', () => {
         await fireEvent.click(button);
 
         expect(post).toHaveBeenCalledWith('/to-sort/read', { ids: [5, 4] });
-    });
-
-    it('says on the button that nothing is imported before the person checks it', () => {
-        renderPage(ToSort, page);
-
-        expect(
-            screen.getByRole('button', { name: 'Read and review files' }),
-        ).toHaveAccessibleDescription(
-            'Nothing is saved yet: you see what was read, and you can read it again or change it before importing.',
-        );
     });
 
     it('says one file in the singular', async () => {

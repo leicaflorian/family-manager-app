@@ -538,9 +538,9 @@ the question, what happens, *Cancel* and the button that deletes.
 
 ### Used by
 
+- `components/documents/ToSortFileRow.vue`
 - `components/fm/FmMovementPanel.vue`
 - `pages/budget/EditPlanned.vue`
-- `pages/documents/ToSort.vue`
 - `pages/reminders/EditReminder.vue`
 
 ## FmEmpty
@@ -694,6 +694,8 @@ Without a label it is only decoration and screen reader users do not hear it.
 ### Used by
 
 - `components/documents/ImportAlsoDoBoxes.vue`
+- `components/documents/ToSortFileRow.vue`
+- `components/documents/ToSortSources.vue`
 - `components/fm/FmActiveFilter.vue`
 - `components/fm/FmAgendaFilters.vue`
 - `components/fm/FmAgendaRow.vue`
@@ -857,6 +859,7 @@ export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
 - `pages/budget/Deadline.vue`
 - `pages/cards/Card.vue`
 - `pages/documents/Import.vue`
+- `pages/documents/ToSort.vue`
 - `pages/documents/Upload.vue`
 - `pages/family/InvitationSent.vue`
 - `pages/family/Invite.vue`
@@ -1139,6 +1142,7 @@ Its slot is the element, which keeps its own role and name.
 ### Used by
 
 - `components/fm/FmSidebar.vue`
+- `pages/documents/ToSort.vue`
 
 ## FmBackLink
 
@@ -2173,7 +2177,6 @@ export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
 - `pages/budget/Movements.vue`
 - `pages/budget/PlannedItem.vue`
 - `pages/dev/Components.vue`
-- `pages/documents/ToSort.vue`
 - `pages/family/Organizations.vue`
 - `pages/family/People.vue`
 - `pages/settings/Account.vue`
@@ -3012,6 +3015,7 @@ which uploads them (*Upload*) or keeps them for later (*New card*).
 
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmUploadSheet.vue`
+- `pages/documents/ToSort.vue`
 - `pages/documents/Upload.vue`
 
 ## FmNotificationRule
@@ -3483,6 +3487,7 @@ the family, or a file chosen and not saved yet.
 
 ### Used by
 
+- `components/documents/ToSortFileRow.vue`
 - `components/fm/FmCardFiles.vue`
 - `components/fm/FmDocumentRow.vue`
 - `pages/Home.vue`
@@ -3495,7 +3500,8 @@ The block *What I do too* of the Import page and of the proposal of a file,
 as the board *Importa* draws it: a bold heading and, stacked under it, what
 the reading creates besides the document (an expense, a payment, a link to
 a card), each one an `FmAlsoDoItem` the person can untick or correct. The
-page decides which items there are.
+page decides which items there are; an item that comes or goes slides in
+or out.
 
 ### Props
 
@@ -3534,7 +3540,9 @@ board *Importa* draws it: a box with a tick, an optional icon, the text, a
 line of explanation and the warnings in orange. The whole row is a label, so
 a tap on the text ticks it. While it is ticked the box is blue and shows,
 under the row, the fields to correct and the actions (*Choose another…*,
-*Create a new …*, *Back to the proposal*).
+*Create a new …*, *Back to the proposal*). Its height follows its content
+with a short animation (the fields that open, a text that changes), and its
+colours change softly.
 
 ### Props
 

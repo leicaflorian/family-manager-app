@@ -121,6 +121,18 @@ test('Import opens with the files just uploaded, not with those that were alread
     $response->assertRedirect(route('import', ['files' => $new->implode(',')]));
 });
 
+test('files dropped in To sort stay there, waiting, instead of opening Import', function (): void {
+    Queue::fake();
+
+    $this->post(route('upload.store', ['stay' => 1]), ['files' => [UploadedFile::fake()->create('Avviso TARI 2026.pdf', 120, 'application/pdf')]])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('to-sort'));
+
+    $file = File::query()->sole();
+    expect($file->to_sort)->toBeTrue()
+        ->and($file->source)->toBe(FileSource::Upload);
+});
+
 test('Upload only takes the files: the waiting ones are in To sort', function (): void {
     uploadOne('Busta paga novembre 2026.pdf');
 
@@ -313,8 +325,8 @@ test('the checksum and the note are written', function (): void {
     expect($file)
         ->checksum->toBe(hash('sha256', 'the bill of october'))
         ->source->toBe(FileSource::Upload)
-        ->note->toBe('Uploaded here on 22/10/2026 by Marco');
-    expect(waitingData()[0])->source->toBe('upload')->note->toBe('Uploaded here on 22/10/2026 by Marco')->copy_of->toBeNull();
+        ->note->toBe('Uploaded manually on 22/10/2026 by Marco');
+    expect(waitingData()[0])->source->toBe('upload')->note->toBe('Uploaded manually on 22/10/2026 by Marco')->copy_of->toBeNull();
 });
 
 test('the note follows the language of the request', function (string $language, string $note): void {
@@ -325,8 +337,8 @@ test('the note follows the language of the request', function (string $language,
 
     expect($file->note)->toBe($note);
 })->with([
-    'Italian' => ['it-IT,it;q=0.9', 'Caricato qui il 22/10/2026 da Marco'],
-    'English' => ['en-GB,en;q=0.9', 'Uploaded here on 22/10/2026 by Marco'],
+    'Italian' => ['it-IT,it;q=0.9', 'Caricato manualmente il 22/10/2026 da Marco'],
+    'English' => ['en-GB,en;q=0.9', 'Uploaded manually on 22/10/2026 by Marco'],
 ]);
 
 test('a copy is marked', function (): void {

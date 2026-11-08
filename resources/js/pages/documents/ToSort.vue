@@ -1,34 +1,34 @@
 <script setup lang="ts">
 /**
  * *To sort*: the files waiting for their document, whoever sent them (the
- * upload, the mail, the phone), newest first. Each row has the name, the day,
- * the size or the pages, where it came from, how its reading stands, the note
- * of how it arrived and, for a copy of an older file, a line that says so (and
- * on the computer which file it is the same as). The filters at the top (*All*,
- * *By mail*, *From the phone*, *Uploaded here*) show how many files each has,
- * and one with none cannot be chosen. The files are chosen with a box (a copy
- * is left out) and *Read and review* has them read, then opens the import,
- * where the person checks and changes what was read before importing. While
- * a file is queued or read the page asks for its state every 2 seconds.
+ * upload, the mail, the phone), newest first, as the board *Da smistare-pc*
+ * draws it. Under the title, how many files wait. On the computer the filters
+ * (*All*, *Arrived by mail*, *Uploaded from the phone*, *Uploaded manually*) are in
+ * the box *Where they come from* beside the list; on the tablet and the phone
+ * they are tabs above it. Files dropped in the zone above the list stay here.
+ * The bar at the top of the list chooses all the files (a copy is left out),
+ * counts the ones chosen and has *Read and review* read them, then opens the
+ * import, where the person checks and changes what was read before importing.
+ * While a file is queued or read the page asks for its state every 2 seconds.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { Inbox } from '@lucide/vue';
-import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { Inbox, Sparkles } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
+import ToSortSources from '@/components/documents/ToSortSources.vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
-import FmRow from '@/components/fm/FmRow.vue';
+import FmFileDrop from '@/components/fm/FmFileDrop.vue';
+import FmNotice from '@/components/fm/FmNotice.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useFormat } from '@/composables/useFormat';
+import FmTooltip from '@/components/fm/FmTooltip.vue';
+import { useFileUpload } from '@/composables/useFileUpload';
 import { useReadingPoll } from '@/composables/useReadingPoll';
-import { formatSize } from '@/lib/format';
 import { anyFileReading } from '@/lib/reading';
 import { toSort } from '@/routes';
 import { read } from '@/routes/to-sort';
-import { destroy } from '@/routes/upload';
 
 const props = defineProps<{
     /** The files of the filter chosen, newest first. */
@@ -39,9 +39,13 @@ const props = defineProps<{
     filters: App.Data.ToSortPageData['filters'];
 }>();
 
-const { date } = useFormat();
+/** How many files wait in all, whatever the filter: the count of *All*. */
+const waiting = computed(
+    (): number =>
+        props.filters.find((filter) => filter.value === null)?.count ?? 0,
+);
 
-/** The filters as tabs: a filter with no files cannot be chosen. */
+/** The filters as tabs, for the tablet and the phone: a filter with no files cannot be chosen. */
 const tabs = computed<Tab[]>(() =>
     props.filters.map((filter) => ({
         label: filter.label,
@@ -55,18 +59,29 @@ const tabs = computed<Tab[]>(() =>
     })),
 );
 
+// The files dropped here stay among those to sort, instead of opening Import
+const upload = useFileUpload(() => undefined, { stay: true });
+
 /** The ids of the files chosen. */
 const chosen = ref<number[]>([]);
 
-/** Whether a file can be chosen: a copy is left out. */
-const selectable = (file: App.Data.PendingFileData): boolean =>
-    file.copy_of === null;
+/** The files that can be chosen: a copy is left out. */
+const selectable = computed((): App.Data.PendingFileData[] =>
+    props.files.filter((file) => file.copy_of === null),
+);
 
 /** The files chosen that are still in the list, so a filter or a deletion drops the ones that went away. */
 const chosenIds = computed<number[]>(() =>
-    props.files
-        .filter((file) => selectable(file) && chosen.value.includes(file.id))
+    selectable.value
+        .filter((file) => chosen.value.includes(file.id))
         .map((file) => file.id),
+);
+
+/** Every file that can be chosen is chosen. */
+const allChosen = computed(
+    (): boolean =>
+        selectable.value.length > 0 &&
+        chosenIds.value.length === selectable.value.length,
 );
 
 /** Whether any file waiting is being read, which keeps the page asking. */
@@ -87,52 +102,11 @@ function choose(id: number, on: boolean): void {
         : chosen.value.filter((chosenId) => chosenId !== id);
 }
 
-/**
- * How big the file is, or how many pages it has when that is known.
- *
- * @param file - the file
- * @returns the pages or the size, as text
- */
-function measure(file: App.Data.PendingFileData): string {
-    return file.pages === null
-        ? formatSize(file.size)
-        : transChoice('{1} :count page|[2,*] :count pages', file.pages, {
-              count: String(file.pages),
-          });
-}
-
-/**
- * The second line of a row: the day, the size or pages and where it came from.
- *
- * @param file - the file
- */
-function subtitle(file: App.Data.PendingFileData): string {
-    return [date(file.created_on), measure(file), file.source_label].join(
-        ' · ',
-    );
-}
-
-/**
- * How the reading of a file stands, in words.
- *
- * @param file - the file
- * @returns the text, empty when the file was never queued
- */
-function readingText(file: App.Data.PendingFileData): string {
-    switch (file.reading_status) {
-        case 'queued':
-            return trans('Waiting to be read');
-        case 'reading':
-            return trans('Reading the document…');
-        case 'done':
-            return trans('Read');
-        case 'failed':
-        case 'off':
-        case 'skipped':
-            return file.reading_error ?? '';
-        default:
-            return '';
-    }
+/** Chooses every file that can be chosen, or lets them all go when they already are. */
+function chooseAll(): void {
+    chosen.value = allChosen.value
+        ? []
+        : selectable.value.map((file) => file.id);
 }
 
 /** Has the files chosen read, then opens the import. */
@@ -144,121 +118,120 @@ function readChosen(): void {
 <template>
     <Head :title="$t('To sort')" />
 
-    <div class="flex flex-col gap-4">
-        <FmTitle :title="$t('To sort')" />
-
-        <FmTabs :tabs="tabs" :label="$t('Files to sort')" variant="pill" />
-
-        <FmEmpty
-            v-if="files.length === 0"
-            :icon="Inbox"
-            :title="$t('Nothing to sort')"
-            :text="
-                $t(
-                    'The files you upload, or that arrive by mail or from the phone, wait here until they become a document.',
-                )
+    <div class="flex flex-col gap-4 lg:gap-6">
+        <FmTitle
+            :title="$t('To sort')"
+            :subtitle="
+                waiting > 0
+                    ? $tChoice(
+                          '{1} :count file waiting to be imported|[2,*] :count files waiting to be imported',
+                          waiting,
+                          { count: String(waiting) },
+                      )
+                    : undefined
             "
         />
 
-        <template v-else>
-            <ul
-                v-auto-animate
-                class="m-0 flex list-none flex-col divide-y divide-divider rounded-card-lg bg-card p-0"
-            >
-                <li v-for="file in files" :key="file.id" class="py-1">
-                    <div class="flex items-center gap-1 pr-2 pl-4">
+        <FmTabs
+            class="lg:hidden"
+            :tabs="tabs"
+            :label="$t('Files to sort')"
+            variant="pill"
+        />
+
+        <div
+            class="flex flex-col gap-4 lg:grid lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start lg:gap-7"
+        >
+            <ToSortSources
+                class="hidden lg:flex"
+                :filters="filters"
+                :source="source"
+            />
+
+            <div class="flex min-w-0 flex-col gap-4">
+                <FmFileDrop
+                    compact
+                    :label="
+                        $t(
+                            'Drag the files here, or choose them from the computer',
+                        )
+                    "
+                    :processing="upload.processing.value"
+                    @files="upload.send"
+                />
+                <FmNotice v-if="upload.errors.value.length > 0" tone="danger">
+                    {{ upload.errors.value.join(' ') }}
+                </FmNotice>
+
+                <FmEmpty
+                    v-if="files.length === 0"
+                    :icon="Inbox"
+                    :title="$t('Nothing to sort')"
+                    :text="
+                        $t(
+                            'The files you upload, or that arrive by mail or from the phone, wait here until they become a document.',
+                        )
+                    "
+                />
+
+                <div v-else class="overflow-hidden rounded-card-lg bg-card">
+                    <div
+                        class="flex flex-wrap items-center gap-3 border-b border-divider px-4 py-3"
+                    >
                         <input
                             type="checkbox"
-                            :aria-label="file.name"
-                            :checked="chosenIds.includes(file.id)"
-                            :disabled="!selectable(file)"
+                            :aria-label="$t('Choose all')"
+                            :checked="allChosen"
+                            :disabled="selectable.length === 0"
                             class="size-5 shrink-0 accent-action"
-                            @change="
-                                choose(
-                                    file.id,
-                                    ($event.target as HTMLInputElement).checked,
+                            @change="chooseAll"
+                        />
+                        <span class="grow text-[15px] font-semibold">{{
+                            $tChoice(
+                                '{0} :count files chosen of :total|{1} :count file chosen of :total|[2,*] :count files chosen of :total',
+                                chosenIds.length,
+                                {
+                                    count: String(chosenIds.length),
+                                    total: String(files.length),
+                                },
+                            )
+                        }}</span>
+                        <FmTooltip
+                            :text="
+                                $t(
+                                    'Nothing is saved yet: you see what was read, and you can read it again or change it before importing.',
                                 )
                             "
-                        />
-                        <!-- Not on the edge of a card, so its light under the mouse has its own corners -->
-                        <FmRow
-                            :title="file.name"
-                            :subtitle="subtitle(file)"
-                            :href="file.url"
-                            external
-                            :arrow="false"
-                            class="rounded-md"
-                        />
-                        <FmDeleteButton
-                            v-if="file.can_delete"
-                            compact
-                            :label="
-                                file.copy_of !== null
-                                    ? $t('Delete the copy')
-                                    : $t('Delete')
-                            "
-                            :url="destroy.url(file.id)"
-                            :question="
-                                file.copy_of !== null
-                                    ? $t('Delete this copy?')
-                                    : $t('Delete this file?')
-                            "
-                            :text="$t('The file is deleted for good.')"
-                            :confirm-label="
-                                file.copy_of !== null
-                                    ? $t('Delete the copy')
-                                    : $t('Delete the file')
-                            "
-                        />
+                        >
+                            <FmButton
+                                :icon="Sparkles"
+                                :disabled="chosenIds.length === 0"
+                                @click="readChosen"
+                            >
+                                {{
+                                    $tChoice(
+                                        '{0} Read and review files|{1} Read and review :count file|[2,*] Read and review :count files',
+                                        chosenIds.length,
+                                        { count: String(chosenIds.length) },
+                                    )
+                                }}
+                            </FmButton>
+                        </FmTooltip>
                     </div>
-                    <div
-                        class="flex flex-col gap-0.5 pb-2 pl-[3.25rem] text-[13px] text-ink-soft"
+                    <ul
+                        v-auto-animate
+                        class="m-0 flex list-none flex-col divide-y divide-divider p-0"
                     >
-                        <span v-if="readingText(file)">{{
-                            readingText(file)
-                        }}</span>
-                        <span v-if="file.note">{{ file.note }}</span>
-                        <template v-if="file.copy_of !== null">
-                            <span
-                                class="font-semibold text-warning lg:hidden"
-                                >{{
-                                    $t('It is a copy: you can delete it')
-                                }}</span
-                            >
-                            <span
-                                class="hidden font-semibold text-warning lg:inline"
-                                >{{
-                                    $t('Same as :name', { name: file.copy_of })
-                                }}</span
-                            >
-                        </template>
-                    </div>
-                </li>
-            </ul>
-
-            <FmButton
-                :disabled="chosenIds.length === 0"
-                aria-describedby="to-sort-review"
-                @click="readChosen"
-            >
-                {{
-                    $tChoice(
-                        '{0} Read and review files|{1} Read and review :count file|[2,*] Read and review :count files',
-                        chosenIds.length,
-                        { count: String(chosenIds.length) },
-                    )
-                }}
-            </FmButton>
-            <p
-                id="to-sort-review"
-                class="-mt-2 text-center text-[13px] text-ink-soft"
-            >
-                {{
-                    $t(
-                        'Nothing is saved yet: you see what was read, and you can read it again or change it before importing.',
-                    )
-                }}
-            </p>
-        </template>
+                        <ToSortFileRow
+                            v-for="file in files"
+                            :key="file.id"
+                            :file="file"
+                            :chosen="chosenIds.includes(file.id)"
+                            @choose="choose(file.id, $event)"
+                        />
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 </template>

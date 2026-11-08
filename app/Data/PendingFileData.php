@@ -36,7 +36,7 @@ final class PendingFileData extends Data
      * @param  DocumentProposalData|null  $proposal  what the reading proposes for the form, once the file is read
      * @param  FileSource  $source  where the file came from
      * @param  string  $source_label  where it came from, in words
-     * @param  string|null  $note  how it arrived («Uploaded here on 22/10/2026 by Marco»)
+     * @param  string|null  $note  how it arrived («Uploaded manually on 22/10/2026 by Marco»)
      * @param  string|null  $copy_of  the name of the older file it is a copy of, null when it is no copy
      * @param  int|null  $pages  how many pages it has, when known: one for a photo
      * @param  bool  $can_delete  whether whoever signed in may delete it

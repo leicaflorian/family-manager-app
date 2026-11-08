@@ -33,6 +33,14 @@ describe('useFileUpload', () => {
         );
     });
 
+    it('asks to stay on the page, for the files dropped in To sort', () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+
+        useFileUpload(() => undefined, { stay: true }).send([file]);
+
+        expect(post.mock.calls[0]?.[0]).toBe('/upload?stay=1');
+    });
+
     it('gives the messages of the files refused, all together', () => {
         vi.spyOn(router, 'post').mockImplementation(
             (_url, _data, options?: VisitOptions) => {

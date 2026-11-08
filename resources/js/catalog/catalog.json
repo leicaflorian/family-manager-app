@@ -224,7 +224,7 @@
   {
     "name": "FmAlsoDo",
     "path": "resources/js/components/fm/FmAlsoDo.vue",
-    "description": "The block *What I do too* of the Import page and of the proposal of a file,\nas the board *Importa* draws it: a bold heading and, stacked under it, what\nthe reading creates besides the document (an expense, a payment, a link to\na card), each one an `FmAlsoDoItem` the person can untick or correct. The\npage decides which items there are.",
+    "description": "The block *What I do too* of the Import page and of the proposal of a file,\nas the board *Importa* draws it: a bold heading and, stacked under it, what\nthe reading creates besides the document (an expense, a payment, a link to\na card), each one an `FmAlsoDoItem` the person can untick or correct. The\npage decides which items there are; an item that comes or goes slides in\nor out.",
     "group": "sections",
     "props": [
       {
@@ -247,7 +247,7 @@
   {
     "name": "FmAlsoDoItem",
     "path": "resources/js/components/fm/FmAlsoDoItem.vue",
-    "description": "One thing the reading does besides the document, inside `FmAlsoDo`, as the\nboard *Importa* draws it: a box with a tick, an optional icon, the text, a\nline of explanation and the warnings in orange. The whole row is a label, so\na tap on the text ticks it. While it is ticked the box is blue and shows,\nunder the row, the fields to correct and the actions (*Choose another…*,\n*Create a new …*, *Back to the proposal*).",
+    "description": "One thing the reading does besides the document, inside `FmAlsoDo`, as the\nboard *Importa* draws it: a box with a tick, an optional icon, the text, a\nline of explanation and the warnings in orange. The whole row is a label, so\na tap on the text ticks it. While it is ticked the box is blue and shows,\nunder the row, the fields to correct and the actions (*Choose another…*,\n*Create a new …*, *Back to the proposal*). Its height follows its content\nwith a short animation (the fields that open, a text that changes), and its\ncolours change softly.",
     "group": "sections",
     "props": [
       {
@@ -1561,9 +1561,9 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "components/documents/ToSortFileRow.vue",
       "components/fm/FmMovementPanel.vue",
       "pages/budget/EditPlanned.vue",
-      "pages/documents/ToSort.vue",
       "pages/reminders/EditReminder.vue"
     ]
   },
@@ -1956,6 +1956,7 @@
     "usedBy": [
       "components/fm/FmCardFiles.vue",
       "components/fm/FmUploadSheet.vue",
+      "pages/documents/ToSort.vue",
       "pages/documents/Upload.vue"
     ]
   },
@@ -2055,6 +2056,7 @@
     "slots": [],
     "types": [],
     "usedBy": [
+      "components/documents/ToSortFileRow.vue",
       "components/fm/FmCardFiles.vue",
       "components/fm/FmDocumentRow.vue",
       "pages/Home.vue"
@@ -2156,6 +2158,8 @@
     "types": [],
     "usedBy": [
       "components/documents/ImportAlsoDoBoxes.vue",
+      "components/documents/ToSortFileRow.vue",
+      "components/documents/ToSortSources.vue",
       "components/fm/FmActiveFilter.vue",
       "components/fm/FmAgendaFilters.vue",
       "components/fm/FmAgendaRow.vue",
@@ -2682,6 +2686,7 @@
       "pages/budget/Deadline.vue",
       "pages/cards/Card.vue",
       "pages/documents/Import.vue",
+      "pages/documents/ToSort.vue",
       "pages/documents/Upload.vue",
       "pages/family/InvitationSent.vue",
       "pages/family/Invite.vue",
@@ -3390,7 +3395,6 @@
       "pages/budget/Movements.vue",
       "pages/budget/PlannedItem.vue",
       "pages/dev/Components.vue",
-      "pages/documents/ToSort.vue",
       "pages/family/Organizations.vue",
       "pages/family/People.vue",
       "pages/settings/Account.vue",
@@ -3710,7 +3714,8 @@
     ],
     "types": [],
     "usedBy": [
-      "components/fm/FmSidebar.vue"
+      "components/fm/FmSidebar.vue",
+      "pages/documents/ToSort.vue"
     ]
   },
   {

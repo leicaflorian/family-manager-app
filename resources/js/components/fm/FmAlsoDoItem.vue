@@ -5,13 +5,16 @@
  * line of explanation and the warnings in orange. The whole row is a label, so
  * a tap on the text ticks it. While it is ticked the box is blue and shows,
  * under the row, the fields to correct and the actions (*Choose another…*,
- * *Create a new …*, *Back to the proposal*).
+ * *Create a new …*, *Back to the proposal*). Its height follows its content
+ * with a short animation (the fields that open, a text that changes), and its
+ * colours change softly.
  *
  * @group sections
  */
 import type { LucideIcon } from '@lucide/vue';
 import { Check } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useHeightTransition } from '@/composables/useHeightTransition';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -44,10 +47,16 @@ defineSlots<{
     actions?: () => unknown;
 }>();
 
+/** The box, whose height is animated. */
+const box = ref<HTMLElement>();
+/** Its content, whose size is watched. */
+const content = ref<HTMLElement>();
+useHeightTransition(box, content);
+
 /** The classes of the box: blue and thicker when ticked, faded when disabled. */
 const boxClass = computed(() =>
     cn(
-        'flex flex-col gap-3 rounded-xl px-3.5 py-3',
+        'rounded-xl px-3.5 py-3 transition-[background-color,border-color,opacity] duration-200 ease-out motion-reduce:transition-none',
         ticked.value
             ? 'border-2 border-action bg-action-soft'
             : 'border-[1.5px] border-edge bg-card',
@@ -72,45 +81,57 @@ const iconClass = computed(() =>
 </script>
 
 <template>
-    <div :class="boxClass">
-        <label
-            :class="
-                cn(
-                    'flex items-center gap-3',
-                    disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-                )
-            "
-        >
-            <input
-                v-model="ticked"
-                type="checkbox"
-                :disabled="disabled"
-                class="peer sr-only"
-            />
-            <span :class="tickClass" aria-hidden="true">
-                <FmIcon v-if="ticked" :icon="Check" :size="15" :stroke="3" />
-            </span>
-            <FmIcon v-if="icon" :icon="icon" :size="20" :class="iconClass" />
-            <span class="flex min-w-0 flex-col gap-0.5">
-                <span class="text-base font-semibold">{{ label }}</span>
-                <span v-if="hint" class="text-[13px] text-ink-soft">{{
-                    hint
-                }}</span>
-                <span
-                    v-for="warning in warnings"
-                    :key="warning"
-                    class="text-[13px] text-warning"
-                    >{{ warning }}</span
-                >
-            </span>
-        </label>
-        <div
-            v-if="ticked && ($slots.default || $slots.actions)"
-            class="flex flex-col gap-2 pl-[34px]"
-        >
-            <slot />
-            <div v-if="$slots.actions" class="flex flex-wrap gap-3">
-                <slot name="actions" />
+    <div ref="box" :class="boxClass">
+        <div ref="content" class="flex flex-col gap-3">
+            <label
+                :class="
+                    cn(
+                        'flex items-center gap-3',
+                        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                    )
+                "
+            >
+                <input
+                    v-model="ticked"
+                    type="checkbox"
+                    :disabled="disabled"
+                    class="peer sr-only"
+                />
+                <span :class="tickClass" aria-hidden="true">
+                    <FmIcon
+                        v-if="ticked"
+                        :icon="Check"
+                        :size="15"
+                        :stroke="3"
+                    />
+                </span>
+                <FmIcon
+                    v-if="icon"
+                    :icon="icon"
+                    :size="20"
+                    :class="iconClass"
+                />
+                <span class="flex min-w-0 flex-col gap-0.5">
+                    <span class="text-base font-semibold">{{ label }}</span>
+                    <span v-if="hint" class="text-[13px] text-ink-soft">{{
+                        hint
+                    }}</span>
+                    <span
+                        v-for="warning in warnings"
+                        :key="warning"
+                        class="text-[13px] text-warning"
+                        >{{ warning }}</span
+                    >
+                </span>
+            </label>
+            <div
+                v-if="ticked && ($slots.default || $slots.actions)"
+                class="flex animate-in flex-col gap-2 pl-[34px] duration-200 fade-in-0 motion-reduce:animate-none"
+            >
+                <slot />
+                <div v-if="$slots.actions" class="flex flex-wrap gap-3">
+                    <slot name="actions" />
+                </div>
             </div>
         </div>
     </div>

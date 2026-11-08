@@ -4,7 +4,8 @@
  * as the board *Importa* draws it: a bold heading and, stacked under it, what
  * the reading creates besides the document (an expense, a payment, a link to
  * a card), each one an `FmAlsoDoItem` the person can untick or correct. The
- * page decides which items there are.
+ * page decides which items there are; an item that comes or goes slides in
+ * or out.
  *
  * @group sections
  */
@@ -24,6 +25,8 @@ defineSlots<{
         <h3 class="m-0 mt-2 text-base font-bold">
             {{ title ?? $t('What I do too') }}
         </h3>
-        <slot />
+        <div v-auto-animate class="flex flex-col gap-3">
+            <slot />
+        </div>
     </div>
 </template>
