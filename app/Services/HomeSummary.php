@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Data\AgendaEntryData;
 use App\Data\ChecklistStepData;
 use App\Data\HomeData;
+use App\Data\HomeMailData;
 use App\Data\MissingDocumentData;
 use App\Data\PendingFileData;
 use App\Enums\PersonRole;
@@ -19,6 +20,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
+use App\Services\Mail\ReceivedMails;
 use App\Services\Reminders\ExpectedDocuments;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Gate;
@@ -26,7 +28,7 @@ use Illuminate\Support\Facades\Gate;
 /**
  * Puts together what the Home shows (analysis, points 3 and 4): the payments and
  * deadlines of the next 30 days with the late ones of the last 30, the incomes
- * on their way, the files waiting and the steps of *To begin*.
+ * on their way, the files waiting, the mail that arrived and the steps of *To begin*.
  */
 final readonly class HomeSummary
 {
@@ -39,10 +41,13 @@ final readonly class HomeSummary
     /** How many entries *The deadlines* shows. */
     private const int ENTRIES = 10;
 
+    /** How many mails *Arrived by mail* shows. */
+    private const int MAILS = 3;
+
     /** How many files *Waiting* shows. */
     private const int PENDING = 5;
 
-    public function __construct(private Agenda $agenda, private ExpectedDocuments $expected) {}
+    public function __construct(private Agenda $agenda, private ExpectedDocuments $expected, private ReceivedMails $mails) {}
 
     /**
      * The data of the Home of an account.
@@ -78,6 +83,10 @@ final readonly class HomeSummary
             pending_count: File::query()->toSort()->count(),
             checklist: $this->checklist($user),
             missing: $this->missing($today),
+            mails: array_map(
+                static fn (array $row): HomeMailData => HomeMailData::fromMail($row['mail'], $row['documents']),
+                $this->mails->recent(self::MAILS),
+            ),
         );
     }
 

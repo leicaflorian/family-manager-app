@@ -329,6 +329,14 @@ readonly pending: App.Data.PendingFileData[],
 readonly pending_count: number,
 readonly checklist: App.Data.ChecklistStepData[],
 readonly missing: App.Data.MissingDocumentData[],
+readonly mails: App.Data.HomeMailData[],
+};
+export type HomeMailData = {
+readonly id: number,
+readonly sender: string,
+readonly subject: string | null,
+readonly received_at: string,
+readonly links: string[],
 };
 export type InvitationData = {
 readonly first_name: string,

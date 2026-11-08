@@ -238,6 +238,24 @@ describe('ToSort', () => {
         expect(within(panel).getByText('Arrived by mail')).toBeInTheDocument();
     });
 
+    it('leads to Received mail from the icon beside the title and from the row under the filters', () => {
+        renderPage(ToSort, { ...page, filters: filters(5, 0, 2, 3) });
+
+        const panel = screen.getByRole('navigation', {
+            name: 'Where they come from',
+        }).parentElement as HTMLElement;
+        const row = within(panel).getByRole('link', { name: /Received mail/ });
+        expect(row).toHaveAttribute('href', '/mail');
+        expect(
+            within(row).getByText('The mails and what was done with them'),
+        ).toBeInTheDocument();
+
+        const icon = screen
+            .getAllByRole('link', { name: 'Received mail' })
+            .find((link) => !panel.contains(link)) as HTMLElement;
+        expect(icon).toHaveAttribute('href', '/mail');
+    });
+
     it('chooses every file but the copies with the box at the top, and lets them all go', async () => {
         renderPage(ToSort, page);
 

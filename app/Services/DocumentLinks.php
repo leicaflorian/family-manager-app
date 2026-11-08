@@ -11,6 +11,7 @@ use App\Data\LinkGroupData;
 use App\Data\OptionData;
 use App\Models\Document;
 use App\Support\Linkables;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use RuntimeException;
@@ -85,6 +86,39 @@ final class DocumentLinks
         }
 
         return $links;
+    }
+
+    /**
+     * The names of the records a document links to, read from the link relations already loaded on it (no query), in
+     * the order of the types and then by name. A relation that is not loaded counts as no link.
+     *
+     * @param  Document  $document  the document, with the link relations loaded
+     * @return list<string>
+     */
+    public static function loadedLabels(Document $document): array
+    {
+        $labels = [];
+
+        foreach (Linkables::WITH_DOCUMENTS as $relation) {
+            $records = $document->relationLoaded($relation) ? $document->getRelation($relation) : null;
+
+            if (! $records instanceof EloquentCollection) {
+                continue;
+            }
+
+            $names = [];
+
+            foreach ($records as $record) {
+                if (method_exists($record, 'label')) {
+                    $names[] = (string) $record->label();
+                }
+            }
+
+            usort($names, strnatcasecmp(...));
+            array_push($labels, ...$names);
+        }
+
+        return $labels;
     }
 
     /**

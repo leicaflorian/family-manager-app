@@ -51,6 +51,7 @@ const home: App.Data.HomeData = {
     pending_count: 0,
     checklist: [],
     missing: [],
+    mails: [],
 };
 
 /** The Home of a new family: nothing to pay, four steps to begin. */
@@ -282,6 +283,50 @@ describe('Home', () => {
         });
         expect(row).toHaveAttribute('href', '/upload?link=vehicle%3A1');
         expect(within(missing).getByText('Fiat Panda')).toBeInTheDocument();
+    });
+
+    it('shows the mail that arrived only when there is some, linked to Received mail', () => {
+        const view = renderPage(Home, { home });
+        expect(
+            screen.queryByRole('heading', { name: 'Mail that arrived' }),
+        ).not.toBeInTheDocument();
+        view.unmount();
+
+        renderPage(Home, {
+            home: {
+                ...home,
+                mails: [
+                    {
+                        id: 7,
+                        sender: 'Enel Energia',
+                        subject: 'La tua bolletta',
+                        received_at: '2026-10-25T09:41:00+01:00',
+                        links: ['Gas - Enel Energia'],
+                    },
+                    {
+                        id: 6,
+                        sender: 'Fastweb',
+                        subject: null,
+                        received_at: '2026-10-24T09:12:00+02:00',
+                        links: [],
+                    },
+                ],
+            },
+        });
+
+        const box = screen
+            .getByRole('heading', { name: 'Mail that arrived' })
+            .closest('section') as HTMLElement;
+        const enel = within(box).getByRole('link', {
+            name: /Enel Energia · La tua bolletta/,
+        });
+        expect(enel).toHaveAttribute('href', '/mail');
+        expect(
+            within(enel).getByText('Yesterday · linked to Gas - Enel Energia'),
+        ).toBeInTheDocument();
+        // No subject: the sender alone; no card: only the day
+        const fastweb = within(box).getByRole('link', { name: /Fastweb/ });
+        expect(within(fastweb).getByText('2 days ago')).toBeInTheDocument();
     });
 
     it('keeps the right column for what is missing even without incomes', () => {
