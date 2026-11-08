@@ -7,6 +7,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Check, Copy } from '@lucide/vue';
 import { ref, watch } from 'vue';
+import { useCopy } from '@/composables/useCopy';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
@@ -22,9 +23,13 @@ const { calendar } = defineProps<{
 
 /** The switch: follows the server, and asks it when the person moves it. */
 const enabled = ref(calendar.on);
-const copied = ref(false);
-/** The browser refused to copy: the address is selected for the person to copy by hand. */
-const copyFailed = ref(false);
+/** `failed`: the browser refused to copy, so the address is selected for the person to copy by hand. */
+const {
+    copied,
+    failed: copyFailed,
+    copy: copyText,
+    reset: forgetCopy,
+} = useCopy();
 const confirmingReset = ref(false);
 
 watch(
@@ -34,13 +39,7 @@ watch(
     },
 );
 
-watch(
-    () => calendar.url,
-    () => {
-        copied.value = false;
-        copyFailed.value = false;
-    },
-);
+watch(() => calendar.url, forgetCopy);
 
 /** Puts the switch back to what the server says, when it refused the change. */
 function restoreSwitch(): void {
@@ -74,13 +73,7 @@ async function copy(): Promise<void> {
         return;
     }
 
-    try {
-        await navigator.clipboard.writeText(calendar.url);
-        copied.value = true;
-        copyFailed.value = false;
-    } catch {
-        copied.value = false;
-        copyFailed.value = true;
+    if (!(await copyText(calendar.url))) {
         document
             .querySelector<HTMLInputElement>('input[name="address"]')
             ?.select();

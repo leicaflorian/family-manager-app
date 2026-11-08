@@ -183,7 +183,7 @@ final readonly class NoticeList
             sent_at: $notice->sent_at->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             read: $notice->read_at !== null,
             state: null,
-            href: $mail instanceof ReceivedMail ? route('mail.show', $mail) : url('settings/mail'),
+            href: $mail instanceof ReceivedMail ? route('mail.show', $mail) : route('mail-settings.edit'),
         );
     }
 }

@@ -24,6 +24,7 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
 use App\Http\Controllers\MailgunWebhookController;
+use App\Http\Controllers\MailSettingsController;
 use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\OrganizationController;
@@ -144,6 +145,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
+        Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
+        Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
+        Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::resource('settings/categories', CategoryController::class)

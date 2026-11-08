@@ -1384,5 +1384,22 @@
     "Original": "Originale",
     "Plain text": "Testo semplice",
     "Text of the mail": "Testo della mail",
-    "Not saved: :name.": "Non salvato: :name."
+    "Not saved: :name.": "Non salvato: :name.",
+    "Address for the bills": "Indirizzo per le bollette",
+    "Forward the bills that arrive by email: we read them": "Inoltra qui le bollette che arrivano per email: le leggiamo noi",
+    "The mails sent here arrive in To sort, with their files.": "Le mail mandate qui arrivano in Da smistare, con i loro allegati.",
+    "Could not copy: select the text and copy it by hand.": "Copia non riuscita: seleziona il testo e copialo a mano.",
+    "The mail is not active yet.": "La posta non è ancora attiva.",
+    "How to get them by themselves": "Come farle arrivare da sole",
+    "Gmail, on the computer: open a mail from Edison and choose «Filter messages like this».": "Gmail, sul computer: apri una mail di Edison e scegli «Filtra messaggi di questo tipo».",
+    "Tap «Create filter», check «Forward it to» and choose the family address.": "Premi «Crea filtro», spunta «Inoltra a» e scegli l'indirizzo della famiglia.",
+    "The first time Gmail sends a confirmation code: it arrives in Received mail, and you copy it from there.": "La prima volta Gmail manda un codice di conferma: arriva in Posta ricevuta, e lo copi da lì.",
+    "They already wrote here": "Hanno già scritto qui",
+    "Who gets the notice of a new file": "Chi riceve l'avviso di un file nuovo",
+    "Has no account": "Non ha un account",
+    "Nobody is told: the mails still arrive in To sort.": "Nessuno viene avvisato: le mail arrivano comunque in Da smistare.",
+    "Only for mails with files": "Solo per le mail con allegati",
+    "A mail without files becomes a notice in To sort, with no bell": "Una mail senza allegati diventa un avviso in Da smistare, senza notifica",
+    "The old address stops receiving: the forwards you set up (Gmail, filters) must be redone with the new one.": "Il vecchio indirizzo smette di ricevere: gli inoltri impostati (Gmail, filtri) vanno rifatti con quello nuovo.",
+    "The bills arrive by email by themselves": "Le bollette per email arrivano da sole"
 }

@@ -347,6 +347,24 @@ export type LoanFiguresData = {
 readonly total_to_pay: number | null,
 readonly cost: number | null,
 };
+export type MailAccountData = {
+readonly id: number,
+readonly name: string,
+readonly email: string,
+readonly chosen: boolean,
+};
+export type MailSenderData = {
+readonly name: string,
+readonly address: string,
+};
+export type MailSettingsData = {
+readonly address: string | null,
+readonly senders: App.Data.MailSenderData[],
+readonly accounts: App.Data.MailAccountData[],
+readonly people_without_account: string[],
+readonly attachments_only: boolean,
+readonly can_edit: boolean,
+};
 export type MissingDocumentData = {
 readonly key: string,
 readonly card: string,

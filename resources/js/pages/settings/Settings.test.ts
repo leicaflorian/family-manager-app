@@ -25,6 +25,12 @@ describe('Settings', () => {
             'href',
             '/settings/calendar',
         );
+        expect(
+            screen.getByRole('link', { name: /Address for the bills/ }),
+        ).toHaveAttribute('href', '/settings/mail');
+        expect(
+            screen.getByText('The bills arrive by email by themselves'),
+        ).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /Notices/ })).toHaveAttribute(
             'href',
             '/settings/notices',

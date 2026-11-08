@@ -5,10 +5,10 @@
  */
 import { Head } from '@inertiajs/vue3';
 import { Check, Copy } from '@lucide/vue';
-import { ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useCopy } from '@/composables/useCopy';
 import { useFormat } from '@/composables/useFormat';
 import { family } from '@/routes';
 
@@ -18,14 +18,13 @@ const { invitation } = defineProps<{
 }>();
 
 const { date } = useFormat();
-const copied = ref(false);
+const { copied, copy: copyText } = useCopy();
 
 /**
  * Copies the link to the clipboard.
  */
 async function copy(): Promise<void> {
-    await navigator.clipboard.writeText(invitation.link);
-    copied.value = true;
+    await copyText(invitation.link);
 }
 </script>
 
