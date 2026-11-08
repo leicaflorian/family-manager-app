@@ -17,6 +17,7 @@ use App\Data\Reading\MovementProposalData;
 use App\Data\Reading\MovementValuesData;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
+use App\Enums\Area;
 use App\Enums\DocumentStatus;
 use App\Enums\DueMode;
 use App\Models\Document;
@@ -27,6 +28,7 @@ use App\Models\Income;
 use App\Models\InsurancePolicy;
 use App\Models\PlannedExpense;
 use App\Services\Deadlines;
+use App\Services\FamilyAreas;
 use App\Services\Reading\ExpenseChanges;
 use App\Services\Reading\Matcher;
 use App\Services\Reading\Proposal;
@@ -86,6 +88,7 @@ final readonly class ImportFile
      * @param  ExpenseChanges  $expenseChanges  what the expense already recorded takes from the file
      * @param  Matcher  $matcher  the policy taken from another file, by its number
      * @param  Deadlines  $deadlines  whether a due date is paid
+     * @param  FamilyAreas  $areas  the areas the family hides, put back when a card is created in one
      */
     public function __construct(
         private Proposal $proposals,
@@ -98,6 +101,7 @@ final readonly class ImportFile
         private ExpenseChanges $expenseChanges,
         private Matcher $matcher,
         private Deadlines $deadlines,
+        private FamilyAreas $areas,
     ) {}
 
     /**
@@ -144,6 +148,7 @@ final readonly class ImportFile
     private function save(File $file, ImportChoices $choices, array $roundGivers, ProposalData $first, array $roundCards): array
     {
         $locale = App::getLocale();
+        $hiddenBefore = $this->areas->hidden();
 
         $before = $this->records->before($first->records, $choices->records);
         if ($before['organization'] !== null) {
@@ -163,6 +168,11 @@ final readonly class ImportFile
         $expense = $movement instanceof Expense ? $movement : null;
         $event = $choices->event && $proposal->event instanceof EventProposalData ? $this->event($proposal->event, $document, $expense) : null;
         $after = $this->records->after($first->records, $choices->records, $before['ids'], $document, $expense);
+
+        $hiddenAfter = $this->areas->hidden();
+        foreach (array_filter($hiddenBefore, static fn (Area $area): bool => ! in_array($area, $hiddenAfter, true)) as $area) {
+            $warnings[] = __('I put :area back among the areas.', ['area' => $area->label()]);
+        }
 
         return ['document' => $document, 'movement' => $movement, 'event' => $event, 'records' => [...$before['records'], ...$after], 'warnings' => $warnings];
     }
@@ -520,6 +530,7 @@ final readonly class ImportFile
                 'notes' => $values->notes,
                 'expense_id' => $expense?->id,
             ]);
+            $this->areas->reveal(Area::Health);
         }
 
         $event->documents()->syncWithoutDetaching([$document->id]);

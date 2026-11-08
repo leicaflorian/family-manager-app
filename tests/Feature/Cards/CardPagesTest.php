@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Area;
 use App\Enums\ExceptionType;
 use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -14,6 +15,7 @@ use App\Models\PlannedExpenseException;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\FamilyAreas;
 use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Http\Request;
@@ -181,6 +183,22 @@ test('it creates a vehicle and opens it', function (): void {
     $vespa = insideBianchi(fn (): Vehicle => Vehicle::query()->where('name', 'Vespa')->sole());
     $response->assertRedirect(route('cards.show', ['type' => 'vehicle', 'id' => $vespa->id]));
     expect($vespa->inspection_due_date?->toDateString())->toBe('2027-03-01');
+});
+
+test('a new card puts its hidden area back, an edited one does not', function (): void {
+    $this->actingAs($this->marco);
+    $hideVehicles = fn (): mixed => insideBianchi(function (): void {
+        $areas = resolve(FamilyAreas::class);
+        $areas->save($areas->ordered(), [Area::Vehicles]);
+    });
+    $isHidden = fn (): bool => insideBianchi(fn (): bool => resolve(FamilyAreas::class)->isHidden(Area::Vehicles));
+
+    $hideVehicles();
+    $this->put(route('cards.update', $this->pandaUrl), ['name' => 'Fiat Panda', 'status' => 'active', 'is_owned' => true]);
+    expect($isHidden())->toBeTrue();
+
+    $this->post(route('cards.store', 'vehicle'), ['name' => 'Vespa', 'status' => 'active', 'is_owned' => true]);
+    expect($isHidden())->toBeFalse();
 });
 
 test('it deletes a card and goes back to its area', function (): void {

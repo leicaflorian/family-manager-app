@@ -8,6 +8,7 @@ use App\Actions\Reading\SaveRecords;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\RecordDraftData;
+use App\Enums\Area;
 use App\Enums\ExceptionType;
 use App\Enums\HealthEventType;
 use App\Enums\IntervalUnit;
@@ -31,6 +32,7 @@ use App\Models\Reminder;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Deadlines;
+use App\Services\FamilyAreas;
 use App\Services\Reading\Proposal;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
@@ -635,5 +637,47 @@ describe('the health event', function (): void {
             ->and($existing->next_checkup_date?->toDateString())->toBe('2027-04-22')
             ->and($existing->expense_id)->toBe(Expense::query()->sole()->id)
             ->and($existing->documents()->pluck('documents.id')->all())->toBe([$result['document']->id]);
+    });
+});
+
+describe('the hidden areas', function (): void {
+    test('a card created by the import puts its hidden area back and the file says so', function (): void {
+        $areas = resolve(FamilyAreas::class);
+        $areas->save($areas->ordered(), [Area::Insurance]);
+        $unipol = Organization::factory()->for($this->family)->create(['name' => 'UnipolSai']);
+        $file = readWaitingFile([
+            'kind' => 'insurance', 'organization_id' => $unipol->id, 'policy_number' => '40/123456', 'insurance_type' => 'car',
+            'issue_date' => '2026-10-01', 'title' => 'Contratto polizza',
+        ]);
+
+        $result = importReadFile($file, ['movement' => false, 'records' => ['policy'], 'links' => []]);
+
+        expect($areas->isHidden(Area::Insurance))->toBeFalse()
+            ->and($result['warnings'])->toBe(['Ho rimesso Assicurazioni tra le aree.']);
+    });
+
+    test('a health event created by the import puts Health back and the file says so', function (): void {
+        $areas = resolve(FamilyAreas::class);
+        $areas->save($areas->ordered(), [Area::Health]);
+        $giulia = Person::factory()->for($this->family)->create(['first_name' => 'Giulia']);
+        $file = readWaitingFile([
+            'kind' => 'invoice', 'title' => 'Visita dal dentista', 'organization_id' => $this->dentist->id, 'total_amount' => 120,
+            'issue_date' => '2026-10-22', 'person_id' => $giulia->id, 'health_type' => HealthEventType::Visit->value,
+        ]);
+
+        $result = importReadFile($file, ['due' => false, 'event' => true, 'links' => []]);
+
+        expect($areas->isHidden(Area::Health))->toBeFalse()
+            ->and($result['warnings'])->toBe(['Ho rimesso Salute tra le aree.']);
+    });
+
+    test('nothing is said when the area was visible', function (): void {
+        $giulia = Person::factory()->for($this->family)->create(['first_name' => 'Giulia']);
+        $file = readWaitingFile([
+            'kind' => 'invoice', 'title' => 'Visita dal dentista', 'organization_id' => $this->dentist->id, 'total_amount' => 120,
+            'issue_date' => '2026-10-22', 'person_id' => $giulia->id, 'health_type' => HealthEventType::Visit->value,
+        ]);
+
+        expect(importReadFile($file, ['due' => false, 'event' => true, 'links' => []])['warnings'])->toBe([]);
     });
 });
