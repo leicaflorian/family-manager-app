@@ -64,6 +64,7 @@ readonly label: string,
 readonly count: number,
 readonly overdue: number,
 readonly cards: App.Data.CardData[],
+readonly hidden: boolean,
 };
 export type AreaSettingData = {
 readonly area: string,

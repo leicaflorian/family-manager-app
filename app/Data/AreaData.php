@@ -20,6 +20,7 @@ final class AreaData extends Data
      * @param  int  $count  the cards that are not closed
      * @param  int  $overdue  the cards with an expiring date already past
      * @param  list<CardData>  $cards  the cards of the area
+     * @param  bool  $hidden  whether the family hid the area
      */
     public function __construct(
         public readonly string $area,
@@ -28,5 +29,6 @@ final class AreaData extends Data
         public readonly int $overdue,
         #[DataCollectionOf(CardData::class)]
         public readonly array $cards,
+        public readonly bool $hidden,
     ) {}
 }

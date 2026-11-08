@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * *Areas*: the nine areas of family life (home, vehicles, insurance…), each
- * with how many cards it has, how many are overdue and its first cards. The
- * search finds a card in every area by its name. An `admin` adds cards; with
- * no cards at all the page invites to create the first one, or to start from
- * a document (*Upload*, where the reading proposes the card).
+ * *Areas*: the areas of the family (home, vehicles, insurance…) in its order,
+ * each with how many cards it has, how many are overdue and its first cards.
+ * The areas the family hid are not shown, but the search still finds their
+ * cards by name. An `admin` adds cards; with no cards at all the page invites
+ * to create the first one, or to start from a document (*Upload*, where the
+ * reading proposes the card).
  */
 import { Head, Link } from '@inertiajs/vue3';
 import { Camera, Plus, Search, Shapes } from '@lucide/vue';
@@ -27,7 +28,7 @@ import { show } from '@/routes/areas';
 const PREVIEW = 3;
 
 const { areas, types, canCreate } = defineProps<{
-    /** The nine areas, each with its cards. */
+    /** The areas of the family in its order, the hidden ones too, each with its cards. */
     areas: App.Data.AreaData[];
     /** The card types, to know where *Add* leads. */
     types: App.Data.CardTypeData[];
@@ -38,10 +39,13 @@ const { areas, types, canCreate } = defineProps<{
 /** The text in the search box. */
 const query = ref('');
 
-/** There is no card in any area. */
+/** There is no card in any area, the hidden ones too. */
 const empty = computed(() => areas.every((area) => area.count === 0));
 
-/** The cards whose name or subtitle holds the search, from every area. */
+/** The areas shown in the grid: the ones the family did not hide. */
+const shown = computed(() => areas.filter((area) => !area.hidden));
+
+/** The cards whose name or subtitle holds the search, from every area, the hidden ones too. */
 const found = computed((): App.Data.CardData[] => {
     const text = query.value.trim().toLowerCase();
 
@@ -152,7 +156,7 @@ function tile(area: string): string {
             class="grid gap-4 lg:grid-cols-[repeat(auto-fill,minmax(340px,1fr))] lg:gap-5"
         >
             <section
-                v-for="area in areas"
+                v-for="area in shown"
                 :key="area.area"
                 class="flex flex-col overflow-hidden rounded-card-lg bg-card"
             >

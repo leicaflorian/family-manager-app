@@ -6,7 +6,7 @@ import { renderPage } from '@/test/page';
 import Areas from './Areas.vue';
 
 describe('Areas', () => {
-    it('shows the nine areas with their cards and the overdue ones', () => {
+    it('shows the areas with their cards and the overdue ones', () => {
         renderPage(Areas, {
             areas: allAreas,
             types: cardTypes,
@@ -41,6 +41,60 @@ describe('Areas', () => {
         expect(
             screen.queryByRole('link', { name: /Fiat Panda/ }),
         ).not.toBeInTheDocument();
+    });
+
+    it('shows only the areas the family did not hide', () => {
+        renderPage(Areas, {
+            areas: allAreas.map((area) =>
+                area.area === 'vehicles' ? { ...area, hidden: true } : area,
+            ),
+            types: cardTypes,
+            canCreate: true,
+        });
+
+        expect(
+            screen.getByRole('link', { name: /^Home/ }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: /^Vehicles/ }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('search finds a card of a hidden area', async () => {
+        renderPage(Areas, {
+            areas: allAreas.map((area) =>
+                area.area === 'vehicles' ? { ...area, hidden: true } : area,
+            ),
+            types: cardTypes,
+            canCreate: true,
+        });
+
+        await userEvent.type(
+            screen.getByRole('searchbox', { name: 'Search all cards' }),
+            'panda',
+        );
+
+        expect(
+            screen.getByRole('link', { name: /Fiat Panda/ }),
+        ).toBeInTheDocument();
+    });
+
+    it('a family whose cards are all in hidden areas does not see the empty state', () => {
+        renderPage(Areas, {
+            areas: allAreas.map((area) => ({
+                ...area,
+                hidden: area.count > 0,
+            })),
+            types: cardTypes,
+            canCreate: true,
+        });
+
+        expect(
+            screen.queryByRole('link', { name: 'Create the first card' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('searchbox', { name: 'Search all cards' }),
+        ).toBeInTheDocument();
     });
 
     it('invites to create the first card, or to start from a document', () => {

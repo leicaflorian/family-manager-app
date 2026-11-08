@@ -378,6 +378,7 @@ export const homeArea: App.Data.AreaData = {
     label: 'Home',
     count: 2,
     overdue: 1,
+    hidden: false,
     cards: [
         {
             ...pandaRow,
@@ -415,6 +416,7 @@ export const allAreas: App.Data.AreaData[] = [
         label: 'Vehicles',
         count: 1,
         overdue: 0,
+        hidden: false,
         cards: [pandaRow],
     },
     ...(
@@ -432,6 +434,7 @@ export const allAreas: App.Data.AreaData[] = [
         label: area,
         count: 0,
         overdue: 0,
+        hidden: false,
         cards: [],
     })),
 ];
