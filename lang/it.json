@@ -1332,5 +1332,10 @@
     "From: :sender": "Da: :sender",
     "Subject: :subject": "Oggetto: :subject",
     "Arrived on: :date": "Arrivato il: :date",
-    "due on :date": "scade il :date"
+    "due on :date": "scade il :date",
+    "discarded": "scartata",
+    "discarded: :reason": "scartata: :reason",
+    "not read": "non letti",
+    "not read: :reason": "non letti: :reason",
+    "AI reading failed: :name: :message": "lettura AI non riuscita: :name: :message"
 }
