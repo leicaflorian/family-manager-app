@@ -60,7 +60,7 @@ final class ReminderController extends Controller
         $viewer = $request->user();
         abort_unless($viewer instanceof User, 401);
 
-        return new RemindersPageData($lists['open'], $lists['done'], PersonData::ofFamily($viewer), $personId, Reminder::query()->open()->count(), AgendaData::areas($this->familyAreas), AgendaController::hiddenValues($this->familyAreas));
+        return new RemindersPageData($lists['open'], $lists['done'], PersonData::ofFamily($viewer), $personId, Reminder::query()->open()->count(), AgendaData::areas($this->familyAreas), $this->familyAreas->hiddenValues());
     }
 
     /**

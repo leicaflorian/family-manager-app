@@ -148,7 +148,7 @@ final readonly class ImportFile
     private function save(File $file, ImportChoices $choices, array $roundGivers, ProposalData $first, array $roundCards): array
     {
         $locale = App::getLocale();
-        $hiddenBefore = $this->areas->hidden();
+        $hiddenBefore = $this->areas->refresh()->hidden();
 
         $before = $this->records->before($first->records, $choices->records);
         if ($before['organization'] !== null) {
@@ -169,7 +169,8 @@ final readonly class ImportFile
         $event = $choices->event && $proposal->event instanceof EventProposalData ? $this->event($proposal->event, $document, $expense) : null;
         $after = $this->records->after($first->records, $choices->records, $before['ids'], $document, $expense);
 
-        $hiddenAfter = $this->areas->hidden();
+        // Read again: SaveCard puts an area back through its own instance
+        $hiddenAfter = $this->areas->refresh()->hidden();
         foreach (array_filter($hiddenBefore, static fn (Area $area): bool => ! in_array($area, $hiddenAfter, true)) as $area) {
             $warnings[] = __('I put :area back among the areas.', ['area' => $area->label()]);
         }

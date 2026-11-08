@@ -20,9 +20,9 @@ use InvalidArgumentException;
  * Lists the cards of the current family as rows and groups them by area, for
  * *Areas* and *Area*.
  */
-final class CardSummaries
+final readonly class CardSummaries
 {
-    public function __construct(private readonly FamilyAreas $familyAreas) {}
+    public function __construct(private FamilyAreas $familyAreas) {}
 
     /**
      * The row of a card.

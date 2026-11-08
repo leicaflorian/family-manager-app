@@ -6,13 +6,23 @@ namespace App\Services;
 
 use App\Enums\Area;
 use App\Models\FamilySetting;
+use App\Support\CurrentFamily;
 
 /**
  * The areas of the current family: the order it chose and the ones it hid
  * (`family_settings.areas`, `{"order": [...], "hidden": [...]}` or null).
+ *
+ * The settings row is read once per instance and family: the service is not a
+ * singleton, and the row is read again when `CurrentFamily::using()` switches family.
  */
 final class FamilyAreas
 {
+    /** The settings row read last, kept for the rest of the request. */
+    private ?FamilySetting $setting = null;
+
+    /** The family whose row is kept. */
+    private ?int $settingFamily = null;
+
     /**
      * Every area, in the order of the family.
      *
@@ -69,6 +79,16 @@ final class FamilyAreas
     }
 
     /**
+     * The values of the hidden areas, in the order of the family.
+     *
+     * @return list<string>
+     */
+    public function hiddenValues(): array
+    {
+        return array_map(static fn (Area $area): string => $area->value, $this->hidden());
+    }
+
+    /**
      * Tells if the family hid an area.
      *
      * @param  Area  $area  the area
@@ -90,6 +110,7 @@ final class FamilyAreas
             'order' => array_map(static fn (Area $area): string => $area->value, $order),
             'hidden' => array_map(static fn (Area $area): string => $area->value, $hidden),
         ]]);
+        $this->refresh();
     }
 
     /**
@@ -98,6 +119,7 @@ final class FamilyAreas
     public function reset(): void
     {
         $this->setting()->update(['areas' => null]);
+        $this->refresh();
     }
 
     /**
@@ -108,7 +130,8 @@ final class FamilyAreas
      */
     public function reveal(Area $area): bool
     {
-        if (! $this->isHidden($area)) {
+        // A write starts from the saved choice: another instance may have shown an area since this one read the row
+        if (! $this->refresh()->isHidden($area)) {
             return false;
         }
 
@@ -162,10 +185,30 @@ final class FamilyAreas
     }
 
     /**
-     * The settings row of the current family, created when missing.
+     * The settings row of the current family, created when missing; read once while the family stays the same.
      */
     private function setting(): FamilySetting
     {
-        return FamilySetting::query()->firstOrCreate([]);
+        $family = CurrentFamily::id();
+
+        if (! $this->setting instanceof FamilySetting || $this->settingFamily !== $family) {
+            $this->setting = FamilySetting::query()->firstOrCreate([]);
+            $this->settingFamily = $family;
+        }
+
+        return $this->setting;
+    }
+
+    /**
+     * Forgets the kept row, so the next read sees what was saved meanwhile, by this instance or by another one.
+     *
+     * @return $this
+     */
+    public function refresh(): self
+    {
+        $this->setting = null;
+        $this->settingFamily = null;
+
+        return $this;
     }
 }

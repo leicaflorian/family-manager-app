@@ -9,7 +9,6 @@ use App\Actions\Agenda\UpdateDeadline;
 use App\Data\AgendaData;
 use App\Data\AgendaFiltersData;
 use App\Data\PersonData;
-use App\Enums\Area;
 use App\Http\Requests\Agenda\UpdateDeadlineRequest;
 use App\Http\Requests\AgendaFiltersRequest;
 use App\Http\Requests\AgendaRequest;
@@ -61,19 +60,9 @@ final class AgendaController extends Controller
                 filters: $shown,
                 areas: AgendaData::areas($this->familyAreas),
                 open_reminders: Reminder::query()->open()->count(),
-                family_hidden: self::hiddenValues($this->familyAreas),
+                family_hidden: $this->familyAreas->hiddenValues(),
             ),
         ]);
-    }
-
-    /**
-     * The values of the areas the family hid.
-     *
-     * @return list<string>
-     */
-    public static function hiddenValues(FamilyAreas $areas): array
-    {
-        return array_map(static fn (Area $area): string => $area->value, $areas->hidden());
     }
 
     /**

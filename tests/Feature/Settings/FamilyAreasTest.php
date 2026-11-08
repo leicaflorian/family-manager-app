@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\Area;
 use App\Models\FamilySetting;
 use App\Services\FamilyAreas;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     $this->marco = registerFamily();
@@ -106,5 +107,82 @@ test('the choice of a family is not seen from another family', function (): void
         $areas = resolve(FamilyAreas::class);
         expect($areas->hidden())->toBe([])
             ->and($areas->ordered())->toBe(Area::cases());
+    });
+});
+
+test('hiddenValues gives the values of the hidden areas in the order of the family', function (): void {
+    withAreas(function (FamilyAreas $areas): void {
+        $areas->save([Area::Work, Area::Home, Area::Health], [Area::Health, Area::Work]);
+
+        expect($areas->hiddenValues())->toBe(['work', 'health']);
+    });
+});
+
+test('save then ordered in the same instance sees the new order', function (): void {
+    withAreas(function (FamilyAreas $areas): void {
+        expect($areas->ordered())->toBe(Area::cases());
+
+        $areas->save([Area::Health, Area::Home], [Area::Work]);
+
+        expect(array_slice($areas->ordered(), 0, 2))->toBe([Area::Health, Area::Home])
+            ->and($areas->hidden())->toBe([Area::Work]);
+
+        $areas->reset();
+
+        expect($areas->ordered())->toBe(Area::cases())
+            ->and($areas->hidden())->toBe([]);
+    });
+});
+
+test('one instance reads the settings row once', function (): void {
+    withAreas(function (FamilyAreas $areas): void {
+        $areas->ordered();
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $areas->visible();
+        $areas->hidden();
+        $areas->isHidden(Area::Work);
+
+        expect(DB::getQueryLog())->toBe([]);
+    });
+});
+
+test('one instance follows the family in use', function (): void {
+    $other = registerFamily('Rossi', 'anna@example.com');
+    withAreas(fn (FamilyAreas $areas) => $areas->save([Area::Health], [Area::Work]));
+
+    $areas = insideFamilyOf(test()->marco, function (): FamilyAreas {
+        $areas = resolve(FamilyAreas::class);
+        expect($areas->hidden())->toBe([Area::Work]);
+
+        return $areas;
+    });
+
+    $hidden = insideFamilyOf($other, fn (): array => $areas->hidden());
+
+    expect($hidden)->toBe([]);
+});
+
+test('reveal starts from the saved choice, not from what the instance read before', function (): void {
+    withAreas(function (FamilyAreas $first): void {
+        $first->save(Area::cases(), [Area::Work, Area::Health]);
+        expect($first->hidden())->toBe([Area::Health, Area::Work]);
+
+        // Another instance in the same request (SaveCard, ImportFile) shows Health again
+        (new FamilyAreas)->reveal(Area::Health);
+        $first->reveal(Area::Work);
+
+        expect((new FamilyAreas)->hidden())->toBe([]);
+    });
+});
+
+test('refresh reads again what another instance saved', function (): void {
+    withAreas(function (FamilyAreas $first): void {
+        expect($first->hidden())->toBe([]);
+
+        (new FamilyAreas)->save(Area::cases(), [Area::Work]);
+
+        expect($first->refresh()->hidden())->toBe([Area::Work]);
     });
 });

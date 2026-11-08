@@ -19,7 +19,7 @@ final class RemindersPageData extends Data
      * @param  list<PersonData>  $people  the people of the family, for the filter of the person
      * @param  int|null  $person_id  the person chosen in *Who*
      * @param  int  $open_total  how many reminders of the whole family are still to do, whatever the filter, for the tab
-     * @param  list<OptionData>  $areas  the areas in the order of the board, for the menu of the areas
+     * @param  list<OptionData>  $areas  the areas in the order of the family: visible, then hidden, then People and documents, for the menu of the areas
      * @param  list<string>  $family_hidden  the values of the areas the family hid
      */
     public function __construct(
