@@ -39,7 +39,7 @@ function row(name: string): HTMLElement {
  * @param name - the name of the area
  */
 async function flip(name: string): Promise<void> {
-    await userEvent.click(within(row(name)).getByLabelText('Show'));
+    await userEvent.click(screen.getByLabelText(`Show ${name}`));
     await settle();
 }
 
@@ -91,7 +91,22 @@ describe('Settings, Areas', () => {
         expect(within(row('Work')).getByTestId('area-dot').className).toContain(
             'bg-work',
         );
-        expect(within(row('Work')).getByLabelText('Show')).toBeChecked();
+        expect(screen.getByLabelText('Show Work')).toBeChecked();
+    });
+
+    it('names each switch Show with its area', () => {
+        renderPage(Areas, { settings: areaSettings });
+
+        expect(
+            screen.getByRole('switch', { name: 'Show Work' }),
+        ).toBeChecked();
+        expect(
+            screen.getByRole('switch', { name: 'Show Home' }),
+        ).toBeChecked();
+        expect(screen.queryAllByRole('switch', { name: 'Show' })).toHaveLength(
+            0,
+        );
+        expect(row('Work')).toHaveTextContent('Show');
     });
 
     it('hides an area at once, says what happens to its cards and saves the whole choice', async () => {
@@ -105,7 +120,7 @@ describe('Settings, Areas', () => {
             { order: ORDER, hidden: ['work'] },
             expect.objectContaining({ preserveScroll: true }),
         );
-        expect(within(row('Work')).getByLabelText('Show')).not.toBeChecked();
+        expect(screen.getByLabelText('Show Work')).not.toBeChecked();
         expect(row('Work')).toHaveTextContent('Hidden');
         expect(row('Work')).toHaveTextContent(
             'Has 2 cards: they stay, with their deadlines.',
@@ -192,7 +207,7 @@ describe('Settings, Areas', () => {
         await settle();
 
         expect(rows()[0]).toHaveTextContent('Home');
-        expect(within(row('Work')).getByLabelText('Show')).toBeChecked();
+        expect(screen.getByLabelText('Show Work')).toBeChecked();
         expect(row('Work')).not.toHaveTextContent('Hidden');
     });
 
@@ -236,7 +251,7 @@ describe('Settings, Areas', () => {
         await settle();
 
         expect(row('Work')).not.toHaveTextContent('Hidden');
-        expect(within(row('Work')).getByLabelText('Show')).toBeChecked();
+        expect(screen.getByLabelText('Show Work')).toBeChecked();
     });
 
     it('shows a member the order without handles, switches, menus or the way back to the default', () => {
@@ -252,7 +267,7 @@ describe('Settings, Areas', () => {
         });
 
         expect(rows()).toHaveLength(9);
-        expect(screen.queryByLabelText('Show')).toBeNull();
+        expect(screen.queryByLabelText(/^Show/)).toBeNull();
         expect(screen.queryByRole('img', { name: 'Drag to move' })).toBeNull();
         expect(
             screen.queryByRole('button', { name: /More actions/ }),

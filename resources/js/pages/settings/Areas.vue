@@ -191,6 +191,9 @@ function cardsStay(count: number): string {
                                 type="toggle"
                                 :name="`show-${item.area}`"
                                 :label="$t('Show')"
+                                :aria-label="
+                                    $t('Show :area', { area: item.label })
+                                "
                                 outer-class="$reset"
                                 :model-value="!hidden.includes(item.area)"
                                 @input="

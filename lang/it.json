@@ -1331,6 +1331,7 @@
     "Amount not found: tick the box if you want to keep it among the items, with the warranty.": "Importo non trovato: spunta la casella se vuoi tenerlo tra i beni, con la garanzia.",
     "I put :area back among the areas.": "Ho rimesso :area tra le aree.",
     "Show": "Mostra",
+    "Show :area": "Mostra :area",
     "Hidden": "Nascosta",
     "Move up": "Sposta su",
     "Move down": "Sposta giù",
