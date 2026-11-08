@@ -74,4 +74,28 @@ describe('FmSortableList', () => {
 
         expect(view.emitted().sort).toBeUndefined();
     });
+
+    it('shows the new order when the parent sends the items again', async () => {
+        const view = show();
+
+        await view.rerender({ items: [items[2]!, items[0]!, items[1]!] });
+
+        const names = screen
+            .getAllByRole('listitem')
+            .map((row) => row.textContent);
+
+        expect(names[0]).toContain('Money');
+        expect(names[2]).toContain('Health');
+    });
+
+    it('moves from the new order after the items change', async () => {
+        const view = show();
+
+        await view.rerender({ items: [items[2]!, items[0]!, items[1]!] });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Down Money' }),
+        );
+
+        expect(view.emitted().sort).toEqual([[['home', 'money', 'health']]]);
+    });
 });

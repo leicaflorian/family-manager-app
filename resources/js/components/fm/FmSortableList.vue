@@ -14,7 +14,10 @@ import { shallowRef, watch, onMounted, useTemplateRef } from 'vue';
 import { cn } from '@/lib/utils';
 
 const { items, disabled = false } = defineProps<{
-    /** The items in their order; each has a `key` that identifies it. */
+    /**
+     * The items in their order; each has a `key` that identifies it. The parent owns the order: the list shows
+     * the last array it received, so after a failed save the parent must pass a new array to put the rows back.
+     */
     items: T[];
     /** Turns dragging off: no handles, and the order does not change. */
     disabled?: boolean;
@@ -57,7 +60,7 @@ onMounted(() => {
         parent: list.value,
         values,
         dragHandle: '[data-drag-handle]',
-        draggingClass: 'opacity-60',
+        draggingClass: cn('opacity-60'),
         onDragend: () => {
             const keys = values.value.map((item) => item.key);
 
@@ -77,11 +80,11 @@ onMounted(() => {
 function move(index: number, step: -1 | 1): void {
     const target = index + step;
 
-    if (disabled || target < 0 || target >= items.length) {
+    if (disabled || target < 0 || target >= values.value.length) {
         return;
     }
 
-    const keys = items.map((item) => item.key);
+    const keys = values.value.map((item) => item.key);
 
     [keys[index], keys[target]] = [keys[target]!, keys[index]!];
     emit('sort', keys);
@@ -89,11 +92,11 @@ function move(index: number, step: -1 | 1): void {
 </script>
 
 <template>
-    <ul ref="list" :aria-label="label" role="list">
+    <ul ref="list" :aria-label="label">
         <li
             v-for="(item, index) in values"
             :key="item.key"
-            :class="cn('flex items-center gap-2')"
+            class="flex items-center gap-2"
         >
             <span
                 v-if="!disabled"
