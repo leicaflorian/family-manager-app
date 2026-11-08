@@ -73,9 +73,9 @@ test('a member cannot save the areas', function (): void {
 test('the order must hold every area once and only real areas', function (array $order): void {
     $this->put(route('settings.areas.update'), ['order' => $order, 'hidden' => []])->assertSessionHasErrors();
 })->with([
-    'a repeated area' => fn () => [...array_slice(allAreaValues(), 0, 8), 'home'],
-    'a missing area' => fn () => array_slice(allAreaValues(), 0, 8),
-    'an unknown area' => fn () => [...array_slice(allAreaValues(), 0, 8), 'garden'],
+    'a repeated area' => fn (): array => [...array_slice(allAreaValues(), 0, 8), 'home'],
+    'a missing area' => fn (): array => array_slice(allAreaValues(), 0, 8),
+    'an unknown area' => fn (): array => [...array_slice(allAreaValues(), 0, 8), 'garden'],
 ]);
 
 test('an unknown hidden area is refused', function (): void {
@@ -87,7 +87,9 @@ test('every area can be hidden', function (): void {
     $this->put(route('settings.areas.update'), ['order' => allAreaValues(), 'hidden' => allAreaValues()])
         ->assertSessionHasNoErrors();
 
-    insideFamilyOf($this->marco, fn () => expect(resolve(FamilyAreas::class)->visible())->toBe([]));
+    insideFamilyOf($this->marco, function (): void {
+        expect(resolve(FamilyAreas::class)->visible())->toBe([]);
+    });
 });
 
 test('an admin resets the areas and a member cannot', function (): void {

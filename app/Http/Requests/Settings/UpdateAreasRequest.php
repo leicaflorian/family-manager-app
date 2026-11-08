@@ -70,6 +70,6 @@ final class UpdateAreasRequest extends FormRequest
         /** @var list<string> $values */
         $values = $this->validated($key);
 
-        return array_map(static fn (string $value): Area => Area::from($value), $values);
+        return array_map(Area::from(...), $values);
     }
 }

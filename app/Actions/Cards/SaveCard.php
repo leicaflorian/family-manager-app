@@ -11,12 +11,12 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Creates a card of a type or updates one.
  */
-final class SaveCard
+final readonly class SaveCard
 {
     /**
      * @param  FamilyAreas  $areas  puts the area of a new card back among the visible ones
      */
-    public function __construct(private readonly FamilyAreas $areas) {}
+    public function __construct(private FamilyAreas $areas) {}
 
     /**
      * Saves the card.
