@@ -88,7 +88,7 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 | `./vendor/bin/sail artisan ai-readings:report` | Le letture AI del mese per famiglia, con token e costo (`--month=2026-10`; senza, il mese in corso) |
 | `./vendor/bin/sail artisan files:checksums` | Scrive le impronte dei file che non l'hanno (una volta, dopo la migrazione) |
 
-Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori, Rector senza modifiche proposte, build, tipi e lint senza errori, Pint pulito, `npm run build-storybook` senza errori.
+Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori, Rector senza modifiche proposte, build, tipi e lint senza errori, Pint pulito e, quando si toccano storie o `.storybook/`, `npm run build-storybook` senza errori.
 
 - Lo starter kit usa Vite+ (`vp`): build, lint (Oxlint), formattazione (Oxfmt) e test (Vitest) sono suoi, configurati in `vite.config.ts`.
 - npm: nel container di Sail c'è npm 11. npm 10.8 si fermava installando FormKit (`Cannot read properties of null (reading 'edgesOut')`): se serve npm fuori da Sail si usa `npx npm@11 install`.
