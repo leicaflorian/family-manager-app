@@ -216,7 +216,7 @@ async function copyCode(): Promise<void> {
 
     <div class="flex max-w-[1120px] flex-col gap-4 lg:gap-6">
         <div
-            class="flex flex-col gap-3.5 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between lg:gap-4"
+            class="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between lg:gap-4"
             :class="mail && 'max-lg:hidden'"
         >
             <FmTitle
@@ -228,10 +228,11 @@ async function copyCode(): Promise<void> {
                 "
                 :back="toSort().url"
                 :back-label="$t('To sort')"
+                class="min-w-0 lg:flex-1"
             />
             <FmSearchField
                 v-model="text"
-                class="lg:w-80"
+                class="lg:w-80 lg:shrink-0"
                 :label="$t('Search sender or subject')"
             />
         </div>
@@ -293,7 +294,9 @@ async function copyCode(): Promise<void> {
                                 }}</span
                             >
                         </span>
-                        <span class="max-lg:order-last">
+                        <span
+                            class="min-w-0 max-lg:order-last lg:[&>span]:max-w-full lg:[&>span]:whitespace-normal"
+                        >
                             <FmMailOutcome
                                 :label="row.outcome_label"
                                 :tone="row.tone"
