@@ -1323,5 +1323,14 @@
     "Drag the files here, or choose them from the computer": "Trascina qui i file, oppure scegli dal computer",
     "Uploaded manually on :date by :name": "Caricato manualmente il :date da :name",
     "Uploaded manually": "Caricati manualmente",
-    "The files that arrive by mail, from the phone or uploaded manually stay until you import or delete them.": "I file arrivati per posta, dal telefono o caricati manualmente restano finché non li importi o li elimini."
+    "The files that arrive by mail, from the phone or uploaded manually stay until you import or delete them.": "I file arrivati per posta, dal telefono o caricati manualmente restano finché non li importi o li elimini.",
+    "[text cut]": "[testo troncato]",
+    "Notice - :subject.txt": "Avviso - :subject.txt",
+    "no subject": "senza oggetto",
+    "Notice that came by mail, with no attachment.": "Avviso arrivato per posta, senza allegato.",
+    "To upload the real invoice you need to sign in to the supplier's private area.": "Per caricare la fattura vera occorre accedere all'area privata del fornitore.",
+    "From: :sender": "Da: :sender",
+    "Subject: :subject": "Oggetto: :subject",
+    "Arrived on: :date": "Arrivato il: :date",
+    "due on :date": "scade il :date"
 }
