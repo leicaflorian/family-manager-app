@@ -2,7 +2,8 @@
 /**
  * One result of the global search: the tile with the icon, the title with the
  * words searched marked, a line below (what it is, its date or the days left,
- * a flag such as «Archived») and on the right the amount. The whole row is a
+ * a flag such as «Archived») and on the right the amount and, in the big row,
+ * the arrow. The whole row is a
  * link to the page of the result.
  *
  * Rules: the tile is 40 px with radius 12, and `compact` (inside the menu
@@ -17,6 +18,7 @@ import {
     ArrowDownLeft,
     Building2,
     CalendarClock,
+    ChevronRight,
     FileText,
     Receipt,
     User,
@@ -135,5 +137,11 @@ const line = computed(() =>
         <span v-if="result.amount !== null" class="shrink-0 text-row-amount"
             ><FmAmount :amount="result.amount"
         /></span>
+        <FmIcon
+            v-if="!compact"
+            :icon="ChevronRight"
+            :size="18"
+            class="shrink-0 text-ink-faint"
+        />
     </Link>
 </template>

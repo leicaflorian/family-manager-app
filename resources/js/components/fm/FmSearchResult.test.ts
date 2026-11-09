@@ -35,6 +35,25 @@ describe('FmSearchResult', () => {
         expect(screen.getByRole('link')).toHaveAttribute('href', '/cards/1');
     });
 
+    it('ends a big row with the arrow, not a compact one', () => {
+        const view = render(FmSearchResult, {
+            props: { result: result(), query: 'Pan' },
+        });
+
+        expect(
+            view.container.querySelector('.lucide-chevron-right'),
+        ).not.toBeNull();
+
+        view.unmount();
+        const compact = render(FmSearchResult, {
+            props: { result: result(), query: 'Pan', compact: true },
+        });
+
+        expect(
+            compact.container.querySelector('.lucide-chevron-right'),
+        ).toBeNull();
+    });
+
     it('marks the words of the query in the title', () => {
         render(FmSearchResult, { props: { result: result(), query: 'Pan' } });
 
