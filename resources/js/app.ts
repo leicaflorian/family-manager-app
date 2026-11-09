@@ -5,6 +5,11 @@ import { I18n, i18nVue } from 'laravel-vue-i18n';
 import formkitConfig from '@/formkit.config';
 import { useTheme } from '@/composables/useTheme';
 import { initializeFlashToast } from '@/lib/flashToast';
+import {
+    addManifestLink,
+    registerServiceWorker,
+    startInstallWatch,
+} from '@/lib/pwa/install';
 import { i18nOptions } from '@/lib/i18n';
 import { pageLayout } from '@/lib/pageLayout';
 import { pageVisitOptions } from '@/lib/transitions';
@@ -48,3 +53,9 @@ useTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
+
+// The app on the Home screen: the manifest (not on iPhone and iPad), the service worker, and the invitation of
+// Android kept for the sheet *Install Family Manager*
+addManifestLink();
+startInstallWatch();
+void registerServiceWorker();

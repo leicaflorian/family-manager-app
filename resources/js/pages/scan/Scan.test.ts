@@ -12,19 +12,27 @@ import { WIDE_QUERY } from '@/composables/useWideLayout';
 import { renderPage, settle } from '@/test/page';
 import Scan from './Scan.vue';
 
-const page = vi.hoisted(() => ({ linked: false }));
+const page = vi.hoisted(() => ({ linked: false, url: '/scan' }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     Head: { render: () => null },
     usePage: () => ({
-        url: '/scan',
+        url: page.url,
         props: {
             auth: { user: { name: 'Laura Bianchi' } },
             family: { name: 'Bianchi' },
             linked_phone: page.linked,
         },
     }),
+}));
+
+// The files of Share are in the cache of the service worker, which a test has not: here the page is handed some
+const shared = vi.hoisted(() => ({ take: vi.fn() }));
+
+vi.mock('@/lib/pwa/sharedFiles', async (original) => ({
+    ...(await original<typeof import('@/lib/pwa/sharedFiles')>()),
+    takeShared: shared.take,
 }));
 
 // The work on the pixels needs a real canvas: here each step gives a named file, so the test sees which one is shown
@@ -110,6 +118,8 @@ function wide(on: boolean): void {
 
 beforeEach(() => {
     page.linked = false;
+    page.url = '/scan';
+    shared.take.mockReset().mockResolvedValue([]);
     wide(false);
     let urls = 0;
     vi.stubGlobal(
@@ -148,6 +158,100 @@ afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+});
+
+/** Pretends to be a phone's browser at an address. */
+function phoneBrowser(agent: string, protocol = 'https:'): void {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(agent);
+    vi.stubGlobal('location', { protocol });
+}
+
+const IPHONE =
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
+const ANDROID =
+    'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36';
+
+describe('Scan, the files of Share', () => {
+    it('adds the shared files as pages when opened with ?shared=1, and asks the cache once', async () => {
+        page.url = '/scan?shared=1';
+        shared.take.mockResolvedValue([
+            photo('whatsapp.jpg'),
+            new File(['pdf'], 'pagella.pdf', { type: 'application/pdf' }),
+        ]);
+
+        renderPage(Scan);
+
+        expect(await screen.findByText('2 files')).toBeInTheDocument();
+        expect(shared.take).toHaveBeenCalledOnce();
+    });
+
+    it('takes nothing from the cache without ?shared=1', async () => {
+        renderPage(Scan);
+        await settle();
+
+        expect(shared.take).not.toHaveBeenCalled();
+    });
+
+    it('opens with no pages when the cache has nothing', async () => {
+        page.url = '/scan?shared=1';
+
+        renderPage(Scan);
+        await settle();
+
+        expect(screen.getByText('No pages')).toBeInTheDocument();
+    });
+});
+
+describe('Scan, the sheet Install Family Manager', () => {
+    afterEach(() => localStorage.clear());
+
+    it('shows the steps on an iPhone in the browser, and Not now closes it', async () => {
+        phoneBrowser(IPHONE);
+        renderPage(Scan);
+
+        const sheet = await screen.findByRole('dialog', {
+            name: 'Install Family Manager',
+        });
+        expect(
+            within(sheet).getByText(/Add to Home Screen/),
+        ).toBeInTheDocument();
+        expect(
+            within(sheet).queryByRole('button', { name: 'Install' }),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Not now' }),
+        );
+        await waitFor(() =>
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+        );
+    });
+
+    it('has the Install button on Android, which shows the steps when the phone made no invitation', async () => {
+        phoneBrowser(ANDROID);
+        renderPage(Scan);
+
+        const sheet = await screen.findByRole('dialog', {
+            name: 'Install Family Manager',
+        });
+        expect(
+            within(sheet).queryByText(/Install app/),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Install' }),
+        );
+
+        expect(within(sheet).getByText(/Install app/)).toBeInTheDocument();
+    });
+
+    it('does not come up over http, nor on a computer', async () => {
+        phoneBrowser(ANDROID, 'http:');
+        renderPage(Scan);
+        await settle();
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
 });
 
 describe('Scan', () => {

@@ -38,6 +38,8 @@ use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ScanCornersController;
+use App\Http\Controllers\ScanShareController;
+use App\Http\Controllers\ServiceWorkerController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
@@ -76,6 +78,20 @@ Route::post('mail/mailgun', MailgunWebhookController::class)
     ->middleware('throttle:300,1')
     ->withoutMiddleware('web')
     ->name('mail.mailgun');
+
+// The service worker, at the root so its scope is the whole site. Outside the web group: a script asked by the
+// browser, with no session and no cookie.
+Route::get('sw.js', ServiceWorkerController::class)
+    ->withoutMiddleware('web')
+    ->name('service-worker');
+
+// *Share* on Android (`share_target` of the manifest): the service worker answers it on the phone; this is the
+// fallback when the worker is not active yet, and it only sends the person to *Scan*. Outside the web group because
+// the system menu sends the POST without a CSRF token (and no session is needed: it reads and keeps nothing); a
+// guest sent on to `scan` signs in as usual.
+Route::post('scan/share', ScanShareController::class)
+    ->withoutMiddleware('web')
+    ->name('scan.share');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('welcome', [WelcomeController::class, 'show'])->name('welcome');

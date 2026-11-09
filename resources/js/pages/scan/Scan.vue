@@ -7,7 +7,8 @@
  * other («1 of 2»). *Upload* asks first, sends the files with the progress and empties the page for the next
  * document; a session that has ended is entered again with the linked phone without losing the pages. Pages not
  * uploaded yet are changes not saved: the app asks before leaving them. A linked phone, which sees only this page,
- * can sign out to *Sign in with the password*.
+ * can sign out to *Sign in with the password*. Opened with `?shared=1` (*Share* on Android) the files the service worker
+ * kept come in as pages. On a phone in the browser the sheet *Install Family Manager* comes up.
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
 import {
@@ -19,22 +20,26 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmCropStage from '@/components/fm/FmCropStage.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmLogo from '@/components/fm/FmLogo.vue';
 import type { StripPage } from '@/components/fm/FmPageStrip.vue';
 import FmPageStrip from '@/components/fm/FmPageStrip.vue';
 import type { CropResult } from '@/components/scan/ScanCrop.vue';
 import ScanCrop from '@/components/scan/ScanCrop.vue';
 import ScanStatus from '@/components/scan/ScanStatus.vue';
 import ScanWebcam from '@/components/scan/ScanWebcam.vue';
+import { useInstall } from '@/composables/useInstall';
 import { useScanUpload } from '@/composables/useScanUpload';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { useWebcam } from '@/composables/useWebcam';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { isPhone } from '@/lib/devices';
+import { takeShared } from '@/lib/pwa/sharedFiles';
 import { SEARCH_LONG_SIDE, cutOut, reduceToJpeg } from '@/lib/scan/canvas';
 import type { Corners, Turns } from '@/lib/scan/crop';
 import { LONG_SIDE, WHOLE } from '@/lib/scan/crop';
@@ -76,6 +81,13 @@ const page = usePage();
 const wide = useWideLayout();
 const phone = isPhone();
 const webcam = useWebcam();
+const {
+    open: installOpen,
+    ios: installIos,
+    showSteps: installSteps,
+    install,
+    later: installLater,
+} = useInstall();
 /** A phone linked with a code: it sees only this page. */
 const linked = computed((): boolean => page.props.linked_phone === true);
 
@@ -620,6 +632,24 @@ function onNoteKey(event: KeyboardEvent): void {
     if (event.key === 'Enter') (event.target as HTMLElement).blur();
 }
 
+/**
+ * *Share* on Android: the service worker kept the files and opened this page with `?shared=1`. They come in as pages
+ * (the same way as the ones chosen), the cache is emptied by `takeShared`, and the address goes back to `/scan` so a
+ * reload does not look for them again.
+ */
+async function addShared(): Promise<void> {
+    if (!new URLSearchParams(page.url.split('?')[1] ?? '').has('shared'))
+        return;
+
+    const files = await takeShared(globalThis.caches);
+
+    if (files.length > 0) addFiles(files);
+
+    globalThis.history.replaceState(globalThis.history.state, '', '/scan');
+}
+
+onMounted(() => void addShared());
+
 // the original shown while holding belongs to one page
 watch(
     () => doc.value.chosenId,
@@ -991,6 +1021,43 @@ onBeforeUnmount(() => {
         >
     </footer>
 
+    <FmBottomSheet
+        :open="installOpen"
+        :title="$t('Install Family Manager')"
+        @update:open="(open) => !open && installLater()"
+    >
+        <div class="flex flex-col items-center gap-3 text-center">
+            <FmLogo :size="72" />
+            <p class="m-0 text-ink-soft">
+                {{ $t('It opens from its icon, full screen, like an app.') }}
+            </p>
+        </div>
+        <ol
+            v-if="installIos"
+            class="m-0 flex list-decimal flex-col gap-1.5 pl-5 text-ink"
+        >
+            <li>
+                {{ $t('Tap Share: the square with the arrow pointing up.') }}
+            </li>
+            <li>{{ $t('Scroll and tap Add to Home Screen.') }}</li>
+            <li>{{ $t('Tap Add.') }}</li>
+        </ol>
+        <p v-else-if="installSteps" class="m-0 text-ink">
+            {{
+                $t(
+                    'Open the ⋮ menu of the browser and tap Install app, or Add to Home screen.',
+                )
+            }}
+        </p>
+        <div class="flex justify-end gap-2.5 pt-2">
+            <FmButton variant="text" @click="installLater">{{
+                $t('Not now')
+            }}</FmButton>
+            <FmButton v-if="!installIos" @click="install">{{
+                $t('Install')
+            }}</FmButton>
+        </div>
+    </FmBottomSheet>
     <FmConfirm
         :open="upload.asking.value"
         :question="upload.question.value"

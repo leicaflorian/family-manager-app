@@ -22,6 +22,14 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
+        {{-- The app on the Home screen. iPhone and iPad read these headers; the manifest is added by app.ts everywhere else (not here: on iOS it would give the icon a storage of its own, separate from Safari's). --}}
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="Family Manager">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#0f141b" media="(prefers-color-scheme: dark)">
+
         @fonts
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
