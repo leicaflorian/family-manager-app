@@ -69,6 +69,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('welcome', [WelcomeController::class, 'show'])->name('welcome');
     Route::post('welcome', [WelcomeController::class, 'store'])->name('welcome.store');
 
+    // The page to time *Raddrizza* on a phone: only on the development machine, never online
+    if (app()->isLocal()) {
+        Route::inertia('scan/dewarp-check', 'scan/DewarpCheck')->name('scan.dewarp-check');
+    }
+
     Route::middleware(RedirectToWelcome::class)->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
         Route::get('agenda', AgendaController::class)->name('agenda');

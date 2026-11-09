@@ -1422,5 +1422,12 @@
     "Only for mails with files": "Solo per le mail con allegati",
     "A mail without files becomes a notice in To sort, with no bell": "Una mail senza allegati diventa un avviso in Da smistare, senza notifica",
     "The old address stops receiving: the forwards you set up (Gmail, filters) must be redone with the new one.": "Il vecchio indirizzo smette di ricevere: gli inoltri impostati (Gmail, filtri) vanno rifatti con quello nuovo.",
-    "The bills arrive by email by themselves": "Le bollette per email arrivano da sole"
+    "The bills arrive by email by themselves": "Le bollette per email arrivano da sole",
+    "Straighten check": "Prova di Raddrizza",
+    "Pick a photo of a folded sheet or a receipt: the whole photo is taken as the sheet.": "Scegli la foto di un foglio piegato o di uno scontrino: tutta la foto è presa come foglio.",
+    "Straighten is not available on this phone": "Raddrizza non è disponibile su questo telefono",
+    "Photo of a sheet": "Foto di un foglio",
+    "Straightening…": "Raddrizzo…",
+    "Model: :model s · Page: :page s": "Modello: :model s · Pagina: :page s",
+    "The flat sheet": "Il foglio steso"
 }

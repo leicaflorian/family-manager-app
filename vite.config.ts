@@ -44,6 +44,10 @@ export default defineConfig({
             ),
         },
     },
+    // Module workers: the worker of Raddrizza loads the engine with import(), which a classic (iife) worker cannot build
+    worker: {
+        format: 'es',
+    },
     server: {
         watch: {
             ignored: [
