@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\FamilyState;
+use App\Services\FileStore;
 use Carbon\CarbonImmutable;
 use Database\Factories\FamilyFactory;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Crypt;
 
@@ -33,6 +35,8 @@ use Illuminate\Support\Facades\Crypt;
  * @property CarbonImmutable|null $delete_after
  * @property CarbonImmutable|null $support_until
  * @property int|null $reading_limit Readings a month for this family; empty means the limit of everyone
+ * @property-read Collection<int, OwnerAction> $ownerActions
+ * @property-read int|null $owner_actions_count
  * @property-read Collection<int, Person> $people
  * @property-read int|null $people_count
  * @property-read Collection<int, User> $users
@@ -51,6 +55,8 @@ final class Family extends Model
 {
     /** @use HasFactory<FamilyFactory> */
     use HasFactory;
+
+    use Prunable;
 
     /**
      * The accounts of the family.
@@ -100,6 +106,42 @@ final class Family extends Model
         } catch (DecryptException) {
             return null;
         }
+    }
+
+    /**
+     * The lines of the log of the owner about this family.
+     *
+     * @return HasMany<OwnerAction, $this>
+     */
+    public function ownerActions(): HasMany
+    {
+        return $this->hasMany(OwnerAction::class);
+    }
+
+    /**
+     * Whether the family is suspended or waiting to be deleted: its accounts, its phones, its calendar and its mail are shut.
+     */
+    public function isBlocked(): bool
+    {
+        return $this->suspended_at !== null || $this->delete_after !== null;
+    }
+
+    /**
+     * The families whose day of deletion has come. `model:prune` has no current family: it reads `families` as it is.
+     *
+     * @return Builder<Family>
+     */
+    public function prunable(): Builder
+    {
+        return self::query()->where('delete_after', '<=', now());
+    }
+
+    /**
+     * Before the row goes: the files of the family leave the disk. The rows of the family go with it by their foreign keys.
+     */
+    protected function pruning(): void
+    {
+        resolve(FileStore::class)->deleteFamily($this->id);
     }
 
     /**

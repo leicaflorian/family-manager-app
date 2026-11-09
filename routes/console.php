@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Family;
 use App\Models\LinkedDevice;
 use App\Models\MailInboxCall;
 use App\Models\ReminderNotice;
@@ -19,4 +20,4 @@ Schedule::command('loans:refresh')->dailyAt(resolve(InstallationSettings::class)
 
 // Cards that expire, reminders in line with them, and the notices and the email of the morning
 Schedule::command('reminders:run')->dailyAt(resolve(InstallationSettings::class)->remindersTime())->timezone('Europe/Rome')->withoutOverlapping()->onOneServer();
-Schedule::command('model:prune', ['--model' => [ReminderNotice::class, MailInboxCall::class, LinkedDevice::class]])->daily();
+Schedule::command('model:prune', ['--model' => [ReminderNotice::class, MailInboxCall::class, LinkedDevice::class, Family::class]])->daily();

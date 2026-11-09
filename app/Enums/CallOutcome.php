@@ -24,4 +24,5 @@ enum CallOutcome: string
     case Other = 'other';
     case Unknown = 'unknown';
     case Limited = 'limited';
+    case Suspended = 'suspended';
 }

@@ -212,6 +212,15 @@ return [
         'error' => 'Errore',
         'confirmation' => 'Codice di Gmail',
     ],
+    'owner_action_type' => [
+        'suspended' => 'Sospesa',
+        'reactivated' => 'Riattivata',
+        'deletion_scheduled' => 'Eliminazione programmata',
+        'deletion_cancelled' => 'Eliminazione annullata',
+        'visit_started' => 'Visita iniziata',
+        'visit_ended' => 'Visita finita',
+        'reading_limit_changed' => 'Limite di letture cambiato',
+    ],
     'call_outcome' => [
         'saved' => 'Salvata',
         'empty' => 'Nessun file',
@@ -224,6 +233,7 @@ return [
         'other' => 'Senza destinatario',
         'unknown' => 'Indirizzo sconosciuto',
         'limited' => 'Oltre il limite',
+        'suspended' => 'Famiglia sospesa',
     ],
     'skip_reason' => [
         'too_small' => 'Troppo piccolo',

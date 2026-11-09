@@ -212,6 +212,15 @@ return [
         'error' => 'Error',
         'confirmation' => 'Gmail code',
     ],
+    'owner_action_type' => [
+        'suspended' => 'Suspended',
+        'reactivated' => 'Reactivated',
+        'deletion_scheduled' => 'Deletion scheduled',
+        'deletion_cancelled' => 'Deletion cancelled',
+        'visit_started' => 'Visit started',
+        'visit_ended' => 'Visit ended',
+        'reading_limit_changed' => 'Reading limit changed',
+    ],
     'call_outcome' => [
         'saved' => 'Saved',
         'empty' => 'No file',
@@ -224,6 +233,7 @@ return [
         'other' => 'No recipient',
         'unknown' => 'Unknown address',
         'limited' => 'Over the limit',
+        'suspended' => 'Family suspended',
     ],
     'skip_reason' => [
         'too_small' => 'Too small',

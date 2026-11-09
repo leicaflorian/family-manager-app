@@ -8,6 +8,7 @@ use App\Enums\FamilyState;
 use App\Filament\Resources\Families\Pages\ListFamilies;
 use App\Filament\Resources\Families\Pages\ViewFamily;
 use App\Filament\Resources\Families\RelationManagers\LinkedDevicesRelationManager;
+use App\Filament\Resources\Families\RelationManagers\OwnerActionsRelationManager;
 use App\Filament\Resources\Families\RelationManagers\UsersRelationManager;
 use App\Models\Family;
 use Carbon\CarbonInterface;
@@ -144,6 +145,7 @@ final class FamilyResource extends Resource
         return [
             UsersRelationManager::class,
             LinkedDevicesRelationManager::class,
+            OwnerActionsRelationManager::class,
         ];
     }
 

@@ -32,7 +32,8 @@ final class CalendarFeedController
         // The one read of `families` by a secret: it finds the family, then everything goes through its scope
         $family = Family::query()->where('calendar_token_hash', hash('sha256', $token))->first();
 
-        abort_unless($family instanceof Family, 404);
+        // A suspended family is the same 404 as a secret that does not exist
+        abort_unless($family instanceof Family && ! $family->isBlocked(), 404);
 
         $ics = $this->withLocale($family->calendar_locale ?? config()->string('app.locale'), fn (): string => CurrentFamily::using(
             $family->id,

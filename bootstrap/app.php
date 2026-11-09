@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\ApplyInstallationSettings;
+use App\Http\Middleware\BlockSuspendedFamily;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitLinkedDevice;
 use App\Http\Middleware\RecordLastSeen;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SignInLinkedDevice::class,
             LimitLinkedDevice::class,
             SetLocale::class,
+            BlockSuspendedFamily::class,
             RecordLastSeen::class,
             ApplyInstallationSettings::class,
             HandleInertiaRequests::class,

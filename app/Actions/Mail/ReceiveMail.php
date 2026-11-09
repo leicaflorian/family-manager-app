@@ -10,6 +10,7 @@ use App\Enums\MailOutcome;
 use App\Enums\SkipReason;
 use App\Exceptions\Mail\MailFailure;
 use App\Jobs\ScreenReceivedMail;
+use App\Models\Family;
 use App\Models\FamilySetting;
 use App\Models\File;
 use App\Models\ReceivedMail;
@@ -118,6 +119,13 @@ final readonly class ReceiveMail
             $this->log->handle(CallOutcome::Unknown, 200, null, null, null, ['recipient' => $mail->recipient], null);
 
             return $this->answer(200, 'Unknown address.');
+        }
+
+        if (Family::query()->find($settings->family_id)?->isBlocked()) {
+            // a suspended family gets nothing: the call is answered as saved-nothing and only logged
+            $this->log->handle(CallOutcome::Suspended, 200, null, $settings->family_id, null, ['recipient' => $mail->recipient], null);
+
+            return $this->answer(200, 'Suspended.');
         }
 
         $familyId = $settings->family_id;

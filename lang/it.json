@@ -1713,5 +1713,19 @@
     "Email confirmed": "Email confermata",
     "Last use": "Ultimo uso",
     "Readings a month. Empty means the same limit as everyone.": "Letture al mese. Se è vuoto vale il limite uguale per tutti.",
-    "{1} :count reading|[0,*] :count readings": "{1} :count lettura|[0,*] :count letture"
+    "{1} :count reading|[0,*] :count readings": "{1} :count lettura|[0,*] :count letture",
+    "Your account is suspended. Write to :email to know why.": "Il tuo account è sospeso. Scrivi a :email per sapere perché.",
+    "Suspend": "Sospendi",
+    "Suspend this family?": "Sospendere questa famiglia?",
+    "Nobody of the family can sign in until you reactivate it.": "Nessuno della famiglia può entrare finché non la riattivi.",
+    "Reactivate": "Riattiva",
+    "Reactivate this family?": "Riattivare questa famiglia?",
+    "Delete this family?": "Eliminare questa famiglia?",
+    "It will be deleted on :date. Until then you can cancel.": "Sarà eliminata il :date. Fino ad allora puoi annullare.",
+    "Write the name of the family to confirm: :name": "Scrivi il nome della famiglia per confermare: :name",
+    "The name is not the same.": "Il nome non è uguale.",
+    "Cancel deletion": "Annulla l'eliminazione",
+    "Cancel the deletion?": "Annullare l'eliminazione?",
+    "Log": "Registro",
+    "Action": "Azione"
 }
