@@ -114,7 +114,7 @@ final readonly class ContactResults implements GroupResults
      */
     private function organizations(SearchTerms $terms): Builder
     {
-        return $terms->whereWords(Organization::query(), ['name']);
+        return $terms->whereWords(Organization::with([]), ['name']);
     }
 
     /**
@@ -125,6 +125,6 @@ final readonly class ContactResults implements GroupResults
      */
     private function people(SearchTerms $terms): Builder
     {
-        return $terms->whereWords(Person::query(), ['first_name', 'last_name']);
+        return $terms->whereWords(Person::with([]), ['first_name', 'last_name']);
     }
 }
