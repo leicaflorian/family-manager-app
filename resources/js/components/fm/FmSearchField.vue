@@ -13,23 +13,70 @@
  *
  * @group fields
  */
-import { Search } from '@lucide/vue';
+import { Search, X } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
+import { nextTick, onMounted, useTemplateRef } from 'vue';
+import { desktopSystem } from '@/lib/devices';
 import FmIcon from './FmIcon.vue';
 
-const { label, small = false } = defineProps<{
+const {
+    label,
+    small = false,
+    clearable = false,
+    shortcut = false,
+    autofocus = false,
+} = defineProps<{
     /** What is searched: the name of the box and the text shown while it is empty. */
     label: string;
     /** As high as the buttons of a toolbar, 36 px, with a smaller text. */
     small?: boolean;
+    /** A round button that empties the box, shown only with text. */
+    clearable?: boolean;
+    /** Shows the key that focuses the box (⌘K or Ctrl K) while it is empty. */
+    shortcut?: boolean;
+    /** The box takes the focus when it appears. */
+    autofocus?: boolean;
+}>();
+
+const emit = defineEmits<{
+    /** Enter was pressed in the box. */
+    submit: [];
+    /** Esc was pressed in the box. */
+    escape: [];
 }>();
 
 /** The text typed. */
 const text = defineModel<string>({ required: true });
+
+const box = useTemplateRef<HTMLInputElement>('box');
+
+/** The key of the shortcut as it is written on this computer. */
+const shortcutKey = desktopSystem() === 'mac' ? '⌘K' : 'Ctrl K';
+
+/** Puts the cursor in the box. */
+function focus(): void {
+    box.value?.focus();
+}
+
+/** Empties the box and gives it the focus back. */
+function clear(): void {
+    text.value = '';
+    focus();
+}
+
+onMounted(() => {
+    if (autofocus) {
+        // after the page has put the box in the document, or the focus is lost
+        void nextTick(focus);
+    }
+});
+
+defineExpose({ focus });
 </script>
 
 <template>
     <label
-        class="flex shrink-0 items-center rounded-md border border-edge-soft bg-card text-ink-soft"
+        class="flex shrink-0 items-center rounded-md border border-edge-soft bg-card text-ink-soft focus-within:border-action focus-within:shadow-focus focus-within:outline focus-within:outline-1 focus-within:-outline-offset-1 focus-within:outline-action"
         :class="
             small
                 ? 'h-9 gap-2 px-3 text-body-sm'
@@ -38,11 +85,30 @@ const text = defineModel<string>({ required: true });
     >
         <FmIcon :icon="Search" :size="small ? 18 : 20" />
         <input
+            ref="box"
             v-model="text"
             type="search"
             :placeholder="label"
             :aria-label="label"
+            :aria-keyshortcuts="shortcut ? 'Meta+K Control+K' : undefined"
             class="min-w-0 grow border-0 bg-transparent text-ink outline-none"
+            @keydown.enter="emit('submit')"
+            @keydown.esc="emit('escape')"
         />
+        <button
+            v-if="clearable && text !== ''"
+            type="button"
+            :aria-label="trans('Clear the search')"
+            class="-mr-2 flex size-8 shrink-0 items-center justify-center rounded-full bg-segment text-ink-soft"
+            @click="clear"
+        >
+            <FmIcon :icon="X" :size="16" />
+        </button>
+        <kbd
+            v-if="shortcut && text === ''"
+            aria-hidden="true"
+            class="shrink-0 rounded-md border border-edge-soft bg-canvas px-1.5 py-0.5 text-meta-strong whitespace-nowrap text-ink-soft"
+            >{{ shortcutKey }}</kbd
+        >
     </label>
 </template>

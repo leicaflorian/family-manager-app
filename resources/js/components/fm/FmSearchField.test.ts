@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/vue';
+import { render, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { ref } from 'vue';
@@ -35,5 +35,71 @@ describe('FmSearchField', () => {
             screen.getByRole('searchbox', { name: 'Search a reminder' })
                 .parentElement,
         ).toHaveClass('h-9', 'text-body-sm');
+    });
+
+    it('clearable, shows the clear button only with text; it empties the box and gives the focus back', async () => {
+        const text = ref('');
+        render({
+            components: { FmSearchField },
+            setup: () => ({ text }),
+            template:
+                '<FmSearchField v-model="text" label="Search everything" clearable />',
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Clear the search' }),
+        ).toBeNull();
+
+        const box = screen.getByRole('searchbox');
+        await userEvent.type(box, 'Pan');
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Clear the search' }),
+        );
+
+        expect(text.value).toBe('');
+        expect(box).toHaveFocus();
+    });
+
+    it('shortcut, shows the key without text and hides it while typing', async () => {
+        render({
+            components: { FmSearchField },
+            setup: () => ({ text: ref('') }),
+            template:
+                '<FmSearchField v-model="text" label="Search everything" shortcut />',
+        });
+
+        const box = screen.getByRole('searchbox');
+        expect(box).toHaveAttribute('aria-keyshortcuts', 'Meta+K Control+K');
+        expect(screen.getByText(/^(⌘K|Ctrl K)$/)).toBeInTheDocument();
+
+        await userEvent.type(box, 'a');
+
+        expect(screen.queryByText(/^(⌘K|Ctrl K)$/)).toBeNull();
+    });
+
+    it('emits submit on Enter and escape on Esc', async () => {
+        const { emitted } = render(FmSearchField, {
+            props: { label: 'Search everything', modelValue: 'Pan' },
+        });
+
+        await userEvent.type(screen.getByRole('searchbox'), '{Enter}');
+        await userEvent.keyboard('{Escape}');
+
+        expect(emitted()).toHaveProperty('submit');
+        expect(emitted()).toHaveProperty('escape');
+    });
+
+    it('autofocus, takes the focus when it appears', async () => {
+        render(FmSearchField, {
+            props: {
+                label: 'Search everything',
+                modelValue: '',
+                autofocus: true,
+            },
+        });
+
+        await waitFor(() =>
+            expect(screen.getByRole('searchbox')).toHaveFocus(),
+        );
     });
 });

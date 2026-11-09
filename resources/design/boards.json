@@ -16,6 +16,7 @@
         "FmActions": "Basi",
         "FmAvatar": "Basi",
         "FmButton": "Basi",
+        "FmChip": "Basi",
         "FmCard": "Basi",
         "FmConfirm": "Basi",
         "FmConfirmDelete": "Basi",
@@ -37,6 +38,7 @@
         "FmFileDrop": "Campi",
         "FmPasswordField": "Campi",
         "FmSearchField": "Campi",
+        "FmSearchMenu": "Campi",
 
         "FmAgendaRow": "Righe",
         "FmCardRow": "Righe",
@@ -46,6 +48,7 @@
         "FmPlannedRow": "Righe",
         "FmReminderRow": "Righe",
         "FmRow": "Righe",
+        "FmSearchResult": "Righe",
         "FmSortableList": "Righe",
         "FmValueList": "Righe",
 
