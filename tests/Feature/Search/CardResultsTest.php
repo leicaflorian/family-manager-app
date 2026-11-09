@@ -8,7 +8,9 @@ use App\Enums\Area;
 use App\Enums\SearchGroup;
 use App\Enums\UtilityStatus;
 use App\Enums\UtilityType;
+use App\Models\Enrollment;
 use App\Models\Family;
+use App\Models\Person;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Search\CardResults;
@@ -83,7 +85,31 @@ it('puts closed cards after the active ones with a flag', function (): void {
     expect($firstClosed)->not->toBeFalse()
         ->and(array_slice($flags, $firstClosed))->each->toBeTrue()
         ->and($results[$firstClosed]->title)->toBe('Gas - Enel Energia')
-        ->and($results[$firstClosed]->flag)->toBe('Closed');
+        ->and($results[$firstClosed]->flag)->toBe('Closed card');
+});
+
+it('says «Chiusa» (singular) on a closed card in Italian', function (): void {
+    CurrentFamily::using($this->family->id, function (): void {
+        Utility::query()->where('type', UtilityType::Gas)->firstOrFail()->update(['status' => UtilityStatus::Terminated]);
+    });
+    app()->setLocale('it');
+
+    $flags = CurrentFamily::using($this->family->id, fn (): array => array_map(
+        static fn (SearchResultData $r): ?string => $r->flag,
+        resolve(CardResults::class)->results(SearchTerms::fromQuery('Enel Gas'), 10),
+    ));
+
+    expect($flags)->toBe(['Chiusa']);
+});
+
+it('finds a card by the last name of its person', function (): void {
+    CurrentFamily::using($this->family->id, function (): void {
+        $person = Enrollment::query()->whereNotNull('person_id')->with('person')->firstOrFail()->person;
+        assert($person instanceof Person);
+        $person->update(['last_name' => 'Zanzibar']);
+    });
+
+    expect(cardTitles($this->family, 'Zanzibar'))->not->toBe([]);
 });
 
 it('counts every match and cuts the results at the limit', function (): void {

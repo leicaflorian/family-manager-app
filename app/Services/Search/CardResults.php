@@ -24,11 +24,11 @@ use Illuminate\Support\Str;
  */
 final readonly class CardResults implements GroupResults
 {
-    /** The column of each related row the words are looked up in. */
+    /** The columns of each related row the words are looked up in. */
     private const array RELATION_COLUMNS = [
-        'organization' => 'organization.name',
-        'home' => 'home.name',
-        'person' => 'person.first_name',
+        'organization' => ['organization.name'],
+        'home' => ['home.name'],
+        'person' => ['person.first_name', 'person.last_name'],
     ];
 
     public function __construct(private CardSummaries $summaries) {}
@@ -100,7 +100,7 @@ final readonly class CardResults implements GroupResults
             area: $type->area()->value,
             icon: null,
             tone: null,
-            flag: $closed ? (string) __('Closed') : null,
+            flag: $closed ? (string) __('Closed card') : null,
             due_in: null,
         );
     }
@@ -154,7 +154,7 @@ final readonly class CardResults implements GroupResults
 
         foreach ($relations as $relation) {
             if (isset(self::RELATION_COLUMNS[$relation])) {
-                $columns[] = self::RELATION_COLUMNS[$relation];
+                array_push($columns, ...self::RELATION_COLUMNS[$relation]);
             }
         }
 

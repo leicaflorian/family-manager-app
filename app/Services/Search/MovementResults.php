@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Builder;
 final readonly class MovementResults implements GroupResults
 {
     /** The columns every word is looked up in. */
-    private const array COLUMNS = ['title', 'notes', 'organization.name', 'person.first_name'];
+    private const array COLUMNS = ['title', 'notes', 'organization.name', 'person.first_name', 'person.last_name'];
 
     /**
      * {@inheritDoc}

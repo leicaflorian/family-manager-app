@@ -67,7 +67,7 @@ final readonly class DocumentResults implements GroupResults
     /**
      * The result row of one document.
      *
-     * @param  Document  $document  the document, with its organization loaded
+     * @param  Document  $document  the document, with its organization and category loaded
      */
     private function result(Document $document): SearchResultData
     {
@@ -75,7 +75,7 @@ final readonly class DocumentResults implements GroupResults
             key: 'document-'.$document->id,
             group: SearchGroup::Documents,
             title: $document->title,
-            subtitle: $document->organization?->name,
+            subtitle: $document->organization?->name ?? $document->category?->name,
             date: $document->date?->toDateString(),
             amount: null,
             href: route('documents.show', $document->id),
@@ -97,7 +97,7 @@ final readonly class DocumentResults implements GroupResults
      */
     private function query(SearchTerms $terms): Builder
     {
-        return $terms->whereWords(Document::with('organization'), self::COLUMNS, function (Builder $group, string $word): void {
+        return $terms->whereWords(Document::with(['organization', 'category']), self::COLUMNS, function (Builder $group, string $word): void {
             $group->orWhereRaw(self::TAGS_LIKE, [SearchTerms::like($word)])
                 ->orWhereHas('file', fn (Builder $file): Builder => $file->whereRaw(self::SUMMARY_LIKE, [SearchTerms::like($word)]));
 

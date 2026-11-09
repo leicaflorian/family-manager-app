@@ -126,6 +126,13 @@ it('finds an income through its organization and its person', function (): void 
         ->and(movementTitles($this->family, 'Marco'))->toBe(['Stipendio di settembre']);
 });
 
+it('finds a movement by the last name of its person', function (): void {
+    $person = CurrentFamily::using($this->family->id, fn (): Person => Person::factory()->create(['family_id' => $this->family->id, 'first_name' => 'Marco', 'last_name' => 'Zanzibar']));
+    searchExpense($this->family, 'Cena fuori', '2026-09-27', 40, ['person_id' => $person->id]);
+
+    expect(movementTitles($this->family, 'Zanzibar'))->toBe(['Cena fuori']);
+});
+
 it('names an income without a title by its type', function (): void {
     searchIncome($this->family, null, '2026-09-27', 1800, ['type' => IncomeType::Salary, 'notes' => 'Settembre']);
 

@@ -6,6 +6,7 @@ use App\Data\Search\SearchResultData;
 use App\Enums\DocumentStatus;
 use App\Enums\SearchGroup;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Family;
 use App\Models\File;
 use App\Services\Search\DocumentResults;
@@ -89,6 +90,15 @@ it('finds by organization and shows its name as subtitle', function (): void {
 
     expect(array_map(static fn (SearchResultData $r): string => $r->title, $results))->toBe(['Polizza RC auto 2026'])
         ->and($results[0]->subtitle)->toBe('UnipolSai');
+});
+
+it('shows the name of the category as subtitle when there is no organization', function (): void {
+    $category = CurrentFamily::using($this->family->id, fn (): DocumentCategory => DocumentCategory::factory()->create(['family_id' => $this->family->id, 'name' => 'Scuola']));
+    searchDocument($this->family, 'Pagella', ['category_id' => $category->id, 'organization_id' => null]);
+
+    $results = documentResults($this->family, 'Pagella');
+
+    expect($results[0]->subtitle)->toBe('Scuola');
 });
 
 it('finds by person name', function (): void {
