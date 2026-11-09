@@ -6,6 +6,7 @@ namespace App\Filament\Resources\Families\RelationManagers;
 
 use App\Admin\FamilyFigures;
 use App\Filament\Resources\Families\FamilyResource;
+use App\Http\Middleware\LimitVisit;
 use App\Models\Family;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -56,7 +57,7 @@ final class UsersRelationManager extends RelationManager
                 // Only while the family lets support in; the visit checks it again when it starts
                 Action::make('enterAs')->label(__('Enter as'))->icon('heroicon-o-eye')
                     ->visible(fn (): bool => $this->family()->allowsSupport())
-                    ->url(static fn (User $record): string => URL::temporarySignedRoute('support.visit.start', now()->addMinute(), ['user' => $record->id]))
+                    ->url(static fn (User $record): string => URL::temporarySignedRoute('support.visit.start', now()->addMinutes(LimitVisit::LINK_MINUTES), ['user' => $record->id]))
                     ->openUrlInNewTab(),
             ])
             ->paginated(false);

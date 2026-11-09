@@ -27,11 +27,11 @@ beforeEach(function (): void {
 });
 
 /**
- * The address of *Enter as* for an account, signed for a minute as the button of the panel writes it.
+ * The address of *Enter as* for an account, signed as the button of the panel writes it.
  */
 function visitUrl(User $user): string
 {
-    return visitUrlAt($user, now()->addMinute());
+    return visitUrlAt($user, now()->addMinutes(LimitVisit::LINK_MINUTES));
 }
 
 /**

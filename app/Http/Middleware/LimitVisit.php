@@ -25,6 +25,9 @@ final readonly class LimitVisit
     /** How long a visit lasts at most. */
     public const int MINUTES = 60;
 
+    /** How long the signed link of *Enter as* stays valid: the panel writes it when the family page loads, not on the click. */
+    public const int LINK_MINUTES = 30;
+
     /** The routes a visit may send with a method that changes something: only leaving the visit. */
     public const array ALLOWED = ['visit.leave'];
 
