@@ -316,10 +316,12 @@ export function sourceCorners(corners: Corners, turns: Turns): Corners {
 // ---- the photos of a card on one page ("Su una pagina sola")
 
 /** An A4 sheet, in millimetres. */
-const SHEET = { width: 210, height: 297 };
+export const SHEET = { width: 210, height: 297 };
 /** The least white between two sides, and above and below them; and at the sides of the widest. */
 const LEAST_GAP = 8;
 const SIDE_MARGIN = 10;
+/** The radius of the round corners of a card, in millimetres. */
+export const CARD_CORNER = 3.18;
 /** The long side of a card the size of a credit card, and its shape range (it is 1.59). */
 const CARD_LONG = 85.6;
 const CARD_SHAPE = [1.5, 1.65] as const;
