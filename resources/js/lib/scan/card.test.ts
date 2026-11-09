@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { densityOf, findCard, layout, millimetreOf, sizeOf } from './card';
+import {
+    densityOf,
+    findCard,
+    improveCanvas,
+    layout,
+    millimetreOf,
+    sizeOf,
+} from './card';
+import { improveSide } from './improve';
 import type { Pixels } from './crop';
 
 /** A scanner side with a lid of 235 grey and a card of `box`, drawn dark with a lighter print. */
@@ -184,5 +192,56 @@ describe('densityOf', () => {
         expect(
             await densityOf(new Blob([new Uint8Array([1, 2, 3, 4])])),
         ).toBeNull();
+    });
+});
+
+describe('improveCanvas', () => {
+    /** A canvas of two dots that keeps what is drawn on it: jsdom has no canvas of its own. */
+    function fakeCanvas(): HTMLCanvasElement & { drawn: Uint8ClampedArray } {
+        const state = {
+            width: 2,
+            height: 1,
+            drawn: new Uint8ClampedArray([200, 30, 90, 255, 10, 220, 40, 255]),
+        };
+        const context = {
+            getImageData: (
+                _x: number,
+                _y: number,
+                width: number,
+                height: number,
+            ) => ({
+                width,
+                height,
+                data: new Uint8ClampedArray(state.drawn),
+            }),
+            createImageData: (width: number, height: number) => ({
+                width,
+                height,
+                data: new Uint8ClampedArray(width * height * 4),
+            }),
+            putImageData: (image: { data: Uint8ClampedArray }) => {
+                state.drawn = new Uint8ClampedArray(image.data);
+            },
+        };
+        return Object.assign(state, {
+            getContext: () => context,
+        }) as unknown as HTMLCanvasElement & { drawn: Uint8ClampedArray };
+    }
+
+    it('draws on the page what Improve asks, as for a side', () => {
+        const canvas = fakeCanvas();
+        const before = {
+            width: 2,
+            height: 1,
+            data: new Uint8ClampedArray(canvas.drawn),
+        };
+
+        improveCanvas(canvas, { angle: 0, enhance: 0, grey: true });
+
+        expect(Array.from(canvas.drawn)).toEqual(
+            Array.from(
+                improveSide(before, { angle: 0, enhance: 0, grey: true }).data,
+            ),
+        );
     });
 });

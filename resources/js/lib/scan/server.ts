@@ -11,6 +11,7 @@ import { scan } from '@/routes';
 import { resume } from '@/routes/connect';
 import { corners as cornersRoute, store } from '@/routes/scan';
 import type { Corners } from './crop';
+import { ScanTooHeavyError } from './pages';
 
 /** How long the page waits for the corners before leaving the handles to the person, in milliseconds. */
 export const CORNERS_TIMEOUT = 20000;
@@ -289,4 +290,30 @@ export async function enterAgain(): Promise<boolean> {
     }
 
     return sessionOpen();
+}
+
+/**
+ * Why an upload of the scan stopped, as the person reads it: a file too heavy, the session ended, or the reason of
+ * the server with the reassurance that what did not leave is still in the page.
+ *
+ * @param error - what the upload threw
+ * @returns the message
+ */
+export function uploadErrorText(error: unknown): string {
+    if (error instanceof ScanTooHeavyError) {
+        return `${error.message} ${trans('Take away some pages and upload in two goes.')}`;
+    }
+
+    if (error instanceof ScanRequestError && error.sessionEnded) {
+        return trans(
+            'Your session has ended: sign in again. The pages are still here.',
+        );
+    }
+
+    return trans(':reason What was not uploaded is still here.', {
+        reason:
+            error instanceof Error
+                ? error.message
+                : trans('The upload did not go through.'),
+    });
 }

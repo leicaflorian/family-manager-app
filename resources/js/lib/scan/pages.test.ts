@@ -4,6 +4,7 @@ import {
     MAX_UPLOAD_BYTES,
     ScanTooHeavyError,
     addPages,
+    checkWeight,
     fileGroups,
     filesToSend,
     movePage,
@@ -391,5 +392,18 @@ describe('filesToSend', () => {
             fakeBackend(),
         );
         expect(files).toHaveLength(1);
+    });
+});
+
+describe('checkWeight', () => {
+    it('lets a file of 25 MB go', () => {
+        const file = new File([new Uint8Array(MAX_UPLOAD_BYTES)], 'a.pdf');
+        expect(checkWeight(file, 'The PDF')).toBe(file);
+    });
+
+    it('stops a heavier one, saying which', () => {
+        const file = new File([new Uint8Array(MAX_UPLOAD_BYTES + 1)], 'a.pdf');
+        expect(() => checkWeight(file, 'The PDF')).toThrow(ScanTooHeavyError);
+        expect(() => checkWeight(file, 'The PDF')).toThrow(/^The PDF weighs/);
     });
 });

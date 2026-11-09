@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vite-plus/test';
 import type { Pixels } from './crop';
 import {
     IMPROVE_DEFAULTS,
+    PLAIN,
+    angleText,
     enhance,
     grey,
     improve,
+    improveSide,
+    isPlain,
+    sameImprovement,
     skewOf,
     turnBy,
 } from './improve';
@@ -141,5 +146,76 @@ describe('improve', () => {
         const out = improve(shadowed(), { enhance: true, grey: true });
         expect(out.data[0]).toBe(out.data[1]);
         expect(out.data[1]).toBe(out.data[2]);
+    });
+});
+
+describe('improveSide', () => {
+    it('gives the same picture back when nothing is asked', () => {
+        const source = shadowed();
+        expect(improveSide(source, PLAIN)).toBe(source);
+    });
+
+    it('turns by the angle asked', () => {
+        const page = textPage(0);
+        const turned = improveSide(page, { angle: 2, enhance: 0, grey: false });
+        expect(Array.from(turned.data)).toEqual(
+            Array.from(turnBy(page, 2).data),
+        );
+    });
+
+    it('at 50 enhances as the phone does, at 100 twice as strong', () => {
+        const source = shadowed();
+        expect(
+            Array.from(
+                improveSide(source, { angle: 0, enhance: 50, grey: false })
+                    .data,
+            ),
+        ).toEqual(Array.from(enhance(source, 1).data));
+        expect(
+            Array.from(
+                improveSide(source, { angle: 0, enhance: 100, grey: false })
+                    .data,
+            ),
+        ).toEqual(Array.from(enhance(source, 2).data));
+    });
+
+    it('takes the colours away with grey', () => {
+        const out = improveSide(shadowed(), {
+            angle: 0,
+            enhance: 0,
+            grey: true,
+        });
+        expect(out.data[0]).toBe(out.data[1]);
+        expect(out.data[1]).toBe(out.data[2]);
+    });
+});
+
+describe('an improvement', () => {
+    it('is plain with nothing asked', () => {
+        expect(isPlain(PLAIN)).toBe(true);
+        expect(isPlain({ angle: 0.1, enhance: 0, grey: false })).toBe(false);
+        expect(isPlain({ angle: 0, enhance: 5, grey: false })).toBe(false);
+        expect(isPlain({ angle: 0, enhance: 0, grey: true })).toBe(false);
+    });
+
+    it('is the same as another with the same angle, strength and grey', () => {
+        expect(
+            sameImprovement(
+                { angle: 1, enhance: 50, grey: true },
+                { angle: 1, enhance: 50, grey: true },
+            ),
+        ).toBe(true);
+        expect(
+            sameImprovement(
+                { angle: 1, enhance: 50, grey: true },
+                { angle: 1, enhance: 55, grey: true },
+            ),
+        ).toBe(false);
+    });
+
+    it('writes an angle with its sign and a comma', () => {
+        expect(angleText(1.3)).toBe('+1,3°');
+        expect(angleText(-0.4)).toBe('−0,4°');
+        expect(angleText(0)).toBe('0,0°');
     });
 });

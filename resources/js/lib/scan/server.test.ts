@@ -13,7 +13,9 @@ import {
     enterAgain,
     findCorners,
     sendScanFile,
+    uploadErrorText,
 } from './server';
+import { ScanTooHeavyError } from './pages';
 
 type Client = ReturnType<typeof http.getClient>;
 type Config = Parameters<Client['request']>[0];
@@ -260,5 +262,34 @@ describe('enterAgain', () => {
         );
 
         expect(await enterAgain()).toBe(false);
+    });
+});
+
+describe('uploadErrorText', () => {
+    it('says what to do with a file too heavy', () => {
+        expect(
+            uploadErrorText(
+                new ScanTooHeavyError('The PDF of the pages', 30 * 1048576),
+            ),
+        ).toBe(
+            'The PDF of the pages weighs 30 MB: the most is 25 MB. Take away some pages and upload in two goes.',
+        );
+    });
+
+    it('says the session has ended', () => {
+        expect(uploadErrorText(new ScanRequestError(419, 'x'))).toBe(
+            'Your session has ended: sign in again. The pages are still here.',
+        );
+    });
+
+    it('gives the reason of the server, and says the rest is still here', () => {
+        expect(
+            uploadErrorText(
+                new ScanRequestError(422, 'The file is too large.'),
+            ),
+        ).toBe('The file is too large. What was not uploaded is still here.');
+        expect(uploadErrorText('nothing')).toBe(
+            'The upload did not go through. What was not uploaded is still here.',
+        );
     });
 });

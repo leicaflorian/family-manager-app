@@ -10,7 +10,17 @@ import {
     vi,
 } from 'vite-plus/test';
 import { WIDE_QUERY } from '@/composables/useWideLayout';
+import { hasChanges } from '@/lib/unsavedChanges';
 import { choose, renderPage, settle } from '@/test/page';
+import {
+    fakeComposedSheet,
+    fakeImprovedJpeg,
+    fakeMeasureSide,
+    fakeScanAgent,
+    resetScanAgent,
+    scanAgent,
+    tagOf,
+} from '@/test/scanAgent';
 import Scanner from './Scanner.vue';
 
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -18,120 +28,30 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     Head: { render: () => null },
 }));
 
-/** A blob with a name the test can read back: jsdom has no way to look inside the pictures. */
-const tagged = (tag: string): Blob =>
-    Object.assign(new Blob([tag]), { tag }) as Blob;
-const tagOf = (blob: Blob): string => (blob as Blob & { tag: string }).tag;
-
 // The work on the pixels needs a real canvas: here a side made again is the original with what was asked written in
 const canvas = vi.hoisted(() => ({
-    remakeSide: vi.fn(),
-    blank: new WeakSet<object>(),
+    measureSide: vi.fn(),
+    improvedJpeg: vi.fn(),
+    composedSheet: vi.fn(),
 }));
 
-vi.mock('@/lib/scan/canvas', () => ({
-    remakeSide: canvas.remakeSide,
-    SEARCH_LONG_SIDE: 1000,
-    canvasBackend: {
-        load: async (one: { jpeg: Blob }) => ({
-            jpeg: new TextEncoder().encode(`jpeg-${tagOf(one.jpeg)}`),
-            width: 10,
-            height: 14,
-            grey: false,
-        }),
-        sheet: async () => ({
-            jpeg: new TextEncoder().encode('sheet'),
-            width: 10,
-            height: 10,
-            grey: false,
-        }),
-    },
-}));
+vi.mock('@/lib/scan/canvas', () => canvas);
 
 vi.mock('@/lib/scan/blank', () => ({
     isBlank: (image: { blank: boolean }) => image.blank,
 }));
 
-/** The agent, as the test sets it. */
-const agent = {
-    /** `reachable`: answers; `pending`: asks the owner; `denied`: refused; `down`: nobody there. */
-    mode: 'reachable' as 'reachable' | 'pending' | 'denied' | 'down',
-    version: '1.0.0',
-    scanner: 'ready',
-    scanners: [{ id: 'sp', name: 'SP-1120N', connection: 'usb' }],
-    pages: [] as { id: string; blob: Blob }[],
-    state: 'idle',
-    error: null as string | null,
-    /** What a scan brings: the tags of its sides, the blank ones are `blank`. */
-    sheets: ['sheet-1', 'blank', 'sheet-2'],
-    calls: [] as string[],
-};
+// Starting the agent opens a link of the system: here it says whether the page would ask before leaving
+const launched = vi.hoisted(() => ({ asked: [] as boolean[] }));
 
-/** One call to the agent, answered as it would. */
-async function fakeAgent(url: string, init?: RequestInit): Promise<unknown> {
-    const { pathname, search } = new URL(url);
-    const method = init?.method ?? 'GET';
-    agent.calls.push(`${method} ${pathname}${search}`);
-    const reply = (body: unknown, ok = true) => ({
-        ok,
-        json: async () => body,
-    });
+vi.mock('@/lib/scan/agent', async (original) => ({
+    ...(await original<typeof import('@/lib/scan/agent')>()),
+    launch: () => {
+        launched.asked.push(hasChanges());
+    },
+}));
 
-    if (agent.mode === 'down') throw new TypeError('Failed to fetch');
-    if (agent.mode === 'pending')
-        return reply({ error: 'origin_pending' }, false);
-    if (agent.mode === 'denied')
-        return reply({ error: 'origin_denied' }, false);
-
-    if (pathname === '/status') {
-        return reply({
-            version: agent.version,
-            os: 'darwin',
-            scanner: agent.scanner,
-            api: 2,
-            source: 'feeder',
-            sources: ['feeder', 'flatbed'],
-            resolutions: [150, 200, 300],
-            colours: ['colour', 'grey'],
-        });
-    }
-
-    if (pathname === '/scanners') return reply({ scanners: agent.scanners });
-
-    if (pathname === '/scan' && method === 'POST') {
-        agent.pages = agent.sheets.map((tag, index) => ({
-            id: String(index + 1),
-            blob: tagged(tag),
-        }));
-        agent.state = agent.error ? 'error' : 'done';
-
-        return reply({});
-    }
-
-    if (pathname === '/pages' && method === 'DELETE') {
-        agent.pages = [];
-
-        return reply({});
-    }
-
-    if (pathname === '/pages') {
-        return reply({
-            session: 's1',
-            state: agent.state,
-            error: agent.error,
-            message: '',
-            pages: agent.pages.map((one) => ({ id: one.id, size: 1 })),
-        });
-    }
-
-    const side = agent.pages.find((one) => pathname === `/pages/${one.id}`);
-
-    return {
-        ok: Boolean(side),
-        json: async () => ({}),
-        blob: async () => side?.blob,
-    };
-}
+const agent = scanAgent;
 
 type Client = ReturnType<typeof http.getClient>;
 type Config = Parameters<Client['request']>[0];
@@ -139,6 +59,7 @@ type Config = Parameters<Client['request']>[0];
 const real = http.getClient();
 const upload = vi.fn<(config: Config) => Promise<unknown>>();
 const visit = vi.fn<(url: string) => void>();
+const reload = vi.fn<(options: { only: string[] }) => void>();
 const release = { version: '1.2.0', mac: true, windows: true };
 
 const MAC =
@@ -161,29 +82,13 @@ const shown = (): string | null =>
     document.querySelector('[data-preview] img')?.getAttribute('src') ?? null;
 
 beforeEach(() => {
-    Object.assign(agent, {
-        mode: 'reachable',
-        version: '1.0.0',
-        scanner: 'ready',
-        pages: [],
-        state: 'idle',
-        error: null,
-        sheets: ['sheet-1', 'blank', 'sheet-2'],
-        calls: [],
-    });
-    canvas.remakeSide
-        .mockReset()
-        .mockImplementation(
-            async (
-                original: Blob,
-                options: { turns: number; enhance: boolean; grey: boolean },
-            ) =>
-                tagged(
-                    `${tagOf(original)}+${options.turns}${options.enhance ? '+improved' : ''}${options.grey ? '+grey' : ''}`,
-                ),
-        );
+    resetScanAgent();
+    launched.asked = [];
+    canvas.measureSide.mockReset().mockImplementation(fakeMeasureSide);
+    canvas.improvedJpeg.mockReset().mockImplementation(fakeImprovedJpeg);
+    canvas.composedSheet.mockReset().mockImplementation(fakeComposedSheet);
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(MAC);
-    vi.stubGlobal('fetch', vi.fn(fakeAgent));
+    vi.stubGlobal('fetch', vi.fn(fakeScanAgent));
     vi.stubGlobal(
         'createImageBitmap',
         vi.fn(async (blob: Blob) => ({
@@ -212,6 +117,10 @@ beforeEach(() => {
     visit.mockReset();
     vi.spyOn(router, 'visit').mockImplementation(
         visit as unknown as typeof router.visit,
+    );
+    reload.mockReset();
+    vi.spyOn(router, 'reload').mockImplementation(
+        reload as unknown as typeof router.reload,
     );
 });
 
@@ -420,6 +329,12 @@ describe('Scanner, the choices', () => {
             'aria-pressed',
             'true',
         );
+        expect(
+            screen.getByText('Ready: put the card on the glass'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Scan the front' }),
+        ).toBeInTheDocument();
 
         await fireEvent.click(
             screen.getByRole('switch', { name: 'On a single page' }),
@@ -485,7 +400,7 @@ describe('Scanner, a scan', () => {
         expect(screen.getAllByAltText('Side put aside')).toHaveLength(2);
     });
 
-    it('turns the page with Rotate, from the picture as it arrived', async () => {
+    it('turns the page with Rotate only in the PDF: the picture is not made again', async () => {
         await open();
         await fireEvent.click(
             screen.getByRole('button', { name: 'Start scanning' }),
@@ -494,26 +409,38 @@ describe('Scanner, a scan', () => {
 
         await fireEvent.click(screen.getByRole('button', { name: 'Rotate' }));
 
-        await waitFor(() => expect(shown()).toBe('blob:sheet-1+1'));
-        expect(canvas.remakeSide).toHaveBeenLastCalledWith(
-            expect.objectContaining({ tag: 'sheet-1' }),
-            { turns: 1, enhance: false, grey: false },
-        );
+        expect(
+            document.querySelector<HTMLElement>('[data-preview] img')!.style
+                .transform,
+        ).toBe('rotate(90deg)');
+        expect(
+            screen.getByRole('button', { name: 'Page 1' }).querySelector('img')!
+                .style.transform,
+        ).toContain('rotate(90deg)');
+        expect(canvas.improvedJpeg).not.toHaveBeenCalled();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        await waitFor(() => expect(upload).toHaveBeenCalled());
+        const pdf = (upload.mock.calls[0][0].data as FormData).get(
+            'files[]',
+        ) as File;
+        expect((await pdf.text()).match(/\/Rotate 90 /g)).toHaveLength(1);
     });
 
-    it('improves the page, and gives the same to all the pages', async () => {
+    it('improves the page with the strength of the slider, and gives the same to all the pages', async () => {
         await open();
         await fireEvent.click(
             screen.getByRole('button', { name: 'Start scanning' }),
         );
         await screen.findByText('2 pages');
 
-        await fireEvent.click(
-            screen.getByRole('switch', {
+        await fireEvent.update(
+            screen.getByRole('slider', {
                 name: 'Improve the light and the ink',
             }),
+            '50',
         );
-        await waitFor(() => expect(shown()).toBe('blob:sheet-1+0+improved'));
+        await waitFor(() => expect(shown()).toBe('blob:sheet-1@0/50/false'));
 
         await fireEvent.click(
             screen.getByRole('button', {
@@ -521,11 +448,43 @@ describe('Scanner, a scan', () => {
             }),
         );
         await waitFor(() => {
-            expect(canvas.remakeSide).toHaveBeenCalledWith(
+            expect(canvas.improvedJpeg).toHaveBeenCalledWith(
                 expect.objectContaining({ tag: 'sheet-2' }),
-                { turns: 0, enhance: true, grey: false },
+                { angle: 0, enhance: 50, grey: false },
             );
         });
+    });
+
+    it('straightens a page that went in crooked, all at once or by hand', async () => {
+        agent.sheets = ['crooked-1', 'sheet-2'];
+        await open();
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Start scanning' }),
+        );
+        await screen.findByText('2 pages');
+
+        expect(
+            screen.getByText('It looks crooked by 1,5°.'),
+        ).toBeInTheDocument();
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Straighten the crooked one' }),
+        );
+
+        await waitFor(() =>
+            expect(shown()).toBe('blob:crooked-1@-1.5/0/false'),
+        );
+        expect(
+            screen.queryByRole('button', { name: /Straighten the crooked/ }),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+        await waitFor(() => expect(shown()).toBe('blob:crooked-1'));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Find it by itself' }),
+        );
+        await waitFor(() =>
+            expect(shown()).toBe('blob:crooked-1@-1.5/0/false'),
+        );
     });
 
     it.each([
@@ -641,5 +600,207 @@ describe('Scanner, Upload', () => {
         expect(
             within(document.body).queryByText('No pages'),
         ).toBeInTheDocument();
+    });
+});
+
+describe('Scanner, with the agent closed', () => {
+    /** A scan of two sheets, then the agent quits. */
+    async function scannedThenClosed(): Promise<void> {
+        await open();
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Start scanning' }),
+        );
+        await screen.findByText('2 pages');
+        agent.mode = 'down';
+        document.dispatchEvent(new Event('visibilitychange'));
+        await screen.findByText(/The scanner agent has closed/);
+    }
+
+    it('keeps the sides in view, and uploads them without the agent', async () => {
+        await scannedThenClosed();
+
+        expect(shown()).toBe('blob:sheet-1');
+        expect(
+            screen.getByRole('button', { name: 'Page 2' }),
+        ).toBeInTheDocument();
+        expect(screen.getByAltText('Side put aside')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Add sheets' }),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+        await waitFor(() => expect(visit).toHaveBeenCalledWith('/to-sort'));
+    });
+
+    it('starts the agent without asking to leave the sides not uploaded', async () => {
+        await scannedThenClosed();
+        expect(hasChanges()).toBe(true);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Start the agent' }),
+        );
+
+        await waitFor(() => expect(launched.asked).toEqual([false]));
+        await waitFor(() => expect(hasChanges()).toBe(true), {
+            timeout: 2000,
+        });
+    });
+
+    it('asks the server again for the last version with Try again', async () => {
+        agent.mode = 'down';
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(FIREFOX_MAC);
+        renderPage(Scanner, { agent_release: null });
+        await screen.findByText(/GitHub, where it is published/);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Try again' }),
+        );
+
+        expect(reload).toHaveBeenCalledWith({
+            only: ['agent_release'],
+        });
+    });
+});
+
+describe('Scanner, a card on a single page', () => {
+    /** "On a single page" on, and a card scanned front and back. */
+    async function cardScanned(): Promise<void> {
+        agent.sheets = ['card-front', 'card-back'];
+        await open();
+        await fireEvent.click(
+            screen.getByRole('switch', { name: 'On a single page' }),
+        );
+        await screen.findByRole('button', { name: 'Scan the front' });
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Scan the front' }),
+        );
+        await waitFor(() =>
+            expect(shown()).toBe('blob:sheet(card-front,card-back)'),
+        );
+    }
+
+    it('cuts the two sides and puts them on one page, at their real size', async () => {
+        await cardScanned();
+
+        expect(screen.getByText('1 page')).toBeInTheDocument();
+        expect(screen.getByText('Composed page')).toBeInTheDocument();
+        expect(screen.getByText('1 · 85,6 × 54,0 mm')).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'At their real size: printed at 100 % it is a photocopy.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Add a side' }),
+        ).toBeInTheDocument();
+    });
+
+    it('corrects the cut of a card by hand, and draws the page again', async () => {
+        await cardScanned();
+        canvas.composedSheet.mockClear();
+
+        await fireEvent.click(
+            screen.getAllByRole('button', {
+                name: 'Correct the cut of side 1',
+            })[0]!,
+        );
+        expect(
+            await screen.findByText('85,6 × 54,0 mm', {
+                selector: '[data-crop-size]',
+            }),
+        ).toBeInTheDocument();
+        await fireEvent.update(
+            screen.getByRole('slider', { name: 'Straighten' }),
+            '2.5',
+        );
+        await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+        await waitFor(() => expect(canvas.composedSheet).toHaveBeenCalled());
+        const cards = canvas.composedSheet.mock.calls[0][0] as {
+            cut: { angle: number };
+        }[];
+        expect(cards[0]!.cut.angle).toBe(2.5);
+    });
+
+    it('turns a card, takes it off the page, and separates the page', async () => {
+        await cardScanned();
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Turn side 2' }),
+        );
+        await waitFor(() =>
+            expect(screen.getByText('2 · 54,0 × 85,6 mm')).toBeInTheDocument(),
+        );
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Separate' }));
+
+        expect(await screen.findByText('2 pages')).toBeInTheDocument();
+        expect(shown()).toBe('blob:card-front');
+        expect(
+            screen.getByRole('button', { name: 'Put on one page (2)' }),
+        ).toBeInTheDocument();
+    });
+
+    it('rounds the corners of the cards', async () => {
+        await cardScanned();
+        canvas.composedSheet.mockClear();
+
+        await fireEvent.click(
+            screen.getByRole('switch', { name: 'Rounded corners' }),
+        );
+
+        await waitFor(() => expect(canvas.composedSheet).toHaveBeenCalled());
+        const cards = canvas.composedSheet.mock.calls[0][0] as {
+            round: boolean;
+        }[];
+        expect(cards.every((card) => card.round)).toBe(true);
+    });
+});
+
+describe('Scanner, what leaves', () => {
+    it('says how many sides and what they weigh, and makes a PDF per side', async () => {
+        await open();
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Start scanning' }),
+        );
+        await screen.findByText('2 pages');
+
+        expect(document.querySelector('[data-weight]')?.textContent).toMatch(
+            /^2 sides · \d+ B$/,
+        );
+
+        await fireEvent.click(
+            screen.getByRole('switch', { name: 'One PDF per side' }),
+        );
+        await settle();
+        expect(document.querySelector('[data-weight]')?.textContent).toMatch(
+            /^2 sides → 2 PDF · \d+ B$/,
+        );
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+        await waitFor(() => expect(visit).toHaveBeenCalledWith('/to-sort'));
+        expect(upload).toHaveBeenCalledTimes(2);
+        const names = upload.mock.calls.map(
+            (call) => (call[0].data as FormData).get('name') as string,
+        );
+        expect(names[0]).toMatch(
+            /^Scanner \d{4}-\d{2}-\d{2} \d{2}\.\d{2} 1\.pdf$/,
+        );
+        expect(names[1]).toMatch(/ 2\.pdf$/);
+    });
+
+    it('tells an agent 1.0.0 to update itself by hand', async () => {
+        await open();
+        expect(
+            screen.getByText(/Version 1.0.0 does not update itself/),
+        ).toBeInTheDocument();
+    });
+
+    it('tells a later agent that it updates itself', async () => {
+        agent.version = '1.1.0';
+        await open();
+        expect(screen.getByText(/It updates itself/)).toBeInTheDocument();
     });
 });

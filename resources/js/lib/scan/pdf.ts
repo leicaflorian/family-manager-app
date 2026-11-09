@@ -5,6 +5,9 @@
 /** The long side of a page, in points: the one of an A4 sheet. The page takes the shape of its side. */
 const PAGE_LONG_SIDE = 842;
 
+/** How much a page is turned, in degrees clockwise. */
+export type Rotation = 0 | 90 | 180 | 270;
+
 /**
  * One page: a JPEG with its size in pixels, whether it is a grey one (`/DeviceGray`) or in colour (`/DeviceRGB`),
  * and how much the viewer turns it, in degrees clockwise (`/Rotate`; none when missing or 0).
@@ -14,8 +17,49 @@ export type PdfPage = {
     width: number;
     height: number;
     grey: boolean;
-    rotate?: 0 | 90 | 180 | 270;
+    rotate?: Rotation;
 };
+
+/**
+ * How many colours a JPEG holds, read from its header: 1 for a side scanned in grey, 3 for one in colour. What the
+ * file says counts, not what was asked of the scanner: a driver may answer in colour to a request in grey.
+ *
+ * @param jpeg - the bytes of the JPEG
+ * @returns the number of colours of its frame, 3 when it has none
+ */
+export function jpegColours(jpeg: Uint8Array): number {
+    let at = 2;
+
+    while (at + 9 < jpeg.length) {
+        const marker = jpeg[at + 1]!;
+
+        if (jpeg[at] !== 0xff || marker === 0xff) {
+            at++;
+            continue;
+        }
+
+        // the markers without a length
+        if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd9)) {
+            at += 2;
+            continue;
+        }
+
+        // the start of the frame, which says the size and the colours: not the tables that share its range
+        if (
+            marker >= 0xc0 &&
+            marker <= 0xcf &&
+            marker !== 0xc4 &&
+            marker !== 0xc8 &&
+            marker !== 0xcc
+        ) {
+            return jpeg[at + 9]!;
+        }
+
+        at += 2 + ((jpeg[at + 2]! << 8) | jpeg[at + 3]!);
+    }
+
+    return 3;
+}
 
 /** Rounds to two decimals. */
 const round = (value: number): number => Math.round(value * 100) / 100;

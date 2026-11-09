@@ -1,81 +1,95 @@
 import { describe, expect, it } from 'vite-plus/test';
-import type { Backend, PageImage, SheetPlan } from './pages';
 import { MAX_UPLOAD_BYTES, ScanTooHeavyError } from './pages';
 import { scannerFile } from './scannerFile';
 
-/** A backend that draws nothing: each side is the text of its blob, and the sheet remembers its plan. */
-function fakeBackend(): Backend & { plans: SheetPlan[] } {
-    const plans: SheetPlan[] = [];
+/** The start of a JPEG with a frame of `colours` components and a tag after it, to find the side in the PDF. */
+function jpeg(colours: number, tag: string, size = 0): Blob {
+    const header = new Uint8Array([
+        0xff,
+        0xd8,
+        0xff,
+        0xc0,
+        0x00,
+        0x0b,
+        0x08,
+        0x00,
+        0x10,
+        0x00,
+        0x20,
+        colours,
+        0x01,
+        0x11,
+        0x00,
+    ]);
 
-    return {
-        plans,
-        async load(page): Promise<PageImage> {
-            return {
-                jpeg: new Uint8Array(await page.jpeg!.arrayBuffer()),
-                width: 100,
-                height: 140,
-                grey: false,
-            };
-        },
-        async sheet(_images, plan): Promise<PageImage> {
-            plans.push(plan);
-
-            return {
-                jpeg: new TextEncoder().encode('sheet'),
-                width: plan.width,
-                height: plan.height,
-                grey: false,
-            };
-        },
-    };
+    return new Blob([
+        header,
+        tag,
+        new Uint8Array(size),
+        new Uint8Array([0xff, 0xd9]),
+    ]);
 }
 
-const side = (text: string): { blob: Blob } => ({ blob: new Blob([text]) });
-
-/** How many pages the PDF has. */
-const pagesOf = async (file: File): Promise<number> =>
-    (await file.text()).match(/\/Type \/Page\b/g)?.length ?? 0;
+/** The text of a PDF. */
+const textOf = async (file: Blob): Promise<string> =>
+    new TextDecoder('latin1').decode(await file.arrayBuffer());
 
 describe('scannerFile', () => {
-    it('makes one PDF with a page for each side, in order', async () => {
-        const file = await scannerFile([side('a'), side('b'), side('c')], {
-            oneSheet: false,
-            backend: fakeBackend(),
-        });
+    it('makes one PDF with a page for each side, in order, each JPEG as it is', async () => {
+        const file = await scannerFile([
+            { blob: jpeg(3, 'first'), width: 100, height: 140, rotation: 0 },
+            { blob: jpeg(3, 'second'), width: 100, height: 140, rotation: 0 },
+        ]);
+        const text = await textOf(file);
 
         expect(file.type).toBe('application/pdf');
-        expect(file.name).toBe('scan.pdf');
-        expect(await pagesOf(file)).toBe(3);
+        expect(text.match(/\/Type \/Page\b/g)).toHaveLength(2);
+        expect(text.indexOf('first')).toBeLessThan(text.indexOf('second'));
     });
 
-    it('puts two to four sides on a single page when asked', async () => {
-        const backend = fakeBackend();
+    it('writes a side scanned in grey as grey, read from its JPEG', async () => {
+        const text = await textOf(
+            await scannerFile([
+                { blob: jpeg(1, 'grey'), width: 100, height: 140, rotation: 0 },
+                {
+                    blob: jpeg(3, 'colour'),
+                    width: 100,
+                    height: 140,
+                    rotation: 0,
+                },
+            ]),
+        );
 
-        const file = await scannerFile([side('a'), side('b')], {
-            oneSheet: true,
-            backend,
-        });
-
-        expect(backend.plans).toHaveLength(1);
-        expect(await pagesOf(file)).toBe(1);
+        expect(text.match(/\/DeviceGray/g)).toHaveLength(1);
+        expect(text.match(/\/DeviceRGB/g)).toHaveLength(1);
     });
 
-    it('leaves the sides alone when "On a single page" does not apply to so many', async () => {
-        const backend = fakeBackend();
-        const sides = ['a', 'b', 'c', 'd', 'e'].map(side);
+    it('turns a side with /Rotate, without making the JPEG again', async () => {
+        const text = await textOf(
+            await scannerFile([
+                {
+                    blob: jpeg(3, 'turned'),
+                    width: 100,
+                    height: 140,
+                    rotation: 90,
+                },
+            ]),
+        );
 
-        const file = await scannerFile(sides, { oneSheet: true, backend });
-
-        expect(backend.plans).toHaveLength(0);
-        expect(await pagesOf(file)).toBe(5);
+        expect(text).toContain('/Rotate 90 ');
+        expect(text).toContain('/Width 100 /Height 140');
     });
 
-    it('refuses a PDF over 25 MB, saying how much it weighs', async () => {
-        const backend = fakeBackend();
-        const heavy = new Blob([new Uint8Array(MAX_UPLOAD_BYTES + 10)]);
-
+    it('stops a PDF over 25 MB', async () => {
         await expect(
-            scannerFile([{ blob: heavy }], { oneSheet: false, backend }),
-        ).rejects.toBeInstanceOf(ScanTooHeavyError);
+            scannerFile([
+                {
+                    blob: jpeg(1, 'big', MAX_UPLOAD_BYTES),
+                    width: 100,
+                    height: 140,
+                    rotation: 0,
+                },
+            ]),
+        ).rejects.toThrow(ScanTooHeavyError);
     });
 });

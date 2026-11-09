@@ -12,6 +12,7 @@ import { defaultConfig } from '@formkit/vue';
 import { chooseDateOnClick, markToday } from '@/lib/formkitDatepicker';
 import { DROPDOWNS, openOnTheSideWithRoom } from '@/lib/formkitDropdownSide';
 import { closeOnEmptyChoice, showEmptyChoice } from '@/lib/formkitEmptyChoice';
+import { labelLateOptions } from '@/lib/formkitLateOptions';
 import { sayNoResults } from '@/lib/formkitNoResults';
 import { openOnFocus } from '@/lib/formkitOpenOnFocus';
 import { toggleAsSwitch } from '@/lib/formkitSwitch';
@@ -74,6 +75,7 @@ export default defaultConfig({
         toggleAsSwitch,
         closeOnEmptyChoice,
         showEmptyChoice,
+        labelLateOptions,
         chooseDateOnClick,
         markToday,
         tabChoosesSuggestion,

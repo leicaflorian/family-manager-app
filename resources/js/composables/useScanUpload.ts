@@ -11,7 +11,12 @@ import {
     pageCount,
     sendSummary,
 } from '@/lib/scan/pages';
-import { ScanRequestError, enterAgain, sendScanFile } from '@/lib/scan/server';
+import {
+    ScanRequestError,
+    enterAgain,
+    sendScanFile,
+    uploadErrorText,
+} from '@/lib/scan/server';
 
 /** What the upload reads from the page and tells it. */
 export type ScanUploadOptions = {
@@ -201,10 +206,7 @@ export function useScanUpload(options: ScanUploadOptions): UseScanUpload {
             );
         } catch (caught) {
             if (caught instanceof ScanTooHeavyError) {
-                fail(
-                    `${caught.message} ${trans('Take away some pages and upload in two goes.')}`,
-                    false,
-                );
+                fail(uploadErrorText(caught), false);
             } else {
                 fail(
                     trans('The PDF could not be made: try with fewer pages.'),
@@ -238,25 +240,7 @@ export function useScanUpload(options: ScanUploadOptions): UseScanUpload {
                 await sendOne(file, note, onProgress);
             } catch (caught) {
                 sending.value = false;
-
-                if (caught instanceof ScanRequestError && caught.sessionEnded) {
-                    fail(
-                        trans(
-                            'Your session has ended: sign in again. The pages are still here.',
-                        ),
-                        true,
-                    );
-                } else {
-                    fail(
-                        trans(':reason What was not uploaded is still here.', {
-                            reason:
-                                caught instanceof Error
-                                    ? caught.message
-                                    : trans('The upload did not go through.'),
-                        }),
-                        true,
-                    );
-                }
+                fail(uploadErrorText(caught), true);
 
                 return;
             }

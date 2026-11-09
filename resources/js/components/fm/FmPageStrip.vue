@@ -18,6 +18,8 @@ export type StripPage = {
     id: string;
     /** The small picture of the page; without it a sketch of a sheet is drawn. */
     url: string | null;
+    /** How much the picture is turned, in degrees clockwise (the scanner turns a side only in the PDF). */
+    rotation?: 0 | 90 | 180 | 270;
 };
 
 /** How long a finger stays on a page before the page is lifted, in milliseconds. */
@@ -302,6 +304,22 @@ function onContextMenu(event: Event): void {
 
 onBeforeUnmount(drop);
 
+/**
+ * The picture of a page turned as it was given; lying, it is made smaller so it stays in its frame.
+ *
+ * @param page - the page
+ * @returns the style of its picture, empty when it is not turned
+ */
+function turnOf(page: StripPage): Record<string, string> {
+    if (!page.rotation) return {};
+
+    const lying = page.rotation === 90 || page.rotation === 270;
+
+    return {
+        transform: `rotate(${page.rotation}deg)${lying ? ' scale(0.74)' : ''}`,
+    };
+}
+
 /** Classes of the page buttons, the chosen one with the blue border. */
 const frame = (chosen: boolean): string =>
     cn(
@@ -356,6 +374,7 @@ const frame = (chosen: boolean): string =>
                     :src="page.url"
                     alt=""
                     draggable="false"
+                    :style="turnOf(page)"
                     class="h-[70px] w-[52px] rounded-sm border border-edge-soft bg-card object-cover"
                 />
                 <span

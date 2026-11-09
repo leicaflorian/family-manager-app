@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { makePdf } from './pdf';
+import { jpegColours, makePdf } from './pdf';
 
 /** A minimal baseline JPEG header with a frame of `colours` components (enough for the header reader). */
 function jpegWith(colours: number): Uint8Array {
@@ -72,5 +72,37 @@ describe('makePdf', () => {
             body,
         )?.[1];
         expect(Number(entry)).toBe(first);
+    });
+});
+
+describe('jpegColours', () => {
+    it('reads one colour from the frame of a JPEG scanned in grey', () => {
+        expect(jpegColours(jpegWith(1))).toBe(1);
+    });
+
+    it('reads three colours from a JPEG in colour', () => {
+        expect(jpegColours(jpegWith(3))).toBe(3);
+    });
+
+    it('skips the pieces before the frame, the tables among them', () => {
+        const jfif = [0xff, 0xe0, 0x00, 0x06, 0x4a, 0x46, 0x49, 0x46];
+        const huffman = [0xff, 0xc4, 0x00, 0x04, 0x00, 0x00];
+        const jpeg = jpegWith(1);
+
+        expect(
+            jpegColours(
+                new Uint8Array([
+                    0xff,
+                    0xd8,
+                    ...jfif,
+                    ...huffman,
+                    ...jpeg.slice(2),
+                ]),
+            ),
+        ).toBe(1);
+    });
+
+    it('takes three colours when there is no frame', () => {
+        expect(jpegColours(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]))).toBe(3);
     });
 });

@@ -61,6 +61,24 @@ describe('FmPageStrip', () => {
         expect(emitted('add')).toHaveLength(1);
     });
 
+    it('shows a page turned by the quarters it was given', () => {
+        const { container } = render(FmPageStrip, {
+            props: {
+                pages: [
+                    { id: 'a', url: 'blob:a', rotation: 90 },
+                    { id: 'b', url: 'blob:b' },
+                ],
+                selected: 'a',
+            },
+        });
+        const [turned, straight] = Array.from(
+            container.querySelectorAll('img'),
+        );
+
+        expect(turned.style.transform).toContain('rotate(90deg)');
+        expect(straight.style.transform).toBe('');
+    });
+
     it('shows the page numbers and the hint only in a column', () => {
         const view = strip('column');
 

@@ -11,6 +11,53 @@ export const IMPROVE_DEFAULTS = {
     dewarp: false,
 } as const;
 
+/**
+ * What is asked for a side of the scanner: `angle` is how much it is turned, in degrees clockwise (a few, not the
+ * quarters of *Rotate*, which go in the PDF); `enhance` is how strong *Improve* is, from 0 (not at all) to 100,
+ * where 50 is what the phone does; `grey` takes the colours away.
+ */
+export type Improvement = { angle: number; enhance: number; grey: boolean };
+
+/** Nothing asked: the side stays the JPEG of the scanner. */
+export const PLAIN: Improvement = { angle: 0, enhance: 0, grey: false };
+
+/** How far a side can be turned by hand, each way, in degrees. */
+export const MOST_ANGLE = 10;
+
+/** A side turned less than this is not worth straightening: it would be compressed again for nothing. */
+export const SKEW_WORTH = 0.3;
+
+/**
+ * Whether nothing is asked for a side.
+ *
+ * @param improvement - what is asked
+ * @returns true without an angle, *Improve* or grey
+ */
+export function isPlain(improvement: Improvement): boolean {
+    return !improvement.angle && !improvement.enhance && !improvement.grey;
+}
+
+/**
+ * Whether two improvements ask the same.
+ *
+ * @param a - one
+ * @param b - the other
+ * @returns true when angle, strength and grey are the same
+ */
+export function sameImprovement(a: Improvement, b: Improvement): boolean {
+    return a.angle === b.angle && a.enhance === b.enhance && a.grey === b.grey;
+}
+
+/**
+ * An angle as the page writes it, in both languages: «+1,3°».
+ *
+ * @param degrees - the angle
+ * @returns the text, with its sign
+ */
+export function angleText(degrees: number): string {
+    return `${degrees > 0 ? '+' : ''}${degrees.toFixed(1).replace('.', ',').replace('-', '−')}°`;
+}
+
 /** Where the paper should end up after `enhance`: almost white, not burnt. */
 const PAPER = 248;
 /** What is darker than this after the light is evened out becomes black: the ink gets deeper. */
@@ -389,5 +436,23 @@ export function improve(
     let picture = image;
     if (options.enhance) picture = enhance(picture, options.strength ?? 1);
     if (options.grey) picture = grey(picture);
+    return picture;
+}
+
+/**
+ * A side of the scanner with what was asked for it: first turned, so the paper that comes in from the corners is
+ * evened out with the rest, then improved with the strength asked, then greyed.
+ *
+ * @param image - the side
+ * @param improvement - what is asked
+ * @returns the same picture when nothing is asked, otherwise a new one
+ */
+export function improveSide(image: Pixels, improvement: Improvement): Pixels {
+    let picture = image;
+    if (improvement.angle) picture = turnBy(picture, improvement.angle);
+    if (improvement.enhance) {
+        picture = enhance(picture, (improvement.enhance / 100) * MOST_STRENGTH);
+    }
+    if (improvement.grey) picture = grey(picture);
     return picture;
 }

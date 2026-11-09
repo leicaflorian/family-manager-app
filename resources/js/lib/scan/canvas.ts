@@ -13,7 +13,24 @@ import {
     type Pixels,
     type Turns,
 } from './crop';
-import { improve } from './improve';
+import {
+    densityOf,
+    findCard,
+    improveCanvas,
+    jpegOf,
+    millimetreOf,
+    scaleCut,
+    sheetCanvas,
+} from './card';
+import type { Card, Cut } from './card';
+import {
+    improve,
+    improveSide,
+    isPlain,
+    SKEW_LONG_SIDE,
+    skewOf,
+} from './improve';
+import type { Improvement } from './improve';
 import type { Backend, PageImage, ScanPage, SheetPlan } from './pages';
 
 /** The quality of the JPEGs the scan makes. */
@@ -165,32 +182,154 @@ export async function cutOut(
     };
 }
 
-/** The long side a side of the scanner keeps when it is made again: an A4 at 300 dots is 3508. */
-const SCANNER_LONG_SIDE = 3600;
+/** What the page learns of a side of the scanner when it arrives. */
+export type SideMeasure = {
+    /** How many of its dots make a millimetre. */
+    millimetre: number;
+    /** By how much the sheet went in crooked, in degrees clockwise; null when the side does not say. */
+    skew: number | null;
+    /** Where a card was found on it, in its dots; null when none was. */
+    found: Cut | null;
+    /** What was found is small enough to be a card, not a sheet. */
+    small: boolean;
+};
 
 /**
- * A side of the scanner made again with what was asked: turned by quarters and improved. It starts from the JPEG as
- * it arrived, so a side is never compressed more than twice.
+ * The dots of a picture, as large as it is or brought within `longSide`.
+ *
+ * @param image - the picture
+ * @param longSide - the longest side wanted
+ * @returns the pixels
+ * @throws if the browser has no canvas for it
+ */
+export function pixelsOf(image: ImageBitmap, longSide = Infinity): Pixels {
+    const scale = Math.min(1, longSide / Math.max(image.width, image.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+
+    if (!context) {
+        throw new Error('No canvas');
+    }
+
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const { width, height, data } = context.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+    );
+    canvas.width = 0;
+    canvas.height = 0;
+
+    return { width, height, data };
+}
+
+/**
+ * Measures a side of the scanner as it arrives: the size of a dot (from its JPEG, else from the resolution asked),
+ * how crooked it went in, and where a card lies on it. What cannot be measured is left to the hands.
+ *
+ * @param blob - the JPEG of the scanner
+ * @param bitmap - the same side, already decoded
+ * @param asked - the dots per inch asked of the scanner, null when unknown
+ * @returns what was measured
+ */
+export async function measureSide(
+    blob: Blob,
+    bitmap: ImageBitmap,
+    asked: number | null,
+): Promise<SideMeasure> {
+    const millimetre = millimetreOf(
+        bitmap,
+        await densityOf(blob).catch(() => null),
+        asked,
+    );
+    const measure: SideMeasure = {
+        millimetre,
+        skew: null,
+        found: null,
+        small: false,
+    };
+
+    try {
+        const pixels = pixelsOf(bitmap, SKEW_LONG_SIDE);
+        measure.skew = skewOf(pixels);
+        const seen = findCard(
+            pixels,
+            (millimetre * pixels.width) / bitmap.width,
+        );
+
+        if (seen) {
+            measure.found = scaleCut(seen.cut, bitmap.width / pixels.width);
+            measure.small = seen.small;
+        }
+    } catch {
+        // not measured: the side can still be turned, and its cut set, by hand
+    }
+
+    return measure;
+}
+
+/**
+ * The JPEG of a side of the scanner with what was asked for it, as large as the side is. It starts from the JPEG of
+ * the scanner every time, so a side is compressed at most twice; with nothing asked it is that JPEG.
  *
  * @param original - the JPEG of the scanner
- * @param options - the quarters of a turn, and which of *Improve* and *Black and white* to apply
- * @returns the original when nothing is asked, otherwise a new JPEG
+ * @param improvement - the angle, *Improve* and grey asked
+ * @returns the JPEG
  * @throws if the browser cannot draw the side
  */
-export async function remakeSide(
+export async function improvedJpeg(
     original: Blob,
-    options: { turns: Turns; enhance: boolean; grey: boolean },
+    improvement: Improvement,
 ): Promise<Blob> {
-    if (options.turns === 0 && !options.enhance && !options.grey) {
+    if (isPlain(improvement)) {
         return original;
     }
 
-    const turned = turn(
-        await readPhoto(original, SCANNER_LONG_SIDE),
-        options.turns,
-    );
+    const bitmap = await createImageBitmap(original);
+    let pixels: Pixels;
 
-    return toJpeg(improve(turned, options));
+    try {
+        pixels = pixelsOf(bitmap);
+    } finally {
+        bitmap.close();
+    }
+
+    return toJpeg(improveSide(pixels, improvement));
+}
+
+/**
+ * A composed page: the cards cut from their sides onto an A4 at their real size, then *Improve* done on the page.
+ *
+ * @param cards - the cards, from the top
+ * @param improvement - what *Improve* asks of the page
+ * @returns the page before *Improve* (`original`), the one that goes in the PDF (`blob`) and its size in dots
+ * @throws if the browser cannot draw the page
+ */
+export async function composedSheet(
+    cards: Card[],
+    improvement: Improvement,
+): Promise<{ original: Blob; blob: Blob; width: number; height: number }> {
+    const canvas = await sheetCanvas(cards);
+    const { width, height } = canvas;
+
+    try {
+        const original = await jpegOf(canvas);
+
+        if (isPlain(improvement)) {
+            return { original, blob: original, width, height };
+        }
+
+        improveCanvas(canvas, improvement);
+
+        return { original, blob: await jpegOf(canvas), width, height };
+    } finally {
+        canvas.width = 0;
+        canvas.height = 0;
+    }
 }
 
 /** The bytes and the size of a JPEG. */

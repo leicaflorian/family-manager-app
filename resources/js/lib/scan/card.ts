@@ -9,7 +9,8 @@
 
 import { SHEET, CARD_CORNER, sheetLayout } from './crop';
 import type { Layout, Pixels, Place } from './crop';
-import { paperOf } from './improve';
+import { improveSide, paperOf } from './improve';
+import type { Improvement } from './improve';
 
 export type Box = Place;
 export type Size = { width: number; height: number };
@@ -735,7 +736,8 @@ export async function sheetCanvas(cards: Card[]): Promise<HTMLCanvasElement> {
     canvas.height = Math.round(SHEET.height * millimetre);
     const context = canvas.getContext('2d', { willReadFrequently: true });
     if (!context) throw new Error('canvas');
-    context.fillStyle = '#fff';
+    // the paper is white in both themes: it is a sheet to print, not part of the page
+    context.fillStyle = 'white';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.imageSmoothingQuality = 'high';
 
@@ -788,6 +790,45 @@ export async function sheetCanvas(cards: Card[]): Promise<HTMLCanvasElement> {
         }
     }
     return canvas;
+}
+
+/**
+ * Draws some pixels on a canvas, which takes their size.
+ *
+ * @param canvas - the canvas
+ * @param picture - the pixels
+ * @throws if the browser has no canvas for it
+ */
+export function drawOn(canvas: HTMLCanvasElement, picture: Pixels): void {
+    canvas.width = picture.width;
+    canvas.height = picture.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('canvas');
+    const drawn = context.createImageData(picture.width, picture.height);
+    drawn.data.set(picture.data);
+    context.putImageData(drawn, 0, 0);
+}
+
+/**
+ * What *Improve* was asked, done on the composed page already drawn: the page is compressed once, after it.
+ *
+ * @param canvas - the composed page
+ * @param improvement - what is asked
+ * @throws if the browser has no canvas for it
+ */
+export function improveCanvas(
+    canvas: HTMLCanvasElement,
+    improvement: Improvement,
+): void {
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('canvas');
+    drawOn(
+        canvas,
+        improveSide(
+            context.getImageData(0, 0, canvas.width, canvas.height),
+            improvement,
+        ),
+    );
 }
 
 /** The JPEG of the composed page. */

@@ -334,6 +334,22 @@ export function sheetPlan(
     };
 }
 
+/**
+ * Lets a file leave only within `MAX_UPLOAD_BYTES`: the server and the reading of the AI take no more.
+ *
+ * @param file - the file
+ * @param label - what the file is called for the person
+ * @returns the same file
+ * @throws ScanTooHeavyError when it is heavier
+ */
+export function checkWeight(file: File, label: string): File {
+    if (file.size > MAX_UPLOAD_BYTES) {
+        throw new ScanTooHeavyError(label, file.size);
+    }
+
+    return file;
+}
+
 /** The PDF page of an image. */
 const pdfPage = (image: PageImage): PdfPage => ({
     jpeg: image.jpeg,
@@ -400,11 +416,5 @@ export async function filesToSend(
         }
     }
 
-    const heavy = files.find(({ file }) => file.size > MAX_UPLOAD_BYTES);
-
-    if (heavy) {
-        throw new ScanTooHeavyError(heavy.label, heavy.file.size);
-    }
-
-    return files.map(({ file }) => file);
+    return files.map(({ file, label }) => checkWeight(file, label));
 }

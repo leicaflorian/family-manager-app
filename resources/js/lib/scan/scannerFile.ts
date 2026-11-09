@@ -1,76 +1,46 @@
-// The PDF of the sides of the scanner that stay: one file, a page for each side in the order of the strip, or with
-// "On a single page" the sides on one A4 page. The same rules as the photos of the phone (`filesToSend`), minus
-// the single JPEG: the scanner always makes a PDF.
+// The PDF of some sides of the scanner: a page for each, in the order given. Each JPEG goes in as the scanner, or
+// *Improve*, made it: a turn is written as `/Rotate` and a side scanned in grey as `/DeviceGray`, read from its
+// JPEG, so nothing is decoded or compressed again here.
 
 import { trans } from 'laravel-vue-i18n';
-import { canvasBackend } from './canvas';
-import type { Backend, PageImage, ScanPage } from './pages';
-import {
-    MAX_UPLOAD_BYTES,
-    ScanTooHeavyError,
-    oneSheetState,
-    sheetPlan,
-} from './pages';
-import { makePdf } from './pdf';
+import { checkWeight } from './pages';
+import { jpegColours, makePdf } from './pdf';
+import type { Rotation } from './pdf';
+
+/** A side of the scanner as it goes in the PDF: its JPEG, its size in dots, and how much it is turned. */
+export type ScannerPage = {
+    blob: Blob;
+    width: number;
+    height: number;
+    rotation: Rotation;
+};
 
 /**
- * The page of the phone that stands for a side of the scanner: a cut out photo, which `Backend.load` takes as it is.
+ * The PDF of some sides.
  *
- * @param blob - the finished JPEG of the side
- * @param index - its place
- * @returns the page
- */
-function pageOf(blob: Blob, index: number): ScanPage {
-    return {
-        id: `side-${index}`,
-        file: new File([blob], `side-${index}.jpg`, { type: 'image/jpeg' }),
-        kind: 'photo',
-        corners: null,
-        turns: 0,
-        improve: { enhance: false, grey: false, dewarp: false },
-        cut: true,
-        jpeg: blob,
-    };
-}
-
-/**
- * The PDF that leaves for *To sort*.
- *
- * @param sides - the sides that stay, each with its finished JPEG, in order
- * @param options - `oneSheet`: "On a single page" is switched on (it counts only for two to four sides); `backend`:
- *   what needs a canvas, the browser's by default
+ * @param pages - the sides, in order
  * @returns the PDF
  * @throws ScanTooHeavyError when it is over `MAX_UPLOAD_BYTES`
  */
-export async function scannerFile(
-    sides: { blob: Blob }[],
-    options: { oneSheet: boolean; backend?: Backend },
-): Promise<File> {
-    const backend = options.backend ?? canvasBackend;
-    const pages = sides.map((side, index) => pageOf(side.blob, index));
-    const images: PageImage[] = [];
+export async function scannerFile(pages: ScannerPage[]): Promise<File> {
+    const parts = [];
 
-    // one at a time: a side at 300 dots takes tens of MB while it is read
+    // one at a time: a side at 300 dots weighs some MB
     for (const page of pages) {
-        images.push(await backend.load(page));
+        const jpeg = new Uint8Array(await page.blob.arrayBuffer());
+        parts.push({
+            jpeg,
+            width: page.width,
+            height: page.height,
+            grey: jpegColours(jpeg) === 1,
+            rotate: page.rotation,
+        });
     }
 
-    const single = options.oneSheet && oneSheetState(pages) === 'ready';
-    const sheet = single
-        ? await backend.sheet(images, sheetPlan(images))
-        : null;
-    const file = new File([makePdf(sheet ? [sheet] : images)], 'scan.pdf', {
-        type: 'application/pdf',
-    });
-
-    if (file.size > MAX_UPLOAD_BYTES) {
-        throw new ScanTooHeavyError(
-            single
-                ? trans('The PDF of the page')
-                : trans('The PDF of the pages'),
-            file.size,
-        );
-    }
-
-    return file;
+    return checkWeight(
+        new File([makePdf(parts)], 'scan.pdf', { type: 'application/pdf' }),
+        pages.length === 1
+            ? trans('The PDF of the page')
+            : trans('The PDF of the pages'),
+    );
 }
