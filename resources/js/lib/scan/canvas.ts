@@ -165,6 +165,34 @@ export async function cutOut(
     };
 }
 
+/** The long side a side of the scanner keeps when it is made again: an A4 at 300 dots is 3508. */
+const SCANNER_LONG_SIDE = 3600;
+
+/**
+ * A side of the scanner made again with what was asked: turned by quarters and improved. It starts from the JPEG as
+ * it arrived, so a side is never compressed more than twice.
+ *
+ * @param original - the JPEG of the scanner
+ * @param options - the quarters of a turn, and which of *Improve* and *Black and white* to apply
+ * @returns the original when nothing is asked, otherwise a new JPEG
+ * @throws if the browser cannot draw the side
+ */
+export async function remakeSide(
+    original: Blob,
+    options: { turns: Turns; enhance: boolean; grey: boolean },
+): Promise<Blob> {
+    if (options.turns === 0 && !options.enhance && !options.grey) {
+        return original;
+    }
+
+    const turned = turn(
+        await readPhoto(original, SCANNER_LONG_SIDE),
+        options.turns,
+    );
+
+    return toJpeg(improve(turned, options));
+}
+
 /** The bytes and the size of a JPEG. */
 async function describe(blob: Blob): Promise<PageImage> {
     const bitmap = await createImageBitmap(blob);

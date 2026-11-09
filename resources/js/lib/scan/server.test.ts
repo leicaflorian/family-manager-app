@@ -168,6 +168,19 @@ describe('sendScanFile', () => {
         expect(progress).toHaveBeenCalledWith(0.5);
     });
 
+    it('says the scanner and the name of the document when it comes from the scanner', async () => {
+        request.mockResolvedValue(answer(200, { files: [] }));
+
+        await sendScanFile(new File(['x'], 'scan.pdf'), '', () => undefined, {
+            source: 'scanner',
+            name: 'estratto conto',
+        });
+
+        const data = request.mock.calls[0][0].data as FormData;
+        expect(data.get('source')).toBe('scanner');
+        expect(data.get('name')).toBe('estratto conto');
+    });
+
     it('leaves the note out when nothing is written', async () => {
         request.mockResolvedValue(answer(200, { files: [] }));
 

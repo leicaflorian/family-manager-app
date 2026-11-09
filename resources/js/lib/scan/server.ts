@@ -180,6 +180,8 @@ export async function findCorners(
  * @param file - the JPEG, the PDF of the photos, or a PDF chosen on the phone
  * @param note - *What it is*, empty for nothing
  * @param onProgress - told how much has left the phone, from 0 to 1
+ * @param from - where the file comes from: the phone (by default), or the scanner with the name of the document
+ *   the person wrote (empty for the name of the moment)
  * @returns the files the server saved
  * @throws ScanRequestError when the file did not arrive
  */
@@ -187,10 +189,15 @@ export async function sendScanFile(
     file: File,
     note: string,
     onProgress: (fraction: number) => void = (): void => undefined,
+    from: { source: 'phone' | 'scanner'; name?: string } = { source: 'phone' },
 ): Promise<SavedFile[]> {
     const data = new FormData();
     data.append('files[]', file, file.name);
-    data.append('source', 'phone');
+    data.append('source', from.source);
+
+    if (from.name) {
+        data.append('name', from.name);
+    }
 
     if (note !== '') {
         data.append('note', note);

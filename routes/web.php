@@ -38,6 +38,7 @@ use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ScanCornersController;
+use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\ScanShareController;
 use App\Http\Controllers\ServiceWorkerController;
 use App\Http\Controllers\SettingsController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\RedirectToWelcome;
+use App\Services\AgentRelease;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
@@ -101,6 +103,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('scan', [ScanController::class, 'show'])->name('scan');
     Route::post('scan', [ScanController::class, 'store'])->name('scan.store');
     Route::post('scan/corners', ScanCornersController::class)->name('scan.corners');
+
+    // The scanner of the house, from the computer: the names do not start with `scan.`, so a linked phone cannot open them
+    Route::get('scanner', [ScannerController::class, 'show'])->name('scanner');
+    Route::get('scanner/agent/{system}', [ScannerController::class, 'agent'])->whereIn('system', AgentRelease::SYSTEMS)->name('scanner.agent');
 
     // The page to time *Raddrizza* on a phone: only on the development machine, never online
     if (app()->isLocal()) {

@@ -13,7 +13,14 @@
  * filters on the computer. While a file is queued or read the page asks for its state every 2 seconds.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { Camera, Inbox, Mail, Smartphone, Sparkles } from '@lucide/vue';
+import {
+    Camera,
+    Inbox,
+    Mail,
+    ScanLine,
+    Smartphone,
+    Sparkles,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
 import ToSortSources from '@/components/documents/ToSortSources.vue';
@@ -28,9 +35,9 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTooltip from '@/components/fm/FmTooltip.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import { useReadingPoll } from '@/composables/useReadingPoll';
-import { isPhone } from '@/lib/devices';
+import { desktopSystem, isPhone } from '@/lib/devices';
 import { anyFileReading } from '@/lib/reading';
-import { scan, toSort } from '@/routes';
+import { scan, scanner, toSort } from '@/routes';
 import { index as receivedMail } from '@/routes/mail';
 import { read } from '@/routes/to-sort';
 
@@ -68,6 +75,9 @@ const upload = useFileUpload(() => undefined, { stay: true });
 
 /** On the phone the camera comes first: *Take a photo* opens the scan, as the board *Da smistare*. */
 const phone = isPhone();
+
+/** The scanner of the house is driven from a Mac or a Windows PC, the one it is plugged into: only there is it offered. */
+const scannerHere = desktopSystem() !== 'other';
 
 /** The panel *Link the phone* is open. */
 const linkPhone = ref(false);
@@ -150,6 +160,13 @@ function readChosen(): void {
                     :icon="Smartphone"
                     @click="linkPhone = true"
                     >{{ $t('Link the phone') }}</FmButton
+                >
+                <FmButton
+                    v-if="scannerHere"
+                    variant="outline"
+                    :icon="ScanLine"
+                    :href="scanner().url"
+                    >{{ $t('Scan the sheets') }}</FmButton
                 >
                 <FmButton
                     class="lg:hidden"

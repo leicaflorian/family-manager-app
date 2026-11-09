@@ -20,6 +20,7 @@ export function pageLayout(name: string): Component {
             return AuthLayout;
         // The scan has its own bars: no bar of the sections
         case name === 'scan/Scan':
+        case name === 'scan/Scanner':
             return ScanLayout;
         default:
             return AppLayout;

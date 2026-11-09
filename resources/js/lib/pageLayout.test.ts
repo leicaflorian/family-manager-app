@@ -13,6 +13,7 @@ describe('pageLayout', () => {
 
     it('puts the scan in its own layout, without the bar of the sections', () => {
         expect(pageLayout('scan/Scan')).toBe(ScanLayout);
+        expect(pageLayout('scan/Scanner')).toBe(ScanLayout);
         expect(pageLayout('scan/DewarpCheck')).toBe(AppLayout);
     });
 

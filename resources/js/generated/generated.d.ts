@@ -53,6 +53,11 @@ export type AgendaReminderData = {
 readonly state: App.Enums.AgendaReminderState,
 readonly next_notice: string | null,
 };
+export type AgentReleaseData = {
+readonly version: string,
+readonly mac: boolean,
+readonly windows: boolean,
+};
 export type AreaCountData = {
 readonly area: string,
 readonly label: string,

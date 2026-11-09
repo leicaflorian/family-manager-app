@@ -105,6 +105,28 @@ describe('ToSort', () => {
         ).toHaveAttribute('href', '/scan');
     });
 
+    it('offers Scan the sheets on a Mac or a Windows PC, which opens the scanner', () => {
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+        );
+        renderPage(ToSort, page);
+
+        expect(
+            screen.getByRole('link', { name: 'Scan the sheets' }),
+        ).toHaveAttribute('href', '/scanner');
+    });
+
+    it('does not offer Scan the sheets on a phone, a tablet or Linux', () => {
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile',
+        );
+        renderPage(ToSort, page);
+
+        expect(
+            screen.queryByRole('link', { name: 'Scan the sheets' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('does not offer Take a photo on a computer', () => {
         renderPage(ToSort, page);
 

@@ -1,10 +1,11 @@
 // The calls to the agent of the scanner (its own repository, family-manager-agent): a program on this computer that
-// commands the scanner with the driver of the system. The page reaches it on 127.0.0.1, at a fixed port, which the
-// security rule of Directus must allow (CONTENT_SECURITY_POLICY_DIRECTIVES__CONNECT_SRC).
+// commands the scanner with the driver of the system. The page reaches it on 127.0.0.1, at a fixed port. This app
+// sends no Content-Security-Policy, so nothing blocks the call; if one is ever added, its `connect-src` must allow
+// `http://127.0.0.1:47115` (`AGENT_URL`).
 
 import { isFirefox } from '../devices';
 
-/** Where the agent answers. The port is written also in `server.go` of the agent and in the rule of Directus. */
+/** Where the agent answers. The port is written also in `server.go` of the agent. */
 export const AGENT_URL = 'http://127.0.0.1:47115';
 
 /** The link that starts the agent: the system knows it once the agent has been opened one time. */
