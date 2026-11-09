@@ -17,12 +17,20 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
+import { cn } from '@/lib/utils';
 import { provideOnColor } from '@/composables/useOnColor';
 import FmIcon from './FmIcon.vue';
 
-const { title, beforeClose, above } = defineProps<{
+const {
+    title,
+    beforeClose,
+    above,
+    size = 'md',
+} = defineProps<{
     /** The title of the panel. */
     title: string;
+    /** The width on the computer: `md` is 560 px, `lg` 640 px for a panel with a picture beside its text. */
+    size?: SheetSize;
     /**
      * Above every other panel, whatever their order in the page: a question
      * asked while a panel is open («Leave without saving?», «Delete…?»).
@@ -35,6 +43,15 @@ const { title, beforeClose, above } = defineProps<{
      */
     beforeClose?: () => Promise<boolean>;
 }>();
+
+/** The widths of the panel on the computer. */
+export type SheetSize = 'md' | 'lg';
+
+/** The widest the panel gets on the computer, for each size. */
+const widths: Record<SheetSize, string> = {
+    md: cn('lg:max-w-[560px]'),
+    lg: cn('lg:max-w-[640px]'),
+};
 
 /** Open or closed. */
 const open = defineModel<boolean>('open', { default: false });
@@ -104,8 +121,8 @@ function keepOpenForMenu(event: KeyboardEvent): void {
                 data-sheet
                 @keydown.capture="noteEscape"
                 @escape-key-down="keepOpenForMenu"
-                :class="above ? 'z-[70]' : 'z-50'"
-                class="fixed inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-sheet bg-card px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:max-w-[560px] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-sheet lg:p-7 lg:shadow-dialog lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
+                :class="[above ? 'z-[70]' : 'z-50', widths[size]]"
+                class="fixed inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-sheet bg-card px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-sheet lg:p-7 lg:shadow-dialog lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
             >
                 <DialogClose
                     :aria-label="$t('Close the panel')"

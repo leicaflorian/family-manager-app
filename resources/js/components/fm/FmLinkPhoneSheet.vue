@@ -10,11 +10,11 @@
  *
  * @group panels
  */
-import { Smartphone, Info } from '@lucide/vue';
+import { Smartphone, Clock } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { usePhoneLink } from '@/composables/usePhoneLink';
 import { useFormat } from '@/composables/useFormat';
-import { deviceSummary } from '@/lib/devices';
+import { deviceSummary } from '@/lib/linkedPhones';
 import { trans } from 'laravel-vue-i18n';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
@@ -59,7 +59,7 @@ const hint = computed(() =>
 </script>
 
 <template>
-    <FmBottomSheet v-model:open="open" :title="$t('Link the phone')">
+    <FmBottomSheet v-model:open="open" :title="$t('Link the phone')" size="lg">
         <p class="m-0 text-[15px] leading-normal text-ink-soft">
             {{
                 $t(
@@ -113,7 +113,7 @@ const hint = computed(() =>
             <p
                 class="m-0 flex items-start gap-2.5 rounded-lg bg-canvas px-3.5 py-3 text-sm leading-snug text-ink-soft"
             >
-                <FmIcon :icon="Info" :size="18" class="mt-px shrink-0" />
+                <FmIcon :icon="Clock" :size="18" class="mt-px shrink-0" />
                 <span>
                     <template v-for="(piece, index) in hint" :key="index">
                         <strong

@@ -3,7 +3,7 @@
  * A QR code drawn by the server as an SVG, in a frame, for the panel *Link the
  * phone*. The drawing is put in the page only after it is read as an SVG and
  * cleaned: anything that is not an `svg` shows nothing, and scripts, foreign
- * content, event handlers and links are taken out, so the page never runs what
+ * content, style, event handlers and links are taken out, so the page never runs what
  * a drawing carries. The frame is white in both themes (`on-hero`), because a
  * code is read dark on light.
  *
@@ -43,7 +43,8 @@ function clean(source: string): string {
         [...node.attributes]
             .filter(
                 (attribute) =>
-                    /^on/i.test(attribute.name) || /href/i.test(attribute.name),
+                    /^(on|style$)/i.test(attribute.name) ||
+                    /href/i.test(attribute.name),
             )
             .forEach((attribute) => node.removeAttribute(attribute.name)),
     );

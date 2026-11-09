@@ -23,6 +23,14 @@ export const ShortContent: Story = {
     render: withSlots({ default: 'Choose what to show in the list.' }),
 };
 
+export const Large: Story = {
+    args: { open: false, title: 'Link the phone', size: 'lg' },
+    render: withSlots({
+        default:
+            'A panel 640 px wide on the computer, for a picture beside its text.',
+    }),
+};
+
 export const LongContent: Story = {
     name: 'Long content',
     args: { open: false, title: 'Rules of the house' },

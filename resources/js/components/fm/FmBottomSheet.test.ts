@@ -30,6 +30,17 @@ async function openSheet(open = true) {
 }
 
 describe('FmBottomSheet', () => {
+    it('is 560 px wide on the computer, or 640 px with the large size', async () => {
+        const view = await openSheet();
+
+        expect(screen.getByRole('dialog')).toHaveClass('lg:max-w-[560px]');
+
+        await view.rerender({ size: 'lg' });
+
+        expect(screen.getByRole('dialog')).toHaveClass('lg:max-w-[640px]');
+        expect(screen.getByRole('dialog')).not.toHaveClass('lg:max-w-[560px]');
+    });
+
     it('marks its content as a panel, for the size of the controls', async () => {
         await openSheet();
 

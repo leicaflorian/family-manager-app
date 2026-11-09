@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { deviceSummary } from './devices';
+import { deviceSummary } from './linkedPhones';
 
 const phone: App.Data.LinkedDeviceData = {
     id: 1,

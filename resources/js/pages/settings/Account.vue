@@ -22,7 +22,7 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmUnlinkPhone from '@/components/fm/FmUnlinkPhone.vue';
 import { useFormat } from '@/composables/useFormat';
-import { deviceSummary } from '@/lib/devices';
+import { deviceSummary } from '@/lib/linkedPhones';
 import { errors } from '@/lib/errors';
 import { logout, settings } from '@/routes';
 import {
