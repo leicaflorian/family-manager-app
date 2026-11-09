@@ -1,0 +1,127 @@
+<script setup lang="ts">
+/**
+ * *Settings → Support*: the family lets support look at the app as one of its
+ * accounts for 24 hours. Everyone sees whether the permission is on; only an
+ * administrator gives it or takes it back.
+ */
+import { Head, router } from '@inertiajs/vue3';
+import { Clock, Lock } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
+import { computed } from 'vue';
+import FmButton from '@/components/fm/FmButton.vue';
+import FmCard from '@/components/fm/FmCard.vue';
+import FmNotice from '@/components/fm/FmNotice.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
+import { useFormat } from '@/composables/useFormat';
+import { settings } from '@/routes';
+import { destroy, store } from '@/routes/settings/support';
+
+const props = defineProps<{
+    /** Until when support can come in (`yyyy-mm-dd hh:mm`, Rome), or `null` without the permission. */
+    support_until: string | null;
+    /** Whether who looks can give and take back the permission: an administrator. */
+    can_change: boolean;
+}>();
+
+const { dateTime } = useFormat();
+
+/** Marks a place in a translated sentence, so the value that goes there can be bold. */
+const MARK = '\u0000';
+
+/**
+ * Splits a translated sentence around one placeholder, so the value can be written in bold.
+ *
+ * @param key - the English text with the placeholder
+ * @param name - the placeholder, without the colon
+ * @returns the text before and after the value
+ */
+function around(key: string, name: string): [string, string] {
+    const [before, after = ''] = trans(key, { [name]: MARK }).split(MARK);
+
+    return [before, after];
+}
+
+/** The note under the button, around the level that can give the permission. */
+const note = computed(() =>
+    around(
+        'The permission ends by itself after 24 hours, and you can take it back sooner. Only someone with :level can give it.',
+        'level',
+    ),
+);
+
+/** The line of the permission, around the date. */
+const until = computed(() => around('Support can come in until :date', 'date'));
+
+/**
+ * Lets support in for 24 hours.
+ */
+function allow(): void {
+    router.post(store.url(), {}, { preserveScroll: true });
+}
+
+/**
+ * Takes the permission back.
+ */
+function takeBack(): void {
+    router.delete(destroy.url(), { preserveScroll: true });
+}
+</script>
+
+<template>
+    <Head :title="$t('Support')" />
+
+    <div class="flex max-w-[720px] flex-col gap-5">
+        <FmTitle
+            :title="$t('Support')"
+            :back="settings().url"
+            :back-label="$t('Settings')"
+        />
+        <FmCard>
+            <div class="flex flex-col gap-4">
+                <p class="text-body">
+                    {{
+                        $t(
+                            'If you ask us for help, we can look at Family Manager as one of your accounts. We only look, we change nothing, and only while you allow it.',
+                        )
+                    }}
+                </p>
+                <template v-if="props.support_until === null">
+                    <FmNotice :icon="Lock">{{
+                        $t('Support cannot come in right now.')
+                    }}</FmNotice>
+                    <template v-if="props.can_change">
+                        <FmButton wide @click="allow">{{
+                            $t('Let support in for 24 hours')
+                        }}</FmButton>
+                        <p class="text-meta text-ink-soft">
+                            {{ note[0]
+                            }}<strong class="font-bold">{{
+                                $t('Everything, like you')
+                            }}</strong
+                            >{{ note[1] }}
+                        </p>
+                    </template>
+                </template>
+            </div>
+        </FmCard>
+        <FmCard
+            v-if="props.support_until !== null"
+            :title="$t('With the permission')"
+        >
+            <div class="flex flex-col gap-3">
+                <FmNotice tone="ok" :icon="Clock">
+                    {{ until[0]
+                    }}<strong class="font-bold">{{
+                        dateTime(props.support_until)
+                    }}</strong
+                    >{{ until[1] }}
+                </FmNotice>
+                <div v-if="props.can_change">
+                    <FmButton variant="danger" @click="takeBack">{{
+                        $t('Take the permission back')
+                    }}</FmButton>
+                </div>
+            </div>
+        </FmCard>
+    </div>
+</template>

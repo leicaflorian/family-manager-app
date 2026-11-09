@@ -4,7 +4,15 @@
  * to the whole family. The other items of the board (bills, subscription) come with their stages.
  */
 import { Head } from '@inertiajs/vue3';
-import { Bell, CalendarDays, FolderTree, Inbox, LayoutGrid, Tags } from '@lucide/vue';
+import {
+    Bell,
+    CalendarDays,
+    FolderTree,
+    Inbox,
+    LayoutGrid,
+    LifeBuoy,
+    Tags,
+} from '@lucide/vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -17,6 +25,7 @@ import { index as expenseCategories } from '@/routes/expense-categories';
 import { edit as mailSettings } from '@/routes/mail-settings';
 import { edit as areasSettings } from '@/routes/settings/areas';
 import { edit as notices } from '@/routes/settings/notices';
+import { edit as support } from '@/routes/settings/support';
 
 const {
     account,
@@ -160,6 +169,19 @@ const {
                         class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="LayoutGrid" :size="22" />
+                    </span>
+                </template>
+            </FmRow>
+            <FmRow
+                :title="$t('Support')"
+                :subtitle="$t('Let us look at the app when you ask for help')"
+                :href="support().url"
+            >
+                <template #before>
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="LifeBuoy" :size="22" />
                     </span>
                 </template>
             </FmRow>

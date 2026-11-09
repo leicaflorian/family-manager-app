@@ -126,6 +126,19 @@ export function formatDateTime(moment: string): string {
 }
 
 /**
+ * Writes a day and time that the server already wrote in the time of Rome (`2026-12-10 21:30`).
+ *
+ * @param moment - `yyyy-mm-dd hh:mm`, in the time of Rome
+ * @returns for example `10/12/2026 21:30`
+ */
+export function formatRomeText(moment: string): string {
+    const [day, time = ''] = moment.split(' ');
+    const [year, month, date] = day.split('-');
+
+    return `${date}/${month}/${year} ${time}`.trim();
+}
+
+/**
  * Writes the day without the year and the time of a moment, in the time of Rome, as the phone shows them.
  *
  * @param moment - a moment of the server, ISO with its offset

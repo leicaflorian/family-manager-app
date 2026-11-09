@@ -1727,5 +1727,14 @@
     "Cancel deletion": "Annulla l'eliminazione",
     "Cancel the deletion?": "Annullare l'eliminazione?",
     "Log": "Registro",
-    "Action": "Azione"
+    "Action": "Azione",
+    "Support": "Assistenza",
+    "Let us look at the app when you ask for help": "Lasciaci guardare l'app quando chiedi aiuto",
+    "If you ask us for help, we can look at Family Manager as one of your accounts. We only look, we change nothing, and only while you allow it.": "Se ci chiedi aiuto, possiamo guardare Family Manager come uno dei tuoi account. Guardiamo soltanto, non cambiamo niente, e solo finché lo permetti.",
+    "Support cannot come in right now.": "Oggi l'assistenza non può entrare.",
+    "Let support in for 24 hours": "Fai entrare l'assistenza per 24 ore",
+    "The permission ends by itself after 24 hours, and you can take it back sooner. Only someone with :level can give it.": "Il permesso finisce da solo dopo 24 ore, e lo puoi togliere prima. Lo può dare solo chi ha :level.",
+    "With the permission": "Con il permesso",
+    "Support can come in until :date": "L'assistenza può entrare fino al :date",
+    "Take the permission back": "Togli il permesso"
 }

@@ -41,6 +41,7 @@ use App\Http\Controllers\ScanCornersController;
 use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\ScanShareController;
 use App\Http\Controllers\ServiceWorkerController;
+use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
@@ -192,6 +193,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
+        Route::get('settings/support', [SupportSettingsController::class, 'edit'])->name('settings.support.edit');
+        Route::post('settings/support', [SupportSettingsController::class, 'store'])->name('settings.support.store');
+        Route::delete('settings/support', [SupportSettingsController::class, 'destroy'])->name('settings.support.destroy');
         Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
         Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
         Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');

@@ -89,6 +89,21 @@ describe('Settings', () => {
         expect(screen.getByText('9 areas, 2 hidden')).toBeInTheDocument();
     });
 
+    it('leads to Support, in The family', () => {
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+        });
+
+        expect(screen.getByRole('link', { name: /Support/ })).toHaveAttribute(
+            'href',
+            '/settings/support',
+        );
+    });
+
     it('puts Areas after Expense categories, in The family', () => {
         renderPage(Settings, {
             account,
@@ -109,6 +124,7 @@ describe('Settings', () => {
             '/settings/categories',
             '/settings/expense-categories',
             '/settings/areas',
+            '/settings/support',
         ]);
     });
 });

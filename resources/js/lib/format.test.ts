@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import {
     formatDate,
     formatDateTime,
+    formatRomeText,
     formatShortDateTime,
     formatEuro,
     formatLongDate,
@@ -105,5 +106,11 @@ describe('formatShortDateTime', () => {
         expect(formatShortDateTime('2026-10-14T07:58:00+02:00')).toBe(
             '14/10 · 07:58',
         );
+    });
+});
+
+describe('formatRomeText', () => {
+    it('rewrites a day and time already in the time of Rome', () => {
+        expect(formatRomeText('2026-12-10 21:30')).toBe('10/12/2026 21:30');
     });
 });
