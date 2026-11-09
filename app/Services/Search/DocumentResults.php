@@ -49,16 +49,16 @@ final readonly class DocumentResults implements GroupResults
      */
     public function results(SearchTerms $terms, int $limit): array
     {
-        return $this->query($terms)
+        $documents = $this->query($terms)
             ->with('organization')
             ->orderByRaw('status = ?', [DocumentStatus::Archived->value])
             ->orderByRaw('date is null')
             ->orderByDesc('date')
             ->orderByDesc('id')
             ->limit(max(0, $limit))
-            ->get()
-            ->map(fn (Document $document): SearchResultData => $this->result($document))
-            ->all();
+            ->get();
+
+        return array_values($documents->map(fn (Document $document): SearchResultData => $this->result($document))->all());
     }
 
     /**
