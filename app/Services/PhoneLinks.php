@@ -110,7 +110,9 @@ final class PhoneLinks
     }
 
     /**
-     * Uses the code: once only (the cache hands it over to one caller). The phone is made in the family of the code.
+     * Uses the code: once only. `Cache::pull` alone is a read then a delete and two requests at the same moment
+     * can both read the code, so the pull runs inside a lock on the code; a lock not obtained counts as used.
+     * The phone is made in the family of the code.
      *
      * @param  string  $code  the code
      * @param  Request  $request  the request of the phone, for its name
@@ -120,7 +122,22 @@ final class PhoneLinks
     public function use(string $code, Request $request): ?array
     {
         $plain = self::normalize($code);
-        $entry = $plain === null ? null : Cache::pull('phone-link:'.hash('sha256', $plain));
+        if ($plain === null) {
+            return null;
+        }
+
+        $hash = hash('sha256', $plain);
+        $lock = Cache::lock('phone-link-use:'.$hash, 10);
+
+        if (! $lock->get()) {
+            return null;
+        }
+
+        try {
+            $entry = Cache::pull('phone-link:'.$hash);
+        } finally {
+            $lock->release();
+        }
 
         if (! $this->valid($entry)) {
             return null;
@@ -152,6 +169,13 @@ final class PhoneLinks
     public function signIn(LinkedDevice $device, Request $request): void
     {
         $user = $device->user;
+        $current = Auth::user();
+
+        if ($current instanceof User && ! $current->is($user)) {
+            // Another account was signed in here: nothing of its session (confirmed password, intended url) carries over
+            $request->session()->invalidate();
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
         // After the login: the `Login` event of a password clears this mark

@@ -7,6 +7,7 @@ use App\Models\LinkedDevice;
 use App\Models\User;
 use App\Services\PhoneLinks;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -120,11 +121,13 @@ test('the code of Marco of the Bianchi enters him in the Bianchi even if the pho
     $anna = User::factory()->for($rossi)->create(['name' => 'Anna Rossi']);
     $this->actingAs($anna);
     $code = $this->links->newCode($this->marco);
+    session()->put('url.intended', '/rossi-page');
 
     phone()->post(route('connect.use', $code))->assertRedirect(route('connect.linked'));
 
     $this->assertAuthenticatedAs($this->marco);
-    expect(LinkedDevice::query()->withoutGlobalScopes()->sole()->family_id)->toBe($this->bianchi->id);
+    expect(LinkedDevice::query()->withoutGlobalScopes()->sole()->family_id)->toBe($this->bianchi->id)
+        ->and(session()->has('url.intended'))->toBeFalse();
 
     phone()->actingAs($this->marco)->get(route('connect.linked'))
         ->assertInertia(fn ($page) => $page->where('family', 'Bianchi')->where('name', 'Marco'));
@@ -153,10 +156,18 @@ test('five wrong codes in ten minutes and then 429, even for the right code', fu
         phone()->post(route('connect.use', 'ABCD-EFGH'))->assertSessionHasErrors('code');
     }
 
-    phone()->post(route('connect.use', 'ABCD-EFGH'))->assertStatus(429);
+    // A plain request gets the page, with the message and the status 429
+    phone()->post(route('connect.use', 'ABCD-EFGH'))->assertStatus(429)
+        ->assertInertia(fn ($page) => $page->component('connect/Connect')->where('blocked', 'Too many attempts: try again in a few minutes'));
     phone()->get(route('connect.show', $code))->assertStatus(429);
     phone()->post(route('connect.use', $code))->assertStatus(429);
     phone()->post(route('connect.resume'), ['secret' => 'nope'])->assertStatus(429);
+    expect(LinkedDevice::query()->withoutGlobalScopes()->count())->toBe(0);
+
+    // An Inertia visit goes back to the page with the message under the field
+    phone()->withHeader('X-Inertia', 'true')->post(route('connect.use', $code))
+        ->assertRedirect(route('connect'))
+        ->assertSessionHasErrors(['code' => 'Too many attempts: try again in a few minutes']);
 
     // Ten minutes later it is allowed again
     Date::setTestNow(CarbonImmutable::parse('2026-10-25 19:14:30', 'Europe/Rome'));
@@ -221,4 +232,21 @@ test('the scan page is for who signed in', function (): void {
 test('the phone page without a session or with the secret in the address asks nothing of the server', function (): void {
     $this->get(route('connect.linked'))->assertOk()
         ->assertInertia(fn ($page) => $page->component('connect/Linked')->where('name', null)->where('family', null)->where('secret', null));
+});
+
+test('wrong codes are counted by the address of the proxy only when the proxy is trusted', function (): void {
+    TrustProxies::at(['10.0.0.1']);
+    RateLimiter::clear('phone-link:wrong:203.0.113.9');
+
+    phone()->withServerVariables(['REMOTE_ADDR' => '10.0.0.1', 'HTTP_X_FORWARDED_FOR' => '203.0.113.9'])
+        ->post(route('connect.use', 'ABCD-EFGH'));
+    $trusted = RateLimiter::attempts('phone-link:wrong:203.0.113.9');
+
+    phone()->withServerVariables(['REMOTE_ADDR' => '10.9.9.9', 'HTTP_X_FORWARDED_FOR' => '203.0.113.9'])
+        ->post(route('connect.use', 'ABCD-EFGH'));
+
+    TrustProxies::flushState();
+    expect($trusted)->toBe(1)
+        ->and(RateLimiter::attempts('phone-link:wrong:203.0.113.9'))->toBe(1)
+        ->and(RateLimiter::attempts('phone-link:wrong:10.9.9.9'))->toBe(1);
 });

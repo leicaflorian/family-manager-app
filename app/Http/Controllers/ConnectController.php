@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * Linking a phone with the code made on the computer. It is opened by a phone that has not entered yet, so
@@ -39,9 +40,12 @@ final class ConnectController extends Controller
      * @param  Request  $request  the request
      * @param  string  $code  the code of the link
      */
-    public function show(Request $request, string $code): Response|RedirectResponse
+    public function show(Request $request, string $code): SymfonyResponse
     {
-        $this->abortIfBlocked($request);
+        if (($blocked = $this->blocked($request)) instanceof SymfonyResponse) {
+            return $blocked;
+        }
+
         $entry = $this->links->find($code);
 
         if ($entry === null) {
@@ -58,7 +62,7 @@ final class ConnectController extends Controller
             'code' => PhoneLinks::format($code),
             'person' => $this->links->firstName($user),
             'family' => $user->family->name,
-        ]);
+        ])->toResponse($request);
     }
 
     /**
@@ -67,9 +71,12 @@ final class ConnectController extends Controller
      * @param  Request  $request  the request
      * @param  string  $code  the code
      */
-    public function use(Request $request, string $code): RedirectResponse
+    public function use(Request $request, string $code): SymfonyResponse
     {
-        $this->abortIfBlocked($request);
+        if (($blocked = $this->blocked($request)) instanceof SymfonyResponse) {
+            return $blocked;
+        }
+
         $linked = $this->links->use($code, $request);
 
         if ($linked === null) {
@@ -107,9 +114,12 @@ final class ConnectController extends Controller
      *
      * @param  Request  $request  the request
      */
-    public function resume(Request $request): RedirectResponse
+    public function resume(Request $request): SymfonyResponse
     {
-        $this->abortIfBlocked($request);
+        if (($blocked = $this->blocked($request)) instanceof SymfonyResponse) {
+            return $blocked;
+        }
+
         $secret = $request->input('secret');
         $device = is_string($secret) && $secret !== '' ? LinkedDevice::findByToken($secret) : null;
 
@@ -143,13 +153,27 @@ final class ConnectController extends Controller
     }
 
     /**
-     * Stops whoever got too many codes wrong.
+     * The answer for whoever got too many codes wrong, or null if the address may still try. The message is
+     * seen by the person: an Inertia visit goes back to the page with the message under the field; a plain
+     * request gets the page with the message and the status 429.
      *
      * @param  Request  $request  the request
      */
-    private function abortIfBlocked(Request $request): void
+    private function blocked(Request $request): ?SymfonyResponse
     {
-        abort_if(RateLimiter::tooManyAttempts($this->key($request), PhoneLinks::MAX_WRONG), 429, __('Too many attempts: try again in a few minutes'));
+        if (! RateLimiter::tooManyAttempts($this->key($request), PhoneLinks::MAX_WRONG)) {
+            return null;
+        }
+
+        $message = __('Too many attempts: try again in a few minutes');
+
+        if ($request->header('X-Inertia')) {
+            return to_route('connect')->withErrors(['code' => $message]);
+        }
+
+        return Inertia::render('connect/Connect', ['code' => null, 'person' => null, 'family' => null, 'blocked' => $message])
+            ->toResponse($request)
+            ->setStatusCode(429);
     }
 
     /**

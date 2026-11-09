@@ -114,3 +114,15 @@ test('a new code for the account cancels the one before and leaves the others', 
         ->and($this->links->find($second))->not->toBeNull()
         ->and($this->links->find($lauras))->not->toBeNull();
 });
+
+test('a code whose lock is held by another request is not used', function (): void {
+    $code = $this->links->newCode($this->marco);
+    $lock = Cache::lock('phone-link-use:'.hash('sha256', str_replace('-', '', $code)), 10);
+    $lock->get();
+
+    expect($this->links->use($code, iphoneRequest()))->toBeNull()
+        ->and(LinkedDevice::query()->withoutGlobalScopes()->count())->toBe(0);
+
+    $lock->release();
+    expect($this->links->use($code, iphoneRequest()))->not->toBeNull();
+});

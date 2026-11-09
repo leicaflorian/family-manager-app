@@ -22,13 +22,15 @@ defineOptions({
     },
 });
 
-const { code, person } = defineProps<{
+const { code, person, blocked } = defineProps<{
     /** The code of the link, already valid, or null when it is to be written. */
     code: string | null;
     /** The first name of whom the code is for, with a valid code. */
     person: string | null;
     /** The name of the family the code is for, with a valid code. */
     family: string | null;
+    /** The message of a plain request refused for too many wrong codes. */
+    blocked?: string;
 }>();
 
 const form = useForm({ code: code ?? '' });
@@ -87,7 +89,7 @@ function link(): void {
                 autocapitalize="characters"
                 autocorrect="off"
                 spellcheck="false"
-                :errors="errors(form.errors.code)"
+                :errors="errors(form.errors.code ?? blocked)"
             />
             <span class="min-h-6 grow lg:hidden" />
             <FmButton type="submit" wide :disabled="form.processing">{{

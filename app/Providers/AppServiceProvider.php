@@ -15,6 +15,7 @@ use App\Support\CurrentFamily;
 use App\Support\Linkables;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -45,6 +46,13 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configurePolicies();
+
+        // Only the proxies named in the configuration are believed about the address and https
+        $proxies = config('app.trusted_proxies');
+
+        if (is_array($proxies) && $proxies !== []) {
+            TrustProxies::at($proxies);
+        }
     }
 
     /**

@@ -67,6 +67,12 @@ return [
     |
     */
 
+    /*
+    | Proxies believed about the client address and https (comma-separated in TRUSTED_PROXIES): none by default,
+    | never '*'. Behind Coolify's proxy, set them or every request seems to come from the proxy.
+    */
+    'trusted_proxies' => array_values(array_filter(array_map(trim(...), explode(',', (string) env('TRUSTED_PROXIES', ''))))),
+
     'timezone' => env('APP_TIMEZONE', 'Europe/Rome'),
 
     /*
