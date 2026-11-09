@@ -1,8 +1,6 @@
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { Pixels } from './crop';
 import {
-    MODEL_HEIGHT,
-    MODEL_WIDTH,
     createDewarper,
     fromModelOutput,
     isDewarpAvailable,
@@ -74,12 +72,11 @@ describe('resizePixels', () => {
 });
 
 describe('prepareInput', () => {
-    it('has the size of the model, the three colours one after the other from 0 to 1', () => {
+    it('keeps the size of the sheet, three planes one after the other from 0 to 1', () => {
         const input = prepareInput(flat(100, 300, [255, 0, 51]));
 
-        expect([MODEL_WIDTH, MODEL_HEIGHT]).toEqual([488, 712]);
-        expect(input.length).toBe(3 * 488 * 712);
-        const size = 488 * 712;
+        const size = 100 * 300;
+        expect(input.length).toBe(3 * size);
         expect(input[0]).toBeCloseTo(1);
         expect(input[size]).toBeCloseTo(0);
         expect(input[2 * size]).toBeCloseTo(0.2);
@@ -87,16 +84,15 @@ describe('prepareInput', () => {
         expect(input[3 * size - 1]).toBeCloseTo(0.2);
     });
 
-    it('stretches the sheet over the whole input', () => {
-        const input = prepareInput(gradient(50, 80));
-        const size = MODEL_WIDTH * MODEL_HEIGHT;
+    it('does not move the pixels', () => {
+        const input = prepareInput(gradient(5, 4));
+        const size = 5 * 4;
 
-        // red grows with x: left edge 0, right edge 1
+        // red grows with x along each row, green with y down the rows
         expect(input[0]).toBeCloseTo(0);
-        expect(input[MODEL_WIDTH - 1]).toBeCloseTo(1);
-        // green grows with y: first row 0, last row 1
+        expect(input[4]).toBeCloseTo(1);
         expect(input[size]).toBeCloseTo(0);
-        expect(input[size + size - 1]).toBeCloseTo(1);
+        expect(input[size + 5 * 3]).toBeCloseTo(1);
     });
 });
 
@@ -118,8 +114,16 @@ describe('the worker', () => {
     /** A worker that answers like the real one: loads, then gives the sheet back inverted. */
     function fakeWorker(
         options: { silent?: boolean; fail?: boolean } = {},
-    ): DewarpWorker & { sent: ToWorker[]; terminated: boolean } {
+    ): DewarpWorker & {
+        sent: ToWorker[];
+        terminated: boolean;
+        emit: (type: 'error' | 'messageerror', message?: string) => void;
+    } {
         const listeners: Array<(event: { data: FromWorker }) => void> = [];
+        const problems: Record<
+            string,
+            Array<(event: { message?: string }) => void>
+        > = {};
         const worker = {
             sent: [] as ToWorker[],
             terminated: false,
@@ -146,10 +150,23 @@ describe('the worker', () => {
                 );
             },
             addEventListener(
-                _type: 'message',
-                listener: (event: { data: FromWorker }) => void,
+                type: string,
+                listener: (event: never) => void,
             ): void {
-                listeners.push(listener);
+                if (type === 'message') {
+                    listeners.push(
+                        listener as (event: { data: FromWorker }) => void,
+                    );
+                } else {
+                    (problems[type] ??= []).push(
+                        listener as (event: { message?: string }) => void,
+                    );
+                }
+            },
+            emit(type: 'error' | 'messageerror', message?: string): void {
+                (problems[type] ?? []).forEach((listener) =>
+                    listener({ message }),
+                );
             },
             terminate(): void {
                 worker.terminated = true;
@@ -218,6 +235,74 @@ describe('the worker', () => {
             dewarp(flat(2, 2, [0, 0, 0]), AbortSignal.abort()),
         ).rejects.toMatchObject({ name: 'AbortError' });
         expect(started).toBe(0);
+    });
+
+    it('rejects every waiting call when the worker breaks, and starts a new one next time', async () => {
+        const first = fakeWorker({ silent: true });
+        const second = fakeWorker();
+        const workers = [first, second];
+        const { dewarp } = createDewarper(() => workers.shift()!);
+
+        const one = dewarp(flat(2, 2, [0, 0, 0]));
+        const two = dewarp(flat(2, 2, [0, 0, 0]));
+        first.emit('error', 'script failed to load');
+
+        await expect(one).rejects.toThrow('script failed to load');
+        await expect(two).rejects.toThrow('script failed to load');
+        expect(first.terminated).toBe(true);
+        // a new worker, which works
+        await expect(dewarp(flat(2, 2, [0, 0, 0]))).resolves.toMatchObject({
+            width: 2,
+        });
+    });
+
+    it('treats an answer that cannot be read as a broken worker', async () => {
+        const worker = fakeWorker({ silent: true });
+        const { dewarp } = createDewarper(() => worker);
+
+        const waiting = dewarp(flat(2, 2, [0, 0, 0]));
+        worker.emit('messageerror');
+
+        await expect(waiting).rejects.toThrow('cannot be read');
+        expect(worker.terminated).toBe(true);
+    });
+
+    it('gives up a worker that does not answer in time', async () => {
+        vi.useFakeTimers();
+        try {
+            const worker = fakeWorker({ silent: true });
+            const { dewarp } = createDewarper(() => worker, {
+                page: 1000,
+                load: 5000,
+            });
+
+            const waiting = dewarp(flat(2, 2, [0, 0, 0]));
+            const check = expect(waiting).rejects.toThrow('took too long');
+            await vi.advanceTimersByTimeAsync(1000);
+
+            await check;
+            expect(worker.terminated).toBe(true);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('does not time out a call that was answered', async () => {
+        vi.useFakeTimers();
+        try {
+            const worker = fakeWorker();
+            const { dewarp } = createDewarper(() => worker, {
+                page: 1000,
+                load: 5000,
+            });
+
+            await dewarp(flat(2, 2, [0, 0, 0]));
+            await vi.advanceTimersByTimeAsync(10_000);
+
+            expect(worker.terminated).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('says what went wrong', async () => {

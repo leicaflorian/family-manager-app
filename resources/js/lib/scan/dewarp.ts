@@ -13,9 +13,18 @@
  */
 import type { Pixels } from './crop';
 
-/** The size UVDoc was made for: the sheet is stretched to it before the model runs. */
-export const MODEL_WIDTH = 488;
-export const MODEL_HEIGHT = 712;
+/**
+ * How long a page may take, from the call, before the worker is given up. The
+ * model gets the sheet at its own size (2000 px on the long side) and a phone
+ * runs the engine on one thread: a few seconds on a recent iPhone, but an old
+ * one, or one with little memory left, can need far more. 60 s is twice what
+ * Directus allowed for the same work, so a slow phone finishes and only a worker
+ * that is really stuck is cut.
+ */
+export const DEWARP_TIMEOUT_MS = 60_000;
+
+/** The same for loading the engine and downloading the model (about 46 MB over wifi). */
+export const LOAD_TIMEOUT_MS = 120_000;
 
 /** What the page tells the worker. */
 export type ToWorker =
@@ -46,6 +55,11 @@ export type DewarpWorker = {
     addEventListener(
         type: 'message',
         listener: (event: { data: FromWorker }) => void,
+    ): void;
+    /** The worker could not load or crashed; `messageerror` is an answer that cannot be read. */
+    addEventListener(
+        type: 'error' | 'messageerror',
+        listener: (event: { message?: string }) => void,
     ): void;
     terminate(): void;
 };
@@ -99,21 +113,21 @@ export function resizePixels(
 }
 
 /**
- * The tensor the model wants: the sheet stretched to 488 × 712, the three
- * colours one plane after the other, each value from 0 to 1.
+ * The tensor the model wants: the sheet at its own size (the model reads the
+ * size, predicts the grid and samples it itself), the three colours one plane
+ * after the other, each value from 0 to 1.
  *
  * @param sheet - the cropped sheet
- * @returns `3 × 712 × 488` values
+ * @returns `3 × height × width` values
  */
 export function prepareInput(sheet: Pixels): Float32Array {
-    const stretched = resizePixels(sheet, MODEL_WIDTH, MODEL_HEIGHT);
-    const size = MODEL_WIDTH * MODEL_HEIGHT;
+    const size = sheet.width * sheet.height;
     const input = new Float32Array(3 * size);
 
     for (let i = 0; i < size; i++) {
-        input[i] = stretched.data[4 * i]! / 255;
-        input[size + i] = stretched.data[4 * i + 1]! / 255;
-        input[2 * size + i] = stretched.data[4 * i + 2]! / 255;
+        input[i] = sheet.data[4 * i]! / 255;
+        input[size + i] = sheet.data[4 * i + 1]! / 255;
+        input[2 * size + i] = sheet.data[4 * i + 2]! / 255;
     }
 
     return input;
@@ -168,13 +182,22 @@ function abortError(signal: AbortSignal): unknown {
 
 /**
  * Makes the two functions that talk to one worker. The worker starts at the
- * first call and stays for the next ones, with the model loaded.
+ * first call and stays for the next ones, with the model loaded. If it fails to
+ * load, crashes, or does not answer in time, the calls waiting for it are
+ * rejected and the next call starts a new worker.
  *
  * @param spawn - starts the worker (a fake one in the tests)
+ * @param timeouts - how long a page and a load may take
  * @returns `load()` to download the model and the engine ahead of time, and
  *   `dewarp()` to lay a sheet flat
  */
-export function createDewarper(spawn: () => DewarpWorker): {
+export function createDewarper(
+    spawn: () => DewarpWorker,
+    timeouts: { page: number; load: number } = {
+        page: DEWARP_TIMEOUT_MS,
+        load: LOAD_TIMEOUT_MS,
+    },
+): {
     load: (signal?: AbortSignal) => Promise<void>;
     dewarp: (sheet: Pixels, signal?: AbortSignal) => Promise<Pixels>;
 } {
@@ -187,14 +210,31 @@ export function createDewarper(spawn: () => DewarpWorker): {
     let next = 1;
     const waiting = new Map<number, Waiting>();
 
+    /** Gives up this worker: every call waiting for it fails, the next call starts a new one. */
+    function fail(from: DewarpWorker, reason: string): void {
+        if (worker === from) {
+            worker = null;
+        }
+
+        from.terminate();
+        const error = new Error(reason);
+
+        for (const call of waiting.values()) {
+            call.reject(error);
+        }
+
+        waiting.clear();
+    }
+
     /** The worker, started when it is first needed. */
     function start(): DewarpWorker {
         if (worker) {
             return worker;
         }
 
-        worker = spawn();
-        worker.addEventListener('message', ({ data }) => {
+        const started = spawn();
+        worker = started;
+        started.addEventListener('message', ({ data }) => {
             const call = waiting.get(data.id);
             waiting.delete(data.id);
 
@@ -208,18 +248,26 @@ export function createDewarper(spawn: () => DewarpWorker): {
                 call.resolve(data);
             }
         });
+        started.addEventListener('error', (event) =>
+            fail(started, event.message ?? 'The worker stopped'),
+        );
+        started.addEventListener('messageerror', () =>
+            fail(started, 'The worker sent an answer that cannot be read'),
+        );
 
-        return worker;
+        return started;
     }
 
     /**
      * Sends a message and waits for its answer. When the signal is aborted the
      * wait ends at once; the worker keeps going (it cannot be interrupted in
-     * the middle of the model) and its late answer is dropped.
+     * the middle of the model) and its late answer is dropped. When the time is
+     * up the worker is given up.
      */
     function ask(
         build: (id: number) => ToWorker,
         signal: AbortSignal | undefined,
+        timeout: number,
         transfer: Transferable[] = [],
     ): Promise<FromWorker> {
         if (signal?.aborted) {
@@ -230,22 +278,39 @@ export function createDewarper(spawn: () => DewarpWorker): {
         const running = start();
 
         return new Promise<FromWorker>((resolve, reject) => {
-            waiting.set(id, { resolve, reject });
-            signal?.addEventListener(
-                'abort',
-                () => {
-                    waiting.delete(id);
-                    reject(abortError(signal));
-                },
-                { once: true },
+            const onAbort = (): void => {
+                waiting.delete(id);
+                finish();
+                reject(abortError(signal!));
+            };
+            const timer = setTimeout(
+                () => fail(running, 'The worker took too long'),
+                timeout,
             );
+            /** The call is over: nothing of it stays listening. */
+            function finish(): void {
+                clearTimeout(timer);
+                signal?.removeEventListener('abort', onAbort);
+            }
+
+            waiting.set(id, {
+                resolve: (answer) => {
+                    finish();
+                    resolve(answer);
+                },
+                reject: (error) => {
+                    finish();
+                    reject(error);
+                },
+            });
+            signal?.addEventListener('abort', onAbort, { once: true });
             running.postMessage(build(id), transfer);
         });
     }
 
     return {
         async load(signal) {
-            await ask((id) => ({ id, type: 'load' }), signal);
+            await ask((id) => ({ id, type: 'load' }), signal, timeouts.load);
         },
         async dewarp(sheet, signal) {
             // a copy: the sheet of the page stays as it is
@@ -259,6 +324,7 @@ export function createDewarper(spawn: () => DewarpWorker): {
                     data: copy,
                 }),
                 signal,
+                timeouts.page,
                 [copy.buffer],
             );
 

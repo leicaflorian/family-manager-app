@@ -28,8 +28,9 @@ final class DewarpCheckTest extends TestCase
     {
         putenv('APP_ENV=local');
         $_ENV['APP_ENV'] = $_SERVER['APP_ENV'] = 'local';
+        // Routes are registered at boot, so the application is booted again with the new environment
         $this->refreshApplication();
-        // the new application has a new connection, outside the transaction of `RefreshDatabase`: without this what the test writes stays in the database
+        // The new application has a new database connection, outside the transaction `RefreshDatabase` opened on the old one: without this, what the test writes stays in the database and breaks the tests that count rows (the seeder ones)
         $this->beginDatabaseTransaction();
     }
 

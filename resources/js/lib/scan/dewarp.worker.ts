@@ -6,8 +6,6 @@
  * its own in the build and never in the bundle of a page.
  */
 import {
-    MODEL_HEIGHT,
-    MODEL_WIDTH,
     fromModelOutput,
     prepareInput,
     resizePixels,
@@ -89,8 +87,8 @@ async function flatten(width: number, height: number, data: Uint8ClampedArray) {
         [session.inputNames[0]!]: new ort.Tensor('float32', input, [
             1,
             3,
-            MODEL_HEIGHT,
-            MODEL_WIDTH,
+            height,
+            width,
         ]),
     });
     const output = result[session.outputNames[0]!]!;
@@ -100,8 +98,10 @@ async function flatten(width: number, height: number, data: Uint8ClampedArray) {
         Number(output.dims[2]),
     );
 
-    // back to the size of the sheet, so what comes after works as before
-    return resizePixels(flat, width, height);
+    // The model gives the sheet back at the size it chose; only if that is not the size of the sheet is it resized, so what comes after works as before
+    return flat.width === width && flat.height === height
+        ? flat
+        : resizePixels(flat, width, height);
 }
 
 /** Pages are done one at a time: two together would take twice the memory and no less time. */
