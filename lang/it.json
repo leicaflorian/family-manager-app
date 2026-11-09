@@ -1680,5 +1680,21 @@
     "One PDF per side": "Un PDF per facciata",
     "Each side becomes a document of its own: the AI reads each one, one reading per side.": "Ogni facciata diventa un documento a sé: l'AI legge ognuno, una lettura per facciata.",
     "A side weighs :size: over :most the file cannot be read. Take that side away, or make it black and white.": "Una facciata pesa :size: oltre :most il file non si può leggere. Togli quella facciata, o mettila in bianco e nero.",
-    "The sides weigh :size: over :most the file cannot be read. Take some sides away, upload the document in two goes or make a PDF per side.": "Le facciate pesano :size: oltre :most il file non si può leggere. Togli qualche facciata, carica il documento in due volte o fai un PDF per facciata."
+    "The sides weigh :size: over :most the file cannot be read. Take some sides away, upload the document in two goes or make a PDF per side.": "Le facciate pesano :size: oltre :most il file non si può leggere. Togli qualche facciata, carica il documento in due volte o fai un PDF per facciata.",
+    "Reading of the documents": "Lettura dei documenti",
+    "Service": "Servizio",
+    "Same as the server": "Come il server",
+    "Own model": "Modello proprio",
+    "Off": "Spenta",
+    "Own model address": "Indirizzo del modello proprio",
+    "Reading limit per family per month": "Limite di letture per famiglia al mese",
+    "Times": "Orari",
+    "Morning round": "Giro del mattino",
+    "Instalment count": "Conteggio delle rate",
+    "Keys": "Chiavi",
+    "To write again": "Da scrivere di nuovo",
+    "Set on :date": "Impostata il :date",
+    "Not set: the server one is used": "Non impostata: si usa quella del server",
+    "Replace": "Sostituisci",
+    "New key": "Nuova chiave"
 }

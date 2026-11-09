@@ -264,4 +264,15 @@ return [
         'active' => 'Attivo',
         'sold' => 'Venduto',
     ],
+    'installation_setting' => [
+        'reader_provider' => 'Servizio di lettura',
+        'reader_model' => 'Modello di lettura',
+        'gemini_key' => 'Chiave di Gemini',
+        'anthropic_key' => 'Chiave di Anthropic',
+        'ollama_url' => 'Indirizzo del modello proprio',
+        'ollama_key' => 'Chiave del modello proprio',
+        'reader_monthly_limit' => 'Limite di letture',
+        'reminders_time' => 'Giro del mattino',
+        'loans_time' => 'Conteggio delle rate',
+    ],
 ];

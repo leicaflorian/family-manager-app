@@ -264,4 +264,15 @@ return [
         'active' => 'Active',
         'sold' => 'Sold',
     ],
+    'installation_setting' => [
+        'reader_provider' => 'Reading service',
+        'reader_model' => 'Reading model',
+        'gemini_key' => 'Gemini key',
+        'anthropic_key' => 'Anthropic key',
+        'ollama_url' => 'Own model address',
+        'ollama_key' => 'Own model key',
+        'reader_monthly_limit' => 'Reading limit',
+        'reminders_time' => 'Morning round',
+        'loans_time' => 'Instalment count',
+    ],
 ];
