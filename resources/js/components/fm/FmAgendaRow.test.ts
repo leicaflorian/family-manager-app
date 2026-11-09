@@ -207,16 +207,27 @@ describe('FmAgendaRow', () => {
                 props: { entry: agendaEntries[0], actions: true },
             });
 
-            // On a phone the two labels are wider than the card: the buttons
-            // wrap and each grows to the whole line, instead of going out.
+            // On a narrow phone the two labels can be wider than the card: the
+            // buttons wrap, instead of going out.
             const update = screen.getByRole('button', {
                 name: 'Update the date',
             });
             expect(update.parentElement).toHaveClass('flex-wrap');
-            expect(update).toHaveClass('grow');
-            expect(screen.getByRole('button', { name: 'Renewed' })).toHaveClass(
-                'grow',
-            );
+        });
+
+        it('draws the buttons as the board of the Agenda: compact, the first white with a grey edge', () => {
+            render(FmAgendaRow, {
+                props: { entry: agendaEntries[0], actions: true },
+            });
+
+            const update = screen.getByRole('button', {
+                name: 'Update the date',
+            });
+            const renewed = screen.getByRole('button', { name: 'Renewed' });
+            expect(update).toHaveClass('border-edge', 'text-ink', 'text-label');
+            expect(renewed).toHaveClass('bg-action', 'text-label');
+            expect(update.querySelector('svg')).toHaveAttribute('width', '16');
+            expect(renewed.querySelector('svg')).toHaveAttribute('width', '14');
         });
 
         it('keeps the buttons side by side on the computer, under the row when the row needs the room', () => {
@@ -231,7 +242,7 @@ describe('FmAgendaRow', () => {
             }).parentElement;
             expect(buttons).toHaveClass('lg:shrink-0', 'lg:flex-nowrap');
             expect(buttons?.parentElement).toHaveClass('lg:flex-wrap');
-            expect(screen.getByRole('link')).toHaveClass('lg:min-w-[34rem]');
+            expect(screen.getByRole('link')).toHaveClass('lg:basis-[34rem]');
         });
 
         it('has no buttons for a deadline the person may not change', () => {

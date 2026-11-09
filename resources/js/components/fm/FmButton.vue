@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
- * The button of the canvas, in five variants. With `href` it becomes an Inertia link.
+ * The button of the canvas, in six variants. With `href` it becomes an Inertia link.
  *
  * Rules of use:
  * - Only one solid button per page: the one done most often.
  * - Red only to delete, and it asks first: use `FmDeleteButton`.
  * - Icon only: always with `label`, which screen readers say.
  * - The text is a verb, informal (*Save*, *Choose a file*).
- * - Size: 44 px; 52 px in the panels from below.
+ * - Size: 44 px; 52 px in the panels from below. `compact` is the pair of buttons
+ *   under a row of the Agenda: on the phone they share the line, on the computer 40 px.
  *
  * @group basics
  */
@@ -19,7 +20,13 @@ import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 /** The variants of the *Components* page. */
-export type ButtonVariant = 'solid' | 'outline' | 'soft' | 'text' | 'danger';
+export type ButtonVariant =
+    | 'solid'
+    | 'outline'
+    | 'soft'
+    | 'text'
+    | 'danger'
+    | 'neutral';
 
 const {
     variant = 'solid',
@@ -34,8 +41,9 @@ const {
     small = false,
     xsmall = false,
     plain = false,
+    compact = false,
 } = defineProps<{
-    /** The look: solid (blue), outline, soft (light blue), text, danger (red). */
+    /** The look: solid (blue), outline, soft (light blue), text, danger (red), neutral (white with a grey edge). */
     variant?: ButtonVariant;
     /** The type of the button, when it is not a link. */
     type?: 'button' | 'submit';
@@ -62,6 +70,12 @@ const {
     xsmall?: boolean;
     /** With `label`: no background until hovered, as beside a row. */
     plain?: boolean;
+    /**
+     * The pair of buttons under a row, in the label style: on the phone as tall
+     * as a control and sharing the line with the other button, with no room at
+     * the sides; on the computer its own width, 40 px with 14 px at the sides.
+     */
+    compact?: boolean;
 }>();
 
 defineEmits<{
@@ -79,6 +93,7 @@ const styles: Record<ButtonVariant, string> = {
     soft: cn('bg-action-soft px-5 text-action-dark hover:bg-action/15'),
     text: cn('px-3 text-action hover:bg-action-soft hover:text-action-dark'),
     danger: cn('px-3 text-overdue hover:bg-overdue/10'),
+    neutral: cn('border border-edge bg-card px-5 text-ink hover:bg-canvas'),
 };
 
 /** On a coloured background every variant is translucent white. */
@@ -93,6 +108,8 @@ const classes = computed((): string =>
         // With a text the height follows the panel; the icon squares do not
         !label && 'h-control rounded-control',
         styles[variant],
+        compact &&
+            'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label lg:h-10 lg:flex-none lg:px-3.5',
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
         label &&

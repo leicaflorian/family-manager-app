@@ -137,10 +137,37 @@ describe('FmButton', () => {
         ['soft', 'hover:bg-action/15'],
         ['text', 'hover:bg-action-soft'],
         ['danger', 'hover:bg-overdue/10'],
+        ['neutral', 'hover:bg-canvas'],
     ] as const)('changes on hover in the %s variant', (variant, hover) => {
         render(FmButton, { props: { variant }, slots: { default: 'Go' } });
 
         expect(screen.getByRole('button', { name: 'Go' })).toHaveClass(hover);
+    });
+
+    it('is white with a grey edge and dark text in the neutral variant', () => {
+        render(FmButton, {
+            props: { variant: 'neutral' },
+            slots: { default: 'Update the date' },
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'Update the date' }),
+        ).toHaveClass('border', 'border-edge', 'bg-card', 'text-ink');
+    });
+
+    it('compact shares the line on the phone and is 40 px on the computer, with the label style', () => {
+        render(FmButton, {
+            props: { compact: true },
+            slots: { default: 'Renewed' },
+        });
+
+        const button = screen.getByRole('button', { name: 'Renewed' });
+        // On the phone: as tall as a control, sharing the line with the other button
+        expect(button).toHaveClass('h-control', 'flex-1', 'basis-0', 'px-0');
+        // On the computer: its own width, 40 px with 14 px at the sides
+        expect(button).toHaveClass('lg:h-10', 'lg:flex-none', 'lg:px-3.5');
+        expect(button).toHaveClass('text-label', 'rounded-lg', 'gap-[7px]');
+        expect(button).not.toHaveClass('text-body', 'px-5', 'gap-2');
     });
 
     it('is blue in the solid variant', () => {

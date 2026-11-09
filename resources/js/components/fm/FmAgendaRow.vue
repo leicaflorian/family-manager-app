@@ -190,7 +190,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                     'flex min-w-0 grow items-center gap-2.5 text-inherit no-underline lg:gap-x-4',
                     !actions && 'py-3 pr-3.5 pl-2 lg:px-4',
                     // Room for the columns and the title: without it the buttons go under the row
-                    actions && 'lg:min-w-[34rem]',
+                    actions && 'lg:basis-[34rem]',
                     rowLink,
                 )
             "
@@ -295,19 +295,14 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             v-if="actions && entry.update_url !== null"
             class="flex flex-wrap gap-2 pl-[46px] lg:ml-auto lg:shrink-0 lg:flex-nowrap lg:pl-0"
         >
-            <FmButton
-                variant="outline"
-                class="grow lg:grow-0"
-                :icon="CalendarDays"
-                @click="emit('update-date')"
-                >{{ $t('Update the date') }}</FmButton
-            >
-            <FmButton
-                class="grow lg:grow-0"
-                :icon="Check"
-                @click="emit('renewed')"
-                >{{ $t('Renewed') }}</FmButton
-            >
+            <FmButton variant="neutral" compact @click="emit('update-date')">
+                <FmIcon :icon="CalendarDays" :size="16" />
+                {{ $t('Update the date') }}
+            </FmButton>
+            <FmButton compact @click="emit('renewed')">
+                <FmIcon :icon="Check" :size="14" />
+                {{ $t('Renewed') }}
+            </FmButton>
         </span>
     </div>
 </template>
