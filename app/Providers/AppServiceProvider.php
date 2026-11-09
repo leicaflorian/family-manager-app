@@ -37,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
         // One per request (and per test): a family set by hand does not carry over to the next one
         $this->app->scoped(CurrentFamily::class);
 
+        // One per process: it remembers the `.env` values the settings of the database replace
+        $this->app->singleton(InstallationSettings::class);
+
         // One per request too: the loan observer keeps it quiet while it writes the planned expense of a loan
         $this->app->scoped(LoanPlanObserver::class);
 

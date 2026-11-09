@@ -102,3 +102,33 @@ test('only the three keys are secret and only the loans time has no config key',
         ->and(InstallationSetting::LoansTime->configKey())->toBeNull()
         ->and(InstallationSetting::MonthlyLimit->configKey())->toBe('document_reader.monthly_limit');
 });
+
+test('a removed setting gives the env value back after apply', function (): void {
+    config(['document_reader.model' => 'from-env', 'document_reader.provider' => 'gemini']);
+    $settings = resolve(InstallationSettings::class);
+
+    $settings->set(InstallationSetting::Model, 'from-database');
+    $settings->set(InstallationSetting::Provider, 'off');
+    $settings->apply();
+    expect(config('document_reader.model'))->toBe('from-database')
+        ->and(config('document_reader.provider'))->toBeNull();
+
+    $settings->set(InstallationSetting::Model, '');
+    $settings->set(InstallationSetting::Provider, '');
+    $settings->apply();
+
+    expect(config('document_reader.model'))->toBe('from-env')
+        ->and(config('document_reader.provider'))->toBe('gemini');
+});
+
+test('with a cache table that does not exist the env values apply and nothing throws', function (): void {
+    // A store on a table that is not there stands for a fresh database before `migrate` (dropping real tables would commit the test transaction)
+    config(['cache.default' => 'database', 'cache.stores.database.table' => 'no_such_cache', 'cache.stores.database.lock_table' => 'no_such_locks', 'reminders.time' => '05:30']);
+    $settings = new InstallationSettings;
+
+    expect($settings->remindersTime())->toBe('05:30')
+        ->and($settings->loansTime())->toBe('00:05');
+
+    $settings->apply();
+    expect(config('reminders.time'))->toBe('05:30');
+});

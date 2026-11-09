@@ -8,10 +8,12 @@ use App\Enums\InstallationSetting;
 use App\Models\AppSetting;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Schema;
+use PDOException;
 
 /**
  * The settings of the installation: the value in the database (written from the admin panel) wins, the `.env`
@@ -23,6 +25,27 @@ final class InstallationSettings
     private const string CACHE_KEY = 'installation-settings';
 
     private const string LOANS_TIME = '00:05';
+
+    /** @var array<string, mixed>|null the `config` values before the first `apply()` */
+    private ?array $original = null;
+
+    /**
+     * The current `config` value of every key a setting replaces.
+     *
+     * @return array<string, mixed>
+     */
+    private function snapshot(): array
+    {
+        $values = [];
+
+        foreach (InstallationSetting::cases() as $setting) {
+            if (($configKey = $setting->configKey()) !== null) {
+                $values[$configKey] = Config::get($configKey);
+            }
+        }
+
+        return $values;
+    }
 
     /**
      * The value in force: the database one, else the `config` one (`00:05` for the loans time).
@@ -122,15 +145,20 @@ final class InstallationSettings
      */
     public function apply(): void
     {
+        // The `.env` values as the process started: a worker lives for days and a removed setting must go back to them
+        $this->original ??= $this->snapshot();
+
         foreach (InstallationSetting::cases() as $setting) {
             $configKey = $setting->configKey();
-            $stored = $this->stored($setting);
 
-            if ($configKey === null || $stored === null) {
+            if ($configKey === null) {
                 continue;
             }
 
+            $stored = $this->stored($setting);
+
             Config::set($configKey, match (true) {
+                $stored === null => $this->original[$configKey] ?? null,
                 $setting === InstallationSetting::Provider && $stored === 'off' => null,
                 $setting === InstallationSetting::MonthlyLimit => (int) $stored,
                 default => $stored,
@@ -162,25 +190,31 @@ final class InstallationSettings
      */
     private function rows(): array
     {
-        /** @var array<string, array{value: ?string, updated_at: ?string}>|null $cached */
-        $cached = Cache::get(self::CACHE_KEY);
+        try {
+            // The table first: before `migrate` the cache table of the database store may be missing too
+            if (! Schema::hasTable('app_settings')) {
+                return [];
+            }
 
-        if ($cached !== null) {
-            return $cached;
-        }
+            /** @var array<string, array{value: ?string, updated_at: ?string}>|null $cached */
+            $cached = Cache::get(self::CACHE_KEY);
 
-        if (! Schema::hasTable('app_settings')) {
+            if ($cached !== null) {
+                return $cached;
+            }
+
+            $rows = [];
+
+            foreach (AppSetting::query()->get() as $row) {
+                $rows[$row->key] = ['value' => $row->value, 'updated_at' => $row->updated_at?->toDateTimeString()];
+            }
+
+            Cache::put(self::CACHE_KEY, $rows, 60);
+
+            return $rows;
+        } catch (QueryException|PDOException) {
+            // Database unreachable or cache table missing: the `.env` values apply and nothing is cached
             return [];
         }
-
-        $rows = [];
-
-        foreach (AppSetting::query()->get() as $row) {
-            $rows[$row->key] = ['value' => $row->value, 'updated_at' => $row->updated_at?->toDateTimeString()];
-        }
-
-        Cache::put(self::CACHE_KEY, $rows, 60);
-
-        return $rows;
     }
 }
