@@ -95,6 +95,9 @@ const note = computed((): string | null => props.problem ?? message.value);
  * @param moved - all four corners
  */
 function move(moved: Corners): void {
+    // the sheet is being cut with these corners: they stay as they are
+    if (props.busy) return;
+
     corners.value = moved;
     touched.value = true;
 }
@@ -305,7 +308,7 @@ function next(): void {
                     ]"
                     :key="tool.label"
                     type="button"
-                    :disabled="tool.run === find && searching"
+                    :disabled="busy || (tool.run === find && searching)"
                     :class="
                         wide
                             ? 'flex h-12 flex-[1_1_0] items-center justify-center gap-2 rounded-lg border-0 bg-camera-raised px-3 text-[15px] font-semibold whitespace-nowrap text-ink disabled:opacity-60'
@@ -329,7 +332,7 @@ function next(): void {
                     v-model="dewarp"
                     type="toggle"
                     name="dewarp"
-                    :disabled="!canStraighten"
+                    :disabled="busy || !canStraighten"
                     :label="$t('Straighten')"
                     :help="
                         canStraighten
@@ -341,6 +344,7 @@ function next(): void {
                     v-model="enhance"
                     type="toggle"
                     name="enhance"
+                    :disabled="busy"
                     :label="$t('Improve')"
                     :help="$t('Brightens the paper, darkens the text')"
                 />
@@ -348,6 +352,7 @@ function next(): void {
                     v-model="grey"
                     type="toggle"
                     name="grey"
+                    :disabled="busy"
                     :label="$t('Black and white')"
                     :help="$t('Takes the colours away')"
                 />

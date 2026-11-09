@@ -24,6 +24,7 @@ export function createStraightener(run: Dewarp): {
         signal?: AbortSignal,
     ) => Promise<Pixels>;
     forget: (id: string) => void;
+    invalidate: (id: string, corners: Corners, turns: Turns) => void;
 } {
     const kept = new Map<string, { key: string; flat: Pixels }>();
 
@@ -61,6 +62,19 @@ export function createStraightener(run: Dewarp): {
          */
         forget(id) {
             kept.delete(id);
+        },
+        /**
+         * The page was cut again without straightening: if its sheet is not the one in memory any more, the flat
+         * sheet (a large canvas) is let go.
+         *
+         * @param id - the page
+         * @param corners - the corners of the new cut
+         * @param turns - the turns of the new cut
+         */
+        invalidate(id, corners, turns) {
+            if (kept.get(id)?.key !== JSON.stringify([corners, turns])) {
+                kept.delete(id);
+            }
         },
     };
 }

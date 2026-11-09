@@ -81,4 +81,17 @@ describe('createStraightener', () => {
         expect(run).toHaveBeenCalledTimes(2);
         expect(run.mock.calls[1]![1]).toBe(stop.signal);
     });
+
+    it('lets go of the flat sheet when the page is cut again with other corners, keeps it with the same ones', async () => {
+        const run = vi.fn(async () => sheet());
+        const { flatten, invalidate } = createStraightener(run);
+
+        await flatten('a', CORNERS, 0, sheet());
+        invalidate('a', CORNERS, 0);
+        await flatten('a', CORNERS, 0, sheet());
+        invalidate('a', CORNERS, 1);
+        await flatten('a', CORNERS, 0, sheet());
+
+        expect(run).toHaveBeenCalledTimes(2);
+    });
 });

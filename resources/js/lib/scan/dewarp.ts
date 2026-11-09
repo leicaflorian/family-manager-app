@@ -219,6 +219,11 @@ export function createDewarper(
         from.terminate();
         const error = new Error(reason);
 
+        // nothing is being worked on any more: no timer stays
+        for (const turn of line.splice(0)) {
+            turn.stop();
+        }
+
         for (const call of waiting.values()) {
             call.reject(error);
         }
@@ -239,6 +244,9 @@ export function createDewarper(
             waiting.delete(data.id);
 
             if (!call) {
+                // a call that was aborted: the worker is free of it only now, so the next one starts its time
+                leave(data.id);
+
                 return;
             }
 
@@ -262,7 +270,7 @@ export function createDewarper(
      * The calls waiting for their answer, in the order they were sent. The worker does one at a time, so only the
      * first one is being worked on: its time starts when it becomes the first, not when it was asked.
      */
-    const line: Array<{ id: number; arm: () => void }> = [];
+    const line: Array<{ id: number; arm: () => void; stop: () => void }> = [];
 
     /** Takes a call out of the line; the one that is now first starts its time. */
     function leave(id: number): void {
@@ -272,7 +280,7 @@ export function createDewarper(
             return;
         }
 
-        line.splice(index, 1);
+        line.splice(index, 1)[0]!.stop();
 
         if (index === 0) {
             line[0]?.arm();
@@ -302,8 +310,9 @@ export function createDewarper(
         return new Promise<FromWorker>((resolve, reject) => {
             let timer: ReturnType<typeof setTimeout> | undefined;
             const onAbort = (): void => {
+                // the caller is done, but the worker is not: the entry stays in the line until it answers
                 waiting.delete(id);
-                finish();
+                signal?.removeEventListener('abort', onAbort);
                 reject(abortError(signal!));
             };
             /** The call is over: nothing of it stays listening. */
@@ -321,6 +330,7 @@ export function createDewarper(
                         timeout,
                     );
                 },
+                stop: () => clearTimeout(timer),
             });
 
             if (line.length === 1) {

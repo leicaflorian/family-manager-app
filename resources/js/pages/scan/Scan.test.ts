@@ -885,6 +885,25 @@ describe('Scan, Straighten', () => {
         expect(signal?.aborted).toBe(true);
     });
 
+    it('keeps the switches and the tools still while the sheet is cut', async () => {
+        straighten.dewarp.mockImplementation(() => new Promise(() => {}));
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        const crop = await openCrop();
+        await flip(crop);
+        await cropWhole(crop);
+        await within(crop).findByText('Straightening…');
+
+        for (const name of [/Straighten/, /Improve/, /Black and white/]) {
+            expect(within(crop).getByRole('switch', { name })).toBeDisabled();
+        }
+        expect(
+            within(crop).getByRole('button', { name: 'Rotate' }),
+        ).toBeDisabled();
+    });
+
     it('says when the sheet could not be laid flat and stays in Crop', async () => {
         straighten.dewarp.mockRejectedValue(
             new Error('The worker took too long'),

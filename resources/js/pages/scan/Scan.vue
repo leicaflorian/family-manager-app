@@ -448,6 +448,7 @@ async function cut(
             if (straightening.get(id) === stop) straightening.delete(id);
         }
     } else {
+        straightener.invalidate(id, corners, turns);
         result = await cutOut(one.file, corners, turns, options);
     }
 

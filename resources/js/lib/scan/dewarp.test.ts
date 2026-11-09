@@ -385,6 +385,61 @@ describe('the worker', () => {
         }
     });
 
+    it('starts the time of the next page only when the worker has answered an aborted one', async () => {
+        vi.useFakeTimers();
+        try {
+            const worker = fakeWorker({ silent: true });
+            const { dewarp } = createDewarper(() => worker, {
+                page: 1000,
+                load: 5000,
+            });
+            const stop = new AbortController();
+
+            const one = dewarp(flat(2, 2, [0, 0, 0]), stop.signal);
+            const checkOne = expect(one).rejects.toMatchObject({
+                name: 'AbortError',
+            });
+            const two = dewarp(flat(2, 2, [0, 0, 0]));
+            const checkTwo = expect(two).resolves.toMatchObject({ width: 2 });
+            await vi.advanceTimersByTimeAsync(300);
+            stop.abort();
+            await checkOne;
+            // the worker is still on the first page: the second one has not started its 1000 ms
+            await vi.advanceTimersByTimeAsync(600);
+            answer(worker, 0);
+            await vi.advanceTimersByTimeAsync(900);
+
+            expect(worker.terminated).toBe(false);
+
+            answer(worker, 1);
+            await checkTwo;
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('rejects all the queued calls of a broken worker and leaves no timer', async () => {
+        vi.useFakeTimers();
+        try {
+            const worker = fakeWorker({ silent: true });
+            const { dewarp } = createDewarper(() => worker, {
+                page: 1000,
+                load: 5000,
+            });
+
+            const calls = [1, 2, 3].map(() => dewarp(flat(2, 2, [0, 0, 0])));
+            const checks = calls.map((call) =>
+                expect(call).rejects.toThrow('crashed'),
+            );
+            worker.emit('error', 'crashed');
+            await Promise.all(checks);
+
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('says what went wrong', async () => {
         const { dewarp } = createDewarper(() => fakeWorker({ fail: true }));
 
