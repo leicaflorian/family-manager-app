@@ -86,8 +86,8 @@ it('sorts organizations and people together by name and counts both', function (
 
     $terms = SearchTerms::fromQuery('zeta');
 
-    expect(array_map(static fn ($r): string => $r->title, contactResults($this->family, 'zeta')))->toBe(['Anna Zeta', 'bar Zeta', 'Zeta Banca'])
-        ->and(array_map(static fn ($r): string => $r->title, contactResults($this->family, 'zeta', 2)))->toBe(['Anna Zeta', 'bar Zeta'])
+    expect(array_map(static fn (SearchResultData $r): string => $r->title, contactResults($this->family, 'zeta')))->toBe(['Anna Zeta', 'bar Zeta', 'Zeta Banca'])
+        ->and(array_map(static fn (SearchResultData $r): string => $r->title, contactResults($this->family, 'zeta', 2)))->toBe(['Anna Zeta', 'bar Zeta'])
         ->and(CurrentFamily::using($this->family->id, fn (): int => resolve(ContactResults::class)->count($terms)))->toBe(3);
 });
 

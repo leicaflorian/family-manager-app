@@ -9,6 +9,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\SearchGroup;
 use App\Models\Document;
 use App\Support\SearchTerms;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -102,7 +103,7 @@ final readonly class DocumentResults implements GroupResults
 
             $day = SearchTerms::fromQuery($word)->date;
 
-            if ($day !== null) {
+            if ($day instanceof CarbonImmutable) {
                 $group->orWhereDate('date', $day);
             }
         });

@@ -59,7 +59,7 @@ function documentResults(Family $family, string $text, int $limit = 10): array
  */
 function documentTitles(Family $family, string $text): array
 {
-    return array_map(static fn ($result): string => $result->title, documentResults($family, $text));
+    return array_map(static fn (SearchResultData $result): string => $result->title, documentResults($family, $text));
 }
 
 it('belongs to the documents group', function (): void {
@@ -72,7 +72,7 @@ it('finds documents by title, the most recent first, with the row fields', funct
 
     $results = documentResults($this->family, 'Pan');
 
-    expect(array_map(static fn ($r): string => $r->title, $results))->toBe(['Polizza RC auto Panda 2026', 'Libretto di circolazione Fiat Panda'])
+    expect(array_map(static fn (SearchResultData $r): string => $r->title, $results))->toBe(['Polizza RC auto Panda 2026', 'Libretto di circolazione Fiat Panda'])
         ->and($results[0]->key)->toBe('document-'.$policy->id)
         ->and($results[0]->group)->toBe(SearchGroup::Documents)
         ->and($results[0]->href)->toBe(route('documents.show', $policy->id))
@@ -87,7 +87,7 @@ it('finds documents by title, the most recent first, with the row fields', funct
 it('finds by organization and shows its name as subtitle', function (): void {
     $results = documentResults($this->family, 'UnipolSai');
 
-    expect(array_map(static fn ($r): string => $r->title, $results))->toBe(['Polizza RC auto 2026'])
+    expect(array_map(static fn (SearchResultData $r): string => $r->title, $results))->toBe(['Polizza RC auto 2026'])
         ->and($results[0]->subtitle)->toBe('UnipolSai');
 });
 
@@ -125,7 +125,7 @@ it('puts archived documents after the others with a flag', function (): void {
 
     $results = documentResults($this->family, 'Zeta');
 
-    expect(array_map(static fn ($r): string => $r->title, $results))->toBe(['Zeta attivo', 'Zeta senza data', 'Zeta vecchio'])
+    expect(array_map(static fn (SearchResultData $r): string => $r->title, $results))->toBe(['Zeta attivo', 'Zeta senza data', 'Zeta vecchio'])
         ->and($results[2]->flag)->toBe('Archived')
         ->and($results[0]->flag)->toBeNull();
 });

@@ -68,7 +68,7 @@ final class DueResults implements GroupResults
     public function results(SearchTerms $terms, int $limit): array
     {
         return array_map(
-            fn (Deadline $deadline): SearchResultData => $this->result($deadline),
+            $this->result(...),
             array_slice($this->matches($terms), 0, max(0, $limit)),
         );
     }
@@ -112,13 +112,13 @@ final class DueResults implements GroupResults
             $reads[$word] = SearchTerms::fromQuery($word);
         }
 
-        if (array_filter($reads, static fn (SearchTerms $read): bool => $read->date !== null) !== []) {
+        if (array_filter($reads, static fn (SearchTerms $read): bool => $read->date instanceof CarbonImmutable) !== []) {
             $first = $this->firstOpen([...PlannedExpense::query()->get(), ...PlannedIncome::query()->get()], $today);
 
             foreach ($reads as $word => $read) {
                 $date = $read->date;
 
-                if ($date !== null) {
+                if ($date instanceof CarbonImmutable) {
                     $onDay[$word] = array_filter($first, static fn (Deadline $d): bool => $d->occurrence->date->isSameDay($date));
                 }
             }
@@ -252,8 +252,8 @@ final class DueResults implements GroupResults
                 'date' => $deadline->occurrence->originalDate->toDateString(),
             ]),
             area: $type?->area()->value,
-            icon: $type === null ? 'calendar-clock' : null,
-            tone: $type === null ? ($deadline->kind() === 'expense' ? 'expenses' : 'income') : null,
+            icon: $type instanceof CardType ? null : 'calendar-clock',
+            tone: $type instanceof CardType ? null : ($deadline->kind() === 'expense' ? 'expenses' : 'income'),
             flag: null,
             due_in: $deadline->occurrence->date->toDateString(),
         );

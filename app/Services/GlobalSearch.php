@@ -62,7 +62,7 @@ final readonly class GlobalSearch
                 group: $group,
                 label: $group->label(),
                 count: $count,
-                results: $only === null || $only === $group ? $results->results($terms, $limit) : [],
+                results: ! $only instanceof SearchGroup || $only === $group ? $results->results($terms, $limit) : [],
             );
         }
 

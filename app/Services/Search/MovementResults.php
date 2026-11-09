@@ -9,6 +9,7 @@ use App\Enums\SearchGroup;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Support\SearchTerms;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -148,7 +149,7 @@ final readonly class MovementResults implements GroupResults
             $group->orWhere('amount', $read->amount);
         }
 
-        if ($read->date !== null) {
+        if ($read->date instanceof CarbonImmutable) {
             $group->orWhereDate('date', $read->date);
         }
     }

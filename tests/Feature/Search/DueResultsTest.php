@@ -113,8 +113,8 @@ it('finds a deadline by amount and by the day it falls on, and an income too', f
         PlannedIncome::factory()->create(['family_id' => $this->family->id, 'title' => 'Zzz affitto', 'amount' => 500, 'start_date' => '2026-11-07']);
     });
 
-    expect(array_map(static fn ($r): string => $r->title, dueResults($this->family, 'Zzz 77,50')))->toBe(['Zzz uno'])
-        ->and(array_map(static fn ($r): string => $r->title, dueResults($this->family, 'Zzz 07/11/2026')))->toBe(['Zzz affitto']);
+    expect(array_map(static fn (SearchResultData $r): string => $r->title, dueResults($this->family, 'Zzz 77,50')))->toBe(['Zzz uno'])
+        ->and(array_map(static fn (SearchResultData $r): string => $r->title, dueResults($this->family, 'Zzz 07/11/2026')))->toBe(['Zzz affitto']);
 
     $income = dueResults($this->family, 'affitto');
     expect($income[0]->tone)->toBe('income')
@@ -133,7 +133,7 @@ it('orders by due date, cuts after ordering and counts the same rows', function 
     sort($sorted);
 
     expect($count)->toBe(count($all))->and($dates)->toBe($sorted)
-        ->and(array_map(static fn ($r): string => $r->key, dueResults($this->family, 'a', 2)))->toBe(array_map(static fn ($r): string => $r->key, array_slice($all, 0, 2)));
+        ->and(array_map(static fn (SearchResultData $r): string => $r->key, dueResults($this->family, 'a', 2)))->toBe(array_map(static fn (SearchResultData $r): string => $r->key, array_slice($all, 0, 2)));
 });
 
 it('does not find the deadlines of another family', function (): void {
@@ -144,7 +144,7 @@ it('does not find the deadlines of another family', function (): void {
     ]));
 
     expect(dueResults($this->family, 'Zzz altrui'))->toBe([])
-        ->and(array_map(static fn ($r): string => $r->title, dueResults($other, 'Zzz altrui')))->toBe(['Zzz altrui']);
+        ->and(array_map(static fn (SearchResultData $r): string => $r->title, dueResults($other, 'Zzz altrui')))->toBe(['Zzz altrui']);
 });
 
 it('skips a skipped due date and gives the next open one', function (): void {

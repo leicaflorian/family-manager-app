@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Cards\CardTypes;
+use App\Data\Search\SearchResultData;
 use App\Enums\Area;
 use App\Enums\SearchGroup;
 use App\Enums\UtilityStatus;
@@ -34,7 +35,7 @@ afterEach(fn () => Date::setTestNow());
 function cardTitles(Family $family, string $text, int $limit = 10): array
 {
     return CurrentFamily::using($family->id, fn (): array => array_map(
-        static fn ($result): string => $result->title,
+        static fn (SearchResultData $result): string => $result->title,
         resolve(CardResults::class)->results(SearchTerms::fromQuery($text), $limit),
     ));
 }
@@ -46,7 +47,7 @@ it('belongs to the cards group', function (): void {
 it('finds the cards by name, in order, with the link and the area', function (): void {
     $results = CurrentFamily::using($this->family->id, fn (): array => resolve(CardResults::class)->results(SearchTerms::fromQuery('Pan'), 10));
 
-    expect(array_map(static fn ($r): string => $r->title, $results))->toBe(['Fiat Panda', 'Finanziamento Panda', 'RC auto Panda']);
+    expect(array_map(static fn (SearchResultData $r): string => $r->title, $results))->toBe(['Fiat Panda', 'Finanziamento Panda', 'RC auto Panda']);
 
     $panda = $results[0];
     $vehicle = CurrentFamily::using($this->family->id, fn () => Vehicle::query()->where('name', 'Fiat Panda')->firstOrFail());
@@ -76,7 +77,7 @@ it('puts closed cards after the active ones with a flag', function (): void {
     });
 
     $results = CurrentFamily::using($this->family->id, fn (): array => resolve(CardResults::class)->results(SearchTerms::fromQuery('a'), 100));
-    $flags = array_map(static fn ($r): bool => $r->flag !== null, $results);
+    $flags = array_map(static fn (SearchResultData $r): bool => $r->flag !== null, $results);
     $firstClosed = array_search(true, $flags, true);
 
     expect($firstClosed)->not->toBeFalse()

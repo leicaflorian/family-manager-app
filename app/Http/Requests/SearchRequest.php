@@ -16,14 +16,6 @@ use Illuminate\Validation\Rule;
 final class SearchRequest extends FormRequest
 {
     /**
-     * Everyone in the family may search.
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    /**
      * The rules of the address.
      *
      * @return array<string, ValidationRule|array<mixed>|string>

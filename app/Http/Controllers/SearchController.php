@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\SearchGroup;
 use App\Http\Requests\SearchRequest;
 use App\Services\GlobalSearch;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +33,7 @@ final class SearchController extends Controller
         $group = $request->group();
 
         return Inertia::render('Search', [
-            'results' => $search->search($request->terms(), $group, $group === null ? self::PAGE_LIMIT : self::GROUP_LIMIT),
+            'results' => $search->search($request->terms(), $group, $group instanceof SearchGroup ? self::GROUP_LIMIT : self::PAGE_LIMIT),
         ]);
     }
 

@@ -90,7 +90,7 @@ final readonly class SearchTerms
                     }
                 }
 
-                if ($alternatives !== null) {
+                if ($alternatives instanceof Closure) {
                     $alternatives($group, $word);
                 }
             });
