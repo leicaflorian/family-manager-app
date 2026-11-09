@@ -32,3 +32,16 @@ test('organizations are matched by name with the wildcards escaped', function ()
 
     expect($found->all())->toBe([$a->id]);
 });
+
+test('a search can add its own alternatives for each word', function (): void {
+    $family = Family::factory()->create();
+    $this->actingAs(User::factory()->for($family)->create());
+    $a = Document::factory()->for($family)->create(['title' => 'Bolletta luce', 'notes' => 'zeta']);
+    Document::factory()->for($family)->create(['title' => 'Bolletta gas', 'notes' => 'beta']);
+
+    $found = SearchTerms::fromQuery('bolletta alfa')
+        ->whereWords(Document::query(), ['title'], fn ($group, string $word) => $word === 'alfa' ? $group->orWhere('notes', 'zeta') : null)
+        ->pluck('id');
+
+    expect($found->all())->toBe([$a->id]);
+});

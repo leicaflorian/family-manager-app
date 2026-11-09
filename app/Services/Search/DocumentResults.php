@@ -17,8 +17,11 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final readonly class DocumentResults implements GroupResults
 {
-    /** The columns every word is looked up in; `tags` is a JSON column read as text. */
-    private const array COLUMNS = ['title', 'notes', 'tags', 'organization.name', 'person.first_name', 'person.last_name'];
+    /** The columns every word is looked up in; tags and the summary are JSON, see below. */
+    private const array COLUMNS = ['title', 'notes', 'organization.name', 'person.first_name', 'person.last_name'];
+
+    /** The tags (a JSON list) as text with the collation of the text columns, which ignores case and accents. */
+    private const string TAGS_LIKE = 'convert(json_unquote(cast(tags as char)) using utf8mb4) collate utf8mb4_unicode_ci like ?';
 
     /**
      * The summary of the reading as text: a JSON value has a binary collation, so it is converted to the
@@ -50,7 +53,6 @@ final readonly class DocumentResults implements GroupResults
     public function results(SearchTerms $terms, int $limit): array
     {
         $documents = $this->query($terms)
-            ->with('organization')
             ->orderByRaw('status = ?', [DocumentStatus::Archived->value])
             ->orderByRaw('date is null')
             ->orderByDesc('date')
@@ -85,27 +87,23 @@ final readonly class DocumentResults implements GroupResults
     }
 
     /**
-     * The documents where every word is in a column or in the summary of the file, or, when the text is a
-     * day, that have that date. The date is an alternative for the whole text (a day typed alone is not
-     * a word of any title), while the words keep working as before.
+     * The documents where every word is in a column, in the tags, in the summary of the file or, when the word is
+     * a day (`15/10/2026`), is the date of the document. The date is an alternative of its own word only: the
+     * other words are still looked up as text, so «bollo 23/09/2026» finds the bollo documents of that day.
      *
      * @param  SearchTerms  $terms  what the person typed
      * @return Builder<Document>
      */
     private function query(SearchTerms $terms): Builder
     {
-        return Document::query()->where(function (Builder $query) use ($terms): void {
-            $query->where(function (Builder $words) use ($terms): void {
-                foreach ($terms->words as $word) {
-                    $words->where(function (Builder $group) use ($word): void {
-                        $group->orWhere(fn (Builder $inColumns): Builder => SearchTerms::fromQuery($word)->whereWords($inColumns, self::COLUMNS))
-                            ->orWhereHas('file', fn (Builder $file): Builder => $file->whereRaw(self::SUMMARY_LIKE, [SearchTerms::like($word)]));
-                    });
-                }
-            });
+        return $terms->whereWords(Document::with('organization'), self::COLUMNS, function (Builder $group, string $word): void {
+            $group->orWhereRaw(self::TAGS_LIKE, [SearchTerms::like($word)])
+                ->orWhereHas('file', fn (Builder $file): Builder => $file->whereRaw(self::SUMMARY_LIKE, [SearchTerms::like($word)]));
 
-            if ($terms->date !== null) {
-                $query->orWhereDate('date', $terms->date);
+            $day = SearchTerms::fromQuery($word)->date;
+
+            if ($day !== null) {
+                $group->orWhereDate('date', $day);
             }
         });
     }

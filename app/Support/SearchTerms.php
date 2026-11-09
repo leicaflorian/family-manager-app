@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -63,20 +64,23 @@ final readonly class SearchTerms
 
     /**
      * Keeps the rows where every word is in at least one of the columns. A column can be `relation.column`,
-     * which looks in the column of the related row.
+     * which looks in the column of the related row. A search can add its own alternatives for a word (the
+     * date or the amount a word stands for, a JSON column) with `$alternatives`: it is called for each word with
+     * the group where the word's `orWhere` conditions go.
      *
      * @template TModel of Model
      *
      * @param  Builder<TModel>  $query  the query to narrow
      * @param  list<string>  $columns  the columns to look in
+     * @param  Closure(Builder<TModel>, string): void|null  $alternatives  adds `orWhere` conditions for one word
      * @return Builder<TModel>
      */
-    public function whereWords(Builder $query, array $columns): Builder
+    public function whereWords(Builder $query, array $columns, ?Closure $alternatives = null): Builder
     {
         foreach ($this->words as $word) {
             $like = self::like($word);
 
-            $query->where(function (Builder $group) use ($columns, $like): void {
+            $query->where(function (Builder $group) use ($columns, $like, $word, $alternatives): void {
                 foreach ($columns as $column) {
                     if (str_contains($column, '.')) {
                         [$relation, $field] = explode('.', $column, 2);
@@ -84,6 +88,10 @@ final readonly class SearchTerms
                     } else {
                         $group->orWhereLike($column, $like);
                     }
+                }
+
+                if ($alternatives !== null) {
+                    $alternatives($group, $word);
                 }
             });
         }

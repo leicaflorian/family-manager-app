@@ -146,3 +146,19 @@ it('does not find the documents of another family', function (): void {
         ->and(documentTitles($other, 'segreto'))->toBe(['Documento segreto'])
         ->and(documentTitles($other, 'Bolletta'))->toBe([]);
 });
+
+it('finds by tags ignoring case and accents', function (): void {
+    searchDocument($this->family, 'Foglio tag', ['tags' => ['Scuola', 'perché']]);
+
+    expect(documentTitles($this->family, 'scuola'))->toContain('Foglio tag')
+        ->and(documentTitles($this->family, 'perche'))->toBe(['Foglio tag'])
+        ->and(documentTitles($this->family, 'PERCHÉ'))->toBe(['Foglio tag']);
+});
+
+it('matches a date word as the date of the document and the other words as text', function (): void {
+    searchDocument($this->family, 'Perché il bollo', ['date' => '2026-09-23']);
+    searchDocument($this->family, 'Altro bollo', ['date' => '2026-01-05']);
+
+    expect(documentTitles($this->family, 'bollo 23/09/2026'))->toBe(['Perché il bollo'])
+        ->and(documentTitles($this->family, '23/09/2026 bollo'))->toBe(['Perché il bollo']);
+});
