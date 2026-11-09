@@ -24,38 +24,44 @@ beforeEach(function (): void {
 
 /**
  * Three calls of different days, outcomes and families.
+ *
+ * @param  Family  $family  the family of the first call
+ * @return array{MailInboxCall, MailInboxCall, MailInboxCall} saved, rejected, unknown
  */
-function pageCalls(Family $family): void
+function pageCalls(Family $family): array
 {
-    MailInboxCall::factory()->create(['outcome' => CallOutcome::Saved, 'http_status' => 200, 'family_id' => $family->id, 'attachments' => 2, 'saved' => 1, 'payload' => ['subject' => 'SECRET SUBJECT'], 'created_at' => now()]);
-    MailInboxCall::factory()->create(['outcome' => CallOutcome::Rejected, 'http_status' => 401, 'family_id' => null, 'attachments' => 0, 'saved' => 0, 'payload' => [], 'created_at' => now()->subDays(10)]);
-    MailInboxCall::factory()->create(['outcome' => CallOutcome::Unknown, 'http_status' => 200, 'family_id' => null, 'attachments' => 0, 'saved' => 0, 'payload' => ['recipient' => 'x@y.test'], 'created_at' => now()->subDays(2)]);
+    return [
+        MailInboxCall::factory()->create(['outcome' => CallOutcome::Saved, 'http_status' => 200, 'family_id' => $family->id, 'attachments' => 2, 'saved' => 1, 'payload' => ['subject' => 'SECRET SUBJECT'], 'created_at' => now()]),
+        MailInboxCall::factory()->create(['outcome' => CallOutcome::Rejected, 'http_status' => 401, 'family_id' => null, 'attachments' => 0, 'saved' => 0, 'payload' => [], 'created_at' => now()->subDays(10)]),
+        MailInboxCall::factory()->create(['outcome' => CallOutcome::Unknown, 'http_status' => 200, 'family_id' => null, 'attachments' => 0, 'saved' => 0, 'payload' => ['recipient' => 'x@y.test'], 'created_at' => now()->subDays(2)]),
+    ];
 }
 
 it('shows the mail log without the text of the mails', function (): void {
-    pageCalls($this->bianchi);
+    [$saved, $rejected, $unknown] = pageCalls($this->bianchi);
 
     Livewire::test(MailPage::class)
         ->assertSee('bollette.example.com')
-        ->assertSee('Bianchi')
-        ->assertSee('25/10/2026 09:41')
-        ->assertSee('Saved')
+        ->assertCanSeeTableRecords([$saved, $unknown, $rejected], inOrder: true)
+        ->assertTableColumnStateSet('created_at', '25/10/2026 09:41', $saved)
+        ->assertTableColumnStateSet('family_id', 'Bianchi', $saved)
+        ->assertTableColumnStateSet('outcome', 'Saved', $saved)
         ->assertDontSee('SECRET SUBJECT')
         ->assertDontSee('x@y.test');
 });
 
 it('filters by family, outcome and date', function (): void {
-    pageCalls($this->bianchi);
+    [$saved, $rejected, $unknown] = pageCalls($this->bianchi);
 
     Livewire::test(MailPage::class)
-        ->set('outcome', 'rejected')
-        ->assertSee('401')->assertDontSeeHtml('">Bianchi</td>')
-        ->set('outcome', '')
-        ->set('family', (string) $this->bianchi->id)
-        ->assertSeeHtml('">Bianchi</td>')->assertDontSee('401')
-        ->set('family', '')
-        ->set('since', '2026-10-22')
-        ->assertSeeHtml('">Bianchi</td>')->assertDontSee('401');
+        ->filterTable('outcome', 'rejected')
+        ->assertCanSeeTableRecords([$rejected])->assertCanNotSeeTableRecords([$saved, $unknown])
+        ->removeTableFilter('outcome')
+        ->filterTable('family_id', $this->bianchi->id)
+        ->assertCanSeeTableRecords([$saved])->assertCanNotSeeTableRecords([$rejected, $unknown])
+        ->removeTableFilter('family_id')
+        ->filterTable('since', ['since' => '2026-10-22'])
+        ->assertCanSeeTableRecords([$saved, $unknown])->assertCanNotSeeTableRecords([$rejected]);
 });
 
 it('says so when there are no calls', function (): void {

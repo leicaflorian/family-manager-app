@@ -47,7 +47,13 @@ it('shows the readings of the month by family, with the total', function (): voi
 
     Livewire::test(AiReadingsPage::class)
         ->assertSet('month', '2026-10')
-        ->assertSeeInOrder(['Bianchi', '2', '2000', '200', '0,0050 $', 'Rossi', '1', '1000', '100', '0,0025 $', 'Total', '3', '3000', '300', '0,0075 $']);
+        ->assertCanSeeTableRecords([$this->bianchi->id, $this->rossi->id], inOrder: true)
+        ->assertTableColumnStateSet('readings', 2, $this->bianchi->id)
+        ->assertTableColumnStateSet('input_tokens', 2000, $this->bianchi->id)
+        ->assertTableColumnStateSet('output_tokens', 200, $this->bianchi->id)
+        ->assertTableColumnStateSet('cost', '0,0050 $', $this->bianchi->id)
+        ->assertTableColumnStateSet('cost', '0,0025 $', $this->rossi->id)
+        ->assertSee('Total: 3 readings, 3000 input tokens, 300 output tokens, cost 0,0075 $');
 
     $rows = resolve(ReadingReport::class)->forMonth(CarbonImmutable::parse('2026-10-01', 'Europe/Rome'));
     expect($rows->pluck('label')->all())->toBe(['Bianchi', 'Rossi'])
@@ -58,11 +64,11 @@ it('moves to the previous and the next month', function (): void {
     pageReading($this->bianchi, '2026-09-10 10:00');
 
     Livewire::test(AiReadingsPage::class)
-        ->assertDontSee('Bianchi')
-        ->call('previousMonth')
+        ->assertCanNotSeeTableRecords([$this->bianchi->id])
+        ->callAction('previousMonth')
         ->assertSet('month', '2026-09')
-        ->assertSee('Bianchi')
-        ->call('nextMonth')
+        ->assertCanSeeTableRecords([$this->bianchi->id])
+        ->callAction('nextMonth')
         ->assertSet('month', '2026-10');
 });
 
@@ -70,9 +76,10 @@ it('keeps the readings of a deleted family', function (): void {
     pageReading($this->rossi, '2026-10-05 10:00');
     $this->rossi->delete();
 
-    expect(AiReading::query()->withoutGlobalScopes()->whereNull('family_id')->count())->toBe(1);
-
-    Livewire::test(AiReadingsPage::class)->assertSee('Deleted family')->assertDontSee('Rossi');
+    Livewire::test(AiReadingsPage::class)
+        ->assertCanSeeTableRecords(['deleted'])
+        ->assertTableColumnStateSet('label', 'Deleted family', 'deleted')
+        ->assertDontSee('Rossi');
 });
 
 it('does not count the cropping as a reading but counts its cost', function (): void {
@@ -91,19 +98,22 @@ it('filters by provider and model', function (): void {
     pageReading($this->rossi, '2026-10-04 10:00', ['provider' => 'anthropic', 'model' => 'claude-haiku']);
 
     Livewire::test(AiReadingsPage::class)
-        ->assertSee('Bianchi')->assertSee('Rossi')
-        ->set('provider', 'gemini')
-        ->assertSee('Bianchi')->assertDontSee('Rossi')
-        ->set('provider', '')
-        ->set('model', 'claude-haiku')
-        ->assertSee('Rossi')->assertDontSee('Bianchi');
+        ->assertCanSeeTableRecords([$this->bianchi->id, $this->rossi->id])
+        ->filterTable('provider', 'gemini')
+        ->assertCanSeeTableRecords([$this->bianchi->id])
+        ->assertCanNotSeeTableRecords([$this->rossi->id])
+        ->removeTableFilter('provider')
+        ->filterTable('model', 'claude-haiku')
+        ->assertCanSeeTableRecords([$this->rossi->id])
+        ->assertCanNotSeeTableRecords([$this->bianchi->id]);
 });
 
 it('shows the cost without a price apart', function (): void {
     pageReading($this->bianchi, '2026-10-03 10:00');
     pageReading($this->bianchi, '2026-10-04 10:00', ['cost_usd' => null]);
 
-    Livewire::test(AiReadingsPage::class)->assertSee('0,0025 $ (1 without a price)');
+    Livewire::test(AiReadingsPage::class)
+        ->assertTableColumnStateSet('cost', '0,0025 $ (1 without a price)', $this->bianchi->id);
 });
 
 it('says so when the month has no readings', function (): void {
