@@ -30,7 +30,11 @@ const {
     label: string;
     /** As high as the buttons of a toolbar, 36 px, with a smaller text. */
     small?: boolean;
-    /** A round button that empties the box, shown only with text. */
+    /**
+     * A round button that empties the box, shown only with text. It marks the
+     * whole-app search box (Home and *Search*): only that one has the blue focus
+     * ring; the other boxes keep the grey border and show the cursor.
+     */
     clearable?: boolean;
     /** Shows the key that focuses the box (⌘K or Ctrl K) while it is empty. */
     shortcut?: boolean;
@@ -76,12 +80,15 @@ defineExpose({ focus });
 
 <template>
     <label
-        class="flex shrink-0 items-center rounded-md border border-edge-soft bg-card text-ink-soft focus-within:border-action focus-within:shadow-focus focus-within:outline focus-within:outline-1 focus-within:-outline-offset-1 focus-within:outline-action"
-        :class="
+        class="flex shrink-0 items-center rounded-md border border-edge-soft bg-card text-ink-soft"
+        :class="[
             small
                 ? 'h-9 gap-2 px-3 text-body-sm'
-                : 'h-control-md gap-2.5 px-3.5 text-body'
-        "
+                : 'h-control-md gap-2.5 px-3.5 text-body',
+            clearable
+                ? 'focus-within:border-action focus-within:shadow-focus focus-within:outline focus-within:outline-1 focus-within:-outline-offset-1 focus-within:outline-action'
+                : undefined,
+        ]"
     >
         <FmIcon :icon="Search" :size="small ? 18 : 20" />
         <input

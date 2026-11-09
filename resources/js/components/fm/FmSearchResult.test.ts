@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import FmSearchResult from './FmSearchResult.vue';
 
 /**
@@ -65,18 +65,23 @@ describe('FmSearchResult', () => {
     });
 
     it('tells a deadline by the days left', () => {
-        const day = new Date(Date.now() + 15 * 86_400_000)
-            .toISOString()
-            .slice(0, 10);
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-10-01T12:00:00Z'));
 
-        render(FmSearchResult, {
-            props: {
-                result: result({ group: 'dues', due_in: day }),
-                query: '',
-            },
-        });
+        try {
+            render(FmSearchResult, {
+                props: {
+                    result: result({ group: 'dues', due_in: '2026-10-16' }),
+                    query: '',
+                },
+            });
 
-        expect(screen.getByText(/in 1[45] days/)).toBeInTheDocument();
+            expect(
+                screen.getByText('Vehicles · in 15 days'),
+            ).toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('is the chosen row when active', () => {

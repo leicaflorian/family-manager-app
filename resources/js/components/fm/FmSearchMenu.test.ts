@@ -42,7 +42,10 @@ const results: App.Data.Search.SearchResultsData = {
             group: 'cards',
             label: 'Cards',
             count: 3,
-            results: [row('c1', 'cards', 'Fiat Panda'), row('c2', 'cards', 'Pan 2')],
+            results: [
+                row('c1', 'cards', 'Fiat Panda'),
+                row('c2', 'cards', 'Pan 2'),
+            ],
         },
         {
             group: 'documents',
@@ -64,12 +67,17 @@ describe('FmSearchMenu', () => {
         render(FmSearchMenu, { props: { results, query: 'Pan' } });
 
         expect(screen.getByRole('listbox')).toBeInTheDocument();
-        expect(screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'))).toEqual([
-            'Cards',
-            'Documents',
-            'Expenses and income',
-        ]);
+        expect(
+            screen
+                .getAllByRole('group')
+                .map((g) => g.getAttribute('aria-label')),
+        ).toEqual(['Cards', 'Documents', 'Expenses and income']);
         expect(screen.getAllByRole('option')).toHaveLength(4);
+        expect(
+            screen
+                .getByRole('listbox')
+                .contains(screen.getByRole('link', { name: /See all/ })),
+        ).toBe(false);
         expect(
             screen.getByRole('link', { name: /See all 10 results/ }),
         ).toHaveAttribute('href', '/search?q=Pan');
@@ -81,11 +89,14 @@ describe('FmSearchMenu', () => {
         render({
             components: { FmSearchMenu },
             setup: () => ({ menu, results }),
-            template: '<FmSearchMenu ref="menu" :results="results" query="Pan" />',
+            template:
+                '<FmSearchMenu ref="menu" :results="results" query="Pan" />',
         });
 
         expect(menu.value?.open()).toBe(false);
-        expect(document.querySelectorAll('[aria-selected="true"]')).toHaveLength(0);
+        expect(
+            document.querySelectorAll('[aria-selected="true"]'),
+        ).toHaveLength(0);
 
         menu.value?.move(1);
         menu.value?.move(1);
@@ -100,6 +111,9 @@ describe('FmSearchMenu', () => {
 
         menu.value?.move(-1);
         await nextTick();
-        expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getAllByRole('option')[0]).toHaveAttribute(
+            'aria-selected',
+            'true',
+        );
     });
 });

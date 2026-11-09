@@ -877,7 +877,7 @@
     "Clear filters": "Togli i filtri",
     "Clear the search": "Cancella la ricerca",
     "Results": "Risultati",
-    "See all :count results": "Vedi tutti i :count risultati",
+    "{1} See the result|[2,*] See all :count results": "{1} Vedi il risultato|[2,*] Vedi tutti i :count risultati",
     "Enter": "Invio",
     "Period": "Periodo",
     "Period: :from – :to": "Periodo: :from – :to",

@@ -12,11 +12,10 @@
  *
  * @group fields
  */
-import { router } from '@inertiajs/vue3';
-import { trans } from 'laravel-vue-i18n';
+import { Link, router } from '@inertiajs/vue3';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import { search } from '@/routes';
-import { cn } from '@/lib/utils';
 import FmSearchResult from './FmSearchResult.vue';
 
 const {
@@ -96,50 +95,54 @@ defineExpose({ move, open });
 
 <template>
     <div
-        role="listbox"
-        :aria-label="trans('Results')"
         class="flex flex-col bg-card p-1.5"
         :class="
-            cn(
-                inline
-                    ? 'w-full'
-                    : 'absolute top-13 right-0 z-10 w-110 max-w-full rounded-xl shadow-menu',
-            )
+            inline
+                ? 'w-full'
+                : 'absolute top-13 right-0 z-10 w-110 max-w-full rounded-xl shadow-menu'
         "
     >
         <div
-            v-for="group in results.groups"
-            :key="group.group"
-            role="group"
-            :aria-label="group.label"
+            role="listbox"
+            :aria-label="trans('Results')"
             class="flex flex-col"
         >
-            <span class="px-3 pt-2 pb-1 text-meta-strong text-ink-soft">{{
-                group.label
-            }}</span>
-            <FmSearchResult
-                v-for="result in group.results"
-                :key="result.key"
-                :result="result"
-                :query="query"
-                compact
-                :active="isCurrent(result.key)"
-                role="option"
-                :aria-selected="isCurrent(result.key)"
-            />
+            <div
+                v-for="group in results.groups"
+                :key="group.group"
+                role="group"
+                :aria-label="group.label"
+                class="flex flex-col"
+            >
+                <span class="px-3 pt-2 pb-1 text-meta-strong text-ink-soft">{{
+                    group.label
+                }}</span>
+                <FmSearchResult
+                    v-for="result in group.results"
+                    :key="result.key"
+                    :result="result"
+                    :query="query"
+                    compact
+                    :active="isCurrent(result.key)"
+                    role="option"
+                    :aria-selected="isCurrent(result.key)"
+                />
+            </div>
         </div>
-        <a
+        <Link
             :href="allUrl"
             class="mt-1 flex min-h-11 items-center justify-between gap-3 border-t border-divider px-3 text-row text-ink no-underline"
             >{{
-                trans('See all :count results', {
-                    count: String(results.total),
-                })
+                transChoice(
+                    '{1} See the result|[2,*] See all :count results',
+                    results.total,
+                    { count: String(results.total) },
+                )
             }}
             <kbd
                 class="rounded-sm bg-segment px-1.5 py-0.5 text-meta-strong text-ink-soft"
                 >{{ trans('Enter') }}</kbd
-            ></a
+            ></Link
         >
     </div>
 </template>

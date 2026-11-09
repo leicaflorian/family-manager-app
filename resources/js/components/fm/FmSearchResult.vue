@@ -80,11 +80,9 @@ const tile = computed(() =>
     cn(
         'flex shrink-0 items-center justify-center',
         compact ? 'size-8 rounded-tag' : 'size-10 rounded-lg',
-        result.area !== null && areaOf(result.area) !== undefined
+        result.area !== null
             ? areaTile[areaOf(result.area) ?? 'general']
-            : result.area !== null
-              ? areaTile.general
-              : (tones[result.tone ?? 'neutral'] ?? tones.neutral),
+            : (tones[result.tone ?? 'neutral'] ?? tones.neutral),
     ),
 );
 

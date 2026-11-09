@@ -77,6 +77,20 @@ describe('FmSearchField', () => {
         expect(screen.queryByText(/^(⌘K|Ctrl K)$/)).toBeNull();
     });
 
+    it('shows the blue focus ring only on the whole-app box (clearable)', () => {
+        const { rerender } = render(FmSearchField, {
+            props: { label: 'Search everything', modelValue: '' },
+        });
+        const box = (): HTMLElement | null =>
+            screen.getByRole('searchbox').parentElement;
+
+        expect(box()?.className).not.toContain('focus-within:border-action');
+
+        return rerender({ clearable: true }).then(() =>
+            expect(box()?.className).toContain('focus-within:border-action'),
+        );
+    });
+
     it('emits submit on Enter and escape on Esc', async () => {
         const { emitted } = render(FmSearchField, {
             props: { label: 'Search everything', modelValue: 'Pan' },
