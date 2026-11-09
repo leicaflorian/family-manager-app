@@ -171,7 +171,7 @@ final class InstallationSettingsPage extends Page
     }
 
     /**
-     * The Remove button: the server key counts again.
+     * The Remove button, shown only when the key is stored: the server key counts again.
      *
      * @param  InstallationSetting  $setting  the key
      */
@@ -180,6 +180,7 @@ final class InstallationSettingsPage extends Page
         return Action::make('remove_'.$setting->value)
             ->label(__('Remove'))
             ->color('danger')
+            ->visible(static fn (): bool => resolve(InstallationSettings::class)->stored($setting) !== null)
             ->requiresConfirmation()
             ->action(function () use ($setting): void {
                 resolve(InstallationSettings::class)->set($setting, null);

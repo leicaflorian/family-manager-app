@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\InstallationSetting;
 use App\Enums\Role;
 use App\Models\Family;
 use App\Models\Person;
@@ -9,6 +10,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Support\CurrentFamily;
+use App\Support\InstallationSettings;
 use App\Support\Reminders\NotificationRule;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
@@ -78,6 +80,14 @@ test('the page shows the groups with the kinds in words, the rules, the example 
     $cars = collect($props['groups'])->firstWhere('name', 'Veicoli');
     expect($cars['rules'][0])->toMatchArray(['days' => 45, 'timing' => 'before', 'channels' => 'both', 'recipients' => ['all']])
         ->and($cars['deadline_types'])->toBe(['vehicles.road_tax_due_date', 'vehicles.inspection_due_date']);
+});
+
+test('the page sends the time of the morning round from the settings', function (): void {
+    expect(test()->actingAs($this->marco)->get('/settings/notices')->viewData('page')['props']['settings']['reminders_time'])->toBe('06:00');
+
+    resolve(InstallationSettings::class)->set(InstallationSetting::RemindersTime, '07:00');
+
+    expect(test()->actingAs($this->marco)->get('/settings/notices')->viewData('page')['props']['settings']['reminders_time'])->toBe('07:00');
 });
 
 test('the example uses the next card of the group that expires, none without cards', function (): void {

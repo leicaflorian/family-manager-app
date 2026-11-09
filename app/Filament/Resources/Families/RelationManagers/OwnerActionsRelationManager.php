@@ -42,6 +42,8 @@ final class OwnerActionsRelationManager extends RelationManager
                     ->state(static fn (OwnerAction $record): string => FamilyResource::dateTime($record->created_at)),
                 TextColumn::make('action')->label(__('Action'))
                     ->state(static fn (OwnerAction $record): string => $record->action->label()),
+                TextColumn::make('owner.name')->label(__('Owner'))->default('—'),
+                TextColumn::make('user.name')->label(__('Account'))->default('—'),
             ])
             ->defaultSort('id', 'desc')
             ->paginated(false);

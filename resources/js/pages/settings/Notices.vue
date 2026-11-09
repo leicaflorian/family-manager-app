@@ -490,12 +490,16 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
             {{
                 page.without_account.length === 0
                     ? $t(
-                          'Notices go out every morning at 6:00. They arrive only to those with an account.',
+                          'Notices go out every morning at :time. They arrive only to those with an account.',
+                          { time: page.reminders_time },
                       )
                     : $tChoice(
-                          '{1} Notices go out every morning at 6:00. They arrive only to those with an account: :names gets none.|[2,*] Notices go out every morning at 6:00. They arrive only to those with an account: :names get none.',
+                          '{1} Notices go out every morning at :time. They arrive only to those with an account: :names gets none.|[2,*] Notices go out every morning at :time. They arrive only to those with an account: :names get none.',
                           page.without_account.length,
-                          { names: page.without_account.join(', ') },
+                          {
+                              names: page.without_account.join(', '),
+                              time: page.reminders_time,
+                          },
                       )
             }}
         </p>

@@ -9,6 +9,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * One line of the log of the owner (`owner_actions`): who did what to which family. It is not a family model:
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $user_id
  * @property OwnerActionType $action
  * @property CarbonImmutable|null $created_at
+ * @property-read Owner|null $owner
+ * @property-read User|null $user
  *
  * @method static Builder<static>|OwnerAction newModelQuery()
  * @method static Builder<static>|OwnerAction newQuery()
@@ -32,6 +35,26 @@ use Illuminate\Database\Eloquent\Model;
 final class OwnerAction extends Model
 {
     public const ?string UPDATED_AT = null;
+
+    /**
+     * The owner who did it (null once the owner is deleted).
+     *
+     * @return BelongsTo<Owner, $this>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(Owner::class);
+    }
+
+    /**
+     * The account the action was done through, when there is one.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * The types of the columns.

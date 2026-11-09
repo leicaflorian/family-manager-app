@@ -100,6 +100,7 @@ function props(
             kinds,
             people,
             without_account: ['Giulia'],
+            reminders_time: '07:00',
             can_change: true,
             ...changes,
         },
@@ -182,7 +183,17 @@ describe('Settings, Notices', () => {
 
         expect(
             screen.getByText(
-                'Notices go out every morning at 6:00. They arrive only to those with an account: Giulia gets none.',
+                'Notices go out every morning at 07:00. They arrive only to those with an account: Giulia gets none.',
+            ),
+        ).toBeVisible();
+    });
+
+    it('says the time of the round without anyone left out', () => {
+        renderPage(Notices, props({ without_account: [] }));
+
+        expect(
+            screen.getByText(
+                'Notices go out every morning at 07:00. They arrive only to those with an account.',
             ),
         ).toBeVisible();
     });

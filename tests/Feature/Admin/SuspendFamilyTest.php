@@ -8,6 +8,7 @@ use App\Actions\Admin\SuspendFamily;
 use App\Enums\CallOutcome;
 use App\Enums\OwnerActionType;
 use App\Filament\Resources\Families\Pages\ViewFamily;
+use App\Filament\Resources\Families\RelationManagers\OwnerActionsRelationManager;
 use App\Models\Family;
 use App\Models\FamilySetting;
 use App\Models\File;
@@ -194,6 +195,19 @@ test('the page of the family suspends and reactivates with a confirmation, and s
 
     expect($this->family->refresh()->suspended_at)->toBeNull()
         ->and(OwnerAction::query()->count())->toBe(2);
+});
+
+test('the log of the family shows the owner and the account', function (): void {
+    actingAs($this->owner, 'owner');
+    $this->owner->update(['name' => 'Florian Owner']);
+
+    OwnerAction::query()->create(['owner_id' => $this->owner->id, 'family_id' => $this->family->id, 'family_name' => 'Rossi', 'user_id' => $this->laura->id, 'action' => OwnerActionType::VisitStarted]);
+    OwnerAction::query()->create(['owner_id' => null, 'family_id' => $this->family->id, 'family_name' => 'Rossi', 'user_id' => null, 'action' => OwnerActionType::Suspended]);
+
+    Livewire::test(OwnerActionsRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class])
+        ->assertSeeText('Florian Owner')
+        ->assertSeeText($this->laura->name)
+        ->assertSeeText('—');
 });
 
 test('changing the reading limit writes the log', function (): void {

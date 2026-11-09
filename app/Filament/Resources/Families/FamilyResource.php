@@ -29,7 +29,7 @@ final class FamilyResource extends Resource
 {
     protected static ?string $model = Family::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-home';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     /**
      * The singular name of a family.

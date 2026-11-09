@@ -62,6 +62,16 @@ it('replaces and removes a key', function (): void {
     expect($settings->stored(InstallationSetting::AnthropicKey))->toBeNull();
 });
 
+it('shows Remove only for a key that is stored', function (): void {
+    $action = TestAction::make('remove_anthropic_key')->schemaComponent('actions_anthropic_key');
+
+    Livewire::test(InstallationSettingsPage::class)->assertActionDoesNotExist($action);
+
+    resolve(InstallationSettings::class)->set(InstallationSetting::AnthropicKey, 'a-key');
+
+    Livewire::test(InstallationSettingsPage::class)->assertActionExists($action);
+});
+
 it('says to write an unreadable key again', function (): void {
     resolve(InstallationSettings::class)->set(InstallationSetting::GeminiKey, 'old');
     DB::table('app_settings')->where('key', 'gemini_key')->update(['value' => 'garbage']);

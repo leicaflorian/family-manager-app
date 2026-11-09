@@ -455,6 +455,7 @@ readonly groups: App.Data.ReminderGroupData[],
 readonly kinds: App.Data.OptionData[],
 readonly people: App.Data.ReminderPersonData[],
 readonly without_account: string[],
+readonly reminders_time: string,
 readonly can_change: boolean,
 };
 export type OptionData = {

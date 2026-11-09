@@ -16,6 +16,7 @@ use App\Models\Person;
 use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Services\Reminders\GroupExamples;
+use App\Support\InstallationSettings;
 use App\Support\Reminders\GroupRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -34,8 +35,9 @@ final class NoticeSettingsController extends Controller
      *
      * @param  User  $user  whoever signed in
      * @param  GroupExamples  $examples  the sentences under the groups
+     * @param  InstallationSettings  $installation  the time of the morning round
      */
-    public function edit(#[CurrentUser] User $user, GroupExamples $examples): Response
+    public function edit(#[CurrentUser] User $user, GroupExamples $examples, InstallationSettings $installation): Response
     {
         $today = CarbonImmutable::today('Europe/Rome');
         $people = Person::query()->with(['photo', 'user'])->orderBy('first_name')->orderBy('last_name')->get();
@@ -50,6 +52,7 @@ final class NoticeSettingsController extends Controller
             kinds: array_map(static fn (DeadlineSource $source): OptionData => new OptionData($source->field, GroupRules::typeName($source->field)), DeadlineSources::all()),
             people: array_values($with->map(static fn (Person $person): ReminderPersonData => new ReminderPersonData($person->id, $person->first_name, $person->initials, $person->photoUrl()))->all()),
             without_account: array_values($without->map(static fn (Person $person): string => $person->first_name)->all()),
+            reminders_time: $installation->remindersTime(),
             can_change: $user->can('create', ReminderGroup::class),
         )]);
     }
