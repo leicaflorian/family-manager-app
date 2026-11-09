@@ -71,18 +71,14 @@ defineEmits<{
 
 const styles: Record<ButtonVariant, string> = {
     solid: cn(
-        'bg-action px-5 font-normal text-on-action hover:bg-action-dark active:bg-action-dark',
+        'bg-action px-5 text-on-action hover:bg-action-dark active:bg-action-dark',
     ),
     outline: cn(
-        'border-2 border-action bg-card px-5 font-normal text-action hover:bg-action-soft',
+        'border-2 border-action bg-card px-5 text-action hover:bg-action-soft',
     ),
-    soft: cn(
-        'bg-action-soft px-5 font-normal text-action-dark hover:bg-action/15',
-    ),
-    text: cn(
-        'px-3 font-normal text-action hover:bg-action-soft hover:text-action-dark',
-    ),
-    danger: cn('px-3 font-normal text-overdue hover:bg-overdue/10'),
+    soft: cn('bg-action-soft px-5 text-action-dark hover:bg-action/15'),
+    text: cn('px-3 text-action hover:bg-action-soft hover:text-action-dark'),
+    danger: cn('px-3 text-overdue hover:bg-overdue/10'),
 };
 
 /** On a coloured background every variant is translucent white. */
@@ -107,7 +103,7 @@ const classes = computed((): string =>
         label && variant !== 'danger' && 'text-ink',
         // The colour behind shows through, a bit less on hover
         onColor &&
-            'border-0 bg-on-hero-soft font-semibold text-on-hero hover:bg-on-hero/25 focus-visible:outline-on-hero active:bg-on-hero/30',
+            'border-0 bg-on-hero-soft text-body-strong text-on-hero hover:bg-on-hero/25 focus-visible:outline-on-hero active:bg-on-hero/30',
     ),
 );
 

@@ -68,11 +68,12 @@ defineSlots<{
     after?: () => unknown;
 }>();
 
+/** The style and colour of the subtitle for each tone: a tone takes the strong style, never a font class. */
 const toneColor: Record<RowTone, string> = {
-    normal: cn('text-ink-soft'),
-    overdue: cn('font-semibold text-overdue'),
-    warning: cn('font-semibold text-warning'),
-    paid: cn('font-semibold text-paid'),
+    normal: cn('text-meta text-ink-soft'),
+    overdue: cn('text-meta-strong text-overdue'),
+    warning: cn('text-meta-strong text-warning'),
+    paid: cn('text-meta-strong text-paid'),
 };
 
 /** The title in two: the beginning, cut where room is short, and its last 5 characters. */
@@ -140,12 +141,9 @@ const titleTone = computed(() =>
                 :title="title"
                 >{{ title }}</span
             >
-            <span
-                v-if="subtitle"
-                class="truncate text-meta"
-                :class="toneColor[tone]"
-                >{{ subtitle }}</span
-            >
+            <span v-if="subtitle" class="truncate" :class="toneColor[tone]">{{
+                subtitle
+            }}</span>
         </span>
         <span
             v-if="$slots.after"

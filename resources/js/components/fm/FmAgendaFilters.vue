@@ -197,12 +197,8 @@ function tile(area: string): string {
 function segment(chosen: boolean): string {
     return cn(
         'relative flex cursor-pointer items-center justify-center text-body-sm whitespace-nowrap has-focus-visible:outline-2 has-focus-visible:outline-action',
-        compact.value
-            ? 'h-8 rounded-tag px-3'
-            : 'h-[38px] flex-1 rounded-tag',
-        chosen
-            ? 'bg-card font-bold shadow-raised'
-            : 'font-medium text-ink-soft',
+        compact.value ? 'h-8 rounded-tag px-3' : 'h-[38px] flex-1 rounded-tag',
+        chosen ? 'bg-card text-label shadow-raised' : 'text-ink-soft',
     );
 }
 
@@ -215,9 +211,9 @@ function segment(chosen: boolean): string {
 function ring(chosen: boolean): string {
     return chosen
         ? cn(
-              'border-[1.5px] border-action bg-action-soft font-bold text-action-dark',
+              'border-[1.5px] border-action bg-action-soft text-label text-action-dark',
           )
-        : cn('border border-edge bg-card font-medium');
+        : cn('border border-edge bg-card');
 }
 
 /**

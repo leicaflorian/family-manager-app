@@ -64,8 +64,8 @@ const moreActive = computed((): boolean =>
  */
 function itemClasses(marked: boolean): string {
     return cn(
-        'flex min-h-13 flex-col items-center justify-center gap-1 text-badge no-underline',
-        marked ? 'font-semibold text-action' : 'font-medium text-ink-soft',
+        'flex min-h-13 flex-col items-center justify-center gap-1 text-caption no-underline',
+        marked ? 'text-action' : 'text-ink-soft',
     );
 }
 </script>

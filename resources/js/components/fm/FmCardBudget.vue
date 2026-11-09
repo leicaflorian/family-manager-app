@@ -114,7 +114,7 @@ const progressWidth = computed((): string =>
 const nextLineClass = computed((): string =>
     cn(
         'text-body-sm',
-        next.value?.late ? 'font-semibold text-overdue' : 'text-ink-soft',
+        next.value?.late ? 'text-label text-overdue' : 'text-ink-soft',
     ),
 );
 </script>
