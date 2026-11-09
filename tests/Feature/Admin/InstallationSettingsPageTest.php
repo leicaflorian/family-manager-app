@@ -87,3 +87,45 @@ it('refuses a negative limit', function (): void {
 
     expect(resolve(InstallationSettings::class)->stored(InstallationSetting::MonthlyLimit))->toBeNull();
 });
+
+it('writes nothing when the form is saved untouched', function (): void {
+    $this->travelTo(now()->subDay());
+    resolve(InstallationSettings::class)->set(InstallationSetting::Model, 'stored-model');
+    $before = DB::table('app_settings')->get()->all();
+    $this->travelBack();
+
+    Livewire::test(InstallationSettingsPage::class)->call('save')->assertHasNoErrors();
+
+    expect(DB::table('app_settings')->get()->all())->toEqual($before);
+
+    DB::table('app_settings')->delete();
+    Livewire::test(InstallationSettingsPage::class)->call('save')->assertHasNoErrors();
+
+    expect(DB::table('app_settings')->count())->toBe(0);
+});
+
+it('gives the env value back when a stored field is cleared', function (): void {
+    config(['document_reader.model' => 'env-model']);
+    resolve(InstallationSettings::class)->set(InstallationSetting::Model, 'stored-model');
+
+    Livewire::test(InstallationSettingsPage::class)
+        ->fillForm(['data.model' => ''])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $settings = resolve(InstallationSettings::class);
+    expect($settings->stored(InstallationSetting::Model))->toBeNull()
+        ->and($settings->get(InstallationSetting::Model))->toBe('env-model');
+});
+
+it('keeps the provider off as it is through mount and save', function (): void {
+    config(['document_reader.provider' => 'gemini']);
+    resolve(InstallationSettings::class)->set(InstallationSetting::Provider, 'off');
+
+    Livewire::test(InstallationSettingsPage::class)
+        ->assertSet('data.provider', 'off')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(resolve(InstallationSettings::class)->stored(InstallationSetting::Provider))->toBe('off');
+});
