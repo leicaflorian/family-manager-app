@@ -115,7 +115,7 @@ final class RunReminders extends Command
         $created = 0;
         $failed = 0;
 
-        $families = Family::query()->whereNull('suspended_at')->whereNull('delete_after')->when($only !== null, fn ($query) => $query->whereKey($only))->orderBy('id')->get(['id']);
+        $families = Family::query()->notBlocked()->when($only !== null, fn ($query) => $query->whereKey($only))->orderBy('id')->get(['id']);
 
         foreach ($families as $family) {
             try {

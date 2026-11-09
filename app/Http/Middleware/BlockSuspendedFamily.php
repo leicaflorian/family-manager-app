@@ -39,6 +39,7 @@ final class BlockSuspendedFamily
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return to_route('login')->withErrors(['email' => SuspendedAccount::message()]);
+        // 303: a PUT, PATCH or DELETE must go to the sign-in with a GET (this runs before the Inertia middleware)
+        return to_route('login', [], 303)->withErrors(['email' => SuspendedAccount::message()]);
     }
 }

@@ -11,6 +11,7 @@ use Database\Factories\FamilyFactory;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -46,6 +47,7 @@ use Illuminate\Support\Facades\Crypt;
  * @method static Builder<static>|Family newModelQuery()
  * @method static Builder<static>|Family newQuery()
  * @method static Builder<static>|Family query()
+ * @method static Builder<static>|Family notBlocked()
  *
  * @mixin \Eloquent
  */
@@ -127,6 +129,17 @@ final class Family extends Model
     }
 
     /**
+     * Only the families that are neither suspended nor waiting to be deleted: the opposite of {@see self::isBlocked()}.
+     *
+     * @param  Builder<Family>  $query  the query to narrow
+     */
+    #[Scope]
+    protected function notBlocked(Builder $query): void
+    {
+        $query->whereNull('suspended_at')->whereNull('delete_after');
+    }
+
+    /**
      * The families whose day of deletion has come. `model:prune` has no current family: it reads `families` as it is.
      *
      * @return Builder<Family>
@@ -137,11 +150,20 @@ final class Family extends Model
     }
 
     /**
-     * Before the row goes: the files of the family leave the disk. The rows of the family go with it by their foreign keys.
+     * Deletes the family, and only once the row is gone for good its files leave the disk (the rows of the family
+     * go with it by their foreign keys): a failed delete must not leave a family without its files.
      */
-    protected function pruning(): void
+    public function prune(): bool
     {
-        resolve(FileStore::class)->deleteFamily($this->id);
+        $id = $this->id;
+
+        if (! $this->delete()) {
+            return false;
+        }
+
+        resolve(FileStore::class)->deleteFamily($id);
+
+        return true;
     }
 
     /**

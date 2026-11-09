@@ -6,6 +6,7 @@ namespace App\Actions\Admin;
 
 use App\Enums\OwnerActionType;
 use App\Models\Family;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Suspends a family: its accounts cannot sign in and the ones inside are sent out at the next request.
@@ -24,7 +25,9 @@ final readonly class SuspendFamily
      */
     public function handle(Family $family): void
     {
-        $family->forceFill(['suspended_at' => $family->suspended_at ?? now()])->save();
-        $this->log->handle(OwnerActionType::Suspended, $family);
+        DB::transaction(function () use ($family): void {
+            $family->forceFill(['suspended_at' => $family->suspended_at ?? now()])->save();
+            $this->log->handle(OwnerActionType::Suspended, $family);
+        });
     }
 }

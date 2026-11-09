@@ -6,6 +6,7 @@ namespace App\Actions\Admin;
 
 use App\Enums\OwnerActionType;
 use App\Models\Family;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Cancels the deletion of a family: it is active again, not only out of the queue.
@@ -24,7 +25,9 @@ final readonly class CancelFamilyDeletion
      */
     public function handle(Family $family): void
     {
-        $family->forceFill(['delete_after' => null, 'suspended_at' => null])->save();
-        $this->log->handle(OwnerActionType::DeletionCancelled, $family);
+        DB::transaction(function () use ($family): void {
+            $family->forceFill(['delete_after' => null, 'suspended_at' => null])->save();
+            $this->log->handle(OwnerActionType::DeletionCancelled, $family);
+        });
     }
 }

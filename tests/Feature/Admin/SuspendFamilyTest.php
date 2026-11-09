@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Admin\ReactivateFamily;
+use App\Actions\Admin\ScheduleFamilyDeletion;
 use App\Actions\Admin\SuspendFamily;
 use App\Enums\CallOutcome;
 use App\Enums\OwnerActionType;
@@ -23,6 +24,8 @@ use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Tests\Support\MailgunCall;
@@ -200,4 +203,39 @@ test('changing the reading limit writes the log', function (): void {
         ->callAction('editReadingLimit', ['reading_limit' => 50]);
 
     expect(OwnerAction::query()->sole()->action)->toBe(OwnerActionType::ReadingLimitChanged);
+});
+
+test('an unchanged reading limit writes no log line', function (): void {
+    $this->family->forceFill(['reading_limit' => 50])->save();
+    actingAs($this->owner, 'owner');
+
+    Livewire::test(ViewFamily::class, ['record' => $this->family->getRouteKey()])
+        ->callAction('editReadingLimit', ['reading_limit' => 50]);
+
+    expect(OwnerAction::query()->count())->toBe(0);
+});
+
+test('cancelling a deletion writes its log line', function (): void {
+    actingAs($this->owner, 'owner');
+    resolve(ScheduleFamilyDeletion::class)->handle($this->family);
+
+    Livewire::test(ViewFamily::class, ['record' => $this->family->getRouteKey()])->callAction('cancelDeletion');
+
+    expect(OwnerAction::query()->orderByDesc('id')->first()?->action)->toBe(OwnerActionType::DeletionCancelled);
+});
+
+test('a PUT of a suspended account goes to the sign-in with a 303', function (): void {
+    actingAs($this->laura);
+    resolve(SuspendFamily::class)->handle($this->family);
+
+    $this->put(route('agenda.filters'))->assertStatus(303)->assertRedirect(route('login'));
+    $this->assertGuest();
+});
+
+test('an old password hash is renewed at sign-in', function (): void {
+    DB::table('users')->where('id', $this->laura->id)->update(['password' => Hash::make('secret-password', ['rounds' => 4])]);
+
+    $this->post(route('login.store'), ['email' => 'laura@example.com', 'password' => 'secret-password']);
+
+    expect(Hash::needsRehash($this->laura->refresh()->password))->toBeFalse();
 });

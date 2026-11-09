@@ -63,6 +63,11 @@ class FortifyServiceProvider extends ServiceProvider
                 throw SuspendedAccount::exception();
             }
 
+            // `attempt()` would rehash an old hash on its way in; this callback must do the same
+            if (Hash::needsRehash($user->password)) {
+                $user->forceFill(['password' => $request->string('password')->toString()])->save();
+            }
+
             return $user;
         });
     }

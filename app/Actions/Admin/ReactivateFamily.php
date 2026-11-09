@@ -6,6 +6,7 @@ namespace App\Actions\Admin;
 
 use App\Enums\OwnerActionType;
 use App\Models\Family;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Gives a suspended family everything back; a deletion that was waiting is cancelled too.
@@ -24,7 +25,9 @@ final readonly class ReactivateFamily
      */
     public function handle(Family $family): void
     {
-        $family->forceFill(['suspended_at' => null, 'delete_after' => null])->save();
-        $this->log->handle(OwnerActionType::Reactivated, $family);
+        DB::transaction(function () use ($family): void {
+            $family->forceFill(['suspended_at' => null, 'delete_after' => null])->save();
+            $this->log->handle(OwnerActionType::Reactivated, $family);
+        });
     }
 }

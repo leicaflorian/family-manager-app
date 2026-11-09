@@ -6,6 +6,7 @@ namespace App\Actions\Admin;
 
 use App\Enums\OwnerActionType;
 use App\Models\Family;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Puts a family on the way out: suspended now, deleted by `model:prune` after 30 days unless the owner cancels.
@@ -27,10 +28,12 @@ final readonly class ScheduleFamilyDeletion
      */
     public function handle(Family $family): void
     {
-        $family->forceFill([
-            'suspended_at' => $family->suspended_at ?? now(),
-            'delete_after' => now()->addDays(self::DAYS),
-        ])->save();
-        $this->log->handle(OwnerActionType::DeletionScheduled, $family);
+        DB::transaction(function () use ($family): void {
+            $family->forceFill([
+                'suspended_at' => $family->suspended_at ?? now(),
+                'delete_after' => now()->addDays(self::DAYS),
+            ])->save();
+            $this->log->handle(OwnerActionType::DeletionScheduled, $family);
+        });
     }
 }

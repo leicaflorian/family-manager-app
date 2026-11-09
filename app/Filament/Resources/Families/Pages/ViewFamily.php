@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Families\Pages;
 
 use App\Actions\Admin\CancelFamilyDeletion;
-use App\Actions\Admin\LogOwnerAction;
+use App\Actions\Admin\ChangeReadingLimit;
 use App\Actions\Admin\ReactivateFamily;
 use App\Actions\Admin\ScheduleFamilyDeletion;
 use App\Actions\Admin\SuspendFamily;
 use App\Admin\FamilyFigure;
 use App\Admin\FamilyFigures;
 use App\Enums\FamilyState;
-use App\Enums\OwnerActionType;
 use App\Filament\Resources\Families\FamilyResource;
 use App\Models\Family;
 use Carbon\CarbonImmutable;
@@ -51,8 +50,7 @@ final class ViewFamily extends ViewRecord
      */
     public function figure(): FamilyFigure
     {
-        $family = $this->getRecord();
-        assert($family instanceof Family);
+        $family = $this->family();
 
         return resolve(FamilyFigures::class)->forFamilies([$family->id], CarbonImmutable::now())[$family->id] ?? new FamilyFigure;
     }
@@ -64,8 +62,7 @@ final class ViewFamily extends ViewRecord
      */
     public function monthLines(): array
     {
-        $family = $this->getRecord();
-        assert($family instanceof Family);
+        $family = $this->family();
         $lines = [];
 
         foreach (resolve(FamilyFigures::class)->monthlyReadings($family->id) as $month => $row) {
@@ -86,12 +83,7 @@ final class ViewFamily extends ViewRecord
             Action::make('editReadingLimit')
                 ->label(__('Reading limit of this family'))
                 ->icon('heroicon-o-adjustments-horizontal')
-                ->fillForm(function (): array {
-                    $family = $this->getRecord();
-                    assert($family instanceof Family);
-
-                    return ['reading_limit' => $family->reading_limit];
-                })
+                ->fillForm(fn (): array => ['reading_limit' => $this->family()->reading_limit])
                 ->schema([
                     TextInput::make('reading_limit')
                         ->label(__('Reading limit of this family'))
@@ -102,10 +94,7 @@ final class ViewFamily extends ViewRecord
                 ])
                 ->action(function (array $data): void {
                     $limit = $data['reading_limit'] ?? null;
-                    $family = $this->getRecord();
-                    assert($family instanceof Family);
-                    $family->forceFill(['reading_limit' => is_numeric($limit) ? (int) $limit : null])->save();
-                    resolve(LogOwnerAction::class)->handle(OwnerActionType::ReadingLimitChanged, $family);
+                    resolve(ChangeReadingLimit::class)->handle($this->family(), is_numeric($limit) ? (int) $limit : null);
                     $this->refreshFormData(['reading_limit']);
                 }),
             Action::make('suspend')
