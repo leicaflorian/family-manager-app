@@ -70,6 +70,18 @@ The Bianchis also have the address for the bills, `bianchi.k7m2x9@` followed by 
 
 Their files are in *To sort*; the PDFs are fake ones in `database/seeders/files/`.
 
+## The owner's panel
+
+The owner of the app (not a family) has a back office at `/admin` (Filament, same domain): families with their figures, *Enter as…* an account to look at it (only with the permission an admin gives in *Settings → Support*, 24 hours), suspend and delete a family, AI readings, incoming mail and the installation settings. The panel never shows the content of a family.
+
+The owner is not an account of a family and is not in the seeder: it lives in the `owners` table, uses the `owner` guard and must set up an authenticator app (two-factor authentication) at the first login. Create it with:
+
+```bash
+./vendor/bin/sail artisan owner:create
+```
+
+Then open `http://localhost:8090/admin`, sign in, scan the QR code with the authenticator app and enter the code. Online, run `php artisan owner:create` once after the first `migrate --force`.
+
 ## Incoming mail
 
 Mailgun calls `POST mail/mailgun` (see `AGENTS.md`). Without Mailgun, on a local machine only:
@@ -95,6 +107,7 @@ The full list of commands, with the code rules, is in `AGENTS.md`. The most used
 | `./vendor/bin/sail npm run build` | Frontend build |
 | `./vendor/bin/sail artisan migrate:fresh --seed` | Rebuilds the database with the Bianchi family |
 | `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copies a family from Directus |
+| `./vendor/bin/sail artisan owner:create` | Creates the owner account of the panel at `/admin` |
 | `./vendor/bin/sail artisan loans:refresh` | Works out again the instalments paid of the active loans of every family (the scheduler runs it every night) |
 | `./vendor/bin/sail npm run tokens` | Rewrites `resources/css/tokens.css` from `resources/design/tokens.json` |
 
