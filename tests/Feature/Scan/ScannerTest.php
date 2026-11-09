@@ -102,6 +102,31 @@ test('with GitHub not answering the download goes to the page of the releases, a
         ->assertRedirect(RELEASES_PAGE.'/download/v1.2.0/FamilyManagerAgent-1.2.0-mac.zip');
 });
 
+test('with GitHub not answering after the hour, the version known before is still offered and asked again after a while', function (): void {
+    Http::fake([
+        RELEASES_API => Http::sequence()
+            ->push([['tag_name' => 'v1.2.0', 'draft' => false, 'prerelease' => false]])
+            ->push('', 503)
+            ->push([['tag_name' => 'v1.3.0', 'draft' => false, 'prerelease' => false]]),
+        RELEASES_PAGE.'/download/v1.2.0/version.json' => Http::response(['version' => '1.2.0', 'files' => ['mac' => 'FamilyManagerAgent-1.2.0-mac.zip']]),
+        RELEASES_PAGE.'/download/v1.3.0/version.json' => Http::response(['version' => '1.3.0', 'files' => ['mac' => 'FamilyManagerAgent-1.3.0-mac.zip']]),
+    ]);
+
+    $this->actingAs($this->laura)->get(route('scanner.agent', 'mac'))
+        ->assertRedirect(RELEASES_PAGE.'/download/v1.2.0/FamilyManagerAgent-1.2.0-mac.zip');
+
+    $this->travel(61)->minutes();
+    $this->actingAs($this->laura)->get(route('scanner.agent', 'mac'))
+        ->assertRedirect(RELEASES_PAGE.'/download/v1.2.0/FamilyManagerAgent-1.2.0-mac.zip');
+    $this->actingAs($this->laura)->get(route('scanner.agent', 'mac'))
+        ->assertRedirect(RELEASES_PAGE.'/download/v1.2.0/FamilyManagerAgent-1.2.0-mac.zip');
+    Http::assertSentCount(3); // the first list and its version.json, then one failed list
+
+    $this->travel(6)->minutes();
+    $this->actingAs($this->laura)->get(route('scanner.agent', 'mac'))
+        ->assertRedirect(RELEASES_PAGE.'/download/v1.3.0/FamilyManagerAgent-1.3.0-mac.zip');
+});
+
 test('a version.json that is not what it should be is not believed', function (): void {
     Http::fake([
         RELEASES_API => Http::response([['tag_name' => 'v1.2.0', 'draft' => false, 'prerelease' => false]]),

@@ -30,6 +30,9 @@ final class AgentRelease
 
     private const string CACHE_KEY = 'agent-release';
 
+    /** The last version GitHub told, kept without an end: offered while GitHub does not answer. */
+    private const string LAST_KNOWN_KEY = 'agent-release-last-known';
+
     /** Seconds the answer of GitHub is kept, and how long a missing answer is left alone before asking again. */
     private const int KEEP = 3600;
 
@@ -40,7 +43,8 @@ final class AgentRelease
 
     /**
      * The last version published with the first number the page can use, as it is kept for an hour. When GitHub
-     * does not answer, nothing is known and it is asked again after five minutes.
+     * does not answer, the version known before is offered (nothing, the first time) and it is asked again after five
+     * minutes.
      *
      * @return array{version: string, files: array<string, string>}|null the version and the zip of each system, or null
      */
@@ -51,7 +55,14 @@ final class AgentRelease
 
         if ($kept === null) {
             $release = $this->ask();
-            $kept = ['release' => $release];
+
+            if ($release !== null) {
+                Cache::forever(self::LAST_KNOWN_KEY, $release);
+            }
+
+            /** @var array{version: string, files: array<string, string>}|null $known */
+            $known = $release ?? Cache::get(self::LAST_KNOWN_KEY);
+            $kept = ['release' => $known];
             Cache::put(self::CACHE_KEY, $kept, $release === null ? self::RETRY : self::KEEP);
         }
 
