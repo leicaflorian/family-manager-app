@@ -4,9 +4,11 @@
  * *Whole photo*, *Rotate*, *Find the edges* (the only way it asks the server, at a tap) and the choices of
  * *Improve*. On the phone the choices sit under the tools (decision 13 of the plan); on the computer they are in
  * the column on the right with *Cancel* and *Next*. «1 of 2» counts the photos of the document: *Next* goes on
- * to the next one, the last one goes back to the scan (decision 4). *Straighten* stays off until it arrives.
+ * to the next one, the last one goes back to the scan (decision 4). *Straighten* lays the cut sheet flat when *Next* is tapped
+ * (off at the start, and disabled with its reason where the phone cannot run it); while it works a veil with a spinner
+ * covers the photo, and *Cancel* stops it.
  */
-import { Maximize, RotateCw, ScanSearch } from '@lucide/vue';
+import { LoaderCircle, Maximize, RotateCw, ScanSearch } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -15,13 +17,14 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import { SEARCH_LONG_SIDE, reduceToJpeg } from '@/lib/scan/canvas';
 import type { Corners, Turns } from '@/lib/scan/crop';
 import { WHOLE, isSheet, turnCorners } from '@/lib/scan/crop';
+import { isDewarpAvailable } from '@/lib/scan/dewarp';
 import { CORNERS_TIMEOUT, findCorners } from '@/lib/scan/server';
 
 /** What *Next* hands to the page: the sheet to cut out. */
 export type CropResult = {
     corners: Corners;
     turns: Turns;
-    improve: { enhance: boolean; grey: boolean };
+    improve: { enhance: boolean; grey: boolean; dewarp: boolean };
 };
 
 const props = defineProps<{
@@ -33,8 +36,8 @@ const props = defineProps<{
     corners: Corners | null;
     /** Quarters of a turn the photo was given. */
     turns: Turns;
-    /** *Improve* and *Black and white*, as they are for the photo. */
-    improve: { enhance: boolean; grey: boolean };
+    /** *Improve*, *Black and white* and *Straighten*, as they are for the photo. */
+    improve: { enhance: boolean; grey: boolean; dewarp: boolean };
     /** Which photo of the document this is, from 1. */
     position: number;
     /** How many photos the document has. */
@@ -58,6 +61,9 @@ const corners = ref<Corners>(props.corners ?? WHOLE);
 const turns = ref<Turns>(props.turns);
 const enhance = ref(props.improve.enhance);
 const grey = ref(props.improve.grey);
+/** Whether this phone can run *Straighten* (a worker and WebAssembly). */
+const canStraighten = isDewarpAvailable();
+const dewarp = ref(props.improve.dewarp && canStraighten);
 /** A handle was moved, or *Whole photo* chosen: corners that arrive late do not replace them. */
 const touched = ref(false);
 const searching = ref(false);
@@ -166,7 +172,11 @@ function next(): void {
     emit('next', {
         corners: corners.value,
         turns: turns.value,
-        improve: { enhance: enhance.value, grey: grey.value },
+        improve: {
+            enhance: enhance.value,
+            grey: grey.value,
+            dewarp: dewarp.value,
+        },
     });
 }
 </script>
@@ -211,9 +221,18 @@ function next(): void {
         </header>
 
         <div
-            class="flex min-h-0 min-w-0 grow flex-col items-center justify-center gap-4"
+            class="relative flex min-h-0 min-w-0 grow flex-col items-center justify-center gap-4"
             :class="wide ? 'p-10' : 'px-5 py-3'"
         >
+            <!-- The veil: the model works on the cut sheet; Cancel (outside the veil) stops it -->
+            <div
+                v-if="busy && dewarp"
+                role="status"
+                class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-camera-bg/80 text-base font-semibold text-ink"
+            >
+                <FmIcon :icon="LoaderCircle" :size="32" class="animate-spin" />
+                {{ $t('Straightening…') }}
+            </div>
             <FmCropStage
                 class="w-full"
                 :class="wide ? 'max-w-[560px]' : 'max-w-[350px]'"
@@ -307,12 +326,16 @@ function next(): void {
 
             <div class="flex flex-col gap-1.5">
                 <FormKit
+                    v-model="dewarp"
                     type="toggle"
                     name="dewarp"
-                    :value="false"
-                    disabled
+                    :disabled="!canStraighten"
                     :label="$t('Straighten')"
-                    :help="$t('Straighten is not available on this phone')"
+                    :help="
+                        canStraighten
+                            ? $t('Lays a folded sheet flat')
+                            : $t('Straighten is not available on this phone')
+                    "
                 />
                 <FormKit
                     v-model="enhance"

@@ -159,20 +159,23 @@ export async function reduceToJpeg(
  * @param corners - the corners on the photo turned by `turns`
  * @param turns - quarters of a turn the photo is shown with
  * @param options - which improvements to apply
+ * @param straighten - *Straighten*: lays the cut sheet flat before the improvements (never the whole photo); absent when off
  * @returns the finished side (`jpeg`) and the side before the improvements (`plain`), shown while it is held
- * @throws if the browser cannot draw the photo
+ * @throws if the browser cannot draw the photo, or `straighten` fails
  */
 export async function cutOut(
     file: Blob,
     corners: Corners,
     turns: Turns,
     options: { enhance: boolean; grey: boolean },
+    straighten?: (sheet: Pixels) => Promise<Pixels>,
 ): Promise<{ jpeg: Blob; plain: Blob }> {
-    const sheet = warp(
+    const cut = warp(
         await readPhoto(file, SOURCE_LONG_SIDE),
         sourceCorners(corners, turns),
         LONG_SIDE,
     );
+    const sheet = straighten ? await straighten(cut) : cut;
     const plain = await toJpeg(sheet);
     const finished = improve(sheet, options);
 

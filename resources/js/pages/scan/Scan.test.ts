@@ -61,6 +61,18 @@ vi.mock('@/lib/scan/canvas', () => ({
     },
 }));
 
+// *Straighten* needs a worker and a model: here the model is a fake that the test answers
+const straighten = vi.hoisted(() => ({
+    available: vi.fn<() => boolean>(),
+    dewarp: vi.fn<(sheet: unknown, signal?: AbortSignal) => Promise<unknown>>(),
+}));
+
+vi.mock('@/lib/scan/dewarp', async (original) => ({
+    ...(await original<typeof import('@/lib/scan/dewarp')>()),
+    isDewarpAvailable: straighten.available,
+    dewarp: straighten.dewarp,
+}));
+
 type Client = ReturnType<typeof http.getClient>;
 type Config = Parameters<Client['request']>[0];
 
@@ -141,6 +153,12 @@ beforeEach(() => {
         jpeg: new File(['s'], 'sheet.jpg', { type: 'image/jpeg' }),
         plain: new File(['p'], 'plain.jpg', { type: 'image/jpeg' }),
     }));
+    straighten.available.mockReset().mockReturnValue(false);
+    straighten.dewarp.mockReset().mockResolvedValue({
+        width: 1,
+        height: 1,
+        data: new Uint8ClampedArray(4),
+    });
     server.corners.mockReset().mockResolvedValue(answer({ corners: CORNERS }));
     server.upload
         .mockReset()
@@ -652,6 +670,238 @@ describe('Scan', () => {
         expect(await screen.findByText('Drag to reorder')).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Crop and improve' }),
+        ).toBeInTheDocument();
+    });
+});
+
+describe('Scan, Straighten', () => {
+    const SHEET = { width: 1, height: 1, data: new Uint8ClampedArray(4) };
+
+    /** A cut that lays the sheet flat when it is asked to, like the real one. */
+    beforeEach(() => {
+        straighten.available.mockReturnValue(true);
+        server.corners.mockResolvedValue(answer({ corners: null }));
+        canvas.cutOut.mockImplementation(
+            async (
+                _file: Blob,
+                _corners: unknown,
+                _turns: number,
+                _options: unknown,
+                flatten?: (sheet: unknown) => Promise<unknown>,
+            ) => {
+                await flatten?.(SHEET);
+
+                return {
+                    jpeg: new File(['s'], 'sheet.jpg', { type: 'image/jpeg' }),
+                    plain: new File(['p'], 'plain.jpg', { type: 'image/jpeg' }),
+                };
+            },
+        );
+    });
+
+    /** Opens *Crop* on the only photo. */
+    async function openCrop(): Promise<HTMLElement> {
+        await fireEvent.click(screen.getByRole('button', { name: 'Crop' }));
+
+        return screen.findByRole('dialog', { name: 'Crop' });
+    }
+
+    /** Taps *Straighten* and waits for the form to take the value. */
+    async function flip(crop: HTMLElement): Promise<void> {
+        await fireEvent.click(
+            within(crop).getByRole('switch', { name: /Straighten/ }),
+        );
+        await settle();
+    }
+
+    /** Taps *Whole photo* and *Next*. */
+    async function cropWhole(crop: HTMLElement): Promise<void> {
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Whole photo' }),
+        );
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Next' }),
+        );
+    }
+
+    it('is a switch that can be turned on where the phone can do it, off by default', async () => {
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        const crop = await openCrop();
+        const toggle = within(crop).getByRole('switch', { name: /Straighten/ });
+
+        expect(toggle).toBeEnabled();
+        expect(toggle).not.toBeChecked();
+        expect(
+            within(crop).queryByText(
+                'Straighten is not available on this phone',
+            ),
+        ).not.toBeInTheDocument();
+    });
+
+    it('says it is not available and cuts without it', async () => {
+        straighten.available.mockReturnValue(false);
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        const crop = await openCrop();
+
+        expect(
+            within(crop).getByRole('switch', { name: /Straighten/ }),
+        ).toBeDisabled();
+        expect(
+            within(crop).getByText('Straighten is not available on this phone'),
+        ).toBeInTheDocument();
+
+        await cropWhole(crop);
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(1));
+        expect(canvas.cutOut.mock.calls[0]).toHaveLength(4);
+        expect(straighten.dewarp).not.toHaveBeenCalled();
+    });
+
+    it('lays the cut sheet flat once when it is on, and not again when it is off and on again', async () => {
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        let crop = await openCrop();
+        await flip(crop);
+        await cropWhole(crop);
+        await waitFor(() => expect(straighten.dewarp).toHaveBeenCalledTimes(1));
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Crop' }),
+            ).not.toBeInTheDocument(),
+        );
+
+        // off: cut again without it
+        crop = await openCrop();
+        await flip(crop);
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Next' }),
+        );
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(2));
+        expect(canvas.cutOut.mock.calls[1]).toHaveLength(4);
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Crop' }),
+            ).not.toBeInTheDocument(),
+        );
+
+        // on again, same corners: the flat sheet in memory is used
+        crop = await openCrop();
+        await flip(crop);
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Next' }),
+        );
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(3));
+        await settle();
+
+        expect(straighten.dewarp).toHaveBeenCalledTimes(1);
+    });
+
+    it('lays the sheet flat again when the corners change', async () => {
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        let crop = await openCrop();
+        await flip(crop);
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Next' }),
+        );
+        await waitFor(() => expect(straighten.dewarp).toHaveBeenCalledTimes(1));
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Crop' }),
+            ).not.toBeInTheDocument(),
+        );
+
+        crop = await openCrop();
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Rotate' }),
+        );
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Next' }),
+        );
+
+        await waitFor(() => expect(straighten.dewarp).toHaveBeenCalledTimes(2));
+    });
+
+    it('covers the sheet with a veil while it works, and Cancel stops it', async () => {
+        let signal: AbortSignal | undefined;
+        straighten.dewarp.mockImplementation(
+            (_sheet, stop) =>
+                new Promise((_resolve, reject) => {
+                    signal = stop;
+                    stop?.addEventListener('abort', () =>
+                        reject(new DOMException('Aborted', 'AbortError')),
+                    );
+                }),
+        );
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        const crop = await openCrop();
+        await flip(crop);
+        await cropWhole(crop);
+
+        expect(await within(crop).findByText('Straightening…')).toBeVisible();
+        expect(signal?.aborted).toBe(false);
+
+        await fireEvent.click(
+            within(crop).getAllByRole('button', { name: 'Cancel' })[0]!,
+        );
+
+        expect(signal?.aborted).toBe(true);
+        expect(
+            screen.queryByRole('dialog', { name: 'Crop' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('stops it when the page closes', async () => {
+        let signal: AbortSignal | undefined;
+        straighten.dewarp.mockImplementation(
+            (_sheet, stop) =>
+                new Promise(() => {
+                    signal = stop;
+                }),
+        );
+        const view = renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        const crop = await openCrop();
+        await flip(crop);
+        await cropWhole(crop);
+        await waitFor(() => expect(signal).toBeDefined());
+
+        view.unmount();
+
+        expect(signal?.aborted).toBe(true);
+    });
+
+    it('says when the sheet could not be laid flat and stays in Crop', async () => {
+        straighten.dewarp.mockRejectedValue(
+            new Error('The worker took too long'),
+        );
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+
+        const crop = await openCrop();
+        await flip(crop);
+        await cropWhole(crop);
+
+        expect(
+            await within(crop).findByText('I could not straighten this sheet.'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('dialog', { name: 'Crop' }),
         ).toBeInTheDocument();
     });
 });

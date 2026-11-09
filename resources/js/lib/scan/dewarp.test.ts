@@ -118,6 +118,7 @@ describe('the worker', () => {
         sent: ToWorker[];
         terminated: boolean;
         emit: (type: 'error' | 'messageerror', message?: string) => void;
+        reply: (answer: FromWorker) => void;
     } {
         const listeners: Array<(event: { data: FromWorker }) => void> = [];
         const problems: Record<
@@ -168,12 +169,30 @@ describe('the worker', () => {
                     listener({ message }),
                 );
             },
+            reply(answer: FromWorker): void {
+                listeners.forEach((listener) => listener({ data: answer }));
+            },
             terminate(): void {
                 worker.terminated = true;
             },
         };
 
         return worker;
+    }
+
+    /** Answers the n-th message the silent worker was sent. */
+    function answer(worker: ReturnType<typeof fakeWorker>, n: number): void {
+        const message = worker.sent[n]! as Extract<
+            ToWorker,
+            { type: 'dewarp' }
+        >;
+        worker.reply({
+            id: message.id,
+            type: 'done',
+            width: message.width,
+            height: message.height,
+            data: message.data,
+        });
     }
 
     it('gives the sheet back flat, with the size it had', async () => {
@@ -300,6 +319,67 @@ describe('the worker', () => {
             await vi.advanceTimersByTimeAsync(10_000);
 
             expect(worker.terminated).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('removes the listener of the signal when the call is over', async () => {
+        const { dewarp } = createDewarper(() => fakeWorker());
+        const stop = new AbortController();
+        const remove = vi.spyOn(stop.signal, 'removeEventListener');
+
+        await dewarp(flat(2, 2, [0, 0, 0]), stop.signal);
+
+        expect(remove).toHaveBeenCalledWith('abort', expect.any(Function));
+    });
+
+    it('counts the time of a page from when the worker takes it, not from when it was asked', async () => {
+        vi.useFakeTimers();
+        try {
+            const worker = fakeWorker({ silent: true });
+            const { dewarp } = createDewarper(() => worker, {
+                page: 1000,
+                load: 5000,
+            });
+
+            const one = dewarp(flat(2, 2, [0, 0, 0]));
+            const two = dewarp(flat(2, 2, [0, 0, 0]));
+            const check = expect(two).resolves.toMatchObject({ width: 2 });
+            await vi.advanceTimersByTimeAsync(800);
+            // the first page is done: the second one starts its own 1000 ms now
+            answer(worker, 0);
+            await one;
+            await vi.advanceTimersByTimeAsync(800);
+
+            expect(worker.terminated).toBe(false);
+
+            answer(worker, 1);
+            await check;
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('still gives up a worker that is stuck on the page it has', async () => {
+        vi.useFakeTimers();
+        try {
+            const worker = fakeWorker({ silent: true });
+            const { dewarp } = createDewarper(() => worker, {
+                page: 1000,
+                load: 5000,
+            });
+
+            const one = dewarp(flat(2, 2, [0, 0, 0]));
+            const two = dewarp(flat(2, 2, [0, 0, 0]));
+            const checks = [
+                expect(one).rejects.toThrow('took too long'),
+                expect(two).rejects.toThrow('took too long'),
+            ];
+            await vi.advanceTimersByTimeAsync(1000);
+
+            await Promise.all(checks);
+            expect(worker.terminated).toBe(true);
         } finally {
             vi.useRealTimers();
         }

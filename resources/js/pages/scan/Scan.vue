@@ -56,6 +56,7 @@ import {
     sendSummary,
 } from '@/lib/scan/pages';
 import { ScanRequestError, findCorners } from '@/lib/scan/server';
+import { straightener } from '@/lib/scan/straighten';
 import { cn } from '@/lib/utils';
 import { logout, toSort } from '@/routes';
 
@@ -231,6 +232,9 @@ function forget(one: Page, keep: string | null = null): void {
 function drop(id: string): void {
     const one = find(id);
 
+    stopStraightening(id);
+    straightener.forget(id);
+
     if (one) forget(one);
 
     doc.value = removePage(doc.value, id);
@@ -250,6 +254,18 @@ function enqueue(task: () => Promise<void>): void {
 
 /** How many crops each page has been asked for: a cut that finishes after a newer one is thrown away. */
 const cutRequests = new Map<string, number>();
+/** The *Straighten* under way for each page: *Cancel*, a new crop or leaving the page stop it. */
+const straightening = new Map<string, AbortController>();
+
+/**
+ * Stops the *Straighten* under way for a page, if any.
+ *
+ * @param id - the page
+ */
+function stopStraightening(id: string): void {
+    straightening.get(id)?.abort();
+    straightening.delete(id);
+}
 
 /**
  * Adds the photos and PDF files chosen, or the photo taken.
@@ -397,7 +413,7 @@ async function searchCorners(photo: Blob): Promise<Corners | null> {
  * @param id - the page
  * @param corners - the corners, on the photo turned by `turns`
  * @param turns - quarters of a turn
- * @param improve - *Improve* and *Black and white*
+ * @param improve - *Improve*, *Black and white* and *Straighten* (the flat sheet is kept until the corners or the turns change)
  * @param automatic - the cut the server proposed: it gives way to a crop of the person
  * @throws if the browser cannot cut the photo
  */
@@ -405,7 +421,7 @@ async function cut(
     id: string,
     corners: Corners,
     turns: Turns,
-    improve: { enhance: boolean; grey: boolean },
+    improve: { enhance: boolean; grey: boolean; dewarp?: boolean },
     automatic = false,
 ): Promise<void> {
     const one = find(id);
@@ -416,7 +432,26 @@ async function cut(
     if (!automatic) cutRequests.set(id, (cutRequests.get(id) ?? 0) + 1);
     const request = cutRequests.get(id) ?? 0;
 
-    const { jpeg, plain } = await cutOut(one.file, corners, turns, improve);
+    const { dewarp = false, ...options } = improve;
+    let result: { jpeg: Blob; plain: Blob };
+
+    if (dewarp) {
+        stopStraightening(id);
+        const stop = new AbortController();
+        straightening.set(id, stop);
+
+        try {
+            result = await cutOut(one.file, corners, turns, options, (sheet) =>
+                straightener.flatten(id, corners, turns, sheet, stop.signal),
+            );
+        } finally {
+            if (straightening.get(id) === stop) straightening.delete(id);
+        }
+    } else {
+        result = await cutOut(one.file, corners, turns, options);
+    }
+
+    const { jpeg, plain } = result;
     const now = find(id);
 
     if (
@@ -434,7 +469,7 @@ async function cut(
     update(id, {
         corners,
         turns,
-        improve: { ...improve, dewarp: false },
+        improve: { ...options, dewarp },
         cut: true,
         jpeg,
         sheetUrl: URL.createObjectURL(jpeg),
@@ -513,7 +548,11 @@ function cancel(): void {
 function discardAll(): void {
     discardAsking.value = false;
 
-    for (const one of pages.value) forget(one);
+    for (const one of pages.value) {
+        forget(one);
+        stopStraightening(one.id);
+        straightener.forget(one.id);
+    }
 
     doc.value = { pages: [], chosenId: null };
     note.value = '';
@@ -533,7 +572,11 @@ function openCrop(id: string): void {
         .map((one) => one.id);
     const index = ids.indexOf(id);
 
-    if (index >= 0) crop.value = { ids, index, busy: false, problem: null };
+    if (index < 0) return;
+
+    // *Edit the edges* on a photo whose straightening is still under way stops it
+    stopStraightening(id);
+    crop.value = { ids, index, busy: false, problem: null };
 }
 
 /** The photo open in *Crop*. */
@@ -542,6 +585,17 @@ const cropping = computed((): Page | null => {
 
     return open ? (find(open.ids[open.index] ?? '') ?? null) : null;
 });
+
+/** *Cancel* in *Crop*: stops a *Straighten* under way and closes. */
+function cancelCrop(): void {
+    const open = crop.value;
+
+    if (open) {
+        for (const id of open.ids) stopStraightening(id);
+    }
+
+    crop.value = null;
+}
 
 /**
  * Whether a crop asks for what the page already has: the sheet is not cut again.
@@ -556,6 +610,7 @@ function sameCrop(one: Page, result: CropResult): boolean {
         one.turns === result.turns &&
         one.improve.enhance === result.improve.enhance &&
         one.improve.grey === result.improve.grey &&
+        one.improve.dewarp === result.improve.dewarp &&
         JSON.stringify(one.corners) === JSON.stringify(result.corners)
     );
 }
@@ -577,8 +632,18 @@ async function cropNext(result: CropResult): Promise<void> {
 
         try {
             await cut(one.id, result.corners, result.turns, result.improve);
-        } catch {
-            open.problem = trans('I could not crop this photo.');
+        } catch (caught) {
+            // *Cancel* stopped the straightening: nobody reads an answer
+            if (
+                caught instanceof DOMException &&
+                caught.name === 'AbortError'
+            ) {
+                return;
+            }
+
+            open.problem = result.improve.dewarp
+                ? trans('I could not straighten this sheet.')
+                : trans('I could not crop this photo.');
 
             return;
         } finally {
@@ -659,7 +724,11 @@ watch(
 );
 
 onBeforeUnmount(() => {
-    for (const one of pages.value) forget(one);
+    for (const one of pages.value) {
+        forget(one);
+        stopStraightening(one.id);
+        straightener.forget(one.id);
+    }
 });
 </script>
 
@@ -680,7 +749,7 @@ onBeforeUnmount(() => {
         :busy="crop.busy"
         :problem="crop.problem"
         @next="cropNext"
-        @cancel="crop = null"
+        @cancel="cancelCrop"
     />
 
     <ScanWebcam

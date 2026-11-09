@@ -259,10 +259,32 @@ export function createDewarper(
     }
 
     /**
+     * The calls waiting for their answer, in the order they were sent. The worker does one at a time, so only the
+     * first one is being worked on: its time starts when it becomes the first, not when it was asked.
+     */
+    const line: Array<{ id: number; arm: () => void }> = [];
+
+    /** Takes a call out of the line; the one that is now first starts its time. */
+    function leave(id: number): void {
+        const index = line.findIndex((turn) => turn.id === id);
+
+        if (index < 0) {
+            return;
+        }
+
+        line.splice(index, 1);
+
+        if (index === 0) {
+            line[0]?.arm();
+        }
+    }
+
+    /**
      * Sends a message and waits for its answer. When the signal is aborted the
      * wait ends at once; the worker keeps going (it cannot be interrupted in
      * the middle of the model) and its late answer is dropped. When the time is
-     * up the worker is given up.
+     * up the worker is given up; the time counts from when the worker takes the
+     * message, after the ones sent before it.
      */
     function ask(
         build: (id: number) => ToWorker,
@@ -278,19 +300,31 @@ export function createDewarper(
         const running = start();
 
         return new Promise<FromWorker>((resolve, reject) => {
+            let timer: ReturnType<typeof setTimeout> | undefined;
             const onAbort = (): void => {
                 waiting.delete(id);
                 finish();
                 reject(abortError(signal!));
             };
-            const timer = setTimeout(
-                () => fail(running, 'The worker took too long'),
-                timeout,
-            );
             /** The call is over: nothing of it stays listening. */
             function finish(): void {
                 clearTimeout(timer);
                 signal?.removeEventListener('abort', onAbort);
+                leave(id);
+            }
+
+            line.push({
+                id,
+                arm: () => {
+                    timer = setTimeout(
+                        () => fail(running, 'The worker took too long'),
+                        timeout,
+                    );
+                },
+            });
+
+            if (line.length === 1) {
+                line[0]!.arm();
             }
 
             waiting.set(id, {
