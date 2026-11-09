@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\Devices\ForgetLinkedDevices;
 use App\Data\LinkedDeviceData;
 use App\Data\PhoneLinkData;
+use App\Http\Middleware\LimitVisit;
 use App\Models\LinkedDevice;
 use App\Models\User;
 use App\Services\PhoneLinks;
@@ -31,7 +32,8 @@ final class LinkedDeviceController extends Controller
 
     /**
      * What the panel needs. Opening it makes a new code; the reload every 2 seconds asks `?only=devices` and
-     * gets just the phones, with no new code.
+     * gets just the phones, with no new code. During a visit of the owner no code is made: the account's own code
+     * stays valid, and the owner cannot link a phone that would outlive the visit.
      *
      * @param  Request  $request  the request
      * @param  User  $user  whoever signed in
@@ -44,13 +46,13 @@ final class LinkedDeviceController extends Controller
             return response()->json(['devices' => $devices]);
         }
 
-        $code = $this->links->newCode($user);
+        $code = LimitVisit::isOpen($request) ? null : $this->links->newCode($user);
 
         return response()->json(new PhoneLinkData(
             code: $code,
-            qr: QrCode::svg(route('connect.show', ['code' => $code])),
+            qr: $code === null ? null : QrCode::svg(route('connect.show', ['code' => $code])),
             address: (string) preg_replace('#^https?://#', '', route('connect')),
-            expires_at: now()->addMinutes(PhoneLinks::CODE_MINUTES)->toIso8601String(),
+            expires_at: $code === null ? null : now()->addMinutes(PhoneLinks::CODE_MINUTES)->toIso8601String(),
             person: $this->links->firstName($user),
             family: $user->family->name,
             devices: $devices,

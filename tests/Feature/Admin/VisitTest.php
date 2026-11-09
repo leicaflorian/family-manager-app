@@ -3,15 +3,19 @@
 declare(strict_types=1);
 
 use App\Actions\Admin\SuspendFamily;
+use App\Actions\Calendar\TurnOnCalendar;
 use App\Enums\OwnerActionType;
 use App\Filament\Resources\Families\Pages\ViewFamily;
 use App\Filament\Resources\Families\RelationManagers\UsersRelationManager;
 use App\Http\Middleware\LimitVisit;
 use App\Models\Family;
+use App\Models\Invitation;
 use App\Models\Owner;
 use App\Models\OwnerAction;
 use App\Models\User;
+use App\Services\PhoneLinks;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia;
@@ -180,18 +184,76 @@ test('the visit ends when the family is suspended', function (): void {
 test('the visit ends when the owner signs out of the panel', function (): void {
     startVisit();
 
-    Auth::guard('owner')->logout();
-
-    $this->get(route('dashboard'))->assertRedirect('/admin');
+    // The real sign-out of Filament: it signs the owner out, then throws the whole session away
+    $this->post(route('filament.admin.auth.logout'))->assertRedirect();
 
     expect(Auth::guard('web')->check())->toBeFalse()
         ->and(session()->has('visit'))->toBeFalse()
-        // The owner is no longer in the guard: the log takes it from the visit
+        ->and(OwnerAction::query()->orderBy('id')->pluck('action')->all())
+        ->toBe([OwnerActionType::VisitStarted, OwnerActionType::VisitEnded])
+        ->and(OwnerAction::query()->latest('id')->first())
+        ->owner_id->toBe($this->owner->id)
+        ->user_id->toBe($this->laura->id);
+
+    Auth::shouldUse('web');
+    $this->get(route('dashboard'))->assertRedirect(route('login'));
+});
+
+test('signing the owner out of the panel in any way ends the visit at once', function (): void {
+    startVisit();
+
+    Auth::guard('owner')->logout();
+
+    expect(session()->has('visit'))->toBeFalse()
+        ->and(Auth::guard('web')->check())->toBeFalse()
         ->and(OwnerAction::query()->latest('id')->first())
         ->action->toBe(OwnerActionType::VisitEnded)
         ->owner_id->toBe($this->owner->id);
+});
 
-    $this->get(route('dashboard'))->assertRedirect(route('login'));
+test('an owner without the authenticator app cannot start a visit', function (): void {
+    $owner = Owner::factory()->create();
+
+    actingAs($owner, 'owner')->get(visitUrl($this->laura))->assertForbidden();
+
+    expect(Auth::guard('web')->check())->toBeFalse()
+        ->and(OwnerAction::query()->count())->toBe(0);
+});
+
+test('linking a phone makes no code during a visit', function (): void {
+    $code = resolve(PhoneLinks::class)->newCode($this->laura);
+    $hash = Cache::get('phone-link-of:'.$this->laura->id);
+    startVisit();
+
+    $this->getJson(route('devices.index'))->assertOk()
+        ->assertJsonPath('code', null)
+        ->assertJsonPath('qr', null)
+        ->assertJsonPath('expires_at', null)
+        ->assertJsonPath('devices', []);
+
+    // Laura's own code is still the one in force, and still works
+    expect(Cache::get('phone-link-of:'.$this->laura->id))->toBe($hash)
+        ->and(resolve(PhoneLinks::class)->find($code))->not->toBeNull();
+});
+
+test('the link of a pending invitation is hidden during a visit', function (): void {
+    $invitation = Invitation::factory()->create(['family_id' => $this->family->id]);
+    startVisit();
+
+    $this->get(route('family.invitations.show', $invitation))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('invitation.link', null)
+            ->where('invitation.email', $invitation->email));
+});
+
+test('the address of the calendar is hidden during a visit', function (): void {
+    resolve(TurnOnCalendar::class)->handle($this->family, 'en');
+    startVisit();
+
+    $this->get(route('calendar.edit'))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('calendar.on', true)
+            ->where('calendar.url', null));
 });
 
 test('a family user cannot start a visit', function (): void {

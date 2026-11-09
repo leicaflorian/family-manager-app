@@ -85,6 +85,7 @@ export type CalendarSettingsData = {
 readonly on: boolean,
 readonly url: string | null,
 readonly can_change: boolean,
+readonly hidden: boolean,
 };
 export type CardAddData = {
 readonly type: string,
@@ -557,10 +558,10 @@ readonly last_name: string,
 readonly initials: string,
 };
 export type PhoneLinkData = {
-readonly code: string,
-readonly qr: string,
+readonly code: string | null,
+readonly qr: string | null,
 readonly address: string,
-readonly expires_at: string,
+readonly expires_at: string | null,
 readonly person: string,
 readonly family: string,
 readonly devices: App.Data.LinkedDeviceData[],
@@ -704,7 +705,7 @@ readonly family_hidden: string[],
 };
 export type SentInvitationData = {
 readonly email: string,
-readonly link: string,
+readonly link: string | null,
 readonly expires_on: string,
 };
 export type ToSortPageData = {

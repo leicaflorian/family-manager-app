@@ -10,10 +10,12 @@ use App\Data\PersonSummaryData;
 use App\Data\SentInvitationData;
 use App\Enums\PersonRole;
 use App\Enums\Role;
+use App\Http\Middleware\LimitVisit;
 use App\Http\Requests\Family\SendInvitationRequest;
 use App\Models\Invitation;
 use App\Models\Person;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -51,14 +53,17 @@ final class InvitationController extends Controller
     }
 
     /**
-     * The invitation just sent, with the link to copy if the email does not arrive.
+     * The invitation just sent, with the link to copy if the email does not arrive; without the link during a visit.
+     *
+     * @param  Request  $request  the request
+     * @param  Invitation  $invitation  the invitation
      */
-    public function show(Invitation $invitation): Response
+    public function show(Request $request, Invitation $invitation): Response
     {
         Gate::authorize('create', Invitation::class);
 
         return Inertia::render('family/InvitationSent', [
-            'invitation' => SentInvitationData::fromInvitation($invitation),
+            'invitation' => SentInvitationData::fromInvitation($invitation, LimitVisit::isOpen($request)),
         ]);
     }
 }

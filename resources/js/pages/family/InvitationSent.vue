@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * *Invitation sent* page: the email has left, and the link can be copied to send
- * it in another way too.
+ * it in another way too. During a visit of the owner the link is not sent to the
+ * page, and a note says so.
  */
 import { Head } from '@inertiajs/vue3';
 import { Check, Copy } from '@lucide/vue';
@@ -25,7 +26,9 @@ const { copied, failed: copyFailed, copy: copyText } = useCopy();
  * Copies the link to the clipboard.
  */
 async function copy(): Promise<void> {
-    await copyText(invitation.link);
+    if (invitation.link !== null) {
+        await copyText(invitation.link);
+    }
 }
 </script>
 
@@ -46,7 +49,11 @@ async function copy(): Promise<void> {
                 )
             }}
         </FmNotice>
+        <FmNotice v-if="invitation.link === null">
+            {{ $t('The link is hidden during a visit.') }}
+        </FmNotice>
         <FormKit
+            v-else
             type="text"
             :label="$t('The link to join')"
             name="link"
@@ -62,9 +69,12 @@ async function copy(): Promise<void> {
             "
         />
         <div class="flex flex-wrap gap-2.5">
-            <FmButton :icon="copied ? Check : Copy" @click="copy">{{
-                copied ? $t('Copied') : $t('Copy the link')
-            }}</FmButton>
+            <FmButton
+                v-if="invitation.link !== null"
+                :icon="copied ? Check : Copy"
+                @click="copy"
+                >{{ copied ? $t('Copied') : $t('Copy the link') }}</FmButton
+            >
             <span v-if="copyFailed" role="status" class="self-center text-sm">{{
                 $t('Could not copy: select the text and copy it by hand.')
             }}</span>

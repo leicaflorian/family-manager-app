@@ -5,7 +5,8 @@
  * (it lasts 10 minutes), the phones already linked with *Unlink* (after a
  * question), and *Done*. Opening it makes a new code. While it is open it asks
  * the server every 2 seconds for the linked phones only, so the phone that has
- * just entered shows up as «Linked now»; it stops when the panel closes. Used by
+ * just entered shows up as «Linked now»; it stops when the panel closes. During a
+ * visit of the owner no code is made: the panel shows only the phones. Used by
  * *To sort* and by *My account*.
  *
  * @group panels
@@ -78,52 +79,60 @@ const hint = computed(() =>
         </FmNotice>
 
         <template v-else-if="link !== null">
-            <div class="flex flex-wrap items-center gap-7">
-                <FmQrCode
-                    :svg="link.qr"
-                    :label="$t('Code to link the phone')"
-                />
-                <ol
-                    class="m-0 flex min-w-60 flex-1 list-none flex-col gap-3.5 p-0"
-                >
-                    <li
-                        v-for="(step, index) in [
-                            $t('Open the phone camera and frame the code.'),
-                            $t(
-                                'Tap the link that appears: you upload documents as :person, in the :family family.',
-                                { person: link.person, family: link.family },
-                            ),
-                            $t(
-                                'Put it on the Home screen, so you find it like an app.',
-                            ),
-                        ]"
-                        :key="index"
-                        class="flex items-start gap-3 text-[15px] leading-snug"
+            <template v-if="link.code !== null && link.qr !== null">
+                <div class="flex flex-wrap items-center gap-7">
+                    <FmQrCode
+                        :svg="link.qr"
+                        :label="$t('Code to link the phone')"
+                    />
+                    <ol
+                        class="m-0 flex min-w-60 flex-1 list-none flex-col gap-3.5 p-0"
                     >
-                        <span
-                            aria-hidden="true"
-                            class="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-action-soft text-[13px] font-extrabold text-action-dark"
-                            >{{ index + 1 }}</span
+                        <li
+                            v-for="(step, index) in [
+                                $t('Open the phone camera and frame the code.'),
+                                $t(
+                                    'Tap the link that appears: you upload documents as :person, in the :family family.',
+                                    {
+                                        person: link.person,
+                                        family: link.family,
+                                    },
+                                ),
+                                $t(
+                                    'Put it on the Home screen, so you find it like an app.',
+                                ),
+                            ]"
+                            :key="index"
+                            class="flex items-start gap-3 text-[15px] leading-snug"
                         >
-                        <span>{{ step }}</span>
-                    </li>
-                </ol>
-            </div>
+                            <span
+                                aria-hidden="true"
+                                class="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-action-soft text-[13px] font-extrabold text-action-dark"
+                                >{{ index + 1 }}</span
+                            >
+                            <span>{{ step }}</span>
+                        </li>
+                    </ol>
+                </div>
 
-            <p
-                class="m-0 flex items-start gap-2.5 rounded-lg bg-canvas px-3.5 py-3 text-sm leading-snug text-ink-soft"
-            >
-                <FmIcon :icon="Clock" :size="18" class="mt-px shrink-0" />
-                <span>
-                    <template v-for="(piece, index) in hint" :key="index">
-                        <strong
-                            v-if="piece.strong"
-                            class="whitespace-nowrap text-ink"
-                            >{{ piece.text }}</strong
-                        >
-                        <template v-else>{{ piece.text }}</template>
-                    </template>
-                </span>
+                <p
+                    class="m-0 flex items-start gap-2.5 rounded-lg bg-canvas px-3.5 py-3 text-sm leading-snug text-ink-soft"
+                >
+                    <FmIcon :icon="Clock" :size="18" class="mt-px shrink-0" />
+                    <span>
+                        <template v-for="(piece, index) in hint" :key="index">
+                            <strong
+                                v-if="piece.strong"
+                                class="whitespace-nowrap text-ink"
+                                >{{ piece.text }}</strong
+                            >
+                            <template v-else>{{ piece.text }}</template>
+                        </template>
+                    </span>
+                </p>
+            </template>
+            <p v-else class="m-0 text-[15px] leading-normal text-ink-soft">
+                {{ $t('During a visit no code is made to link a phone.') }}
             </p>
 
             <section class="flex flex-col gap-2">

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Ai\AiManager;
 use PDOException;
 
 /**
@@ -28,6 +29,9 @@ final class InstallationSettings
 
     /** @var array<string, mixed>|null the `config` values before the first `apply()` */
     private ?array $original = null;
+
+    /** @var array<string, array{value: ?string, updated_at: ?string}>|null the rows read once, until the next `apply()` or `set()` */
+    private ?array $rows = null;
 
     /**
      * The current `config` value of every key a setting replaces.
@@ -137,16 +141,21 @@ final class InstallationSettings
         }
 
         Cache::forget(self::CACHE_KEY);
+        $this->rows = null;
     }
 
     /**
      * Copies the database values into `config`. The provider `off` writes null, which turns the reading off even
      * when the `.env` turns it on. Does nothing before the table exists (e.g. while `migrate` runs on an empty database).
+     * The rows are read again, and the AI providers built with a key or an address that changed are forgotten, so a
+     * queue worker running for days uses what the panel saved.
      */
     public function apply(): void
     {
         // The `.env` values as the process started: a worker lives for days and a removed setting must go back to them
         $this->original ??= $this->snapshot();
+        $this->rows = null;
+        $changed = [];
 
         foreach (InstallationSetting::cases() as $setting) {
             $configKey = $setting->configKey();
@@ -156,13 +165,33 @@ final class InstallationSettings
             }
 
             $stored = $this->stored($setting);
-
-            Config::set($configKey, match (true) {
+            $value = match (true) {
                 $stored === null => $this->original[$configKey] ?? null,
                 $setting === InstallationSetting::Provider && $stored === 'off' => null,
                 $setting === InstallationSetting::MonthlyLimit => (int) $stored,
                 default => $stored,
-            });
+            };
+
+            if (str_starts_with($configKey, 'ai.providers.') && Config::get($configKey) !== $value) {
+                $changed[] = explode('.', $configKey)[2];
+            }
+
+            Config::set($configKey, $value);
+        }
+
+        $this->forgetProviders(array_values(array_unique($changed)));
+    }
+
+    /**
+     * Forgets the AI providers already built: the Laravel AI SDK keeps each one with the configuration it had, and
+     * builds it again from `config` at the next use.
+     *
+     * @param  list<string>  $names  the providers whose configuration changed
+     */
+    private function forgetProviders(array $names): void
+    {
+        if ($names !== [] && app()->resolved(AiManager::class)) {
+            resolve(AiManager::class)->forgetInstance($names);
         }
     }
 
@@ -183,13 +212,17 @@ final class InstallationSettings
     }
 
     /**
-     * All the rows, by key, cached for a minute. Empty (and not cached) when the table does not exist yet, so the
-     * first read after `migrate` sees the real rows.
+     * All the rows, by key, cached for a minute and kept in this object until the next `apply()` or `set()`. Empty
+     * (and not cached nor kept) when the table does not exist yet, so the first read after `migrate` sees the real rows.
      *
      * @return array<string, array{value: ?string, updated_at: ?string}>
      */
     private function rows(): array
     {
+        if ($this->rows !== null) {
+            return $this->rows;
+        }
+
         try {
             // The table first: before `migrate` the cache table of the database store may be missing too
             if (! Schema::hasTable('app_settings')) {
@@ -200,7 +233,7 @@ final class InstallationSettings
             $cached = Cache::get(self::CACHE_KEY);
 
             if ($cached !== null) {
-                return $cached;
+                return $this->rows = $cached;
             }
 
             $rows = [];
@@ -211,7 +244,7 @@ final class InstallationSettings
 
             Cache::put(self::CACHE_KEY, $rows, 60);
 
-            return $rows;
+            return $this->rows = $rows;
         } catch (QueryException|PDOException) {
             // Database unreachable or cache table missing: the `.env` values apply and nothing is cached
             return [];

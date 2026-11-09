@@ -22,7 +22,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class VisitController extends Controller
 {
     /**
-     * Starts the visit and opens the home of the app as the account.
+     * Starts the visit and opens the home of the app as the account. An owner who has not set up the authenticator
+     * app yet is refused: the panel asks for it on every page, and this route is outside the panel.
      *
      * @param  Request  $request  the request
      * @param  User  $user  the account to look as
@@ -31,6 +32,8 @@ final class VisitController extends Controller
      */
     public function start(Request $request, User $user, #[CurrentUser('owner')] Owner $owner, StartVisit $start): RedirectResponse
     {
+        abort_if($owner->app_authentication_secret === null, 403);
+
         $start->handle($owner, $user, $request->session());
 
         return to_route('dashboard');

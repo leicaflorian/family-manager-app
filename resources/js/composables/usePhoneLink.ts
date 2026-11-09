@@ -37,7 +37,8 @@ async function getJson<T>(url: string): Promise<T | null> {
 /**
  * The data of the panel *Link the phone*: while it is open it makes one code (a new one at every opening),
  * then every 2 seconds asks only for the linked phones (`?only=devices`), so a phone that just entered shows
- * up without a new code. When the code expires with the panel still open, it makes another. It stops when the
+ * up without a new code. When the code expires with the panel still open, it makes another. During a visit of
+ * the owner the server makes no code (`code` is null) and only the phones are asked for. It stops when the
  * panel closes and when the component goes away.
  *
  * @param open - whether the panel is open
@@ -73,7 +74,11 @@ export function usePhoneLink(open: () => boolean): UsePhoneLink {
             return;
         }
 
-        if (Date.parse(link.value.expires_at) <= Date.now()) {
+        // No code during a visit of the owner: there is nothing to renew, only the phones to ask for
+        if (
+            link.value.expires_at !== null &&
+            Date.parse(link.value.expires_at) <= Date.now()
+        ) {
             await load();
 
             return;

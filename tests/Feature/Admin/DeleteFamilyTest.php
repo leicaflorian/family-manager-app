@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Admin\CancelFamilyDeletion;
 use App\Actions\Admin\ScheduleFamilyDeletion;
+use App\Actions\Admin\SuspendFamily;
 use App\Enums\FamilyState;
 use App\Enums\OwnerActionType;
 use App\Filament\Resources\Families\Pages\ViewFamily;
@@ -44,6 +45,29 @@ test('deletion waits 30 days', function (): void {
     expect(Family::query()->whereKey($this->rossi->id)->exists())->toBeFalse()
         ->and(User::query()->where('family_id', $this->rossi->id)->exists())->toBeFalse()
         ->and(Storage::disk('local')->exists("families/{$this->rossi->id}/a.pdf"))->toBeFalse();
+});
+
+test('cancel keeps the suspension of a family suspended before the deletion was scheduled', function (): void {
+    resolve(SuspendFamily::class)->handle($this->rossi);
+    $suspendedAt = $this->rossi->refresh()->suspended_at;
+
+    $this->travel(3)->days();
+    resolve(ScheduleFamilyDeletion::class)->handle($this->rossi);
+    resolve(CancelFamilyDeletion::class)->handle($this->rossi->refresh());
+
+    expect($this->rossi->refresh()->state())->toBe(FamilyState::Suspended)
+        ->and($this->rossi->suspended_at?->toDateTimeString())->toBe($suspendedAt?->toDateTimeString())
+        ->and($this->rossi->delete_after)->toBeNull();
+});
+
+test('cancel makes active a family that the deletion suspended', function (): void {
+    resolve(ScheduleFamilyDeletion::class)->handle($this->rossi);
+
+    $this->travel(5)->days();
+    resolve(CancelFamilyDeletion::class)->handle($this->rossi->refresh());
+
+    expect($this->rossi->refresh()->state())->toBe(FamilyState::Active)
+        ->and($this->rossi->suspended_at)->toBeNull();
 });
 
 test('cancel keeps the family', function (): void {

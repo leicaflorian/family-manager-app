@@ -8,9 +8,11 @@ use App\Actions\Calendar\ResetCalendarLink;
 use App\Actions\Calendar\TurnOffCalendar;
 use App\Actions\Calendar\TurnOnCalendar;
 use App\Data\CalendarSettingsData;
+use App\Http\Middleware\LimitVisit;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,13 +24,16 @@ use Inertia\Response;
 final class CalendarSettingsController extends Controller
 {
     /**
-     * The page.
+     * The page; without the address during a visit of the owner.
      *
+     * @param  Request  $request  the request
      * @param  User  $user  whoever signed in
      */
-    public function edit(#[CurrentUser] User $user): Response
+    public function edit(Request $request, #[CurrentUser] User $user): Response
     {
-        return Inertia::render('settings/Calendar', ['calendar' => CalendarSettingsData::fromFamily($user->family, $user)]);
+        return Inertia::render('settings/Calendar', [
+            'calendar' => CalendarSettingsData::fromFamily($user->family, $user, LimitVisit::isOpen($request)),
+        ]);
     }
 
     /**

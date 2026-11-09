@@ -142,6 +142,9 @@ function resetAddress(): void {
                             >
                         </div>
                     </template>
+                    <FmNotice v-else-if="calendar.hidden">
+                        {{ $t('The address is hidden during a visit.') }}
+                    </FmNotice>
                     <FmNotice v-else tone="warning">
                         {{
                             $t(

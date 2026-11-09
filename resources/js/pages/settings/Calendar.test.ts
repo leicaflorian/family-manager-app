@@ -9,11 +9,13 @@ const on: App.Data.CalendarSettingsData = {
     on: true,
     url: 'http://localhost/calendar/abc.ics',
     can_change: true,
+    hidden: false,
 };
 const off: App.Data.CalendarSettingsData = {
     on: false,
     url: null,
     can_change: true,
+    hidden: false,
 };
 
 describe('Settings, Calendar', () => {
@@ -107,6 +109,22 @@ describe('Settings, Calendar', () => {
                 name: 'Change the address (the old one stops working)',
             }),
         ).toBeInTheDocument();
+    });
+
+    it('says the address is hidden during a visit', () => {
+        renderPage(Calendar, {
+            calendar: { ...on, url: null, hidden: true },
+        });
+
+        expect(
+            screen.queryByLabelText('Calendar address'),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByText('The address is hidden during a visit.'),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText(/can't be shown any more/),
+        ).not.toBeInTheDocument();
     });
 
     it('lets a member see and copy the address, nothing else', () => {

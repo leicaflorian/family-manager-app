@@ -10,6 +10,7 @@ use Illuminate\Encryption\Encrypter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Laravel\Ai\AiManager;
 
 uses(RefreshDatabase::class);
 
@@ -61,9 +62,10 @@ test('a key encrypted with another APP_KEY is unreadable and the env one is used
     config(['ai.providers.gemini.key' => 'env-key']);
     $other = new Encrypter(random_bytes(32), 'AES-256-CBC');
     AppSetting::query()->create(['key' => 'gemini_key', 'value' => $other->encryptString('old-secret')]);
-    // The row is written behind the settings' back: forget the cache the way set() does
+    // The row is written behind the settings' back, as by another process: forget the cache the way set() does, and
+    // read with a new object, as that process would (the singleton keeps the rows it read until apply() or set())
     Cache::forget('installation-settings');
-    $settings = resolve(InstallationSettings::class);
+    $settings = new InstallationSettings;
 
     expect($settings->unreadable(InstallationSetting::GeminiKey))->toBeTrue()
         ->and($settings->stored(InstallationSetting::GeminiKey))->toBeNull()
@@ -131,4 +133,37 @@ test('with a cache table that does not exist the env values apply and nothing th
 
     $settings->apply();
     expect(config('reminders.time'))->toBe('05:30');
+});
+
+test('a new key reaches the providers an earlier job already built', function (): void {
+    config(['ai.providers.gemini.key' => 'env-key', 'ai.providers.ollama.url' => 'http://env:11434']);
+    $settings = resolve(InstallationSettings::class);
+    $manager = resolve(AiManager::class);
+    $settings->apply();
+
+    expect($manager->textProvider('gemini')->providerCredentials()['key'])->toBe('env-key')
+        ->and($manager->textProvider('ollama')->additionalConfiguration()['url'])->toBe('http://env:11434');
+
+    $settings->set(InstallationSetting::GeminiKey, 'panel-key');
+    $settings->set(InstallationSetting::OllamaUrl, 'http://panel:11434');
+    $settings->apply();
+
+    expect($manager->textProvider('gemini')->providerCredentials()['key'])->toBe('panel-key')
+        ->and($manager->textProvider('ollama')->additionalConfiguration()['url'])->toBe('http://panel:11434');
+});
+
+test('apply reads the settings from the database once', function (): void {
+    $settings = resolve(InstallationSettings::class);
+    $settings->set(InstallationSetting::Model, 'from-database');
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $settings->apply();
+    $settings->get(InstallationSetting::Provider);
+    $queries = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    // The check of the table and the read of the rows, not one pair for each setting
+    expect($queries)->toBeLessThanOrEqual(2)
+        ->and(config('document_reader.model'))->toBe('from-database');
 });

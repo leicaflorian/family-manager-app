@@ -22,16 +22,20 @@ final readonly class ScheduleFamilyDeletion
     public function __construct(private LogOwnerAction $log) {}
 
     /**
-     * Suspends the family if it is not yet and sets the day of deletion.
+     * Suspends the family if it is not yet and sets the day of deletion. A suspension made here has the same moment
+     * as the day of deletion minus {@see self::DAYS} days: {@see CancelFamilyDeletion} reads it to know whether the
+     * family was suspended already.
      *
      * @param  Family  $family  the family to delete
      */
     public function handle(Family $family): void
     {
         DB::transaction(function () use ($family): void {
+            $now = now();
+
             $family->forceFill([
-                'suspended_at' => $family->suspended_at ?? now(),
-                'delete_after' => now()->addDays(self::DAYS),
+                'suspended_at' => $family->suspended_at ?? $now,
+                'delete_after' => $now->copy()->addDays(self::DAYS),
             ])->save();
             $this->log->handle(OwnerActionType::DeletionScheduled, $family);
         });

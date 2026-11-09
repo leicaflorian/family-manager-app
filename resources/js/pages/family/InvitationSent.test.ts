@@ -35,6 +35,22 @@ describe('Invitation sent', () => {
         ).toBeInTheDocument();
     });
 
+    it('hides the link during a visit', () => {
+        renderPage(InvitationSent, {
+            invitation: { ...invitation, link: null },
+        });
+
+        expect(
+            screen.queryByLabelText('The link to join'),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Copy the link' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByText('The link is hidden during a visit.'),
+        ).toBeInTheDocument();
+    });
+
     it('says so when the browser refuses to copy', async () => {
         const copy = vi.fn().mockRejectedValue(new Error('denied'));
         Object.assign(navigator, { clipboard: { writeText: copy } });

@@ -102,6 +102,40 @@ describe('FmLinkPhoneSheet', () => {
         ).toBeInTheDocument();
     });
 
+    it('shows only the phones when no code is made, during a visit', async () => {
+        const fetchMock = answers(
+            { ...link(), code: null, qr: null, expires_at: null },
+            { devices: [iphone] },
+        );
+        mount();
+
+        const dialog = await screen.findByRole('dialog', {
+            name: 'Link the phone',
+        });
+
+        expect(
+            await within(dialog).findByText(
+                'During a visit no code is made to link a phone.',
+            ),
+        ).toBeInTheDocument();
+        expect(within(dialog).getByText('iPhone of Marco')).toBeInTheDocument();
+        expect(within(dialog).queryByRole('img')).not.toBeInTheDocument();
+        expect(
+            within(dialog).queryByText(/Open the phone camera/),
+        ).not.toBeInTheDocument();
+        expect(
+            within(dialog).queryByText(/The code is valid/),
+        ).not.toBeInTheDocument();
+
+        await vi.advanceTimersByTimeAsync(PHONE_POLL_INTERVAL);
+
+        // It keeps asking for the phones only: no new code
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(fetchMock.mock.calls[1]![0]).toBe(
+            '/settings/devices?only=devices',
+        );
+    });
+
     it('asks for the phones only every 2 seconds, and shows the one that just linked', async () => {
         const fetchMock = answers(link([]), {
             devices: [{ ...iphone, linked_now: true }],
