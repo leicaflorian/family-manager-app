@@ -66,22 +66,22 @@ const inlineMenu = computed(
 
 const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
 
-/** The title of the page: the number of results, or just *Search*. */
+/** The groups listed: all of them, or only the one of the chip pressed. */
+const groups = computed((): App.Data.Search.SearchGroupData[] =>
+    results.type === null
+        ? results.groups
+        : results.groups.filter((group) => group.group === results.type),
+);
+
+/** The title of the page: the number of results, or just *Search* when none is listed. */
 const title = computed((): string =>
-    results.total > 0
+    groups.value.length > 0
         ? transChoice(
               '{1} :count result for «:query»|[2,*] :count results for «:query»',
               results.total,
               { query: results.query },
           )
         : trans('Search'),
-);
-
-/** The groups listed: all of them, or only the one of the chip pressed. */
-const groups = computed((): App.Data.Search.SearchGroupData[] =>
-    results.type === null
-        ? results.groups
-        : results.groups.filter((group) => group.group === results.type),
 );
 
 /** Something was searched and nothing is listed. */
@@ -137,8 +137,7 @@ function enter(): void {
 }
 
 /**
- * The keys of the box for the menu: the arrows move the choice, Esc closes it
- * (and does not empty the box, as a search box would).
+ * The arrows of the box move the choice in the menu.
  *
  * @param event - the key pressed in the box
  */
@@ -147,20 +146,18 @@ function onKeydown(event: KeyboardEvent): void {
         return;
     }
 
-    switch (event.key) {
-        case 'ArrowDown':
-            event.preventDefault();
-            menu.value?.move(1);
-            break;
-        case 'ArrowUp':
-            event.preventDefault();
-            menu.value?.move(-1);
-            break;
-        case 'Escape':
-            event.preventDefault();
-            menuOpen.value = false;
-            break;
+    const step =
+        event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : null;
+
+    if (step !== null) {
+        event.preventDefault();
+        menu.value?.move(step);
     }
+}
+
+/** Esc closes the menu (the box keeps its text). */
+function closeMenu(): void {
+    menuOpen.value = false;
 }
 
 /**
@@ -172,7 +169,8 @@ function filter(type: App.Enums.SearchGroup | null): void {
     router.get(
         search.url(),
         type === null ? { q: results.query } : { q: results.query, type },
-        { preserveState: false },
+        // A filter is not a new place: Back leaves the search, not the filter
+        { preserveState: false, replace: true },
     );
 }
 
@@ -222,7 +220,11 @@ function goBack(): void {
                     :controls="MENU_ID"
                     :expanded="menuResults !== null"
                     class="min-w-0 grow"
+                    :active-descendant="
+                        menuResults ? menu?.activeId : undefined
+                    "
                     @submit="enter"
+                    @escape="closeMenu"
                     @keydown="onKeydown"
                 />
                 <FmSearchMenu
@@ -240,7 +242,11 @@ function goBack(): void {
                 role="group"
                 :aria-label="$t('Filters')"
                 class="flex gap-2"
-                :class="wide ? 'flex-wrap' : '-mx-5 overflow-x-auto px-5'"
+                :class="
+                    wide
+                        ? 'flex-wrap'
+                        : '-mx-(--main-gutter) overflow-x-auto px-(--main-gutter)'
+                "
             >
                 <FmChip
                     :label="$t('All results')"

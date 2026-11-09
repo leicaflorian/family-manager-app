@@ -94,6 +94,7 @@ describe('FmSearchMenu', () => {
         });
 
         expect(menu.value?.open()).toBe(false);
+        expect(menu.value?.activeId).toBeUndefined();
         expect(
             document.querySelectorAll('[aria-selected="true"]'),
         ).toHaveLength(0);
@@ -104,6 +105,8 @@ describe('FmSearchMenu', () => {
 
         const options = screen.getAllByRole('option');
         expect(options[1]).toHaveAttribute('aria-selected', 'true');
+        expect(options[1]).toHaveAttribute('id', 'search-option-c2');
+        expect(menu.value?.activeId).toBe('search-option-c2');
         expect(options[0]).toHaveAttribute('aria-selected', 'false');
 
         expect(menu.value?.open()).toBe(true);

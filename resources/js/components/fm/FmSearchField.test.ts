@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import FmSearchField from './FmSearchField.vue';
 
 describe('FmSearchField', () => {
@@ -120,34 +120,60 @@ describe('FmSearchField', () => {
             expect(screen.getByRole('searchbox')).toHaveFocus(),
         );
     });
-    it('with a menu, tells a screen reader which list it opens and whether it is open', async () => {
+    it('with a menu, is a combobox that says which list it opens, whether it is open and the chosen option', async () => {
         const view = render(FmSearchField, {
             props: { label: 'Search everything', modelValue: 'Pan' },
         });
 
-        expect(screen.getByRole('searchbox')).not.toHaveAttribute(
-            'aria-controls',
-        );
-        expect(screen.getByRole('searchbox')).not.toHaveAttribute(
-            'aria-expanded',
+        const plain = screen.getByRole('searchbox', {
+            name: 'Search everything',
+        });
+        expect(plain).not.toHaveAttribute('aria-controls');
+        expect(plain).not.toHaveAttribute('aria-expanded');
+        expect(plain).not.toHaveAttribute('aria-autocomplete');
+
+        await view.rerender({
+            controls: 'results',
+            expanded: true,
+            activeDescendant: 'search-option-c1',
+        });
+
+        const box = screen.getByRole('combobox', {
+            name: 'Search everything',
+        });
+        expect(box).toHaveAttribute('aria-controls', 'results');
+        expect(box).toHaveAttribute('aria-expanded', 'true');
+        expect(box).toHaveAttribute('aria-autocomplete', 'list');
+        expect(box).toHaveAttribute(
+            'aria-activedescendant',
+            'search-option-c1',
         );
 
-        await view.rerender({ controls: 'results', expanded: true });
+        await view.rerender({ expanded: false, activeDescendant: undefined });
 
-        expect(screen.getByRole('searchbox')).toHaveAttribute(
-            'aria-controls',
-            'results',
-        );
-        expect(screen.getByRole('searchbox')).toHaveAttribute(
-            'aria-expanded',
-            'true',
-        );
+        expect(box).toHaveAttribute('aria-expanded', 'false');
+        expect(box).not.toHaveAttribute('aria-activedescendant');
+    });
 
-        await view.rerender({ expanded: false });
+    it('with a menu, Esc does not empty the box: it only emits escape', async () => {
+        const view = render(FmSearchField, {
+            props: {
+                label: 'Search everything',
+                modelValue: 'Pan',
+                controls: 'results',
+                expanded: true,
+            },
+        });
 
-        expect(screen.getByRole('searchbox')).toHaveAttribute(
-            'aria-expanded',
-            'false',
-        );
+        const esc = new KeyboardEvent('keydown', {
+            key: 'Escape',
+            bubbles: true,
+            cancelable: true,
+        });
+        screen.getByRole('combobox').dispatchEvent(esc);
+        await nextTick();
+
+        expect(esc.defaultPrevented).toBe(true);
+        expect(view.emitted('escape')).toHaveLength(1);
     });
 });

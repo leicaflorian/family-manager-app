@@ -228,7 +228,7 @@ afterEach(() => {
 
 /** The search box of the page. */
 const box = (): HTMLElement =>
-    screen.getByRole('searchbox', { name: 'Search in Family Manager' });
+    screen.getByRole('combobox', { name: 'Search in Family Manager' });
 
 describe('Search', () => {
     it('has the title with the number of results and the text in the box', () => {
@@ -294,7 +294,7 @@ describe('Search', () => {
         expect(get).toHaveBeenCalledWith(
             '/search',
             { q: 'Panda', type: 'documents' },
-            expect.anything(),
+            { preserveState: false, replace: true },
         );
 
         get.mockClear();
@@ -306,7 +306,7 @@ describe('Search', () => {
         expect(get).toHaveBeenCalledWith(
             '/search',
             { q: 'Panda' },
-            expect.anything(),
+            { preserveState: false, replace: true },
         );
     });
 
@@ -325,6 +325,7 @@ describe('Search', () => {
     });
 
     it('narrowed to a group that found nothing, keeps the chips and says nothing was found', () => {
+        wide(true);
         renderPage(Search, {
             results: { ...pandaDocuments, type: 'contacts' },
         });
@@ -340,6 +341,9 @@ describe('Search', () => {
                 level: 2,
                 name: 'No results for «Panda»',
             }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { level: 1, name: 'Search' }),
         ).toBeInTheDocument();
     });
 
@@ -420,7 +424,14 @@ describe('Search', () => {
             screen.queryByRole('region', { name: 'Documents' }),
         ).not.toBeInTheDocument();
 
-        await userEvent.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+        await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+        const chosen = screen
+            .getAllByRole('option')
+            .find((option) => option.getAttribute('aria-selected') === 'true');
+        expect(chosen).toHaveTextContent('Bolletta gas');
+        expect(box()).toHaveAttribute('aria-activedescendant', chosen!.id);
+
+        await userEvent.keyboard('{Enter}');
         expect(visit).toHaveBeenCalledWith('/expense-9');
         expect(get).not.toHaveBeenCalled();
 
@@ -463,6 +474,23 @@ describe('Search', () => {
         expect(
             screen.queryByRole('link', { name: 'Home' }),
         ).not.toBeInTheDocument();
+    });
+
+    it('on the computer, while typing, shows the suggestions over the results, which stay', async () => {
+        wide(true);
+        renderPage(Search, { results: panda });
+
+        await userEvent.clear(box());
+        await userEvent.type(box(), 'Pan');
+
+        expect(await screen.findByRole('listbox')).toBeInTheDocument();
+        expect(box()).toHaveAttribute('aria-expanded', 'true');
+        expect(
+            screen.getByRole('region', { name: 'Documents' }),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', { pressed: true })).toHaveTextContent(
+            /All results\s*10/,
+        );
     });
 
     it('on the computer, has the link to the Home above the title', () => {

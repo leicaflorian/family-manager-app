@@ -5,6 +5,8 @@
  * with their first rows, and at the bottom the link to all the results with
  * the Enter key. The box moves the choice with `move` and opens it with
  * `open` (arrow keys and Enter); the menu does not read the keyboard itself.
+ * Every option has a stable id, and `activeId` is the chosen one, for
+ * `aria-activedescendant` of the box.
  *
  * Rules: on a computer it sits under the box (`absolute`, 440 px, radius 14,
  * `shadow-menu`); on a phone, `inline`, it fills the white panel. The rows are
@@ -46,6 +48,23 @@ watch(
 
 /** Where *See all* leads. */
 const allUrl = computed(() => search.url({ query: { q: query } }));
+
+/**
+ * The id of the option of a result, for `aria-activedescendant` of the box.
+ *
+ * @param key - the key of the result
+ * @returns the id of its row
+ */
+function optionId(key: string): string {
+    return `search-option-${key}`;
+}
+
+/** The id of the chosen option; undefined when none. */
+const activeId = computed((): string | undefined => {
+    const row = rows.value[current.value];
+
+    return row === undefined ? undefined : optionId(row.key);
+});
 
 /**
  * Moves the choice by one row, without going out of the list.
@@ -90,7 +109,7 @@ function isCurrent(key: string): boolean {
     return rows.value[current.value]?.key === key;
 }
 
-defineExpose({ move, open });
+defineExpose({ move, open, activeId });
 </script>
 
 <template>
@@ -124,6 +143,7 @@ defineExpose({ move, open });
                     :query="query"
                     compact
                     :active="isCurrent(result.key)"
+                    :id="optionId(result.key)"
                     role="option"
                     :aria-selected="isCurrent(result.key)"
                 />

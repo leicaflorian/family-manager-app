@@ -10,8 +10,9 @@
  * is both the placeholder and the name for a screen reader, so it says what is
  * searched («Search the documents»). It has no button: the page reacts to the
  * text as it is typed. With a list of results under it (`controls`), the box
- * says which list it opens and whether it is open (`expanded`); the arrow keys
- * reach the page as `keydown` on the box.
+ * is a `combobox` that says which list it opens, whether it is open
+ * (`expanded`) and the option chosen (`activeDescendant`); Esc then does not
+ * empty the box, and the arrow keys reach the page as `keydown` on the box.
  *
  * @group fields
  */
@@ -29,6 +30,7 @@ const {
     autofocus = false,
     controls,
     expanded = false,
+    activeDescendant,
 } = defineProps<{
     /** What is searched: the name of the box and the text shown while it is empty. */
     label: string;
@@ -44,10 +46,15 @@ const {
     shortcut?: boolean;
     /** The box takes the focus when it appears. */
     autofocus?: boolean;
-    /** The id of the list of results the box opens while typing, if any. */
+    /**
+     * The id of the list of results the box opens while typing, if any: the
+     * box is then a `combobox` of that list.
+     */
     controls?: string;
     /** That list is open; said only with `controls`. */
     expanded?: boolean;
+    /** The id of the option of that list chosen with the arrows, if any. */
+    activeDescendant?: string;
 }>();
 
 const emit = defineEmits<{
@@ -68,6 +75,20 @@ const shortcutKey = desktopSystem() === 'mac' ? '⌘K' : 'Ctrl K';
 /** Puts the cursor in the box. */
 function focus(): void {
     box.value?.focus();
+}
+
+/**
+ * Esc: with a list of results it only closes the list, so the browser does not
+ * empty the box as it does with a search box.
+ *
+ * @param event - the key pressed
+ */
+function escape(event: KeyboardEvent): void {
+    if (controls) {
+        event.preventDefault();
+    }
+
+    emit('escape');
 }
 
 /** Empties the box and gives it the focus back. */
@@ -106,11 +127,14 @@ defineExpose({ focus });
             :placeholder="label"
             :aria-label="label"
             :aria-keyshortcuts="shortcut ? 'Meta+K Control+K' : undefined"
+            :role="controls ? 'combobox' : undefined"
             :aria-controls="controls"
             :aria-expanded="controls ? expanded : undefined"
+            :aria-autocomplete="controls ? 'list' : undefined"
+            :aria-activedescendant="controls ? activeDescendant : undefined"
             class="min-w-0 grow border-0 bg-transparent text-ink outline-none"
             @keydown.enter="emit('submit')"
-            @keydown.esc="emit('escape')"
+            @keydown.esc="escape"
         />
         <button
             v-if="clearable && text !== ''"
