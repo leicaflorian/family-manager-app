@@ -5,25 +5,26 @@
  * administrator gives it or takes it back.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { Clock, Lock } from '@lucide/vue';
+import { Clock, LifeBuoy, Lock } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useFormat } from '@/composables/useFormat';
+import FmIcon from '@/components/fm/FmIcon.vue';
+import { formatDateTime } from '@/lib/format';
 import { settings } from '@/routes';
 import { destroy, store } from '@/routes/settings/support';
 
 const props = defineProps<{
-    /** Until when support can come in (`yyyy-mm-dd hh:mm`, Rome), or `null` without the permission. */
+    /** Until when support can come in (ISO with offset), or `null` without the permission. */
     support_until: string | null;
     /** Whether who looks can give and take back the permission: an administrator. */
     can_change: boolean;
+    /** The label of the level that can give the permission (administrator). */
+    admin_level: string;
 }>();
-
-const { dateTime } = useFormat();
 
 /** Marks a place in a translated sentence, so the value that goes there can be bold. */
 const MARK = '\u0000';
@@ -78,13 +79,20 @@ function takeBack(): void {
         />
         <FmCard>
             <div class="flex flex-col gap-4">
-                <p class="text-body">
-                    {{
-                        $t(
-                            'If you ask us for help, we can look at Family Manager as one of your accounts. We only look, we change nothing, and only while you allow it.',
-                        )
-                    }}
-                </p>
+                <div class="flex items-start gap-3.5">
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="LifeBuoy" :size="22" />
+                    </span>
+                    <p class="text-body">
+                        {{
+                            $t(
+                                'If you ask us for help, we can look at Family Manager as one of your accounts. We only look, we change nothing, and only while you allow it.',
+                            )
+                        }}
+                    </p>
+                </div>
                 <template v-if="props.support_until === null">
                     <FmNotice :icon="Lock">{{
                         $t('Support cannot come in right now.')
@@ -95,8 +103,8 @@ function takeBack(): void {
                         }}</FmButton>
                         <p class="text-meta text-ink-soft">
                             {{ note[0]
-                            }}<strong class="font-bold">{{
-                                $t('Everything, like you')
+                            }}<strong class="text-meta-strong">{{
+                                admin_level
                             }}</strong
                             >{{ note[1] }}
                         </p>
@@ -111,8 +119,8 @@ function takeBack(): void {
             <div class="flex flex-col gap-3">
                 <FmNotice tone="ok" :icon="Clock">
                     {{ until[0]
-                    }}<strong class="font-bold">{{
-                        dateTime(props.support_until)
+                    }}<strong class="text-label">{{
+                        formatDateTime(props.support_until)
                     }}</strong
                     >{{ until[1] }}
                 </FmNotice>

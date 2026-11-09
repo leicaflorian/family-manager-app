@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Settings;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -28,10 +29,8 @@ final class SupportSettingsController extends Controller
         $until = $user->family->support_until;
 
         return Inertia::render('settings/Support', [
-            // The moment as written in Rome, so the page needs no time zone of its own
-            'support_until' => $until !== null && $until->isFuture()
-                ? $until->timezone('Europe/Rome')->format('Y-m-d H:i')
-                : null,
+            'support_until' => $until !== null && $until->isFuture() ? $until->toIso8601String() : null,
+            'admin_level' => Role::Admin->label(),
             'can_change' => Gate::allows('manageSupport', $user->family),
         ]);
     }

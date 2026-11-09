@@ -20,7 +20,11 @@ describe('Settings, Support', () => {
     });
 
     it('explains what support does and says it cannot come in', () => {
-        renderPage(Support, { support_until: null, can_change: true });
+        renderPage(Support, {
+            support_until: null,
+            can_change: true,
+            admin_level: 'Everything, like you',
+        });
 
         expect(
             screen.getByRole('heading', { name: 'Support' }),
@@ -43,9 +47,37 @@ describe('Settings, Support', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('shows the level from the server in the note', () => {
+        renderPage(Support, {
+            support_until: null,
+            can_change: true,
+            admin_level: 'Tutto, come te',
+        });
+
+        expect(
+            allByWholeText(
+                'The permission ends by itself after 24 hours, and you can take it back sooner. Only someone with Tutto, come te can give it.',
+            ).length,
+        ).toBeGreaterThan(0);
+    });
+
+    it('has the lifebuoy tile beside the intro', () => {
+        const { container } = renderPage(Support, {
+            support_until: null,
+            can_change: true,
+            admin_level: 'Everything, like you',
+        });
+
+        expect(container.querySelector('svg.lucide-life-buoy')).not.toBeNull();
+    });
+
     it('lets support in with a POST', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
-        renderPage(Support, { support_until: null, can_change: true });
+        renderPage(Support, {
+            support_until: null,
+            can_change: true,
+            admin_level: 'Everything, like you',
+        });
 
         await userEvent.click(
             screen.getByRole('button', {
@@ -63,7 +95,8 @@ describe('Settings, Support', () => {
     it('says until when, and takes the permission back with a DELETE', async () => {
         const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
         renderPage(Support, {
-            support_until: '2026-12-10 21:30',
+            support_until: '2026-12-10T21:30:00+01:00',
+            admin_level: 'Everything, like you',
             can_change: true,
         });
 
@@ -89,7 +122,8 @@ describe('Settings, Support', () => {
 
     it('shows a member the state and no buttons', () => {
         renderPage(Support, {
-            support_until: '2026-12-10 21:30',
+            support_until: '2026-12-10T21:30:00+01:00',
+            admin_level: 'Everything, like you',
             can_change: false,
         });
 

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 use App\Enums\Role;
 use App\Models\User;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
     $this->marco = registerFamily();
     $this->actingAs($this->marco);
-    Carbon::setTestNow(Carbon::parse('2026-12-09 21:30', 'Europe/Rome'));
+    Date::setTestNow(Date::parse('2026-12-09 21:30', 'Europe/Rome'));
 });
 
 afterEach(function (): void {
-    Carbon::setTestNow();
+    Date::setTestNow();
 });
 
 test('the page says support cannot come in when the permission is off', function (): void {
@@ -34,7 +34,8 @@ test('the page says until when', function (): void {
     $this->post(route('settings.support.store'));
 
     $this->get(route('settings.support.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('support_until', '2026-12-10 21:30'));
+        ->where('support_until', now()->addHours(24)->toIso8601String())
+        ->where('admin_level', 'Everything, like you'));
 });
 
 test('an expired permission reads as off', function (): void {
