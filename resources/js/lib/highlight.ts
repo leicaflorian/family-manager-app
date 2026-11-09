@@ -11,10 +11,7 @@ const MIN_WORD_LENGTH = 2;
  * @returns the text in the form used to compare
  */
 function fold(text: string): string {
-    return text
-        .normalize('NFD')
-        .replace(/\p{M}/gu, '')
-        .toLowerCase();
+    return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
 /**

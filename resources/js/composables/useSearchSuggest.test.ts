@@ -1,5 +1,12 @@
 import { render } from '@testing-library/vue';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { defineComponent, h, ref, type Ref } from 'vue';
 import { useSearchSuggest } from './useSearchSuggest';
 
@@ -107,7 +114,7 @@ describe('useSearchSuggest', () => {
         resolvers.Pa(reply('Pa'));
         await vi.advanceTimersByTimeAsync(0);
 
-        expect((state.results.value as unknown as Results | null)).toEqual({
+        expect(state.results.value as unknown as Results | null).toEqual({
             marker: 'Pan',
         });
     });
