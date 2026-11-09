@@ -60,6 +60,27 @@ describe('FmSearchField', () => {
         expect(box).toHaveFocus();
     });
 
+    it('clearable, stops at 100 characters, as the server does', () => {
+        const view = render(FmSearchField, {
+            props: {
+                label: 'Search everything',
+                modelValue: '',
+                clearable: true,
+            },
+        });
+
+        expect(screen.getByRole('searchbox')).toHaveAttribute(
+            'maxlength',
+            '100',
+        );
+
+        view.unmount();
+        render(FmSearchField, {
+            props: { label: 'Search the documents', modelValue: '' },
+        });
+        expect(screen.getByRole('searchbox')).not.toHaveAttribute('maxlength');
+    });
+
     it('shortcut, shows the key without text and hides it while typing', async () => {
         render({
             components: { FmSearchField },

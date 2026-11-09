@@ -334,7 +334,7 @@ describe('Search', () => {
         expect(screen.queryByText('Fiat Panda')).not.toBeInTheDocument();
     });
 
-    it('narrowed to a group that found nothing, keeps the chips and says nothing was found', () => {
+    it('narrowed to a group that is not in the answer, shows no chips above the empty state', () => {
         wide(true);
         renderPage(Search, {
             results: { ...pandaDocuments, type: 'contacts' },
@@ -343,9 +343,9 @@ describe('Search', () => {
         expect(
             screen.queryByRole('button', { pressed: true }),
         ).not.toBeInTheDocument();
-        expect(screen.getAllByRole('button', { pressed: false })).toHaveLength(
-            5,
-        );
+        expect(
+            screen.queryByRole('group', { name: 'Filters' }),
+        ).not.toBeInTheDocument();
         expect(
             screen.getByRole('heading', {
                 level: 2,
@@ -429,7 +429,7 @@ describe('Search', () => {
 
         const menu = await screen.findByRole('listbox');
         expect(box()).toHaveAttribute('aria-expanded', 'true');
-        expect(box()).toHaveAttribute('aria-controls', menu.parentElement!.id);
+        expect(box()).toHaveAttribute('aria-controls', menu.id);
         expect(
             screen.queryByRole('region', { name: 'Documents' }),
         ).not.toBeInTheDocument();
@@ -501,6 +501,39 @@ describe('Search', () => {
         expect(screen.getByRole('button', { pressed: true })).toHaveTextContent(
             /All results\s*10/,
         );
+    });
+
+    it('on the computer, closes the suggestions when the focus leaves the box', async () => {
+        wide(true);
+        renderPage(Search, { results: panda });
+
+        await userEvent.clear(box());
+        await userEvent.type(box(), 'Pan');
+        expect(await screen.findByRole('listbox')).toBeInTheDocument();
+
+        screen.getByRole('button', { name: /All results/ }).focus();
+
+        await waitFor(() =>
+            expect(screen.queryByRole('listbox')).not.toBeInTheDocument(),
+        );
+        expect(box()).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('on the computer, keeps the focus in the box when a suggestion is pressed', async () => {
+        wide(true);
+        renderPage(Search, { results: panda });
+
+        await userEvent.clear(box());
+        await userEvent.type(box(), 'Pan');
+        const option = (await screen.findAllByRole('option'))[0];
+
+        // a mousedown that is not prevented would blur the box before the click
+        const down = new MouseEvent('mousedown', {
+            bubbles: true,
+            cancelable: true,
+        });
+        option.dispatchEvent(down);
+        expect(down.defaultPrevented).toBe(true);
     });
 
     it('on the computer, has the link to the Home above the title', () => {

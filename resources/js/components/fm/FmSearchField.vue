@@ -22,6 +22,9 @@ import { nextTick, onMounted, useTemplateRef } from 'vue';
 import { desktopSystem } from '@/lib/devices';
 import FmIcon from './FmIcon.vue';
 
+/** The longest text the server searches (`max:100` of `SearchRequest`). */
+const SEARCH_MAX_LENGTH = 100;
+
 const {
     label,
     small = false,
@@ -39,7 +42,8 @@ const {
     /**
      * A round button that empties the box, shown only with text. It marks the
      * whole-app search box (Home and *Search*): only that one has the blue focus
-     * ring; the other boxes keep the grey border and show the cursor.
+     * ring and stops at 100 characters, the most the server searches; the other
+     * boxes keep the grey border and show the cursor.
      */
     clearable?: boolean;
     /** Shows the key that focuses the box (⌘K or Ctrl K) while it is empty. */
@@ -132,6 +136,7 @@ defineExpose({ focus });
             :aria-expanded="controls ? expanded : undefined"
             :aria-autocomplete="controls ? 'list' : undefined"
             :aria-activedescendant="controls ? activeDescendant : undefined"
+            :maxlength="clearable ? SEARCH_MAX_LENGTH : undefined"
             class="min-w-0 grow border-0 bg-transparent text-ink outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
             @keydown.enter="emit('submit')"
             @keydown.esc="escape"

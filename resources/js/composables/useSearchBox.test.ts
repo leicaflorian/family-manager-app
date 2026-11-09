@@ -7,7 +7,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { defineComponent, h, ref, shallowRef, type Ref } from 'vue';
+import { defineComponent, h, nextTick, ref, shallowRef, type Ref } from 'vue';
 import { type SearchMenuControls, useSearchBox } from './useSearchBox';
 
 /** The first results for «Pan», as the suggest route sends them. */
@@ -56,6 +56,7 @@ function renderBox(opened = false): {
     const menu: SearchMenuControls = {
         move: vi.fn(),
         open: vi.fn(() => opened),
+        reset: vi.fn(),
     };
     const submit = vi.fn();
     let state!: ReturnType<typeof useSearchBox>;
@@ -107,6 +108,18 @@ describe('useSearchBox', () => {
         await vi.advanceTimersByTimeAsync(300);
 
         expect(state.menuResults.value).toEqual(pan);
+    });
+
+    it('forgets the row chosen with the arrows as soon as the text changes', async () => {
+        const { text, menu } = renderBox();
+
+        text.value = 'Pan';
+        await nextTick();
+        expect(menu.reset).toHaveBeenCalledTimes(1);
+
+        text.value = 'Pand';
+        await nextTick();
+        expect(menu.reset).toHaveBeenCalledTimes(2);
     });
 
     it('closes the menu with Esc until the text changes again', async () => {

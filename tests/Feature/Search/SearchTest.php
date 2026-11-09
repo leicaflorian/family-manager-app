@@ -66,6 +66,18 @@ it('narrows the page to one group and still counts the others', function (): voi
     });
 });
 
+it('falls back to all the groups when the group asked for found nothing', function (): void {
+    $this->actingAs($this->marco)->get(route('search', ['q' => 'Panda', 'type' => 'contacts']))->assertInertia(function (AssertableInertia $page): void {
+        $results = $page->toArray()['props']['results'];
+        expect($results['type'])->toBeNull()
+            ->and($results['total'])->toBeGreaterThan(0)
+            ->and(array_column($results['groups'], 'group'))->not->toContain('contacts');
+        foreach ($results['groups'] as $group) {
+            expect($group['results'])->not->toBeEmpty();
+        }
+    });
+});
+
 it('suggests at most 3 results per group as JSON with the total of all', function (): void {
     $response = $this->actingAs($this->marco)->getJson(route('search.suggest', ['q' => 'Pan']))->assertOk();
 

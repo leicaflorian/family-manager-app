@@ -43,11 +43,8 @@ const text = ref(results.query);
 
 const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
 
-const { menuResults, enter, onKeydown, closeMenu } = useSearchBox(
-    text,
-    menu,
-    submit,
-);
+const { onFocusIn, onFocusOut, menuResults, enter, onKeydown, closeMenu } =
+    useSearchBox(text, menu, submit);
 
 const field = useTemplateRef<InstanceType<typeof FmSearchField>>('field');
 
@@ -162,7 +159,11 @@ function goBack(): void {
         <h1 v-else class="sr-only">{{ title }}</h1>
 
         <div class="flex flex-col" :class="wide ? 'gap-6' : 'gap-3'">
-            <div class="relative flex items-center gap-2">
+            <div
+                class="relative flex items-center gap-2"
+                @focusin="onFocusIn"
+                @focusout="onFocusOut"
+            >
                 <button
                     v-if="!wide"
                     type="button"
@@ -195,11 +196,12 @@ function goBack(): void {
                     :results="menuResults"
                     :query="menuResults.query"
                     class="left-0"
+                    @mousedown.prevent
                 />
             </div>
 
             <div
-                v-if="results.total > 0 && !inlineMenu"
+                v-if="results.total > 0 && !inlineMenu && !nothingFound"
                 role="group"
                 :aria-label="$t('Filters')"
                 class="flex gap-2"
@@ -236,6 +238,7 @@ function goBack(): void {
                 :results="menuResults"
                 :query="menuResults.query"
                 inline
+                @mousedown.prevent
             />
         </div>
         <template v-else>

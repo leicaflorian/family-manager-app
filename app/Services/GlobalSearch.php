@@ -37,7 +37,7 @@ final readonly class GlobalSearch
      * Searches the family.
      *
      * @param  SearchTerms  $terms  what the person typed
-     * @param  SearchGroup|null  $only  the one group whose results are listed; every group is still counted
+     * @param  SearchGroup|null  $only  the one group whose results are listed; every group is still counted. When it found nothing, all the groups are listed
      * @param  int  $limit  the most results listed per group
      */
     public function search(SearchTerms $terms, ?SearchGroup $only, int $limit): SearchResultsData
@@ -46,11 +46,23 @@ final readonly class GlobalSearch
             return new SearchResultsData($terms->query, $only, 0, []);
         }
 
+        /** @var array<int, int> $counts the matches of each group, by position */
+        $counts = [];
+
+        foreach ($this->groups as $i => $results) {
+            $counts[$i] = $results->count($terms);
+        }
+
+        // A group that found nothing cannot be narrowed to: the page lists all the groups instead of an empty one
+        if ($only instanceof SearchGroup && ! $this->found($only, $counts)) {
+            $only = null;
+        }
+
         $groups = [];
         $total = 0;
 
-        foreach ($this->groups as $results) {
-            $count = $results->count($terms);
+        foreach ($this->groups as $i => $results) {
+            $count = $counts[$i];
 
             if ($count === 0) {
                 continue;
@@ -67,5 +79,22 @@ final readonly class GlobalSearch
         }
 
         return new SearchResultsData($terms->query, $only, $total, $groups);
+    }
+
+    /**
+     * Whether a group found something.
+     *
+     * @param  SearchGroup  $group  the group to look at
+     * @param  array<int, int>  $counts  the matches of each group, by position
+     */
+    private function found(SearchGroup $group, array $counts): bool
+    {
+        foreach ($this->groups as $i => $results) {
+            if ($results->group() === $group) {
+                return $counts[$i] > 0;
+            }
+        }
+
+        return false;
     }
 }

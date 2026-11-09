@@ -10,6 +10,8 @@ export type SearchMenuControls = {
     move: (step: 1 | -1) => void;
     /** Opens the chosen row; false when none is chosen. */
     open: () => boolean;
+    /** Forgets the chosen row. */
+    reset: () => void;
 };
 
 /**
@@ -47,6 +49,8 @@ export function useSearchBox(
 
     watch(text, () => {
         menuOpen.value = true;
+        // the row chosen belongs to the answer for the old text
+        menu.value?.reset();
     });
 
     const menuResults = computed(

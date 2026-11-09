@@ -106,6 +106,39 @@ describe('FmSearchMenu', () => {
         expect(menu).not.toHaveClass('max-w-none');
     });
 
+    it('puts the id of the page on the list, which the box controls, not on the wrapper', () => {
+        render(FmSearchMenu, {
+            props: { results, query: 'Pan' },
+            attrs: { id: 'search-results' },
+        });
+
+        const list = screen.getByRole('listbox');
+        expect(list).toHaveAttribute('id', 'search-results');
+        expect(list.parentElement).not.toHaveAttribute('id');
+    });
+
+    it('forgets the chosen row with reset()', async () => {
+        const menu = ref<InstanceType<typeof FmSearchMenu> | null>(null);
+        render({
+            components: { FmSearchMenu },
+            setup: () => ({ menu, results }),
+            template:
+                '<FmSearchMenu ref="menu" :results="results" query="Pan" />',
+        });
+
+        menu.value?.move(1);
+        await nextTick();
+        expect(menu.value?.activeId).toBeDefined();
+
+        menu.value?.reset();
+        await nextTick();
+
+        expect(menu.value?.activeId).toBeUndefined();
+        expect(
+            document.querySelectorAll('[aria-selected="true"]'),
+        ).toHaveLength(0);
+    });
+
     it('moves the choice with move() and opens it with open()', async () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         const menu = ref<InstanceType<typeof FmSearchMenu> | null>(null);

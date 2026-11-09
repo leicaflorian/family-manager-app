@@ -75,7 +75,7 @@ final readonly class DocumentResults implements GroupResults
             key: 'document-'.$document->id,
             group: SearchGroup::Documents,
             title: $document->title,
-            subtitle: $document->organization?->name ?? $document->category?->name,
+            subtitle: $document->organization->name ?? $document->category?->name,
             date: $document->date?->toDateString(),
             amount: null,
             href: route('documents.show', $document->id),

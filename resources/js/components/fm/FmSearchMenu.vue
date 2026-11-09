@@ -4,7 +4,9 @@
  * (cards, documents, expenses and income, due dates, organizations and people)
  * with their first rows, and at the bottom the link to all the results with
  * the Enter key. The box moves the choice with `move` and opens it with
- * `open` (arrow keys and Enter); the menu does not read the keyboard itself.
+ * `open` (arrow keys and Enter) and forgets it with `reset`; the menu does not
+ * read the keyboard itself. The `id` of the page goes on the list (the box's
+ * `aria-controls`), not on the wrapper.
  * Every option has a stable id, and `activeId` is the chosen one, for
  * `aria-activedescendant` of the box.
  *
@@ -58,12 +60,13 @@ function rootClass(): string {
 }
 
 /**
- * The other attributes of the page (id, listeners), without the classes.
+ * The other attributes of the page (listeners), without the classes and the
+ * id: the id goes on the list, which is what the box controls.
  *
  * @returns the attributes for the menu
  */
 function otherAttrs(): Record<string, unknown> {
-    const { class: _class, ...rest } = attrs;
+    const { class: _class, id: _id, ...rest } = attrs;
 
     return rest;
 }
@@ -80,6 +83,11 @@ watch(
         current.value = -1;
     },
 );
+
+/** Forgets the chosen row, when what was typed changes before the answer. */
+function reset(): void {
+    current.value = -1;
+}
 
 /** Where *See all* leads. */
 const allUrl = computed(() => search.url({ query: { q: query } }));
@@ -144,12 +152,13 @@ function isCurrent(key: string): boolean {
     return rows.value[current.value]?.key === key;
 }
 
-defineExpose({ move, open, activeId });
+defineExpose({ move, open, reset, activeId });
 </script>
 
 <template>
     <div v-bind="otherAttrs()" :class="rootClass()">
         <div
+            :id="attrs.id as string | undefined"
             role="listbox"
             :aria-label="trans('Results')"
             class="flex flex-col"
