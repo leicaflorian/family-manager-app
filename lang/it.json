@@ -1470,5 +1470,9 @@
     "Linked on :date · nothing uploaded yet": "Collegato il :date · ancora nessun caricamento",
     "Linked on :date · last upload on :upload": "Collegato il :date · ultimo caricamento il :upload",
     "Link a phone": "Collega un telefono",
-    "Phone unlinked.": "Telefono scollegato."
+    "Phone unlinked.": "Telefono scollegato.",
+    "The edges are set by hand": "I bordi si mettono a mano",
+    "The edges are set by hand for today": "Per oggi i bordi si mettono a mano",
+    "The photo is too big (1 MB at most)": "La foto è troppo grande (al massimo 1 MB)",
+    "Only a JPEG photo is accepted": "Si accetta solo una foto JPEG"
 }

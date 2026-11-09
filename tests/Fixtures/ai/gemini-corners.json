@@ -1,0 +1,32 @@
+{
+    "id": "v1_ChdpbnRlcmFjdGlvbi1iaWxsLTAx",
+    "object": "interaction",
+    "model": "gemini-3.8-flash",
+    "status": "completed",
+    "created": "2026-10-25T18:04:12Z",
+    "updated": "2026-10-25T18:04:19Z",
+    "role": "model",
+    "steps": [
+        {
+            "type": "thought",
+            "signature": "Q2lRQlZLaHVkR2hwYm1jPQ==",
+            "summary": []
+        },
+        {
+            "type": "model_output",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "{\"found\": true, \"top_left\": {\"x\": 100, \"y\": 120}, \"top_right\": {\"x\": 900, \"y\": 100}, \"bottom_right\": {\"x\": 880, \"y\": 950}, \"bottom_left\": {\"x\": 120, \"y\": 940}}"
+                }
+            ]
+        }
+    ],
+    "usage": {
+        "total_input_tokens": 1100,
+        "total_cached_tokens": 0,
+        "total_output_tokens": 20,
+        "total_thought_tokens": 35,
+        "total_tokens": 265
+    }
+}

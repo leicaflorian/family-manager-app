@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Enums\ReadingPurpose;
 use App\Models\AiReading;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
 
 /**
  * How many automatic readings the current family has left this month: the limit of
- * `config('document_reader.monthly_limit')` less the AI calls of the month. The month is that of Rome.
+ * `config('document_reader.monthly_limit')` less the AI calls of the month, except the ones that find the edges of a photo (they have their own limit a day). The month is that of Rome.
  */
 final readonly class ReadingAllowance
 {
@@ -23,6 +24,7 @@ final readonly class ReadingAllowance
     {
         [$from, $to] = $this->monthEdges($now);
         $used = AiReading::query()
+            ->where('purpose', '!=', ReadingPurpose::Crop)
             ->where('created_at', '>=', $from)
             ->where('created_at', '<', $to)
             ->count();

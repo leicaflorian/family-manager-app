@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
 use App\Data\Mail\MailScreeningAnswer;
@@ -11,6 +12,7 @@ use App\Exceptions\Reading\ReadingFailed;
 use App\Models\AiReading;
 use App\Models\Family;
 use App\Models\File;
+use App\Models\User;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingPrompt;
 use App\Services\Reading\ReadingSource;
@@ -328,3 +330,38 @@ test('a screening that the service refuses or cuts is a failure, and is still pa
     'refused' => ['anthropic', 'claude-opus-5-5', 'api.anthropic.com/*', 'anthropic-refusal', 'The model refused to read the document.'],
     'cut short' => ['gemini', 'gemini-3.8-flash', 'generativelanguage.googleapis.com/*', 'gemini-truncated', 'The answer of the model was cut short.'],
 ]);
+
+test('gemini finds the corners of a sheet, checked and from 0 to 1, and the call is recorded as a crop of the account', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-corners'))]);
+    $family = Family::factory()->create();
+    $user = User::factory()->for($family)->create();
+    $this->actingAs($user);
+
+    $corners = CurrentFamily::using($family->id, fn (): ?array => aiReader('gemini', 'gemini-3.8-flash')->corners('jpeg-bytes'));
+
+    Http::assertSent(function (Request $request): bool {
+        $content = $request['input'][0]['content'];
+
+        return $request['system_instruction'] === CornersAgent::SYSTEM
+            && $request['response_format']['schema']['required'] === ['found', 'top_left', 'top_right', 'bottom_right', 'bottom_left']
+            && $content[0] === ['type' => 'text', 'text' => CornersAgent::REQUEST]
+            && $content[1]['type'] === 'image'
+            && $content[1]['mime_type'] === 'image/jpeg';
+    });
+    $row = AiReading::query()->withoutGlobalScopes()->sole();
+    expect($corners)->toBe([['x' => 0.1, 'y' => 0.12], ['x' => 0.9, 'y' => 0.1], ['x' => 0.88, 'y' => 0.95], ['x' => 0.12, 'y' => 0.94]])
+        ->and($row->purpose)->toBe(ReadingPurpose::Crop)
+        ->and($row->user_id)->toBe($user->id)
+        ->and($row->file_id)->toBeNull()
+        ->and($row->input_tokens)->toBe(1100);
+});
+
+test('a corners call that the service cuts is a failure and is still recorded', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-truncated'))]);
+    $family = Family::factory()->create();
+
+    $failed = CurrentFamily::using($family->id, fn (): ?ReadingFailed => aiFailure(fn (): ?array => aiReader('gemini', 'gemini-3.8-flash')->corners('jpeg-bytes')));
+
+    expect($failed?->getMessage())->toBe('The answer of the model was cut short.')
+        ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::Crop);
+});

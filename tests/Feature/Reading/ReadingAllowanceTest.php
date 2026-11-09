@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\ReadingPurpose;
 use App\Models\AiReading;
 use App\Models\Family;
 use App\Services\Reading\ReadingAllowance;
@@ -72,4 +73,12 @@ test('with the limit used in October, 1 November at 00:30 in Rome reads again', 
 
     expect(readingsLeft($this->family, CarbonImmutable::parse('2026-10-31 23:20', 'Europe/Rome')))->toBe(0)
         ->and(readingsLeft($this->family, CarbonImmutable::parse('2026-11-01 00:30', 'Europe/Rome')))->toBe(2);
+});
+
+test('the corners of a photo are not readings of the month', function (): void {
+    $now = CarbonImmutable::parse('2026-10-25 19:04', 'Europe/Rome');
+    AiReading::factory()->for($this->family)->create(['purpose' => ReadingPurpose::Crop, 'created_at' => $now->setTimezone(config('app.timezone'))]);
+    readingAt($this->family, '2026-10-20 10:00');
+
+    expect(readingsLeft($this->family, $now))->toBe(1);
 });

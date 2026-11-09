@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Services\Reading;
 
 use App\Actions\Mail\RecordMailFilterCall;
+use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\DocumentReaderAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Reading;
+use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
+use App\Support\Corners;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Laravel\Ai\Exceptions\AiException;
 use Laravel\Ai\Exceptions\ProviderConnectionException;
@@ -143,9 +147,49 @@ final readonly class AiDocumentReader implements DocumentReader
     }
 
     /**
+     * Asks the model where the sheet of paper is in a photo. The call is recorded right after the answer, before the
+     * answer is checked, as a crop of the account signed in; it does not count in the readings of the month.
+     * Called only when `isActive()` is true.
+     *
+     * @param  string  $jpeg  the photo, a small JPEG
+     * @return list<array{x: float, y: float}>|null the corners checked by `Corners::valid()`, or null
+     *
+     * @throws ReadingFailed when the service does not answer
+     * @throws LogicException when the reading is off
+     */
+    public function corners(string $jpeg): ?array
+    {
+        if (! $this->isActive()) {
+            throw new LogicException('The reading is off: call corners() only when isActive() is true.');
+        }
+
+        $provider = Config::string('document_reader.provider');
+        $model = Config::string('document_reader.model');
+
+        $response = $this->ask(new CornersAgent($model), CornersAgent::REQUEST, [new Base64Image(base64_encode($jpeg), 'image/jpeg')], $provider, $model);
+
+        // the call is paid even when refused, cut or crooked: it is written first
+        $this->recorder->handle(
+            $provider,
+            filled($response->meta->model) ? $response->meta->model : $model,
+            $response->usage->inputTokens,
+            $response->usage->outputTokens,
+            $response->usage->cacheReadInputTokens ?? 0,
+            ReadingPurpose::Crop,
+            Auth::id() === null ? null : (int) Auth::id(),
+        );
+
+        $this->assertComplete($response);
+
+        $corners = CornersAgent::parse($response instanceof StructuredAgentResponse && $response->structured !== [] ? $response->structured : $response->text);
+
+        return $corners === null ? null : Corners::valid($corners);
+    }
+
+    /**
      * Sends the request, with the errors of the service as failures of the reading.
      *
-     * @param  DocumentReaderAgent|MailScreeningAgent  $agent  the model and its options
+     * @param  DocumentReaderAgent|MailScreeningAgent|CornersAgent  $agent  the model and its options
      * @param  string  $message  the text of the message
      * @param  list<Base64Document|Base64Image>  $attachments  the file, unless it is a text
      * @param  string  $provider  the service
@@ -153,7 +197,7 @@ final readonly class AiDocumentReader implements DocumentReader
      *
      * @throws ReadingFailed when the service does not answer
      */
-    private function ask(DocumentReaderAgent|MailScreeningAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
+    private function ask(DocumentReaderAgent|MailScreeningAgent|CornersAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
     {
         try {
             return $agent->prompt($message, attachments: $attachments, provider: $provider, model: $model);

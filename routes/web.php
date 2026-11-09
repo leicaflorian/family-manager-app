@@ -37,6 +37,7 @@ use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
 use App\Http\Controllers\ScanController;
+use App\Http\Controllers\ScanCornersController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
@@ -82,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     // The scan of the documents, also the only page of a linked phone
     Route::get('scan', [ScanController::class, 'show'])->name('scan');
+    Route::post('scan/corners', ScanCornersController::class)->name('scan.corners');
 
     // The page to time *Raddrizza* on a phone: only on the development machine, never online
     if (app()->isLocal()) {

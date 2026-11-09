@@ -45,4 +45,16 @@ interface DocumentReader
      * @throws LogicException when the reading is off
      */
     public function screen(string $sender, string $subject, string $locale): MailScreeningAnswer;
+
+    /**
+     * Asks where the sheet of paper is in a photo, and records the call in `ai_readings` (purpose `crop`, the account
+     * signed in, no file) in the current family before the answer is checked. Called only when `isActive()` is true.
+     *
+     * @param  string  $jpeg  the photo, a small JPEG
+     * @return list<array{x: float, y: float}>|null the four corners from 0 to 1, checked and clockwise from the top left one, or null when the model finds no sheet
+     *
+     * @throws ReadingFailed when the service gives no answer
+     * @throws LogicException when the reading is off
+     */
+    public function corners(string $jpeg): ?array;
 }

@@ -9,9 +9,12 @@ use App\Contracts\DocumentReader;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
+use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingSource;
+use App\Support\Corners;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * A reader that never calls a service, for the tests of what comes before and after a reading: it answers with
@@ -39,6 +42,13 @@ final class FakeDocumentReader implements DocumentReader
 
     /** What a screening of a mail gives, until `screens()` says otherwise: unsure. */
     private MailScreeningAnswer $screening;
+
+    /**
+     * What the model finds as the corners of a sheet, before the check.
+     *
+     * @var list<array{x: float, y: float}>|null
+     */
+    private ?array $corners = null;
 
     /** The screenings asked so far. */
     private int $screenings = 0;
@@ -76,6 +86,19 @@ final class FakeDocumentReader implements DocumentReader
     public function screens(MailScreeningAnswer $answer): self
     {
         $this->screening = $answer;
+        $this->failure = null;
+
+        return $this;
+    }
+
+    /**
+     * Every search of the corners finds these points (checked as the real reader checks them), or none for null.
+     *
+     * @param  list<array{x: float, y: float}>|null  $corners  what the model finds, from 0 to 1
+     */
+    public function findsCorners(?array $corners): self
+    {
+        $this->corners = $corners;
         $this->failure = null;
 
         return $this;
@@ -186,5 +209,25 @@ final class FakeDocumentReader implements DocumentReader
         (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 300, 40, 0);
 
         return $this->screening;
+    }
+
+    /**
+     * Gives the corners of `findsCorners()` after the same check as the real reader, or throws the error of `fails()`.
+     * As the real one, it records the call (Gemini 3.8 Flash, 1100 tokens in and 80 out) as a crop of the account
+     * signed in, in the current family.
+     *
+     * @param  string  $jpeg  the photo
+     *
+     * @throws ReadingFailed when `fails()` was called
+     */
+    public function corners(string $jpeg): ?array
+    {
+        if ($this->failure instanceof ReadingFailed) {
+            throw $this->failure;
+        }
+
+        (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 1100, 80, 0, ReadingPurpose::Crop, Auth::id() === null ? null : (int) Auth::id());
+
+        return $this->corners === null ? null : Corners::valid($this->corners);
     }
 }
