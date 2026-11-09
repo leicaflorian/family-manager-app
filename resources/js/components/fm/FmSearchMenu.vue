@@ -18,6 +18,7 @@
 import { Link, router } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, useAttrs, watch } from 'vue';
+import type { ClassValue } from 'clsx';
 import { cn } from '@/lib/utils';
 import { search } from '@/routes';
 import FmSearchResult from './FmSearchResult.vue';
@@ -40,23 +41,32 @@ const {
     inline?: boolean;
 }>();
 
-/** The classes of the menu: its own, then the page's, which win. */
-const rootClass = computed((): string =>
-    cn(
+/**
+ * The classes of the menu: its own, then the page's, which win. Called from
+ * the template, so it follows the page at each render.
+ *
+ * @returns the merged classes
+ */
+function rootClass(): string {
+    return cn(
         'flex flex-col bg-card p-1.5',
         inline
             ? 'w-full'
             : 'absolute top-13 right-0 z-10 w-110 max-w-full rounded-xl shadow-menu',
-        attrs.class as string | undefined,
-    ),
-);
+        attrs.class as ClassValue,
+    );
+}
 
-/** The other attributes of the page (id, listeners), without the classes. */
-const otherAttrs = computed((): Record<string, unknown> => {
+/**
+ * The other attributes of the page (id, listeners), without the classes.
+ *
+ * @returns the attributes for the menu
+ */
+function otherAttrs(): Record<string, unknown> {
     const { class: _class, ...rest } = attrs;
 
     return rest;
-});
+}
 
 /** The rows of all the groups in the order they are shown. */
 const rows = computed(() => results.groups.flatMap((g) => g.results));
@@ -138,7 +148,7 @@ defineExpose({ move, open, activeId });
 </script>
 
 <template>
-    <div v-bind="otherAttrs" :class="rootClass">
+    <div v-bind="otherAttrs()" :class="rootClass()">
         <div
             role="listbox"
             :aria-label="trans('Results')"

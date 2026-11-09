@@ -94,6 +94,18 @@ describe('FmSearchMenu', () => {
         expect(menu).not.toHaveClass('max-w-full');
     });
 
+    it('follows the classes of the page when they change', async () => {
+        const view = render(FmSearchMenu, {
+            props: { results, query: 'Pan', class: 'max-w-none' },
+        });
+
+        await view.rerender({ results, query: 'Pan', class: 'left-0' });
+
+        const menu = screen.getByRole('listbox').parentElement;
+        expect(menu).toHaveClass('left-0', 'max-w-full');
+        expect(menu).not.toHaveClass('max-w-none');
+    });
+
     it('moves the choice with move() and opens it with open()', async () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         const menu = ref<InstanceType<typeof FmSearchMenu> | null>(null);

@@ -45,6 +45,18 @@ describe('FmBell', () => {
         );
     });
 
+    it('follows the classes of the page when they change, square to round', async () => {
+        const view = render(FmBell, {
+            props: { count: 0, class: 'rounded-lg border border-edge-soft' },
+        });
+
+        await view.rerender({ count: 0, class: 'rounded-full' });
+
+        const bell = screen.getByRole('button', { name: 'Notices' });
+        expect(bell).toHaveClass('rounded-full', 'border-0');
+        expect(bell).not.toHaveClass('rounded-lg', 'border-edge-soft');
+    });
+
     it('stops counting at 99', () => {
         render(FmBell, { props: { count: 120 } });
 

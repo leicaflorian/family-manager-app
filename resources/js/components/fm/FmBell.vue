@@ -22,6 +22,7 @@ import {
     PopoverTrigger,
 } from 'reka-ui';
 import { computed, useAttrs } from 'vue';
+import type { ClassValue } from 'clsx';
 import { cn } from '@/lib/utils';
 import { notices as noticesPage } from '@/routes';
 import { readAll } from '@/routes/notices';
@@ -43,20 +44,29 @@ defineOptions({ inheritAttrs: false });
 
 const attrs = useAttrs();
 
-/** The classes of the bell: its own, merged with the page's (a border replaces `border-0`). */
-const triggerClass = computed((): string =>
-    cn(
+/**
+ * The classes of the bell: its own, merged with the page's (a border replaces
+ * `border-0`). Called from the template, so it follows the page at each render.
+ *
+ * @returns the merged classes
+ */
+function triggerClass(): string {
+    return cn(
         'relative flex size-11 cursor-pointer items-center justify-center border-0 text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
-        attrs.class as string | undefined,
-    ),
-);
+        attrs.class as ClassValue,
+    );
+}
 
-/** The other attributes of the page, without the classes merged above. */
-const otherAttrs = computed((): Record<string, unknown> => {
+/**
+ * The other attributes of the page, without the classes merged above.
+ *
+ * @returns the attributes for the bell
+ */
+function otherAttrs(): Record<string, unknown> {
     const { class: _class, ...rest } = attrs;
 
     return rest;
-});
+}
 
 const { count, notices } = defineProps<{
     /** How many notices the person has not seen yet. */
@@ -111,9 +121,9 @@ function markAll(): void {
 <template>
     <PopoverRoot @update:open="toggled">
         <PopoverTrigger
-            v-bind="otherAttrs"
+            v-bind="otherAttrs()"
             :aria-label="label"
-            :class="triggerClass"
+            :class="triggerClass()"
         >
             <FmIcon :icon="Bell" :size="24" />
             <span
