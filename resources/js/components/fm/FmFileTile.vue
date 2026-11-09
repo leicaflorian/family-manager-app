@@ -12,7 +12,7 @@ import FmIcon from './FmIcon.vue';
 <template>
     <span
         aria-hidden="true"
-        class="flex h-[46px] w-[38px] shrink-0 items-center justify-center rounded-tag border border-edge bg-canvas text-ink-soft"
+        class="flex h-[46px] w-[38px] shrink-0 items-center justify-center rounded-tag border border-edge-soft bg-canvas text-ink-soft"
     >
         <FmIcon :icon="FileText" :size="20" />
     </span>

@@ -358,6 +358,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 type="autocomplete"
                 open-on-click
                 :label="$t('Organization')"
+                optional
                 name="organization_id"
                 :options="withNone(options.organizations)"
                 :errors="errors(problems.organization_id)"
@@ -369,7 +370,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 v-if="compact"
                 type="button"
                 :aria-label="$t('Close')"
-                class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-edge bg-card text-ink"
+                class="-mr-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-ink-soft hover:bg-canvas"
                 @click="close"
             >
                 <FmIcon :icon="X" :size="20" />
@@ -417,28 +418,30 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                     :errors="errors(problems.amount)"
                 />
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div v-if="expense" class="flex flex-col gap-1.5">
                 <FormKit
-                    v-if="expense"
                     v-model="values.fee_amount"
                     type="currency"
                     :label="$t('Commission')"
+                    optional
                     name="fee_amount"
                     :errors="errors(problems.fee_amount)"
                 />
-                <FormKit
-                    v-model="values.financial_account_id"
-                    type="dropdown"
-                    :label="$t('Account')"
-                    name="financial_account_id"
-                    :options="withNone(options.accounts)"
-                    :errors="errors(problems.financial_account_id)"
-                />
-                <ReuseOrganization v-if="!expense" />
+                <p class="m-0 text-meta text-ink-soft">
+                    {{
+                        $t('The commission is already included in the amount.')
+                    }}
+                </p>
             </div>
-            <p v-if="expense" class="m-0 -mt-1 text-meta text-ink-soft">
-                {{ $t('The commission is already included in the amount.') }}
-            </p>
+            <FormKit
+                v-model="values.financial_account_id"
+                type="dropdown"
+                :label="$t('Bank account')"
+                name="financial_account_id"
+                :options="withNone(options.accounts)"
+                :errors="errors(problems.financial_account_id)"
+            />
+            <ReuseOrganization v-if="!expense" />
             <FormKit
                 v-if="!expense"
                 v-model="values.type"
@@ -449,55 +452,55 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 :options="options.income_types"
                 :errors="errors(problems.type)"
             />
-            <div class="grid grid-cols-2 gap-3">
-                <FormKit
-                    v-if="expense"
-                    v-model="values.category_id"
-                    type="autocomplete"
-                    open-on-click
-                    :label="$t('Category')"
-                    name="category_id"
-                    :options="withNone(options.categories)"
-                    :errors="errors(problems.category_id)"
-                />
-                <FormKit
-                    v-if="expense"
-                    v-model="values.card"
-                    type="autocomplete"
-                    open-on-click
-                    :label="cardLabel"
-                    name="card"
-                    :options="withNone(cardChoices)"
-                    :errors="errors(problems.card)"
-                />
-                <ReuseOrganization v-if="expense" />
-                <FormKit
-                    v-model="values.person_id"
-                    type="autocomplete"
-                    open-on-click
-                    :label="$t('Holder')"
-                    name="person_id"
-                    :options="withNone(options.people)"
-                    :errors="errors(problems.person_id)"
-                />
-                <FormKit
-                    v-model="values.planned_id"
-                    type="autocomplete"
-                    open-on-click
-                    :label="
-                        expense ? $t('Planned expense') : $t('Planned income')
-                    "
-                    name="planned_id"
-                    :options="plannedChoices"
-                    :errors="errors(problems.planned_id)"
-                />
-            </div>
+            <FormKit
+                v-if="expense"
+                v-model="values.category_id"
+                type="autocomplete"
+                open-on-click
+                :label="$t('Category')"
+                name="category_id"
+                :options="withNone(options.categories)"
+                :errors="errors(problems.category_id)"
+            />
+            <ReuseOrganization v-if="expense" />
+            <FormKit
+                v-if="expense"
+                v-model="values.card"
+                type="autocomplete"
+                open-on-click
+                :label="cardLabel"
+                optional
+                name="card"
+                :options="withNone(cardChoices)"
+                :errors="errors(problems.card)"
+            />
+            <FormKit
+                v-model="values.person_id"
+                type="autocomplete"
+                open-on-click
+                :label="$t('Holder')"
+                optional
+                name="person_id"
+                :options="withNone(options.people)"
+                :errors="errors(problems.person_id)"
+            />
+            <FormKit
+                v-model="values.planned_id"
+                type="autocomplete"
+                open-on-click
+                :label="expense ? $t('Planned expense') : $t('Planned income')"
+                name="planned_id"
+                optional
+                :options="plannedChoices"
+                :errors="errors(problems.planned_id)"
+            />
             <FormKit
                 v-if="!expense"
                 v-model="values.employment_id"
                 type="autocomplete"
                 open-on-click
                 :label="$t('Employment')"
+                optional
                 name="employment_id"
                 :options="withNone(options.employments)"
                 :errors="errors(problems.employment_id)"
@@ -521,7 +524,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 $t('Documents')
             }}</span>
             <div
-                class="divide-y divide-divider overflow-hidden rounded-card border border-edge"
+                class="divide-y divide-divider overflow-hidden rounded-card border border-edge-soft"
             >
                 <FmRow
                     v-for="document in movement.documents"
@@ -537,7 +540,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-2.5">
+        <div class="flex flex-wrap items-center gap-2.5 pt-1">
             <FmDeleteButton
                 v-if="movement?.can_delete"
                 :url="destroy.url({ kind: movement.kind, id: movement.id })"
@@ -545,14 +548,16 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 :text="$t('Its documents stay.')"
                 :confirm-label="$t('Delete the movement')"
             />
-            <div class="ml-auto flex flex-wrap gap-2.5">
-                <FmButton variant="text" @click="cancel">{{
-                    $t('Cancel')
-                }}</FmButton>
-                <FmButton v-if="canSave" type="submit" :disabled="processing">{{
-                    $t('Save')
-                }}</FmButton>
-            </div>
+            <FmButton variant="neutral" @click="cancel">{{
+                $t('Cancel')
+            }}</FmButton>
+            <FmButton
+                v-if="canSave"
+                type="submit"
+                class="grow"
+                :disabled="processing"
+                >{{ $t('Save') }}</FmButton
+            >
         </div>
     </form>
 </template>

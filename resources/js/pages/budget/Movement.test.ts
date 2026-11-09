@@ -99,7 +99,7 @@ describe('Movement', () => {
             }),
         ).toHaveAttribute('href', '/cards/health_event/2');
         expect(
-            screen.getByRole('combobox', { name: 'Health event' }),
+            screen.getByRole('combobox', { name: 'Health event (optional)' }),
         ).toHaveValue('Health event · Visite di Giulia');
 
         await write('Title', 'Visita');
@@ -126,11 +126,11 @@ describe('Movement', () => {
         expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
             'Salute',
         );
-        expect(screen.getByRole('combobox', { name: 'Holder' })).toHaveValue(
-            'Giulia Bianchi',
-        );
         expect(
-            screen.getByRole('combobox', { name: 'Organization' }),
+            screen.getByRole('combobox', { name: 'Holder (optional)' }),
+        ).toHaveValue('Giulia Bianchi');
+        expect(
+            screen.getByRole('combobox', { name: 'Organization (optional)' }),
         ).toHaveValue('Studio Ferri');
     });
 
@@ -139,17 +139,17 @@ describe('Movement', () => {
         renderPage(Movement, newExpense);
 
         expect(
-            screen.getByRole('combobox', { name: 'Refers to' }),
+            screen.getByRole('combobox', { name: 'Refers to (optional)' }),
         ).toBeInTheDocument();
 
         await choose('Category', 'Auto');
 
-        expect(shown(await openMenu('Vehicle'))).toEqual([
+        expect(shown(await openMenu('Vehicle (optional)'))).toEqual([
             'None',
             'Vehicle · Panda',
         ]);
 
-        const list = await search('Vehicle', 'Pa');
+        const list = await search('Vehicle (optional)', 'Pa');
         await userEvent.click(
             within(list).getByRole('option', { name: 'Vehicle · Panda' }),
         );
@@ -169,42 +169,42 @@ describe('Movement', () => {
         renderPage(Movement, newExpense);
 
         await choose('Category', 'Auto');
-        await choose('Vehicle', 'Vehicle · Panda');
+        await choose('Vehicle (optional)', 'Vehicle · Panda');
         await choose('Category', 'Bollette e utenze');
 
-        expect(screen.getByRole('combobox', { name: 'Utility' })).toHaveValue(
-            '',
-        );
+        expect(
+            screen.getByRole('combobox', { name: 'Utility (optional)' }),
+        ).toHaveValue('');
     });
 
     it('fills the empty category, holder and organization from the card chosen', async () => {
         renderPage(Movement, newExpense);
 
-        await choose('Organization', 'Studio Ferri');
-        await choose('Refers to', 'Enrollment · Danza Giulia');
+        await choose('Organization (optional)', 'Studio Ferri');
+        await choose('Refers to (optional)', 'Enrollment · Danza Giulia');
 
         expect(screen.getByRole('combobox', { name: 'Category' })).toHaveValue(
             'Svago › Sport',
         );
-        expect(screen.getByRole('combobox', { name: 'Holder' })).toHaveValue(
-            'Giulia Bianchi',
-        );
         expect(
-            screen.getByRole('combobox', { name: 'Organization' }),
+            screen.getByRole('combobox', { name: 'Holder (optional)' }),
+        ).toHaveValue('Giulia Bianchi');
+        expect(
+            screen.getByRole('combobox', { name: 'Organization (optional)' }),
         ).toHaveValue('Studio Ferri');
         expect(
-            screen.getByRole('combobox', { name: 'Enrollment' }),
+            screen.getByRole('combobox', { name: 'Enrollment (optional)' }),
         ).toHaveValue('Enrollment · Danza Giulia');
     });
 
     it('takes the card of the planned expense chosen', async () => {
         renderPage(Movement, newExpense);
 
-        await choose('Planned expense', 'Bollo Panda');
+        await choose('Planned expense (optional)', 'Bollo Panda');
 
-        expect(screen.getByRole('combobox', { name: 'Vehicle' })).toHaveValue(
-            'Vehicle · Panda',
-        );
+        expect(
+            screen.getByRole('combobox', { name: 'Vehicle (optional)' }),
+        ).toHaveValue('Vehicle · Panda');
     });
 
     it('opens from a due date with the card of the planned expense, even of another type than the category, and sends it', async () => {
@@ -255,9 +255,9 @@ describe('Movement', () => {
         });
         await settle();
 
-        expect(screen.getByRole('combobox', { name: 'Home' })).toHaveValue(
-            'Loan · Mutuo casa',
-        );
+        expect(
+            screen.getByRole('combobox', { name: 'Home (optional)' }),
+        ).toHaveValue('Loan · Mutuo casa');
 
         await write('Amount', '612');
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -279,7 +279,7 @@ describe('Movement', () => {
         await settle();
 
         expect(
-            screen.queryByRole('combobox', { name: 'Refers to' }),
+            screen.queryByRole('combobox', { name: 'Refers to (optional)' }),
         ).not.toBeInTheDocument();
     });
 });

@@ -83,7 +83,7 @@ const shown = computed(() =>
 
         <template v-else>
             <label
-                class="flex h-control-md items-center gap-2.5 rounded-md border border-edge bg-card px-3.5 text-ink-soft"
+                class="flex h-control-md items-center gap-2.5 rounded-md border border-edge-soft bg-card px-3.5 text-ink-soft"
             >
                 <FmIcon :icon="Search" :size="20" />
                 <input
@@ -109,7 +109,7 @@ const shown = computed(() =>
                     :class="
                         type === filter.value
                             ? 'border-action bg-action text-on-action'
-                            : 'border-edge bg-card text-ink'
+                            : 'border-edge-soft bg-card text-ink'
                     "
                     @click="type = filter.value"
                 >

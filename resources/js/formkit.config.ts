@@ -14,6 +14,7 @@ import { DROPDOWNS, openOnTheSideWithRoom } from '@/lib/formkitDropdownSide';
 import { closeOnEmptyChoice, showEmptyChoice } from '@/lib/formkitEmptyChoice';
 import { labelLateOptions } from '@/lib/formkitLateOptions';
 import { sayNoResults } from '@/lib/formkitNoResults';
+import { markOptional } from '@/lib/formkitOptional';
 import { openOnFocus } from '@/lib/formkitOpenOnFocus';
 import { toggleAsSwitch } from '@/lib/formkitSwitch';
 import { tabChoosesSuggestion } from '@/lib/formkitTagTab';
@@ -82,6 +83,7 @@ export default defaultConfig({
         openOnTheSideWithRoom,
         openOnFocus,
         sayNoResults,
+        markOptional,
     ],
     locales: { en, it },
     // The server writes the language in <html lang>; the tests have no document language
@@ -199,7 +201,7 @@ export default defaultConfig({
                 dropdownWrapper:
                     'pointer-events-none absolute top-full right-0 left-0 z-50! mt-1.5 max-h-0! data-[side=top]:top-auto! data-[side=top]:bottom-full! data-[side=top]:mt-0 data-[side=top]:mb-1.5 overflow-hidden! transition-[max-height] delay-150 duration-0 in-data-expanded:max-h-[400px]! in-data-expanded:overflow-visible! in-data-expanded:delay-0 motion-reduce:delay-0',
                 listbox:
-                    'invisible m-0 max-h-72 -translate-y-1 list-none overflow-auto rounded-md border border-edge bg-card p-1.5 opacity-0 shadow-menu outline-none motion-safe:transition-[opacity,translate,visibility] motion-safe:duration-150 motion-safe:ease-out in-data-expanded:pointer-events-auto in-data-expanded:visible in-data-expanded:translate-y-0 in-data-expanded:opacity-100',
+                    'invisible m-0 max-h-72 -translate-y-1 list-none overflow-auto rounded-md border border-edge-soft bg-card p-1.5 opacity-0 shadow-menu outline-none motion-safe:transition-[opacity,translate,visibility] motion-safe:duration-150 motion-safe:ease-out in-data-expanded:pointer-events-auto in-data-expanded:visible in-data-expanded:translate-y-0 in-data-expanded:opacity-100',
                 listitem:
                     'relative flex min-h-control cursor-pointer items-center gap-2 rounded-tag px-3 text-body-sm text-ink data-[is-active=true]:bg-canvas aria-selected:text-action-dark',
                 selectedIcon:
@@ -227,7 +229,7 @@ export default defaultConfig({
                 // FormKit adds the panel only when it opens: it fades in from its
                 // starting style, as the other menus; it goes away at once
                 panelWrapper:
-                    'absolute top-full left-0 z-50 mt-1.5 w-[320px] max-w-[calc(100vw-32px)] rounded-xl border border-edge bg-card p-3 shadow-menu outline-none motion-safe:transition-[opacity,translate] motion-safe:duration-150 motion-safe:ease-out starting:-translate-y-1 starting:opacity-0',
+                    'absolute top-full left-0 z-50 mt-1.5 w-[320px] max-w-[calc(100vw-32px)] rounded-xl border border-edge-soft bg-card p-3 shadow-menu outline-none motion-safe:transition-[opacity,translate] motion-safe:duration-150 motion-safe:ease-out starting:-translate-y-1 starting:opacity-0',
                 panelHeader: 'mb-2 flex items-center justify-between gap-2',
                 prev: '$reset flex size-9 cursor-pointer items-center justify-center rounded-tag text-ink hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',
                 next: '$reset flex size-9 cursor-pointer items-center justify-center rounded-tag text-ink hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',

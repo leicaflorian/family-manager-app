@@ -213,7 +213,7 @@ function ring(chosen: boolean): string {
         ? cn(
               'border-[1.5px] border-action bg-action-soft text-label text-action-dark',
           )
-        : cn('border border-edge bg-card');
+        : cn('border border-edge-soft bg-card');
 }
 
 /**
@@ -247,7 +247,7 @@ function viewChip(chosen: boolean): string {
 
 /** The classes of the buttons of the phone and of the button of the areas. */
 const chip = cn(
-    'flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border border-edge bg-card text-body-sm whitespace-nowrap text-ink',
+    'flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border border-edge-soft bg-card text-body-sm whitespace-nowrap text-ink',
 );
 </script>
 

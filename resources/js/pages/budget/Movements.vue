@@ -291,7 +291,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         <FormKit
                             v-model="accountChoice"
                             type="dropdown"
-                            :label="$t('Account')"
+                            :label="$t('Bank account')"
                             name="account"
                             :options="accounts"
                             :classes="{ label: 'sr-only', outer: 'mb-0!' }"

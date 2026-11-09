@@ -29,7 +29,7 @@ const text = defineModel<string>({ required: true });
 
 <template>
     <label
-        class="flex shrink-0 items-center rounded-md border border-edge bg-card text-ink-soft"
+        class="flex shrink-0 items-center rounded-md border border-edge-soft bg-card text-ink-soft"
         :class="
             small
                 ? 'h-9 gap-2 px-3 text-body-sm'

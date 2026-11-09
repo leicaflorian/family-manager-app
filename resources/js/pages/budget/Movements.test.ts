@@ -124,7 +124,7 @@ describe('Movements', () => {
             '/budget/movements?month=2026-10&kind=income',
         );
 
-        await choose('Account', 'Carta Laura');
+        await choose('Bank account', 'Carta Laura');
         expect(get.mock.calls[1]![0]).toBe(
             '/budget/movements?month=2026-10&account=2',
         );

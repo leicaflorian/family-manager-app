@@ -152,7 +152,7 @@ describe('FmButton', () => {
 
         expect(
             screen.getByRole('button', { name: 'Update the date' }),
-        ).toHaveClass('border', 'border-edge', 'bg-card', 'text-ink');
+        ).toHaveClass('border', 'border-edge-soft', 'bg-card', 'text-ink');
     });
 
     it('compact shares the line on the phone and is 40 px on the computer, with the label style', () => {

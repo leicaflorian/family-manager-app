@@ -93,7 +93,9 @@ const styles: Record<ButtonVariant, string> = {
     soft: cn('bg-action-soft px-5 text-action-dark hover:bg-action/15'),
     text: cn('px-3 text-action hover:bg-action-soft hover:text-action-dark'),
     danger: cn('px-3 text-overdue hover:bg-overdue/10'),
-    neutral: cn('border border-edge bg-card px-5 text-ink hover:bg-canvas'),
+    neutral: cn(
+        'border border-edge-soft bg-card px-5 text-ink hover:bg-canvas',
+    ),
 };
 
 /** On a coloured background every variant is translucent white. */

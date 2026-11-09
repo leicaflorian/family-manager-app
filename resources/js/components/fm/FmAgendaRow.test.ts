@@ -224,7 +224,11 @@ describe('FmAgendaRow', () => {
                 name: 'Update the date',
             });
             const renewed = screen.getByRole('button', { name: 'Renewed' });
-            expect(update).toHaveClass('border-edge', 'text-ink', 'text-label');
+            expect(update).toHaveClass(
+                'border-edge-soft',
+                'text-ink',
+                'text-label',
+            );
             expect(renewed).toHaveClass('bg-action', 'text-label');
             expect(update.querySelector('svg')).toHaveAttribute('width', '16');
             expect(renewed.querySelector('svg')).toHaveAttribute('width', '14');

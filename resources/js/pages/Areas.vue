@@ -122,7 +122,7 @@ function tile(area: string): string {
 
         <label
             v-else
-            class="flex items-center gap-2.5 rounded-lg border border-edge bg-card px-3.5"
+            class="flex items-center gap-2.5 rounded-lg border border-edge-soft bg-card px-3.5"
         >
             <FmIcon :icon="Search" :size="20" />
             <input

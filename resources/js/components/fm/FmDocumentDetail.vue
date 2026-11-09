@@ -209,7 +209,7 @@ const shownGroup = computed(
                     <h2 class="m-0 text-section">{{ $t('Links') }}</h2>
                     <div class="flex flex-col rounded-card bg-card px-4 pt-1">
                         <div
-                            class="flex items-center gap-4.5 border-b border-edge"
+                            class="flex items-center gap-4.5 border-b border-edge-soft"
                         >
                             <button
                                 v-for="group in linkGroups"

@@ -259,7 +259,7 @@ final readonly class PlannedSummaries
             $planned instanceof PlannedIncome ? new CardValueData(__('Type'), $planned->type->label()) : null,
             $category === null ? null : new CardValueData(__('Category'), ExpenseCategoryPaths::all()[$category->id] ?? $category->name),
             $planned->organization === null ? null : new CardValueData(__('Organization'), $planned->organization->name, route('organizations.show', $planned->organization)),
-            $account === null ? null : new CardValueData(__('Account'), $account->name),
+            $account === null ? null : new CardValueData(__('Bank account'), $account->name),
             $person === null
                 ? new CardValueData(__('Holder'), __('Whole family'))
                 : new CardValueData(__('Holder'), $person->first_name, route('people.show', $person)),

@@ -54,7 +54,7 @@ const {
                 <Link
                     :href="closeUrl"
                     :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge bg-card text-ink"
+                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
                 >
                     <FmIcon :icon="X" :size="20" />
                 </Link>

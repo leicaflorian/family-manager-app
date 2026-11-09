@@ -59,7 +59,7 @@ function onError(): void {
     <div
         :class="
             cn(
-                'flex w-full items-center justify-center overflow-hidden rounded-xl border border-edge bg-card',
+                'flex w-full items-center justify-center overflow-hidden rounded-xl border border-edge-soft bg-card',
                 fill ? 'min-h-0 flex-1' : 'min-h-[420px]',
             )
         "

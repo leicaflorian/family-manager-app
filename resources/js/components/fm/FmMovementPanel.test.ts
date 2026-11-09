@@ -50,7 +50,9 @@ describe('FmMovementPanel', () => {
         expect(
             screen.getByRole('button', { name: 'An income' }),
         ).toBeInTheDocument();
-        expect(screen.getByLabelText('Commission')).toBeInTheDocument();
+        expect(
+            screen.getByLabelText('Commission (optional)'),
+        ).toBeInTheDocument();
         expect(
             screen.queryByRole('button', { name: 'Delete' }),
         ).not.toBeInTheDocument();
@@ -95,7 +97,7 @@ describe('FmMovementPanel', () => {
         renderPage(FmMovementPanel, props);
 
         await write('Amount', '45');
-        await choose('Planned expense', 'Retta danza');
+        await choose('Planned expense (optional)', 'Retta danza');
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         await settle();
 
@@ -116,8 +118,8 @@ describe('FmMovementPanel', () => {
 
         await write('Title', 'Retta di dicembre');
         await write('Amount', '45');
-        await choose('Account', 'Conto BPER');
-        await choose('Planned expense', 'Retta danza');
+        await choose('Bank account', 'Conto BPER');
+        await choose('Planned expense (optional)', 'Retta danza');
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         await settle();
 
@@ -152,9 +154,13 @@ describe('FmMovementPanel', () => {
 
         expect(screen.getByLabelText('Received on')).toBeInTheDocument();
         expect(screen.getByText('Type')).toBeInTheDocument();
-        expect(screen.queryByLabelText('Commission')).not.toBeInTheDocument();
+        expect(
+            screen.queryByLabelText('Commission (optional)'),
+        ).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
-        expect(screen.getByLabelText('Planned income')).toBeInTheDocument();
+        expect(
+            screen.getByLabelText('Planned income (optional)'),
+        ).toBeInTheDocument();
     });
 
     it('puts the organization of an income beside the account, and the type on a row of its own', async () => {
@@ -166,13 +172,18 @@ describe('FmMovementPanel', () => {
         await settle();
 
         const labels = [...view.container.querySelectorAll('label, legend')]
-            .map((label) => label.textContent?.trim())
+            .map((label) => label.textContent?.replace('(optional)', '').trim())
             .filter((text) =>
-                ['Account', 'Organization', 'Type', 'Holder'].includes(
+                ['Bank account', 'Organization', 'Type', 'Holder'].includes(
                     text ?? '',
                 ),
             );
-        expect(labels).toEqual(['Account', 'Organization', 'Type', 'Holder']);
+        expect(labels).toEqual([
+            'Bank account',
+            'Organization',
+            'Type',
+            'Holder',
+        ]);
     });
 
     it('asks the page for the open due dates of whichever planned expense is chosen', async () => {
@@ -181,7 +192,7 @@ describe('FmMovementPanel', () => {
         const view = renderPage(FmMovementPanel, props);
         expect(screen.queryByLabelText('Due date')).not.toBeInTheDocument();
 
-        await choose('Planned expense', 'Retta danza');
+        await choose('Planned expense (optional)', 'Retta danza');
 
         expect(reload).toHaveBeenCalledWith({
             only: ['occurrences'],
@@ -202,7 +213,7 @@ describe('FmMovementPanel', () => {
 
         // Choosing nothing hides the menu and asks for nothing
         reload.mockClear();
-        await choose('Planned expense', 'None');
+        await choose('Planned expense (optional)', 'None');
         expect(reload).not.toHaveBeenCalled();
         expect(screen.queryByLabelText('Due date')).not.toBeInTheDocument();
     });
@@ -211,7 +222,7 @@ describe('FmMovementPanel', () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         const view = renderPage(FmMovementPanel, props);
         await write('Amount', '45');
-        await choose('Planned expense', 'Retta danza');
+        await choose('Planned expense (optional)', 'Retta danza');
         await view.rerender({
             occurrences: [
                 { value: '2026-12-05', label: '05/12/2026', help: null },
@@ -236,8 +247,10 @@ describe('FmMovementPanel', () => {
         );
         await settle();
         await write('Amount', '1720');
-        await choose('Planned income', 'Stipendio di Laura');
-        expect(screen.getByLabelText('Employment')).toBeInTheDocument();
+        await choose('Planned income (optional)', 'Stipendio di Laura');
+        expect(
+            screen.getByLabelText('Employment (optional)'),
+        ).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         await settle();
 
@@ -365,6 +378,64 @@ describe('FmMovementPanel', () => {
         ).not.toBeInTheDocument();
         await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(panel.emitted()).toHaveProperty('close');
+    });
+
+    it('says which fields may stay empty, as the board Nuova-spesa', () => {
+        const view = renderPage(FmMovementPanel, props);
+
+        const optional = [...view.container.querySelectorAll('label')]
+            .filter((label) => label.textContent?.includes('(optional)'))
+            .map((label) =>
+                label.textContent?.replace('(optional)', '').trim(),
+            );
+        expect(optional).toEqual([
+            'Commission',
+            'Organization',
+            'Refers to',
+            'Holder',
+            'Planned expense',
+        ]);
+        expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    });
+
+    it('puts one field on each line, as the board, but the date beside the amount', () => {
+        const view = renderPage(FmMovementPanel, props);
+
+        const labels = [...view.container.querySelectorAll('label, legend')]
+            .map((label) => label.textContent?.replace('(optional)', '').trim())
+            .filter((text) => text !== '' && text !== undefined);
+        expect(labels).toEqual([
+            'It is',
+            'Title',
+            'Paid on',
+            'Amount',
+            'Commission',
+            'Bank account',
+            'Category',
+            'Organization',
+            'Refers to',
+            'Holder',
+            'Planned expense',
+        ]);
+    });
+
+    it('has the × of the board: no edge, in the soft colour', () => {
+        renderPage(FmMovementPanel, { ...props, compact: true });
+
+        const close = screen.getByRole('button', { name: 'Close' });
+        expect(close).toHaveClass('size-11', 'text-ink-soft');
+        expect(close).not.toHaveClass('border');
+    });
+
+    it('has Cancel white with a grey edge and Save taking the rest of the line', () => {
+        renderPage(FmMovementPanel, props);
+
+        expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass(
+            'border-edge-soft',
+        );
+        expect(screen.getByRole('button', { name: 'Save' })).toHaveClass(
+            'grow',
+        );
     });
 
     it('asks before closing with the × when something changed', async () => {

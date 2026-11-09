@@ -258,7 +258,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     <button
                         type="button"
                         :aria-label="$t('Filters')"
-                        class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge bg-card text-ink xl:hidden"
+                        class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-ink xl:hidden"
                         @click="filtersOpen = true"
                     >
                         <FmIcon :icon="ListFilter" :size="22" />
