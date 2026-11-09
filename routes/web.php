@@ -40,6 +40,7 @@ use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ScanCornersController;
 use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\ScanShareController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceWorkerController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
@@ -122,6 +123,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('reminders/{reminder}/done', [ReminderDoneController::class, 'store'])->name('reminders.done');
         Route::delete('reminders/{reminder}/done', [ReminderDoneController::class, 'destroy'])->name('reminders.reopen');
         Route::post('reminders/{reminder}/postpone', ReminderPostponeController::class)->name('reminders.postpone');
+        Route::get('search', [SearchController::class, 'index'])->name('search');
+        Route::get('search/suggest', [SearchController::class, 'suggest'])->middleware('throttle:120,1')->name('search.suggest');
         Route::get('notices', [NoticeController::class, 'index'])->name('notices');
         Route::post('notices/read', [NoticeController::class, 'readAll'])->name('notices.read-all');
         Route::post('notices/{notice}/read', [NoticeController::class, 'read'])->name('notices.read')->whereNumber('notice');
