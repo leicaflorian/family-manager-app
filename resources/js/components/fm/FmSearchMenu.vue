@@ -10,15 +10,22 @@
  *
  * Rules: on a computer it sits under the box (`absolute`, 440 px, radius 14,
  * `shadow-menu`); on a phone, `inline`, it fills the white panel. The rows are
- * the compact `FmSearchResult`.
+ * the compact `FmSearchResult`. The classes of the page win over its own
+ * (`max-w-none` lets it be wider than the box on the Home).
  *
  * @group fields
  */
 import { Link, router } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useAttrs, watch } from 'vue';
+import { cn } from '@/lib/utils';
 import { search } from '@/routes';
 import FmSearchResult from './FmSearchResult.vue';
+
+// The classes of the page are merged with its own, so they can replace them
+defineOptions({ inheritAttrs: false });
+
+const attrs = useAttrs();
 
 const {
     results,
@@ -32,6 +39,24 @@ const {
     /** On a phone: full width inside the white panel instead of floating. */
     inline?: boolean;
 }>();
+
+/** The classes of the menu: its own, then the page's, which win. */
+const rootClass = computed((): string =>
+    cn(
+        'flex flex-col bg-card p-1.5',
+        inline
+            ? 'w-full'
+            : 'absolute top-13 right-0 z-10 w-110 max-w-full rounded-xl shadow-menu',
+        attrs.class as string | undefined,
+    ),
+);
+
+/** The other attributes of the page (id, listeners), without the classes. */
+const otherAttrs = computed((): Record<string, unknown> => {
+    const { class: _class, ...rest } = attrs;
+
+    return rest;
+});
 
 /** The rows of all the groups in the order they are shown. */
 const rows = computed(() => results.groups.flatMap((g) => g.results));
@@ -113,14 +138,7 @@ defineExpose({ move, open, activeId });
 </script>
 
 <template>
-    <div
-        class="flex flex-col bg-card p-1.5"
-        :class="
-            inline
-                ? 'w-full'
-                : 'absolute top-13 right-0 z-10 w-110 max-w-full rounded-xl shadow-menu'
-        "
-    >
+    <div v-bind="otherAttrs" :class="rootClass">
         <div
             role="listbox"
             :aria-label="trans('Results')"

@@ -23,7 +23,7 @@ import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useSearchBox } from '@/composables/useSearchBox';
+import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { dashboard, search } from '@/routes';
@@ -32,9 +32,6 @@ const { results } = defineProps<{
     /** What was searched and what was found, in groups. */
     results: App.Data.Search.SearchResultsData;
 }>();
-
-/** The id of the menu of the first results, for the box. */
-const MENU_ID = 'search-results';
 
 /** One piece of a tip: plain text, or an example in bold or in italics. */
 type TipPart = { text: string; tag?: 'strong' | 'em' };
@@ -181,7 +178,7 @@ function goBack(): void {
                     :label="$t('Search in Family Manager')"
                     clearable
                     autofocus
-                    :controls="MENU_ID"
+                    :controls="SEARCH_MENU_ID"
                     :expanded="menuResults !== null"
                     class="min-w-0 grow"
                     :active-descendant="
@@ -193,7 +190,7 @@ function goBack(): void {
                 />
                 <FmSearchMenu
                     v-if="wide && menuResults"
-                    :id="MENU_ID"
+                    :id="SEARCH_MENU_ID"
                     ref="menu"
                     :results="menuResults"
                     :query="menuResults.query"
@@ -234,7 +231,7 @@ function goBack(): void {
             class="overflow-hidden rounded-card bg-card"
         >
             <FmSearchMenu
-                :id="MENU_ID"
+                :id="SEARCH_MENU_ID"
                 ref="menu"
                 :results="menuResults"
                 :query="menuResults.query"

@@ -39,6 +39,10 @@ describe('FmBell', () => {
             'border-edge-soft',
             'bg-card',
         );
+        // the base border-0 would otherwise hide the border of the square bell
+        expect(screen.getByRole('button', { name: 'Notices' })).not.toHaveClass(
+            'border-0',
+        );
     });
 
     it('stops counting at 99', () => {

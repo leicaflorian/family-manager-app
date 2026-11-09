@@ -3,8 +3,9 @@ import { onBeforeUnmount, onMounted } from 'vue';
 import { search } from '@/routes';
 
 /**
- * Whether a key was pressed while the person writes: in a field, a text area,
- * a menu or a text that can be edited, where «/» is a character to type.
+ * Whether a key was pressed while the person writes or chooses: in a field, a
+ * text area, a menu, a text that can be edited or a widget that reads the keys
+ * itself (combobox, textbox, listbox), where «/» belongs to it.
  *
  * @param target - where the key was pressed
  * @returns true inside something that takes text
@@ -13,7 +14,7 @@ function writing(target: EventTarget | null): boolean {
     return (
         target instanceof Element &&
         target.closest(
-            'input, textarea, select, [contenteditable]:not([contenteditable="false"])',
+            'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="combobox"], [role="textbox"], [role="listbox"]',
         ) !== null
     );
 }
@@ -26,6 +27,11 @@ function writing(target: EventTarget | null): boolean {
  * @returns true for the shortcut
  */
 function isShortcut(event: KeyboardEvent): boolean {
+    // a key that composes a character, or that something already used, is not ours
+    if (event.isComposing || event.defaultPrevented) {
+        return false;
+    }
+
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         return true;
     }

@@ -21,7 +21,8 @@ import {
     PopoverRoot,
     PopoverTrigger,
 } from 'reka-ui';
-import { computed } from 'vue';
+import { computed, useAttrs } from 'vue';
+import { cn } from '@/lib/utils';
 import { notices as noticesPage } from '@/routes';
 import { readAll } from '@/routes/notices';
 import FmButton from './FmButton.vue';
@@ -39,6 +40,23 @@ export type BellNotices = {
 
 // The root is the popover, which draws no element: the classes go to the bell
 defineOptions({ inheritAttrs: false });
+
+const attrs = useAttrs();
+
+/** The classes of the bell: its own, merged with the page's (a border replaces `border-0`). */
+const triggerClass = computed((): string =>
+    cn(
+        'relative flex size-11 cursor-pointer items-center justify-center border-0 text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
+        attrs.class as string | undefined,
+    ),
+);
+
+/** The other attributes of the page, without the classes merged above. */
+const otherAttrs = computed((): Record<string, unknown> => {
+    const { class: _class, ...rest } = attrs;
+
+    return rest;
+});
 
 const { count, notices } = defineProps<{
     /** How many notices the person has not seen yet. */
@@ -93,9 +111,9 @@ function markAll(): void {
 <template>
     <PopoverRoot @update:open="toggled">
         <PopoverTrigger
-            v-bind="$attrs"
+            v-bind="otherAttrs"
             :aria-label="label"
-            class="relative flex size-11 cursor-pointer items-center justify-center border-0 text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+            :class="triggerClass"
         >
             <FmIcon :icon="Bell" :size="24" />
             <span

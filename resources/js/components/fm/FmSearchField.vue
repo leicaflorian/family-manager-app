@@ -132,7 +132,7 @@ defineExpose({ focus });
             :aria-expanded="controls ? expanded : undefined"
             :aria-autocomplete="controls ? 'list' : undefined"
             :aria-activedescendant="controls ? activeDescendant : undefined"
-            class="min-w-0 grow border-0 bg-transparent text-ink outline-none"
+            class="min-w-0 grow border-0 bg-transparent text-ink outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
             @keydown.enter="emit('submit')"
             @keydown.esc="escape"
         />

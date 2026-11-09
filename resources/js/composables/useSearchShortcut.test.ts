@@ -28,6 +28,11 @@ function renderPage(
                         'aria-label': 'Text',
                         contenteditable: 'true',
                     }),
+                    h('div', {
+                        'aria-label': 'Choice',
+                        role: 'combobox',
+                        tabindex: 0,
+                    }),
                 ]);
         },
     });
@@ -80,7 +85,7 @@ describe('useSearchShortcut', () => {
         expect(event.defaultPrevented).toBe(true);
     });
 
-    it.each(['Name', 'Notes', 'Text'])(
+    it.each(['Name', 'Notes', 'Text', 'Choice'])(
         'leaves «/» to the person writing in %s',
         (label) => {
             const focus = vi.fn();
@@ -98,6 +103,22 @@ describe('useSearchShortcut', () => {
             expect(event.defaultPrevented).toBe(false);
         },
     );
+
+    it('leaves «/» alone while a word is being composed or the key was already used', () => {
+        const focus = vi.fn();
+        renderPage(focus);
+
+        press({ key: '/', isComposing: true });
+        const used = new KeyboardEvent('keydown', {
+            key: '/',
+            bubbles: true,
+            cancelable: true,
+        });
+        used.preventDefault();
+        document.body.dispatchEvent(used);
+
+        expect(focus).not.toHaveBeenCalled();
+    });
 
     it('opens the search page with «/» when there is no field', () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});

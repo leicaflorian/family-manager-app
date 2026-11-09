@@ -1,6 +1,9 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
 import { useSearchSuggest } from '@/composables/useSearchSuggest';
 
+/** The id of the menu of the first results, for `aria-controls` of the box. */
+export const SEARCH_MENU_ID = 'search-results';
+
 /** What the box asks of the menu of the first results (`FmSearchMenu`). */
 export type SearchMenuControls = {
     /** Moves the choice by one row. */
@@ -14,13 +17,15 @@ export type SearchMenuControls = {
  * Home and the *Search* page use it: while the person types the menu opens
  * with what the server finds, the arrows move the choice, Enter opens the
  * chosen result (or searches the text when none is chosen) and Esc closes the
- * menu until the text changes again.
+ * menu until the text changes again. Where the menu sits inside the element of
+ * the box, `onFocusIn` and `onFocusOut` on that element tell whether the box
+ * has the focus, and close the menu when the focus goes away.
  *
  * @param text - what is written in the box
  * @param menu - the menu, once it is on the page
  * @param submit - what searching the text does
  * @returns the results of the menu (`null` while it is closed) and what the
- *   box does on Enter, on a key and on Esc
+ *   box does on Enter, on a key, on Esc and when the focus leaves it
  */
 export function useSearchBox(
     text: Ref<string>,
@@ -31,6 +36,9 @@ export function useSearchBox(
     enter: () => void;
     onKeydown: (event: KeyboardEvent) => void;
     closeMenu: () => void;
+    focused: Ref<boolean>;
+    onFocusIn: () => void;
+    onFocusOut: (event: FocusEvent) => void;
 } {
     const { results: suggested } = useSearchSuggest(text);
 
@@ -83,5 +91,41 @@ export function useSearchBox(
         menuOpen.value = false;
     }
 
-    return { menuResults, enter, onKeydown, closeMenu };
+    /** The box or its menu has the focus. */
+    const focused = ref(false);
+
+    /** The focus enters the box or its menu. */
+    function onFocusIn(): void {
+        focused.value = true;
+    }
+
+    /**
+     * The focus leaves an element of the box: when it goes outside the box and
+     * its menu, the box has no focus any more and the menu closes.
+     *
+     * @param event - the focus leaving, heard on the element of the box
+     */
+    function onFocusOut(event: FocusEvent): void {
+        const box = event.currentTarget;
+        const to = event.relatedTarget;
+
+        if (
+            !(box instanceof Node) ||
+            !(to instanceof Node) ||
+            !box.contains(to)
+        ) {
+            focused.value = false;
+            closeMenu();
+        }
+    }
+
+    return {
+        menuResults,
+        enter,
+        onKeydown,
+        closeMenu,
+        focused,
+        onFocusIn,
+        onFocusOut,
+    };
 }

@@ -83,6 +83,17 @@ describe('FmSearchMenu', () => {
         ).toHaveAttribute('href', '/search?q=Pan');
     });
 
+    it('takes the classes of the page over its own: max-w-none lets it be wider than the box', () => {
+        render(FmSearchMenu, {
+            props: { results, query: 'Pan' },
+            attrs: { class: 'max-w-none' },
+        });
+
+        const menu = screen.getByRole('listbox').parentElement;
+        expect(menu).toHaveClass('max-w-none', 'w-110');
+        expect(menu).not.toHaveClass('max-w-full');
+    });
+
     it('moves the choice with move() and opens it with open()', async () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         const menu = ref<InstanceType<typeof FmSearchMenu> | null>(null);

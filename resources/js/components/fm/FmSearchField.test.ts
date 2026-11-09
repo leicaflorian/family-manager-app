@@ -95,6 +95,17 @@ describe('FmSearchField', () => {
             );
     });
 
+    it('hides the clear button of the browser, so only its own ✕ shows', () => {
+        render(FmSearchField, {
+            props: { modelValue: 'Pan', label: 'Search', clearable: true },
+        });
+
+        expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveClass(
+            '[&::-webkit-search-cancel-button]:appearance-none',
+            '[&::-webkit-search-decoration]:appearance-none',
+        );
+    });
+
     it('emits submit on Enter and escape on Esc', async () => {
         const view = render(FmSearchField, {
             props: { label: 'Search everything', modelValue: 'Pan' },

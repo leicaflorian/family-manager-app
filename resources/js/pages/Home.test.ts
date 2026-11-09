@@ -185,6 +185,49 @@ describe('Home search', () => {
         );
     });
 
+    it('focuses the box with «/» pressed outside a field', () => {
+        wide(true);
+        renderPage(Home, { home });
+
+        press({ key: '/' });
+
+        expect(
+            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+        ).toHaveFocus();
+    });
+
+    it('closes the menu when the focus leaves the box', async () => {
+        wide(true);
+        renderPage(Home, { home });
+        const box = screen.getByRole('combobox', {
+            name: 'Search in Family Manager',
+        });
+        await userEvent.type(box, 'Pan');
+        await screen.findByRole('link', { name: /See all 10 results/ });
+
+        await userEvent.click(
+            screen.getByRole('heading', { name: 'Hi, Marco', level: 1 }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('link', { name: /See all 10 results/ }),
+            ).not.toBeInTheDocument(),
+        );
+    });
+
+    it('on the phone opens the Search page with ⌘K', () => {
+        wide(false);
+        const visit = vi
+            .spyOn(router, 'visit')
+            .mockImplementation(() => undefined);
+        renderPage(Home, { home });
+
+        press({ key: 'k', metaKey: true });
+
+        expect(visit).toHaveBeenCalledWith('/search');
+    });
+
     it('on the phone has the magnifier that opens Search, and no box', () => {
         wide(false);
         renderPage(Home, { home });

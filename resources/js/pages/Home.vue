@@ -35,7 +35,7 @@ import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
-import { useSearchBox } from '@/composables/useSearchBox';
+import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
@@ -69,16 +69,12 @@ const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
  */
 const wide = useWideLayout();
 
-/** The id of the menu of the first results, for the search box. */
-const MENU_ID = 'search-results';
-
 /** The text in the search box. */
 const text = ref('');
 
-/** The search box has the focus: it grows to 420 px. */
-const focused = ref(false);
-
+/** The search box of the computer, to focus it with the shortcut. */
 const field = useTemplateRef<InstanceType<typeof FmSearchField>>('field');
+/** The menu of the first results under the box, for the arrows and Enter. */
 const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
 
 /** Searches the text of the box on the *Search* page. */
@@ -88,32 +84,21 @@ function submit(): void {
     router.visit(q === '' ? search.url() : search.url({ query: { q } }));
 }
 
-const { menuResults, enter, onKeydown, closeMenu } = useSearchBox(
-    text,
-    menu,
-    submit,
-);
+// The box grows to 420 px while it has the focus or some text
+const {
+    menuResults,
+    enter,
+    onKeydown,
+    closeMenu,
+    focused,
+    onFocusIn,
+    onFocusOut,
+} = useSearchBox(text, menu, submit);
 
 // On the phone there is no box: the keys open the Search page
 useSearchShortcut(() =>
     field.value ? field.value.focus() : router.visit(search.url()),
 );
-
-/**
- * The focus leaves the box (and the menu under it): it shrinks back if empty.
- *
- * @param event - the focus leaving an element of the box
- */
-function onFocusOut(event: FocusEvent): void {
-    const to = event.relatedTarget;
-
-    if (
-        !(to instanceof Node) ||
-        !(event.currentTarget as HTMLElement).contains(to)
-    ) {
-        focused.value = false;
-    }
-}
 
 /**
  * The step of *To begin* for a step of the server: its text and where it leads.
@@ -230,7 +215,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     v-if="wide"
                     class="relative max-w-full transition-[width] duration-200 motion-reduce:transition-none"
                     :class="focused || text !== '' ? 'w-105' : 'w-75'"
-                    @focusin="focused = true"
+                    @focusin="onFocusIn"
                     @focusout="onFocusOut"
                 >
                     <FmSearchField
@@ -239,7 +224,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                         :label="$t('Search in Family Manager')"
                         shortcut
                         clearable
-                        :controls="MENU_ID"
+                        :controls="SEARCH_MENU_ID"
                         :expanded="menuResults !== null"
                         :active-descendant="
                             menuResults ? menu?.activeId : undefined
@@ -250,10 +235,12 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     />
                     <FmSearchMenu
                         v-if="menuResults"
-                        :id="MENU_ID"
+                        :id="SEARCH_MENU_ID"
                         ref="menu"
                         :results="menuResults"
                         :query="menuResults.query"
+                        class="max-w-none"
+                        @mousedown.prevent
                     />
                 </div>
                 <Link

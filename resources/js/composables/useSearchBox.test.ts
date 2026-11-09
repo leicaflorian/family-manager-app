@@ -158,6 +158,35 @@ describe('useSearchBox', () => {
         expect(none.submit).toHaveBeenCalledOnce();
     });
 
+    it('closes the menu when the focus leaves the box and its menu, not when it moves inside', async () => {
+        const { text, state } = renderBox();
+        text.value = 'Pan';
+        await vi.advanceTimersByTimeAsync(300);
+        const box = document.createElement('div');
+        const input = document.createElement('input');
+        const option = document.createElement('a');
+        box.append(input, option);
+        document.body.append(box);
+        box.addEventListener('focusout', state.onFocusOut);
+
+        input.dispatchEvent(
+            new FocusEvent('focusout', {
+                bubbles: true,
+                relatedTarget: option,
+            }),
+        );
+        expect(state.menuResults.value).toEqual(pan);
+
+        input.dispatchEvent(
+            new FocusEvent('focusout', {
+                bubbles: true,
+                relatedTarget: document.body,
+            }),
+        );
+        expect(state.menuResults.value).toBeNull();
+        box.remove();
+    });
+
     it('Enter searches without asking the menu when it is closed', () => {
         const { menu, submit, state } = renderBox(true);
 
