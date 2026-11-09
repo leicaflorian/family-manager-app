@@ -19,7 +19,7 @@ export const account: App.Data.AccountData = {
 
 /**
  * The props every page shares, as `HandleInertiaRequests` sends them to Marco
- * Bianchi: the default of the pages in Storybook.
+ * Bianchi.
  */
 export const sharedPageProps: InertiaConfig['sharedPageProps'] = {
     name: 'Family Manager',

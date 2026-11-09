@@ -1,7 +1,7 @@
 /**
  * The Vue plugins the forms of the app need: FormKit (with Pro and the
- * settings of the app) and the animation of the lists. Shared by the tests of
- * the pages and by Storybook, which mount components outside the app.
+ * settings of the app) and the animation of the lists. Used by the tests of
+ * the pages, which mount components outside the app.
  */
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue';
 import { plugin as formkit } from '@formkit/vue';
