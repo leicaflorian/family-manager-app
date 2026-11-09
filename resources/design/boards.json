@@ -111,6 +111,8 @@
         "FmQrCode": "pages",
         "FmUnlinkPhone": "pages",
         "FmPostponeSheet": "pages",
-        "FmUploadSheet": "pages"
+        "FmUploadSheet": "pages",
+        "FmPageStrip": "pages",
+        "FmCropStage": "pages"
     }
 }

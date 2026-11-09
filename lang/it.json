@@ -1479,5 +1479,14 @@
     ":name weighs :size MB: the most is 25 MB.": ":name pesa :size MB: il massimo è 25 MB.",
     "The photo": "La foto",
     "The PDF of the page": "Il PDF della pagina",
-    "The PDF of the pages": "Il PDF delle pagine"
+    "The PDF of the pages": "Il PDF delle pagine",
+    "The pages": "Le pagine",
+    "Page :number": "Pagina :number",
+    "Add a page": "Aggiungi una pagina",
+    "Drag to reorder": "Trascina per riordinare",
+    "Top left corner": "Angolo in alto a sinistra",
+    "Top right corner": "Angolo in alto a destra",
+    "Bottom right corner": "Angolo in basso a destra",
+    "Bottom left corner": "Angolo in basso a sinistra",
+    "Drag the corners to the edges of the sheet": "Trascina gli angoli sui bordi del foglio"
 }
