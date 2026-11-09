@@ -1,0 +1,106 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\Document;
+use App\Models\Family;
+use App\Models\LinkedDevice;
+use App\Models\User;
+use App\Services\PhoneLinks;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Session;
+use Tests\TestCase;
+
+beforeEach(function (): void {
+    $this->bianchi = Family::factory()->create(['name' => 'Bianchi']);
+    $this->marco = User::factory()->for($this->bianchi)->create(['name' => 'Marco Bianchi', 'password' => 'secret-password']);
+    $this->device = LinkedDevice::factory()->for($this->bianchi)->for($this->marco)
+        ->create(['token_hash' => hash('sha256', 'the-secret'), 'last_used_at' => now()]);
+});
+
+/** A request as the linked phone makes it: signed in, with the mark in the session. */
+function linkedPhone(): TestCase
+{
+    return test()->actingAs(test()->marco)->withSession(['linked_device_id' => test()->device->id]);
+}
+
+test('a linked phone is sent to the scan from the pages of the app', function (string $route): void {
+    linkedPhone()->get(route($route))->assertRedirect(route('scan'));
+})->with(['dashboard', 'documents.index', 'account.edit', 'upload', 'agenda']);
+
+test('a linked phone answers 403 to any other method outside the scan', function (): void {
+    $document = Document::factory()->for($this->bianchi)->create();
+
+    linkedPhone()->post(route('upload.store'))->assertForbidden();
+    linkedPhone()->delete(route('documents.destroy', $document))->assertForbidden();
+    linkedPhone()->put(route('agenda.filters'))->assertForbidden();
+    expect(Document::query()->count())->toBe(1);
+});
+
+test('a linked phone opens the scan, the linking pages and can sign out', function (): void {
+    linkedPhone()->get(route('scan'))->assertOk();
+    linkedPhone()->get(route('connect'))->assertOk();
+
+    linkedPhone()->post(route('logout'))->assertRedirect();
+    $this->assertGuest();
+});
+
+test('a request without a route name is not broken by the limit', function (): void {
+    linkedPhone()->get('/this/does/not/exist')->assertNotFound();
+});
+
+test('the pages outside the web group are not touched', function (): void {
+    $this->get('calendar/nothing.ics')->assertNotFound();
+});
+
+test('the scan of a linked phone shares only what the scan needs', function (): void {
+    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page
+        ->component('scan/Scan')
+        ->where('auth.user.name', 'Marco Bianchi')
+        ->where('family.name', 'Bianchi')
+        ->where('locale', 'en')
+        ->has('theme')
+        ->missing('areas')
+        ->missing('unread_notices')
+        ->missing('to_sort_count'));
+});
+
+test('the user shared with a linked phone has only the name and the photo', function (): void {
+    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page
+        ->where('auth.user', ['name' => 'Marco Bianchi', 'photo' => null]));
+});
+
+test('an account without a linked phone sees the whole app and the shared props', function (): void {
+    $this->actingAs($this->marco)->get(route('dashboard'))->assertOk()
+        ->assertInertia(fn ($page) => $page->has('areas')->has('unread_notices')->has('to_sort_count')->has('family'));
+    $this->get(route('documents.index'))->assertOk();
+});
+
+test('the cookie sign-in keeps the mark, so the first page is already limited', function (): void {
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('dashboard'))->assertRedirect(route('scan'));
+
+    expect(session('linked_device_id'))->toBe($this->device->id);
+});
+
+test('a login with the password lifts the limit', function (): void {
+    Event::dispatch(new Login('web', $this->marco, false));
+    expect(session()->has('linked_device_id'))->toBeFalse();
+
+    Session::put('linked_device_id', $this->device->id);
+    Event::dispatch(new Login('other', $this->marco, false));
+    expect(session('linked_device_id'))->toBe($this->device->id);
+});
+
+test('signing out and in with the password opens the whole app, and signing out brings the cookie back to the scan', function (): void {
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('scan'))->assertOk();
+    $this->post(route('logout'));
+    $this->assertGuest();
+
+    $this->post(route('login.store'), ['email' => $this->marco->email, 'password' => 'secret-password'])->assertRedirect();
+    expect(session()->has('linked_device_id'))->toBeFalse();
+    $this->get(route('dashboard'))->assertOk();
+
+    $this->post(route('logout'));
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('dashboard'))->assertRedirect(route('scan'));
+});

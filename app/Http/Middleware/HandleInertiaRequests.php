@@ -48,6 +48,10 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        if ($request->hasSession() && $request->session()->has('linked_device_id')) {
+            return $this->linkedPhoneShare($request);
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -62,6 +66,29 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             // The theme of the account (`system` for a guest): the layout puts it on <html>
             'theme' => $request->user()?->theme->value ?? Theme::System->value,
+        ];
+    }
+
+    /**
+     * What a phone linked with a code is given: the scan needs only the name and photo of the account, the name of
+     * the family, the language, the theme and the messages. No areas, counts or notices.
+     *
+     * @param  Request  $request  the request
+     * @return array<string, mixed>
+     */
+    private function linkedPhoneShare(Request $request): array
+    {
+        $user = $request->user();
+
+        return [
+            ...parent::share($request),
+            'name' => config('app.name'),
+            'auth' => [
+                'user' => $user instanceof User ? ['name' => $user->name, 'photo' => $user->person()->with('photo')->first()?->photoUrl()] : null,
+            ],
+            'family' => fn (): ?FamilyData => $this->family($request),
+            'locale' => app()->getLocale(),
+            'theme' => $user?->theme->value ?? Theme::System->value,
         ];
     }
 

@@ -21,12 +21,12 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             family: App.Data.FamilyData | null;
-            /** The areas with their active cards, for the sidebar; empty for a guest. */
-            areas: App.Data.AreaCountData[];
+            /** The areas with their active cards, for the sidebar; empty for a guest, missing on a phone linked with a code. */
+            areas?: App.Data.AreaCountData[];
             /** How many notices the account has not seen yet; 0 for a guest. */
-            unread_notices: number;
+            unread_notices?: number;
             /** The files waiting to be sorted, without the copies; 0 for a guest. */
-            to_sort_count: number;
+            to_sort_count?: number;
             locale: string;
             /** The theme of the account; `system` for a guest. */
             theme: App.Enums.Theme;

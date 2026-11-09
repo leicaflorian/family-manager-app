@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LimitLinkedDevice;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\SignInLinkedDevice;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             SignInLinkedDevice::class,
+            LimitLinkedDevice::class,
             SetLocale::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

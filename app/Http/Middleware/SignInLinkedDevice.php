@@ -31,7 +31,8 @@ final readonly class SignInLinkedDevice
     {
         $secret = $request->cookie(PhoneLinks::COOKIE);
 
-        if (is_string($secret) && $secret !== '' && ! Auth::check()) {
+        // Not on the login pages: after signing out, the person must be able to use the password on this phone
+        if (is_string($secret) && $secret !== '' && ! Auth::check() && ! $request->routeIs('login', 'login.store')) {
             $device = LinkedDevice::findByToken($secret);
 
             if ($device instanceof LinkedDevice) {

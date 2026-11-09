@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\DocumentReader;
+use App\Listeners\LiftLinkedDeviceLimit;
 use App\Models\Family;
 use App\Models\FamilyModel;
 use App\Models\User;
@@ -14,10 +15,12 @@ use App\Services\Reading\AiDocumentReader;
 use App\Support\CurrentFamily;
 use App\Support\Linkables;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -46,6 +49,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configurePolicies();
+
+        // A password login lifts the limit of a linked phone
+        Event::listen(Login::class, LiftLinkedDeviceLimit::class);
 
         // Only the proxies named in the configuration are believed about the address and https
         $proxies = config('app.trusted_proxies');
