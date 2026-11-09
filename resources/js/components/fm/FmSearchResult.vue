@@ -9,7 +9,7 @@
  * Rules: the tile is 40 px with radius 12, and `compact` (inside the menu
  * under the box) 32 px with radius 8. A result of an area takes the icon and
  * colour of the area; the others take one of a fixed set of icons and a tone
- * (`neutral` has a `canvas` background and an `edge` border). `active` is the
+ * (`neutral` has a `canvas` background and an `edge-soft` border). `active` is the
  * row chosen with the arrows: a `canvas` background.
  *
  * @group rows
