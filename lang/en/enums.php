@@ -225,6 +225,13 @@ return [
         'unknown' => 'Unknown address',
         'limited' => 'Over the limit',
     ],
+    'search_group' => [
+        'cards' => 'Cards',
+        'documents' => 'Documents',
+        'movements' => 'Expenses and incomes',
+        'dues' => 'Deadlines',
+        'contacts' => 'Organizations and people',
+    ],
     'skip_reason' => [
         'too_small' => 'Too small',
         'too_large' => 'Too large',

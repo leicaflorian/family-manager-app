@@ -225,6 +225,13 @@ return [
         'unknown' => 'Indirizzo sconosciuto',
         'limited' => 'Oltre il limite',
     ],
+    'search_group' => [
+        'cards' => 'Schede',
+        'documents' => 'Documenti',
+        'movements' => 'Spese ed entrate',
+        'dues' => 'Scadenze',
+        'contacts' => 'Enti e persone',
+    ],
     'skip_reason' => [
         'too_small' => 'Troppo piccolo',
         'too_large' => 'Troppo grande',
