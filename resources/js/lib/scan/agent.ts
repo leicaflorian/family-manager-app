@@ -2,6 +2,8 @@
 // commands the scanner with the driver of the system. The page reaches it on 127.0.0.1, at a fixed port, which the
 // security rule of Directus must allow (CONTENT_SECURITY_POLICY_DIRECTIVES__CONNECT_SRC).
 
+import { isFirefox } from '../devices';
+
 /** Where the agent answers. The port is written also in `server.go` of the agent and in the rule of Directus. */
 export const AGENT_URL = 'http://127.0.0.1:47115';
 
@@ -100,12 +102,14 @@ export type AgentFailure =
     | 'settings'
     | 'failed';
 
+/** A failed call to the agent, with the reason in `reason`. */
 export class AgentError extends Error {
     constructor(public reason: AgentFailure) {
         super(reason);
     }
 }
 
+/** The reason of a failed call; `failed` for any error that is not an `AgentError`. */
 export function failureOf(error: unknown): AgentFailure {
     return error instanceof AgentError ? error.reason : 'failed';
 }
@@ -144,6 +148,7 @@ export function hasChoices(status: AgentStatus | null): boolean {
 }
 
 function query(values: Record<string, string | number | undefined>): string {
+    // an empty choice (no scanner yet) is left out: the agent reads a missing name, not an empty one
     const parts = new URLSearchParams({ api: String(API) });
     for (const [name, value] of Object.entries(values)) {
         if (value !== undefined && value !== '') parts.set(name, String(value));
@@ -176,6 +181,7 @@ export async function scan(settings?: Settings): Promise<void> {
     await call(settings ? `/scan${query(settings)}` : '/scan', 'POST');
 }
 
+/** The sides the agent holds, with the state of the scan. */
 export async function pages(): Promise<AgentPages> {
     return (await call('/pages')).json();
 }
@@ -206,10 +212,11 @@ export function isOlder(installed: string, latest: string): boolean {
  * Asks the system to start the agent. With a link the system does not know nothing happens in Chrome; Firefox
  * would replace the page with an error, so there the agent is started by hand.
  */
-export function canLaunch(browser: { userAgent: string } = navigator): boolean {
-    return !/Firefox/i.test(browser.userAgent);
+export function canLaunch(): boolean {
+    return !isFirefox();
 }
 
+/** Opens the link that starts the agent (see `canLaunch`). */
 export function launch(): void {
     window.location.assign(AGENT_LINK);
 }

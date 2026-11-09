@@ -176,6 +176,7 @@ export function readChoices(storage: Storage = localStorage): Choices {
     }
 }
 
+/** Remembers the choices of this scan in the browser; does nothing when the storage does not work. */
 export function writeChoices(
     choices: Choices,
     storage: Storage = localStorage,

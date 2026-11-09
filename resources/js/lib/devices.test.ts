@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { isIos, isPhone, isStandalone } from './devices';
+import {
+    desktopSystem,
+    isFirefox,
+    isIos,
+    isPhone,
+    isStandalone,
+} from './devices';
 
 const IPHONE =
     'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
@@ -88,5 +94,38 @@ describe('isStandalone', () => {
             .fn()
             .mockReturnValue({ matches: false }) as typeof window.matchMedia;
         expect(isStandalone()).toBe(false);
+    });
+});
+
+describe('isFirefox', () => {
+    it('is true on Firefox only', () => {
+        browser(
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:130.0) Gecko/20100101 Firefox/130.0',
+        );
+        expect(isFirefox()).toBe(true);
+        browser(MAC);
+        expect(isFirefox()).toBe(false);
+    });
+});
+
+describe('desktopSystem', () => {
+    it('tells a Mac, Windows and the rest', () => {
+        browser(MAC);
+        expect(desktopSystem()).toBe('mac');
+        browser(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130 Safari/537.36',
+        );
+        expect(desktopSystem()).toBe('windows');
+        browser('Mozilla/5.0 (X11; Linux x86_64) Chrome/130 Safari/537.36');
+        expect(desktopSystem()).toBe('other');
+    });
+
+    it('is other on a phone, a tablet and an iPad that says it is a Mac', () => {
+        browser(IPHONE);
+        expect(desktopSystem()).toBe('other');
+        browser(ANDROID_TABLET);
+        expect(desktopSystem()).toBe('other');
+        browser(MAC, undefined, 5);
+        expect(desktopSystem()).toBe('other');
     });
 });

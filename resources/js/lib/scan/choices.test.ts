@@ -1,7 +1,21 @@
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
+import { createApp } from 'vue';
+import {
+    afterAll,
+    afterEach,
+    beforeAll,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
+import { i18nOptions } from '../i18n';
 import type { Scanner } from './agent';
 import {
     colourFor,
+    colourName,
+    scannerLabel,
+    sourceName,
     readChoices,
     resolutionFor,
     resolutionsOf,
@@ -148,5 +162,42 @@ describe('remembered choices', () => {
         expect(
             readChoices({ getItem: () => '{nope', setItem: () => undefined }),
         ).toEqual({});
+    });
+});
+
+describe('names in the language of the page', () => {
+    beforeAll(async () => {
+        createApp({}).use(i18nVue, i18nOptions('en'));
+        await loadLanguageAsync('en');
+    });
+
+    afterAll(async () => {
+        createApp({}).use(i18nVue, i18nOptions('en'));
+        await loadLanguageAsync('en');
+    });
+
+    it('writes them in English', () => {
+        expect(
+            scannerLabel({ id: 'a', name: 'SP-1120N', connection: 'usb' }),
+        ).toBe('SP-1120N · USB');
+        expect(
+            scannerLabel({ id: 'a', name: 'Canon', connection: 'network' }),
+        ).toBe('Canon · network');
+        expect(colourName('colour')).toBe('In colour');
+        expect(colourName('grey')).toBe('In grey');
+        expect(sourceName('feeder')).toBe('Feeder');
+        expect(sourceName('flatbed')).toBe('Glass');
+    });
+
+    it('writes them in Italian', async () => {
+        createApp({}).use(i18nVue, i18nOptions('it'));
+        await loadLanguageAsync('it');
+        expect(
+            scannerLabel({ id: 'a', name: 'Canon', connection: 'network' }),
+        ).toBe('Canon · rete');
+        expect(colourName('colour')).toBe('A colori');
+        expect(colourName('grey')).toBe('In grigio');
+        expect(sourceName('feeder')).toBe('Caricatore');
+        expect(sourceName('flatbed')).toBe('Vetro');
     });
 });

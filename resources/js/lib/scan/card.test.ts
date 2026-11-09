@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { findCard, layout, millimetreOf, sizeOf } from './card';
+import { densityOf, findCard, layout, millimetreOf, sizeOf } from './card';
 import type { Pixels } from './crop';
 
 /** A scanner side with a lid of 235 grey and a card of `box`, drawn dark with a lighter print. */
@@ -95,5 +95,94 @@ describe('layout and sizes', () => {
         expect(millimetreOf({ width: 2100, height: 2970 }, null, null)).toBe(
             10,
         );
+    });
+});
+
+describe('densityOf', () => {
+    const jfif = (unit: number, across: number, down: number) =>
+        new Uint8Array([
+            0xff,
+            0xd8,
+            0xff,
+            0xe0,
+            0x00,
+            0x10,
+            0x4a,
+            0x46,
+            0x49,
+            0x46,
+            0x00,
+            0x01,
+            0x01,
+            unit,
+            across >> 8,
+            across & 255,
+            down >> 8,
+            down & 255,
+            0x00,
+            0x00,
+            0xff,
+            0xda,
+            0x00,
+            0x02,
+        ]);
+
+    it('reads dots per inch from a JFIF header', async () => {
+        expect(await densityOf(new Blob([jfif(1, 300, 300)]))).toBe(300);
+    });
+
+    it('reads dots per centimetre and refuses two different densities', async () => {
+        expect(await densityOf(new Blob([jfif(2, 118, 118)]))).toBe(300);
+        expect(await densityOf(new Blob([jfif(1, 300, 200)]))).toBeNull();
+        expect(await densityOf(new Blob([jfif(0, 1, 1)]))).toBeNull();
+    });
+
+    it('reads the density of an Exif header, little endian', async () => {
+        // TIFF: header (8), one IFD of 3 entries (XResolution, YResolution, ResolutionUnit), then 300/1 twice
+        const tiff: number[] = [0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0, 3, 0];
+        const entry = (tag: number, type: number, value: number) => [
+            tag & 255,
+            tag >> 8,
+            type,
+            0,
+            1,
+            0,
+            0,
+            0,
+            value & 255,
+            value >> 8,
+            0,
+            0,
+        ];
+        const at = 8 + 2 + 36 + 4;
+        tiff.push(
+            ...entry(0x011a, 5, at),
+            ...entry(0x011b, 5, at + 8),
+            ...entry(0x0128, 3, 2),
+        );
+        tiff.push(0, 0, 0, 0);
+        tiff.push(0x2c, 1, 0, 0, 1, 0, 0, 0, 0x2c, 1, 0, 0, 1, 0, 0, 0);
+        const body = [0x45, 0x78, 0x69, 0x66, 0, 0, ...tiff];
+        const length = body.length + 2;
+        const bytes = new Uint8Array([
+            0xff,
+            0xd8,
+            0xff,
+            0xe1,
+            length >> 8,
+            length & 255,
+            ...body,
+            0xff,
+            0xda,
+            0,
+            2,
+        ]);
+        expect(await densityOf(new Blob([bytes]))).toBe(300);
+    });
+
+    it('gives null for something that is not a JPEG', async () => {
+        expect(
+            await densityOf(new Blob([new Uint8Array([1, 2, 3, 4])])),
+        ).toBeNull();
     });
 });

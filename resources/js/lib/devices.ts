@@ -37,3 +37,33 @@ export function isStandalone(): boolean {
             window.matchMedia('(display-mode: standalone)').matches)
     );
 }
+
+/**
+ * Whether the browser is Firefox, which replaces the page with an error when a link to a program is unknown.
+ *
+ * @returns true on Firefox
+ */
+export function isFirefox(): boolean {
+    return /Firefox/i.test(navigator.userAgent);
+}
+
+/**
+ * The system of a computer the scanner agent is built for. A phone, a tablet, an iPad that presents itself as a
+ * Mac, and Linux are `other`.
+ *
+ * @returns `mac`, `windows` or `other`
+ */
+export function desktopSystem(): 'mac' | 'windows' | 'other' {
+    const agent = navigator.userAgent;
+
+    if (/Android|iPhone|iPad|iPod/i.test(agent)) {
+        return 'other';
+    }
+
+    // an iPad says it is a Mac: a Mac has no touch screen
+    if (/Macintosh/i.test(agent)) {
+        return navigator.maxTouchPoints > 1 ? 'other' : 'mac';
+    }
+
+    return /Windows/i.test(agent) ? 'windows' : 'other';
+}
