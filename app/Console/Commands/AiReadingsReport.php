@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Models\AiReading;
-use App\Models\Family;
-use App\Services\Reading\ReadingAllowance;
-use App\Support\CurrentFamily;
+use App\Admin\ReadingReport;
+use App\Admin\ReadingReportRow;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 /**
@@ -26,9 +23,9 @@ final class AiReadingsReport extends Command
     /**
      * Prints the table, or says that the month has no readings.
      *
-     * @param  ReadingAllowance  $allowance  Gives the edges of the month of Rome.
+     * @param  ReadingReport  $report  Adds up the readings of the month.
      */
-    public function handle(ReadingAllowance $allowance): int
+    public function handle(ReadingReport $report): int
     {
         $option = $this->option('month');
         $text = is_string($option) ? $option : '';
@@ -40,36 +37,17 @@ final class AiReadingsReport extends Command
             return self::FAILURE;
         }
 
-        [$from, $to] = $allowance->monthEdges($month);
+        $rows = $report->forMonth($month);
 
-        // A list of pairs, not a map by name: two families may share a name
-        /** @var list<array{string, Collection<int, AiReading>}> $byFamily */
-        $byFamily = [];
-        /** @var Collection<int, AiReading> $all */
-        $all = new Collection;
-
-        foreach (Family::query()->orderBy('name')->orderBy('id')->get(['id', 'name']) as $family) {
-            $readings = CurrentFamily::using($family->id, fn (): Collection => AiReading::query()
-                ->where('created_at', '>=', $from)
-                ->where('created_at', '<', $to)
-                ->get(['id', 'input_tokens', 'output_tokens', 'cost_usd']));
-
-            if ($readings->isNotEmpty()) {
-                $byFamily[] = [$family->name, $readings];
-                $all = $all->concat($readings);
-            }
-        }
-
-        if ($byFamily === []) {
+        if ($rows->isEmpty()) {
             $this->line('No readings in '.$month->settings(['locale' => 'en'])->translatedFormat('F Y').'.');
 
             return self::SUCCESS;
         }
 
-        $rows = array_map(fn (array $pair): array => $this->row($pair[0], $pair[1]), $byFamily);
-        $rows[] = $this->row('Total', $all);
+        $table = $rows->push($report->total($rows))->map(fn (ReadingReportRow $row): array => $this->row($row))->all();
 
-        $this->table(['Family', 'Readings', 'Input tokens', 'Output tokens', 'Cost'], $rows);
+        $this->table(['Family', 'Readings', 'Input tokens', 'Output tokens', 'Cost'], $table);
 
         return self::SUCCESS;
     }
@@ -95,26 +73,22 @@ final class AiReadingsReport extends Command
     }
 
     /**
-     * A row of the table for some readings. The cost is `-` when none of them has a price.
+     * A row of the table. The count is of every call, cropping included, as the command always did (the panel counts
+     * readings without the cropping); the cost is `-` when none of them has a price.
      *
-     * @param  string  $label  the first cell
-     * @param  Collection<int, AiReading>  $readings  the readings to add up
+     * @param  ReadingReportRow  $row  the figures of the row
      * @return list<string>
      */
-    private function row(string $label, Collection $readings): array
+    private function row(ReadingReportRow $row): array
     {
-        $unpriced = $readings->whereNull('cost_usd')->count();
-        // Four decimals: a reading costs a fraction of a cent, and two would show most months as 0,00 $
-        $cost = $unpriced === $readings->count()
-            ? '-'
-            : number_format($readings->sum(fn (AiReading $reading): float => (float) $reading->cost_usd), 4, ',', '.').' $';
+        $cost = $row->costText();
 
         return [
-            $label,
-            (string) $readings->count(),
-            (string) $readings->sum(fn (AiReading $reading): int => $reading->input_tokens),
-            (string) $readings->sum(fn (AiReading $reading): int => $reading->output_tokens),
-            $unpriced > 0 ? "{$cost} ({$unpriced} without a price)" : $cost,
+            $row->label,
+            (string) $row->calls,
+            (string) $row->inputTokens,
+            (string) $row->outputTokens,
+            $row->unpriced > 0 ? "{$cost} ({$row->unpriced} without a price)" : $cost,
         ];
     }
 }

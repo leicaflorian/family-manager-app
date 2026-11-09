@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Admin\MailCalls;
 use App\Enums\CallOutcome;
 use App\Models\Family;
 use App\Models\MailInboxCall;
@@ -53,14 +54,11 @@ final class MailInboxCalls extends Command
             }
         }
 
-        $calls = MailInboxCall::query()
-            ->when(is_string($outcome), fn ($query) => $query->where('outcome', $outcome))
-            ->when(is_string($family), fn ($query) => $query->where('family_id', (int) $family))
-            ->when($from instanceof CarbonImmutable, fn ($query) => $query->where('created_at', '>=', $from))
-            ->latest()
-            ->latest('id')
-            ->limit(self::LIMIT)
-            ->get();
+        $calls = MailCalls::query(
+            is_string($family) ? (int) $family : null,
+            is_string($outcome) ? CallOutcome::from($outcome) : null,
+            $from,
+        )->limit(self::LIMIT)->get();
 
         if ($calls->isEmpty()) {
             $this->info('No calls.');
