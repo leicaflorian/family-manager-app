@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Owner;
 use App\Models\User;
 
 return [
@@ -44,6 +45,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'owner' => [
+            'driver' => 'session',
+            'provider' => 'owners',
+        ],
     ],
 
     /*
@@ -67,6 +72,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'owners' => [
+            'driver' => 'eloquent',
+            'model' => Owner::class,
         ],
 
         // 'users' => [

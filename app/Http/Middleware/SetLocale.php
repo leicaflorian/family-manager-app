@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -41,7 +42,8 @@ final class SetLocale
     {
         $user = $request->user();
 
-        if ($user !== null && $user->locale !== $locale) {
+        // The admin panel runs this middleware too, with an owner: only the accounts of a family have a language column.
+        if ($user instanceof User && $user->locale !== $locale) {
             $user->forceFill(['locale' => $locale])->saveQuietly();
         }
     }
