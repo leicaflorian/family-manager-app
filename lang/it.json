@@ -1310,8 +1310,6 @@
     "Automatic follows your phone or computer. The choice applies on all your devices.": "Automatico segue il telefono o il computer. La scelta vale su tutti i tuoi dispositivi.",
     "Nothing is saved yet: you see what was read, and you can read it again or change it before importing.": "Non si salva ancora niente: vedi cosa ha letto, e prima di importare puoi farlo rileggere o cambiarlo.",
     "No results": "Nessun risultato",
-    "Upload a document from the computer": "Carica un documento dal computer",
-    "{1} :count file to sort: go and read and import it|[2,*] :count files to sort: go and read and import them": "{1} :count file da smistare: vai a leggerlo e importarlo|[2,*] :count file da smistare: vai a leggerli e importarli",
     "{1} :count file waiting to be imported|[2,*] :count files waiting to be imported": "{1} :count file in attesa di essere importato|[2,*] :count file in attesa di essere importati",
     "Where they come from": "Da dove arrivano",
     "Arrived by mail": "Arrivati per posta",

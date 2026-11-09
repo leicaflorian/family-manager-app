@@ -188,65 +188,53 @@ describe('FmSidebar', () => {
         );
     });
 
-    it('has only Upload when no file waits to be sorted', () => {
-        bar('home', '/', 0);
+    it('has Upload as one link that only uploads, even while files wait', () => {
+        bar('home', '/', 4);
 
-        expect(screen.getByRole('link', { name: 'Upload' })).toHaveTextContent(
-            /^\s*Upload\s*$/,
-        );
+        const upload = screen.getByRole('link', { name: 'Upload' });
+        expect(upload).toHaveAttribute('href', '/upload');
+        expect(upload).toHaveTextContent(/^\s*Upload\s*$/);
         expect(
-            screen.queryByRole('link', { name: /to sort/ }),
+            screen.queryByRole('link', { name: /files to sort/ }),
         ).not.toBeInTheDocument();
     });
 
-    it('splits Upload with a part on the right that goes to To sort, with how many files wait', () => {
+    it('has To sort right under Home, with how many files wait', () => {
         const four = bar('home', '/', 4);
-        expect(screen.getByRole('link', { name: 'Upload' })).toHaveAttribute(
-            'href',
-            '/upload',
-        );
-        const toSort = screen.getByRole('link', { name: '4 files to sort' });
-        expect(toSort).toHaveAttribute('href', '/to-sort');
-        expect(toSort).toHaveTextContent(/^\s*4\s*$/);
-        four.unmount();
-
-        const one = bar('home', '/', 1);
+        const nav = screen.getByRole('navigation', { name: 'Sections' });
+        const names = within(nav)
+            .getAllByRole('link')
+            .slice(0, 3)
+            .map((link) => link.textContent?.replace(/\s+/g, ' ').trim());
+        expect(names).toEqual(['Home', 'To sort 4', 'Agenda']);
         expect(
-            screen.getByRole('link', { name: '1 file to sort' }),
-        ).toBeInTheDocument();
-        one.unmount();
+            within(nav).getByRole('link', { name: 'To sort 4' }),
+        ).toHaveAttribute('href', '/to-sort');
+        four.unmount();
 
         bar('home', '/', 120);
         expect(
-            screen.getByRole('link', { name: '120 files to sort' }),
-        ).toHaveTextContent(/^\s*99\+\s*$/);
+            screen.getByRole('link', { name: 'To sort 99+' }),
+        ).toBeInTheDocument();
     });
-    it('says what Upload and its part on the right do, in a tooltip', async () => {
-        bar('home', '/', 4);
 
-        await userEvent.tab();
-        expect(screen.getByRole('link', { name: 'Upload' })).toHaveFocus();
-        expect(await screen.findByRole('tooltip')).toHaveTextContent(
-            'Upload a document from the computer',
-        );
+    it('keeps To sort without a number when no file waits', () => {
+        bar('home', '/', 0);
 
-        await userEvent.tab();
-        expect(
-            screen.getByRole('link', { name: '4 files to sort' }),
-        ).toHaveFocus();
-        expect(await screen.findByRole('tooltip')).toHaveTextContent(
-            '4 files to sort: go and read and import them',
+        expect(screen.getByRole('link', { name: 'To sort' })).toHaveTextContent(
+            /^\s*To sort\s*$/,
         );
     });
 
-    it('says one file in the singular in the tooltip', async () => {
-        bar('home', '/', 1);
+    it('marks To sort on its page', () => {
+        bar('toSort', '/to-sort', 2);
 
-        await userEvent.tab();
-        await userEvent.tab();
-
-        expect(await screen.findByRole('tooltip')).toHaveTextContent(
-            '1 file to sort: go and read and import it',
+        expect(screen.getByRole('link', { name: 'To sort 2' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+        expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute(
+            'aria-current',
         );
     });
 });

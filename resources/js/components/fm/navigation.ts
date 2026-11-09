@@ -6,6 +6,7 @@ import type { LucideIcon } from '@lucide/vue';
 import {
     CalendarRange,
     FileText,
+    Inbox,
     LayoutDashboard,
     Settings,
     Shapes,
@@ -21,6 +22,7 @@ import {
     family,
     logout,
     settings,
+    toSort,
     upload,
 } from '@/routes';
 import { index as documents } from '@/routes/documents';
@@ -33,7 +35,8 @@ export type Section =
     | 'documents'
     | 'budget'
     | 'family'
-    | 'settings';
+    | 'settings'
+    | 'toSort';
 
 /** An item of the navigation. */
 export type NavigationItem = {
@@ -55,6 +58,8 @@ export type NavigationItems = {
     sections: NavigationItem[];
     /** The settings, in the account menu or in More. */
     settings: NavigationItem;
+    /** To sort, an item of the sidebar only: on the phone the number on Upload leads there. */
+    toSort: NavigationItem;
     /** The address of Upload. */
     upload: string;
     /** The address to log out (called with POST). */
@@ -113,6 +118,12 @@ export function navigationItems(): NavigationItems {
             href: settings().url,
             icon: Settings,
         },
+        toSort: {
+            section: 'toSort',
+            label: trans('To sort'),
+            href: toSort().url,
+            icon: Inbox,
+        },
         upload: upload().url,
         logout: logout().url,
     };
@@ -136,7 +147,12 @@ export function sectionOf(path: string, items: NavigationItems): Section {
         return 'agenda';
     }
 
-    const all = [...items.sections, items.settings];
+    // Upload and Import are the pages of the files, which To sort collects
+    if (['/upload', '/import'].includes(path)) {
+        return 'toSort';
+    }
+
+    const all = [...items.sections, items.settings, items.toSort];
     const found = all.find(
         (item) => path === item.href || path.startsWith(`${item.href}/`),
     );

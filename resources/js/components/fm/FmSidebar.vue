@@ -1,10 +1,9 @@
 <script setup lang="ts">
 /**
  * The sidebar of the computer (from 1024 px): the logo and the family, Upload
- * (with a part on the right that goes to *To sort* while files wait there,
- * and a tooltip on each that says what it does),
- * the sections with the areas under *Areas*, and at the bottom *My account*,
- * which opens Settings and Log out.
+ * (which only uploads), the sections with *To sort* right under Home (the files
+ * waiting in a blue pill, nothing at zero) and the areas under *Areas*, and at
+ * the bottom *My account*, which opens Settings and Log out.
  *
  * @group navigation
  */
@@ -21,14 +20,12 @@ import {
 import { computed, ref, watch } from 'vue';
 import { getInitials } from '@/composables/useInitials';
 import { areaFill, areaOf } from '@/lib/areas';
-import { toSort } from '@/routes';
 import { show as areaPage } from '@/routes/areas';
 import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
 import FmLogo from './FmLogo.vue';
-import FmTooltip from './FmTooltip.vue';
-import type { NavigationItems, Section } from './navigation';
+import type { NavigationItem, NavigationItems, Section } from './navigation';
 
 const {
     active,
@@ -51,9 +48,16 @@ const {
     family: string;
     /** The name of who is signed in. */
     user: string;
-    /** The files waiting to be sorted: the number on the part of *Upload* that goes to *To sort*; nothing at zero, 99+ above 99. */
+    /** The files waiting to be sorted: the number in the pill of *To sort*; nothing at zero, 99+ above 99. */
     uploadCount?: number;
 }>();
+
+/** The sections, with *To sort* right under Home. */
+const sections = computed((): NavigationItem[] => [
+    ...items.sections.slice(0, 1),
+    items.toSort,
+    ...items.sections.slice(1),
+]);
 
 /** A link of the list under *Areas*. */
 type AreaLink = {
@@ -126,49 +130,16 @@ function isPage(section: Section): boolean {
             </span>
         </div>
 
-        <div
-            class="mb-3.5 flex h-control-md shrink-0 overflow-hidden rounded-md bg-action text-base font-normal text-on-action"
+        <Link
+            :href="items.upload"
+            class="mb-3.5 flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md bg-action text-base font-normal text-on-action no-underline hover:bg-action-dark"
         >
-            <FmTooltip :text="$t('Upload a document from the computer')">
-                <Link
-                    :href="items.upload"
-                    class="flex grow items-center justify-center gap-2 text-on-action no-underline hover:bg-action-dark"
-                >
-                    <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
-                    {{ $t('Upload') }}
-                </Link>
-            </FmTooltip>
-            <FmTooltip
-                v-if="uploadCount > 0"
-                :text="
-                    $tChoice(
-                        '{1} :count file to sort: go and read and import it|[2,*] :count files to sort: go and read and import them',
-                        uploadCount,
-                        { count: String(uploadCount) },
-                    )
-                "
-            >
-                <Link
-                    :href="toSort().url"
-                    :aria-label="
-                        $tChoice(
-                            '{1} :count file to sort|[2,*] :count files to sort',
-                            uploadCount,
-                            { count: String(uploadCount) },
-                        )
-                    "
-                    class="flex items-center border-l border-on-action/30 px-3.5 text-on-action no-underline hover:bg-action-dark"
-                >
-                    <span
-                        class="rounded-full bg-on-action px-1.5 text-xs font-semibold text-action"
-                        >{{ countBadge(uploadCount) }}</span
-                    >
-                </Link>
-            </FmTooltip>
-        </div>
+            <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
+            {{ $t('Upload') }}
+        </Link>
 
         <nav :aria-label="$t('Sections')" class="flex flex-col gap-0.5">
-            <template v-for="item in items.sections" :key="item.section">
+            <template v-for="item in sections" :key="item.section">
                 <div class="relative flex items-center">
                     <Link
                         :href="item.href"
@@ -192,7 +163,17 @@ function isPage(section: Section): boolean {
                                 item.section === active ? '' : 'text-ink-soft'
                             "
                         />
-                        {{ item.label }}
+                        <span class="grow">{{ item.label }}</span>
+                        <template
+                            v-if="item.section === 'toSort' && uploadCount > 0"
+                        >
+                            <!-- A space, so the link reads «To sort 4» -->
+                            {{ ' ' }}
+                            <span
+                                class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-xs font-bold text-on-action"
+                                >{{ countBadge(uploadCount) }}</span
+                            >
+                        </template>
                     </Link>
                     <button
                         v-if="item.section === 'areas'"

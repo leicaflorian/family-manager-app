@@ -22,14 +22,15 @@ vi.mock('@inertiajs/vue3', async (original) => ({
 }));
 
 describe('AppLayout', () => {
-    it('shows the files to sort on Upload, in the sidebar and in the bottom bar', () => {
+    it('shows the files to sort on To sort in the sidebar and on Upload in the bottom bar', () => {
         page.toSort = 4;
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
         page.toSort = 0;
 
-        expect(
-            screen.getByRole('link', { name: '4 files to sort' }),
-        ).toHaveAttribute('href', '/to-sort');
+        expect(screen.getByRole('link', { name: 'To sort 4' })).toHaveAttribute(
+            'href',
+            '/to-sort',
+        );
         expect(
             screen.getByRole('link', { name: 'Upload a document, 4 to sort' }),
         ).toBeInTheDocument();
