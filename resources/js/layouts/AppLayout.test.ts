@@ -1,17 +1,25 @@
 import { render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { router } from '@inertiajs/vue3';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { trackChanges } from '@/lib/unsavedChanges';
 import { areaCounts } from '@/test/fixtures';
+import { press } from '@/test/page';
 import AppLayout from './AppLayout.vue';
 
-const page = vi.hoisted(() => ({ url: '/documents?person=3', toSort: 0 }));
+const page = vi.hoisted(() => ({
+    url: '/documents?person=3',
+    component: 'Documents/Index',
+    toSort: 0,
+}));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     usePage: () => ({
         url: page.url,
+        get component() {
+            return page.component;
+        },
         props: {
             auth: { user: { name: 'Marco Bianchi' } },
             family: { name: 'Bianchi' },
@@ -22,6 +30,63 @@ vi.mock('@inertiajs/vue3', async (original) => ({
 }));
 
 describe('AppLayout', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        page.component = 'Documents/Index';
+    });
+
+    it('opens the Search page with ⌘K on any page', () => {
+        const visit = vi
+            .spyOn(router, 'visit')
+            .mockImplementation(() => undefined);
+        const view = render(AppLayout, {
+            slots: { default: '<h1>Documents</h1>' },
+        });
+
+        const event = press({ key: 'k', metaKey: true });
+
+        expect(visit).toHaveBeenCalledWith('/search');
+        expect(event.defaultPrevented).toBe(true);
+        view.unmount();
+    });
+
+    it.each(['Home', 'Search'])(
+        'leaves ⌘K to the %s page, which has its own box',
+        (component) => {
+            page.component = component;
+            const visit = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => undefined);
+            const view = render(AppLayout, {
+                slots: { default: '<h1>Page</h1>' },
+            });
+
+            press({ key: 'k', metaKey: true });
+
+            expect(visit).not.toHaveBeenCalled();
+            view.unmount();
+        },
+    );
+
+    it('asks before ⌘K leaves a form not saved', async () => {
+        const stop = trackChanges(() => true);
+        const view = render(AppLayout, {
+            slots: { default: '<h1>Edit the reminder</h1>' },
+        });
+
+        press({ key: 'k', metaKey: true });
+
+        const question = await screen.findByRole('dialog', {
+            name: 'Leave without saving?',
+        });
+        await userEvent.click(
+            within(question).getByRole('button', { name: 'Cancel' }),
+        );
+
+        stop();
+        view.unmount();
+    });
+
     it('shows the files to sort on To sort in the sidebar and on the + of the bottom bar', () => {
         page.toSort = 4;
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });

@@ -7,7 +7,8 @@
  * then the last notices (`FmNoticeList`, at most 10, the server chooses them)
  * and *See all the notices*, which leads to the page with the search. The notices are not in the page until the
  * menu asks for them: opening it emits `open`, and until `notices` arrives the
- * menu says it is loading.
+ * menu says it is loading. The classes of the page (round on the phone, square
+ * with a border on the computer) go to the bell itself.
  *
  * @group navigation
  */
@@ -35,6 +36,9 @@ export type BellNotices = {
     /** The notices already seen, the most recent first. */
     seen: App.Data.ReminderNoticeData[];
 };
+
+// The root is the popover, which draws no element: the classes go to the bell
+defineOptions({ inheritAttrs: false });
 
 const { count, notices } = defineProps<{
     /** How many notices the person has not seen yet. */
@@ -89,6 +93,7 @@ function markAll(): void {
 <template>
     <PopoverRoot @update:open="toggled">
         <PopoverTrigger
+            v-bind="$attrs"
             :aria-label="label"
             class="relative flex size-11 cursor-pointer items-center justify-center border-0 text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
         >

@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { render } from '@testing-library/vue';
+import { render, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { defineComponent, h } from 'vue';
 import { press } from '@/test/page';
@@ -9,14 +9,26 @@ import { useSearchShortcut } from './useSearchShortcut';
  * Renders a page that uses the shortcut.
  *
  * @param focus - what the field does, if the page has one
+ * @param active - whether the shortcut works now
  * @returns a way to unmount the page
  */
-function renderPage(focus?: () => void): { unmount: () => void } {
+function renderPage(
+    focus?: () => void,
+    active?: () => boolean,
+): { unmount: () => void } {
     const Page = defineComponent({
         setup() {
-            useSearchShortcut(focus);
+            useSearchShortcut(focus, active);
 
-            return () => h('div');
+            return () =>
+                h('div', [
+                    h('input', { 'aria-label': 'Name' }),
+                    h('textarea', { 'aria-label': 'Notes' }),
+                    h('div', {
+                        'aria-label': 'Text',
+                        contenteditable: 'true',
+                    }),
+                ]);
         },
     });
 
@@ -56,6 +68,58 @@ describe('useSearchShortcut', () => {
 
         expect(focus).not.toHaveBeenCalled();
         expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('focuses the field with «/» pressed outside a text field', () => {
+        const focus = vi.fn();
+        renderPage(focus);
+
+        const event = press({ key: '/' });
+
+        expect(focus).toHaveBeenCalledOnce();
+        expect(event.defaultPrevented).toBe(true);
+    });
+
+    it.each(['Name', 'Notes', 'Text'])(
+        'leaves «/» to the person writing in %s',
+        (label) => {
+            const focus = vi.fn();
+            renderPage(focus);
+            const target = screen.getByLabelText(label);
+
+            const event = new KeyboardEvent('keydown', {
+                key: '/',
+                bubbles: true,
+                cancelable: true,
+            });
+            target.dispatchEvent(event);
+
+            expect(focus).not.toHaveBeenCalled();
+            expect(event.defaultPrevented).toBe(false);
+        },
+    );
+
+    it('opens the search page with «/» when there is no field', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage();
+
+        press({ key: '/' });
+
+        expect(visit).toHaveBeenCalledWith('/search');
+    });
+
+    it('does nothing while it is not active, and works again once it is', () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        let active = false;
+        renderPage(undefined, () => active);
+
+        const event = press({ key: 'k', metaKey: true });
+        expect(visit).not.toHaveBeenCalled();
+        expect(event.defaultPrevented).toBe(false);
+
+        active = true;
+        press({ key: 'k', metaKey: true });
+        expect(visit).toHaveBeenCalledOnce();
     });
 
     it('stops listening once the page has gone', () => {

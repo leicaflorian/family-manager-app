@@ -10,11 +10,17 @@
  * greeting, whose menu loads the notices when it opens. *Mail that arrived* (on the right, between the incomes and
  * what is missing, only when mail with files arrived) lists the last three mails with the card their documents are
  * linked to, each opening *Received mail*. The recently uploaded documents come with their own item.
+ *
+ * The search of the whole app: on the computer the box beside the greeting
+ * (300 px, 420 px while it has the focus or some text) with the menu of the
+ * first results under it, and the square bell; ⌘K, Ctrl K or «/» put the focus
+ * in the box. On the phone a round magnifier before the round bell opens the
+ * *Search* page.
  */
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
-import { ArrowRight, Mail } from '@lucide/vue';
-import { computed } from 'vue';
+import { ArrowRight, Mail, Search } from '@lucide/vue';
+import { computed, ref, useTemplateRef } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
@@ -24,12 +30,16 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmChecklist from '@/components/fm/FmChecklist.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
+import FmSearchField from '@/components/fm/FmSearchField.vue';
+import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
+import { useSearchBox } from '@/composables/useSearchBox';
+import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
-import { agenda, areas, toSort, upload } from '@/routes';
+import { agenda, areas, search, toSort, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
 import { index as receivedMail } from '@/routes/mail';
 import { create as invite } from '@/routes/family/invitations';
@@ -53,8 +63,57 @@ function loadNotices(): void {
 
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
 
-/** Whether the window has the wide layout: the button of the documents to complete goes beside the text. */
+/**
+ * Whether the window has the wide layout: the search box instead of the
+ * magnifier, and the button of the documents to complete beside the text.
+ */
 const wide = useWideLayout();
+
+/** The id of the menu of the first results, for the search box. */
+const MENU_ID = 'search-results';
+
+/** The text in the search box. */
+const text = ref('');
+
+/** The search box has the focus: it grows to 420 px. */
+const focused = ref(false);
+
+const field = useTemplateRef<InstanceType<typeof FmSearchField>>('field');
+const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
+
+/** Searches the text of the box on the *Search* page. */
+function submit(): void {
+    const q = text.value.trim();
+
+    router.visit(q === '' ? search.url() : search.url({ query: { q } }));
+}
+
+const { menuResults, enter, onKeydown, closeMenu } = useSearchBox(
+    text,
+    menu,
+    submit,
+);
+
+// On the phone there is no box: the keys open the Search page
+useSearchShortcut(() =>
+    field.value ? field.value.focus() : router.visit(search.url()),
+);
+
+/**
+ * The focus leaves the box (and the menu under it): it shrinks back if empty.
+ *
+ * @param event - the focus leaving an element of the box
+ */
+function onFocusOut(event: FocusEvent): void {
+    const to = event.relatedTarget;
+
+    if (
+        !(to instanceof Node) ||
+        !(event.currentTarget as HTMLElement).contains(to)
+    ) {
+        focused.value = false;
+    }
+}
 
 /**
  * The step of *To begin* for a step of the server: its text and where it leads.
@@ -151,7 +210,10 @@ function mailTitle(mail: App.Data.HomeMailData): string {
     <Head :title="$t('Home')" />
 
     <div class="flex flex-col gap-5">
-        <div class="flex items-center justify-between gap-3">
+        <div
+            class="flex justify-between gap-3"
+            :class="wide ? 'items-end' : 'items-center'"
+        >
             <div class="flex flex-col gap-1">
                 <span class="text-body-sm text-ink-soft lg:text-body-sm">{{
                     day
@@ -160,12 +222,59 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     {{ $t('Hi, :name', { name: home.first_name }) }}
                 </h1>
             </div>
-            <FmBell
-                :count="unreadNotices"
-                :notices="notices"
-                class="rounded-full bg-card"
-                @open="loadNotices"
-            />
+            <div
+                class="flex shrink-0 items-center"
+                :class="wide ? 'gap-2.5' : 'gap-2'"
+            >
+                <div
+                    v-if="wide"
+                    class="relative max-w-full transition-[width] duration-200 motion-reduce:transition-none"
+                    :class="focused || text !== '' ? 'w-105' : 'w-75'"
+                    @focusin="focused = true"
+                    @focusout="onFocusOut"
+                >
+                    <FmSearchField
+                        ref="field"
+                        v-model="text"
+                        :label="$t('Search in Family Manager')"
+                        shortcut
+                        clearable
+                        :controls="MENU_ID"
+                        :expanded="menuResults !== null"
+                        :active-descendant="
+                            menuResults ? menu?.activeId : undefined
+                        "
+                        @submit="enter"
+                        @escape="closeMenu"
+                        @keydown="onKeydown"
+                    />
+                    <FmSearchMenu
+                        v-if="menuResults"
+                        :id="MENU_ID"
+                        ref="menu"
+                        :results="menuResults"
+                        :query="menuResults.query"
+                    />
+                </div>
+                <Link
+                    v-else
+                    :href="search.url()"
+                    :aria-label="$t('Search in Family Manager')"
+                    class="flex size-11 items-center justify-center rounded-full bg-card text-ink"
+                >
+                    <FmIcon :icon="Search" :size="22" />
+                </Link>
+                <FmBell
+                    :count="unreadNotices"
+                    :notices="notices"
+                    :class="
+                        wide
+                            ? 'rounded-lg border border-edge-soft bg-card'
+                            : 'rounded-full bg-card'
+                    "
+                    @open="loadNotices"
+                />
+            </div>
         </div>
 
         <section

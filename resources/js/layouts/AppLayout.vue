@@ -3,7 +3,9 @@
  * The layout of the pages of the app for who is signed in: below 1024 px the
  * bottom bar of the phone, from 1024 px the sidebar. The marked section comes
  * from the address of the page. While a form has changes not saved, it asks
- * before the page changes or the tab closes.
+ * before the page changes or the tab closes. ⌘K, Ctrl K or «/» open the
+ * *Search* page from every page but the Home and *Search*, which put the focus
+ * in their own box.
  */
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -13,6 +15,10 @@ import type { Section } from '@/components/fm/navigation';
 import { navigationItems, sectionOf } from '@/components/fm/navigation';
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import { Toaster } from '@/components/ui/sonner';
+import { useSearchShortcut } from '@/composables/useSearchShortcut';
+
+/** The pages with their own search box, which take the shortcut themselves. */
+const PAGES_WITH_SEARCH = ['Home', 'Search'];
 
 defineSlots<{
     /** The page. */
@@ -28,6 +34,9 @@ const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
 const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
+
+// The layout stays across visits: which page is open is read at each key
+useSearchShortcut(undefined, () => !PAGES_WITH_SEARCH.includes(page.component));
 </script>
 
 <template>

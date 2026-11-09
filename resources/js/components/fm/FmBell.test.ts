@@ -28,6 +28,19 @@ describe('FmBell', () => {
         ).toBeInTheDocument();
     });
 
+    it('gives the classes of the page to the bell itself: round or square', () => {
+        render(FmBell, {
+            props: { count: 0 },
+            attrs: { class: 'rounded-lg border border-edge-soft bg-card' },
+        });
+
+        expect(screen.getByRole('button', { name: 'Notices' })).toHaveClass(
+            'rounded-lg',
+            'border-edge-soft',
+            'bg-card',
+        );
+    });
+
     it('stops counting at 99', () => {
         render(FmBell, { props: { count: 120 } });
 

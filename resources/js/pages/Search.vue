@@ -15,7 +15,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft, SearchX } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
 import FmChip from '@/components/fm/FmChip.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -23,7 +23,8 @@ import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useSearchSuggest } from '@/composables/useSearchSuggest';
+import { useSearchBox } from '@/composables/useSearchBox';
+import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { dashboard, search } from '@/routes';
 
@@ -43,28 +44,23 @@ const wide = useWideLayout();
 /** The text in the box. */
 const text = ref(results.query);
 
-const { results: suggested } = useSearchSuggest(text);
+const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
 
-/** The menu of the first results is wanted: the text changed and Esc was not pressed since. */
-const menuOpen = ref(false);
-
-watch(text, () => {
-    menuOpen.value = true;
-});
-
-/** The first results of the text being typed, while the menu is open and they found something. */
-const menuResults = computed((): App.Data.Search.SearchResultsData | null =>
-    menuOpen.value && suggested.value !== null && suggested.value.total > 0
-        ? suggested.value
-        : null,
+const { menuResults, enter, onKeydown, closeMenu } = useSearchBox(
+    text,
+    menu,
+    submit,
 );
+
+const field = useTemplateRef<InstanceType<typeof FmSearchField>>('field');
+
+// ⌘K, Ctrl K or «/» bring the focus back into the box of this page
+useSearchShortcut(() => field.value?.focus());
 
 /** On the phone the menu takes the place of the chips and of the results. */
 const inlineMenu = computed(
     (): boolean => !wide.value && menuResults.value !== null,
 );
-
-const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
 
 /** The groups listed: all of them, or only the one of the chip pressed. */
 const groups = computed((): App.Data.Search.SearchGroupData[] =>
@@ -127,39 +123,6 @@ function submit(): void {
     router.get(search.url(), q === '' ? {} : { q }, { preserveState: false });
 }
 
-/** Enter: opens the result chosen with the arrows, otherwise searches. */
-function enter(): void {
-    if (menuResults.value !== null && menu.value?.open() === true) {
-        return;
-    }
-
-    submit();
-}
-
-/**
- * The arrows of the box move the choice in the menu.
- *
- * @param event - the key pressed in the box
- */
-function onKeydown(event: KeyboardEvent): void {
-    if (menuResults.value === null) {
-        return;
-    }
-
-    const step =
-        event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : null;
-
-    if (step !== null) {
-        event.preventDefault();
-        menu.value?.move(step);
-    }
-}
-
-/** Esc closes the menu (the box keeps its text). */
-function closeMenu(): void {
-    menuOpen.value = false;
-}
-
 /**
  * Shows the results of one group, or of all of them.
  *
@@ -213,6 +176,7 @@ function goBack(): void {
                     <FmIcon :icon="ArrowLeft" :size="24" />
                 </button>
                 <FmSearchField
+                    ref="field"
                     v-model="text"
                     :label="$t('Search in Family Manager')"
                     clearable

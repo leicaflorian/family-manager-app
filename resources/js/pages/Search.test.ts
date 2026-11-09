@@ -11,7 +11,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { WIDE_QUERY } from '@/composables/useWideLayout';
-import { renderPage } from '@/test/page';
+import { press, renderPage } from '@/test/page';
 import Search from './Search.vue';
 
 /**
@@ -231,6 +231,16 @@ const box = (): HTMLElement =>
     screen.getByRole('combobox', { name: 'Search in Family Manager' });
 
 describe('Search', () => {
+    it('brings the focus back into the box with ⌘K', () => {
+        renderPage(Search, { results: panda });
+        box().blur();
+
+        press({ key: 'k', metaKey: true });
+
+        expect(box()).toHaveFocus();
+        expect(visit).not.toHaveBeenCalled();
+    });
+
     it('has the title with the number of results and the text in the box', () => {
         renderPage(Search, { results: panda });
 
