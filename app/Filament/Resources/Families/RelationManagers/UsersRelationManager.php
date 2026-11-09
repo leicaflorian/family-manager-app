@@ -14,6 +14,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\URL;
 
 /**
  * The accounts of a family: name, email, level, confirmed email and last access, and *Enter as…* while the family
@@ -55,7 +56,7 @@ final class UsersRelationManager extends RelationManager
                 // Only while the family lets support in; the visit checks it again when it starts
                 Action::make('enterAs')->label(__('Enter as'))->icon('heroicon-o-eye')
                     ->visible(fn (): bool => $this->family()->allowsSupport())
-                    ->url(static fn (User $record): string => route('support.visit.start', $record))
+                    ->url(static fn (User $record): string => URL::temporarySignedRoute('support.visit.start', now()->addMinute(), ['user' => $record->id]))
                     ->openUrlInNewTab(),
             ])
             ->paginated(false);

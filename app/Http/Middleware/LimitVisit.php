@@ -29,6 +29,12 @@ final readonly class LimitVisit
     public const array ALLOWED = ['visit.leave'];
 
     /**
+     * The routes of Livewire, which are in the `web` group: the admin panel open in its own tab keeps working during a
+     * visit (the app of the families has no Livewire, so they reach only the panel).
+     */
+    public const array PANEL = ['*livewire.update', 'livewire.upload-file'];
+
+    /**
      * @param  EndVisit  $end  ends the visit
      */
     public function __construct(private EndVisit $end) {}
@@ -40,7 +46,7 @@ final readonly class LimitVisit
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->hasSession() || ! $request->session()->has('visit')) {
+        if (! self::isOpen($request)) {
             return $next($request);
         }
 
@@ -50,9 +56,19 @@ final readonly class LimitVisit
             return Inertia::location(route('filament.admin.pages.dashboard'));
         }
 
-        abort_if(! in_array($request->method(), ['GET', 'HEAD'], true) && ! $request->routeIs(...self::ALLOWED), 403);
+        abort_if(! in_array($request->method(), ['GET', 'HEAD'], true) && ! $request->routeIs(...self::ALLOWED, ...self::PANEL), 403);
 
         return $next($request);
+    }
+
+    /**
+     * Whether the request is part of a visit of the owner: then nothing is written in the account it looks as.
+     *
+     * @param  Request  $request  the request
+     */
+    public static function isOpen(Request $request): bool
+    {
+        return $request->hasSession() && $request->session()->has('visit');
     }
 
     /**

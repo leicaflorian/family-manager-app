@@ -41,7 +41,7 @@ final class SetLocale
     private function remember(Request $request, string $locale): void
     {
         // A visit of the owner writes nothing in the account it looks as
-        if ($request->hasSession() && $request->session()->has('visit')) {
+        if (LimitVisit::isOpen($request)) {
             return;
         }
 

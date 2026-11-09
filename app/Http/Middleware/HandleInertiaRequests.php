@@ -68,7 +68,7 @@ class HandleInertiaRequests extends Middleware
             'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
             'locale' => app()->getLocale(),
             // The name of the account the owner looks as during a visit (*Enter as…*), for the strip of the layout
-            'impersonating' => $request->hasSession() && $request->session()->has('visit') && $request->user() instanceof User ? $request->user()->name : null,
+            'impersonating' => LimitVisit::isOpen($request) && $request->user() instanceof User ? $request->user()->name : null,
             // The theme of the account (`system` for a guest): the layout puts it on <html>
             'theme' => $this->theme($request->user()),
         ];

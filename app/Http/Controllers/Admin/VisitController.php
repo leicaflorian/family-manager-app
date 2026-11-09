@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Admin\EndVisit;
 use App\Actions\Admin\StartVisit;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\LimitVisit;
 use App\Models\Owner;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -43,7 +44,7 @@ final class VisitController extends Controller
      */
     public function leave(Request $request, EndVisit $end): Response
     {
-        abort_unless($request->session()->has('visit'), 404);
+        abort_unless(LimitVisit::isOpen($request), 404);
 
         $end->handle($request->session());
 

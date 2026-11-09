@@ -13,6 +13,7 @@ use App\Models\OwnerAction;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia;
 use Livewire\Livewire;
 
@@ -26,12 +27,28 @@ beforeEach(function (): void {
 });
 
 /**
+ * The address of *Enter as* for an account, signed for a minute as the button of the panel writes it.
+ */
+function visitUrl(User $user): string
+{
+    return visitUrlAt($user, now()->addMinute());
+}
+
+/**
+ * The address of *Enter as* for an account, signed until a moment.
+ */
+function visitUrlAt(User $user, DateTimeInterface $until): string
+{
+    return URL::temporarySignedRoute('support.visit.start', $until, $user);
+}
+
+/**
  * Signs the owner into the panel and starts a visit as Laura.
  */
 function startVisit(): void
 {
     actingAs(test()->owner, 'owner');
-    test()->get(route('support.visit.start', test()->laura))->assertRedirect(route('dashboard'));
+    test()->get(visitUrl(test()->laura))->assertRedirect(route('dashboard'));
 
     // `actingAs(…, 'owner')` and `auth:owner` make `owner` the default guard of the application, which a test keeps
     // for the next requests; a real request starts again from `web`
@@ -42,17 +59,18 @@ test('enter as is offered only with the permission', function (): void {
     actingAs($this->owner, 'owner');
 
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class])
-        ->assertTableActionVisible('enterAs', $this->laura);
+        ->assertTableActionVisible('enterAs', $this->laura)
+        ->assertTableActionHasUrl('enterAs', visitUrl($this->laura), $this->laura);
 
     $this->family->forceFill(['support_until' => now()->subMinute()])->save();
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family->refresh(), 'pageClass' => ViewFamily::class])
         ->assertTableActionHidden('enterAs', $this->laura);
-    $this->get(route('support.visit.start', $this->laura))->assertForbidden();
+    $this->get(visitUrl($this->laura))->assertForbidden();
 
     $this->family->forceFill(['support_until' => now()->addHour(), 'suspended_at' => now()])->save();
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family->refresh(), 'pageClass' => ViewFamily::class])
         ->assertTableActionHidden('enterAs', $this->laura);
-    $this->get(route('support.visit.start', $this->laura))->assertForbidden();
+    $this->get(visitUrl($this->laura))->assertForbidden();
 
     expect(Auth::guard('web')->check())->toBeFalse()
         ->and(OwnerAction::query()->count())->toBe(0);
@@ -177,8 +195,45 @@ test('the visit ends when the owner signs out of the panel', function (): void {
 });
 
 test('a family user cannot start a visit', function (): void {
-    actingAs($this->laura)->get(route('support.visit.start', $this->laura))
+    actingAs($this->laura)->get(visitUrl($this->laura))
         ->assertRedirect(route('filament.admin.auth.login'));
 
     expect(OwnerAction::query()->count())->toBe(0);
+});
+
+test('a link without the signature of the panel does not start a visit', function (): void {
+    actingAs($this->owner, 'owner');
+
+    $this->get(route('support.visit.start', $this->laura))->assertForbidden();
+
+    Date::setTestNow(now()->addMinutes(2));
+    $this->get(visitUrlAt($this->laura, now()->subMinute()))->assertForbidden();
+
+    expect(Auth::guard('web')->check())->toBeFalse()
+        ->and(OwnerAction::query()->count())->toBe(0);
+});
+
+test('the panel still works in its tab during a visit', function (): void {
+    startVisit();
+
+    // The table of the accounts as the panel draws it, sent back to Livewire as the browser does on a click
+    $snapshot = Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class])->snapshot;
+
+    $this->postJson(route('default-livewire.update'), [
+        'components' => [['snapshot' => json_encode($snapshot), 'updates' => [], 'calls' => []]],
+    ], ['X-Livewire' => 'true'])->assertOk();
+
+    // The exemption is the route, not the header: the app still refuses a change sent with it
+    $this->post(route('reminders.store'), ['title' => 'Call the plumber'], ['X-Livewire' => 'true'])->assertForbidden();
+
+    expect(session('visit.user_id'))->toBe($this->laura->id);
+});
+
+test('the agenda does not remember its period in the account during a visit', function (): void {
+    startVisit();
+
+    $this->get(route('agenda', ['months' => 6]))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('agenda.months', 6));
+
+    expect($this->laura->fresh()->agenda_filters)->toBeNull();
 });

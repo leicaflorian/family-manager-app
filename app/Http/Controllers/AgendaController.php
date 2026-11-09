@@ -9,6 +9,7 @@ use App\Actions\Agenda\UpdateDeadline;
 use App\Data\AgendaData;
 use App\Data\AgendaFiltersData;
 use App\Data\PersonData;
+use App\Http\Middleware\LimitVisit;
 use App\Http\Requests\Agenda\UpdateDeadlineRequest;
 use App\Http\Requests\AgendaFiltersRequest;
 use App\Http\Requests\AgendaRequest;
@@ -42,7 +43,11 @@ final class AgendaController extends Controller
 
         if ($asked !== null && $asked !== $filters->months) {
             $filters = new AgendaFiltersData($asked, $filters->person_id, $filters->hidden_areas);
-            $save->handle($user, $filters);
+
+            // A visit of the owner shows the period asked but writes nothing in the account it looks as
+            if (! LimitVisit::isOpen($request)) {
+                $save->handle($user, $filters);
+            }
         }
 
         $months = $request->months($filters->months);

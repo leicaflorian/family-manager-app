@@ -29,7 +29,7 @@ final class RecordLastSeen
     {
         $user = Auth::guard('web')->user();
 
-        if ($user instanceof User && $request->hasSession() && ! $request->session()->has('visit')) {
+        if ($user instanceof User && ! LimitVisit::isOpen($request)) {
             $seen = $user->last_seen_at;
 
             if ($seen === null || $seen->lt(now()->subSeconds(self::EVERY_SECONDS))) {
