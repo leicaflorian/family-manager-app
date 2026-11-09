@@ -181,7 +181,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
     <div
         v-else
         class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-4"
-        :class="actions && 'py-3 pr-3.5 pl-2 lg:px-4'"
+        :class="actions && 'py-3 pr-3.5 pl-2 lg:flex-wrap lg:px-4'"
     >
         <Link
             :href="entry.href"
@@ -189,13 +189,13 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 cn(
                     'flex min-w-0 grow items-center gap-2.5 text-inherit no-underline lg:gap-x-4',
                     !actions && 'py-3 pr-3.5 pl-2 lg:px-4',
+                    // Room for the columns and the title: without it the buttons go under the row
+                    actions && 'lg:min-w-[34rem]',
                     rowLink,
                 )
             "
         >
-            <span
-                class="flex w-9 shrink-0 flex-col items-center lg:w-10"
-            >
+            <span class="flex w-9 shrink-0 flex-col items-center lg:w-10">
                 <span
                     class="text-sheet-title lg:text-stat"
                     :class="late ? 'text-overdue' : 'text-ink'"
@@ -293,7 +293,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
         </Link>
         <span
             v-if="actions && entry.update_url !== null"
-            class="flex gap-2 pl-[46px] lg:pl-0"
+            class="flex flex-wrap gap-2 pl-[46px] lg:ml-auto lg:shrink-0 lg:flex-nowrap lg:pl-0"
         >
             <FmButton
                 variant="outline"
