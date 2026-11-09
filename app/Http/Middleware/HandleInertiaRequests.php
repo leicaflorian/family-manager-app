@@ -10,6 +10,7 @@ use App\Models\File;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\CardSummaries;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -67,7 +68,7 @@ class HandleInertiaRequests extends Middleware
             'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
             'locale' => app()->getLocale(),
             // The theme of the account (`system` for a guest): the layout puts it on <html>
-            'theme' => $request->user()?->theme->value ?? Theme::System->value,
+            'theme' => $this->theme($request->user()),
         ];
     }
 
@@ -91,8 +92,21 @@ class HandleInertiaRequests extends Middleware
             'linked_phone' => true,
             'family' => fn (): ?FamilyData => $this->family($request),
             'locale' => app()->getLocale(),
-            'theme' => $user?->theme->value ?? Theme::System->value,
+            'theme' => $this->theme($user),
         ];
+    }
+
+    /**
+     * The theme of an account, `system` for a guest.
+     *
+     * @param  Authenticatable|null  $user  whoever signed in, of either guard
+     */
+    private function theme(?Authenticatable $user): string
+    {
+        // A model that was just created has no `theme` loaded yet: the column default is `system`
+        $theme = $user instanceof User ? $user->getAttribute('theme') : null;
+
+        return $theme instanceof Theme ? $theme->value : Theme::System->value;
     }
 
     /**

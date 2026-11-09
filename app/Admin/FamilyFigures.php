@@ -8,6 +8,7 @@ use App\Enums\ReadingPurpose;
 use App\Services\Reading\ReadingAllowance;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -41,17 +42,15 @@ final readonly class FamilyFigures
         $documents = $this->grouped('documents', $familyIds)->selectRaw('count(*) as total')->pluck('total', 'family_id');
         $bytes = $this->grouped('files', $familyIds)->selectRaw('sum(size) as total')->pluck('total', 'family_id');
         $readings = $this->grouped('ai_readings', $familyIds)
-            ->where('purpose', '!=', ReadingPurpose::Crop->value)
             ->where('created_at', '>=', $from)
             ->where('created_at', '<', $to)
-            ->selectRaw('count(*) as total, sum(cost_usd) as cost')
+            ->selectRaw('sum(purpose != ?) as total, sum(cost_usd) as cost', [ReadingPurpose::Crop->value])
             ->get()
             ->keyBy('family_id');
-        $activity = DB::table('sessions')
-            ->join('users', 'users.id', '=', 'sessions.user_id')
-            ->whereIn('users.family_id', $familyIds)
-            ->groupBy('users.family_id')
-            ->selectRaw('users.family_id as family_id, max(sessions.last_activity) as last')
+        $activity = DB::table('users')
+            ->whereIn('family_id', $familyIds)
+            ->groupBy('family_id')
+            ->selectRaw('family_id, max(last_seen_at) as last')
             ->pluck('last', 'family_id');
 
         $figures = [];
@@ -63,7 +62,7 @@ final readonly class FamilyFigures
                 fileBytes: $this->number($bytes[$id] ?? 0),
                 readings: (int) ($readings[$id]->total ?? 0),
                 readingCost: (float) ($readings[$id]->cost ?? 0),
-                lastActivity: is_numeric($last) ? CarbonImmutable::createFromTimestamp((int) $last) : null,
+                lastActivity: is_string($last) ? CarbonImmutable::parse($last, Config::string('app.timezone')) : null,
             );
         }
 
@@ -84,32 +83,44 @@ final readonly class FamilyFigures
         $last = $now->setTimezone('Europe/Rome')->startOfMonth();
         $first = $last->subMonths($months - 1);
 
+        [$from] = $this->allowance->monthEdges($first);
+
         $result = [];
         for ($month = $first; $month <= $last; $month = $month->addMonth()) {
-            [$from, $to] = $this->allowance->monthEdges($month);
-            $row = DB::table('ai_readings')
-                ->where('family_id', $familyId)
-                ->where('purpose', '!=', ReadingPurpose::Crop->value)
-                ->where('created_at', '>=', $from)
-                ->where('created_at', '<', $to)
-                ->selectRaw('count(*) as total, sum(cost_usd) as cost')
-                ->first();
-            $result[$month->format('Y-m')] = ['readings' => (int) ($row->total ?? 0), 'cost' => round((float) ($row->cost ?? 0), 6)];
+            $result[$month->format('Y-m')] = ['readings' => 0, 'cost' => 0.0];
+        }
+
+        // One grouped query by hour, in the time zone `created_at` is written in; the hours are then put in
+        // their month of Rome here, because the database does not know the time zone of Rome
+        $rows = DB::table('ai_readings')
+            ->where('family_id', $familyId)
+            ->where('created_at', '>=', $from)
+            ->groupByRaw("date_format(created_at, '%Y-%m-%d %H')")
+            ->selectRaw("date_format(created_at, '%Y-%m-%d %H') as hour, sum(purpose != ?) as total, sum(cost_usd) as cost", [ReadingPurpose::Crop->value])
+            ->get();
+
+        $timezone = Config::string('app.timezone');
+        foreach ($rows as $row) {
+            $key = CarbonImmutable::createFromFormat('Y-m-d H', (string) $row->hour, $timezone)?->setTimezone('Europe/Rome')->format('Y-m');
+            if ($key !== null && isset($result[$key])) {
+                $result[$key]['readings'] += $this->number($row->total);
+                $result[$key]['cost'] = round($result[$key]['cost'] + (float) $row->cost, 6);
+            }
         }
 
         return $result;
     }
 
     /**
-     * The last request of an account, from the sessions table.
+     * The last time an account used the app (`users.last_seen_at`).
      *
      * @param  int  $userId  the account
      */
     public function lastActivityOf(int $userId): ?CarbonImmutable
     {
-        $last = DB::table('sessions')->where('user_id', $userId)->max('last_activity');
+        $last = DB::table('users')->where('id', $userId)->value('last_seen_at');
 
-        return is_numeric($last) ? CarbonImmutable::createFromTimestamp((int) $last) : null;
+        return is_string($last) ? CarbonImmutable::parse($last, Config::string('app.timezone')) : null;
     }
 
     /**

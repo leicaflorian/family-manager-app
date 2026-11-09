@@ -17,7 +17,7 @@ final readonly class FamilyFigure
      * @param  int  $fileBytes  bytes of all its files
      * @param  int  $readings  automatic readings of the month (cropping excluded)
      * @param  float  $readingCost  cost in dollars of the AI calls of the month
-     * @param  CarbonImmutable|null  $lastActivity  last request of any of its accounts
+     * @param  CarbonImmutable|null  $lastActivity  last access of any of its accounts
      */
     public function __construct(
         public int $people = 0,

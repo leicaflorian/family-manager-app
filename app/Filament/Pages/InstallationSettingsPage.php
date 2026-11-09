@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\ValidationException;
 
@@ -29,7 +30,7 @@ final class InstallationSettingsPage extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    /** @var array{provider: ?string, model: ?string, ollama_url: ?string, limit: ?string, reminders_time: ?string, loans_time: ?string} the form state, with no keys */
+    /** @var array<string, string|null> the form state (provider, model, ollama_url, limit, reminders_time, loans_time), with no keys */
     public array $data = [];
 
     /**
@@ -89,18 +90,18 @@ final class InstallationSettingsPage extends Page
                         ->selectablePlaceholder(false),
                     TextInput::make('data.model')
                         ->label(__('Model'))
-                        ->placeholder((string) config('document_reader.model')),
+                        ->placeholder(Config::string('document_reader.model', '')),
                     TextInput::make('data.ollama_url')
                         ->label(__('Own model address'))
-                        ->placeholder((string) config('ai.providers.ollama.url')),
+                        ->placeholder(Config::string('ai.providers.ollama.url', '')),
                     TextInput::make('data.limit')
                         ->label(__('Reading limit per family per month'))
-                        ->placeholder((string) config('document_reader.monthly_limit')),
+                        ->placeholder((string) Config::integer('document_reader.monthly_limit', 0)),
                 ]),
                 Section::make(__('Times'))->schema([
                     TextInput::make('data.reminders_time')
                         ->label(__('Morning round'))
-                        ->placeholder((string) config('reminders.time')),
+                        ->placeholder(Config::string('reminders.time', '')),
                     TextInput::make('data.loans_time')
                         ->label(__('Instalment count'))
                         ->placeholder($settings->loansTime()),
@@ -194,14 +195,15 @@ final class InstallationSettingsPage extends Page
      */
     public function save(): void
     {
-        $data = $this->validate([
+        $validated = $this->validate([
             'data.provider' => ['nullable', 'in:,gemini,anthropic,ollama,off'],
             'data.model' => ['nullable', 'string', 'max:120'],
             'data.ollama_url' => ['nullable', 'string', 'max:255'],
             'data.limit' => ['nullable', 'integer', 'min:0'],
             'data.reminders_time' => ['nullable', 'date_format:H:i'],
             'data.loans_time' => ['nullable', 'date_format:H:i'],
-        ])['data'];
+        ]);
+        $data = is_array($validated['data'] ?? null) ? $validated['data'] : [];
 
         $settings = resolve(InstallationSettings::class);
 
@@ -215,7 +217,8 @@ final class InstallationSettingsPage extends Page
         ];
 
         foreach ($fields as $field => $setting) {
-            $new = filled($data[$field] ?? null) ? (string) $data[$field] : null;
+            $value = $data[$field] ?? null;
+            $new = is_string($value) && $value !== '' ? $value : null;
 
             if ($new !== $settings->stored($setting)) {
                 $settings->set($setting, $new);

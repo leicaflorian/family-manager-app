@@ -37,6 +37,7 @@ use Illuminate\Notifications\Notifiable;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property Theme $theme system, light or dark
+ * @property CarbonImmutable|null $last_seen_at When the account last used the app, written at most once a minute
  * @property-read Family $family
  * @property-read Collection<int, LinkedDevice> $linkedDevices
  * @property-read int|null $linked_devices_count
@@ -132,6 +133,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'role' => Role::class,
             'theme' => Theme::class,
             'agenda_filters' => 'array',
+            'last_seen_at' => 'datetime',
         ];
     }
 }

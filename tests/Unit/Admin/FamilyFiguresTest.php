@@ -79,32 +79,42 @@ it('gives zeros to a family with nothing', function (): void {
         ->and($figure->lastActivity)->toBeNull();
 });
 
-it('takes the last activity from the sessions of the accounts', function (): void {
+it('takes the last access from the accounts', function (): void {
     $family = Family::factory()->create();
-    $one = User::factory()->create(['family_id' => $family->id]);
-    $two = User::factory()->create(['family_id' => $family->id]);
-    $stamp = CarbonImmutable::parse('2026-11-05 10:00:00')->getTimestamp();
-    foreach ([[$one, 's1', $stamp - 500], [$two, 's2', $stamp], [$two, 's3', $stamp - 900]] as [$user, $id, $time]) {
-        DB::table('sessions')->insert(['id' => $id, 'user_id' => $user->id, 'payload' => '', 'last_activity' => $time]);
-    }
+    $other = Family::factory()->create();
+    $stamp = CarbonImmutable::parse('2026-11-05 10:00:00');
+    $one = User::factory()->create(['family_id' => $family->id, 'last_seen_at' => $stamp->subMinutes(10)]);
+    User::factory()->create(['family_id' => $family->id, 'last_seen_at' => $stamp]);
+    User::factory()->create(['family_id' => $other->id, 'last_seen_at' => $stamp->addDay()]);
+    $never = User::factory()->create(['family_id' => $family->id]);
 
     $figures = resolve(FamilyFigures::class);
 
-    expect($figures->forFamilies([$family->id], CarbonImmutable::now())[$family->id]->lastActivity?->getTimestamp())->toBe($stamp)
-        ->and($figures->lastActivityOf($one->id)?->getTimestamp())->toBe($stamp - 500)
-        ->and($figures->lastActivityOf(999999))->toBeNull();
+    expect($figures->forFamilies([$family->id], CarbonImmutable::now())[$family->id]->lastActivity?->equalTo($stamp))->toBeTrue()
+        ->and($figures->lastActivityOf($one->id)?->equalTo($stamp->subMinutes(10)))->toBeTrue()
+        ->and($figures->lastActivityOf($never->id))->toBeNull();
+});
+
+it('counts the cost of every call, the crops too', function (): void {
+    $a = Family::factory()->create();
+    AiReading::factory()->create(['family_id' => $a->id, 'cost_usd' => '0.010000']);
+    AiReading::factory()->create(['family_id' => $a->id, 'purpose' => ReadingPurpose::Crop, 'cost_usd' => '0.500000']);
+
+    $figure = resolve(FamilyFigures::class)->forFamilies([$a->id], CarbonImmutable::now())[$a->id];
+
+    expect($figure->readings)->toBe(1)->and($figure->readingCost)->toBe(0.51);
 });
 
 it('lists the readings month by month', function (): void {
     $family = Family::factory()->create();
     AiReading::factory()->create(['family_id' => $family->id, 'cost_usd' => '0.010000', 'created_at' => CarbonImmutable::parse('2026-10-10 12:00')]);
     AiReading::factory()->create(['family_id' => $family->id, 'cost_usd' => '0.020000', 'created_at' => CarbonImmutable::parse('2026-10-20 12:00')]);
-    AiReading::factory()->create(['family_id' => $family->id, 'purpose' => ReadingPurpose::Crop, 'created_at' => CarbonImmutable::parse('2026-10-20 12:00')]);
+    AiReading::factory()->create(['family_id' => $family->id, 'purpose' => ReadingPurpose::Crop, 'cost_usd' => '0.500000', 'created_at' => CarbonImmutable::parse('2026-10-20 12:00')]);
 
     $months = resolve(FamilyFigures::class)->monthlyReadings($family->id, 12, CarbonImmutable::parse('2026-11-09 12:00'));
 
     expect($months)->toHaveCount(12)
-        ->and($months['2026-10'])->toBe(['readings' => 2, 'cost' => 0.03])
+        ->and($months['2026-10'])->toBe(['readings' => 2, 'cost' => 0.53])
         ->and($months['2026-11'])->toBe(['readings' => 0, 'cost' => 0.0])
         ->and(array_key_first($months))->toBe('2025-12');
 });
