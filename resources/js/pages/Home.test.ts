@@ -9,12 +9,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import {
-    agendaEntries,
-    pendingPayslip,
-    seenNotices,
-    unreadNotices,
-} from '@/test/fixtures';
+import { agendaEntries, seenNotices, unreadNotices } from '@/test/fixtures';
 import { renderPage } from '@/test/page';
 import Home from './Home.vue';
 
@@ -27,16 +22,6 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     usePage: () => ({ url: '/dashboard', props: { ...shared } }),
 }));
 
-const photo = {
-    ...pendingPayslip,
-    id: 13,
-    name: 'IMG_2041.heic',
-    mime_type: 'image/heic',
-    size: 1_258_291,
-    url: '/files/13',
-    title: 'IMG_2041',
-};
-
 /** The Home of the Bianchi on 26/10/2026, as the server sends it. */
 const home: App.Data.HomeData = {
     first_name: 'Marco',
@@ -47,7 +32,6 @@ const home: App.Data.HomeData = {
     entries: agendaEntries.filter((entry) => entry.kind !== 'income'),
     more: false,
     incoming: agendaEntries.filter((entry) => entry.kind === 'income'),
-    pending: [],
     pending_count: 0,
     checklist: [],
     missing: [],
@@ -182,35 +166,45 @@ describe('Home', () => {
         );
     });
 
-    it('shows the files waiting on top, only when there are some', () => {
+    it('shows the documents to complete on top, only when there are some', () => {
         const view = renderPage(Home, { home });
         expect(
-            screen.queryByRole('heading', { name: 'Waiting' }),
+            screen.queryByRole('region', { name: 'Documents to complete' }),
         ).not.toBeInTheDocument();
         view.unmount();
 
-        renderPage(Home, {
-            home: {
-                ...home,
-                pending: [pendingPayslip, photo],
-                pending_count: 7,
-            },
+        renderPage(Home, { home: { ...home, pending_count: 5 } });
+        const waiting = screen.getByRole('region', {
+            name: 'Documents to complete',
         });
-        const waiting = screen
-            .getByRole('heading', { name: 'Waiting' })
-            .closest('section') as HTMLElement;
+        expect(waiting).toHaveTextContent('5 documents to complete');
         expect(
-            within(waiting).getByText('Busta paga novembre 2026'),
+            within(waiting).getByText('Check what I read and save them'),
         ).toBeInTheDocument();
-        expect(within(waiting).getByText('1,2 MB')).toBeInTheDocument();
-        expect(within(waiting).getByText('+5 more')).toBeInTheDocument();
         expect(
-            within(waiting).getByRole('link', { name: 'Finish' }),
+            within(waiting).getByRole('link', { name: 'Complete' }),
         ).toHaveAttribute('href', '/to-sort');
-        const headings = screen
-            .getAllByRole('heading', { level: 2 })
-            .map((heading) => heading.textContent);
-        expect(headings[0]).toBe('Waiting');
+        expect(
+            screen
+                .getByRole('heading', { level: 1 })
+                .compareDocumentPosition(waiting) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+            waiting.compareDocumentPosition(
+                screen.getByRole('region', {
+                    name: 'To pay in the next 30 days',
+                }),
+            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
+    it('says one document to complete', () => {
+        renderPage(Home, { home: { ...home, pending_count: 1 } });
+
+        expect(
+            screen.getByRole('region', { name: 'Documents to complete' }),
+        ).toHaveTextContent('1 document to complete');
     });
 
     it('guides a new family: 0,00 €, the steps to begin and the empty incomes', () => {

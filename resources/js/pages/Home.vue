@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The *Home*: the day and the greeting, the files waiting for their document
- * (on top, only when there are some), the blue box with what to pay in the
+ * The *Home*: the day and the greeting, the box of the documents to complete
+ * (on top, only when files wait for their document, with the button to *To sort*), the blue box with what to pay in the
  * next 30 days and the list of the deadlines, the incomes on their way and,
  * for a new family, *To begin*. One column on the phone, two from the
  * computer: the box and the deadlines on the left, the incomes on the right.
@@ -13,21 +13,22 @@
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
-import { Mail } from '@lucide/vue';
+import { ArrowRight, Mail } from '@lucide/vue';
 import { computed } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
+import FmButton from '@/components/fm/FmButton.vue';
 import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
 import type { BellNotices } from '@/components/fm/FmBell.vue';
 import FmBell from '@/components/fm/FmBell.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChecklist from '@/components/fm/FmChecklist.vue';
-import FmFileTile from '@/components/fm/FmFileTile.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
-import { formatLongDate, formatSize, relativeDays } from '@/lib/format';
+import { useWideLayout } from '@/composables/useWideLayout';
+import { formatLongDate, relativeDays } from '@/lib/format';
 import { agenda, areas, toSort, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
 import { index as receivedMail } from '@/routes/mail';
@@ -52,8 +53,8 @@ function loadNotices(): void {
 
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
 
-/** The files waiting that the section does not show. */
-const morePending = computed(() => home.pending_count - home.pending.length);
+/** Whether the window has the wide layout: the button of the documents to complete goes beside the text. */
+const wide = useWideLayout();
 
 /**
  * The step of *To begin* for a step of the server: its text and where it leads.
@@ -152,10 +153,10 @@ function mailTitle(mail: App.Data.HomeMailData): string {
     <div class="flex flex-col gap-5">
         <div class="flex items-center justify-between gap-3">
             <div class="flex flex-col gap-1">
-                <span class="text-sm text-ink-soft lg:text-[15px]">{{
+                <span class="text-body-sm text-ink-soft lg:text-body-sm">{{
                     day
                 }}</span>
-                <h1 class="m-0 text-[28px] font-extrabold lg:text-[32px]">
+                <h1 class="m-0 text-title-mobile lg:text-title">
                     {{ $t('Hi, :name', { name: home.first_name }) }}
                 </h1>
             </div>
@@ -167,40 +168,52 @@ function mailTitle(mail: App.Data.HomeMailData): string {
             />
         </div>
 
-        <FmCard v-if="home.pending_count > 0" :title="$t('Waiting')" list>
-            <template #actions>
-                <FmSectionLink :href="toSort().url">{{
-                    $t('Finish')
-                }}</FmSectionLink>
-            </template>
-            <FmRow
-                v-for="file in home.pending"
-                :key="file.id"
-                :title="file.title"
-                :subtitle="formatSize(file.size)"
-                :arrow="false"
+        <section
+            v-if="home.pending_count > 0"
+            :aria-label="$t('Documents to complete')"
+            class="flex gap-4 rounded-card bg-card"
+            :class="wide ? 'items-center px-5 py-4.5' : 'flex-col gap-3.5 p-4'"
+        >
+            <div
+                class="flex min-w-0 grow items-center"
+                :class="wide ? 'gap-4' : 'gap-3.5'"
             >
-                <template #before>
-                    <FmFileTile />
-                </template>
-            </FmRow>
-            <p
-                v-if="morePending > 0"
-                class="m-0 px-4 py-3.5 text-[15px] text-ink-soft"
-            >
-                {{
-                    $tChoice(
-                        '{1} +:count more|[2,*] +:count more',
-                        morePending,
-                        { count: String(morePending) },
-                    )
-                }}
-            </p>
-        </FmCard>
+                <span
+                    aria-hidden="true"
+                    class="relative size-15 shrink-0 rounded-xl bg-action-soft"
+                >
+                    <span
+                        class="absolute top-2.25 left-3.5 h-9.5 w-7.5 -translate-x-1.25 translate-y-0.5 -rotate-12 rounded-sm border border-edge bg-card"
+                    />
+                    <span
+                        class="absolute top-2.25 left-3.5 h-9.5 w-7.5 translate-x-1.25 translate-y-px rotate-10 rounded-sm border border-edge bg-card"
+                    />
+                    <span
+                        class="absolute top-2.25 left-3.5 flex h-9.5 w-7.5 items-center justify-center rounded-sm border border-action bg-card text-stat text-action-dark"
+                        >{{ home.pending_count }}</span
+                    >
+                </span>
+                <span class="flex min-w-0 grow flex-col gap-0.75">
+                    <span class="text-section text-ink">{{
+                        $tChoice(
+                            '{1} :count document to complete|[2,*] :count documents to complete',
+                            home.pending_count,
+                        )
+                    }}</span>
+                    <span class="text-meta text-ink-soft">{{
+                        $t('Check what I read and save them')
+                    }}</span>
+                </span>
+            </div>
+            <FmButton :href="toSort().url" :wide="!wide">
+                {{ $t('Complete') }}
+                <FmIcon :icon="ArrowRight" :size="20" />
+            </FmButton>
+        </section>
 
         <div class="grid gap-5 lg:grid-cols-5 lg:items-start lg:gap-6">
             <div
-                class="flex flex-col gap-5"
+                class="flex min-w-0 flex-col gap-5"
                 :class="hasRightColumn ? 'lg:col-span-3' : 'lg:col-span-5'"
             >
                 <FmTotal
@@ -232,7 +245,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
 
             <div
                 v-if="hasRightColumn"
-                class="flex flex-col gap-5 lg:col-span-2"
+                class="flex min-w-0 flex-col gap-5 lg:col-span-2"
                 :class="{
                     'max-lg:hidden':
                         home.incoming.length === 0 &&
@@ -253,7 +266,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     />
                 </FmCard>
                 <FmCard v-else :title="$t('Incoming')" class="max-lg:hidden">
-                    <p class="m-0 text-[15px] text-ink-soft">
+                    <p class="m-0 text-body-sm text-ink-soft">
                         {{
                             $t(
                                 'Salaries and other incomes show here when you add the card of a job.',
