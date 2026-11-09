@@ -37,9 +37,9 @@ function renderSuggest(): {
             return () => h('div');
         },
     });
-    const { unmount } = render(Page);
+    const view = render(Page);
 
-    return { query, state, unmount };
+    return { query, state, unmount: () => view.unmount() };
 }
 
 describe('useSearchSuggest', () => {

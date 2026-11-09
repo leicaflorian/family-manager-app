@@ -50,7 +50,7 @@ export function highlightParts(text: string, query: string): HighlightPart[] {
         index += char.length;
     }
 
-    const marked = new Array<boolean>(text.length).fill(false);
+    const marked = Array.from({ length: text.length }, () => false);
 
     for (const word of words) {
         let from = folded.indexOf(word);
