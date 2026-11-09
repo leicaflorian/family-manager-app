@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\SignInLinkedDevice;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,10 +22,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['sidebar_state']);
 
         $middleware->web(append: [
+            SignInLinkedDevice::class,
             SetLocale::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Laravel sorts the middleware by priority and `auth` would run before this one: the phone must enter first
+        $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: SignInLinkedDevice::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

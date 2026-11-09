@@ -15,6 +15,7 @@ export function pageLayout(name: string): Component {
     switch (true) {
         case name.startsWith('auth/'):
         case name.startsWith('welcome/'):
+        case name.startsWith('connect/'):
             return AuthLayout;
         default:
             return AppLayout;

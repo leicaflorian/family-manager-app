@@ -16,6 +16,7 @@ use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ConnectController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\FileController;
@@ -34,6 +35,7 @@ use App\Http\Controllers\ReceivedMailController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
+use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
@@ -48,6 +50,14 @@ Route::middleware('guest')->group(function (): void {
     Route::get('invitation/{token}', [InvitationLinkController::class, 'show'])->name('invitation.show');
     Route::post('invitation/{token}', [InvitationLinkController::class, 'store'])->name('invitation.store');
 });
+
+// Linking a phone with the code made on the computer: opened by a phone that has not entered yet. The order
+// matters, `linked` and `resume` must come before the code. Wrong codes are limited in the controller.
+Route::get('connect', [ConnectController::class, 'index'])->name('connect');
+Route::get('connect/linked', [ConnectController::class, 'linked'])->name('connect.linked');
+Route::post('connect/resume', [ConnectController::class, 'resume'])->name('connect.resume');
+Route::get('connect/{code}', [ConnectController::class, 'show'])->name('connect.show');
+Route::post('connect/{code}', [ConnectController::class, 'use'])->name('connect.use');
 
 // The family's calendar, read by calendar apps without signing in, every hour. Outside the web group: a poll opens
 // no session and sets no cookie, and without SetLocale a 404 here reads like one of an address that does not exist
@@ -68,6 +78,9 @@ Route::post('mail/mailgun', MailgunWebhookController::class)
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('welcome', [WelcomeController::class, 'show'])->name('welcome');
     Route::post('welcome', [WelcomeController::class, 'store'])->name('welcome.store');
+
+    // The scan of the documents, also the only page of a linked phone
+    Route::get('scan', [ScanController::class, 'show'])->name('scan');
 
     // The page to time *Raddrizza* on a phone: only on the development machine, never online
     if (app()->isLocal()) {
