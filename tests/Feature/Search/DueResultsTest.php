@@ -3,17 +3,21 @@
 declare(strict_types=1);
 
 use App\Data\Search\SearchResultData;
+use App\Enums\ExceptionType;
 use App\Enums\SearchGroup;
+use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\Organization;
 use App\Models\PlannedExpense;
+use App\Models\PlannedExpenseException;
 use App\Models\PlannedIncome;
 use App\Services\Search\DueResults;
 use App\Support\CurrentFamily;
 use App\Support\SearchTerms;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -141,4 +145,73 @@ it('does not find the deadlines of another family', function (): void {
 
     expect(dueResults($this->family, 'Zzz altrui'))->toBe([])
         ->and(array_map(static fn ($r): string => $r->title, dueResults($other, 'Zzz altrui')))->toBe(['Zzz altrui']);
+});
+
+it('skips a skipped due date and gives the next open one', function (): void {
+    CurrentFamily::using($this->family->id, function (): void {
+        $planned = PlannedExpense::factory()->create([
+            'family_id' => $this->family->id, 'title' => 'Zzz saltata', 'amount' => 20, 'start_date' => '2026-11-05',
+        ]);
+        PlannedExpenseException::query()->create(['planned_expense_id' => $planned->id, 'type' => ExceptionType::Skip, 'occurrence_date' => '2026-11-05']);
+    });
+
+    $rows = dueResults($this->family, 'Zzz');
+
+    expect($rows)->toHaveCount(1)->and($rows[0]->due_in)->toBe('2026-12-05');
+});
+
+it('gives the original date in the link and the moved date in due_in', function (): void {
+    CurrentFamily::using($this->family->id, function (): void {
+        $planned = PlannedExpense::factory()->create([
+            'family_id' => $this->family->id, 'title' => 'Zzz spostata', 'amount' => 20, 'start_date' => '2026-11-05', 'is_recurring' => false,
+        ]);
+        PlannedExpenseException::query()->create([
+            'planned_expense_id' => $planned->id, 'type' => ExceptionType::DateOverride, 'occurrence_date' => '2026-11-05', 'date_override' => '2026-11-12',
+        ]);
+    });
+
+    $rows = dueResults($this->family, 'Zzz');
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows[0]->due_in)->toBe('2026-11-12')
+        ->and($rows[0]->href)->toEndWith('/occurrences/2026-11-05');
+});
+
+it('finds a planned income by the label of its employment', function (): void {
+    CurrentFamily::using($this->family->id, function (): void {
+        $employment = Employment::factory()->create(['family_id' => $this->family->id, 'person_id' => $this->family->people()->firstOrFail()->id]);
+        PlannedIncome::factory()->create(['family_id' => $this->family->id, 'title' => 'Zzz stipendio', 'amount' => 1500, 'start_date' => '2026-11-27', 'employment_id' => $employment->id]);
+    });
+
+    $name = CurrentFamily::using($this->family->id, fn (): string => $this->family->people()->firstOrFail()->first_name);
+    $rows = dueResults($this->family, $name.' Zzz');
+
+    expect($rows)->toHaveCount(1)->and($rows[0]->title)->toBe('Zzz stipendio')->and($rows[0]->area)->toBe('work');
+});
+
+it('reads the planned items once for count then results on the same terms', function (): void {
+    $search = resolve(DueResults::class);
+    $terms = SearchTerms::fromQuery('Panda');
+
+    CurrentFamily::using($this->family->id, function () use ($search, $terms): void {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $count = $search->count($terms);
+        $afterCount = count(DB::getQueryLog());
+        $rows = $search->results($terms, 10);
+
+        expect(count(DB::getQueryLog()))->toBe($afterCount)->and(count($rows))->toBe($count);
+        DB::disableQueryLog();
+    });
+});
+
+it('recomputes for other terms', function (): void {
+    $search = resolve(DueResults::class);
+
+    CurrentFamily::using($this->family->id, function () use ($search): void {
+        $panda = $search->count(SearchTerms::fromQuery('Panda'));
+        $none = $search->count(SearchTerms::fromQuery('Qqqqq'));
+
+        expect($panda)->toBeGreaterThan(0)->and($none)->toBe(0);
+    });
 });

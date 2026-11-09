@@ -12,6 +12,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\CardSummaries;
 use App\Services\Deadlines;
+use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use App\Support\SearchTerms;
 use Carbon\CarbonImmutable;
@@ -29,12 +30,19 @@ use Illuminate\Support\Str;
  * have a card are few, and for each word the ids whose card title contains it join the SQL conditions as an
  * alternative of that word. The day of a due date is computed in PHP too, the same way.
  */
-final readonly class DueResults implements GroupResults
+final class DueResults implements GroupResults
 {
     /** The columns every word is looked up in. */
     private const array COLUMNS = ['title', 'organization.name'];
 
-    public function __construct(private Deadlines $deadlines, private CardSummaries $summaries) {}
+    /**
+     * The last list found, so `count()` and then `results()` on the same terms read the planned items once.
+     *
+     * @var array{terms: SearchTerms, family: int|null, found: list<Deadline>}|null
+     */
+    private ?array $memo = null;
+
+    public function __construct(private readonly Deadlines $deadlines, private readonly CardSummaries $summaries) {}
 
     /**
      * {@inheritDoc}
@@ -73,18 +81,42 @@ final readonly class DueResults implements GroupResults
      */
     private function matches(SearchTerms $terms): array
     {
+        // The same terms object in the same family: the planned items do not change between the two calls
+        if ($this->memo !== null && $this->memo['terms'] === $terms && $this->memo['family'] === CurrentFamily::id()) {
+            return $this->memo['found'];
+        }
+
+        $found = $this->find($terms);
+        $this->memo = ['terms' => $terms, 'family' => CurrentFamily::id(), 'found' => $found];
+
+        return $found;
+    }
+
+    /**
+     * Reads the planned items and computes the list, see {@see self::matches()}.
+     *
+     * @param  SearchTerms  $terms  what the person typed
+     * @return list<Deadline>
+     */
+    private function find(SearchTerms $terms): array
+    {
         $today = CarbonImmutable::today();
 
         // Each word may also be the title of a card or a day of a due date: the ids are looked up once per word
         $labelled = $this->labelled($terms->words);
         $onDay = [];
-        $dates = array_filter(array_map(static fn (string $word): ?CarbonImmutable => SearchTerms::fromQuery($word)->date, $terms->words));
+        // Every word is read once: it can be an amount or a day
+        $reads = [];
 
-        if ($dates !== []) {
+        foreach ($terms->words as $word) {
+            $reads[$word] = SearchTerms::fromQuery($word);
+        }
+
+        if (array_filter($reads, static fn (SearchTerms $read): bool => $read->date !== null) !== []) {
             $first = $this->firstOpen([...PlannedExpense::query()->get(), ...PlannedIncome::query()->get()], $today);
 
-            foreach ($terms->words as $word) {
-                $date = SearchTerms::fromQuery($word)->date;
+            foreach ($reads as $word => $read) {
+                $date = $read->date;
 
                 if ($date !== null) {
                     $onDay[$word] = array_filter($first, static fn (Deadline $d): bool => $d->occurrence->date->isSameDay($date));
@@ -95,12 +127,12 @@ final readonly class DueResults implements GroupResults
         $expenses = $terms->whereWords(
             PlannedExpense::with('organization'),
             self::COLUMNS,
-            fn (Builder $group, string $word) => $this->alternatives($group, $word, 'expense', $labelled, $onDay),
+            fn (Builder $group, string $word) => $this->alternatives($group, $word, $reads[$word], 'expense', $labelled, $onDay),
         )->get();
         $incomes = $terms->whereWords(
             PlannedIncome::with('organization'),
             self::COLUMNS,
-            fn (Builder $group, string $word) => $this->alternatives($group, $word, 'income', $labelled, $onDay),
+            fn (Builder $group, string $word) => $this->alternatives($group, $word, $reads[$word], 'income', $labelled, $onDay),
         )->get();
         $planned = [...$expenses->all(), ...$incomes->all()];
 
@@ -118,14 +150,13 @@ final readonly class DueResults implements GroupResults
      *
      * @param  Builder<TModel>  $group  the OR group of the word
      * @param  string  $word  the word
+     * @param  SearchTerms  $read  the word read as an amount or a day
      * @param  string  $kind  `expense` or `income`, the kind of planned item looked up
      * @param  array<string, list<string>>  $labelled  by word, the keys (`expense-3`) whose card title contains it
      * @param  array<string, array<string, Deadline>>  $onDay  by word that is a day, the open due dates falling on it
      */
-    private function alternatives(Builder $group, string $word, string $kind, array $labelled, array $onDay): void
+    private function alternatives(Builder $group, string $word, SearchTerms $read, string $kind, array $labelled, array $onDay): void
     {
-        $read = SearchTerms::fromQuery($word);
-
         if ($read->amount !== null) {
             $group->orWhere('amount', $read->amount);
         }
