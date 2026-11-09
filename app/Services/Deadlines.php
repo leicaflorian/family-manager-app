@@ -112,7 +112,7 @@ final readonly class Deadlines
      *
      * @param  Relation<*, *, *>  $card  The relation to the card, a `MorphTo`.
      */
-    private function withCardRelations(Relation $card): void
+    public function withCardRelations(Relation $card): void
     {
         if (! $card instanceof MorphTo) {
             return;
