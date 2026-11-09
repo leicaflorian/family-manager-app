@@ -129,6 +129,15 @@ final class Family extends Model
     }
 
     /**
+     * Whether the owner may look at the app as one of its accounts: an administrator gave the permission and it has not
+     * expired yet, and the family is not blocked.
+     */
+    public function allowsSupport(): bool
+    {
+        return $this->support_until !== null && $this->support_until->isFuture() && ! $this->isBlocked();
+    }
+
+    /**
      * Only the families that are neither suspended nor waiting to be deleted: the opposite of {@see self::isBlocked()}.
      *
      * @param  Builder<Family>  $query  the query to narrow

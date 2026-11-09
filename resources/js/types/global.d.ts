@@ -30,6 +30,8 @@ declare module '@inertiajs/core' {
             /** The files waiting to be sorted, without the copies; 0 for a guest. */
             to_sort_count?: number;
             locale: string;
+            /** The name of the account the owner looks as during a visit (*Enter as…*); null otherwise. */
+            impersonating?: string | null;
             /** The theme of the account; `system` for a guest. */
             theme: App.Enums.Theme;
             [key: string]: unknown;

@@ -40,6 +40,11 @@ final class SetLocale
      */
     private function remember(Request $request, string $locale): void
     {
+        // A visit of the owner writes nothing in the account it looks as
+        if ($request->hasSession() && $request->session()->has('visit')) {
+            return;
+        }
+
         $user = $request->user();
 
         // The admin panel runs this middleware too, with an owner: only the accounts of a family have a language column.

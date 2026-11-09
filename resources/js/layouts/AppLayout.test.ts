@@ -6,7 +6,11 @@ import { trackChanges } from '@/lib/unsavedChanges';
 import { areaCounts } from '@/test/fixtures';
 import AppLayout from './AppLayout.vue';
 
-const page = vi.hoisted(() => ({ url: '/documents?person=3', toSort: 0 }));
+const page = vi.hoisted(() => ({
+    url: '/documents?person=3',
+    toSort: 0,
+    impersonating: null as string | null,
+}));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
@@ -17,6 +21,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
             family: { name: 'Bianchi' },
             areas: areaCounts,
             to_sort_count: page.toSort,
+            impersonating: page.impersonating,
         },
     }),
 }));
@@ -91,5 +96,31 @@ describe('AppLayout', () => {
 
         stop();
         view.unmount();
+    });
+
+    it('shows the strip of a visit of the owner, and Leave sends a POST', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        page.impersonating = 'Laura Bianchi';
+        render(AppLayout, { slots: { default: '<h1>Home</h1>' } });
+        page.impersonating = null;
+
+        expect(
+            screen.getByText('You are looking as Laura Bianchi'),
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Leave' }));
+
+        expect(post).toHaveBeenCalledWith('/visit/leave');
+        post.mockRestore();
+    });
+
+    it('has no strip outside a visit', () => {
+        render(AppLayout, { slots: { default: '<h1>Home</h1>' } });
+
+        expect(
+            screen.queryByText(/You are looking as/),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Leave' }),
+        ).not.toBeInTheDocument();
     });
 });

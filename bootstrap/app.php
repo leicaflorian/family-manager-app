@@ -6,6 +6,7 @@ use App\Http\Middleware\ApplyInstallationSettings;
 use App\Http\Middleware\BlockSuspendedFamily;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitLinkedDevice;
+use App\Http\Middleware\LimitVisit;
 use App\Http\Middleware\RecordLastSeen;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\SignInLinkedDevice;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             SignInLinkedDevice::class,
+            LimitVisit::class,
             LimitLinkedDevice::class,
             SetLocale::class,
             BlockSuspendedFamily::class,
@@ -35,6 +37,11 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // *Enter as…* is opened from the admin panel: an owner who is not signed in goes to the sign-in of the panel
+        $middleware->redirectGuestsTo(
+            fn (Request $request): string => $request->routeIs('support.visit.start') ? route('filament.admin.auth.login') : route('login'),
+        );
 
         // Laravel sorts the middleware by priority and `auth` would run before this one: the phone must enter first
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: SignInLinkedDevice::class);

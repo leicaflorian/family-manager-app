@@ -6,7 +6,9 @@ namespace App\Filament\Resources\Families\RelationManagers;
 
 use App\Admin\FamilyFigures;
 use App\Filament\Resources\Families\FamilyResource;
+use App\Models\Family;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -14,7 +16,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * The accounts of a family: name, email, level, confirmed email and last access.
+ * The accounts of a family: name, email, level, confirmed email and last access, and *Enter as…* while the family
+ * lets support in.
  */
 final class UsersRelationManager extends RelationManager
 {
@@ -48,6 +51,25 @@ final class UsersRelationManager extends RelationManager
                 TextColumn::make('last_activity')->label(__('Last access'))
                     ->state(static fn (User $record): string => FamilyResource::dateTime(resolve(FamilyFigures::class)->lastActivityOf($record->id))),
             ])
+            ->recordActions([
+                // Only while the family lets support in; the visit checks it again when it starts
+                Action::make('enterAs')->label(__('Enter as'))->icon('heroicon-o-eye')
+                    ->visible(fn (): bool => $this->family()->allowsSupport())
+                    ->url(static fn (User $record): string => route('support.visit.start', $record))
+                    ->openUrlInNewTab(),
+            ])
             ->paginated(false);
+    }
+
+    /**
+     * The family of the page.
+     */
+    private function family(): Family
+    {
+        $family = $this->getOwnerRecord();
+
+        assert($family instanceof Family);
+
+        return $family;
     }
 }
