@@ -22,7 +22,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
 }));
 
 describe('AppLayout', () => {
-    it('shows the files to sort on To sort in the sidebar and on Upload in the bottom bar', () => {
+    it('shows the files to sort on To sort in the sidebar and on the + of the bottom bar', () => {
         page.toSort = 4;
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
         page.toSort = 0;
@@ -32,7 +32,7 @@ describe('AppLayout', () => {
             '/to-sort',
         );
         expect(
-            screen.getByRole('link', { name: 'Upload a document, 4 to sort' }),
+            screen.getByRole('button', { name: 'Add, 4 to sort' }),
         ).toBeInTheDocument();
     });
 
