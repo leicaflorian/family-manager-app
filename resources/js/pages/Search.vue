@@ -1,0 +1,346 @@
+<script setup lang="ts">
+/**
+ * *Search*, the page of the results of the global search (`/search?q=…`): the
+ * box with the text, the chips of the groups with their numbers (*All results*
+ * and one per group that found something) and the groups one after the other,
+ * or only the one of the chip pressed. While the person types a new text the
+ * first results open under the box (on the phone in place of the results);
+ * Enter, or *See all*, searches the text on this page. A search that finds
+ * nothing says so with three tips; at the bottom, always, what is searched.
+ *
+ * On the computer the link to the Home and the title are above the box; on the
+ * phone the arrow back is beside the box and the title is only for screen
+ * readers.
+ */
+import { Head, router } from '@inertiajs/vue3';
+import { ArrowLeft, SearchX } from '@lucide/vue';
+import { trans, transChoice } from 'laravel-vue-i18n';
+import { computed, ref, useTemplateRef, watch } from 'vue';
+import FmChip from '@/components/fm/FmChip.vue';
+import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
+import FmSearchField from '@/components/fm/FmSearchField.vue';
+import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
+import FmSearchResult from '@/components/fm/FmSearchResult.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
+import { useSearchSuggest } from '@/composables/useSearchSuggest';
+import { useWideLayout } from '@/composables/useWideLayout';
+import { dashboard, search } from '@/routes';
+
+const { results } = defineProps<{
+    /** What was searched and what was found, in groups. */
+    results: App.Data.Search.SearchResultsData;
+}>();
+
+/** The id of the menu of the first results, for the box. */
+const MENU_ID = 'search-results';
+
+/** One piece of a tip: plain text, or an example in bold or in italics. */
+type TipPart = { text: string; tag?: 'strong' | 'em' };
+
+const wide = useWideLayout();
+
+/** The text in the box. */
+const text = ref(results.query);
+
+const { results: suggested } = useSearchSuggest(text);
+
+/** The menu of the first results is wanted: the text changed and Esc was not pressed since. */
+const menuOpen = ref(false);
+
+watch(text, () => {
+    menuOpen.value = true;
+});
+
+/** The first results of the text being typed, while the menu is open and they found something. */
+const menuResults = computed((): App.Data.Search.SearchResultsData | null =>
+    menuOpen.value && suggested.value !== null && suggested.value.total > 0
+        ? suggested.value
+        : null,
+);
+
+/** On the phone the menu takes the place of the chips and of the results. */
+const inlineMenu = computed(
+    (): boolean => !wide.value && menuResults.value !== null,
+);
+
+const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
+
+/** The title of the page: the number of results, or just *Search*. */
+const title = computed((): string =>
+    results.total > 0
+        ? transChoice(
+              '{1} :count result for «:query»|[2,*] :count results for «:query»',
+              results.total,
+              { query: results.query },
+          )
+        : trans('Search'),
+);
+
+/** The groups listed: all of them, or only the one of the chip pressed. */
+const groups = computed((): App.Data.Search.SearchGroupData[] =>
+    results.type === null
+        ? results.groups
+        : results.groups.filter((group) => group.group === results.type),
+);
+
+/** Something was searched and nothing is listed. */
+const nothingFound = computed(
+    (): boolean => results.query !== '' && groups.value.length === 0,
+);
+
+/** The tips of a search that found nothing, with their examples. */
+const tips = computed((): TipPart[][] => [
+    tip('a part of the word: :part also finds :word', {
+        part: { text: 'Pand', tag: 'strong' },
+        word: { text: 'Panda', tag: 'em' },
+    }),
+    tip('the name of who sent it: :first, :second', {
+        first: { text: 'UnipolSai', tag: 'strong' },
+        second: { text: 'Enel', tag: 'strong' },
+    }),
+    tip('an amount or a date: :amount, :date', {
+        amount: { text: '84,20', tag: 'strong' },
+        date: { text: '15/10/2026', tag: 'strong' },
+    }),
+]);
+
+/**
+ * Translates a tip and puts its examples in place of the placeholders, so the
+ * sentence is translated whole and only the examples are marked.
+ *
+ * @param key - the English text, with a placeholder per example
+ * @param examples - the examples by placeholder name
+ * @returns the pieces of the tip in order
+ */
+function tip(key: string, examples: Record<string, TipPart>): TipPart[] {
+    return trans(key)
+        .split(/(:[a-z]+)/)
+        .filter((piece) => piece !== '')
+        .map((piece) => examples[piece.slice(1)] ?? { text: piece });
+}
+
+/** Searches the text in the box on this page. */
+function submit(): void {
+    const q = text.value.trim();
+
+    router.get(search.url(), q === '' ? {} : { q }, { preserveState: false });
+}
+
+/** Enter: opens the result chosen with the arrows, otherwise searches. */
+function enter(): void {
+    if (menuResults.value !== null && menu.value?.open() === true) {
+        return;
+    }
+
+    submit();
+}
+
+/**
+ * The keys of the box for the menu: the arrows move the choice, Esc closes it
+ * (and does not empty the box, as a search box would).
+ *
+ * @param event - the key pressed in the box
+ */
+function onKeydown(event: KeyboardEvent): void {
+    if (menuResults.value === null) {
+        return;
+    }
+
+    switch (event.key) {
+        case 'ArrowDown':
+            event.preventDefault();
+            menu.value?.move(1);
+            break;
+        case 'ArrowUp':
+            event.preventDefault();
+            menu.value?.move(-1);
+            break;
+        case 'Escape':
+            event.preventDefault();
+            menuOpen.value = false;
+            break;
+    }
+}
+
+/**
+ * Shows the results of one group, or of all of them.
+ *
+ * @param type - the group, `null` for all
+ */
+function filter(type: App.Enums.SearchGroup | null): void {
+    router.get(
+        search.url(),
+        type === null ? { q: results.query } : { q: results.query, type },
+        { preserveState: false },
+    );
+}
+
+/** The arrow of the phone: back to the page before, or to the Home if there is none. */
+function goBack(): void {
+    if (window.history.length > 1) {
+        window.history.back();
+
+        return;
+    }
+
+    router.visit(dashboard().url);
+}
+</script>
+
+<template>
+    <Head :title="$t('Search')" />
+
+    <div
+        class="flex w-full flex-col"
+        :class="wide ? 'mx-auto max-w-220 gap-6' : 'gap-5'"
+    >
+        <FmTitle
+            v-if="wide"
+            :title="title"
+            :back="dashboard().url"
+            :back-label="$t('Home')"
+        />
+        <h1 v-else class="sr-only">{{ title }}</h1>
+
+        <div class="flex flex-col" :class="wide ? 'gap-6' : 'gap-3'">
+            <div class="relative flex items-center gap-2">
+                <button
+                    v-if="!wide"
+                    type="button"
+                    :aria-label="$t('Back')"
+                    class="-ml-2.5 flex size-11 shrink-0 items-center justify-center rounded-full text-ink"
+                    @click="goBack"
+                >
+                    <FmIcon :icon="ArrowLeft" :size="24" />
+                </button>
+                <FmSearchField
+                    v-model="text"
+                    :label="$t('Search in Family Manager')"
+                    clearable
+                    autofocus
+                    :controls="MENU_ID"
+                    :expanded="menuResults !== null"
+                    class="min-w-0 grow"
+                    @submit="enter"
+                    @keydown="onKeydown"
+                />
+                <FmSearchMenu
+                    v-if="wide && menuResults"
+                    :id="MENU_ID"
+                    ref="menu"
+                    :results="menuResults"
+                    :query="menuResults.query"
+                    class="left-0"
+                />
+            </div>
+
+            <div
+                v-if="results.total > 0 && !inlineMenu"
+                role="group"
+                :aria-label="$t('Filters')"
+                class="flex gap-2"
+                :class="wide ? 'flex-wrap' : '-mx-5 overflow-x-auto px-5'"
+            >
+                <FmChip
+                    :label="$t('All results')"
+                    :count="results.total"
+                    :pressed="results.type === null"
+                    @click="filter(null)"
+                />
+                <FmChip
+                    v-for="group in results.groups"
+                    :key="group.group"
+                    :label="group.label"
+                    :count="group.count"
+                    :pressed="results.type === group.group"
+                    @click="filter(group.group)"
+                />
+            </div>
+        </div>
+
+        <div
+            v-if="inlineMenu && menuResults"
+            class="overflow-hidden rounded-card bg-card"
+        >
+            <FmSearchMenu
+                :id="MENU_ID"
+                ref="menu"
+                :results="menuResults"
+                :query="menuResults.query"
+                inline
+            />
+        </div>
+        <template v-else>
+            <FmEmpty
+                v-if="nothingFound"
+                :icon="SearchX"
+                :title="$t('No results for «:query»', { query: results.query })"
+                :text="
+                    $t(
+                        'Check how it is written. If you do not remember it well, try:',
+                    )
+                "
+            >
+                <ul
+                    class="m-0 flex list-none flex-col gap-2 p-0 text-left text-body text-ink"
+                >
+                    <li
+                        v-for="(parts, i) in tips"
+                        :key="i"
+                        class="flex items-baseline gap-2.5"
+                    >
+                        <span aria-hidden="true" class="shrink-0 text-action"
+                            >•</span
+                        >
+                        <span
+                            ><template v-for="(part, j) in parts" :key="j"
+                                ><strong v-if="part.tag === 'strong'">{{
+                                    part.text
+                                }}</strong
+                                ><em v-else-if="part.tag === 'em'">{{
+                                    part.text
+                                }}</em
+                                ><template v-else>{{
+                                    part.text
+                                }}</template></template
+                            ></span
+                        >
+                    </li>
+                </ul>
+            </FmEmpty>
+
+            <section
+                v-for="group in groups"
+                :key="group.group"
+                :aria-label="group.label"
+                class="flex flex-col gap-2"
+            >
+                <h2 class="m-0 flex items-baseline gap-2 text-section">
+                    {{ group.label }}
+                    <span class="text-label text-ink-soft">{{
+                        group.count
+                    }}</span>
+                </h2>
+                <div
+                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
+                >
+                    <FmSearchResult
+                        v-for="result in group.results"
+                        :key="result.key"
+                        :result="result"
+                        :query="results.query"
+                    />
+                </div>
+            </section>
+        </template>
+
+        <p class="m-0 text-body-sm text-ink-soft">
+            {{
+                $t(
+                    'I search in the names of the cards, in the titles, labels and read text of the documents, in the expenses, in the organizations and in the people.',
+                )
+            }}
+        </p>
+    </div>
+</template>

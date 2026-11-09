@@ -35,7 +35,7 @@ function searchedTables(): array
 
 it('searches every group from the page and lists at most 20 per group', function (): void {
     $this->actingAs($this->marco)->get(route('search', ['q' => 'Panda']))->assertOk()->assertInertia(function (AssertableInertia $page): void {
-        $page->component('Search', false)->where('results.query', 'Panda')->where('results.type', null);
+        $page->component('Search')->where('results.query', 'Panda')->where('results.type', null);
         $results = $page->toArray()['props']['results'];
         $groups = $results['groups'];
         expect($groups)->not->toBeEmpty()
@@ -52,7 +52,7 @@ it('searches every group from the page and lists at most 20 per group', function
 
 it('narrows the page to one group and still counts the others', function (): void {
     $this->actingAs($this->marco)->get(route('search', ['q' => 'polizza', 'type' => 'documents']))->assertInertia(function (AssertableInertia $page): void {
-        $page->component('Search', false)->where('results.type', 'documents');
+        $page->component('Search')->where('results.type', 'documents');
         $results = $page->toArray()['props']['results'];
         expect($results['total'])->toBe(array_sum(array_column($results['groups'], 'count')));
         foreach ($results['groups'] as $group) {

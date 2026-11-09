@@ -120,4 +120,34 @@ describe('FmSearchField', () => {
             expect(screen.getByRole('searchbox')).toHaveFocus(),
         );
     });
+    it('with a menu, tells a screen reader which list it opens and whether it is open', async () => {
+        const view = render(FmSearchField, {
+            props: { label: 'Search everything', modelValue: 'Pan' },
+        });
+
+        expect(screen.getByRole('searchbox')).not.toHaveAttribute(
+            'aria-controls',
+        );
+        expect(screen.getByRole('searchbox')).not.toHaveAttribute(
+            'aria-expanded',
+        );
+
+        await view.rerender({ controls: 'results', expanded: true });
+
+        expect(screen.getByRole('searchbox')).toHaveAttribute(
+            'aria-controls',
+            'results',
+        );
+        expect(screen.getByRole('searchbox')).toHaveAttribute(
+            'aria-expanded',
+            'true',
+        );
+
+        await view.rerender({ expanded: false });
+
+        expect(screen.getByRole('searchbox')).toHaveAttribute(
+            'aria-expanded',
+            'false',
+        );
+    });
 });

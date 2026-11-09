@@ -9,7 +9,9 @@
  * `edge`, the icon and the placeholder are `ink-soft`; the label of the prop
  * is both the placeholder and the name for a screen reader, so it says what is
  * searched («Search the documents»). It has no button: the page reacts to the
- * text as it is typed.
+ * text as it is typed. With a list of results under it (`controls`), the box
+ * says which list it opens and whether it is open (`expanded`); the arrow keys
+ * reach the page as `keydown` on the box.
  *
  * @group fields
  */
@@ -25,6 +27,8 @@ const {
     clearable = false,
     shortcut = false,
     autofocus = false,
+    controls,
+    expanded = false,
 } = defineProps<{
     /** What is searched: the name of the box and the text shown while it is empty. */
     label: string;
@@ -40,6 +44,10 @@ const {
     shortcut?: boolean;
     /** The box takes the focus when it appears. */
     autofocus?: boolean;
+    /** The id of the list of results the box opens while typing, if any. */
+    controls?: string;
+    /** That list is open; said only with `controls`. */
+    expanded?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -98,6 +106,8 @@ defineExpose({ focus });
             :placeholder="label"
             :aria-label="label"
             :aria-keyshortcuts="shortcut ? 'Meta+K Control+K' : undefined"
+            :aria-controls="controls"
+            :aria-expanded="controls ? expanded : undefined"
             class="min-w-0 grow border-0 bg-transparent text-ink outline-none"
             @keydown.enter="emit('submit')"
             @keydown.esc="emit('escape')"
