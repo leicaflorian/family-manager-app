@@ -20,6 +20,7 @@ use App\Models\Home;
 use App\Models\Income;
 use App\Models\InsurancePolicy;
 use App\Models\Invitation;
+use App\Models\LinkedDevice;
 use App\Models\Loan;
 use App\Models\MaintenanceRecord;
 use App\Models\Organization;
@@ -51,7 +52,7 @@ dataset('family models', [
     PlannedExpenseException::class, Expense::class, PlannedIncome::class,
     PlannedIncomeException::class, Income::class, Document::class,
     ReminderGroup::class, Reminder::class, ReminderNotice::class, FamilySetting::class, Invitation::class,
-    AiReading::class, ReceivedMail::class,
+    AiReading::class, ReceivedMail::class, LinkedDevice::class,
 ]);
 
 test('a row of family A is not found from family B', function (string $class): void {

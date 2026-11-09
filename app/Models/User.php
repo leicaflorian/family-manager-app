@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Actions\Devices\ForgetLinkedDevices;
 use App\Enums\Role;
 use App\Enums\Theme;
 use Carbon\CarbonImmutable;
@@ -12,8 +13,10 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\DatabaseNotification;
@@ -35,6 +38,8 @@ use Illuminate\Notifications\Notifiable;
  * @property CarbonImmutable|null $updated_at
  * @property Theme $theme system, light or dark
  * @property-read Family $family
+ * @property-read Collection<int, LinkedDevice> $linkedDevices
+ * @property-read int|null $linked_devices_count
  * @property-read DatabaseNotificationCollection<int, DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
  * @property-read Person|null $person
@@ -52,6 +57,19 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * Forgets the linked phones when the password changes, whichever way it changed
+     * (the page *My account*, the reset of Fortify): a new password signs the phones out.
+     */
+    protected static function booted(): void
+    {
+        self::updated(static function (self $user): void {
+            if ($user->wasChanged('password')) {
+                resolve(ForgetLinkedDevices::class)->handle($user);
+            }
+        });
+    }
 
     /**
      * The family of the account. Accounts have no family scope: signing in
@@ -72,6 +90,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function person(): HasOne
     {
         return $this->hasOne(Person::class);
+    }
+
+    /**
+     * The phones linked to the account.
+     *
+     * @return HasMany<LinkedDevice, $this>
+     */
+    public function linkedDevices(): HasMany
+    {
+        return $this->hasMany(LinkedDevice::class);
     }
 
     /**
