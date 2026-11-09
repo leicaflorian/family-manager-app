@@ -4,17 +4,24 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Enums\InstallationSetting;
 use App\Enums\ReadingPurpose;
 use App\Models\AiReading;
+use App\Support\InstallationSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
 
 /**
  * How many automatic readings the current family has left this month: the limit of
- * `config('document_reader.monthly_limit')` less the AI calls of the month, except the ones that find the edges of a photo (they have their own limit a day). The month is that of Rome.
+ * the monthly limit of the installation settings less the AI calls of the month, except the ones that find the edges of a photo (they have their own limit a day). The month is that of Rome.
  */
 final readonly class ReadingAllowance
 {
+    /**
+     * @param  InstallationSettings  $settings  the settings of the installation (the limit comes from there)
+     */
+    public function __construct(private InstallationSettings $settings) {}
+
     /**
      * The readings left to the current family in the month of a moment, never less than 0.
      *
@@ -29,7 +36,7 @@ final readonly class ReadingAllowance
             ->where('created_at', '<', $to)
             ->count();
 
-        return max(0, Config::integer('document_reader.monthly_limit') - $used);
+        return max(0, (int) $this->settings->get(InstallationSetting::MonthlyLimit) - $used);
     }
 
     /**

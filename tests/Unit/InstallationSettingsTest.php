@@ -1,0 +1,104 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Enums\InstallationSetting;
+use App\Models\AppSetting;
+use App\Services\Reading\AiDocumentReader;
+use App\Support\InstallationSettings;
+use Illuminate\Encryption\Encrypter;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+
+uses(RefreshDatabase::class);
+
+test('the env value wins while the database is empty', function (): void {
+    config(['document_reader.model' => 'from-env']);
+
+    expect(resolve(InstallationSettings::class)->get(InstallationSetting::Model))->toBe('from-env');
+});
+
+test('the database wins over the env', function (): void {
+    config(['document_reader.model' => 'from-env', 'document_reader.provider' => 'gemini']);
+    $settings = resolve(InstallationSettings::class);
+
+    $settings->set(InstallationSetting::Model, 'from-database');
+    $settings->set(InstallationSetting::Provider, 'anthropic');
+    $settings->apply();
+
+    expect($settings->get(InstallationSetting::Model))->toBe('from-database')
+        ->and(config('document_reader.model'))->toBe('from-database')
+        ->and(config('document_reader.provider'))->toBe('anthropic');
+});
+
+test('off turns the reading off even with the env on', function (): void {
+    config(['document_reader.provider' => 'gemini', 'ai.providers.gemini.key' => 'env-key']);
+    expect(resolve(AiDocumentReader::class)->isActive())->toBeTrue();
+
+    $settings = resolve(InstallationSettings::class);
+    $settings->set(InstallationSetting::Provider, 'off');
+    $settings->apply();
+
+    expect(resolve(AiDocumentReader::class)->isActive())->toBeFalse();
+});
+
+test('a key is stored encrypted', function (): void {
+    $settings = resolve(InstallationSettings::class);
+
+    $settings->set(InstallationSetting::GeminiKey, 'secret-key-123');
+
+    $raw = (string) DB::table('app_settings')->where('key', 'gemini_key')->value('value');
+    expect($raw)->not->toContain('secret-key-123')
+        ->and($settings->get(InstallationSetting::GeminiKey))->toBe('secret-key-123')
+        ->and($settings->updatedAt(InstallationSetting::GeminiKey))->not->toBeNull();
+
+    $settings->apply();
+    expect(config('ai.providers.gemini.key'))->toBe('secret-key-123');
+});
+
+test('a key encrypted with another APP_KEY is unreadable and the env one is used', function (): void {
+    config(['ai.providers.gemini.key' => 'env-key']);
+    $other = new Encrypter(random_bytes(32), 'AES-256-CBC');
+    AppSetting::query()->create(['key' => 'gemini_key', 'value' => $other->encryptString('old-secret')]);
+    // The row is written behind the settings' back: forget the cache the way set() does
+    Cache::forget('installation-settings');
+    $settings = resolve(InstallationSettings::class);
+
+    expect($settings->unreadable(InstallationSetting::GeminiKey))->toBeTrue()
+        ->and($settings->stored(InstallationSetting::GeminiKey))->toBeNull()
+        ->and($settings->get(InstallationSetting::GeminiKey))->toBe('env-key');
+
+    $settings->apply();
+    expect(config('ai.providers.gemini.key'))->toBe('env-key');
+});
+
+test('an empty value removes the row', function (): void {
+    $settings = resolve(InstallationSettings::class);
+    $settings->set(InstallationSetting::Model, 'x');
+    expect(AppSetting::query()->count())->toBe(1);
+
+    $settings->set(InstallationSetting::Model, '');
+
+    expect(AppSetting::query()->count())->toBe(0)
+        ->and($settings->stored(InstallationSetting::Model))->toBeNull();
+
+    $settings->set(InstallationSetting::Model, 'x');
+    $settings->set(InstallationSetting::Model, null);
+    expect(AppSetting::query()->count())->toBe(0);
+});
+
+test('the times fall back to 06:00 and 00:05', function (): void {
+    $settings = resolve(InstallationSettings::class);
+
+    expect($settings->remindersTime())->toBe('06:00')
+        ->and($settings->loansTime())->toBe('00:05');
+});
+
+test('only the three keys are secret and only the loans time has no config key', function (): void {
+    $secret = array_filter(InstallationSetting::cases(), fn (InstallationSetting $s): bool => $s->isSecret());
+
+    expect($secret)->toHaveCount(3)
+        ->and(InstallationSetting::LoansTime->configKey())->toBeNull()
+        ->and(InstallationSetting::MonthlyLimit->configKey())->toBe('document_reader.monthly_limit');
+});

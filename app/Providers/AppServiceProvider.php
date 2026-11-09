@@ -13,6 +13,7 @@ use App\Observers\LoanPlanObserver;
 use App\Policies\FamilyPolicy;
 use App\Services\Reading\AiDocumentReader;
 use App\Support\CurrentFamily;
+use App\Support\InstallationSettings;
 use App\Support\Linkables;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -52,6 +54,9 @@ class AppServiceProvider extends ServiceProvider
 
         // A password login lifts the limit of a linked phone
         Event::listen(Login::class, LiftLinkedDeviceLimit::class);
+
+        // A worker lives for days: every job reads the settings of that moment, not those of the start
+        Queue::before(fn () => resolve(InstallationSettings::class)->apply());
 
         // Only the proxies named in the configuration are believed about the address and https
         $proxies = config('app.trusted_proxies');
