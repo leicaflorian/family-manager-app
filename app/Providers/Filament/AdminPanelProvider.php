@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Http\Middleware\SetLocale;
+use App\Models\Owner;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -14,11 +15,13 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -27,6 +30,15 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  */
 final class AdminPanelProvider extends PanelProvider
 {
+    /**
+     * An owner may do everything in the panel: the policies of the app are written for the accounts of a family
+     * and would fail on an `Owner`. Only owners reach the panel (`canAccessPanel`), and the panel never shows content.
+     */
+    public function boot(): void
+    {
+        Gate::before(static fn (Authenticatable $user): ?bool => $user instanceof Owner ? true : null);
+    }
+
     /**
      * Configures the panel.
      *

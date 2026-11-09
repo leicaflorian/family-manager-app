@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\FamilyState;
 use Carbon\CarbonImmutable;
 use Database\Factories\FamilyFactory;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -25,9 +26,13 @@ use Illuminate\Support\Facades\Crypt;
  * @property string|null $calendar_token The secret of the calendar address, encrypted; null while the calendar is off
  * @property string|null $calendar_token_hash The sha256 of the secret, to find the family from the address
  * @property string|null $calendar_locale The language of the texts of the calendar, en or it: the one of the page it was turned on in
- * @property string|null $copied_from_directus_at
+ * @property CarbonImmutable|null $copied_from_directus_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $suspended_at
+ * @property CarbonImmutable|null $delete_after
+ * @property CarbonImmutable|null $support_until
+ * @property int|null $reading_limit Readings a month for this family; empty means the limit of everyone
  * @property-read Collection<int, Person> $people
  * @property-read int|null $people_count
  * @property-read Collection<int, User> $users
@@ -98,6 +103,18 @@ final class Family extends Model
     }
 
     /**
+     * Where the family is: waiting to be deleted wins over suspended.
+     */
+    public function state(): FamilyState
+    {
+        return match (true) {
+            $this->delete_after !== null => FamilyState::ToDelete,
+            $this->suspended_at !== null => FamilyState::Suspended,
+            default => FamilyState::Active,
+        };
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
@@ -106,6 +123,11 @@ final class Family extends Model
     {
         return [
             'welcomed_at' => 'datetime',
+            'copied_from_directus_at' => 'datetime',
+            'suspended_at' => 'datetime',
+            'delete_after' => 'datetime',
+            'support_until' => 'datetime',
+            'reading_limit' => 'integer',
             'calendar_token' => 'encrypted',
         ];
     }

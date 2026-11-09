@@ -7,6 +7,8 @@ namespace App\Services\Reading;
 use App\Enums\InstallationSetting;
 use App\Enums\ReadingPurpose;
 use App\Models\AiReading;
+use App\Models\Family;
+use App\Support\CurrentFamily;
 use App\Support\InstallationSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
@@ -36,7 +38,17 @@ final readonly class ReadingAllowance
             ->where('created_at', '<', $to)
             ->count();
 
-        return max(0, (int) $this->settings->get(InstallationSetting::MonthlyLimit) - $used);
+        return max(0, $this->limit() - $used);
+    }
+
+    /**
+     * The monthly limit of the current family: its own when the owner set one, else the limit of everyone.
+     */
+    private function limit(): int
+    {
+        $own = Family::query()->whereKey(CurrentFamily::id())->value('reading_limit');
+
+        return is_numeric($own) ? (int) $own : (int) $this->settings->get(InstallationSetting::MonthlyLimit);
     }
 
     /**

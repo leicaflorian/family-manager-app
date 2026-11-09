@@ -1696,5 +1696,22 @@
     "Set on :date": "Impostata il :date",
     "Not set: the server one is used": "Non impostata: si usa quella del server",
     "Replace": "Sostituisci",
-    "New key": "Nuova chiave"
+    "New key": "Nuova chiave",
+    "Families": "Famiglie",
+    "Signed up on": "Iscritta il",
+    "Copied from Directus on :date": "Copiata da Directus il :date",
+    "State": "Stato",
+    "Accounts": "Account",
+    "Space": "Spazio",
+    "Readings this month": "Letture del mese",
+    "Cost this month": "Costo del mese",
+    "Last access": "Ultimo accesso",
+    "Reading limit of this family": "Limite di letture di questa famiglia",
+    "Same as everyone": "Come per tutti",
+    "Readings of the last 12 months": "Letture degli ultimi 12 mesi",
+    "Level": "Livello",
+    "Email confirmed": "Email confermata",
+    "Last use": "Ultimo uso",
+    "Readings a month. Empty means the same limit as everyone.": "Letture al mese. Se è vuoto vale il limite uguale per tutti.",
+    "{1} :count reading|[0,*] :count readings": "{1} :count lettura|[0,*] :count letture"
 }

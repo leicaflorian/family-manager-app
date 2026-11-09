@@ -19,7 +19,7 @@ use LogicException;
  * One AI call and what it cost (`ai_readings`), with the rules of a family model but no authors. A row is written once and never changed.
  *
  * @property int $id
- * @property int $family_id
+ * @property int|null $family_id
  * @property int|null $user_id
  * @property int|null $file_id
  * @property ReadingPurpose $purpose
@@ -30,7 +30,7 @@ use LogicException;
  * @property int $cache_read_tokens
  * @property numeric|null $cost_usd
  * @property CarbonImmutable|null $created_at
- * @property-read Family $family
+ * @property-read Family|null $family
  * @property-read File|null $file
  * @property-read User|null $user
  *

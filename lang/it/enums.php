@@ -275,4 +275,9 @@ return [
         'reminders_time' => 'Giro del mattino',
         'loans_time' => 'Conteggio delle rate',
     ],
+    'family_state' => [
+        'active' => 'Attiva',
+        'suspended' => 'Sospesa',
+        'to_delete' => 'Da eliminare',
+    ],
 ];

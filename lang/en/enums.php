@@ -275,4 +275,9 @@ return [
         'reminders_time' => 'Morning round',
         'loans_time' => 'Instalment count',
     ],
+    'family_state' => [
+        'active' => 'Active',
+        'suspended' => 'Suspended',
+        'to_delete' => 'To delete',
+    ],
 ];
