@@ -3,6 +3,7 @@ import {
     LONG_SIDE,
     SOURCE_LONG_SIDE,
     WHOLE,
+    isSheet,
     shapeOf,
     sheetLayout,
     sideSize,
@@ -265,5 +266,48 @@ describe('sheetLayout', () => {
         const { places, scale } = sheetLayout([page, page, page, page]);
         expect(scale).toBeLessThan(1);
         expect(places[0].x).toBeCloseTo((210 - places[0].width) / 2, 5);
+    });
+});
+
+describe('isSheet', () => {
+    it('takes the whole photo and a tilted sheet, clockwise', () => {
+        expect(isSheet(WHOLE)).toBe(true);
+        expect(
+            isSheet([
+                { x: 0.17, y: 0.12 },
+                { x: 0.84, y: 0.09 },
+                { x: 0.88, y: 0.88 },
+                { x: 0.13, y: 0.91 },
+            ]),
+        ).toBe(true);
+    });
+
+    it('refuses crossed sides, a dent and a sheet with no area', () => {
+        // two corners swapped: the sides cross
+        expect(
+            isSheet([
+                { x: 0, y: 0 },
+                { x: 1, y: 1 },
+                { x: 1, y: 0 },
+                { x: 0, y: 1 },
+            ]),
+        ).toBe(false);
+        // a corner pushed inside
+        expect(
+            isSheet([
+                { x: 0, y: 0 },
+                { x: 1, y: 0 },
+                { x: 0.3, y: 0.3 },
+                { x: 0, y: 1 },
+            ]),
+        ).toBe(false);
+        expect(
+            isSheet([
+                { x: 0.5, y: 0.5 },
+                { x: 0.5, y: 0.5 },
+                { x: 0.5, y: 0.5 },
+                { x: 0.5, y: 0.5 },
+            ]),
+        ).toBe(false);
     });
 });

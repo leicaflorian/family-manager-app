@@ -3,13 +3,18 @@
  * *Upload* of a card: the panel with the zone where the files of documents
  * are dragged or chosen. They are sent at once, linked to the card, and
  * *Upload* opens with the form of the first one; a file refused leaves the
- * panel open, with the reason.
+ * panel open, with the reason. On the phone *Take a photo* opens the scan,
+ * whose pages go to *To sort*.
  *
  * @group panels
  */
+import { Camera } from '@lucide/vue';
 import type { DocumentLink } from '@/lib/documents';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { isPhone } from '@/lib/devices';
+import { scan } from '@/routes';
 import FmBottomSheet from './FmBottomSheet.vue';
+import FmButton from './FmButton.vue';
 import FmFileDrop from './FmFileDrop.vue';
 import FmNotice from './FmNotice.vue';
 
@@ -22,6 +27,9 @@ const { link } = defineProps<{
 const open = defineModel<boolean>('open', { default: false });
 
 const { send, processing, errors } = useFileUpload(() => link);
+
+/** The camera of the phone is the quickest way to a document; a computer has the zone only. */
+const phone = isPhone();
 </script>
 
 <template>
@@ -31,6 +39,9 @@ const { send, processing, errors } = useFileUpload(() => link);
                 {{ message }}
             </p>
         </FmNotice>
+        <FmButton v-if="phone" wide :icon="Camera" :href="scan().url">{{
+            $t('Take a photo')
+        }}</FmButton>
         <FmFileDrop :processing="processing" @files="send" />
     </FmBottomSheet>
 </template>

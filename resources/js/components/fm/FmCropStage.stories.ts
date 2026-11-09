@@ -1,6 +1,6 @@
 /**
  * The stories of `FmCropStage`: the photo with the corners of the sheet to move, the same photo lying on its
- * side, and the cut out sheet, which shows the original when held.
+ * side, the cut out sheet, which shows the original when held, and the photo fitted in a short box.
  */
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import FmCropStage from './FmCropStage.vue';
@@ -54,4 +54,15 @@ export const TurnedPhoto: Story = {
 export const CutSheet: Story = {
     name: 'Cut sheet',
     args: { editing: false },
+};
+
+export const FitInAShortBox: Story = {
+    name: 'Fit in a short box',
+    args: { fit: true },
+    decorators: [
+        () => ({
+            template:
+                '<div style="height: 280px; display: flex; flex-direction: column"><story /></div>',
+        }),
+    ],
 };

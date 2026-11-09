@@ -17,6 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final readonly class SignInLinkedDevice
 {
+    /** The pages where the phone is not brought back in: signing in with the password, and getting a new one. */
+    private const array PASSWORD_ROUTES = ['login', 'login.store', 'password.request', 'password.email', 'password.reset', 'password.update'];
+
     /**
      * @param  PhoneLinks  $links  the linking of the phones
      */
@@ -31,8 +34,8 @@ final readonly class SignInLinkedDevice
     {
         $secret = $request->cookie(PhoneLinks::COOKIE);
 
-        // Not on the login pages: after signing out, the person must be able to use the password on this phone
-        if (is_string($secret) && $secret !== '' && ! Auth::check() && ! $request->routeIs('login', 'login.store')) {
+        // Not on the password pages: after signing out, the person must be able to use (or get back) the password here
+        if (is_string($secret) && $secret !== '' && ! Auth::check() && ! $request->routeIs(self::PASSWORD_ROUTES)) {
             $device = LinkedDevice::findByToken($secret);
 
             if ($device instanceof LinkedDevice) {

@@ -4,12 +4,14 @@ import {
     MAX_UPLOAD_BYTES,
     ScanTooHeavyError,
     addPages,
+    fileGroups,
     filesToSend,
     movePage,
     oneSheetState,
     pageCount,
     removePage,
     selectPage,
+    sendSummary,
     sheetPlan,
     type Backend,
     type PageImage,
@@ -144,6 +146,50 @@ describe('pageCount', () => {
     });
 });
 
+describe('sendSummary', () => {
+    it('says the photos become one PDF', () => {
+        expect(sendSummary([page('a'), page('b'), page('c')], false)).toBe(
+            '3 pages, in a single PDF',
+        );
+    });
+
+    it('says one page with "On a single page"', () => {
+        expect(sendSummary([cut('a'), cut('b')], true)).toBe(
+            '1 page, in a single PDF',
+        );
+    });
+
+    it('names a photo beside the PDF files, which go as they are', () => {
+        expect(sendSummary([page('a'), pdf('b')], false)).toBe(
+            '1 photo · 1 PDF, uploaded as it is',
+        );
+        expect(sendSummary([pdf('b'), pdf('c')], false)).toBe(
+            '2 PDF, uploaded as they are',
+        );
+    });
+
+    it('says nothing for one photo alone', () => {
+        expect(sendSummary([page('a')], false)).toBe('');
+        expect(sendSummary([], false)).toBe('');
+    });
+});
+
+describe('fileGroups', () => {
+    it('gives the pages of each file, in the order of filesToSend', () => {
+        const pages = [page('a'), pdf('b'), page('c'), pdf('d')];
+
+        expect(
+            fileGroups(pages).map((group) => group.map((one) => one.id)),
+        ).toEqual([['a', 'c'], ['b'], ['d']]);
+    });
+
+    it('has no group of photos without photos', () => {
+        expect(fileGroups([pdf('b')]).map((group) => group.length)).toEqual([
+            1,
+        ]);
+    });
+});
+
 describe('oneSheetState', () => {
     it('is hidden under two photos and over four', () => {
         expect(oneSheetState([cut('a')])).toBe('hidden');
@@ -199,15 +245,16 @@ function fakeBackend(): Backend & {
     sheet: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>;
 } {
-    const image = (id: string, grey = false): PageImage => ({
+    // a canvas always writes three channels: `grey` is false as in the browser
+    const image = (id: string): PageImage => ({
         jpeg: new TextEncoder().encode(`jpeg-${id}`),
         width: 1600,
         height: 1000,
-        grey,
+        grey: false,
     });
 
     return {
-        load: vi.fn(async (p: ScanPage) => image(p.id, p.improve.grey)),
+        load: vi.fn(async (p: ScanPage) => image(p.id)),
         sheet: vi.fn(async () => ({
             ...image('sheet'),
             width: 2480,
@@ -249,6 +296,30 @@ describe('filesToSend', () => {
 
         expect(files).toHaveLength(1);
         expect(await files[0].text()).toContain('/Count 2');
+    });
+
+    it('reads the photos one at a time, to spare the memory of the phone', async () => {
+        const backend = fakeBackend();
+        let reading = 0;
+        let most = 0;
+        backend.load.mockImplementation(async (p: ScanPage) => {
+            reading++;
+            most = Math.max(most, reading);
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            reading--;
+
+            return {
+                jpeg: new TextEncoder().encode(`jpeg-${p.id}`),
+                width: 1600,
+                height: 1000,
+                grey: false,
+            };
+        });
+
+        await filesToSend([page('a'), page('b'), page('c')], false, backend);
+
+        expect(most).toBe(1);
+        expect(backend.load).toHaveBeenCalledTimes(3);
     });
 
     it('sends every PDF on its own, as it is', async () => {

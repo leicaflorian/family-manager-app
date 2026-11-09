@@ -6,14 +6,13 @@
  * before the page changes or the tab closes.
  */
 import { usePage } from '@inertiajs/vue3';
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
 import FmBottomBar from '@/components/fm/FmBottomBar.vue';
-import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmSidebar from '@/components/fm/FmSidebar.vue';
 import type { Section } from '@/components/fm/navigation';
 import { navigationItems, sectionOf } from '@/components/fm/navigation';
+import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import { Toaster } from '@/components/ui/sonner';
-import { answerLeave, guardVisits, leaveQuestion } from '@/lib/unsavedChanges';
 
 defineSlots<{
     /** The page. */
@@ -29,23 +28,6 @@ const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
 const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
-
-let stopGuard: (() => void) | undefined;
-onMounted(() => {
-    stopGuard = guardVisits();
-});
-onUnmounted(() => stopGuard?.());
-
-/**
- * Closing the question in any way but «Leave without saving» is staying.
- *
- * @param open - the question is open
- */
-function onQuestion(open: boolean): void {
-    if (!open && leaveQuestion.open) {
-        answerLeave(false);
-    }
-}
 </script>
 
 <template>
@@ -79,15 +61,6 @@ function onQuestion(open: boolean): void {
             </div>
         </div>
         <Toaster />
-        <FmConfirm
-            :open="leaveQuestion.open"
-            :question="$t('Leave without saving?')"
-            :text="
-                $t('You have changes not saved: if you leave, you lose them.')
-            "
-            :confirm-label="$t('Leave without saving')"
-            @update:open="onQuestion"
-            @confirm="answerLeave(true)"
-        />
+        <LeaveGuard />
     </div>
 </template>

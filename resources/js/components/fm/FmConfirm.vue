@@ -9,15 +9,26 @@
  * @group basics
  */
 import FmBottomSheet from './FmBottomSheet.vue';
+import type { ButtonVariant } from './FmButton.vue';
 import FmButton from './FmButton.vue';
 
-const { question, text, confirmLabel } = defineProps<{
+const {
+    question,
+    text,
+    confirmLabel,
+    cancelLabel,
+    confirmVariant = 'danger',
+} = defineProps<{
     /** The title of the panel, for example «Delete this document?». */
     question: string;
     /** What happens, under the title. */
     text: string;
     /** The text of the button that confirms. */
     confirmLabel: string;
+    /** The text of the button that does not confirm (*Keep*, *Not yet*); *Cancel* by default. */
+    cancelLabel?: string;
+    /** The look of the button that confirms: red for a loss, solid for an action that loses nothing (*Upload*). */
+    confirmVariant?: ButtonVariant;
 }>();
 
 defineEmits<{
@@ -33,10 +44,10 @@ const open = defineModel<boolean>('open', { default: false });
     <FmBottomSheet v-model:open="open" :title="question" above>
         <p class="m-0 text-base leading-normal text-ink-soft">{{ text }}</p>
         <div class="flex flex-wrap justify-end gap-2.5">
-            <FmButton variant="text" @click="open = false">{{
-                $t('Cancel')
+            <FmButton variant="text" data-autofocus @click="open = false">{{
+                cancelLabel ?? $t('Cancel')
             }}</FmButton>
-            <FmButton variant="danger" @click="$emit('confirm')">{{
+            <FmButton :variant="confirmVariant" @click="$emit('confirm')">{{
                 confirmLabel
             }}</FmButton>
         </div>

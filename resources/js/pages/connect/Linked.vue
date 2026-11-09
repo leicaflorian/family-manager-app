@@ -11,10 +11,9 @@ import { trans } from 'laravel-vue-i18n';
 import { onMounted } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import { isIos, isStandalone } from '@/lib/devices';
 import {
     cleanAddress,
-    isInstalled,
-    isIOS,
     keepSecretInAddress,
     secretFromHash,
 } from '@/lib/phoneLink';
@@ -49,10 +48,10 @@ const steps = [
 ];
 
 onMounted(() => {
-    const installed = isInstalled();
+    const installed = isStandalone();
 
     // Right after linking an iPhone keeps the secret in the address, for the icon to start from it
-    if (secret && isIOS()) {
+    if (secret && isIos()) {
         keepSecretInAddress(secret);
     }
 

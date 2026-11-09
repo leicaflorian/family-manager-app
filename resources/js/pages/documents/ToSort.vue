@@ -13,7 +13,7 @@
  * filters on the computer. While a file is queued or read the page asks for its state every 2 seconds.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { Inbox, Mail, Smartphone, Sparkles } from '@lucide/vue';
+import { Camera, Inbox, Mail, Smartphone, Sparkles } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
 import ToSortSources from '@/components/documents/ToSortSources.vue';
@@ -28,8 +28,9 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTooltip from '@/components/fm/FmTooltip.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import { useReadingPoll } from '@/composables/useReadingPoll';
+import { isPhone } from '@/lib/devices';
 import { anyFileReading } from '@/lib/reading';
-import { toSort } from '@/routes';
+import { scan, toSort } from '@/routes';
 import { index as receivedMail } from '@/routes/mail';
 import { read } from '@/routes/to-sort';
 
@@ -64,6 +65,9 @@ const tabs = computed<Tab[]>(() =>
 
 // The files dropped here stay among those to sort, instead of opening Import
 const upload = useFileUpload(() => undefined, { stay: true });
+
+/** On the phone the camera comes first: *Take a photo* opens the scan, as the board *Da smistare*. */
+const phone = isPhone();
 
 /** The panel *Link the phone* is open. */
 const linkPhone = ref(false);
@@ -173,6 +177,9 @@ function readChosen(): void {
             />
 
             <div class="flex min-w-0 flex-col gap-4">
+                <FmButton v-if="phone" wide :icon="Camera" :href="scan().url">{{
+                    $t('Take a photo')
+                }}</FmButton>
                 <FmFileDrop
                     compact
                     :label="

@@ -37,8 +37,11 @@ export type ScanPage = {
     jpeg: Blob | null;
 };
 
-/** The pages and the one in the large view. */
-export type ScanDocument = { pages: ScanPage[]; chosenId: string | null };
+/** The pages and the one in the large view; the page can keep more about each page (`P`). */
+export type ScanDocument<P extends ScanPage = ScanPage> = {
+    pages: P[];
+    chosenId: string | null;
+};
 
 /** A JPEG ready for a PDF, with its size and whether it has one grey channel. */
 export type PageImage = {
@@ -102,10 +105,10 @@ export class ScanTooHeavyError extends Error {
  * @param added - the new pages
  * @returns a new document
  */
-export function addPages(
-    document: ScanDocument,
-    added: ScanPage[],
-): ScanDocument {
+export function addPages<P extends ScanPage>(
+    document: ScanDocument<P>,
+    added: P[],
+): ScanDocument<P> {
     return {
         pages: [...document.pages, ...added],
         chosenId: added.at(-1)?.id ?? document.chosenId,
@@ -119,7 +122,10 @@ export function addPages(
  * @param id - the page to remove
  * @returns a new document; the same one when the page is not there
  */
-export function removePage(document: ScanDocument, id: string): ScanDocument {
+export function removePage<P extends ScanPage>(
+    document: ScanDocument<P>,
+    id: string,
+): ScanDocument<P> {
     const index = document.pages.findIndex((page) => page.id === id);
 
     if (index < 0) {
@@ -143,11 +149,11 @@ export function removePage(document: ScanDocument, id: string): ScanDocument {
  * @param to - where it goes
  * @returns a new document; the same one when a place is outside the list
  */
-export function movePage(
-    document: ScanDocument,
+export function movePage<P extends ScanPage>(
+    document: ScanDocument<P>,
     from: number,
     to: number,
-): ScanDocument {
+): ScanDocument<P> {
     const last = document.pages.length - 1;
 
     if (from < 0 || to < 0 || from > last || to > last || from === to) {
@@ -167,7 +173,10 @@ export function movePage(
  * @param id - the page to show large
  * @returns a new document; the same choice when the page is not there
  */
-export function selectPage(document: ScanDocument, id: string): ScanDocument {
+export function selectPage<P extends ScanPage>(
+    document: ScanDocument<P>,
+    id: string,
+): ScanDocument<P> {
     return document.pages.some((page) => page.id === id)
         ? { ...document, chosenId: id }
         : document;
@@ -193,6 +202,65 @@ export function pageCount(pages: ScanPage[]): string {
         : transChoice('{1} :count page|[2,*] :count pages', photos, {
               count: String(photos),
           });
+}
+
+/**
+ * What leaves with "Upload", as it is written under the small pages: «3 pages, in a single PDF», «1 photo · 1 PDF,
+ * uploaded as it is». One photo alone says nothing: it is plainly a photo.
+ *
+ * @param pages - the pages
+ * @param oneSheet - the person switched on "On a single page" (it counts only when it is `ready`)
+ * @returns the parts joined by a dot, empty when there is nothing to say
+ */
+export function sendSummary(pages: ScanPage[], oneSheet: boolean): string {
+    const photos = pages.filter((page) => page.kind === 'photo').length;
+    const pdfs = pages.length - photos;
+    const single = oneSheet && oneSheetState(pages) === 'ready';
+    const parts: string[] = [];
+
+    if (photos === 1 && pdfs > 0) {
+        parts.push(trans('1 photo'));
+    }
+
+    if (photos > 1) {
+        const count = single ? 1 : photos;
+        parts.push(
+            transChoice(
+                '{1} :count page, in a single PDF|[2,*] :count pages, in a single PDF',
+                count,
+                { count: String(count) },
+            ),
+        );
+    }
+
+    if (pdfs > 0) {
+        parts.push(
+            transChoice(
+                '{1} :count PDF, uploaded as it is|[2,*] :count PDF, uploaded as they are',
+                pdfs,
+                { count: String(pdfs) },
+            ),
+        );
+    }
+
+    return parts.join(' · ');
+}
+
+/**
+ * The pages each file of `filesToSend` is made of, in the same order: all the photos in the first, then each PDF
+ * in one of its own. A file that reached the server takes its pages out of the document.
+ *
+ * @param pages - the pages
+ * @returns the groups of pages, one a file
+ */
+export function fileGroups(pages: ScanPage[]): ScanPage[][] {
+    const photos = pages.filter((page) => page.kind === 'photo');
+    const pdfs = pages.filter((page) => page.kind === 'pdf');
+
+    return [
+        ...(photos.length > 0 ? [photos] : []),
+        ...pdfs.map((page) => [page]),
+    ];
 }
 
 /**
@@ -279,9 +347,12 @@ export async function filesToSend(
             label: trans('The photo'),
         });
     } else if (photos.length > 1) {
-        const images = await Promise.all(
-            photos.map((photo) => backend.load(photo)),
-        );
+        const images: PageImage[] = [];
+
+        // one at a time: a photo read at full size takes tens of MB, and a phone has little to spare
+        for (const photo of photos) {
+            images.push(await backend.load(photo));
+        }
         const single = oneSheet && oneSheetState(pages) === 'ready';
         const sheet = single
             ? await backend.sheet(images, sheetPlan(images))

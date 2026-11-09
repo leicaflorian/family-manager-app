@@ -203,6 +203,27 @@ describe('FmCropStage', () => {
             expect(emitted('peek')).toBeUndefined();
         });
 
+        it('is not peeked when the corners start to be edited while the finger waits', async () => {
+            const view = stage({ editing: false });
+
+            await firePointer(view.box, 'pointerdown', { x: 200, y: 100 });
+            await view.rerender({ editing: true });
+            await vi.advanceTimersByTimeAsync(400);
+
+            expect(view.emitted('peek')).toBeUndefined();
+        });
+
+        it('puts the sheet back when it goes away while the original is shown', async () => {
+            const onPeek = vi.fn();
+            const view = stage({ editing: false, onPeek });
+
+            await firePointer(view.box, 'pointerdown', { x: 200, y: 100 });
+            await vi.advanceTimersByTimeAsync(300);
+            view.unmount();
+
+            expect(onPeek.mock.calls).toEqual([[true], [false]]);
+        });
+
         it('has no handles while the sheet is shown', () => {
             stage({ editing: false });
 
@@ -218,5 +239,21 @@ describe('FmCropStage', () => {
         expect(container.querySelector('img')?.style.transform).toContain(
             'rotate(90deg)',
         );
+    });
+
+    it('keeps the photo inside the height of its box with fit', () => {
+        const fitted = stage({ fit: true }).box as HTMLElement;
+
+        expect(fitted.className).toContain('100cqh');
+        expect(fitted.style.getPropertyValue('--stage-shape')).toBe(
+            String(3 / 4),
+        );
+        expect((fitted.parentElement as HTMLElement).style.containerType).toBe(
+            'size',
+        );
+    });
+
+    it('only follows the width of its box without fit', () => {
+        expect((stage().box as HTMLElement).className).not.toContain('cqh');
     });
 });

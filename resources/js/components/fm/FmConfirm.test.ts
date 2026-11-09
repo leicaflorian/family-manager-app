@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, waitFor } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { renderPage } from '@/test/page';
 import FmConfirm from './FmConfirm.vue';
@@ -47,5 +47,32 @@ describe('FmConfirm', () => {
 
         // The panels are on z-50: the question goes over them
         expect(question.className).toContain('z-[70]');
+    });
+
+    it('starts on the button that does not confirm', async () => {
+        renderPage(FmConfirm, props);
+
+        const cancel = await screen.findByRole('button', { name: 'Cancel' });
+
+        await waitFor(() => expect(cancel).toHaveFocus());
+    });
+
+    it('can name both buttons and confirm with the solid one, for an action that is not a loss', async () => {
+        const result = renderPage(FmConfirm, {
+            ...props,
+            question: 'Upload 3 pages?',
+            text: '3 pages, in a single PDF',
+            confirmLabel: 'Upload',
+            cancelLabel: 'Not yet',
+            confirmVariant: 'solid',
+        });
+
+        const notYet = await screen.findByRole('button', { name: 'Not yet' });
+        await waitFor(() => expect(notYet).toHaveFocus());
+        const upload = screen.getByRole('button', { name: 'Upload' });
+        expect(upload.className).toContain('bg-action');
+
+        await fireEvent.click(upload);
+        expect(result.emitted('confirm')).toHaveLength(1);
     });
 });

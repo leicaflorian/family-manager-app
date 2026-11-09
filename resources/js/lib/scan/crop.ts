@@ -313,6 +313,22 @@ export function sourceCorners(corners: Corners, turns: Turns): Corners {
     return source;
 }
 
+/**
+ * Whether the corners, in the order of the handles, make a sheet: clockwise, no crossed sides, no dent. A sheet
+ * that is not one cannot be cut out ("Gli angoli si incrociano").
+ *
+ * @param corners the four corners, clockwise from the top left one
+ * @returns true when they can be cut out
+ */
+export function isSheet(corners: Corners): boolean {
+    return corners.every((a, index) => {
+        const b = corners[(index + 1) % 4];
+        const c = corners[(index + 2) % 4];
+
+        return (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x) > 0.0005;
+    });
+}
+
 // ---- the photos of a card on one page ("Su una pagina sola")
 
 /** An A4 sheet, in millimetres. */

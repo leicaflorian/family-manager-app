@@ -94,6 +94,25 @@ afterEach(() => {
 });
 
 describe('ToSort', () => {
+    it('offers Take a photo on the phone, which opens the scan', () => {
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile',
+        );
+        renderPage(ToSort, page);
+
+        expect(
+            screen.getByRole('link', { name: 'Take a photo' }),
+        ).toHaveAttribute('href', '/scan');
+    });
+
+    it('does not offer Take a photo on a computer', () => {
+        renderPage(ToSort, page);
+
+        expect(
+            screen.queryByRole('link', { name: 'Take a photo' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('says how many files wait, under the title', () => {
         renderPage(ToSort, page);
 

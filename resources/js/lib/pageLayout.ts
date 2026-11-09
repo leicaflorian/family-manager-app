@@ -4,6 +4,7 @@
 import type { Component } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import ScanLayout from '@/layouts/ScanLayout.vue';
 
 /**
  * The layout of a page.
@@ -17,6 +18,9 @@ export function pageLayout(name: string): Component {
         case name.startsWith('welcome/'):
         case name.startsWith('connect/'):
             return AuthLayout;
+        // The scan has its own bars: no bar of the sections
+        case name === 'scan/Scan':
+            return ScanLayout;
         default:
             return AppLayout;
     }

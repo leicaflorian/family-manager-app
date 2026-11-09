@@ -8,8 +8,6 @@ import { isIos, isStandalone } from './devices';
 /** The start of the part after the `#` that holds the secret of the phone. */
 const SECRET_KEY = 'd=';
 
-export { isIos as isIOS, isStandalone as isInstalled };
-
 /**
  * The secret of the phone in the address.
  *

@@ -13,7 +13,33 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
+const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)';
+
 describe('FmUploadSheet', () => {
+    it('offers Take a photo on the phone, which opens the scan', async () => {
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(IPHONE);
+        renderPage(FmUploadSheet, {
+            open: true,
+            link: { type: 'vehicle', id: 1 },
+        });
+
+        expect(
+            await screen.findByRole('link', { name: 'Take a photo' }),
+        ).toHaveAttribute('href', '/scan');
+    });
+
+    it('does not offer Take a photo on a computer', async () => {
+        renderPage(FmUploadSheet, {
+            open: true,
+            link: { type: 'vehicle', id: 1 },
+        });
+
+        await screen.findByRole('dialog', { name: 'Upload a document' });
+        expect(
+            screen.queryByRole('link', { name: 'Take a photo' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('asks for the files of the documents', async () => {
         renderPage(FmUploadSheet, {
             open: true,

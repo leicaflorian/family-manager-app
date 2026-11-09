@@ -20,6 +20,8 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            /** The page is open on a phone linked with a code, which sees only the scan. */
+            linked_phone?: boolean;
             family: App.Data.FamilyData | null;
             /** The areas with their active cards, for the sidebar; empty for a guest, missing on a phone linked with a code. */
             areas?: App.Data.AreaCountData[];

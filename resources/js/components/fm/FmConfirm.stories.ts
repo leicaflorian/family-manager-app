@@ -23,3 +23,15 @@ export const RemoveALink: Story = {
         confirmLabel: 'Remove the link',
     },
 };
+
+export const UploadThePages: Story = {
+    name: 'Upload the pages',
+    args: {
+        open: false,
+        question: 'Upload 3 pages?',
+        text: '«polizza casa 2026» · 3 pages, in a single PDF',
+        confirmLabel: 'Upload',
+        cancelLabel: 'Not yet',
+        confirmVariant: 'solid',
+    },
+};

@@ -58,6 +58,8 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // The scan offers *Sign in with the password* only to a phone linked with a code
+            'linked_phone' => false,
             'family' => fn (): ?FamilyData => $this->family($request),
             'areas' => fn (): array => $request->user() instanceof User ? $this->summaries->counts() : [],
             'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->where('user_id', $request->user()->id)->unread()->count() : 0,
@@ -86,6 +88,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user instanceof User ? ['name' => $user->name, 'photo' => $user->person()->with('photo')->first()?->photoUrl()] : null,
             ],
+            'linked_phone' => true,
             'family' => fn (): ?FamilyData => $this->family($request),
             'locale' => app()->getLocale(),
             'theme' => $user?->theme->value ?? Theme::System->value,

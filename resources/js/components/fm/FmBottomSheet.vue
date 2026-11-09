@@ -4,7 +4,8 @@
  * and filters. On the computer it is a window in the middle. It closes with the
  * handle, with the ×, with Esc and by tapping outside; while it is open the focus
  * stays inside. With `beforeClose` these ways ask first, as a form with changes
- * not saved does. Esc in an open menu of a field closes the menu only.
+ * not saved does. Esc in an open menu of a field closes the menu only. At the
+ * opening the focus goes to an element marked `data-autofocus`, if any.
  *
  * @group panels
  */
@@ -96,6 +97,23 @@ function noteEscape(event: KeyboardEvent): void {
 }
 
 /**
+ * At the opening the focus goes to the element marked `data-autofocus`, when there is one (the *Cancel* of a
+ * question); otherwise to the first one that takes it, as the dialog does by itself.
+ *
+ * @param event - the focus the dialog is about to give
+ */
+function focusMarked(event: Event): void {
+    const marked = (
+        event.target as HTMLElement | null
+    )?.querySelector<HTMLElement>('[data-autofocus]');
+
+    if (marked) {
+        event.preventDefault();
+        marked.focus();
+    }
+}
+
+/**
  * Esc in an open menu of a field closes only the menu, not the panel.
  *
  * @param event - the Esc the panel would close with
@@ -121,6 +139,7 @@ function keepOpenForMenu(event: KeyboardEvent): void {
                 data-sheet
                 @keydown.capture="noteEscape"
                 @escape-key-down="keepOpenForMenu"
+                @open-auto-focus="focusMarked"
                 :class="[above ? 'z-[70]' : 'z-50', widths[size]]"
                 class="fixed inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-sheet bg-card px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-sheet lg:p-7 lg:shadow-dialog lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
             >

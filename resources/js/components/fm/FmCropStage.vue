@@ -10,7 +10,7 @@
  */
 import { cn } from '@/lib/utils';
 import type { Corners, Point, Turns } from '@/lib/scan/crop';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { trans } from 'laravel-vue-i18n';
 
 /** The side of the lens on the screen, in pixels, and how many times it enlarges. */
@@ -41,6 +41,8 @@ const props = defineProps<{
     turns: Turns;
     /** The handles are there. Off: the cut out sheet is shown and holding it shows the original. */
     editing: boolean;
+    /** The photo fits inside the height of the box too, not only its width (a full screen like *Crop*). */
+    fit?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -53,6 +55,11 @@ const emit = defineEmits<{
 const stage = ref<HTMLElement | null>(null);
 /** The shape of the photo as shown, width over height, known when it has loaded. */
 const shape = ref(3 / 4);
+/** The box of the photo: its shape, which `fit` also reads to keep it inside the height of the box. */
+const stageStyle = computed((): Record<string, string> => ({
+    aspectRatio: String(shape.value),
+    '--stage-shape': String(shape.value),
+}));
 /** The size of the stage when the lens was last drawn, in pixels. */
 const size = ref({ width: 0, height: 0 });
 /** The handle being dragged. */
@@ -304,115 +311,137 @@ function onStageEnd(event: PointerEvent): void {
     if (peekHold && event.pointerId === peekHold.pointer) endPeek();
 }
 
-onBeforeUnmount(() => {
-    if (peekHold) clearTimeout(peekHold.timer);
-});
+// the handles come back: a finger still waiting on the sheet is not holding it any more
+watch(
+    () => props.editing,
+    (editing) => {
+        if (editing) endPeek();
+    },
+);
+
+// the page gets the sheet back even when the stage goes away under the finger
+onBeforeUnmount(endPeek);
 </script>
 
 <template>
-    <div class="flex flex-col items-center gap-4">
+    <div
+        class="flex flex-col items-center gap-4"
+        :class="fit && 'h-full min-h-0'"
+    >
         <div
-            ref="stage"
-            data-stage
-            class="relative w-full overflow-hidden rounded-lg bg-camera-bg select-none"
-            :style="{ aspectRatio: String(shape) }"
-            @pointerdown="onStageDown"
-            @pointermove="onStageMove"
-            @pointerup="onStageEnd"
-            @pointercancel="onStageEnd"
-            @pointerleave="onStageEnd"
-            @contextmenu.prevent
+            data-fit-box
+            class="flex w-full items-center justify-center"
+            :class="fit && 'min-h-0 grow'"
+            :style="fit ? { containerType: 'size' } : undefined"
         >
-            <img
-                :src="image"
-                alt=""
-                draggable="false"
-                class="pointer-events-none absolute top-1/2 left-1/2 max-w-none"
-                :style="photoStyle"
-                @load="onLoad"
-            />
-            <template v-if="editing">
-                <svg
-                    aria-hidden="true"
-                    class="pointer-events-none absolute inset-0 size-full"
-                    viewBox="0 0 1 1"
-                    preserveAspectRatio="none"
-                >
-                    <path
-                        :d="outside"
-                        class="fill-camera-bg"
-                        fill-opacity="0.6"
-                        fill-rule="evenodd"
-                    />
-                    <polygon
-                        :points="polygon"
-                        fill="none"
-                        class="stroke-action"
-                        stroke-width="3"
-                        vector-effect="non-scaling-stroke"
-                    />
-                </svg>
-                <button
-                    v-for="(corner, index) in corners"
-                    :key="index"
-                    type="button"
-                    :aria-label="names[index]"
-                    class="absolute flex size-11 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-0 bg-transparent p-0 focus-visible:outline-none"
-                    :style="{
-                        left: `${corner.x * 100}%`,
-                        top: `${corner.y * 100}%`,
-                    }"
-                    @pointerdown="onHandleDown($event, index)"
-                    @pointermove="onHandleMove"
-                    @pointerup="onHandleUp"
-                    @pointercancel="onHandleUp"
-                    @lostpointercapture="onHandleUp"
-                    @keydown="onKey($event, index)"
-                >
-                    <span
+            <div
+                ref="stage"
+                data-stage
+                class="relative overflow-hidden rounded-lg bg-camera-bg select-none"
+                :class="
+                    fit
+                        ? 'w-[min(100cqw,calc(100cqh*var(--stage-shape)))] shrink-0'
+                        : 'w-full'
+                "
+                :style="stageStyle"
+                @pointerdown="onStageDown"
+                @pointermove="onStageMove"
+                @pointerup="onStageEnd"
+                @pointercancel="onStageEnd"
+                @pointerleave="onStageEnd"
+                @contextmenu.prevent
+            >
+                <img
+                    :src="image"
+                    alt=""
+                    draggable="false"
+                    class="pointer-events-none absolute top-1/2 left-1/2 max-w-none"
+                    :style="photoStyle"
+                    @load="onLoad"
+                />
+                <template v-if="editing">
+                    <svg
+                        aria-hidden="true"
+                        class="pointer-events-none absolute inset-0 size-full"
+                        viewBox="0 0 1 1"
+                        preserveAspectRatio="none"
+                    >
+                        <path
+                            :d="outside"
+                            class="fill-camera-bg"
+                            fill-opacity="0.6"
+                            fill-rule="evenodd"
+                        />
+                        <polygon
+                            :points="polygon"
+                            fill="none"
+                            class="stroke-action"
+                            stroke-width="3"
+                            vector-effect="non-scaling-stroke"
+                        />
+                    </svg>
+                    <button
+                        v-for="(corner, index) in corners"
+                        :key="index"
+                        type="button"
+                        :aria-label="names[index]"
+                        class="absolute flex size-11 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-0 bg-transparent p-0 focus-visible:outline-none"
+                        :style="{
+                            left: `${corner.x * 100}%`,
+                            top: `${corner.y * 100}%`,
+                        }"
+                        @pointerdown="onHandleDown($event, index)"
+                        @pointermove="onHandleMove"
+                        @pointerup="onHandleUp"
+                        @pointercancel="onHandleUp"
+                        @lostpointercapture="onHandleUp"
+                        @keydown="onKey($event, index)"
+                    >
+                        <span
+                            :class="
+                                cn(
+                                    'size-[26px] rounded-full border-4 border-action bg-on-action',
+                                    'in-focus-visible:shadow-focus',
+                                )
+                            "
+                        />
+                    </button>
+                    <div
+                        v-if="active !== null"
+                        data-testid="lens"
+                        :data-spot="spot"
+                        aria-hidden="true"
                         :class="
                             cn(
-                                'size-[26px] rounded-full border-4 border-action bg-on-action',
-                                'in-focus-visible:shadow-focus',
+                                'pointer-events-none absolute size-[88px] overflow-hidden rounded-lg border-2 border-on-action bg-camera-bg shadow-float',
+                                spot.startsWith('top') ? 'top-3' : 'bottom-3',
+                                spot.endsWith('left') ? 'left-3' : 'right-3',
                             )
                         "
-                    />
-                </button>
-                <div
-                    v-if="active !== null"
-                    data-testid="lens"
-                    :data-spot="spot"
-                    aria-hidden="true"
-                    :class="
-                        cn(
-                            'pointer-events-none absolute size-[88px] overflow-hidden rounded-lg border-2 border-on-action bg-camera-bg shadow-float',
-                            spot.startsWith('top') ? 'top-3' : 'bottom-3',
-                            spot.endsWith('left') ? 'left-3' : 'right-3',
-                        )
-                    "
-                >
-                    <div data-zoom class="absolute" :style="lensStyle">
-                        <img
-                            :src="image"
-                            alt=""
-                            draggable="false"
-                            class="absolute top-1/2 left-1/2 max-w-none"
-                            :style="photoStyle"
+                    >
+                        <div data-zoom class="absolute" :style="lensStyle">
+                            <img
+                                :src="image"
+                                alt=""
+                                draggable="false"
+                                class="absolute top-1/2 left-1/2 max-w-none"
+                                :style="photoStyle"
+                            />
+                        </div>
+                        <span
+                            class="absolute top-1/2 left-1/2 h-[14px] w-px -translate-x-1/2 -translate-y-1/2 bg-on-action shadow-float"
+                        />
+                        <span
+                            class="absolute top-1/2 left-1/2 h-px w-[14px] -translate-x-1/2 -translate-y-1/2 bg-on-action shadow-float"
                         />
                     </div>
-                    <span
-                        class="absolute top-1/2 left-1/2 h-[14px] w-px -translate-x-1/2 -translate-y-1/2 bg-on-action shadow-float"
-                    />
-                    <span
-                        class="absolute top-1/2 left-1/2 h-px w-[14px] -translate-x-1/2 -translate-y-1/2 bg-on-action shadow-float"
-                    />
-                </div>
-            </template>
-            <span
-                v-if="peeking"
-                class="pointer-events-none absolute top-3 left-3 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold text-on-action"
-                >{{ $t('Original') }}</span
-            >
+                </template>
+                <span
+                    v-if="peeking"
+                    class="pointer-events-none absolute top-3 left-3 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold text-on-action"
+                    >{{ $t('Original') }}</span
+                >
+            </div>
         </div>
         <p v-if="editing" class="text-center text-sm text-on-action/70">
             {{ $t('Drag the corners to the edges of the sheet') }}

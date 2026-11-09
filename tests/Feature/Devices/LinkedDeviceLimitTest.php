@@ -46,6 +46,18 @@ test('a linked phone opens the scan, the linking pages and can sign out', functi
     $this->assertGuest();
 });
 
+test('a phone with its cookie signs out to the sign-in, where the cookie does not bring it back in', function (): void {
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('scan'))->assertOk();
+
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->post(route('logout'))->assertRedirect(route('login'));
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('login'))->assertOk();
+    $this->assertGuest();
+});
+
+test('an account without the cookie signs out to the start, as before', function (): void {
+    $this->actingAs($this->marco)->post(route('logout'))->assertRedirect('/');
+});
+
 test('a request without a route name is not broken by the limit', function (): void {
     linkedPhone()->get('/this/does/not/exist')->assertNotFound();
 });
@@ -66,6 +78,30 @@ test('the scan of a linked phone shares only what the scan needs', function (): 
         ->missing('to_sort_count'));
 });
 
+test('the pages are told when the phone is linked with a code', function (): void {
+    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page->where('linked_phone', true));
+});
+
+test('the pages are told when the account entered with the password', function (): void {
+    $this->actingAs($this->marco)->get(route('scan'))->assertInertia(fn ($page) => $page->where('linked_phone', false));
+});
+
+test('a linked phone signed out can ask for a new password without entering again', function (): void {
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('password.request'))->assertOk();
+    $this->assertGuest();
+
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->post(route('password.email'), ['email' => $this->marco->email])->assertRedirect();
+    $this->assertGuest();
+
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('password.reset', ['token' => 'a-token']))->assertOk();
+    $this->assertGuest();
+
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->post(route('password.update'), [
+        'token' => 'a-token', 'email' => $this->marco->email, 'password' => 'a-new-password-1', 'password_confirmation' => 'a-new-password-1',
+    ]);
+    $this->assertGuest();
+});
+
 test('the user shared with a linked phone has only the name and the photo', function (): void {
     linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page
         ->where('auth.user', ['name' => 'Marco Bianchi', 'photo' => null]));
@@ -84,6 +120,7 @@ test('the cookie sign-in keeps the mark, so the first page is already limited', 
 });
 
 test('a login with the password lifts the limit', function (): void {
+    Session::put('linked_device_id', $this->device->id);
     Event::dispatch(new Login('web', $this->marco, false));
     expect(session()->has('linked_device_id'))->toBeFalse();
 
