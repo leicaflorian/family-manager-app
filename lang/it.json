@@ -1562,5 +1562,16 @@
     "Tap Add.": "Tocca Aggiungi.",
     "Open the ⋮ menu of the browser and tap Install app, or Add to Home screen.": "Apri il menu ⋮ del browser e tocca Installa app, oppure Aggiungi a schermata Home.",
     "Not now": "Non ora",
-    "Install": "Installa"
+    "Install": "Installa",
+    "Light": "Leggera",
+    "Normal": "Normale",
+    "High": "Alta",
+    "In colour": "A colori",
+    "In grey": "In grigio",
+    "Feeder": "Caricatore",
+    "Glass": "Vetro",
+    "{1} about 1 side|[2,*] about :count sides": "{1} circa 1 facciata|[2,*] circa :count facciate",
+    ":name · USB": ":name · USB",
+    ":name · network": ":name · rete",
+    ":dots dots": ":dots punti"
 }
