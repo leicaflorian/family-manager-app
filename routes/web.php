@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     // The scan of the documents, also the only page of a linked phone
     Route::get('scan', [ScanController::class, 'show'])->name('scan');
+    Route::post('scan', [ScanController::class, 'store'])->name('scan.store');
     Route::post('scan/corners', ScanCornersController::class)->name('scan.corners');
 
     // The page to time *Raddrizza* on a phone: only on the development machine, never online
