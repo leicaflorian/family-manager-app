@@ -78,7 +78,7 @@ describe('FmSearchField', () => {
     });
 
     it('shows the blue focus ring only on the whole-app box (clearable)', () => {
-        const { rerender } = render(FmSearchField, {
+        const view = render(FmSearchField, {
             props: { label: 'Search everything', modelValue: '' },
         });
         const box = (): HTMLElement | null =>
@@ -86,21 +86,25 @@ describe('FmSearchField', () => {
 
         expect(box()?.className).not.toContain('focus-within:border-action');
 
-        return rerender({ clearable: true }).then(() =>
-            expect(box()?.className).toContain('focus-within:border-action'),
-        );
+        return view
+            .rerender({ clearable: true })
+            .then(() =>
+                expect(box()?.className).toContain(
+                    'focus-within:border-action',
+                ),
+            );
     });
 
     it('emits submit on Enter and escape on Esc', async () => {
-        const { emitted } = render(FmSearchField, {
+        const view = render(FmSearchField, {
             props: { label: 'Search everything', modelValue: 'Pan' },
         });
 
         await userEvent.type(screen.getByRole('searchbox'), '{Enter}');
         await userEvent.keyboard('{Escape}');
 
-        expect(emitted()).toHaveProperty('submit');
-        expect(emitted()).toHaveProperty('escape');
+        expect(view.emitted()).toHaveProperty('submit');
+        expect(view.emitted()).toHaveProperty('escape');
     });
 
     it('autofocus, takes the focus when it appears', async () => {
