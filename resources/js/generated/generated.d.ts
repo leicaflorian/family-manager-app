@@ -363,6 +363,13 @@ readonly type: string,
 readonly label: string,
 readonly options: App.Data.OptionData[],
 };
+export type LinkedDeviceData = {
+readonly id: number,
+readonly name: string,
+readonly linked_on: string,
+readonly last_upload_on: string | null,
+readonly linked_now: boolean,
+};
 export type LoanFiguresData = {
 readonly total_to_pay: number | null,
 readonly cost: number | null,
@@ -542,6 +549,15 @@ readonly id: number,
 readonly first_name: string,
 readonly last_name: string,
 readonly initials: string,
+};
+export type PhoneLinkData = {
+readonly code: string,
+readonly qr: string,
+readonly address: string,
+readonly expires_at: string,
+readonly person: string,
+readonly family: string,
+readonly devices: App.Data.LinkedDeviceData[],
 };
 export type PlannedChoiceData = {
 readonly kind: string,

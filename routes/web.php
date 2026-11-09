@@ -25,6 +25,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvitationLinkController;
+use App\Http\Controllers\LinkedDeviceController;
 use App\Http\Controllers\MailgunWebhookController;
 use App\Http\Controllers\MailSettingsController;
 use App\Http\Controllers\NoticeController;
@@ -160,6 +161,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::put('settings/account/theme', [AccountController::class, 'theme'])->name('account.theme');
         Route::post('settings/account/photo', [AccountController::class, 'photo'])->name('account.photo');
         Route::delete('settings/account', [AccountController::class, 'destroy'])->name('account.destroy');
+        Route::get('settings/devices', [LinkedDeviceController::class, 'index'])->name('devices.index');
+        Route::delete('settings/devices/{device}', [LinkedDeviceController::class, 'destroy'])->name('devices.destroy');
         Route::get('settings/calendar', [CalendarSettingsController::class, 'edit'])->name('calendar.edit');
         Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');

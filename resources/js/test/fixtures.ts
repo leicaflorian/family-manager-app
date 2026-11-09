@@ -41,6 +41,15 @@ export const sharedPageProps: InertiaConfig['sharedPageProps'] = {
     theme: 'system',
 };
 
+/** The phone of Marco, linked on 12/10/2026, as the server sends it. */
+export const linkedPhone: App.Data.LinkedDeviceData = {
+    id: 4,
+    name: 'iPhone of Marco',
+    linked_on: '2026-10-12',
+    last_upload_on: '2026-10-24',
+    linked_now: false,
+};
+
 /** The themes of *My account*, as the server sends them. */
 export const themes: App.Data.OptionData[] = [
     { value: 'system', label: 'Automatic', help: null },

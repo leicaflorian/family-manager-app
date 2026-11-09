@@ -2,14 +2,14 @@ import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { useTheme } from '@/composables/useTheme';
-import { account, themes } from '@/test/fixtures';
+import { account, linkedPhone, themes } from '@/test/fixtures';
 import { pressSave, renderPage, settle } from '@/test/page';
 import Account from './Account.vue';
 import { answerLeave, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
 
 describe('My account', () => {
     it('shows first name, last name and email to change, and the photo', () => {
-        renderPage(Account, { account, themes });
+        renderPage(Account, { account, themes, devices: [] });
 
         expect(screen.getByLabelText('First name')).toHaveValue('Marco');
         expect(screen.getByLabelText('Last name')).toHaveValue('Bianchi');
@@ -28,7 +28,7 @@ describe('My account', () => {
     });
 
     it('changes the password in the panel, with the current one', async () => {
-        renderPage(Account, { account, themes });
+        renderPage(Account, { account, themes, devices: [] });
 
         await fireEvent.click(screen.getByRole('button', { name: /Password/ }));
 
@@ -42,7 +42,7 @@ describe('My account', () => {
     });
 
     it('tells the last admin why they cannot delete themselves', () => {
-        renderPage(Account, { account, themes });
+        renderPage(Account, { account, themes, devices: [] });
 
         expect(
             screen.queryByRole('button', { name: 'Delete my account' }),
@@ -55,6 +55,7 @@ describe('My account', () => {
     it('lets the others delete their account with the password', async () => {
         renderPage(Account, {
             themes,
+            devices: [],
             account: {
                 ...account,
                 role: 'Family member',
@@ -81,7 +82,7 @@ describe('My account', () => {
 
     it('saves first name, last name and email with ⌘S too', () => {
         const patch = vi.spyOn(router, 'patch').mockImplementation(() => {});
-        renderPage(Account, { account, themes });
+        renderPage(Account, { account, themes, devices: [] });
 
         pressSave();
 
@@ -91,7 +92,7 @@ describe('My account', () => {
 
 describe('Changes not saved', () => {
     it('has them once a detail changes', async () => {
-        renderPage(Account, { account, themes });
+        renderPage(Account, { account, themes, devices: [] });
         expect(hasChanges()).toBe(false);
 
         await fireEvent.update(
@@ -104,7 +105,7 @@ describe('Changes not saved', () => {
     });
 
     it('asks before closing the password panel with the × once something is written', async () => {
-        renderPage(Account, { account, themes });
+        renderPage(Account, { account, themes, devices: [] });
         await fireEvent.click(screen.getByRole('button', { name: /Password/ }));
         await fireEvent.update(
             await screen.findByLabelText('Current password'),
@@ -120,7 +121,7 @@ describe('Changes not saved', () => {
 });
 
 describe('Theme', () => {
-    const props = { account, themes };
+    const props = { account, themes, devices: [] };
 
     /**
      * The server answers the save with a redirect back to this same page: Inertia
@@ -236,5 +237,77 @@ describe('Theme', () => {
 
         expect(hasChanges()).toBe(false);
         expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    });
+
+    describe('Access', () => {
+        it('lists my linked phones under the password, with when they were linked', () => {
+            renderPage(Account, { account, themes, devices: [linkedPhone] });
+
+            expect(screen.getByText('iPhone of Marco')).toBeInTheDocument();
+            expect(
+                screen.getByText(
+                    'Linked on 12/10/2026 · last upload on 24/10/2026',
+                ),
+            ).toBeInTheDocument();
+        });
+
+        it('says linked now for a phone that has just entered', () => {
+            renderPage(Account, {
+                account,
+                themes,
+                devices: [{ ...linkedPhone, linked_now: true }],
+            });
+
+            expect(screen.getByText('Linked now')).toBeInTheDocument();
+        });
+
+        it('asks before unlinking a phone, then unlinks it', async () => {
+            const deleted = vi
+                .spyOn(router, 'delete')
+                .mockImplementation(() => undefined);
+            renderPage(Account, { account, themes, devices: [linkedPhone] });
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Unlink iPhone of Marco' }),
+            );
+
+            expect(deleted).not.toHaveBeenCalled();
+
+            await fireEvent.click(
+                await screen.findByRole('button', { name: 'Unlink' }),
+            );
+
+            expect(deleted).toHaveBeenCalledWith(
+                '/settings/devices/4',
+                expect.anything(),
+            );
+        });
+
+        it('opens the panel to link a phone', async () => {
+            vi.stubGlobal(
+                'fetch',
+                vi.fn().mockResolvedValue({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            code: 'K7QM-XPA9',
+                            qr: '<svg xmlns="http://www.w3.org/2000/svg"/>',
+                            address: 'familymanager.it/connect',
+                            expires_at: '2999-01-01T00:00:00+00:00',
+                            person: 'Marco',
+                            family: 'Bianchi',
+                            devices: [],
+                        }),
+                }),
+            );
+            renderPage(Account, { account, themes, devices: [] });
+
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Link a phone' }),
+            );
+
+            expect(await screen.findByText('K7QM-XPA9')).toBeInTheDocument();
+            vi.unstubAllGlobals();
+        });
     });
 });

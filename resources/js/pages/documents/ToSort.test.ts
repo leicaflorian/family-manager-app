@@ -417,4 +417,31 @@ describe('ToSort', () => {
             screen.queryByRole('button', { name: /Read and review/ }),
         ).not.toBeInTheDocument();
     });
+
+    it('opens the panel to link the phone from the button at the top', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: () =>
+                    Promise.resolve({
+                        code: 'K7QM-XPA9',
+                        qr: '<svg xmlns="http://www.w3.org/2000/svg"/>',
+                        address: 'familymanager.it/connect',
+                        expires_at: '2999-01-01T00:00:00+00:00',
+                        person: 'Marco',
+                        family: 'Bianchi',
+                        devices: [],
+                    }),
+            }),
+        );
+        renderPage(ToSort, page);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Link the phone' }),
+        );
+
+        expect(await screen.findByText('K7QM-XPA9')).toBeInTheDocument();
+        vi.unstubAllGlobals();
+    });
 });

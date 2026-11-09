@@ -105,8 +105,11 @@
         "FmChangeDeadlineSheet": "pages",
         "FmDeadlineDateSheet": "pages",
         "FmLinkDocumentSheet": "pages",
+        "FmLinkPhoneSheet": "pages",
         "FmMovementPanel": "pages",
         "FmPaySheet": "pages",
+        "FmQrCode": "pages",
+        "FmUnlinkPhone": "pages",
         "FmPostponeSheet": "pages",
         "FmUploadSheet": "pages"
     }

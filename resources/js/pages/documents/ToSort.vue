@@ -13,13 +13,14 @@
  * filters on the computer. While a file is queued or read the page asks for its state every 2 seconds.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { Inbox, Mail, Sparkles } from '@lucide/vue';
+import { Inbox, Mail, Smartphone, Sparkles } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
 import ToSortSources from '@/components/documents/ToSortSources.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
+import FmLinkPhoneSheet from '@/components/fm/FmLinkPhoneSheet.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
@@ -63,6 +64,9 @@ const tabs = computed<Tab[]>(() =>
 
 // The files dropped here stay among those to sort, instead of opening Import
 const upload = useFileUpload(() => undefined, { stay: true });
+
+/** The panel *Link the phone* is open. */
+const linkPhone = ref(false);
 
 /** The ids of the files chosen. */
 const chosen = ref<number[]>([]);
@@ -135,6 +139,14 @@ function readChosen(): void {
         >
             <!-- On the computer the same link is the row under the filters -->
             <template #actions>
+                <!-- Linking the phone is done from the computer: the phone itself has no use for it -->
+                <FmButton
+                    class="hidden lg:flex"
+                    variant="outline"
+                    :icon="Smartphone"
+                    @click="linkPhone = true"
+                    >{{ $t('Link the phone') }}</FmButton
+                >
                 <FmButton
                     class="lg:hidden"
                     :icon="Mail"
@@ -245,5 +257,7 @@ function readChosen(): void {
                 </div>
             </div>
         </div>
+
+        <FmLinkPhoneSheet v-model:open="linkPhone" />
     </div>
 </template>

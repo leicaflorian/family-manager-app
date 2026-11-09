@@ -5,7 +5,7 @@
  * family cannot delete themselves, and the page tells them why.
  */
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { KeyRound, LogOut, Users } from '@lucide/vue';
+import { KeyRound, LogOut, Smartphone, Plus, Users } from '@lucide/vue';
 import { ref, useTemplateRef } from 'vue';
 import { useServerTheme } from '@/composables/useTheme';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -14,10 +14,15 @@ import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmLinkPhoneSheet from '@/components/fm/FmLinkPhoneSheet.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmPasswordField from '@/components/fm/FmPasswordField.vue';
 import FmRow from '@/components/fm/FmRow.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import FmUnlinkPhone from '@/components/fm/FmUnlinkPhone.vue';
+import { useFormat } from '@/composables/useFormat';
+import { deviceSummary } from '@/lib/devices';
 import { errors } from '@/lib/errors';
 import { logout, settings } from '@/routes';
 import {
@@ -34,7 +39,11 @@ const { account } = defineProps<{
     account: App.Data.AccountData;
     /** The themes to choose from, with their labels. */
     themes: App.Data.OptionData[];
+    /** The phones linked to my account. */
+    devices: App.Data.LinkedDeviceData[];
 }>();
+
+const { date } = useFormat();
 
 /** The theme of the account as the server last sent it (not the one of a page restored from the history). */
 const theme = useServerTheme();
@@ -145,6 +154,19 @@ function changePassword(): void {
         onSuccess: () => (passwordSheet.value = false),
         onFinish: () => passwordChange.reset(),
     });
+}
+
+/** The panel *Link the phone* is open. */
+const linkPhone = ref(false);
+
+/** The phone I am about to unlink, while the question is asked. */
+const toUnlink = ref<App.Data.LinkedDeviceData | null>(null);
+
+/** Closing the panel *Link the phone* shows the phones linked meanwhile. */
+function refreshDevices(open: boolean): void {
+    if (!open) {
+        router.reload({ only: ['devices'], preserveUrl: true });
+    }
 }
 
 const deleteSheet = ref(false);
@@ -268,6 +290,15 @@ function deleteAccount(): void {
         </section>
 
         <FmCard :title="$t('Access')" list>
+            <template #actions>
+                <!-- Linking is done from the computer, as the board «Account» has it -->
+                <FmSectionLink
+                    class="hidden lg:inline-flex"
+                    :icon="Plus"
+                    @click="linkPhone = true"
+                    >{{ $t('Link a phone') }}</FmSectionLink
+                >
+            </template>
             <FmRow
                 :title="$t('Password')"
                 :subtitle="$t('At least 10 characters')"
@@ -285,6 +316,31 @@ function deleteAccount(): void {
                     <span class="text-[15px] font-semibold text-action">{{
                         $t('Change')
                     }}</span>
+                </template>
+            </FmRow>
+            <FmRow
+                v-for="device in devices"
+                :key="device.id"
+                :title="device.name"
+                :subtitle="deviceSummary(device, date)"
+                :arrow="false"
+            >
+                <template #before>
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-canvas text-ink-soft"
+                    >
+                        <FmIcon :icon="Smartphone" :size="22" />
+                    </span>
+                </template>
+                <template #after>
+                    <button
+                        type="button"
+                        :aria-label="$t('Unlink :name', { name: device.name })"
+                        class="cursor-pointer border-0 bg-transparent p-2 text-[15px] font-semibold text-overdue"
+                        @click="toUnlink = device"
+                    >
+                        {{ $t('Unlink') }}
+                    </button>
                 </template>
             </FmRow>
         </FmCard>
@@ -333,6 +389,13 @@ function deleteAccount(): void {
                 )
             }}
         </p>
+
+        <FmLinkPhoneSheet
+            v-model:open="linkPhone"
+            @update:open="refreshDevices"
+        />
+
+        <FmUnlinkPhone :device="toUnlink" @close="toUnlink = null" />
 
         <FmBottomSheet
             v-model:open="passwordSheet"

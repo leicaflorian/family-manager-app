@@ -37,6 +37,7 @@ final class AccountController extends Controller
         return Inertia::render('settings/Account', [
             'account' => AccountData::fromUser($user),
             'themes' => OptionData::list(Theme::options()),
+            'devices' => LinkedDeviceController::devicesOf($user),
         ]);
     }
 
