@@ -64,7 +64,7 @@ const icons: Record<string, LucideIcon> = {
 
 /** The colours of a tile by tone. */
 const tones: Record<string, string> = {
-    neutral: cn('border border-edge bg-canvas text-ink-soft'),
+    neutral: cn('border border-edge-soft bg-canvas text-ink-soft'),
     expenses: cn('bg-expenses-soft text-expenses-text'),
     income: cn('bg-income-soft text-income-text'),
     action: cn('bg-action-soft text-action-dark'),
