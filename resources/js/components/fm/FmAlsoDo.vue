@@ -22,7 +22,7 @@ defineSlots<{
 
 <template>
     <div class="flex flex-col gap-3">
-        <h3 class="m-0 mt-2 text-base font-bold">
+        <h3 class="m-0 mt-2 text-amount">
             {{ title ?? $t('What I do too') }}
         </h3>
         <div v-auto-animate class="flex flex-col gap-3">

@@ -54,7 +54,7 @@ const form = useForm({});
         <Link
             :href="logout()"
             as="button"
-            class="mx-auto h-11 px-3 text-base font-semibold text-action"
+            class="mx-auto h-touch px-3 text-body-strong text-action"
         >
             {{ $t('Log out') }}
         </Link>

@@ -182,7 +182,7 @@ function link(id: number): void {
                     />
                     <p
                         v-if="card.related.length === 0"
-                        class="m-0 px-4 py-3.5 text-[15px] text-ink-soft"
+                        class="m-0 px-4 py-3.5 text-body-sm text-ink-soft"
                     >
                         {{ $t('Nothing linked yet.') }}
                     </p>
@@ -220,7 +220,7 @@ function link(id: number): void {
                     </div>
                     <p
                         v-if="card.documents.length === 0"
-                        class="m-0 p-5 text-[15px] text-ink-soft"
+                        class="m-0 p-5 text-body-sm text-ink-soft"
                     >
                         {{ $t('No documents yet.') }}
                     </p>

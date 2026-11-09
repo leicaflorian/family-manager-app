@@ -142,7 +142,7 @@ const categories = computed(() => [
 const people = computed(() => withNone(options.people));
 
 /** The classes of the line under a field needed below: the warning colour in place of the soft one. */
-const neededClass = cn('$reset mt-1 text-[13px] text-warning');
+const neededClass = cn('$reset mt-1 text-meta text-warning');
 
 /**
  * The line under a field when a box of *What I do too* needs it.

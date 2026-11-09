@@ -100,7 +100,7 @@ function done(withoutHome = false): void {
 
     <form class="flex grow flex-col gap-5" novalidate @submit.prevent="done()">
         <div class="flex flex-col gap-2.5">
-            <span class="text-sm font-semibold text-ink-soft">{{
+            <span class="text-label text-ink-soft">{{
                 $t('Step :step of :total', {
                     step: String(step + 1),
                     total: String(steps.length),

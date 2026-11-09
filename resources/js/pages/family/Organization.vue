@@ -97,7 +97,7 @@ const actions = computed((): Action[] => [
     <div class="flex max-w-[1120px] flex-col gap-5">
         <Link
             :href="index().url"
-            class="flex items-center gap-1.5 self-start text-[15px] font-semibold no-underline"
+            class="flex items-center gap-1.5 self-start text-row no-underline"
         >
             <FmIcon :icon="ChevronLeft" :size="18" />
             {{ $t('Organizations') }}
@@ -114,14 +114,12 @@ const actions = computed((): Action[] => [
                     class="size-14 rounded-card bg-card lg:size-16"
                 />
                 <div class="flex flex-col gap-1">
-                    <h1
-                        class="m-0 text-[26px] leading-tight font-extrabold lg:text-[32px]"
-                    >
+                    <h1 class="m-0 text-title-mobile lg:text-title">
                         {{ organization.name }}
                     </h1>
                     <span
                         v-if="organization.type_labels.length > 0"
-                        class="text-[15px] text-ink-soft"
+                        class="text-body-sm text-ink-soft"
                         >{{ organization.type_labels.join(', ') }}</span
                     >
                 </div>
@@ -143,7 +141,7 @@ const actions = computed((): Action[] => [
                     />
                     <p
                         v-if="documents.length === 0"
-                        class="m-0 text-[15px] text-ink-soft"
+                        class="m-0 text-body-sm text-ink-soft"
                     >
                         {{ $t('No documents yet.') }}
                     </p>
@@ -167,13 +165,13 @@ const actions = computed((): Action[] => [
                         :size="20"
                         class="text-action"
                     />
-                    <span class="min-w-0 text-[15px] font-semibold break-all">{{
+                    <span class="min-w-0 text-row break-all">{{
                         contact.text
                     }}</span>
                 </a>
                 <p
                     v-if="organization.notes"
-                    class="m-0 flex gap-1.5 px-4 py-3 text-sm leading-normal whitespace-pre-line text-ink-soft"
+                    class="m-0 flex gap-1.5 px-4 py-3 text-body-sm whitespace-pre-line text-ink-soft"
                 >
                     <FmIcon
                         :icon="StickyNote"
@@ -184,7 +182,7 @@ const actions = computed((): Action[] => [
                 </p>
                 <p
                     v-if="contacts.length === 0 && !organization.notes"
-                    class="m-0 text-[15px] text-ink-soft"
+                    class="m-0 text-body-sm text-ink-soft"
                 >
                     {{ $t('No contacts yet.') }}
                 </p>

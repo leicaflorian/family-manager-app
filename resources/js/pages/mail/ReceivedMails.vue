@@ -280,15 +280,16 @@ async function copyCode(): Promise<void> {
                                 : 'hover:bg-canvas'
                         "
                     >
-                        <span class="hidden text-sm text-ink-soft lg:block">{{
-                            formatDateTime(row.received_at)
-                        }}</span>
+                        <span
+                            class="hidden text-body-sm text-ink-soft lg:block"
+                            >{{ formatDateTime(row.received_at) }}</span
+                        >
                         <span class="flex min-w-0 justify-between gap-2.5">
-                            <span class="truncate text-[15px] font-bold">{{
+                            <span class="truncate text-row-amount">{{
                                 row.sender
                             }}</span>
                             <span
-                                class="shrink-0 text-[13px] text-ink-soft lg:hidden"
+                                class="shrink-0 text-meta text-ink-soft lg:hidden"
                                 >{{
                                     formatShortDateTime(row.received_at)
                                 }}</span
@@ -302,7 +303,7 @@ async function copyCode(): Promise<void> {
                                 :tone="row.tone"
                             />
                         </span>
-                        <span class="truncate text-sm text-ink-soft">{{
+                        <span class="truncate text-body-sm text-ink-soft">{{
                             row.subject ?? $t('no subject')
                         }}</span>
                     </Link>
@@ -325,7 +326,7 @@ async function copyCode(): Promise<void> {
                 class="flex min-w-0 flex-col gap-4 rounded-card-lg bg-card p-5 shadow-float lg:flex-[2_1_400px] lg:p-6"
             >
                 <div class="flex items-center justify-between gap-3">
-                    <h2 class="m-0 text-xl font-extrabold">
+                    <h2 class="m-0 text-stat">
                         {{ mail.row.subject ?? $t('no subject') }}
                     </h2>
                     <span class="flex shrink-0 gap-1">
@@ -356,33 +357,33 @@ async function copyCode(): Promise<void> {
                 <dl
                     class="m-0 grid grid-cols-[88px_minmax(0,1fr)] items-baseline gap-x-3 gap-y-2"
                 >
-                    <dt class="text-[13px] text-ink-soft">
+                    <dt class="text-meta text-ink-soft">
                         {{ $t('Sender') }}
                     </dt>
-                    <dd class="m-0 text-sm [overflow-wrap:anywhere]">
+                    <dd class="m-0 text-body-sm [overflow-wrap:anywhere]">
                         {{ mail.from }}
                     </dd>
-                    <dt class="text-[13px] text-ink-soft">
+                    <dt class="text-meta text-ink-soft">
                         {{ $t('Recipient') }}
                     </dt>
-                    <dd class="m-0 text-sm [overflow-wrap:anywhere]">
+                    <dd class="m-0 text-body-sm [overflow-wrap:anywhere]">
                         {{ mail.recipients.join(', ') || mail.recipient }}
                     </dd>
-                    <dt class="text-[13px] text-ink-soft">
+                    <dt class="text-meta text-ink-soft">
                         {{ $t('Subject') }}
                     </dt>
-                    <dd class="m-0 text-sm [overflow-wrap:anywhere]">
+                    <dd class="m-0 text-body-sm [overflow-wrap:anywhere]">
                         {{ mail.row.subject ?? $t('no subject') }}
                     </dd>
-                    <dt class="text-[13px] text-ink-soft">
+                    <dt class="text-meta text-ink-soft">
                         {{ $t('Arrived on') }}
                     </dt>
-                    <dd class="m-0 text-sm">
+                    <dd class="m-0 text-body-sm">
                         {{ formatDateTime(mail.row.received_at) }}
                     </dd>
                 </dl>
 
-                <span class="flex items-center gap-2 text-[13px] text-ink-soft">
+                <span class="flex items-center gap-2 text-meta text-ink-soft">
                     <FmIcon :icon="ImageOff" :size="16" />
                     {{ $t('The images of the mail are not shown.') }}
                 </span>
@@ -392,12 +393,12 @@ async function copyCode(): Promise<void> {
                     class="flex flex-wrap items-center gap-3 rounded-lg bg-action-soft p-4"
                 >
                     <span class="flex grow flex-col gap-0.5">
-                        <span class="text-[13px] text-action-dark">{{
+                        <span class="text-meta text-action-dark">{{
                             $t('Gmail confirmation code')
                         }}</span>
                         <strong
                             ref="codeText"
-                            class="text-2xl font-extrabold tracking-wider"
+                            class="text-stat-lg tracking-wider"
                             >{{ mail.gmail_code }}</strong
                         >
                     </span>
@@ -410,13 +411,13 @@ async function copyCode(): Promise<void> {
                     <span
                         v-if="copier.copied.value"
                         role="status"
-                        class="w-full text-sm"
+                        class="w-full text-body-sm"
                         >{{ $t('Code copied') }}</span
                     >
                     <span
                         v-if="copier.failed.value"
                         role="status"
-                        class="w-full text-sm"
+                        class="w-full text-body-sm"
                         >{{
                             $t('Could not copy: select the code and copy it.')
                         }}</span
@@ -424,7 +425,7 @@ async function copyCode(): Promise<void> {
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <span class="text-sm font-bold">{{
+                    <span class="text-label">{{
                         $t('What was done with it')
                     }}</span>
                     <FmMailOutcome
@@ -461,14 +462,14 @@ async function copyCode(): Promise<void> {
                             </span>
                             <span class="flex min-w-0 grow flex-col gap-0.5">
                                 <span
-                                    class="truncate text-[15px] font-semibold"
+                                    class="truncate text-row"
                                     :class="
                                         file.state === 'gone' && 'text-ink-soft'
                                     "
                                     >{{ file.name }}</span
                                 >
                                 {{ ' ' }}
-                                <span class="text-[13px] text-ink-soft">{{
+                                <span class="text-meta text-ink-soft">{{
                                     fileState(file)
                                 }}</span>
                             </span>
@@ -490,7 +491,7 @@ async function copyCode(): Promise<void> {
                     <span
                         v-for="(skipped, position) in mail.skipped"
                         :key="position"
-                        class="text-[13px] text-ink-soft"
+                        class="text-meta text-ink-soft"
                         >{{
                             skipped.reason === ''
                                 ? $t('Not saved: :name.', {
@@ -526,7 +527,7 @@ async function copyCode(): Promise<void> {
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <span class="text-sm font-bold">{{ $t('The text') }}</span>
+                    <span class="text-label">{{ $t('The text') }}</span>
                     <FmMailText
                         :src="mail.has_text ? mail.text_url : null"
                         :both="mail.has_both_texts"

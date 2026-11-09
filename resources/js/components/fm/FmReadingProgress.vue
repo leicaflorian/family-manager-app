@@ -43,20 +43,20 @@ const caption = computed(() =>
             />
         </div>
         <div class="flex flex-col gap-0.5">
-            <p class="text-base font-semibold">
+            <p class="text-body-strong">
                 {{ $t('Reading the document…') }}
             </p>
-            <p class="text-sm text-ink-soft">
+            <p class="text-body-sm text-ink-soft">
                 {{ $t('It takes a few seconds') }}
             </p>
         </div>
-        <p class="hidden truncate text-sm text-ink-soft lg:block">
+        <p class="hidden truncate text-body-sm text-ink-soft lg:block">
             {{ caption }}
         </p>
         <dl
             v-if="found && found.length > 0"
             v-auto-animate
-            class="hidden flex-col gap-1 text-sm lg:flex"
+            class="hidden flex-col gap-1 text-body-sm lg:flex"
         >
             <div
                 v-for="line in found"

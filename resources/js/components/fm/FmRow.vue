@@ -115,7 +115,7 @@ const titleTone = computed(() =>
                  pieces are only seen; the whole title is what is read. -->
             <span
                 v-if="titleParts[1]"
-                class="flex min-w-0 text-base font-semibold whitespace-nowrap"
+                class="flex min-w-0 text-body-strong whitespace-nowrap"
                 :class="titleTone"
                 :title="title"
             >
@@ -135,21 +135,21 @@ const titleTone = computed(() =>
             </span>
             <span
                 v-else
-                class="truncate text-base font-semibold"
+                class="truncate text-body-strong"
                 :class="titleTone"
                 :title="title"
                 >{{ title }}</span
             >
             <span
                 v-if="subtitle"
-                class="truncate text-[13px]"
+                class="truncate text-meta"
                 :class="toneColor[tone]"
                 >{{ subtitle }}</span
             >
         </span>
         <span
             v-if="$slots.after"
-            class="shrink-0 text-base font-bold whitespace-nowrap text-ink"
+            class="shrink-0 text-amount whitespace-nowrap text-ink"
         >
             <slot name="after" />
         </span>

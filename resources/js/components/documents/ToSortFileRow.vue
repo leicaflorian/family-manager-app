@@ -106,12 +106,12 @@ const readingText = computed((): string => {
                 :href="file.url"
                 target="_blank"
                 rel="noopener"
-                class="truncate text-base font-semibold text-ink no-underline hover:underline"
+                class="truncate text-body-strong text-ink no-underline hover:underline"
                 >{{ file.name }}</a
             >
             <div
                 v-if="isCopy"
-                class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]"
+                class="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta"
             >
                 <span
                     class="rounded-tag bg-warning-soft px-1.5 py-0.5 font-semibold text-warning"
@@ -123,19 +123,20 @@ const readingText = computed((): string => {
             </div>
             <span
                 v-else-if="file.note"
-                class="flex items-start gap-1.5 text-[13px] text-ink-soft"
+                class="flex items-start gap-1.5 text-meta text-ink-soft"
             >
                 <FmIcon :icon="sourceIcon" :size="14" class="mt-0.5 shrink-0" />
                 <span class="line-clamp-2">{{ file.note }}</span>
             </span>
-            <span v-if="readingText" class="text-[13px] text-ink-soft">{{
+            <span v-if="readingText" class="text-meta text-ink-soft">{{
                 readingText
             }}</span>
         </div>
-        <span class="hidden w-36 shrink-0 text-[15px] text-ink-soft md:block">{{
-            measure
-        }}</span>
-        <span class="w-12 shrink-0 text-[15px] text-ink-soft">{{
+        <span
+            class="hidden w-36 shrink-0 text-body-sm text-ink-soft md:block"
+            >{{ measure }}</span
+        >
+        <span class="w-12 shrink-0 text-body-sm text-ink-soft">{{
             shortDate(file.created_on)
         }}</span>
         <span class="flex w-10 shrink-0 justify-center">

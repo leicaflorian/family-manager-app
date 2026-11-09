@@ -56,7 +56,7 @@ function sizeText(size: Size): string {
     <fieldset
         class="m-0 flex w-full max-w-[420px] flex-col gap-3 rounded-card border border-edge-soft bg-card p-4"
     >
-        <legend class="px-1 text-sm font-bold">
+        <legend class="px-1 text-label">
             {{ $t('Composed page') }}
         </legend>
 
@@ -66,7 +66,7 @@ function sizeText(size: Size): string {
                 :key="index"
                 class="flex items-center gap-1.5"
             >
-                <span class="grow text-sm tabular-nums">
+                <span class="grow text-body-sm tabular-nums">
                     {{ index + 1 }} · {{ sizeText(size) }}
                 </span>
                 <FmButton
@@ -130,7 +130,7 @@ function sizeText(size: Size): string {
             </li>
         </ol>
 
-        <span class="text-sm text-ink-soft">{{
+        <span class="text-body-sm text-ink-soft">{{
             shrink < 1
                 ? $t(
                       'At their real size they do not fit: reduced to :percent %.',

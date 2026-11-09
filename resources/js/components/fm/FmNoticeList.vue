@@ -73,7 +73,7 @@ const old = computed((): NoticeItem[] => seen.map(toNoticeItem));
 
         <slot />
 
-        <p class="m-0 flex items-start gap-2 text-sm text-ink-soft">
+        <p class="m-0 flex items-start gap-2 text-body-sm text-ink-soft">
             <FmIcon :icon="Mail" :size="16" class="mt-0.5 shrink-0" />
             <span
                 >{{ $t('The same notices arrive by email.') }}

@@ -49,7 +49,7 @@ function go(step: number): void {
         >
             <FmIcon :icon="ChevronLeft" :size="22" />
         </button>
-        <span class="min-w-[9.5rem] text-center text-lg font-extrabold">{{
+        <span class="min-w-[9.5rem] text-center text-subtitle">{{
             label
         }}</span>
         <button

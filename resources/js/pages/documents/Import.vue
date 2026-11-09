@@ -492,7 +492,7 @@ function save(): void {
                 >
                     <FmIcon :icon="X" :size="24" />
                 </Link>
-                <h1 class="m-0 grow text-lg font-bold">
+                <h1 class="m-0 grow text-subtitle">
                     {{
                         $tChoice(
                             '{1} Import :count file|[2,*] Import :count files',
@@ -500,7 +500,7 @@ function save(): void {
                         )
                     }}
                 </h1>
-                <span class="text-sm font-semibold text-ink-soft">{{
+                <span class="text-label text-ink-soft">{{
                     $t('File :current of :total', {
                         current: String(position + 1),
                         total: String(files.length),
@@ -575,10 +575,9 @@ function save(): void {
                         }"
                         @click="open(index)"
                     >
-                        <span
-                            class="shrink-0 text-sm font-extrabold text-ink-soft"
-                            >{{ index + 1 }}</span
-                        >
+                        <span class="shrink-0 text-label text-ink-soft">{{
+                            index + 1
+                        }}</span>
                         <span
                             class="flex size-9 shrink-0 items-center justify-center rounded-md border border-edge bg-canvas text-ink-soft"
                         >
@@ -586,12 +585,12 @@ function save(): void {
                         </span>
                         <span class="flex min-w-0 flex-col gap-0.5">
                             <span
-                                class="truncate text-sm font-semibold"
+                                class="truncate text-label"
                                 :title="file.name"
                                 >{{ file.name }}</span
                             >
                             <span
-                                class="flex items-center gap-1 text-[13px] font-semibold"
+                                class="flex items-center gap-1 text-meta-strong"
                                 :class="
                                     stateOf(file) === 'looking'
                                         ? 'text-action'
@@ -620,7 +619,7 @@ function save(): void {
                             </span>
                             <span
                                 v-if="problemOf(file)"
-                                class="truncate text-[13px] text-overdue"
+                                class="truncate text-meta text-overdue"
                                 >{{ problemOf(file) }}</span
                             >
                         </span>
@@ -638,9 +637,10 @@ function save(): void {
                         :name="current.name"
                         :preview-url="current.preview_url"
                     />
-                    <span class="text-center text-sm break-all text-ink-soft">{{
-                        current.note ?? current.name
-                    }}</span>
+                    <span
+                        class="text-center text-body-sm break-all text-ink-soft"
+                        >{{ current.note ?? current.name }}</span
+                    >
                 </div>
 
                 <section
@@ -698,7 +698,7 @@ function save(): void {
                         class="mt-1.5 flex flex-wrap items-center justify-between gap-2.5"
                     >
                         <label
-                            class="flex cursor-pointer items-center gap-2.5 text-[15px] text-ink-soft"
+                            class="flex cursor-pointer items-center gap-2.5 text-body-sm text-ink-soft"
                         >
                             <input
                                 type="checkbox"

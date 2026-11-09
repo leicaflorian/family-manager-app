@@ -235,21 +235,21 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
                 :class="tileClass(tile)"
             >
                 <span
-                    class="font-semibold text-ink-soft"
-                    :class="desktop ? 'text-sm' : 'text-[13px]'"
+                    class="text-ink-soft"
+                    :class="desktop ? 'text-label' : 'text-meta-strong'"
                     >{{ tile.label }}</span
                 >
                 <span
-                    class="font-extrabold whitespace-nowrap tabular-nums"
+                    class="whitespace-nowrap tabular-nums"
                     :class="[
-                        desktop ? 'text-[26px]' : 'text-xl',
+                        desktop ? 'text-stat-lg' : 'text-stat',
                         tile.overdue ? 'text-overdue' : 'text-ink',
                     ]"
                     >{{ tile.value }}</span
                 >
                 <span
                     class="text-ink-soft"
-                    :class="desktop ? 'text-[13px]' : 'text-xs'"
+                    :class="desktop ? 'text-meta' : 'text-caption'"
                     >{{ tile.hint }}</span
                 >
             </li>
@@ -292,7 +292,7 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
                 v-if="shown.length === 0"
                 class="flex flex-wrap items-center gap-3 rounded-card bg-card p-5"
             >
-                <span class="text-[15px]">{{
+                <span class="text-body-sm">{{
                     $t('No entries with these filters')
                 }}</span>
                 <FmButton variant="soft" small @click="reset">{{
@@ -309,7 +309,7 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
             >
                 <template v-if="group.outgoing !== null" #actions>
                     <span
-                        class="text-[13px] whitespace-nowrap text-ink-soft lg:text-sm"
+                        class="text-meta whitespace-nowrap text-ink-soft lg:text-body-sm"
                         >{{
                             $t(':amount outgoing', {
                                 amount: euro(group.outgoing),

@@ -103,7 +103,7 @@ useSaveShortcut(save, () => open.value && !form.processing);
                 <template #after="{ category }">
                     <span
                         v-if="category.card_label"
-                        class="text-[13px] font-normal text-ink-soft"
+                        class="text-meta text-ink-soft"
                         >{{ category.card_label }}</span
                     >
                 </template>

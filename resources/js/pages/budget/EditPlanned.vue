@@ -133,7 +133,7 @@ useSaveShortcut(save, () => !form.processing);
             @submit.prevent="save"
         >
             <fieldset class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('What') }}
                 </legend>
                 <FormKit
@@ -172,7 +172,7 @@ useSaveShortcut(save, () => !form.processing);
             </fieldset>
 
             <fieldset class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('When') }}
                 </legend>
                 <div class="grid grid-cols-2 gap-3">
@@ -222,7 +222,7 @@ useSaveShortcut(save, () => !form.processing);
             </fieldset>
 
             <fieldset class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('Where') }}
                 </legend>
                 <FormKit
@@ -286,7 +286,7 @@ useSaveShortcut(save, () => !form.processing);
             </fieldset>
 
             <fieldset v-if="income" class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('Refers to') }}
                 </legend>
                 <FormKit

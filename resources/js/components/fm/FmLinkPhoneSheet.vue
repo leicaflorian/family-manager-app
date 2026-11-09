@@ -60,7 +60,7 @@ const hint = computed(() =>
 
 <template>
     <FmBottomSheet v-model:open="open" :title="$t('Link the phone')" size="lg">
-        <p class="m-0 text-[15px] leading-normal text-ink-soft">
+        <p class="m-0 text-body-sm text-ink-soft">
             {{
                 $t(
                     'Frame the code with the phone camera: Family Manager opens already with your account, without typing the password.',
@@ -98,11 +98,11 @@ const hint = computed(() =>
                             ),
                         ]"
                         :key="index"
-                        class="flex items-start gap-3 text-[15px] leading-snug"
+                        class="flex items-start gap-3 text-body-sm"
                     >
                         <span
                             aria-hidden="true"
-                            class="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-action-soft text-[13px] font-extrabold text-action-dark"
+                            class="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-action-soft text-meta-strong text-action-dark"
                             >{{ index + 1 }}</span
                         >
                         <span>{{ step }}</span>
@@ -111,7 +111,7 @@ const hint = computed(() =>
             </div>
 
             <p
-                class="m-0 flex items-start gap-2.5 rounded-lg bg-canvas px-3.5 py-3 text-sm leading-snug text-ink-soft"
+                class="m-0 flex items-start gap-2.5 rounded-lg bg-canvas px-3.5 py-3 text-body-sm text-ink-soft"
             >
                 <FmIcon :icon="Clock" :size="18" class="mt-px shrink-0" />
                 <span>
@@ -127,12 +127,12 @@ const hint = computed(() =>
             </p>
 
             <section class="flex flex-col gap-2">
-                <h3 class="m-0 text-sm font-bold">
+                <h3 class="m-0 text-label">
                     {{ $t('Linked phones') }}
                 </h3>
                 <p
                     v-if="link.devices.length === 0"
-                    class="m-0 text-sm text-ink-soft"
+                    class="m-0 text-body-sm text-ink-soft"
                 >
                     {{ $t('No phone is linked yet') }}
                 </p>
@@ -148,10 +148,8 @@ const hint = computed(() =>
                             <FmIcon :icon="Smartphone" :size="20" />
                         </span>
                         <span class="flex min-w-0 grow flex-col gap-0.5">
-                            <span class="text-[15px] font-semibold">{{
-                                device.name
-                            }}</span>
-                            <span class="text-[13px] text-ink-soft">{{
+                            <span class="text-row">{{ device.name }}</span>
+                            <span class="text-meta text-ink-soft">{{
                                 deviceSummary(device, date)
                             }}</span>
                         </span>
@@ -160,7 +158,7 @@ const hint = computed(() =>
                             :aria-label="
                                 $t('Unlink :name', { name: device.name })
                             "
-                            class="cursor-pointer border-0 bg-transparent p-1 text-sm font-semibold text-overdue"
+                            class="cursor-pointer border-0 bg-transparent p-1 text-label text-overdue"
                             @click="toUnlink = device"
                         >
                             {{ $t('Unlink') }}

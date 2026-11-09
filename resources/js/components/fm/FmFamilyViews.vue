@@ -60,7 +60,7 @@ const views = computed(() => [
                 :key="view.key"
                 :href="view.href"
                 :aria-current="view.key === current ? 'page' : undefined"
-                class="flex h-9 flex-1 items-center justify-center gap-1 rounded-[9px] text-[15px] whitespace-nowrap no-underline"
+                class="flex h-9 flex-1 items-center justify-center gap-1 rounded-tag text-body-sm whitespace-nowrap no-underline"
                 :class="
                     view.key === current
                         ? 'bg-card text-ink shadow-raised'

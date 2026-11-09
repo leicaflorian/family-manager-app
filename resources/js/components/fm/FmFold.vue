@@ -29,7 +29,7 @@ const open = ref(false);
         <button
             type="button"
             :aria-expanded="open"
-            class="flex items-center gap-1.5 self-start border-0 bg-transparent p-0 text-[15px] font-semibold text-ink-soft"
+            class="flex items-center gap-1.5 self-start border-0 bg-transparent p-0 text-row text-ink-soft"
             @click="open = !open"
         >
             <FmIcon

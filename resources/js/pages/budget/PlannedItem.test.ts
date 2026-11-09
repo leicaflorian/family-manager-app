@@ -236,7 +236,7 @@ describe('A planned expense', () => {
                 name === 'Payments' ? 'Record payment' : 'Add',
             );
             expect(link.closest('a, button')).toHaveClass(
-                'font-normal',
+                'text-body',
                 'hover:underline',
             );
         }

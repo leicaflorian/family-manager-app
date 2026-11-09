@@ -38,18 +38,14 @@ const distance = computed((): { text: string; expired: boolean } => {
 
 <template>
     <div class="flex flex-col gap-1 rounded-card bg-card p-4">
-        <span class="text-[13px] font-semibold text-ink-soft">{{
-            date.label
-        }}</span>
-        <span class="text-lg font-bold text-ink">{{
-            formatted(date.date)
-        }}</span>
+        <span class="text-meta-strong text-ink-soft">{{ date.label }}</span>
+        <span class="text-subtitle text-ink">{{ formatted(date.date) }}</span>
         <span
             :class="
                 cn(
-                    'text-sm',
+                    'text-body-sm',
                     distance.expired
-                        ? 'font-semibold text-overdue'
+                        ? 'text-label text-overdue'
                         : 'text-ink-soft',
                 )
             "

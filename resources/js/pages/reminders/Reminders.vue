@@ -354,7 +354,7 @@ function askDelete(item: ReminderItem): void {
             v-if="shown.length === 0 && filtered"
             class="flex flex-wrap items-center gap-3 rounded-card bg-card p-5"
         >
-            <span class="text-[15px]">{{
+            <span class="text-body-sm">{{
                 $t('No reminders with these filters')
             }}</span>
             <FmButton variant="soft" small @click="reset">{{
@@ -385,7 +385,7 @@ function askDelete(item: ReminderItem): void {
                 list
             >
                 <template #actions>
-                    <span class="text-[13px] text-ink-soft lg:text-sm">{{
+                    <span class="text-meta text-ink-soft lg:text-body-sm">{{
                         group.items.length
                     }}</span>
                 </template>
@@ -402,7 +402,7 @@ function askDelete(item: ReminderItem): void {
                 <button
                     v-if="visible(group).length < group.items.length"
                     type="button"
-                    class="flex h-[52px] cursor-pointer items-center justify-center gap-1.5 border-0 bg-card text-[15px] font-semibold text-action"
+                    class="flex h-control-lg cursor-pointer items-center justify-center gap-1.5 border-0 bg-card text-row text-action"
                     @click="expanded = [...expanded, group.key]"
                 >
                     {{

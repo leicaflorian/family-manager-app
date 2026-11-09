@@ -91,7 +91,7 @@ describe('FmAgendaRow', () => {
             expect(link).toHaveTextContent('30');
             expect(link).toHaveTextContent('Fri');
             expect(within(link).getByText('Gas - Enel')).toHaveClass(
-                'font-semibold',
+                'text-row',
             );
             expect(link).toHaveTextContent('Bolletta gas');
             expect(link).toHaveTextContent('in 4 days');

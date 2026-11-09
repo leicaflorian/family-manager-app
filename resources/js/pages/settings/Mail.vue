@@ -126,7 +126,7 @@ useSaveShortcut(save, () => settings.can_edit && !saving.value);
 
         <FmCard>
             <div class="flex flex-col gap-4">
-                <p class="m-0 text-[15px] leading-normal text-ink-soft">
+                <p class="m-0 text-body-sm text-ink-soft">
                     {{
                         $t(
                             'The mails sent here arrive in To sort, with their files.',
@@ -157,13 +157,13 @@ useSaveShortcut(save, () => settings.can_edit && !saving.value);
                         <span
                             v-if="copier.copied.value"
                             role="status"
-                            class="text-sm"
+                            class="text-body-sm"
                             >{{ $t('Address copied') }}</span
                         >
                         <span
                             v-if="copier.failed.value"
                             role="status"
-                            class="text-sm"
+                            class="text-body-sm"
                             >{{
                                 $t(
                                     'Could not copy: select the text and copy it by hand.',
@@ -194,10 +194,10 @@ useSaveShortcut(save, () => settings.can_edit && !saving.value);
                             ),
                         ]"
                         :key="index"
-                        class="flex items-start gap-3 text-[15px] leading-snug"
+                        class="flex items-start gap-3 text-body-sm"
                     >
                         <span
-                            class="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-action-soft text-[13px] font-extrabold text-action-dark"
+                            class="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-action-soft text-meta-strong text-action-dark"
                             >{{ index + 1 }}</span
                         >
                         <span>{{ step }}</span>
@@ -207,7 +207,7 @@ useSaveShortcut(save, () => settings.can_edit && !saving.value);
                     v-if="settings.senders.length > 0"
                     class="flex flex-col gap-2"
                 >
-                    <span class="text-[13px] font-semibold text-ink-soft">{{
+                    <span class="text-meta-strong text-ink-soft">{{
                         $t('They already wrote here')
                     }}</span>
                     <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
@@ -215,7 +215,7 @@ useSaveShortcut(save, () => settings.can_edit && !saving.value);
                             v-for="sender in settings.senders"
                             :key="sender.address"
                             :title="sender.address"
-                            class="rounded-tag bg-divider px-2 py-0.5 text-[13px] font-semibold whitespace-nowrap text-ink-soft"
+                            class="rounded-tag bg-divider px-2 py-0.5 text-meta-strong whitespace-nowrap text-ink-soft"
                         >
                             {{ sender.name }}
                         </li>
@@ -250,7 +250,7 @@ useSaveShortcut(save, () => settings.can_edit && !saving.value);
                     <p
                         v-if="notify.length === 0"
                         role="status"
-                        class="m-0 text-sm text-ink-soft"
+                        class="m-0 text-body-sm text-ink-soft"
                     >
                         {{
                             $t(

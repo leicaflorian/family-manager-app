@@ -53,16 +53,16 @@ const count = computed((): string => {
         class="flex flex-col gap-1 rounded-card-lg bg-linear-160 from-hero to-hero-end p-5 text-on-hero"
         :aria-label="$t('To pay in the next 30 days')"
     >
-        <h2 class="m-0 text-[15px] font-semibold opacity-90">
+        <h2 class="m-0 text-row opacity-90">
             {{ $t('To pay in the next 30 days') }}
         </h2>
-        <p class="m-0 text-4xl font-extrabold whitespace-nowrap">
+        <p class="m-0 text-display whitespace-nowrap">
             {{ euro(total) }}
         </p>
-        <p v-if="payments > 0" class="m-0 text-[15px] opacity-90">
+        <p v-if="payments > 0" class="m-0 text-body-sm opacity-90">
             {{ count }}
         </p>
-        <p v-else class="m-0 text-[15px] opacity-90">
+        <p v-else class="m-0 text-body-sm opacity-90">
             {{
                 $t(
                     "Nothing for now. Upload a bill and you'll see it here, with its due date.",

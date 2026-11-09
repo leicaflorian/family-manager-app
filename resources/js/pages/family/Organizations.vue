@@ -91,7 +91,7 @@ const shown = computed(() =>
                     type="search"
                     :placeholder="$t('Search an organization')"
                     :aria-label="$t('Search an organization')"
-                    class="min-w-0 grow border-0 bg-transparent text-base text-ink outline-none"
+                    class="min-w-0 grow border-0 bg-transparent text-body text-ink outline-none"
                 />
             </label>
 
@@ -105,7 +105,7 @@ const shown = computed(() =>
                     :key="filter.value ?? 'all'"
                     type="button"
                     :aria-pressed="type === filter.value"
-                    class="flex h-[38px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold whitespace-nowrap"
+                    class="flex h-[38px] shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-label whitespace-nowrap"
                     :class="
                         type === filter.value
                             ? 'border-action bg-action text-on-action'
@@ -142,7 +142,7 @@ const shown = computed(() =>
                     </template>
                 </FmRow>
             </div>
-            <p v-else class="m-0 px-1 text-[15px] text-ink-soft">
+            <p v-else class="m-0 px-1 text-body-sm text-ink-soft">
                 {{ $t('No organization matches.') }}
             </p>
         </template>

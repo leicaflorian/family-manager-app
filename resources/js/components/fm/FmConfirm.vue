@@ -42,7 +42,7 @@ const open = defineModel<boolean>('open', { default: false });
 
 <template>
     <FmBottomSheet v-model:open="open" :title="question" above>
-        <p class="m-0 text-base leading-normal text-ink-soft">{{ text }}</p>
+        <p class="m-0 text-body text-ink-soft">{{ text }}</p>
         <div class="flex flex-wrap justify-end gap-2.5">
             <FmButton variant="text" data-autofocus @click="open = false">{{
                 cancelLabel ?? $t('Cancel')

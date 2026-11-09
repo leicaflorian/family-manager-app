@@ -126,7 +126,7 @@ useSaveShortcut(save, () => !form.processing);
                     :options="types"
                     options-class="$reset m-0 flex list-none flex-wrap gap-2 p-0"
                     option-class="$reset"
-                    input-class="$reset h-10 cursor-pointer rounded-full border border-edge bg-card px-4 text-[15px] text-ink transition-[background-color,border-color,color] duration-150 ease-out aria-pressed:border-action aria-pressed:bg-action aria-pressed:text-on-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
+                    input-class="$reset h-10 cursor-pointer rounded-full border border-edge bg-card px-4 text-body-sm text-ink transition-[background-color,border-color,color] duration-150 ease-out aria-pressed:border-action aria-pressed:bg-action aria-pressed:text-on-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
                     :errors="typeErrors"
                 />
                 <div class="grid grid-cols-2 gap-3">

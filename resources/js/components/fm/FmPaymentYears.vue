@@ -71,7 +71,7 @@ function toggle(year: number): void {
             v-if="folded && index > 0"
             type="button"
             :aria-expanded="isOpen(index, year.year)"
-            class="flex w-full cursor-pointer items-center gap-3 border-0 bg-canvas px-4 py-2 text-left text-[15px] font-bold text-ink"
+            class="flex w-full cursor-pointer items-center gap-3 border-0 bg-canvas px-4 py-2 text-left text-row-amount text-ink"
             @click="toggle(year.year)"
         >
             <FmIcon
@@ -82,19 +82,19 @@ function toggle(year: number): void {
             <span class="grow">{{ year.year }}</span>
             <span
                 v-if="counts?.[year.year]"
-                class="text-[13px] font-semibold text-ink-soft"
+                class="text-meta-strong text-ink-soft"
                 >{{ counts[year.year] }}</span
             >
             <span>{{ euro(year.total) }}</span>
         </button>
         <div
             v-else
-            class="flex items-center gap-3 bg-canvas px-4 py-2 text-[15px] font-bold"
+            class="flex items-center gap-3 bg-canvas px-4 py-2 text-row-amount"
         >
             <span class="grow">{{ year.year }}</span>
             <span
                 v-if="counts?.[year.year]"
-                class="text-[13px] font-semibold text-ink-soft"
+                class="text-meta-strong text-ink-soft"
                 >{{ counts[year.year] }}</span
             >
             <span>{{ euro(year.total) }}</span>
@@ -116,19 +116,17 @@ function toggle(year: number): void {
                 :class="linked && rowLink"
             >
                 <span
-                    class="shrink-0 text-[15px] font-semibold"
+                    class="shrink-0 text-row"
                     :class="fullDate ? 'w-24' : 'w-11'"
                     >{{
                         fullDate ? date(payment.date) : shortDate(payment.date)
                     }}</span
                 >
                 <span class="flex min-w-0 grow flex-col gap-0.5">
-                    <span class="truncate text-[15px] font-semibold">{{
-                        payment.title
-                    }}</span>
+                    <span class="truncate text-row">{{ payment.title }}</span>
                     <span
                         v-if="payment.account"
-                        class="truncate text-[13px] text-ink-soft"
+                        class="truncate text-meta text-ink-soft"
                         >{{ payment.account }}</span
                     >
                 </span>
@@ -139,7 +137,7 @@ function toggle(year: number): void {
                     :label="$t('Receipt attached')"
                     class="text-ink-soft"
                 />
-                <span class="shrink-0 text-[15px] font-bold">{{
+                <span class="shrink-0 text-row-amount">{{
                     euro(payment.amount)
                 }}</span>
             </component>

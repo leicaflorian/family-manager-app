@@ -199,14 +199,14 @@ function next(): void {
         >
             <button
                 type="button"
-                class="justify-self-start border-0 bg-transparent p-0 text-base font-semibold text-ink"
+                class="justify-self-start border-0 bg-transparent p-0 text-body-strong text-ink"
                 @click="emit('cancel')"
             >
                 {{ $t('Cancel') }}
             </button>
-            <h1 class="m-0 flex flex-col items-center text-[17px] font-bold">
+            <h1 class="m-0 flex flex-col items-center text-section">
                 <span id="crop-title">{{ title }}</span>
-                <span class="text-xs font-medium text-ink-soft">{{
+                <span class="text-caption text-ink-soft">{{
                     $t(':number of :count', {
                         number: String(position),
                         count: String(count),
@@ -215,7 +215,7 @@ function next(): void {
             </h1>
             <button
                 type="button"
-                class="justify-self-end border-0 bg-transparent p-0 text-base font-bold text-action disabled:text-ink-soft"
+                class="justify-self-end border-0 bg-transparent p-0 text-amount text-action disabled:text-ink-soft"
                 :disabled="busy"
                 @click="next"
             >
@@ -231,7 +231,7 @@ function next(): void {
             <div
                 v-if="busy && dewarp"
                 role="status"
-                class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-camera-bg/80 text-base font-semibold text-ink"
+                class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-camera-bg/80 text-body-strong text-ink"
             >
                 <FmIcon :icon="LoaderCircle" :size="32" class="animate-spin" />
                 {{ $t('Straightening…') }}
@@ -259,22 +259,18 @@ function next(): void {
         >
             <template v-if="wide">
                 <div class="flex flex-col gap-1">
-                    <h1 id="crop-title" class="m-0 text-[22px] font-extrabold">
+                    <h1 id="crop-title" class="m-0 text-stat-lg">
                         {{ title }}
                     </h1>
-                    <span
-                        v-if="count > 1"
-                        class="text-sm font-medium text-ink-soft"
-                        >{{
-                            $t(':number of :count', {
-                                number: String(position),
-                                count: String(count),
-                            })
-                        }}</span
-                    >
+                    <span v-if="count > 1" class="text-body-sm text-ink-soft">{{
+                        $t(':number of :count', {
+                            number: String(position),
+                            count: String(count),
+                        })
+                    }}</span>
                 </div>
                 <span
-                    class="text-[13px] font-bold tracking-[0.3px] text-ink-soft uppercase"
+                    class="text-meta-strong text-ink-soft uppercase"
                     >{{ $t('Cropping') }}</span
                 >
             </template>
@@ -282,7 +278,7 @@ function next(): void {
             <p
                 v-if="note"
                 role="status"
-                class="m-0 text-center text-sm text-ink-soft"
+                class="m-0 text-center text-body-sm text-ink-soft"
                 :class="wide && 'text-left'"
             >
                 {{ note }}
@@ -311,8 +307,8 @@ function next(): void {
                     :disabled="busy || (tool.run === find && searching)"
                     :class="
                         wide
-                            ? 'flex h-12 flex-[1_1_0] items-center justify-center gap-2 rounded-lg border-0 bg-camera-raised px-3 text-[15px] font-semibold whitespace-nowrap text-ink disabled:opacity-60'
-                            : 'flex h-14 min-w-[88px] flex-col items-center justify-center gap-1 border-0 bg-transparent text-[13px] font-semibold text-ink disabled:opacity-60'
+                            ? 'flex h-12 flex-[1_1_0] items-center justify-center gap-2 rounded-lg border-0 bg-camera-raised px-3 text-row whitespace-nowrap text-ink disabled:opacity-60'
+                            : 'flex h-14 min-w-[88px] flex-col items-center justify-center gap-1 border-0 bg-transparent text-meta-strong text-ink disabled:opacity-60'
                     "
                     @click="tool.run"
                 >
@@ -323,7 +319,7 @@ function next(): void {
             <span v-if="wide" class="h-px bg-camera-raised" />
             <span
                 v-if="wide"
-                class="text-[13px] font-bold tracking-[0.3px] text-ink-soft uppercase"
+                class="text-meta-strong text-ink-soft uppercase"
                 >{{ $t('Improve') }}</span
             >
 

@@ -212,7 +212,7 @@ function deleteCategory(): void {
                     :options="places"
                     :errors="errors(form.errors.parent_id)"
                 />
-                <p v-if="note" class="m-0 text-[13px] text-ink-soft">
+                <p v-if="note" class="m-0 text-meta text-ink-soft">
                     {{ note }}
                 </p>
                 <FmNotice v-if="deletion.errors.category" tone="warning">{{

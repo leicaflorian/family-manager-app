@@ -398,8 +398,8 @@ const frame = (chosen: boolean): string =>
                 aria-hidden="true"
                 :class="
                     cn(
-                        'text-[13px] font-medium text-ink-soft',
-                        page.id === selected && 'font-extrabold text-ink',
+                        'text-meta text-ink-soft',
+                        page.id === selected && 'text-meta-strong text-ink',
                     )
                 "
                 >{{ index + 1 }}</span
@@ -415,7 +415,7 @@ const frame = (chosen: boolean): string =>
         </button>
         <span
             v-if="orientation === 'column'"
-            class="max-w-[100px] text-center text-xs text-ink-soft"
+            class="max-w-[100px] text-center text-caption text-ink-soft"
             >{{ $t('Drag to reorder') }}</span
         >
     </nav>

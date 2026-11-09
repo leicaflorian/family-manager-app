@@ -114,7 +114,7 @@ const actions = computed((): Action[] => [
     <div class="flex max-w-[1120px] flex-col gap-5">
         <Link
             :href="index().url"
-            class="flex items-center gap-1.5 self-start text-[15px] font-semibold no-underline"
+            class="flex items-center gap-1.5 self-start text-row no-underline"
         >
             <FmIcon :icon="ChevronLeft" :size="18" />
             {{ $t('People') }}
@@ -130,12 +130,10 @@ const actions = computed((): Action[] => [
                     :size="64"
                 />
                 <div class="flex flex-col gap-1">
-                    <h1
-                        class="m-0 text-[26px] leading-tight font-extrabold lg:text-[32px]"
-                    >
+                    <h1 class="m-0 text-title-mobile lg:text-title">
                         {{ name }}
                     </h1>
-                    <span class="text-[15px] text-ink-soft">{{
+                    <span class="text-body-sm text-ink-soft">{{
                         personSubtitle(person)
                     }}</span>
                 </div>
@@ -188,7 +186,7 @@ const actions = computed((): Action[] => [
                     />
                     <p
                         v-if="personal.length === 0"
-                        class="m-0 text-[15px] text-ink-soft"
+                        class="m-0 text-body-sm text-ink-soft"
                     >
                         {{ $t('No personal documents yet.') }}
                     </p>
@@ -211,7 +209,7 @@ const actions = computed((): Action[] => [
             <div class="flex min-w-0 flex-col gap-5">
                 <div class="rounded-card-lg bg-card p-5">
                     <dl
-                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
+                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-body-sm"
                     >
                         <dt class="text-ink-soft">{{ $t('Role') }}</dt>
                         <dd class="m-0 font-semibold">
@@ -266,7 +264,7 @@ const actions = computed((): Action[] => [
                 </FmCard>
                 <FmCard v-if="person.notes" :title="$t('Notes')">
                     <p
-                        class="m-0 text-[15px] leading-normal whitespace-pre-line text-ink-soft"
+                        class="m-0 text-body-sm whitespace-pre-line text-ink-soft"
                     >
                         {{ person.notes }}
                     </p>

@@ -364,7 +364,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
             />
         </DefineOrganization>
         <div class="flex items-center justify-between gap-3">
-            <h2 class="m-0 text-xl font-extrabold">{{ heading }}</h2>
+            <h2 class="m-0 text-stat">{{ heading }}</h2>
             <button
                 v-if="compact"
                 type="button"
@@ -436,7 +436,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 />
                 <ReuseOrganization v-if="!expense" />
             </div>
-            <p v-if="expense" class="m-0 -mt-1 text-[13px] text-ink-soft">
+            <p v-if="expense" class="m-0 -mt-1 text-meta text-ink-soft">
                 {{ $t('The commission is already included in the amount.') }}
             </p>
             <FormKit
@@ -517,7 +517,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
             v-if="movement && movement.documents.length > 0"
             class="flex flex-col gap-1.5"
         >
-            <span class="text-[13px] font-semibold text-ink-soft">{{
+            <span class="text-meta-strong text-ink-soft">{{
                 $t('Documents')
             }}</span>
             <div

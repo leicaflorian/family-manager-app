@@ -15,10 +15,10 @@ const { title, subtitle } = defineProps<{
 
 <template>
     <div class="flex flex-col gap-2">
-        <h1 class="m-0 text-[28px] font-extrabold lg:text-[30px]">
+        <h1 class="m-0 text-title-mobile lg:text-title">
             {{ title }}
         </h1>
-        <p v-if="subtitle" class="m-0 text-base leading-[1.45] text-ink-soft">
+        <p v-if="subtitle" class="m-0 text-body text-ink-soft">
             {{ subtitle }}
         </p>
     </div>

@@ -44,7 +44,7 @@ defineSlots<{
         >
             <h2
                 v-if="title"
-                class="m-0 flex items-center gap-2 text-[17px] font-bold"
+                class="m-0 flex items-center gap-2 text-section"
                 :class="tone === 'overdue' && 'text-overdue'"
             >
                 <FmIcon
@@ -67,12 +67,12 @@ defineSlots<{
                     ? 'divide-y divide-divider rounded-card'
                     : 'gap-3.5 rounded-card-lg p-5',
                 tone === 'overdue' &&
-                    'shadow-[inset_0_0_0_1.5px_var(--overdue-edge)]',
+                    'inset-ring-[1.5px] inset-ring-overdue-edge',
             ]"
         >
             <slot />
         </div>
-        <p v-if="$slots.note" class="m-0 px-1 text-[13px] text-ink-soft">
+        <p v-if="$slots.note" class="m-0 px-1 text-meta text-ink-soft">
             <slot name="note" />
         </p>
     </section>

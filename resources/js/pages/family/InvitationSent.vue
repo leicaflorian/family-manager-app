@@ -65,9 +65,14 @@ async function copy(): Promise<void> {
             <FmButton :icon="copied ? Check : Copy" @click="copy">{{
                 copied ? $t('Copied') : $t('Copy the link')
             }}</FmButton>
-            <span v-if="copyFailed" role="status" class="self-center text-sm">{{
-                $t('Could not copy: select the text and copy it by hand.')
-            }}</span>
+            <span
+                v-if="copyFailed"
+                role="status"
+                class="self-center text-body-sm"
+                >{{
+                    $t('Could not copy: select the text and copy it by hand.')
+                }}</span
+            >
             <FmButton variant="text" :href="family().url">{{
                 $t('Back to the family')
             }}</FmButton>

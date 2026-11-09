@@ -34,6 +34,6 @@ describe('FmSearchField', () => {
         expect(
             screen.getByRole('searchbox', { name: 'Search a reminder' })
                 .parentElement,
-        ).toHaveClass('h-9', 'text-sm');
+        ).toHaveClass('h-9', 'text-body-sm');
     });
 });

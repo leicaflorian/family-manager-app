@@ -85,7 +85,7 @@ describe('FmMenu', () => {
 
         const button = screen.getByRole('button', { name: 'Record payment' });
         expect(button).toHaveTextContent('Record payment');
-        expect(button).toHaveClass('font-normal', 'hover:underline');
+        expect(button).toHaveClass('text-body', 'hover:underline');
         await userEvent.click(button);
         expect(
             await screen.findByRole('menuitem', { name: 'Rename' }),

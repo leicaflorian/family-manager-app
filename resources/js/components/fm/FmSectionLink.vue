@@ -35,7 +35,7 @@ defineSlots<{
 
 /** The look of the link, the same as a link and as a button. */
 const classes = cn(
-    'inline-flex shrink-0 items-center gap-2 rounded-sm text-base font-normal whitespace-nowrap text-action underline-offset-2 hover:text-action-dark hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
+    'inline-flex shrink-0 items-center gap-2 rounded-sm text-body whitespace-nowrap text-action underline-offset-2 hover:text-action-dark hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
 );
 </script>
 

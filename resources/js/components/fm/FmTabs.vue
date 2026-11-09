@@ -47,7 +47,7 @@ const {
 function tabClasses(marked: boolean, disabled = false): string {
     if (variant === 'pill') {
         return cn(
-            'flex h-10 flex-1 items-center justify-center gap-1 rounded-[9px] text-[15px] no-underline',
+            'flex h-10 flex-1 items-center justify-center gap-1 rounded-tag text-body-sm no-underline',
             marked
                 ? 'bg-card font-bold text-ink shadow-raised'
                 : cn(
@@ -58,7 +58,7 @@ function tabClasses(marked: boolean, disabled = false): string {
     }
 
     return cn(
-        'flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 px-3 text-[15px] no-underline',
+        'flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 px-3 text-body-sm no-underline',
         marked
             ? 'border-action font-bold text-action-dark'
             : cn(

@@ -275,7 +275,9 @@ function rowHref(document: App.Data.DocumentData): string {
                 </div>
 
                 <template v-if="documents.length > 0">
-                    <span class="mx-1 text-sm text-ink-soft">{{ count }}</span>
+                    <span class="mx-1 text-body-sm text-ink-soft">{{
+                        count
+                    }}</span>
                     <FmCard list>
                         <FmDocumentRow
                             v-for="document in documents"

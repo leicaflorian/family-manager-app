@@ -85,10 +85,8 @@ function save(): void {
         :title="$t('Postpone')"
     >
         <div class="flex flex-col rounded-card bg-canvas p-3.5">
-            <span class="truncate text-base font-bold">{{
-                reminder.title
-            }}</span>
-            <span class="truncate text-[13px] text-ink-soft">{{
+            <span class="truncate text-amount">{{ reminder.title }}</span>
+            <span class="truncate text-meta text-ink-soft">{{
                 [reminder.subject?.label, formatDate(reminder.due_date)]
                     .filter(Boolean)
                     .join(' · ')

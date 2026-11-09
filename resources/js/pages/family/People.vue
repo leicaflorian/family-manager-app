@@ -68,7 +68,7 @@ const { people, family, canEdit } = defineProps<{
                     />
                 </template>
                 <template #after>
-                    <span class="text-[13px] font-normal text-ink-soft">{{
+                    <span class="text-meta text-ink-soft">{{
                         $t(':count doc.', {
                             count: String(person.documents_count),
                         })
@@ -94,17 +94,17 @@ const { people, family, canEdit } = defineProps<{
                         :size="56"
                     />
                     <span class="flex flex-col gap-0.5">
-                        <span class="text-lg font-extrabold"
+                        <span class="text-subtitle"
                             >{{ person.first_name }}
                             {{ person.last_name }}</span
                         >
-                        <span class="text-sm text-ink-soft">{{
+                        <span class="text-body-sm text-ink-soft">{{
                             personSubtitle(person)
                         }}</span>
                     </span>
                 </span>
                 <span
-                    class="text-sm font-semibold"
+                    class="text-label"
                     :class="
                         person.account_label ? 'text-paid' : 'text-ink-soft'
                     "
@@ -112,18 +112,18 @@ const { people, family, canEdit } = defineProps<{
                 >
                 <span class="flex gap-6 border-t border-divider pt-3">
                     <span class="flex flex-col">
-                        <span class="text-[22px] font-extrabold">{{
+                        <span class="text-stat-lg">{{
                             person.documents_count
                         }}</span>
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-meta text-ink-soft">{{
                             $t('documents')
                         }}</span>
                     </span>
                     <span class="flex flex-col">
-                        <span class="text-[22px] font-extrabold">{{
+                        <span class="text-stat-lg">{{
                             person.records_count
                         }}</span>
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-meta text-ink-soft">{{
                             $t('records')
                         }}</span>
                     </span>
@@ -142,10 +142,10 @@ const { people, family, canEdit } = defineProps<{
                 <FmIcon :icon="UserPlus" :size="22" />
             </span>
             <span class="flex grow flex-col gap-0.5">
-                <span class="text-base font-bold">{{
+                <span class="text-amount">{{
                     $t('Invite a family member')
                 }}</span>
-                <span class="text-[13px] text-ink-soft">{{
+                <span class="text-meta text-ink-soft">{{
                     $t('They get an email to join the family')
                 }}</span>
             </span>

@@ -78,7 +78,7 @@ function logIn(): void {
             <Link
                 v-if="canResetPassword"
                 :href="request()"
-                class="text-[15px] font-semibold text-action"
+                class="text-row text-action"
             >
                 {{ $t('Forgot your password?') }}
             </Link>

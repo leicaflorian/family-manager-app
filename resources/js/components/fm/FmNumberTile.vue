@@ -31,12 +31,10 @@ const hint = computed((): string | null =>
 
 <template>
     <div class="flex min-w-0 flex-col gap-1 rounded-card bg-card p-4">
-        <span class="text-[13px] font-semibold text-ink-soft">{{
-            number.label
-        }}</span>
-        <span class="text-lg font-bold whitespace-nowrap text-ink">{{
+        <span class="text-meta-strong text-ink-soft">{{ number.label }}</span>
+        <span class="text-subtitle whitespace-nowrap text-ink">{{
             value
         }}</span>
-        <span v-if="hint" class="text-sm text-ink-soft">{{ hint }}</span>
+        <span v-if="hint" class="text-body-sm text-ink-soft">{{ hint }}</span>
     </div>
 </template>

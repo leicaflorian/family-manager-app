@@ -49,7 +49,7 @@ const emit = defineEmits<{
             done
         }}</FmNotice>
         <div v-if="sending" role="status" class="flex flex-col gap-1.5">
-            <span class="text-sm text-ink-soft">{{ progressText }}</span>
+            <span class="text-body-sm text-ink-soft">{{ progressText }}</span>
             <progress
                 class="h-2 w-full accent-action"
                 max="100"

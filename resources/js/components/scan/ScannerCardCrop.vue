@@ -255,7 +255,7 @@ function done(): void {
                 </div>
             </div>
 
-            <p class="m-0 text-sm text-ink-soft">
+            <p class="m-0 text-body-sm text-ink-soft">
                 {{
                     $t(
                         'Drag the corners onto the edge of the card. It always starts from the side of the scanner: doing it again does not spoil it.',
@@ -263,11 +263,11 @@ function done(): void {
                 }}
             </p>
 
-            <div class="flex items-baseline justify-between gap-3 text-sm">
+            <div class="flex items-baseline justify-between gap-3 text-body-sm">
                 <span class="font-bold">{{ $t('Size') }}</span>
                 <span class="tabular-nums" data-crop-size>{{ sizeText }}</span>
             </div>
-            <span class="-mt-3 text-sm text-ink-soft">{{
+            <span class="-mt-3 text-body-sm text-ink-soft">{{
                 $t('A card is 85,6 × 54,0 mm')
             }}</span>
 
@@ -281,7 +281,7 @@ function done(): void {
                 :nudge="0.1"
                 @update:model-value="setAngle"
             />
-            <span class="-mt-2 text-sm text-ink-soft">{{
+            <span class="-mt-2 text-body-sm text-ink-soft">{{
                 $t('Turns the side under the box, if the card lay crooked')
             }}</span>
 

@@ -94,11 +94,11 @@ function dropped(event: DragEvent): void {
             :size="compact ? 22 : 40"
             class="text-action"
         />
-        <span class="text-base font-semibold text-ink">{{ label }}</span>
-        <span class="text-sm">{{
+        <span class="text-body-strong text-ink">{{ label }}</span>
+        <span class="text-body-sm">{{
             $t('PDF, JPG, PNG or HEIC, up to 25 MB each')
         }}</span>
-        <span v-if="processing" class="text-sm font-semibold text-action">{{
+        <span v-if="processing" class="text-label text-action">{{
             $t('Uploading…')
         }}</span>
         <input

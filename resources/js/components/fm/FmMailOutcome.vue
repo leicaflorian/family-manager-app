@@ -33,7 +33,7 @@ const styles: Record<MailTone, { classes: string; icon: LucideIcon }> = {
 
 <template>
     <span
-        class="inline-flex items-center gap-[5px] rounded-tag px-2 py-[3px] text-[13px] font-semibold whitespace-nowrap"
+        class="inline-flex items-center gap-[5px] rounded-tag px-2 py-[3px] text-meta-strong whitespace-nowrap"
         :class="styles[tone].classes"
     >
         <FmIcon :icon="styles[tone].icon" :size="14" />

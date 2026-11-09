@@ -49,7 +49,7 @@ watch(() => props.stream, show);
             playsinline
             class="max-h-[70dvh] max-w-full rounded-lg bg-camera-surface"
         />
-        <p role="status" class="m-0 text-center text-sm text-ink-soft">
+        <p role="status" class="m-0 text-center text-body-sm text-ink-soft">
             {{
                 stream
                     ? $t(

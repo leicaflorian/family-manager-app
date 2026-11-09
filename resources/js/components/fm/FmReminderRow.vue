@@ -86,7 +86,7 @@ const tile = computed(() =>
 
 /** The classes of a grey label, as *Written by hand*. */
 const label = cn(
-    'inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg bg-divider px-2 text-xs font-semibold whitespace-nowrap text-ink-soft',
+    'inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg bg-divider px-2 text-caption whitespace-nowrap text-ink-soft',
 );
 
 /**
@@ -103,7 +103,7 @@ function toggleDone(event: Event): void {
 /** The classes of the day: red once late. */
 const dayClass = computed(() =>
     cn(
-        'text-sm font-semibold whitespace-nowrap tabular-nums',
+        'text-label whitespace-nowrap tabular-nums',
         late.value ? 'text-overdue' : 'text-ink',
     ),
 );
@@ -138,12 +138,12 @@ const dayClass = computed(() =>
             >
                 <Link
                     :href="reminder.href"
-                    class="text-[15px] leading-[1.3] font-semibold text-inherit no-underline @4xl/reminder:text-base"
+                    class="text-row text-inherit no-underline @4xl/reminder:text-body-strong"
                     :class="reminder.done && 'text-ink-soft line-through'"
                     >{{ reminder.title }}</Link
                 >
                 <span
-                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] text-ink-soft @4xl/reminder:text-sm"
+                    class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-meta text-ink-soft @4xl/reminder:text-body-sm"
                 >
                     <Link
                         v-if="reminder.subject?.href"
@@ -200,7 +200,7 @@ const dayClass = computed(() =>
 
             <!-- Said to screen readers always, seen only on a wide list -->
             <span
-                class="sr-only text-sm text-ink-soft @4xl/reminder:not-sr-only @4xl/reminder:flex @4xl/reminder:w-[104px] @4xl/reminder:shrink-0 @4xl/reminder:items-center @4xl/reminder:gap-2"
+                class="sr-only text-body-sm text-ink-soft @4xl/reminder:not-sr-only @4xl/reminder:flex @4xl/reminder:w-[104px] @4xl/reminder:shrink-0 @4xl/reminder:items-center @4xl/reminder:gap-2"
             >
                 <template v-if="reminder.person">
                     <FmAvatar
@@ -240,9 +240,9 @@ const dayClass = computed(() =>
                 }}</span>
                 <span
                     v-if="!reminder.done"
-                    class="text-xs whitespace-nowrap @4xl/reminder:text-[13px]"
+                    class="text-meta whitespace-nowrap"
                     :class="
-                        late ? 'font-semibold text-overdue' : 'text-ink-soft'
+                        late ? 'text-meta-strong text-overdue' : 'text-ink-soft'
                     "
                     >{{ relativeDays(reminder.due_date) }}</span
                 >
@@ -257,7 +257,7 @@ const dayClass = computed(() =>
                     <template v-if="!reminder.done">
                         <span
                             v-if="reminder.next_notice_on"
-                            class="inline-flex h-6 items-center gap-[5px] rounded-lg bg-action-soft px-2 text-xs font-semibold whitespace-nowrap text-action-dark"
+                            class="inline-flex h-6 items-center gap-[5px] rounded-lg bg-action-soft px-2 text-caption whitespace-nowrap text-action-dark"
                             ><FmIcon :icon="Bell" :size="13" />{{
                                 $t('Notice on :date', {
                                     date: shortDate(reminder.next_notice_on),
@@ -266,7 +266,7 @@ const dayClass = computed(() =>
                         >
                         <span
                             v-else
-                            class="flex items-center gap-[5px] text-xs text-ink-soft @4xl/reminder:gap-1.5 @4xl/reminder:text-[13px]"
+                            class="flex items-center gap-[5px] text-caption text-ink-soft @4xl/reminder:gap-1.5 @4xl/reminder:text-meta"
                             ><FmIcon :icon="BellOff" :size="14" />{{
                                 $t('No other notice')
                             }}</span
@@ -280,7 +280,7 @@ const dayClass = computed(() =>
                     <button
                         v-if="reminder.done"
                         type="button"
-                        class="min-h-11 cursor-pointer border-0 bg-transparent p-0 text-sm font-semibold text-action-dark"
+                        class="min-h-11 cursor-pointer border-0 bg-transparent p-0 text-label text-action-dark"
                         @click="emit('reopen')"
                     >
                         {{ $t('Reopen') }}
@@ -305,7 +305,7 @@ const dayClass = computed(() =>
                             "
                         >
                             <DropdownMenuLabel
-                                class="px-3 pt-1.5 pb-1 text-[13px] font-bold text-ink-soft"
+                                class="px-3 pt-1.5 pb-1 text-meta-strong text-ink-soft"
                                 >{{ $t('Postpone') }}</DropdownMenuLabel
                             >
                             <ReusePostpone />
@@ -341,7 +341,7 @@ const dayClass = computed(() =>
                             </template>
                         </FmMenu>
                         <label
-                            class="relative flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-ink-soft"
+                            class="relative flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-body-sm text-ink-soft"
                         >
                             <input
                                 type="checkbox"

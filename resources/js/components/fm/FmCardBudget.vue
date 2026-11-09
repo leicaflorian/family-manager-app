@@ -113,7 +113,7 @@ const progressWidth = computed((): string =>
 /** The classes of the line of the box: red when late. */
 const nextLineClass = computed((): string =>
     cn(
-        'text-sm',
+        'text-body-sm',
         next.value?.late ? 'font-semibold text-overdue' : 'text-ink-soft',
     ),
 );
@@ -125,12 +125,12 @@ const nextLineClass = computed((): string =>
         :href="nextUrl"
         class="flex flex-col gap-1 rounded-card bg-card p-4 text-ink no-underline hover:bg-card/80"
     >
-        <span class="text-[13px] font-semibold text-ink-soft">{{
+        <span class="text-meta-strong text-ink-soft">{{
             budget.next_label
         }}</span>
         <span class="flex items-baseline justify-between gap-3">
-            <span class="min-w-0 text-lg font-bold">{{ nextTitle }}</span>
-            <span class="shrink-0 text-lg font-extrabold">
+            <span class="min-w-0 text-subtitle">{{ nextTitle }}</span>
+            <span class="shrink-0 text-subtitle">
                 <FmAmount
                     :amount="next.amount"
                     :base="next.base_amount"
@@ -159,10 +159,10 @@ const nextLineClass = computed((): string =>
         class="flex flex-col gap-2 rounded-card bg-card p-4"
     >
         <span class="flex items-baseline justify-between gap-3">
-            <span class="text-[13px] font-semibold text-ink-soft">{{
+            <span class="text-meta-strong text-ink-soft">{{
                 $t('Instalments paid')
             }}</span>
-            <span class="text-[15px] font-bold">{{
+            <span class="text-row-amount">{{
                 $t(':paid of :count', {
                     paid: String(progress.paid),
                     count: String(progress.count),
@@ -182,7 +182,7 @@ const nextLineClass = computed((): string =>
                 :style="{ width: progressWidth }"
             />
         </div>
-        <span class="flex justify-between gap-3 text-[13px] text-ink-soft">
+        <span class="flex justify-between gap-3 text-meta text-ink-soft">
             <span v-if="budget.paid_amount !== null">{{
                 $t('Paid :amount', { amount: euro(budget.paid_amount) })
             }}</span>
@@ -201,7 +201,7 @@ const nextLineClass = computed((): string =>
         />
         <p
             v-if="budget.due.length === 0"
-            class="m-0 px-4 py-3 text-[15px] text-ink-soft"
+            class="m-0 px-4 py-3 text-body-sm text-ink-soft"
         >
             {{ $t('Nothing to pay in the next 30 days.') }}
         </p>

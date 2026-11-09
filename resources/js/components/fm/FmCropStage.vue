@@ -444,14 +444,14 @@ onBeforeUnmount(endPeek);
                 </template>
                 <span
                     v-if="peeking"
-                    class="dark pointer-events-none absolute top-3 left-3 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold text-ink"
+                    class="dark pointer-events-none absolute top-3 left-3 rounded-tag bg-camera-bg px-2.5 py-1 text-caption text-ink"
                     >{{ $t('Original') }}</span
                 >
                 <slot />
             </div>
         </div>
         <!-- on the dark of the camera in both themes: the tokens of the dark theme give it a light grey -->
-        <p v-if="editing" class="dark text-center text-sm text-ink-soft">
+        <p v-if="editing" class="dark text-center text-body-sm text-ink-soft">
             {{ $t('Drag the corners to the edges of the sheet') }}
         </p>
     </div>

@@ -91,7 +91,7 @@ const onColor = useOnColor();
 const classes = computed((): string =>
     cn(
         // Every variant has the same size: two buttons side by side must match
-        'inline-flex shrink-0 items-center justify-center gap-2 text-base whitespace-nowrap transition-colors',
+        'inline-flex shrink-0 items-center justify-center gap-2 text-body whitespace-nowrap transition-colors',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
         'disabled:cursor-not-allowed disabled:border-0 disabled:bg-edge disabled:text-ink-soft',
         // With a text the height follows the panel; the icon squares do not

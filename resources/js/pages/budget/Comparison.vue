@@ -85,7 +85,7 @@ const tile = cn('flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4');
         <FmTabs :tabs="budgetTabs('comparison')" :label="$t('Budget')" />
 
         <FmMonthSwitch :month="comparison.month" @change="go" />
-        <p v-if="daysLeft" class="m-0 text-[15px] text-ink-soft">
+        <p v-if="daysLeft" class="m-0 text-body-sm text-ink-soft">
             {{ daysLeft }}
         </p>
 
@@ -93,38 +93,34 @@ const tile = cn('flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4');
             :class="cn('grid gap-2.5', desktop ? 'grid-cols-3' : 'grid-cols-2')"
         >
             <div :class="tile">
-                <span class="text-[13px] text-ink-soft">{{
-                    $t('Planned')
-                }}</span>
-                <span class="text-lg font-extrabold lg:text-xl">{{
+                <span class="text-meta text-ink-soft">{{ $t('Planned') }}</span>
+                <span class="text-subtitle lg:text-stat">{{
                     euro(comparison.planned)
                 }}</span>
-                <span class="text-[13px] text-ink-soft">{{ outgoing }}</span>
+                <span class="text-meta text-ink-soft">{{ outgoing }}</span>
             </div>
             <div :class="tile">
-                <span class="text-[13px] text-ink-soft">{{
+                <span class="text-meta text-ink-soft">{{
                     $t('Spent so far')
                 }}</span>
                 <span
                     :class="
                         cn(
-                            'text-lg font-extrabold lg:text-xl',
+                            'text-subtitle lg:text-stat',
                             comparison.spent > comparison.planned &&
                                 'text-overdue',
                         )
                     "
                     >{{ euro(comparison.spent) }}</span
                 >
-                <span class="text-[13px] text-ink-soft">{{ difference }}</span>
+                <span class="text-meta text-ink-soft">{{ difference }}</span>
             </div>
             <div v-if="desktop" :class="tile">
-                <span class="text-[13px] text-ink-soft">{{
-                    $t('Income')
-                }}</span>
-                <span class="text-lg font-extrabold text-paid lg:text-xl">{{
+                <span class="text-meta text-ink-soft">{{ $t('Income') }}</span>
+                <span class="text-subtitle text-paid lg:text-stat">{{
                     euro(comparison.incomes)
                 }}</span>
-                <span class="text-[13px] text-ink-soft">{{
+                <span class="text-meta text-ink-soft">{{
                     $t('of :amount planned', {
                         amount: euro(comparison.incomes_planned),
                     })
@@ -172,7 +168,7 @@ const tile = cn('flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4');
                 />
             </FmCard>
 
-            <p class="order-4 m-0 text-[13px] text-ink-soft">
+            <p class="order-4 m-0 text-meta text-ink-soft">
                 {{
                     $t(
                         'The plan comes from the planned expenses, with their exceptions; what was spent is the expenses dated in the month, even the ones that were not planned.',

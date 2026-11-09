@@ -102,7 +102,7 @@ const confirmingDelete = ref(false);
                 </div>
                 <p
                     v-else-if="reading.unavailable && !running"
-                    class="m-0 text-sm text-ink-soft"
+                    class="m-0 text-body-sm text-ink-soft"
                 >
                     {{ reading.unavailable }}
                 </p>

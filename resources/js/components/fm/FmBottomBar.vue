@@ -64,7 +64,7 @@ const moreActive = computed((): boolean =>
  */
 function itemClasses(marked: boolean): string {
     return cn(
-        'flex min-h-13 flex-col items-center justify-center gap-1 text-xs no-underline',
+        'flex min-h-13 flex-col items-center justify-center gap-1 text-badge no-underline',
         marked ? 'font-semibold text-action' : 'font-medium text-ink-soft',
     );
 }
@@ -92,7 +92,7 @@ function itemClasses(marked: boolean): string {
                     <span
                         v-if="uploadCount > 0"
                         aria-hidden="true"
-                        class="absolute -top-1 -right-1 min-w-5 rounded-full bg-overdue px-1 text-center text-xs font-semibold text-on-action"
+                        class="absolute -top-1 -right-1 min-w-5 rounded-full bg-overdue px-1 text-center text-badge text-on-action"
                         >{{ uploadBadge }}</span
                     >
                 </Link>
@@ -140,7 +140,7 @@ function itemClasses(marked: boolean): string {
                 :href="items.logout"
                 method="post"
                 as="button"
-                class="flex min-h-13 items-center gap-3 px-4 text-left text-base font-semibold text-overdue"
+                class="flex min-h-13 items-center gap-3 px-4 text-left text-body-strong text-overdue"
             >
                 <FmIcon :icon="LogOut" :size="22" />
                 {{ $t('Log out') }}

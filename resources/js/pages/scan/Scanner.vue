@@ -300,10 +300,10 @@ async function upload(): Promise<void> {
             :href="toSort().url"
             >{{ $t('Cancel') }}</FmButton
         >
-        <h1 class="m-0 font-bold" :class="wide ? 'text-lg' : 'text-[17px]'">
+        <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
             {{ $t('Scan the sheets') }}
         </h1>
-        <span class="justify-self-end text-[15px] text-ink-soft">{{
+        <span class="justify-self-end text-body-sm text-ink-soft">{{
             count
         }}</span>
     </header>
@@ -390,8 +390,8 @@ async function upload(): Promise<void> {
                 "
             >
                 <FmIcon :icon="FileText" :size="36" class="text-ink-soft" />
-                <span class="text-base font-bold">{{ $t('No pages') }}</span>
-                <span class="text-sm text-ink-soft">{{
+                <span class="text-amount">{{ $t('No pages') }}</span>
+                <span class="text-body-sm text-ink-soft">{{
                     $t(
                         'Put the sheets in the feeder of the scanner and press Start scanning: they all go through, front and back.',
                     )
@@ -455,7 +455,7 @@ async function upload(): Promise<void> {
                                 "
                             >
                                 <span
-                                    class="absolute top-1 left-1 rounded-tag bg-action px-1.5 text-xs font-bold text-on-action"
+                                    class="absolute top-1 left-1 rounded-tag bg-action px-1.5 text-badge text-on-action"
                                     >{{ index + 1 }}</span
                                 >
                             </button>
@@ -463,7 +463,7 @@ async function upload(): Promise<void> {
                     </div>
                     <span
                         v-if="scanner.chosen.value.working"
-                        class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-on-action"
+                        class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-tag bg-camera-bg px-2.5 py-1 text-caption whitespace-nowrap text-on-action"
                         >{{ $t('Making the page…') }}</span
                     >
                 </div>
@@ -550,7 +550,7 @@ async function upload(): Promise<void> {
                 v-if="scanner.aside.value.length > 0"
                 class="flex w-full max-w-[420px] flex-col gap-2"
             >
-                <h2 class="m-0 text-sm font-bold text-ink-soft">
+                <h2 class="m-0 text-label text-ink-soft">
                     {{ $t('Sides put aside: they do not go in the PDF') }}
                 </h2>
                 <ul class="m-0 flex list-none flex-wrap gap-3 p-0">
@@ -564,7 +564,7 @@ async function upload(): Promise<void> {
                             :alt="$t('Side put aside')"
                             class="h-[110px] w-[78px] rounded-tag border border-edge-soft bg-card object-contain"
                         />
-                        <span class="text-xs text-ink-soft">{{
+                        <span class="text-caption text-ink-soft">{{
                             side.aside === 'blank'
                                 ? $t('blank')
                                 : $t('taken away')
@@ -752,7 +752,7 @@ async function upload(): Promise<void> {
                 />
                 <span
                     v-if="scanner.kept.value.length > 0"
-                    class="text-sm text-ink-soft"
+                    class="text-body-sm text-ink-soft"
                     data-weight
                     >{{ weightText }}</span
                 >
@@ -762,7 +762,7 @@ async function upload(): Promise<void> {
 
             <span
                 v-if="connected"
-                class="flex items-center gap-2 text-sm text-ink-soft"
+                class="flex items-center gap-2 text-body-sm text-ink-soft"
                 role="status"
             >
                 <FmIcon :icon="stateIcon" :size="18" />

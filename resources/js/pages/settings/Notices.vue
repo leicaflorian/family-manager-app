@@ -422,10 +422,10 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
                     </div>
                 </template>
                 <template v-else>
-                    <p class="m-0 text-[13px] text-ink-soft">
+                    <p class="m-0 text-meta text-ink-soft">
                         <span
                             v-if="draft.is_default"
-                            class="mr-2 rounded-full bg-action-soft px-2 py-0.5 text-xs font-semibold text-action-dark"
+                            class="mr-2 rounded-full bg-action-soft px-2 py-0.5 text-caption text-action-dark"
                             >{{ $t('Default') }}</span
                         >{{ kindsText(draft) }}
                     </p>
@@ -434,10 +434,7 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
                             {{ ruleText(rule, people) }}
                         </li>
                     </ul>
-                    <p
-                        v-if="draft.example"
-                        class="m-0 text-[13px] text-ink-soft"
-                    >
+                    <p v-if="draft.example" class="m-0 text-meta text-ink-soft">
                         {{ draft.example }}
                     </p>
                 </template>
@@ -486,7 +483,7 @@ useSaveShortcut(save, () => page.can_change && !saving.value);
             }}</FmButton>
         </div>
 
-        <p class="m-0 text-[13px] text-ink-soft">
+        <p class="m-0 text-meta text-ink-soft">
             {{
                 page.without_account.length === 0
                     ? $t(

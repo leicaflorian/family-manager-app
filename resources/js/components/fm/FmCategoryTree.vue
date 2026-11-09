@@ -132,7 +132,7 @@ function toggle(id: number): void {
                         <slot name="after" :category="category">
                             <span
                                 v-if="'documents_count' in category"
-                                class="text-[13px] font-normal text-ink-soft"
+                                class="text-meta text-ink-soft"
                                 >{{ category.documents_count }}</span
                             >
                         </slot>
