@@ -42,13 +42,13 @@ final class ScanFileName
     }
 
     /**
-     * The name written, without a final `.pdf` and the signs a file name cannot hold, with single spaces.
+     * The name written, without a final `.pdf`, the signs a file name cannot hold and control characters, with single spaces.
      *
      * @param  string  $written  the name as written
      */
     private static function clean(string $written): string
     {
-        $name = preg_replace(['/\.pdf$/i', '/[\\\\\/:*?"<>|]+/', '/\s+/'], ['', ' ', ' '], $written);
+        $name = preg_replace(['/\.pdf$/i', '/[\\\\\/:*?"<>|]+/', '/\p{C}+/u', '/\s+/'], ['', ' ', ' ', ' '], $written);
 
         return trim((string) $name);
     }

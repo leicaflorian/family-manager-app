@@ -75,3 +75,15 @@ export async function takeShared(
 
     return files;
 }
+
+/**
+ * Forgets the files shared and not taken. The cache belongs to the device, not to the account, so it is emptied
+ * when someone signs out or in: the next person must not find a file of the one before in their scan.
+ *
+ * @param storage - the cache storage of the browser; undefined where it has none
+ */
+export async function forgetShared(
+    storage: CacheStorage | undefined,
+): Promise<void> {
+    await storage?.delete(SHARED_CACHE);
+}

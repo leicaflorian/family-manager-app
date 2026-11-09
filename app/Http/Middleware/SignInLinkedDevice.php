@@ -9,6 +9,7 @@ use App\Services\PhoneLinks;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -40,6 +41,9 @@ final readonly class SignInLinkedDevice
 
             if ($device instanceof LinkedDevice) {
                 $this->links->signIn($device, $request);
+            } else {
+                // Forgotten or expired: the cookie is of no use any more, so it stops costing a query at every request
+                Cookie::queue(Cookie::forget(PhoneLinks::COOKIE));
             }
         }
 

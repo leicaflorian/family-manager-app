@@ -64,6 +64,21 @@ final class LinkedDevice extends FamilyModel
     }
 
     /**
+     * Whether a phone is still linked (not forgotten, not expired). It runs outside the scope of the family, like
+     * `findByToken`: the middleware that asks is before any family is in use.
+     *
+     * @param  int  $id  the id kept in the session of the phone
+     */
+    public static function isActive(int $id): bool
+    {
+        return self::query()
+            ->withoutGlobalScopes()
+            ->whereKey($id)
+            ->whereNot(fn (Builder $query) => self::applyExpired($query))
+            ->exists();
+    }
+
+    /**
      * The expired phones, of every family: pruning runs without a signed-in family, so the scope is off.
      *
      * @return Builder<LinkedDevice>

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { fakeCacheStorage } from '@/test/cacheStorage';
-import { SHARED_CACHE, storeShared, takeShared } from './sharedFiles';
+import {
+    forgetShared,
+    SHARED_CACHE,
+    storeShared,
+    takeShared,
+} from './sharedFiles';
 
 /** A file as the phone gives it. */
 function file(name: string, type: string, text: string): File {
@@ -62,5 +67,16 @@ describe('sharedFiles', () => {
         ]);
 
         expect(await takeShared(storage)).toHaveLength(1);
+    });
+
+    it('forgets the files left in the cache, and has nothing to do without a cache storage', async () => {
+        const { storage, fake } = fakeCacheStorage();
+        await storeShared(storage, [file('a.pdf', 'application/pdf', 'pdf')]);
+
+        await forgetShared(storage);
+
+        expect(fake.peek(SHARED_CACHE)).toBeUndefined();
+        expect(await takeShared(storage)).toEqual([]);
+        await expect(forgetShared(undefined)).resolves.toBeUndefined();
     });
 });

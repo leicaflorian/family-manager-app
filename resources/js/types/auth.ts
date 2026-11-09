@@ -10,11 +10,9 @@ export type User = {
     [key: string]: unknown;
 };
 
-/** The account of a phone linked with a code: only the name and the photo are shared with it. */
+/** The account of a phone linked with a code: only the name is shared with it. */
 export type LinkedPhoneUser = {
     name: string;
-    /** The address of the photo of the person, null without one. */
-    photo: string | null;
 };
 
 /** Who is signed in: the full account, the account of a linked phone, or nobody (a guest). */

@@ -1,6 +1,6 @@
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue';
 import { plugin as formkit } from '@formkit/vue';
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, router } from '@inertiajs/vue3';
 import { I18n, i18nVue } from 'laravel-vue-i18n';
 import formkitConfig from '@/formkit.config';
 import { useTheme } from '@/composables/useTheme';
@@ -12,6 +12,8 @@ import {
 } from '@/lib/pwa/install';
 import { i18nOptions } from '@/lib/i18n';
 import { pageLayout } from '@/lib/pageLayout';
+import { forgetShared } from '@/lib/pwa/sharedFiles';
+import { login, logout } from '@/routes';
 import { pageVisitOptions } from '@/lib/transitions';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
@@ -59,3 +61,15 @@ initializeFlashToast();
 addManifestLink();
 startInstallWatch();
 void registerServiceWorker();
+
+// The files shared with the app belong to the device: signing out or in with a password empties them
+router.on('before', ({ detail }) => {
+    const { method, url } = detail.visit;
+
+    if (
+        method === 'post' &&
+        [logout().url, login().url].includes(url.pathname)
+    ) {
+        void forgetShared(globalThis.caches);
+    }
+});

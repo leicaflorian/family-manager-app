@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Contracts\DocumentReader;
 use App\Enums\FileSource;
+use App\Jobs\ReadFile;
 use App\Models\Family;
 use App\Models\File;
 use App\Models\LinkedDevice;
@@ -12,7 +14,9 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-10-25 19:04', 'Europe/Rome'));
@@ -123,4 +127,15 @@ test('a member can upload', function (): void {
 test('without an account the person goes to the login', function (): void {
     $this->post(route('scan.store'), ['files' => [UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')]])->assertRedirect(route('login'));
     expect(savedFiles())->toBeEmpty();
+});
+
+test('an upload queues the reading of each file', function (): void {
+    Queue::fake();
+    app()->instance(DocumentReader::class, new FakeDocumentReader);
+
+    $this->actingAs($this->laura)->postJson(route('scan.store'), [
+        'files' => [UploadedFile::fake()->createWithContent('a.pdf', 'the first side'), UploadedFile::fake()->createWithContent('b.pdf', 'the second side')],
+    ])->assertOk();
+
+    Queue::assertPushed(ReadFile::class, 2);
 });

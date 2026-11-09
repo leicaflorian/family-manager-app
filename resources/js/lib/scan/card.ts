@@ -104,9 +104,6 @@ const MOST_LEFT = 1.5;
  */
 const CLEARLY_SMALLER = 0.95;
 
-/** The quality of the JPEG of a composed page: mostly white, so it stays light even this high. */
-const JPEG_QUALITY = 0.9;
-
 /** Which dots of the picture are not the lid: 1 where the colour is far from the most common one. */
 function marksOf(image: Pixels): Uint8Array {
     const { data, width, height } = image;
@@ -829,13 +826,4 @@ export function improveCanvas(
             improvement,
         ),
     );
-}
-
-/** The JPEG of the composed page. */
-export async function jpegOf(canvas: HTMLCanvasElement): Promise<Blob> {
-    const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
-    );
-    if (!blob) throw new Error('jpeg');
-    return blob;
 }

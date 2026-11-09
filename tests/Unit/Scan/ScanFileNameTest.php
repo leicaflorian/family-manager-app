@@ -35,3 +35,8 @@ test('a name written for the scanner is cleaned of a second pdf and of the signs
     expect(ScanFileName::for(FileSource::Scanner, $this->at, 'pdf', collect(), ' / '))->toBe('Scanner 2026-10-25 19.04.pdf');
     expect(ScanFileName::for(FileSource::Scanner, $this->at, 'pdf', collect(['polizza.pdf']), 'polizza'))->toBe('polizza (2).pdf');
 });
+
+test('a name written is cleaned of control characters', function (): void {
+    expect(ScanFileName::for(FileSource::Scanner, $this->at, 'pdf', collect(), "po\nlizza\0 casa\t2026\x7f"))->toBe('po lizza casa 2026.pdf');
+    expect(ScanFileName::for(FileSource::Scanner, $this->at, 'pdf', collect(), "\n\0"))->toBe('Scanner 2026-10-25 19.04.pdf');
+});

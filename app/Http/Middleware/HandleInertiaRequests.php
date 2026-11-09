@@ -72,7 +72,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * What a phone linked with a code is given: the scan needs only the name and photo of the account, the name of
+     * What a phone linked with a code is given: the scan needs only the name of the account, the name of
      * the family, the language, the theme and the messages. No areas, counts or notices.
      *
      * @param  Request  $request  the request
@@ -86,7 +86,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $user instanceof User ? ['name' => $user->name, 'photo' => $user->person()->with('photo')->first()?->photoUrl()] : null,
+                'user' => $user instanceof User ? ['name' => $user->name] : null,
             ],
             'linked_phone' => true,
             'family' => fn (): ?FamilyData => $this->family($request),

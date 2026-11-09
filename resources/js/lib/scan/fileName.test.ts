@@ -1,5 +1,5 @@
 import { expect, test } from 'vite-plus/test';
-import { scanFileNames } from './fileName';
+import { MOST_NAME, scanFileNames } from './fileName';
 
 const now = new Date(2026, 9, 25, 9, 5);
 
@@ -41,4 +41,14 @@ test('after a stop halfway the numbers go on from the PDFs already uploaded, wit
         'ricevute 10.pdf',
         'ricevute 11.pdf',
     ]);
+});
+
+test('a long name is cut so that every PDF name fits the 200 characters the server takes', () => {
+    const long = 'a'.repeat(200);
+
+    expect(scanFileNames(long, 1, now)[0]).toHaveLength(MOST_NAME);
+    for (const name of scanFileNames(long, 12, now)) {
+        expect(name.length).toBeLessThanOrEqual(MOST_NAME);
+    }
+    expect(scanFileNames(long, 3, now)[2]).toBe(`${'a'.repeat(194)} 3.pdf`);
 });

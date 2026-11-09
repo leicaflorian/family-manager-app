@@ -17,7 +17,7 @@ import {
     densityOf,
     findCard,
     improveCanvas,
-    jpegOf,
+    drawOn,
     millimetreOf,
     scaleCut,
     sheetCanvas,
@@ -35,6 +35,9 @@ import type { Backend, PageImage, ScanPage, SheetPlan } from './pages';
 
 /** The quality of the JPEGs the scan makes. */
 const JPEG_QUALITY = 0.85;
+
+/** The quality of the JPEG of a composed page: mostly white, so it stays light even this high. */
+const SHEET_JPEG_QUALITY = 0.9;
 
 /** The long side of the copy of a photo the server looks for the corners in. */
 export const SEARCH_LONG_SIDE = 1000;
@@ -90,29 +93,33 @@ export async function toJpeg(
     quality = JPEG_QUALITY,
 ): Promise<Blob> {
     const canvas = document.createElement('canvas');
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const context = canvas.getContext('2d');
 
-    if (!context) {
-        throw new Error('No canvas');
+    try {
+        drawOn(canvas, image);
+
+        return await jpegOfCanvas(canvas, quality);
+    } finally {
+        // the phone gives the memory of a canvas back only when it is emptied
+        canvas.width = 0;
+        canvas.height = 0;
     }
+}
 
-    context.putImageData(
-        new ImageData(
-            new Uint8ClampedArray(image.data),
-            image.width,
-            image.height,
-        ),
-        0,
-        0,
-    );
+/**
+ * The JPEG of a canvas as it is drawn.
+ *
+ * @param canvas - the canvas
+ * @param quality - from 0 to 1
+ * @returns the JPEG
+ * @throws if the browser cannot make the JPEG
+ */
+export async function jpegOfCanvas(
+    canvas: HTMLCanvasElement,
+    quality = JPEG_QUALITY,
+): Promise<Blob> {
     const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/jpeg', quality),
     );
-    // the phone gives the memory of a canvas back only when it is emptied
-    canvas.width = 0;
-    canvas.height = 0;
 
     if (!blob) {
         throw new Error('No JPEG');
@@ -320,7 +327,7 @@ export async function composedSheet(
     const { width, height } = canvas;
 
     try {
-        const original = await jpegOf(canvas);
+        const original = await jpegOfCanvas(canvas, SHEET_JPEG_QUALITY);
 
         if (isPlain(improvement)) {
             return { original, blob: original, width, height };
@@ -328,7 +335,12 @@ export async function composedSheet(
 
         improveCanvas(canvas, improvement);
 
-        return { original, blob: await jpegOf(canvas), width, height };
+        return {
+            original,
+            blob: await jpegOfCanvas(canvas, SHEET_JPEG_QUALITY),
+            width,
+            height,
+        };
     } finally {
         canvas.width = 0;
         canvas.height = 0;
@@ -435,15 +447,7 @@ export const canvasBackend: Backend = {
                 bitmap.close();
             }
 
-            const blob = await new Promise<Blob | null>((resolve) =>
-                canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
-            );
-
-            if (!blob) {
-                throw new Error('No JPEG');
-            }
-
-            return await describe(blob);
+            return await describe(await jpegOfCanvas(canvas));
         } finally {
             canvas.width = 0;
             canvas.height = 0;

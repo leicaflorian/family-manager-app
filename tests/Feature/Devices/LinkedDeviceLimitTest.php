@@ -102,11 +102,6 @@ test('a linked phone signed out can ask for a new password without entering agai
     $this->assertGuest();
 });
 
-test('the user shared with a linked phone has only the name and the photo', function (): void {
-    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page
-        ->where('auth.user', ['name' => 'Marco Bianchi', 'photo' => null]));
-});
-
 test('an account without a linked phone sees the whole app and the shared props', function (): void {
     $this->actingAs($this->marco)->get(route('dashboard'))->assertOk()
         ->assertInertia(fn ($page) => $page->has('areas')->has('unread_notices')->has('to_sort_count')->has('family'));
@@ -140,4 +135,33 @@ test('signing out and in with the password opens the whole app, and signing out 
 
     $this->post(route('logout'));
     $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('dashboard'))->assertRedirect(route('scan'));
+});
+
+test('a linked phone with an email not verified reaches the notice instead of looping', function (): void {
+    $this->marco->forceFill(['email_verified_at' => null])->save();
+
+    linkedPhone()->get(route('scan'))->assertRedirect(route('verification.notice'));
+    linkedPhone()->get(route('verification.notice'))->assertOk();
+});
+
+test('a linked phone does not get the photo of its account', function (): void {
+    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page->where('auth.user', ['name' => 'Marco Bianchi']));
+});
+
+test('an expired cookie of a phone no longer linked is cleared in the response', function (): void {
+    $response = $this->withCookie(PhoneLinks::COOKIE, 'not-a-secret')->get(route('dashboard'));
+
+    $response->assertCookieExpired(PhoneLinks::COOKIE);
+});
+
+test('a good cookie is left as it is', function (): void {
+    $this->withCookie(PhoneLinks::COOKIE, 'the-secret')->get(route('scan'))->assertCookieMissing(PhoneLinks::COOKIE);
+});
+
+test('a phone unlinked from the computer is signed out at its next request', function (): void {
+    linkedPhone()->get(route('scan'))->assertOk();
+    $this->device->delete();
+
+    linkedPhone()->get(route('scan'))->assertRedirect(route('login'));
+    $this->assertGuest();
 });
