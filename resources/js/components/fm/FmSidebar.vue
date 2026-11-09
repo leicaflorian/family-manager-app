@@ -123,8 +123,8 @@ function isPage(section: Section): boolean {
         <div class="flex items-center gap-2.5 px-2 pt-1 pb-4">
             <FmLogo :size="36" />
             <span class="flex flex-col">
-                <span class="text-base font-extrabold">Family Manager</span>
-                <span class="text-[13px] text-ink-soft">{{
+                <span class="text-amount">Family Manager</span>
+                <span class="text-meta text-ink-soft">{{
                     $t(':family family', { family })
                 }}</span>
             </span>
@@ -132,7 +132,7 @@ function isPage(section: Section): boolean {
 
         <Link
             :href="items.upload"
-            class="mb-3.5 flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md bg-action text-base font-normal text-on-action no-underline hover:bg-action-dark"
+            class="mb-3.5 flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md bg-action text-body text-on-action no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
             {{ $t('Upload') }}
@@ -146,13 +146,13 @@ function isPage(section: Section): boolean {
                         :aria-current="
                             isPage(item.section) ? 'page' : undefined
                         "
-                        class="flex h-11 grow items-center gap-3 rounded-lg px-3 text-[15px] no-underline"
+                        class="flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
                         :class="[
                             isPage(item.section)
-                                ? 'bg-action-soft font-bold text-action-dark'
+                                ? 'bg-action-soft text-label text-action-dark'
                                 : item.section === active
-                                  ? 'font-bold text-action-dark hover:bg-canvas'
-                                  : 'font-medium text-ink hover:bg-canvas',
+                                  ? 'text-label text-action-dark hover:bg-canvas'
+                                  : 'text-ink hover:bg-canvas',
                             item.section === 'areas' && 'pr-12',
                         ]"
                     >
@@ -170,7 +170,7 @@ function isPage(section: Section): boolean {
                             <!-- A space, so the link reads «To sort 4» -->
                             {{ ' ' }}
                             <span
-                                class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-xs font-bold text-on-action"
+                                class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
                                 >{{ countBadge(uploadCount) }}</span
                             >
                         </template>
@@ -203,11 +203,11 @@ function isPage(section: Section): boolean {
                                 :aria-current="
                                     link.href === path ? 'page' : undefined
                                 "
-                                class="flex h-9 items-center gap-2 rounded-tag px-2.5 text-[13px] no-underline"
+                                class="flex h-9 items-center gap-2 rounded-tag px-2.5 text-meta no-underline"
                                 :class="
                                     link.href === path
-                                        ? 'bg-action-soft font-bold text-action-dark'
-                                        : 'font-medium text-ink hover:bg-canvas'
+                                        ? 'bg-action-soft text-meta-strong text-action-dark'
+                                        : 'text-ink hover:bg-canvas'
                                 "
                             >
                                 <span
@@ -222,7 +222,7 @@ function isPage(section: Section): boolean {
                                 {{ ' ' }}
                                 <span
                                     v-if="link.count"
-                                    class="text-xs font-semibold text-ink-soft"
+                                    class="text-caption text-ink-soft"
                                     >{{ link.count }}</span
                                 >
                             </Link>
@@ -240,12 +240,12 @@ function isPage(section: Section): boolean {
                     class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"
                 >
                     <span
-                        class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-action-soft text-sm font-bold text-action-dark"
+                        class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-action-soft text-label text-action-dark"
                         >{{ getInitials(user) }}</span
                     >
                     <span class="flex grow flex-col">
-                        <span class="text-sm font-semibold">{{ user }}</span>
-                        <span class="text-xs text-ink-soft">{{
+                        <span class="text-label">{{ user }}</span>
+                        <span class="text-caption text-ink-soft">{{
                             $t('My account')
                         }}</span>
                     </span>
@@ -264,7 +264,7 @@ function isPage(section: Section): boolean {
                         <DropdownMenuItem as-child>
                             <Link
                                 :href="items.settings.href"
-                                class="flex min-h-11 items-center gap-3 rounded-md px-3 text-[15px] font-medium no-underline outline-none data-[highlighted]:bg-canvas"
+                                class="flex min-h-11 items-center gap-3 rounded-md px-3 text-body-sm no-underline outline-none data-[highlighted]:bg-canvas"
                             >
                                 <FmIcon
                                     :icon="items.settings.icon"
@@ -282,7 +282,7 @@ function isPage(section: Section): boolean {
                                 :href="items.logout"
                                 method="post"
                                 as="button"
-                                class="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-[15px] font-medium text-overdue outline-none data-[highlighted]:bg-canvas"
+                                class="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-body-sm text-overdue outline-none data-[highlighted]:bg-canvas"
                             >
                                 <FmIcon :icon="LogOut" :size="20" />
                                 {{ $t('Log out') }}
