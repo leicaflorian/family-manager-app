@@ -24,7 +24,7 @@ final class HomeData extends Data
      * @param  list<AgendaEntryData>  $entries  payments and deadlines, the late ones first, ten at most
      * @param  bool  $more  whether there were more than ten
      * @param  list<AgendaEntryData>  $incoming  the incomes of the next 30 days
-     * @param  int  $pending_count  how many files wait for their document, for the box that leads to *To sort*
+     * @param  int  $pending_count  how many files wait for their document, copies left out as in the red number of *Upload*, for the box that leads to *To sort*
      * @param  list<ChecklistStepData>  $checklist  the steps of *To begin*; empty when all are done
      * @param  list<MissingDocumentData>  $missing  the documents the cards expect and do not have; empty when nothing is missing
      * @param  list<HomeMailData>  $mails  the last mails that brought files, three at most; empty when none

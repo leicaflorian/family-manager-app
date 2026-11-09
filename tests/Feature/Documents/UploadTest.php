@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Contracts\DocumentReader;
 use App\Data\PendingFileData;
+use App\Data\ToSortPageData;
 use App\Enums\FileSource;
 use App\Enums\ReadingStatus;
 use App\Enums\Role;
@@ -55,13 +56,13 @@ function uploadOne(string $name, int $kilobytes = 120): File
 }
 
 /**
- * The files waiting for their document, as the pages receive them.
+ * The files waiting for their document, as the page *To sort* receives them: the newest first.
  *
  * @return list<array<string, mixed>>
  */
 function waitingData(): array
 {
-    return array_values(array_map(static fn (PendingFileData $file): array => $file->toArray(), PendingFileData::waiting()));
+    return array_values(array_map(static fn (PendingFileData $file): array => $file->toArray(), ToSortPageData::for(null)->files));
 }
 
 /**
@@ -347,7 +348,7 @@ test('a copy is marked', function (): void {
     $copy = uploadContent('Telefono 2026-10-25 19.06.pdf', 'the bill of october');
 
     expect($copy->copyOf()?->id)->toBe($bill->id)->and($bill->copyOf())->toBeNull();
-    expect(array_column(waitingData(), 'copy_of'))->toBe([null, null, 'Telefono 2026-10-25 19.04.pdf']);
+    expect(array_column(waitingData(), 'copy_of'))->toBe(['Telefono 2026-10-25 19.04.pdf', null, null]);
 });
 
 test('a copy of the file of a document is marked', function (): void {
@@ -410,7 +411,7 @@ test('the copies of the waiting files are found without a query per file', funct
     $queries = function (): int {
         DB::flushQueryLog();
         DB::enableQueryLog();
-        PendingFileData::waiting();
+        ToSortPageData::for(null);
         DB::disableQueryLog();
 
         return count(DB::getQueryLog());

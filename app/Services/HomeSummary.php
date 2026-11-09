@@ -75,7 +75,7 @@ final readonly class HomeSummary
             entries: array_slice($ordered, 0, self::ENTRIES),
             more: count($ordered) > self::ENTRIES,
             incoming: $incoming,
-            pending_count: File::query()->toSort()->count(),
+            pending_count: File::query()->toSort()->notCopies()->count(),
             checklist: $this->checklist($user),
             missing: $this->missing($today),
             mails: array_map(
