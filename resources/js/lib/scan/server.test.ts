@@ -19,16 +19,13 @@ type Client = ReturnType<typeof http.getClient>;
 type Config = Parameters<Client['request']>[0];
 
 const real = http.getClient();
-const request =
-    vi.fn<
-        (
-            config: Config,
-        ) => Promise<{
-            status: number;
-            data: string;
-            headers: Record<string, string>;
-        }>
-    >();
+const request = vi.fn<
+    (config: Config) => Promise<{
+        status: number;
+        data: string;
+        headers: Record<string, string>;
+    }>
+>();
 
 /** An answer of the server. */
 const answer = (status: number, body: unknown) => ({
@@ -114,6 +111,30 @@ describe('findCorners', () => {
         await vi.advanceTimersByTimeAsync(CORNERS_TIMEOUT);
 
         await settled;
+    });
+
+    it('stops when the page that asked goes away', async () => {
+        request.mockImplementation(
+            (config) =>
+                new Promise((_resolve, reject) => {
+                    config.signal?.addEventListener('abort', () =>
+                        reject(new Error('cancelled')),
+                    );
+                }),
+        );
+        const away = new AbortController();
+
+        const search = findCorners(
+            new Blob(['j']),
+            CORNERS_TIMEOUT,
+            away.signal,
+        );
+        away.abort();
+
+        await expect(search).rejects.toMatchObject({
+            status: 0,
+            message: 'The search was stopped.',
+        });
     });
 });
 

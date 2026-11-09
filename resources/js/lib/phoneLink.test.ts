@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { cleanAddress, keepSecretInAddress, secretFromHash } from './phoneLink';
+import {
+    cleanAddress,
+    keepSecretInAddress,
+    secretFromHash,
+    withKeptSecret,
+} from './phoneLink';
 
 /** Pretends to be a browser. */
 function browser(agent: string, standalone = false): void {
@@ -23,6 +28,18 @@ describe('secretFromHash', () => {
         expect(secretFromHash('#d=')).toBeNull();
         expect(secretFromHash('#other=1')).toBeNull();
         expect(secretFromHash('')).toBeNull();
+    });
+});
+
+describe('withKeptSecret', () => {
+    it('carries the secret of this address to another one', () => {
+        history.replaceState(null, '', '/connect/linked#d=abc%2F1');
+
+        expect(withKeptSecret('/scan')).toBe('/scan#d=abc%2F1');
+    });
+
+    it('leaves the address alone without a secret', () => {
+        expect(withKeptSecret('/scan')).toBe('/scan');
     });
 });
 

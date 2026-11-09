@@ -1551,5 +1551,8 @@
     "Your session has ended: sign in again. The pages are still here.": "La sessione è scaduta: accedi di nuovo. Le pagine sono ancora qui.",
     "{1} :count PDF, uploaded as it is|[2,*] :count PDF, uploaded as they are": "{1} :count PDF, caricato com'è|[2,*] :count PDF, caricati come sono",
     "{1} :count page, in a single PDF|[2,*] :count pages, in a single PDF": "{1} :count pagina, in un solo PDF|[2,*] :count pagine, in un solo PDF",
-    "{1} The crop of :count photo is missing|[2,*] The crop of :count photos is missing": "{1} Manca il ritaglio di :count foto|[2,*] Manca il ritaglio di :count foto"
+    "{1} The crop of :count photo is missing|[2,*] The crop of :count photos is missing": "{1} Manca il ritaglio di :count foto|[2,*] Manca il ritaglio di :count foto",
+    "The photos go to To sort, not to this card.": "Le foto vanno in Da smistare, non in questa scheda.",
+    "The search was stopped.": "La ricerca si è fermata.",
+    "{1} :count file, uploaded as it is|[2,*] :count files, uploaded as they are": "{1} :count file, caricato com'è|[2,*] :count file, caricati come sono"
 }

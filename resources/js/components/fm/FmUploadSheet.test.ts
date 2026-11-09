@@ -26,6 +26,9 @@ describe('FmUploadSheet', () => {
         expect(
             await screen.findByRole('link', { name: 'Take a photo' }),
         ).toHaveAttribute('href', '/scan');
+        expect(
+            screen.getByText('The photos go to To sort, not to this card.'),
+        ).toBeInTheDocument();
     });
 
     it('does not offer Take a photo on a computer', async () => {

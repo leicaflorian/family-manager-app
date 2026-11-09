@@ -132,6 +132,29 @@ describe('useWebcam', () => {
         expect(second.stop).toHaveBeenCalled();
     });
 
+    it('stops a webcam that opens after being closed while the browser asked', async () => {
+        const stream = fakeStream();
+        let allow = (): void => {};
+        withCamera(
+            vi.fn(
+                () =>
+                    new Promise<MediaStream>((resolve) => {
+                        allow = () => resolve(stream);
+                    }),
+            ),
+        );
+        const { webcam } = mountWebcam();
+
+        const opening = webcam.open();
+        webcam.close();
+        allow();
+
+        expect(await opening).toBe(false);
+        expect(stream.stop).toHaveBeenCalled();
+        expect(webcam.stream.value).toBeNull();
+        expect(webcam.error.value).toBeNull();
+    });
+
     it('takes the frame on the screen as a JPEG and closes', async () => {
         const stream = fakeStream();
         withCamera(vi.fn(async () => stream));

@@ -8,7 +8,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Camera, Check, Share, SquarePlus, Smartphone } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import { isIos, isStandalone } from '@/lib/devices';
@@ -16,6 +16,7 @@ import {
     cleanAddress,
     keepSecretInAddress,
     secretFromHash,
+    withKeptSecret,
 } from '@/lib/phoneLink';
 import { connect, scan } from '@/routes';
 import { resume } from '@/routes/connect';
@@ -40,6 +41,9 @@ const { name, family, secret } = defineProps<{
     secret: string | null;
 }>();
 
+/** *Take a photo*: the scan, with the secret of the address when there is one (kept by an iPhone in Safari). */
+const scanUrl = computed((): string => withKeptSecret(scan().url));
+
 /** The three steps to put the app on the Home screen. */
 const steps = [
     { icon: Share, text: trans('Tap Share, at the bottom') },
@@ -56,7 +60,8 @@ onMounted(() => {
     }
 
     if (installed && name) {
-        router.visit(scan().url);
+        // the scan keeps the secret: when the session ends there, it enters again with it
+        router.visit(withKeptSecret(scan().url));
 
         return;
     }
@@ -66,7 +71,12 @@ onMounted(() => {
     if (installed && kept) {
         // The session is over and the icon has no cookies: the secret of the address enters the phone again
         cleanAddress();
-        router.post(resume().url, { secret: kept });
+        router.post(
+            resume().url,
+            { secret: kept },
+            // the server opens the scan, which keeps the secret for the next time the session ends
+            { onSuccess: () => keepSecretInAddress(kept) },
+        );
 
         return;
     }
@@ -125,7 +135,7 @@ onMounted(() => {
                 </li>
             </ol>
         </div>
-        <FmButton wide :icon="Camera" :href="scan().url">{{
+        <FmButton wide :icon="Camera" :href="scanUrl">{{
             $t('Take a photo')
         }}</FmButton>
     </div>

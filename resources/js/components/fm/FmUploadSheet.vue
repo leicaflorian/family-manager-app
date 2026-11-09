@@ -39,9 +39,14 @@ const phone = isPhone();
                 {{ message }}
             </p>
         </FmNotice>
-        <FmButton v-if="phone" wide :icon="Camera" :href="scan().url">{{
-            $t('Take a photo')
-        }}</FmButton>
+        <div v-if="phone" class="flex flex-col gap-1.5">
+            <FmButton wide :icon="Camera" :href="scan().url">{{
+                $t('Take a photo')
+            }}</FmButton>
+            <p class="m-0 text-center text-sm text-ink-soft">
+                {{ $t('The photos go to To sort, not to this card.') }}
+            </p>
+        </div>
         <FmFileDrop :processing="processing" @files="send" />
     </FmBottomSheet>
 </template>

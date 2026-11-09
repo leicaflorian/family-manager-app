@@ -214,11 +214,15 @@ export function pageCount(pages: ScanPage[]): string {
  */
 export function sendSummary(pages: ScanPage[], oneSheet: boolean): string {
     const photos = pages.filter((page) => page.kind === 'photo').length;
-    const pdfs = pages.length - photos;
+    const pdfs = pages.filter(
+        (page) => page.kind === 'pdf' && isPdfFile(page.file),
+    ).length;
+    // a photo the browser cannot draw (a HEIC on a computer) also leaves as it is, but it is not a PDF
+    const others = pages.length - photos - pdfs;
     const single = oneSheet && oneSheetState(pages) === 'ready';
     const parts: string[] = [];
 
-    if (photos === 1 && pdfs > 0) {
+    if (photos === 1 && pdfs + others > 0) {
         parts.push(trans('1 photo'));
     }
 
@@ -243,7 +247,27 @@ export function sendSummary(pages: ScanPage[], oneSheet: boolean): string {
         );
     }
 
+    if (others > 0) {
+        parts.push(
+            transChoice(
+                '{1} :count file, uploaded as it is|[2,*] :count files, uploaded as they are',
+                others,
+                { count: String(others) },
+            ),
+        );
+    }
+
     return parts.join(' · ');
+}
+
+/**
+ * Whether a file is a PDF, from its type or, when the phone gives none, its name.
+ *
+ * @param file - the file
+ * @returns true for a PDF
+ */
+export function isPdfFile(file: File): boolean {
+    return file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 }
 
 /**

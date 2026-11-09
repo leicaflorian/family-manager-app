@@ -52,12 +52,12 @@ export async function readPhoto(
 
     context.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
+    const { data } = context.getImageData(0, 0, width, height);
+    // a phone has little canvas memory: this one is given back now, not when the browser gets round to it
+    canvas.width = 0;
+    canvas.height = 0;
 
-    return {
-        width,
-        height,
-        data: context.getImageData(0, 0, width, height).data,
-    };
+    return { width, height, data };
 }
 
 /**

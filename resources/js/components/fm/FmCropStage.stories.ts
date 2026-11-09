@@ -1,6 +1,7 @@
 /**
  * The stories of `FmCropStage`: the photo with the corners of the sheet to move, the same photo lying on its
- * side, the cut out sheet, which shows the original when held, and the photo fitted in a short box.
+ * side, the cut out sheet, which shows the original when held, the cut out sheet with a badge on it, and the photo fitted in a
+ * short box.
  */
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import FmCropStage from './FmCropStage.vue';
@@ -27,7 +28,7 @@ const meta = {
     decorators: [
         () => ({
             template:
-                '<div style="max-width: 350px; padding: 16px; background: var(--camera-bg)"><story /></div>',
+                '<div class="dark" style="max-width: 350px; padding: 16px; background: var(--camera-bg)"><story /></div>',
         }),
     ],
 } satisfies Meta<typeof FmCropStage>;
@@ -65,4 +66,15 @@ export const FitInAShortBox: Story = {
                 '<div style="height: 280px; display: flex; flex-direction: column"><story /></div>',
         }),
     ],
+};
+
+export const WithABadge: Story = {
+    name: 'With a badge',
+    args: { editing: false },
+    render: (args) => ({
+        components: { FmCropStage },
+        setup: () => ({ args }),
+        template:
+            '<FmCropStage v-bind="args"><span class="absolute top-3 right-3 rounded-tag bg-paid-soft px-2.5 py-1 text-xs font-semibold text-paid">Cropped</span></FmCropStage>',
+    }),
 };

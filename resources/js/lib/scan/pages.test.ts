@@ -168,6 +168,18 @@ describe('sendSummary', () => {
         );
     });
 
+    it('calls a photo the browser could not draw a file, not a PDF', () => {
+        const heic = page('h', {
+            kind: 'pdf',
+            file: new File(['x'], 'IMG_1.heic', { type: 'image/heic' }),
+        });
+
+        expect(sendSummary([heic], false)).toBe('1 file, uploaded as it is');
+        expect(sendSummary([page('a'), heic, pdf('b')], false)).toBe(
+            '1 photo · 1 PDF, uploaded as it is · 1 file, uploaded as it is',
+        );
+    });
+
     it('says nothing for one photo alone', () => {
         expect(sendSummary([page('a')], false)).toBe('');
         expect(sendSummary([], false)).toBe('');

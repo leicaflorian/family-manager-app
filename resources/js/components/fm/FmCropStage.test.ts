@@ -256,4 +256,15 @@ describe('FmCropStage', () => {
     it('only follows the width of its box without fit', () => {
         expect((stage().box as HTMLElement).className).not.toContain('cqh');
     });
+
+    it('lays the default slot on the photo itself', () => {
+        const view = render(FmCropStage, {
+            props: { image: '/photo.jpg', corners, turns: 0, editing: false },
+            slots: { default: '<span>Cropped</span>' },
+        });
+
+        expect(
+            view.container.querySelector('[data-stage]')?.textContent,
+        ).toContain('Cropped');
+    });
 });

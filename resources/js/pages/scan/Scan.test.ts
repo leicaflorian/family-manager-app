@@ -59,7 +59,7 @@ type Config = Parameters<Client['request']>[0];
 const real = http.getClient();
 /** The server: the corners and the upload, answered by the test. */
 const server = {
-    corners: vi.fn<() => Promise<unknown>>(),
+    corners: vi.fn<(config: Config) => Promise<unknown>>(),
     upload: vi.fn<(config: Config) => Promise<unknown>>(),
 };
 
@@ -138,7 +138,7 @@ beforeEach(() => {
     http.setClient({
         request: (config: Config) =>
             config.url.endsWith('/scan/corners')
-                ? server.corners()
+                ? server.corners(config)
                 : server.upload(config),
     } as unknown as Client);
 });
@@ -200,6 +200,93 @@ describe('Scan', () => {
         await waitFor(() => expect(shown()).toBe('blob:photo-2000.jpg'));
         expect(screen.queryByText('Cropped')).not.toBeInTheDocument();
         expect(canvas.cutOut).not.toHaveBeenCalled();
+    });
+
+    it('goes on with the next photo when one cannot be cut', async () => {
+        canvas.cutOut.mockRejectedValueOnce(new Error('out of memory'));
+        renderPage(Scan);
+
+        await choose(photo('one.jpg'), photo('two.jpg'));
+
+        // the second photo is still cut out, and nothing stays on «Preparing the photo…»
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(2));
+        expect(await screen.findByText('Cropped')).toBeInTheDocument();
+        expect(
+            screen.queryByText('Preparing the photo…'),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Upload' }),
+        ).not.toBeDisabled();
+    });
+
+    it('reduces the next photo while the server looks for the edges of the first', async () => {
+        server.corners.mockImplementation(() => new Promise(() => {}));
+        renderPage(Scan);
+
+        await choose(photo('one.jpg'), photo('two.jpg'));
+
+        await waitFor(() =>
+            expect(
+                canvas.reduceToJpeg.mock.calls.filter(
+                    ([, side]) => side === 2000,
+                ),
+            ).toHaveLength(2),
+        );
+    });
+
+    it('keeps the crop of the person when the automatic cut finishes after it', async () => {
+        let finishAutomatic = (): void => {};
+        canvas.cutOut
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        finishAutomatic = () =>
+                            resolve({
+                                jpeg: new File(['a'], 'automatic.jpg'),
+                                plain: new File(['a'], 'automatic-plain.jpg'),
+                            });
+                    }),
+            )
+            .mockImplementationOnce(async () => ({
+                jpeg: new File(['m'], 'manual.jpg'),
+                plain: new File(['m'], 'manual-plain.jpg'),
+            }));
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(1));
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Crop' }));
+        const crop = await screen.findByRole('dialog', { name: 'Crop' });
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Whole photo' }),
+        );
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Next' }),
+        );
+        await waitFor(() => expect(shown()).toBe('blob:manual.jpg'));
+
+        finishAutomatic();
+        await settle();
+
+        expect(shown()).toBe('blob:manual.jpg');
+    });
+
+    it('hides the bar at the bottom while typing What it is on a phone, at most 200 letters', async () => {
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)',
+        );
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        const note = await screen.findByLabelText('What it is');
+
+        expect(note).toHaveAttribute('maxlength', '200');
+        expect(document.querySelector('footer')).not.toBeNull();
+
+        await fireEvent.focusIn(note);
+        expect(document.querySelector('footer')).toBeNull();
+
+        await fireEvent.focusOut(note);
+        expect(document.querySelector('footer')).not.toBeNull();
     });
 
     it('crops the photos one after the other: «1 of 2», Next, and back to the scan', async () => {
@@ -278,6 +365,31 @@ describe('Scan', () => {
                 { enhance: true, grey: true },
             ),
         );
+    });
+
+    it('stops the search for the edges when Crop closes', async () => {
+        server.corners.mockResolvedValue(answer({ corners: null }));
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await waitFor(() => expect(server.corners).toHaveBeenCalledTimes(1));
+        await fireEvent.click(screen.getByRole('button', { name: 'Crop' }));
+        const crop = await screen.findByRole('dialog', { name: 'Crop' });
+        let signal: AbortSignal | undefined;
+        server.corners.mockImplementation((config) => {
+            signal = config.signal ?? undefined;
+
+            return new Promise(() => {});
+        });
+
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Find the edges' }),
+        );
+        await waitFor(() => expect(signal).toBeDefined());
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Cancel' }),
+        );
+
+        expect(signal?.aborted).toBe(true);
     });
 
     it('throws one page away at once, and asks for three', async () => {

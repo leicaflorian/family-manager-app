@@ -117,15 +117,19 @@ function isCorners(value: unknown): value is Corners {
  *
  * @param jpeg - a small copy of the photo, as it was taken (1000 px on the long side)
  * @param timeout - how long to wait, in milliseconds
+ * @param signal - stops the search when the page that asked goes away
  * @returns the four corners from 0 to 1, clockwise from the top left one, or null when the server sees no sheet
  * @throws ScanRequestError when the server says no, does not answer or takes too long
  */
 export async function findCorners(
     jpeg: Blob,
     timeout = CORNERS_TIMEOUT,
+    signal?: AbortSignal,
 ): Promise<Corners | null> {
     const giveUp = new AbortController();
     const timer = setTimeout(() => giveUp.abort(), timeout);
+    const stop = (): void => giveUp.abort();
+    signal?.addEventListener('abort', stop);
 
     try {
         const response = await http.getClient().request({
@@ -142,6 +146,10 @@ export async function findCorners(
 
         return isCorners(found) ? found : null;
     } catch (error) {
+        if (signal?.aborted) {
+            throw new ScanRequestError(0, trans('The search was stopped.'));
+        }
+
         if (giveUp.signal.aborted) {
             throw new ScanRequestError(
                 0,
@@ -162,6 +170,7 @@ export async function findCorners(
         );
     } finally {
         clearTimeout(timer);
+        signal?.removeEventListener('abort', stop);
     }
 }
 

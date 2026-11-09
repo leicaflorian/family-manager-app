@@ -86,10 +86,34 @@ describe('Phone linked', () => {
 
         renderPage(Linked, { name: null, family: null, secret: null });
 
-        expect(post).toHaveBeenCalledWith('/connect/resume', {
-            secret: 'abc123',
-        });
+        expect(post).toHaveBeenCalledWith(
+            '/connect/resume',
+            { secret: 'abc123' },
+            expect.anything(),
+        );
         expect(location.hash).toBe('');
+    });
+
+    it('carries the secret from the icon to the scan, which needs it when the session ends', () => {
+        browser(IPHONE, true);
+        history.replaceState(null, '', '/connect/linked#d=abc123');
+
+        renderPage(Linked, props);
+
+        expect(visit).toHaveBeenCalledWith('/scan#d=abc123');
+    });
+
+    it('puts the secret back on the scan the server opens after entering again', () => {
+        browser(IPHONE, true);
+        history.replaceState(null, '', '/connect/linked#d=abc123');
+        renderPage(Linked, { name: null, family: null, secret: null });
+        const options = post.mock.calls[0]?.[2] as { onSuccess: () => void };
+
+        // the server answers with the scan
+        history.replaceState(null, '', '/scan');
+        options.onSuccess();
+
+        expect(location.pathname + location.hash).toBe('/scan#d=abc123');
     });
 
     it('opened in Safari on an iPhone leaves the secret in the address and does not enter', () => {

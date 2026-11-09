@@ -37,6 +37,19 @@ export function keepSecretInAddress(secret: string): void {
 }
 
 /**
+ * An address of the app that carries the secret of this address with it: the scan, opened from the icon, needs it
+ * to enter again when the session ends (the icon has no cookies).
+ *
+ * @param url - the address to go to
+ * @returns the address, with the `#` of the secret when this address has one
+ */
+export function withKeptSecret(url: string): string {
+    const secret = secretFromHash(location.hash);
+
+    return secret ? `${url}#${SECRET_KEY}${encodeURIComponent(secret)}` : url;
+}
+
+/**
  * Takes the secret out of the address. On an iPhone in Safari it stays until the page is opened from the icon:
  * the icon saves the address as it is at that moment.
  */

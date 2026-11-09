@@ -42,6 +42,7 @@ import { IMPROVE_DEFAULTS } from '@/lib/scan/improve';
 import type { ScanDocument, ScanPage } from '@/lib/scan/pages';
 import {
     addPages,
+    isPdfFile,
     movePage,
     oneSheetState,
     pageCount,
@@ -223,17 +224,20 @@ function drop(id: string): void {
     doc.value = removePage(doc.value, id);
 }
 
-/**
- * Whether a file is a PDF.
- *
- * @param file - a file chosen
- * @returns true for a PDF
- */
-const isPdf = (file: File): boolean =>
-    file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-
-/** The photos are worked on one after the other: a phone has little memory to spare. */
+/** The photos are reduced and cut one after the other: a phone has little memory to spare. */
 let work: Promise<void> = Promise.resolve();
+
+/**
+ * Puts a piece of work on a photo in the queue. A piece that fails does not stop the ones after it.
+ *
+ * @param task - the work, which handles its own problems
+ */
+function enqueue(task: () => Promise<void>): void {
+    work = work.then(task).catch(() => undefined);
+}
+
+/** How many crops each page has been asked for: a cut that finishes after a newer one is thrown away. */
+const cutRequests = new Map<string, number>();
 
 /**
  * Adds the photos and PDF files chosen, or the photo taken.
@@ -247,7 +251,7 @@ function addFiles(files: File[]): void {
     const refused: string[] = [];
 
     for (const file of files) {
-        const photo = !isPdf(file);
+        const photo = !isPdfFile(file);
 
         if (photo && file.type !== '' && !file.type.startsWith('image/')) {
             refused.push(
@@ -282,13 +286,14 @@ function addFiles(files: File[]): void {
 
     for (const one of added) {
         if (one.kind === 'photo') {
-            work = work.then(() => prepare(one.id));
+            enqueue(() => prepare(one.id));
         }
     }
 }
 
 /**
- * Reduces a photo, then asks the server where the sheet is and cuts it out when it answers.
+ * Reduces a photo, then asks the server where the sheet is. The question runs outside the queue, so the next
+ * photo is reduced while the server answers.
  *
  * @param id - the page
  */
@@ -320,15 +325,33 @@ async function prepare(id: string): Promise<void> {
         preparing: false,
     });
 
-    const found = await searchCorners(photo);
+    void searchCorners(photo).then((found) => {
+        if (found) enqueue(() => autoCut(id, found));
+    });
+}
+
+/**
+ * Cuts out the sheet the server found, unless the person is cropping it or has cropped it. A photo that cannot be
+ * cut stays as it is: the person can still crop it by hand.
+ *
+ * @param id - the page
+ * @param found - the corners from the server
+ */
+async function autoCut(id: string, found: Corners): Promise<void> {
     const now = find(id);
 
-    // cropped by hand in the meantime: the person wins
-    if (found && now && !now.cut) {
-        await cut(id, found, 0, {
-            enhance: IMPROVE_DEFAULTS.enhance,
-            grey: IMPROVE_DEFAULTS.grey,
-        });
+    if (!now || now.cut || cropping.value?.id === id) return;
+
+    try {
+        await cut(
+            id,
+            found,
+            0,
+            { enhance: IMPROVE_DEFAULTS.enhance, grey: IMPROVE_DEFAULTS.grey },
+            true,
+        );
+    } catch {
+        // short of memory for the canvas: the photo is left uncut
     }
 }
 
@@ -363,6 +386,7 @@ async function searchCorners(photo: Blob): Promise<Corners | null> {
  * @param corners - the corners, on the photo turned by `turns`
  * @param turns - quarters of a turn
  * @param improve - *Improve* and *Black and white*
+ * @param automatic - the cut the server proposed: it gives way to a crop of the person
  * @throws if the browser cannot cut the photo
  */
 async function cut(
@@ -370,15 +394,26 @@ async function cut(
     corners: Corners,
     turns: Turns,
     improve: { enhance: boolean; grey: boolean },
+    automatic = false,
 ): Promise<void> {
     const one = find(id);
 
     if (!one) return;
 
+    // only a crop of the person counts as a newer request: the automatic one never replaces it
+    if (!automatic) cutRequests.set(id, (cutRequests.get(id) ?? 0) + 1);
+    const request = cutRequests.get(id) ?? 0;
+
     const { jpeg, plain } = await cutOut(one.file, corners, turns, improve);
     const now = find(id);
 
-    if (!now) return;
+    if (
+        !now ||
+        request !== (cutRequests.get(id) ?? 0) ||
+        (automatic && (now.cut || cropping.value?.id === id))
+    ) {
+        return;
+    }
 
     for (const url of [now.sheetUrl, now.plainUrl]) {
         if (url) URL.revokeObjectURL(url);
@@ -748,7 +783,8 @@ onBeforeUnmount(() => {
                             chosen.cut &&
                             chosen.sheetUrl
                         "
-                        class="max-h-full w-full shadow-float"
+                        class="size-full [&_[data-stage]]:shadow-float"
+                        fit
                         :image="
                             peeking && chosen.plainUrl
                                 ? chosen.plainUrl
@@ -758,7 +794,14 @@ onBeforeUnmount(() => {
                         :turns="0"
                         :editing="false"
                         @peek="(on) => (peeking = on)"
-                    />
+                    >
+                        <!-- on the sheet itself, wherever its shape puts it in the box -->
+                        <span
+                            v-if="!peeking"
+                            class="absolute top-3 right-3 rounded-tag bg-paid-soft px-2.5 py-1 text-xs font-semibold text-paid"
+                            >{{ $t('Cropped') }}</span
+                        >
+                    </FmCropStage>
                     <img
                         v-else-if="chosen.kind === 'photo' && chosen.photoUrl"
                         :src="chosen.photoUrl"
@@ -779,7 +822,7 @@ onBeforeUnmount(() => {
                             class="text-action"
                         />
                         <span class="text-base font-bold">{{
-                            isPdf(chosen.file) ? 'PDF' : $t('File')
+                            isPdfFile(chosen.file) ? 'PDF' : $t('File')
                         }}</span>
                         <span class="text-sm break-all text-ink-soft">{{
                             chosen.file.name
@@ -789,11 +832,6 @@ onBeforeUnmount(() => {
                         v-if="chosen.preparing"
                         class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-on-action"
                         >{{ $t('Preparing the photo…') }}</span
-                    >
-                    <span
-                        v-else-if="chosen.cut && !peeking"
-                        class="absolute top-3 right-3 rounded-tag bg-paid-soft px-2.5 py-1 text-xs font-semibold text-paid"
-                        >{{ $t('Cropped') }}</span
                     >
                 </div>
 

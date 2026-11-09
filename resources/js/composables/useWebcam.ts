@@ -55,10 +55,14 @@ export function useWebcam(): UseWebcam {
     const available = ref(canAsk());
     // a MediaStream is a browser object: Vue does not wrap it
     const stream = shallowRef<MediaStream | null>(null);
+    /** Counts the openings and closings: an opening that waited past a closing is stopped. */
+    let opening = 0;
     const error = ref<string | null>(null);
 
     /** Closes the webcam. */
     function close(): void {
+        // a webcam still asking for the permission is forgotten too: it is stopped as soon as it opens
+        opening++;
         stream.value?.getTracks().forEach((track) => track.stop());
         stream.value = null;
     }
@@ -70,6 +74,8 @@ export function useWebcam(): UseWebcam {
      */
     async function open(): Promise<boolean> {
         error.value = null;
+        close();
+        const attempt = opening;
 
         try {
             const opened = await navigator.mediaDevices.getUserMedia({
@@ -77,11 +83,20 @@ export function useWebcam(): UseWebcam {
                 video: { width: { ideal: 3840 }, height: { ideal: 2160 } },
                 audio: false,
             });
-            close();
+
+            if (attempt !== opening) {
+                // closed while the browser asked: the light must not stay on
+                opened.getTracks().forEach((track) => track.stop());
+
+                return false;
+            }
+
             stream.value = opened;
 
             return true;
         } catch (caught) {
+            if (attempt !== opening) return false;
+
             available.value = false;
             error.value =
                 (caught as { name?: string } | null)?.name === 'NotAllowedError'

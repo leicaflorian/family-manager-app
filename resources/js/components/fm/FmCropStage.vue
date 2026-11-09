@@ -4,7 +4,8 @@
  * sheet has a blue outline and a white handle on each corner. While a handle is held a lens enlarges three
  * times what is under it, in a corner of the photo that the finger is not covering. With `editing` off it
  * shows the cut out sheet without handles, and holding it for 0.3 seconds asks for the original photo
- * (`peek`) for as long as the finger stays.
+ * (`peek`) for as long as the finger stays. The default slot lays things on the photo itself (a badge such as
+ * *Cropped*), and `fit` keeps the photo inside the height of its box as well as its width.
  *
  * @group files
  */
@@ -43,6 +44,11 @@ const props = defineProps<{
     editing: boolean;
     /** The photo fits inside the height of the box too, not only its width (a full screen like *Crop*). */
     fit?: boolean;
+}>();
+
+defineSlots<{
+    /** Laid on the photo, inside its box: a badge placed with `absolute`. */
+    default?: () => unknown;
 }>();
 
 const emit = defineEmits<{
@@ -438,12 +444,14 @@ onBeforeUnmount(endPeek);
                 </template>
                 <span
                     v-if="peeking"
-                    class="pointer-events-none absolute top-3 left-3 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold text-on-action"
+                    class="dark pointer-events-none absolute top-3 left-3 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold text-ink"
                     >{{ $t('Original') }}</span
                 >
+                <slot />
             </div>
         </div>
-        <p v-if="editing" class="text-center text-sm text-on-action/70">
+        <!-- on the dark of the camera in both themes: the tokens of the dark theme give it a light grey -->
+        <p v-if="editing" class="dark text-center text-sm text-ink-soft">
             {{ $t('Drag the corners to the edges of the sheet') }}
         </p>
     </div>

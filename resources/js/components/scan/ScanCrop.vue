@@ -8,14 +8,14 @@
  */
 import { Maximize, RotateCw, ScanSearch } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCropStage from '@/components/fm/FmCropStage.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import { SEARCH_LONG_SIDE, reduceToJpeg } from '@/lib/scan/canvas';
 import type { Corners, Turns } from '@/lib/scan/crop';
 import { WHOLE, isSheet, turnCorners } from '@/lib/scan/crop';
-import { findCorners } from '@/lib/scan/server';
+import { CORNERS_TIMEOUT, findCorners } from '@/lib/scan/server';
 
 /** What *Next* hands to the page: the sheet to cut out. */
 export type CropResult = {
@@ -104,6 +104,11 @@ function rotate(): void {
     corners.value = turnCorners(corners.value, 1);
 }
 
+/** Stops a search still running when *Crop* closes or moves to the next photo. */
+const away = new AbortController();
+
+onBeforeUnmount(() => away.abort());
+
 /** *Find the edges*: asks the server where the sheet is, a call that costs. */
 async function find(): Promise<void> {
     if (searching.value) return;
@@ -114,7 +119,10 @@ async function find(): Promise<void> {
 
     try {
         const small = await reduceToJpeg(props.source, SEARCH_LONG_SIDE, 0.8);
-        const found = await findCorners(small);
+
+        if (away.signal.aborted) return;
+
+        const found = await findCorners(small, CORNERS_TIMEOUT, away.signal);
 
         // the server saw the photo as it was taken: its corners go round as the photo has
         if (found && !touched.value) {
@@ -129,6 +137,9 @@ async function find(): Promise<void> {
                   'I did not find the edges of the sheet: drag the corners by hand.',
               );
     } catch (caught) {
+        // *Crop* was closed: nobody reads the answer
+        if (away.signal.aborted) return;
+
         message.value = trans(':reason Drag the corners by hand.', {
             reason:
                 caught instanceof Error
