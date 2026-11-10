@@ -16,7 +16,13 @@ import {
     ferriProposal,
     pendingPayslip,
 } from '@/test/fixtures';
-import { choose, renderPage, screenWidth, settle } from '@/test/page';
+import {
+    choose,
+    renderPage,
+    screenWidth,
+    settle,
+    withTrail,
+} from '@/test/page';
 import Import from './Import.vue';
 
 /** A file as the server sends it, over the payslip of the fixtures. */
@@ -163,6 +169,16 @@ afterEach(() => {
 });
 
 describe('Import', () => {
+    it('writes the trail To sort > Import files into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Import, props([light, gas, warranty]), provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'To sort', href: '/to-sort' },
+            { label: 'Import 3 files' },
+        ]);
+    });
+
     it('lists the files with their state: the first is being looked at, the others to check', () => {
         renderPage(Import, props([light, gas, warranty]));
 

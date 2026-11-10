@@ -3,11 +3,21 @@ import { fireEvent, screen } from '@testing-library/vue';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { useTheme } from '@/composables/useTheme';
 import { account, linkedPhone, themes } from '@/test/fixtures';
-import { pressSave, renderPage, settle } from '@/test/page';
+import { pressSave, renderPage, settle, withTrail } from '@/test/page';
 import Account from './Account.vue';
 import { answerLeave, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
 
 describe('My account', () => {
+    it('writes the trail Settings > My account into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Account, { account, themes, devices: [] }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'My account' },
+        ]);
+    });
+
     it('shows first name, last name and email to change, and the photo', () => {
         renderPage(Account, { account, themes, devices: [] });
 

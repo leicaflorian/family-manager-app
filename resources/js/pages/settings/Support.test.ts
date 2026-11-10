@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Support from './Support.vue';
 
 /**
@@ -15,6 +15,24 @@ function allByWholeText(text: string): HTMLElement[] {
 }
 
 describe('Settings, Support', () => {
+    it('writes the trail Settings > Support into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            Support,
+            {
+                support_until: null,
+                can_change: true,
+                admin_level: 'Everything, like you',
+            },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Support' },
+        ]);
+    });
+
     afterEach(() => {
         vi.restoreAllMocks();
     });

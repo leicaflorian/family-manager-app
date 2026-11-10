@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import InvitationSent from './InvitationSent.vue';
 
 const invitation: App.Data.SentInvitationData = {
@@ -10,6 +10,16 @@ const invitation: App.Data.SentInvitationData = {
 };
 
 describe('Invitation sent', () => {
+    it('writes the trail Family > Invitation sent into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(InvitationSent, { invitation }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'Invitation sent' },
+        ]);
+    });
+
     it('shows the link to copy and how long it is valid', async () => {
         const copy = vi.fn().mockResolvedValue(undefined);
         Object.assign(navigator, { clipboard: { writeText: copy } });

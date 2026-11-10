@@ -6,6 +6,7 @@
  */
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { KeyRound, LogOut, Smartphone, Plus, Users } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { ref, useTemplateRef } from 'vue';
 import { useServerTheme } from '@/composables/useTheme';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -33,6 +34,7 @@ import {
     update,
 } from '@/routes/account';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { account } = defineProps<{
     /** My account. */
@@ -178,6 +180,11 @@ const deletion = useForm({ password: '' });
 function deleteAccount(): void {
     deletion.submit(destroy(), { onFinish: () => deletion.reset() });
 }
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settings().url },
+    { label: trans('My account') },
+]);
 </script>
 
 <template>

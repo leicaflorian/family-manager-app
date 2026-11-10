@@ -10,6 +10,7 @@
  */
 import { Head, router } from '@inertiajs/vue3';
 import { Sparkles, Trash2 } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmConfirmDelete from '@/components/fm/FmConfirmDelete.vue';
@@ -22,8 +23,9 @@ import { useReadingPoll } from '@/composables/useReadingPoll';
 import type { DocumentFormOptions } from '@/lib/documents';
 import { documentValues, proposalOf } from '@/lib/documents';
 import { isReading } from '@/lib/reading';
-import { destroy, file, show, update } from '@/routes/documents';
+import { destroy, file, show, update, index } from '@/routes/documents';
 import { read } from '@/routes/files';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<{
     /** The document as it is. */
@@ -67,6 +69,15 @@ function fillFromFile(): void {
 
 /** The panel that asks before deleting. */
 const confirmingDelete = ref(false);
+
+usePageTrail(() => [
+    { label: trans('Documents'), href: index().url },
+    {
+        label: props.document.title,
+        href: show.url(props.document.id),
+    },
+    { label: trans('Edit the document') },
+]);
 </script>
 
 <template>

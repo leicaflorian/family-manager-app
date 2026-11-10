@@ -24,6 +24,8 @@ import { show as showDocument } from '@/routes/documents';
 import { index as remindersIndex } from '@/routes/reminders';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/people';
+import { usePageTrail } from '@/composables/usePageTrail';
+import { family } from '@/routes';
 
 const {
     person,
@@ -105,6 +107,11 @@ const actions = computed((): Action[] => [
               } satisfies Action,
           ]
         : []),
+]);
+
+usePageTrail(() => [
+    { label: trans('Family'), href: family().url },
+    { label: name.value },
 ]);
 </script>
 

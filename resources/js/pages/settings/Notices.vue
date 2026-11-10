@@ -25,6 +25,7 @@ import { ruleText } from '@/lib/reminders';
 import { settings } from '@/routes';
 import { update } from '@/routes/settings/notices';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { settings: page } = defineProps<{
     /** The groups, the kinds of deadline, the people with an account and whether who looks can change them. */
@@ -316,6 +317,11 @@ function save(): void {
 }
 
 useSaveShortcut(save, () => page.can_change && !saving.value);
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settings().url },
+    { label: trans('Notices') },
+]);
 </script>
 
 <template>

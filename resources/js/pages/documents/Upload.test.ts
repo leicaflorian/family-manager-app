@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage, screenWidth } from '@/test/page';
+import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Upload from './Upload.vue';
 
 const shared = vi.hoisted(() => ({ to_sort_count: 0 }));
@@ -22,6 +22,16 @@ afterEach(() => {
 });
 
 describe('Upload', () => {
+    it('writes the trail To sort > Upload a document into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Upload, { ...props }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'To sort', href: '/to-sort' },
+            { label: 'Upload a document' },
+        ]);
+    });
+
     it('asks to choose the files, with the accepted types', () => {
         renderPage(Upload, { ...props });
 

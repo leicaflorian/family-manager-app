@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/vue';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import DewarpCheck from './DewarpCheck.vue';
 
 const lib = vi.hoisted(() => ({
@@ -31,6 +31,16 @@ beforeEach(() => {
 });
 
 describe('DewarpCheck', () => {
+    it('writes the trail To sort > Straighten check into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(DewarpCheck, {}, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'To sort', href: '/to-sort' },
+            { label: 'Straighten check' },
+        ]);
+    });
+
     it('asks for a photo of a sheet', () => {
         renderPage(DewarpCheck);
 

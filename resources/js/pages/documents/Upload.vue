@@ -9,6 +9,7 @@
  */
 import { Head, Link } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -18,9 +19,10 @@ import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import { useToSortCount } from '@/composables/useToSortCount';
 import type { DocumentLink } from '@/lib/documents';
-import { dashboard } from '@/routes';
+import { dashboard, toSort } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<{
     /** The card the person comes from, kept for the files and the ×. */
@@ -45,6 +47,11 @@ const {
 } = useFileUpload(() => preset.value);
 
 const layout = useLayoutMode();
+
+usePageTrail(() => [
+    { label: trans('To sort'), href: toSort().url },
+    { label: trans('Upload a document') },
+]);
 </script>
 
 <template>

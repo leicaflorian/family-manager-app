@@ -16,6 +16,7 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import { formatDateTime } from '@/lib/format';
 import { settings } from '@/routes';
 import { destroy, store } from '@/routes/settings/support';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<{
     /** Until when support can come in (ISO with offset), or `null` without the permission. */
@@ -66,6 +67,11 @@ function allow(): void {
 function takeBack(): void {
     router.delete(destroy.url(), { preserveScroll: true });
 }
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settings().url },
+    { label: trans('Support') },
+]);
 </script>
 
 <template>

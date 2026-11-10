@@ -26,6 +26,8 @@ import { websiteHref } from '@/lib/family';
 import { show as showDocument } from '@/routes/documents';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/organizations';
+import { usePageTrail } from '@/composables/usePageTrail';
+import { family } from '@/routes';
 
 const { organization, links, documents } = defineProps<{
     /** The organization. */
@@ -88,6 +90,12 @@ const actions = computed((): Action[] => [
               } satisfies Action,
           ]
         : []),
+]);
+
+usePageTrail(() => [
+    { label: trans('Family'), href: family().url },
+    { label: trans('Organizations'), href: index().url },
+    { label: organization.name },
 ]);
 </script>
 

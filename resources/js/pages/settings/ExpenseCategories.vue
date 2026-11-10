@@ -18,6 +18,7 @@ import { errors } from '@/lib/errors';
 import { settings } from '@/routes';
 import { update } from '@/routes/expense-categories';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { cardTypes } = defineProps<{
     /** The tree, from the main ones. */
@@ -76,6 +77,11 @@ function save(): void {
 
 // Only the open panel has a form to save
 useSaveShortcut(save, () => open.value && !form.processing);
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settings().url },
+    { label: trans('Expense categories') },
+]);
 </script>
 
 <template>

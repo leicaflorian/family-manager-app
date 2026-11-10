@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { fireEvent, screen, within } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, settle, withTrail } from '@/test/page';
 import Calendar from './Calendar.vue';
 
 const on: App.Data.CalendarSettingsData = {
@@ -19,6 +19,16 @@ const off: App.Data.CalendarSettingsData = {
 };
 
 describe('Settings, Calendar', () => {
+    it('writes the trail Settings > Calendar into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Calendar, { calendar: off }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Calendar' },
+        ]);
+    });
+
     afterEach(() => {
         vi.restoreAllMocks();
     });

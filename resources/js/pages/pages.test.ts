@@ -1,6 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vite-plus/test';
+import { pageLayout } from '@/lib/pageLayout';
+import { isSectionPage } from '@/lib/pageTrail';
+import AppLayout from '@/layouts/AppLayout.vue';
 
 /** The folder of the pages. */
 const root = join(process.cwd(), 'resources/js/pages');
@@ -44,5 +47,24 @@ describe('the pages', () => {
         );
 
         expect(offenders).toEqual([]);
+    });
+
+    // The top bar shows the trail the page writes: a page of the app layout that
+    // is not a section (or one of its tabs) must call usePageTrail().
+    it('every page of the app layout tells its trail', () => {
+        const missing = pages()
+            .map((page) => page.replace(/\.vue$/, ''))
+            .filter(
+                (name) =>
+                    pageLayout(name) === AppLayout && !isSectionPage(name),
+            )
+            .filter(
+                (name) =>
+                    !readFileSync(join(root, `${name}.vue`), 'utf8').includes(
+                        'usePageTrail(',
+                    ),
+            );
+
+        expect(missing).toEqual([]);
     });
 });

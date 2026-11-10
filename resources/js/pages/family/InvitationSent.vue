@@ -6,12 +6,14 @@
  */
 import { Head } from '@inertiajs/vue3';
 import { Check, Copy } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCopy } from '@/composables/useCopy';
 import { useFormat } from '@/composables/useFormat';
 import { family } from '@/routes';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { invitation } = defineProps<{
     /** The invitation just sent. */
@@ -30,6 +32,11 @@ async function copy(): Promise<void> {
         await copyText(invitation.link);
     }
 }
+
+usePageTrail(() => [
+    { label: trans('Family'), href: family().url },
+    { label: trans('Invitation sent') },
+]);
 </script>
 
 <template>

@@ -7,6 +7,7 @@
  */
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
@@ -21,6 +22,8 @@ import { initialsOf } from '@/lib/names';
 import { index, show, store, update } from '@/routes/people';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { usePageTrail } from '@/composables/usePageTrail';
+import { family } from '@/routes';
 
 const { person, roles } = defineProps<{
     /** The person to change, or null for a new one. */
@@ -56,6 +59,23 @@ function save(): void {
 useSaveShortcut(save, () => !form.processing);
 
 const layout = useLayoutMode();
+
+usePageTrail(() => [
+    { label: trans('Family'), href: family().url },
+    ...(person
+        ? [
+              {
+                  label: `${person.first_name} ${person.last_name}`,
+                  href: back.value,
+              },
+          ]
+        : []),
+    {
+        label: person
+            ? trans('Edit :name', { name: person.first_name })
+            : trans('New person'),
+    },
+]);
 </script>
 
 <template>

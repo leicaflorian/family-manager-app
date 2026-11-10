@@ -9,7 +9,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, settle, withTrail } from '@/test/page';
 import { hasChanges } from '@/lib/unsavedChanges';
 import Notices from './Notices.vue';
 
@@ -145,6 +145,16 @@ function screenWidth(computer: boolean): void {
 }
 
 describe('Settings, Notices', () => {
+    it('writes the trail Settings > Notices into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Notices, props(), provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Notices' },
+        ]);
+    });
+
     beforeEach(() => {
         screenWidth(true);
     });

@@ -14,6 +14,7 @@ import {
     pickFile,
     pressSave,
     renderPage,
+    withTrail,
     settle,
     stubObjectUrls,
     tapCancel,
@@ -32,6 +33,34 @@ afterEach(() => {
 });
 
 describe('Edit a person', () => {
+    it('writes the trail of a new and of a changed person into the top bar', () => {
+        const created = withTrail();
+        const first = renderPage(
+            EditPerson,
+            { person: null, roles: personRoles },
+            created.provide,
+        );
+
+        expect(created.state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'New person' },
+        ]);
+        first.unmount();
+
+        const changed = withTrail();
+        renderPage(
+            EditPerson,
+            { person: personDetail, roles: personRoles },
+            changed.provide,
+        );
+
+        expect(changed.state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'Giulia Bianchi', href: '/family/people/3' },
+            { label: 'Edit Giulia' },
+        ]);
+    });
+
     it('adds a new person with what was written', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditPerson, { person: null, roles: personRoles });

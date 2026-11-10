@@ -14,7 +14,7 @@ import {
     documentFilterOptions,
     documentReading,
 } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, settle, withTrail } from '@/test/page';
 import EditDocument from './EditDocument.vue';
 
 const options: DocumentFormOptions = {
@@ -36,6 +36,21 @@ afterEach(() => {
 });
 
 describe('Edit a document', () => {
+    it('writes the trail Documents > the document > Edit the document into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            EditDocument,
+            { document: documentDetail, options, reading: documentReading },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Documents', href: '/documents' },
+            { label: 'Busta paga di ottobre', href: '/documents/5' },
+            { label: 'Edit the document' },
+        ]);
+    });
+
     it('starts from the document as it is', () => {
         renderPage(EditDocument, {
             document: documentDetail,

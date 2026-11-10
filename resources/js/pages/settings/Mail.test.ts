@@ -2,7 +2,7 @@ import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { fireEvent, screen, within } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, settle, withTrail } from '@/test/page';
 import Mail from './Mail.vue';
 
 const settings: App.Data.MailSettingsData = {
@@ -24,6 +24,16 @@ const settings: App.Data.MailSettingsData = {
 };
 
 describe('Settings, Address for the bills', () => {
+    it('writes the trail Settings > Address for the bills into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Mail, { settings }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Address for the bills' },
+        ]);
+    });
+
     afterEach(() => {
         vi.restoreAllMocks();
     });

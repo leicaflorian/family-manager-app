@@ -11,7 +11,7 @@
  */
 import { Head, router } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, RotateCcw } from '@lucide/vue';
-import { transChoice } from 'laravel-vue-i18n';
+import { transChoice, trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -25,6 +25,7 @@ import { areaFill, areaOf } from '@/lib/areas';
 import { cardCountText } from '@/lib/cardTexts';
 import { settings } from '@/routes';
 import { reset, update } from '@/routes/settings/areas';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { settings: page } = defineProps<{
     /** The areas of the family in its order, with their cards and whether they are hidden, and whether who looks can change them. */
@@ -151,6 +152,11 @@ function cardsStay(count: number): string {
         count,
     );
 }
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settings().url },
+    { label: trans('Areas') },
+]);
 </script>
 
 <template>

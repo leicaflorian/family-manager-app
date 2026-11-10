@@ -13,6 +13,7 @@ import {
     pickFile,
     pressSave,
     renderPage,
+    withTrail,
     settle,
     stubObjectUrls,
     tapCancel,
@@ -31,6 +32,36 @@ afterEach(() => {
 });
 
 describe('Edit an organization', () => {
+    it('writes the trail of a new and of a changed organization into the top bar', () => {
+        const created = withTrail();
+        const first = renderPage(
+            EditOrganization,
+            { organization: null, types: organizationTypes },
+            created.provide,
+        );
+
+        expect(created.state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'Organizations', href: '/family/organizations' },
+            { label: 'New organization' },
+        ]);
+        first.unmount();
+
+        const changed = withTrail();
+        renderPage(
+            EditOrganization,
+            { organization: organizationDetail, types: organizationTypes },
+            changed.provide,
+        );
+
+        expect(changed.state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'Organizations', href: '/family/organizations' },
+            { label: 'Edison', href: '/family/organizations/1' },
+            { label: 'Edit Edison' },
+        ]);
+    });
+
     it('adds a new organization with its types', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditOrganization, {

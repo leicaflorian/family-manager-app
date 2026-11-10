@@ -14,6 +14,8 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { readPhoto, toObjectUrl } from '@/lib/scan/canvas';
 import { WHOLE, warp, LONG_SIDE } from '@/lib/scan/crop';
 import { dewarp, isDewarpAvailable, loadDewarp } from '@/lib/scan/dewarp';
+import { usePageTrail } from '@/composables/usePageTrail';
+import { toSort } from '@/routes';
 
 const available = isDewarpAvailable();
 const working = ref(false);
@@ -84,6 +86,11 @@ async function start(event: Event): Promise<void> {
 }
 
 onBeforeUnmount(clearPicture);
+
+usePageTrail(() => [
+    { label: trans('To sort'), href: toSort().url },
+    { label: trans('Straighten check') },
+]);
 </script>
 
 <template>

@@ -7,6 +7,7 @@
  */
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -20,6 +21,8 @@ import { organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { usePageTrail } from '@/composables/usePageTrail';
+import { family } from '@/routes';
 
 const { organization, types } = defineProps<{
     /** The organization to change, or null for a new one. */
@@ -55,6 +58,17 @@ function save(): void {
 useSaveShortcut(save, () => !form.processing);
 
 const layout = useLayoutMode();
+
+usePageTrail(() => [
+    { label: trans('Family'), href: family().url },
+    { label: trans('Organizations'), href: index().url },
+    ...(organization ? [{ label: organization.name, href: back.value }] : []),
+    {
+        label: organization
+            ? trans('Edit :name', { name: organization.name })
+            : trans('New organization'),
+    },
+]);
 </script>
 
 <template>

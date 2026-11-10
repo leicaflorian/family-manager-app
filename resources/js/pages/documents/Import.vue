@@ -20,6 +20,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleCheck, FileText, X } from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import ImportAlsoDoBoxes from '@/components/documents/ImportAlsoDoBoxes.vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
@@ -62,6 +63,7 @@ import { toSort } from '@/routes';
 import { create as createCard, show as showCard } from '@/routes/cards';
 import { store } from '@/routes/import';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<
     {
@@ -432,6 +434,16 @@ function save(): void {
 }
 
 const layout = useLayoutMode();
+
+usePageTrail(() => [
+    { label: trans('To sort'), href: toSort().url },
+    {
+        label: transChoice(
+            '{1} Import :count file|[2,*] Import :count files',
+            props.files.length,
+        ),
+    },
+]);
 </script>
 
 <template>

@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { layOut, watchLayout } from '@/test/layout';
-import { openMenu, pressSave, renderPage, settle } from '@/test/page';
+import {
+    openMenu,
+    pressSave,
+    renderPage,
+    settle,
+    withTrail,
+} from '@/test/page';
 import Categories from './Categories.vue';
 import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 
@@ -32,6 +38,16 @@ const categories = [
 ];
 
 describe('Document categories', () => {
+    it('writes the trail Settings > Document categories into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Categories, { categories, canEdit: true }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Document categories' },
+        ]);
+    });
+
     it('shows the tree with the number of documents, and opens the subcategories', async () => {
         renderPage(Categories, { categories, canEdit: true });
 

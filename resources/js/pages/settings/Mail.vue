@@ -9,6 +9,7 @@
  */
 import { Head, router } from '@inertiajs/vue3';
 import { Check, Copy, Mail as MailIcon, RefreshCw } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -21,6 +22,7 @@ import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { settings as settingsIndex } from '@/routes';
 import { index as mailIndex } from '@/routes/mail';
 import { address as changeAddress, update } from '@/routes/mail-settings';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { settings } = defineProps<{
     /** The address, who already wrote, the accounts, the choice saved and whether who looks can change it. */
@@ -100,6 +102,11 @@ function save(): void {
 }
 
 useSaveShortcut(save, () => settings.can_edit && !saving.value);
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settingsIndex().url },
+    { label: trans('Address for the bills') },
+]);
 </script>
 
 <template>

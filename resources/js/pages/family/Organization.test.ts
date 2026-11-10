@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { healthCard, organizationDetail } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Organization from './Organization.vue';
 
 const links: App.Data.LinkGroupData[] = [
@@ -21,6 +21,21 @@ const bill = {
 };
 
 describe('An organization', () => {
+    it('writes the trail Family > Organizations > the organization into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            Organization,
+            { organization: organizationDetail, links, documents: [bill] },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'Organizations', href: '/family/organizations' },
+            { label: 'Edison' },
+        ]);
+    });
+
     it('shows its contacts, its records and its documents', () => {
         renderPage(Organization, {
             organization: organizationDetail,

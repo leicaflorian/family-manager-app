@@ -3,7 +3,7 @@ import { fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { documentDetail } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Document from './Document.vue';
 
 afterEach(() => {
@@ -11,6 +11,16 @@ afterEach(() => {
 });
 
 describe('A document', () => {
+    it('writes the trail Documents > the document into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Document, { document: documentDetail }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Documents', href: '/documents' },
+            { label: 'Busta paga di ottobre' },
+        ]);
+    });
+
     it('shows the title, the way back to Documents and the document', () => {
         renderPage(Document, { document: documentDetail });
 

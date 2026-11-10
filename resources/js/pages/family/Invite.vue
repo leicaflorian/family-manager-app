@@ -14,6 +14,7 @@ import { errors } from '@/lib/errors';
 import { family } from '@/routes';
 import { store } from '@/routes/family/invitations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 /** The value of «Who they are» for a person who is not there yet. */
 const NEW_PERSON = 'new';
@@ -60,6 +61,11 @@ function send(): void {
         person_id: isNew.value ? null : Number(who.value),
     })).submit(store());
 }
+
+usePageTrail(() => [
+    { label: trans('Family'), href: family().url },
+    { label: trans('Invite a family member') },
+]);
 </script>
 
 <template>

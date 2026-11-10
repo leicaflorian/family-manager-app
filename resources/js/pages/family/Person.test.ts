@@ -15,7 +15,7 @@ import {
     plumberReminder,
 } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Person from './Person.vue';
 
 const links: App.Data.LinkGroupData[] = [
@@ -50,6 +50,28 @@ function renderGiulia(
 }
 
 describe('A person', () => {
+    it('writes the trail Family > the person into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            Person,
+            {
+                person: personDetail,
+                reminders: [],
+                remindersCount: 0,
+                expiring: [],
+                personal: [],
+                documents: [],
+                links,
+            },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'Giulia Bianchi' },
+        ]);
+    });
+
     beforeEach(() => {
         vi.useFakeTimers({ toFake: ['Date'] });
         vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));

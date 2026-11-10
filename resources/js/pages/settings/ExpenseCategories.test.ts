@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
-import { choose, renderPage } from '@/test/page';
+import { choose, renderPage, withTrail } from '@/test/page';
 import ExpenseCategories from './ExpenseCategories.vue';
 import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 
@@ -38,6 +38,20 @@ const cardTypes: App.Data.OptionData[] = [
 ];
 
 describe('Expense categories', () => {
+    it('writes the trail Settings > Expense categories into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            ExpenseCategories,
+            { categories, cardTypes, canEdit: true },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Expense categories' },
+        ]);
+    });
+
     it('shows the tree with the card of each category', () => {
         renderPage(ExpenseCategories, { categories, cardTypes, canEdit: true });
 

@@ -20,6 +20,7 @@ import { errors } from '@/lib/errors';
 import { settings } from '@/routes';
 import { destroy, store, update } from '@/routes/categories';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { categories, canEdit } = defineProps<{
     /** The tree, from the main ones. */
@@ -154,6 +155,11 @@ function deleteCategory(): void {
         });
     }
 }
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settings().url },
+    { label: trans('Document categories') },
+]);
 </script>
 
 <template>

@@ -1,6 +1,13 @@
 import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { choose, openMenu, renderPage, settle, tapCancel } from '@/test/page';
+import {
+    choose,
+    openMenu,
+    renderPage,
+    settle,
+    tapCancel,
+    withTrail,
+} from '@/test/page';
 import Invite from './Invite.vue';
 import { hasChanges } from '@/lib/unsavedChanges';
 
@@ -27,6 +34,16 @@ const props = {
 };
 
 describe('Invite a family member', () => {
+    it('writes the trail Family > Invite a family member into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Invite, props, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Family', href: '/family' },
+            { label: 'Invite a family member' },
+        ]);
+    });
+
     it('asks for the email, who they are and what they can do, as the board', async () => {
         renderPage(Invite, props);
 

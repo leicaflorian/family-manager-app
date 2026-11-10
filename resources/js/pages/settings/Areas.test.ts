@@ -11,7 +11,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { areaSettings } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, settle, withTrail } from '@/test/page';
 import Areas from './Areas.vue';
 
 /** The default order of the areas, as `areaSettings` has them. */
@@ -57,6 +57,16 @@ async function move(name: string, entry: string): Promise<void> {
 }
 
 describe('Settings, Areas', () => {
+    it('writes the trail Settings > Areas into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Areas, { settings: areaSettings }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Areas' },
+        ]);
+    });
+
     /** The calls of `router.put`, with their options to finish them by hand. */
     let put: ReturnType<typeof vi.spyOn>;
 

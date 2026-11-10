@@ -6,6 +6,7 @@
  */
 import { Head, router } from '@inertiajs/vue3';
 import { Check, Copy } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { ref, watch } from 'vue';
 import { useCopy } from '@/composables/useCopy';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -15,6 +16,7 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { settings } from '@/routes';
 import { destroy, reset, store } from '@/routes/calendar';
+import { usePageTrail } from '@/composables/usePageTrail';
 
 const { calendar } = defineProps<{
     /** Whether the calendar is on, its address and whether who looks can change it. */
@@ -86,6 +88,11 @@ async function copy(): Promise<void> {
 function resetAddress(): void {
     router.post(reset.url(), {}, { preserveScroll: true });
 }
+
+usePageTrail(() => [
+    { label: trans('Settings'), href: settings().url },
+    { label: trans('Calendar') },
+]);
 </script>
 
 <template>
