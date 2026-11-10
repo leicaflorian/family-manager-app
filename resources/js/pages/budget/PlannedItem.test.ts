@@ -14,7 +14,7 @@ import {
     danceExceptions,
     lateDeadline,
 } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import PlannedItem from './PlannedItem.vue';
 
 const props = {
@@ -34,6 +34,17 @@ afterEach(() => {
 });
 
 describe('A planned expense', () => {
+    it('writes the trail Budget > Planned expenses > planned expense into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(PlannedItem, props, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Planned expenses', href: '/budget/planned' },
+            { label: 'Retta danza' },
+        ]);
+    });
+
     it('shows the head with the card, the amount, the year and the skipped months', () => {
         renderPage(PlannedItem, props);
 

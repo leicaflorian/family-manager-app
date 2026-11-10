@@ -14,6 +14,7 @@ import {
     choose,
     openMenu,
     renderPage,
+    withTrail,
     search,
     settle,
     shown,
@@ -54,6 +55,17 @@ afterEach(() => {
 });
 
 describe('Edit a reminder', () => {
+    it('writes the trail Agenda > Reminders > the page into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(EditReminder, props, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Agenda', href: '/agenda' },
+            { label: 'Reminders', href: '/reminders' },
+            { label: 'New reminder' },
+        ]);
+    });
+
     it('is the empty form, with the recipients of the default group', () => {
         renderPage(EditReminder, props);
 

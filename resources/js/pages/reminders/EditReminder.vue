@@ -19,10 +19,12 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
 import { isEmpty, withMethod, withNone } from '@/lib/forms';
 import { offsetsHint, recipientsSentence } from '@/lib/reminders';
+import { agenda } from '@/routes';
 import { destroy, index, store, update } from '@/routes/reminders';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
@@ -104,6 +106,12 @@ useUnsavedChanges(() => form.data());
 const heading = computed(() =>
     reminder ? trans('Edit reminder') : trans('New reminder'),
 );
+
+usePageTrail(() => [
+    { label: trans('Agenda'), href: agenda().url },
+    { label: trans('Reminders'), href: index().url },
+    { label: heading.value },
+]);
 
 /** The things a reminder can refer to as one list: «Home · Casa di via Roma», by `type:id`. */
 const things = computed(() =>

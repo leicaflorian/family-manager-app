@@ -11,7 +11,9 @@ import { computed } from 'vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmMovementPanel from '@/components/fm/FmMovementPanel.vue';
 import type { MovementFormOptions, MovementStart } from '@/lib/budget';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { movementsUrl } from '@/lib/budget';
+import { budget } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 
 const { movement, start, options } = defineProps<{
@@ -47,6 +49,11 @@ const back = computed(
         fromCard.value?.href ??
         movementsUrl({ month: (movement?.date ?? start.date).slice(0, 7) }),
 );
+
+usePageTrail(() => [
+    { label: trans('Budget'), href: budget().url },
+    { label: movement?.title ?? trans('New expense or income') },
+]);
 
 /** Goes back to the card or to the month. */
 function close(): void {

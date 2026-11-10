@@ -14,6 +14,7 @@ import {
     choose,
     openMenu,
     renderPage,
+    withTrail,
     search,
     settle,
     shown,
@@ -51,6 +52,25 @@ async function write(label: string, text: string): Promise<void> {
 }
 
 describe('Movement', () => {
+    it('writes the trail Budget > movement into the top bar, new or not', () => {
+        const saved = withTrail();
+        const first = renderPage(Movement, props, saved.provide);
+
+        expect(saved.state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Retta di novembre' },
+        ]);
+        first.unmount();
+
+        const created = withTrail();
+        renderPage(Movement, newExpense, created.provide);
+
+        expect(created.state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'New expense or income' },
+        ]);
+    });
+
     it('shows the movement and a link back to the month it belongs to', () => {
         renderPage(Movement, props);
 

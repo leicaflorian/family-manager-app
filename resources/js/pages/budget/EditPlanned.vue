@@ -16,10 +16,12 @@ import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCardChoice } from '@/composables/useCardChoice';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { PlannedFormOptions, PlannedFormValues } from '@/lib/budget';
 import { errors } from '@/lib/errors';
 import { isEmpty, withNone } from '@/lib/forms';
+import { budget } from '@/routes';
 import { destroy, index, show, store, update } from '@/routes/budget/planned';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { useLayoutMode } from '@/composables/useLayoutMode';
@@ -76,6 +78,13 @@ const heading = computed(() =>
 const back = computed(() =>
     planned ? show.url({ kind, id: planned.id }) : index().url,
 );
+
+usePageTrail(() => [
+    { label: trans('Budget'), href: budget().url },
+    { label: trans('Planned expenses'), href: index().url },
+    ...(planned ? [{ label: planned.title, href: back.value }] : []),
+    { label: heading.value },
+]);
 
 /** The units of how often. */
 const units = computed(() => [

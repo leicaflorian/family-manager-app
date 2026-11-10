@@ -21,9 +21,11 @@ import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
 import FmDeadlineRow from '@/components/fm/FmDeadlineRow.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmPaySheet from '@/components/fm/FmPaySheet.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { useFormat } from '@/composables/useFormat';
 import { deadlineStatus, deadlineUrls } from '@/lib/budget';
-import { dashboard } from '@/routes';
+import { budget, dashboard } from '@/routes';
+import { index as plannedIndex, show as showPlanned } from '@/routes/budget/planned';
 import { show as showArea } from '@/routes/areas';
 import { show as showMovement } from '@/routes/budget/movements';
 import { show as showCard } from '@/routes/cards';
@@ -72,6 +74,16 @@ const back = computed(() =>
               label: deadline.card.area_label,
           },
 );
+
+usePageTrail(() => [
+    { label: trans('Budget'), href: budget().url },
+    { label: trans('Planned expenses'), href: plannedIndex().url },
+    {
+        label: deadline.planned_title,
+        href: showPlanned.url({ kind: deadline.kind, id: deadline.planned_id }),
+    },
+    { label: deadline.title },
+]);
 
 /** The address of the card of the due date, if it has one. */
 const cardHref = computed(() =>

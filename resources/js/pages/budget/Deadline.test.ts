@@ -14,7 +14,7 @@ import {
     paidDeadline,
     salaryDeadline,
 } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Deadline from './Deadline.vue';
 
 /** The car insurance of the Bianchi, due on 21/11/2026. */
@@ -59,6 +59,18 @@ afterEach(() => {
 });
 
 describe('A due date', () => {
+    it('writes the trail Budget > Planned expenses > planned expense > due date into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Deadline, props, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Planned expenses', href: '/budget/planned' },
+            { label: 'Assicurazione auto', href: '/budget/planned/expense/6' },
+            { label: 'Rata RC auto' },
+        ]);
+    });
+
     it('shows the card, the title, the amount and when it falls', () => {
         renderPage(Deadline, props);
 

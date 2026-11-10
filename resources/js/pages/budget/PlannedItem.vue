@@ -28,6 +28,7 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import type { RowTone } from '@/components/fm/FmRow.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { useFormat } from '@/composables/useFormat';
 import {
     capitalized,
@@ -37,6 +38,7 @@ import {
     skippedMonthsText,
 } from '@/lib/budget';
 import type { RecurrenceUnit } from '@/lib/budget';
+import { budget } from '@/routes';
 import { index, edit } from '@/routes/budget/planned';
 import { show as showCard } from '@/routes/cards';
 
@@ -56,6 +58,12 @@ const row = computed(() => detail.row);
 
 /** Whether it is an income. */
 const income = computed(() => row.value.kind === 'income');
+
+usePageTrail(() => [
+    { label: trans('Budget'), href: budget().url },
+    { label: trans('Planned expenses'), href: index().url },
+    { label: row.value.title },
+]);
 
 /** How it repeats, as `recurrenceText` writes it. */
 function repeats(withEnd: boolean): string {

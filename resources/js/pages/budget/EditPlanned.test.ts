@@ -11,6 +11,7 @@ import {
     choose,
     openMenu,
     renderPage,
+    withTrail,
     settle,
     shown,
     tapCancel,
@@ -32,6 +33,32 @@ afterEach(() => {
 });
 
 describe('Edit a planned expense', () => {
+    it('writes the trail of a new and of a changed planned expense into the top bar', () => {
+        const created = withTrail();
+        const first = renderPage(EditPlanned, props, created.provide);
+
+        expect(created.state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Planned expenses', href: '/budget/planned' },
+            { label: 'New planned expense' },
+        ]);
+        first.unmount();
+
+        const changed = withTrail();
+        renderPage(
+            EditPlanned,
+            { ...props, planned: danceRow },
+            changed.provide,
+        );
+
+        expect(changed.state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Planned expenses', href: '/budget/planned' },
+            { label: 'Retta danza', href: '/budget/planned/expense/4' },
+            { label: 'Edit Retta danza' },
+        ]);
+    });
+
     it('shows the three groups, with the card in *Where*', () => {
         renderPage(EditPlanned, props);
 
