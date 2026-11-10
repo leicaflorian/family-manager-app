@@ -111,7 +111,7 @@ function markAll(): void {
         {
             preserveScroll: true,
             preserveState: true,
-            only: ['notices', 'unread_notices'],
+            only: ['bell_notices', 'unread_notices', 'notices'],
         },
     );
 }

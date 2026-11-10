@@ -133,7 +133,7 @@ describe('FmBell', () => {
         ).toBeInTheDocument();
     });
 
-    it('marks all as read from the menu and reloads only the notices', async () => {
+    it('marks all as read from the menu and reloads the bell and the notices page', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         render(FmBell, {
             props: {
@@ -153,7 +153,7 @@ describe('FmBell', () => {
             expect.objectContaining({
                 preserveScroll: true,
                 preserveState: true,
-                only: ['notices', 'unread_notices'],
+                only: ['bell_notices', 'unread_notices', 'notices'],
             }),
         );
     });
