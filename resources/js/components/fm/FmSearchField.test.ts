@@ -114,7 +114,11 @@ describe('FmSearchField', () => {
 
     it('writes the shortcut in the font of the app, small and with the corners of the board', () => {
         render(FmSearchField, {
-            props: { modelValue: '', label: 'Search everything', shortcut: true },
+            props: {
+                modelValue: '',
+                label: 'Search everything',
+                shortcut: true,
+            },
         });
 
         // a <kbd> gets the monospaced font from Tailwind's preflight: the board keeps the font of the app
