@@ -35,24 +35,55 @@ function openTab(type: string | undefined): void {
  * What Inertia fires when the first page is shown (`InitialVisit.fireInitialEvents`):
  * `navigate` of type `initial`.
  */
-function firstPage(): void {
+function firstPage(component?: string): void {
     document.dispatchEvent(
         new CustomEvent('inertia:navigate', {
-            detail: { page: {}, type: 'initial' },
+            detail: { page: { component }, type: 'initial' },
+        }),
+    );
+}
+
+/** The pages drawn in the layout of the app: here every page but the sign-in ones. */
+function appPage(component: string): boolean {
+    return !component.startsWith('auth/');
+}
+
+/**
+ * What Inertia fires when a visit to a page starts (`inertia:start`).
+ *
+ * @param method - the method of the visit
+ */
+function started(method: string): void {
+    document.dispatchEvent(
+        new CustomEvent('inertia:start', {
+            detail: {
+                visit: {
+                    url: new URL('/', window.location.origin),
+                    method,
+                    only: [],
+                    except: [],
+                    prefetch: false,
+                },
+            },
         }),
     );
 }
 
 /**
- * What Inertia does for a visit to another address (`page.set` with `pushState`): a new
- * entry with nothing remembered, `navigate` of type `visit`, then `success`.
+ * What Inertia does for a visit to another address (`page.set` with `pushState`): `start`,
+ * a new entry with nothing remembered, `navigate` of type `visit`, then `success`. A form
+ * sent with another method lands on the page of the redirect the same way.
+ *
+ * @param component - the page shown
+ * @param method - the method of the visit
  */
-function visit(): void {
+function visit(component?: string, method = 'get'): void {
+    started(method);
     tab.entries = [...tab.entries.slice(0, tab.index + 1), {}];
     tab.index += 1;
     document.dispatchEvent(
         new CustomEvent('inertia:navigate', {
-            detail: { page: {}, type: 'visit' },
+            detail: { page: { component }, type: 'visit' },
         }),
     );
     answered();
@@ -282,6 +313,74 @@ describe('visit history', () => {
         firstPage();
 
         expect(canGoBack()).toBe(false);
+    });
+
+    it('cannot go back to the sign-in page after signing in', () => {
+        openTab('navigate');
+        stop = startVisitHistory(appPage);
+        firstPage('auth/Login');
+
+        visit('cards/Show', 'post');
+
+        expect(canGoBack()).toBe(false);
+    });
+
+    it('cannot go back to a page outside the layout of the app, even after a link', () => {
+        openTab('navigate');
+        stop = startVisitHistory(appPage);
+        firstPage('auth/Login');
+
+        visit('Home');
+
+        expect(canGoBack()).toBe(false);
+    });
+
+    it('cannot go back to the form after saving it', () => {
+        openTab('navigate');
+        stop = startVisitHistory(appPage);
+        firstPage('cards/Show');
+        visit('cards/Edit');
+        expect(canGoBack()).toBe(true);
+
+        visit('cards/Show', 'put');
+
+        expect(canGoBack()).toBe(false);
+    });
+
+    it('cannot go back to a deleted page', () => {
+        openTab('navigate');
+        stop = startVisitHistory(appPage);
+        firstPage('cards/Show');
+
+        visit('areas/Area', 'delete');
+
+        expect(canGoBack()).toBe(false);
+    });
+
+    it('can go back after a link from a page of the app', () => {
+        openTab('navigate');
+        stop = startVisitHistory(appPage);
+        firstPage('cards/Show');
+        visit('cards/Show', 'put');
+
+        visit('areas/Area');
+
+        expect(canGoBack()).toBe(true);
+    });
+
+    it('does not write the depth in the entry again when an answer leaves it as it was', () => {
+        openTab('navigate');
+        stop = startVisitHistory();
+        firstPage();
+        visit();
+        const remember = vi.mocked(router.remember);
+        remember.mockClear();
+
+        // a poll or a partial reload of the same page
+        answered();
+        answered();
+
+        expect(remember).not.toHaveBeenCalled();
     });
 
     it('stops listening', () => {

@@ -4,6 +4,7 @@ import { createInertiaApp, router } from '@inertiajs/vue3';
 import { I18n, i18nVue } from 'laravel-vue-i18n';
 import formkitConfig from '@/formkit.config';
 import { useTheme } from '@/composables/useTheme';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import {
     addManifestLink,
@@ -27,7 +28,8 @@ I18n.getSharedInstance(i18nOptions(lang));
 
 // Back of the top bar needs the depth of the first page too: the listener must exist
 // before Inertia fires the `initial` navigate, which happens before any layout mounts.
-startVisitHistory();
+// Back never leads to a page outside the layout of the app (sign-in, welcome, scan).
+startVisitHistory((name) => pageLayout(name) === AppLayout);
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

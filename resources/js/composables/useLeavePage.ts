@@ -1,21 +1,6 @@
-import type { PendingVisit } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';
 import { onBeforeUnmount, onMounted } from 'vue';
-
-/**
- * Whether a visit shows a page: not a partial reload (`only`, `except`), as the bell and
- * the polls make, nor a prefetch.
- *
- * @param visit - the visit that starts
- * @returns true for a visit that shows a page
- */
-function showsPage(
-    visit: Pick<PendingVisit, 'only' | 'except' | 'prefetch'>,
-): boolean {
-    return (
-        !visit.prefetch && visit.only.length === 0 && visit.except.length === 0
-    );
-}
+import { isPageVisit } from '@/lib/visitHistory';
 
 /**
  * The path of an address, without the query.
@@ -40,7 +25,7 @@ export function useLeavePage(callback: (path: string) => void): void {
 
     onMounted(() => {
         const offStart = router.on('start', (event): void => {
-            if (showsPage(event.detail.visit)) {
+            if (isPageVisit(event.detail.visit)) {
                 callback(pathOf(event.detail.visit.url));
             }
         });

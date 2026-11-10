@@ -11,15 +11,20 @@
  *   the entry on a reload (`InitialVisit.clearRememberedStateOnReload`).
  * - `visit`: a visit pushed a new entry, one step more. The entry may carry the remembered
  *   state of the page before (a `preserveState` visit to the same component), so it is
- *   not read here.
+ *   not read here. The depth goes back to 0 (Back then leads up the trail) when the page
+ *   before is outside the layout of the app (sign-in, welcome, connect, scan) or when the
+ *   new page is the redirect of a form sent with another method than GET (saving,
+ *   deleting, signing in): going back would show a form already sent, or a page that is
+ *   gone. The method comes from the `start` of the visit.
  * - `history`: the browser's Back or Forward (popstate) showed an older entry, with the
  *   depth remembered in it.
  *
  * A `replace` visit, or one to the address already open, replaces the entry with a page
  * that remembers nothing and fires no `navigate`: the depth, unchanged, is written again
- * on `success`. Each entry keeps its depth with `router.remember`, and the tab keeps the
+ * on `success`, unless the entry already has it (polls and partial reloads). Each entry keeps its depth with `router.remember`, and the tab keeps the
  * last one in `sessionStorage`, for a reload.
  */
+import type { PendingVisit } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';
 import { shallowRef } from 'vue';
 
@@ -32,6 +37,27 @@ const KEY = 'fm-visit-depth';
  * renders again when the depth changes.
  */
 const depth = shallowRef(0);
+
+/** The page shown, by name; null before the first one. */
+let shownPage: string | null = null;
+
+/** The method of the last visit to a page that started. */
+let lastMethod = 'get';
+
+/**
+ * Whether a visit shows a page: not a partial reload (`only`, `except`), as the bell and
+ * the polls make, nor a prefetch.
+ *
+ * @param visit - the visit that starts
+ * @returns true for a visit that shows a page
+ */
+export function isPageVisit(
+    visit: Pick<PendingVisit, 'only' | 'except' | 'prefetch'>,
+): boolean {
+    return (
+        !visit.prefetch && visit.only.length === 0 && visit.except.length === 0
+    );
+}
 
 /**
  * Reads a depth that may be anything.
@@ -75,9 +101,15 @@ function storedDepth(): number {
     }
 }
 
-/** Writes the depth in the open entry and in the tab's storage (a failing storage is ignored). */
-function save(): void {
-    router.remember(depth.value, KEY);
+/**
+ * Writes the depth in the open entry and in the tab's storage (a failing storage is ignored).
+ *
+ * @param always - false to leave the entry alone when it already has the depth
+ */
+function save(always = true): void {
+    if (always || asDepth(router.restore(KEY)) !== depth.value) {
+        router.remember(depth.value, KEY);
+    }
 
     try {
         window.sessionStorage.setItem(KEY, String(depth.value));
@@ -89,21 +121,39 @@ function save(): void {
 /**
  * Starts following the visits. Call it once, in `app.ts`, before the first page is shown.
  *
+ * @param isAppPage - whether a page, by name, is drawn in the layout of the app (every
+ *   page when it is not given)
  * @returns the function that stops following them
  */
-export function startVisitHistory(): () => void {
+export function startVisitHistory(
+    isAppPage: (component: string) => boolean = (): boolean => true,
+): () => void {
     depth.value = 0;
+    shownPage = null;
+    lastMethod = 'get';
+
+    const offStart = router.on('start', (event): void => {
+        if (isPageVisit(event.detail.visit)) {
+            lastMethod = event.detail.visit.method;
+        }
+    });
 
     const offNavigate = router.on('navigate', (event): void => {
-        depth.value = depthAfter(event.detail.type);
+        const fromApp = shownPage === null || isAppPage(shownPage);
+
+        depth.value = depthAfter(event.detail.type, fromApp);
+        shownPage = event.detail.page.component ?? null;
+        lastMethod = 'get';
         save();
     });
 
-    const offSuccess = router.on('success', (): void => {
-        save();
+    const offSuccess = router.on('success', (event): void => {
+        shownPage = event.detail.page.component ?? shownPage;
+        save(false);
     });
 
     return (): void => {
+        offStart();
         offNavigate();
         offSuccess();
     };
@@ -113,12 +163,13 @@ export function startVisitHistory(): () => void {
  * The depth after a `navigate` of the given type.
  *
  * @param type - what Inertia did: `initial`, `visit` or `history`
+ * @param fromApp - the page before is drawn in the layout of the app
  * @returns the new depth
  */
-function depthAfter(type: string): number {
+function depthAfter(type: string, fromApp: boolean): number {
     switch (type) {
         case 'visit':
-            return depth.value + 1;
+            return fromApp && lastMethod === 'get' ? depth.value + 1 : 0;
         case 'history':
             return asDepth(router.restore(KEY)) ?? depth.value;
         default:
