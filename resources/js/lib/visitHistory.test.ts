@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/vue3';
+import type { MockInstance } from 'vite-plus/test';
 import {
     afterEach,
     beforeEach,
@@ -127,13 +128,16 @@ function reload(): void {
     firstPage();
 }
 
+/** The spy of `router.remember`, which writes in the entries of the tab. */
+let remember: MockInstance<typeof router.remember>;
+
 beforeEach(() => {
     window.sessionStorage.clear();
-    vi.spyOn(router, 'remember').mockImplementation(
-        (data: unknown, key = 'default'): void => {
+    remember = vi
+        .spyOn(router, 'remember')
+        .mockImplementation((data: unknown, key = 'default'): void => {
             tab.entries[tab.index] = { ...tab.entries[tab.index], [key]: data };
-        },
-    );
+        });
     vi.spyOn(router, 'restore').mockImplementation(
         (key = 'default'): unknown => tab.entries[tab.index]?.[key],
     );
@@ -373,7 +377,6 @@ describe('visit history', () => {
         stop = startVisitHistory();
         firstPage();
         visit();
-        const remember = vi.mocked(router.remember);
         remember.mockClear();
 
         // a poll or a partial reload of the same page

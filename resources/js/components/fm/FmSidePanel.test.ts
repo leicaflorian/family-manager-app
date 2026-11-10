@@ -23,7 +23,9 @@ describe('FmSidePanel', () => {
             slots: { default: () => h('p', 'The preview') },
         });
 
-        expect(screen.getByRole('dialog', { name: 'Bolletta luce' })).toHaveClass(
+        expect(
+            screen.getByRole('dialog', { name: 'Bolletta luce' }),
+        ).toHaveClass(
             'top-[calc(var(--app-header,0px)+--spacing(4))]',
             'max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(8)))]',
         );

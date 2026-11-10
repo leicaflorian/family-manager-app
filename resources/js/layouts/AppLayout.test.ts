@@ -80,9 +80,9 @@ describe('AppLayout', () => {
             slots: { default: '<h1>Documents</h1>' },
         });
         expect(
-            (computer.container.firstElementChild as HTMLElement).style.getPropertyValue(
-                '--app-header',
-            ),
+            (
+                computer.container.firstElementChild as HTMLElement
+            ).style.getPropertyValue('--app-header'),
         ).toBe('var(--spacing-topbar)');
         computer.unmount();
 
@@ -91,9 +91,9 @@ describe('AppLayout', () => {
             slots: { default: '<h1>Documents</h1>' },
         });
         expect(
-            (phone.container.firstElementChild as HTMLElement).style.getPropertyValue(
-                '--app-header',
-            ),
+            (
+                phone.container.firstElementChild as HTMLElement
+            ).style.getPropertyValue('--app-header'),
         ).toBe('0px');
     });
 

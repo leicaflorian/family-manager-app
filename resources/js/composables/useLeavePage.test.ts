@@ -57,9 +57,9 @@ function listen(): { callback: ReturnType<typeof vi.fn>; unmount: () => void } {
             return () => h('div');
         },
     });
-    const { unmount } = render(Listener);
+    const view = render(Listener);
 
-    return { callback, unmount };
+    return { callback, unmount: (): void => view.unmount() };
 }
 
 describe('useLeavePage', () => {
