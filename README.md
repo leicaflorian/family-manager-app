@@ -80,7 +80,7 @@ The owner is not an account of a family and is not in the seeder: it lives in th
 ./vendor/bin/sail artisan owner:create
 ```
 
-Then open `http://localhost:8090/admin`, sign in, scan the QR code with the authenticator app and enter the code. Online, run `php artisan owner:create` once after the first `migrate --force`.
+Then open `http://localhost:8090/admin` and sign in: in the local environment (`APP_ENV=local`) the panel does not ask for the authenticator app, which is required everywhere else (scan the QR code at the first sign-in and enter the code). Online, run `php artisan owner:create` once after the first `migrate --force`.
 
 ## Incoming mail
 

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Models\Owner;
 use App\Models\User;
+use App\Providers\Filament\AdminPanelProvider;
 use Filament\Auth\Pages\Login;
+use Filament\Panel;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -38,4 +40,21 @@ it('asks an owner without the authenticator to set it up', function (): void {
     actingAs($owner, 'owner')->get('/admin')
         ->assertRedirect()
         ->assertRedirectContains('/admin/multi-factor-authentication/set-up');
+});
+
+it('requires the authenticator outside the local environment', function (): void {
+    app()->detectEnvironment(fn (): string => 'production');
+
+    $panel = new AdminPanelProvider(app())->panel(Panel::make());
+
+    expect($panel->hasMultiFactorAuthentication())->toBeTrue()
+        ->and($panel->isMultiFactorAuthenticationRequired())->toBeTrue();
+});
+
+it('does not ask for the authenticator in the local environment', function (): void {
+    app()->detectEnvironment(fn (): string => 'local');
+
+    $panel = new AdminPanelProvider(app())->panel(Panel::make());
+
+    expect($panel->hasMultiFactorAuthentication())->toBeFalse();
 });

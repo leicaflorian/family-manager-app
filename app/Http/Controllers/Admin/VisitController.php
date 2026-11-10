@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Middleware\LimitVisit;
 use App\Models\Owner;
 use App\Models\User;
+use App\Providers\Filament\AdminPanelProvider;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,8 @@ final class VisitController extends Controller
 {
     /**
      * Starts the visit and opens the home of the app as the account. An owner who has not set up the authenticator
-     * app yet is refused: the panel asks for it on every page, and this route is outside the panel.
+     * app yet is refused where the panel requires it (everywhere but in the local environment): the panel asks for it
+     * on every page, and this route is outside the panel.
      *
      * @param  Request  $request  the request
      * @param  User  $user  the account to look as
@@ -32,7 +34,7 @@ final class VisitController extends Controller
      */
     public function start(Request $request, User $user, #[CurrentUser('owner')] Owner $owner, StartVisit $start): RedirectResponse
     {
-        abort_if($owner->app_authentication_secret === null, 403);
+        abort_if(AdminPanelProvider::requiresAuthenticator() && $owner->app_authentication_secret === null, 403);
 
         $start->handle($owner, $user, $request->session());
 

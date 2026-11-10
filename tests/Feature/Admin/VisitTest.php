@@ -220,6 +220,13 @@ test('an owner without the authenticator app cannot start a visit', function ():
         ->and(OwnerAction::query()->count())->toBe(0);
 });
 
+test('in the local environment an owner without the authenticator app can start a visit', function (): void {
+    app()->detectEnvironment(fn (): string => 'local');
+    $owner = Owner::factory()->create();
+
+    actingAs($owner, 'owner')->get(visitUrl($this->laura))->assertRedirect(route('dashboard'));
+});
+
 test('linking a phone makes no code during a visit', function (): void {
     $code = resolve(PhoneLinks::class)->newCode($this->laura);
     $hash = Cache::get('phone-link-of:'.$this->laura->id);

@@ -26,7 +26,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
  * The admin panel of the owners: `/admin`, the `owner` guard, password and authenticator app (required, with
- * recovery codes). Resources and pages are discovered in `app/Filament/`.
+ * recovery codes, everywhere but in the local environment). Resources and pages are discovered in `app/Filament/`.
  */
 final class AdminPanelProvider extends PanelProvider
 {
@@ -40,19 +40,31 @@ final class AdminPanelProvider extends PanelProvider
     }
 
     /**
+     * Whether the owner needs the authenticator app: always, but not in the local environment, where the panel is
+     * tried on the Mac with the test owner.
+     */
+    public static function requiresAuthenticator(): bool
+    {
+        return ! app()->isLocal();
+    }
+
+    /**
      * Configures the panel.
      *
      * @param  Panel  $panel  The panel to configure.
      */
     public function panel(Panel $panel): Panel
     {
+        if (self::requiresAuthenticator()) {
+            $panel->multiFactorAuthentication(AppAuthentication::make()->recoverable(), isRequired: true);
+        }
+
         return $panel
             ->default()
             ->id('admin')
             ->path('admin')
             ->authGuard('owner')
             ->login()
-            ->multiFactorAuthentication(AppAuthentication::make()->recoverable(), isRequired: true)
             ->colors([
                 'primary' => Color::Amber,
             ])
