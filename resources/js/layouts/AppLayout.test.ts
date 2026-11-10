@@ -72,6 +72,7 @@ describe('AppLayout', () => {
         vi.unstubAllGlobals();
         page.component = 'Documents/Index';
         page.url = '/documents?person=3';
+        page.toSort = 0;
     });
 
     it('on the phone has the bottom bar, and neither the top bar nor the sidebar', () => {
@@ -290,7 +291,6 @@ describe('AppLayout', () => {
         view.unmount();
         screenWidth(390);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
-        page.toSort = 0;
         expect(
             screen.getByRole('button', { name: 'Add, 4 to sort' }),
         ).toBeInTheDocument();

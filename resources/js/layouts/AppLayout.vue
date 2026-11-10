@@ -168,7 +168,7 @@ useSearchShortcut(focusSearch);
             :upload-count="toSort"
         />
         <div class="flex min-w-0 grow flex-col">
-            <div class="sticky top-0 z-40">
+            <div class="sticky top-0 z-30">
                 <div
                     v-if="impersonating"
                     role="status"
@@ -226,7 +226,7 @@ useSearchShortcut(focusSearch);
                 <DialogContent
                     id="app-menu"
                     :aria-describedby="undefined"
-                    class="fixed inset-y-0 left-0 z-50 flex w-[280px] shadow-dialog outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left motion-reduce:animate-none"
+                    class="fixed inset-y-0 left-0 z-50 flex w-[280px] bg-card shadow-dialog outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left motion-reduce:animate-none"
                 >
                     <DialogTitle class="sr-only">{{ $t('Menu') }}</DialogTitle>
                     <FmSidebar

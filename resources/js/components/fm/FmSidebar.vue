@@ -18,13 +18,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from 'reka-ui';
-import { computed, ref, watch } from 'vue';
+import type { ClassValue } from 'clsx';
+import { computed, ref, useAttrs, watch } from 'vue';
 import { getInitials } from '@/composables/useInitials';
 import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
 import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
+import { cn } from '@/lib/utils';
 import FmLogo from './FmLogo.vue';
 import type { NavigationItem, NavigationItems, Section } from './navigation';
 
@@ -52,6 +54,35 @@ const {
     /** The files waiting to be sorted: the number in the pill of *To sort*; nothing at zero, 99+ above 99. */
     uploadCount?: number;
 }>();
+
+// The classes of the page are merged with the sidebar's (the menu of the tablet makes it `w-full`)
+defineOptions({ inheritAttrs: false });
+
+const attrs = useAttrs();
+
+/**
+ * The classes of the sidebar, merged with the page's. Called from the
+ * template, so it follows the page at each render.
+ *
+ * @returns the merged classes
+ */
+function rootClass(): string {
+    return cn(
+        'flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5',
+        attrs.class as ClassValue,
+    );
+}
+
+/**
+ * The other attributes of the page, without the classes.
+ *
+ * @returns the attributes for the sidebar
+ */
+function otherAttrs(): Record<string, unknown> {
+    const { class: _class, ...rest } = attrs;
+
+    return rest;
+}
 
 /** The sections, with *To sort* right under Home. */
 const sections = computed((): NavigationItem[] => [
@@ -118,9 +149,7 @@ function isPage(section: Section): boolean {
 </script>
 
 <template>
-    <aside
-        class="flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5"
-    >
+    <aside v-bind="otherAttrs()" :class="rootClass()">
         <div class="flex items-center gap-2.5 px-2 pt-1 pb-4">
             <FmLogo :size="36" />
             <span class="flex flex-col">

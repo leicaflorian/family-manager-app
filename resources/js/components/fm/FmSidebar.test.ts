@@ -237,4 +237,22 @@ describe('FmSidebar', () => {
             'aria-current',
         );
     });
+
+    it('takes the width of the place it is in, when the page asks for it', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'home',
+                path: '/dashboard',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+            },
+            attrs: { class: 'w-full' },
+        });
+
+        const sidebar = screen.getByRole('complementary');
+        expect(sidebar).toHaveClass('w-full');
+        expect(sidebar).not.toHaveClass('w-[260px]');
+    });
 });
