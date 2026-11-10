@@ -2,7 +2,14 @@ import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { defineComponent, h } from 'vue';
 import { screenWidth } from '@/test/page';
-import { COMPUTER_QUERY, TABLET_QUERY, useLayoutMode } from './useLayoutMode';
+import {
+    COMPUTER_QUERY,
+    TABLET_QUERY,
+    WIDE_COMPUTER_QUERY,
+    useComputerLayout,
+    useLayoutMode,
+    useWideComputerLayout,
+} from './useLayoutMode';
 
 type Listener = (event: { matches: boolean }) => void;
 
@@ -92,5 +99,51 @@ describe('useLayoutMode', () => {
     it('is phone where there is no matchMedia', () => {
         vi.stubGlobal('matchMedia', undefined);
         expect(mountWith().mode.value).toBe('phone');
+    });
+});
+
+/** Mounts a component that reads whether it is on the computer, and on a wide one. */
+function mountComputer(): { computer: boolean; wide: boolean } {
+    let computer!: ReturnType<typeof useComputerLayout>;
+    let wide!: ReturnType<typeof useWideComputerLayout>;
+    mount(
+        defineComponent({
+            setup() {
+                computer = useComputerLayout();
+                wide = useWideComputerLayout();
+                return () => h('div');
+            },
+        }),
+    );
+
+    return { computer: computer.value, wide: wide.value };
+}
+
+describe('useComputerLayout', () => {
+    it('writes the wide computer in the same place', () => {
+        expect(WIDE_COMPUTER_QUERY).toBe(
+            '(min-width: 1440px) and (min-height: 560px)',
+        );
+    });
+
+    it('is the computer from 1024 pixels, and wide from 1440', () => {
+        screenWidth(1280);
+        expect(mountComputer()).toEqual({ computer: true, wide: false });
+
+        screenWidth(1500);
+        expect(mountComputer()).toEqual({ computer: true, wide: true });
+    });
+
+    it('is not the computer on a tablet or a phone', () => {
+        screenWidth(820);
+        expect(mountComputer()).toEqual({ computer: false, wide: false });
+
+        screenWidth(390);
+        expect(mountComputer()).toEqual({ computer: false, wide: false });
+    });
+
+    it('is not the computer in a wide window that is too short', () => {
+        screenWidth(1500, 400);
+        expect(mountComputer()).toEqual({ computer: false, wide: false });
     });
 });

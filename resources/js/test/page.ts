@@ -222,12 +222,14 @@ export async function tapCancel(name = 'Cancel'): Promise<void> {
 
 /**
  * Makes the page believe it is on a computer (wider than every `min-width` it asks about), on a phone,
- * or on a screen of the given width in pixels (only the `min-width: Npx` queries up to it match).
- * Reduced motion stays on, as in `setup.ts`: jsdom cannot animate. `vi.unstubAllGlobals()` puts it back.
+ * or on a screen of the given width and height in pixels (only the `min-width: Npx` and `min-height: Npx`
+ * queries up to them match). Reduced motion stays on, as in `setup.ts`: jsdom cannot animate.
+ * `vi.unstubAllGlobals()` puts it back.
  *
  * @param computer - true for a computer, false for a phone, or the width in pixels
+ * @param height - the height in pixels, with a width in pixels (800 if not given)
  */
-export function screenWidth(computer: boolean | number): void {
+export function screenWidth(computer: boolean | number, height = 800): void {
     /**
      * Whether a `min-width` query matches the chosen screen.
      *
@@ -240,8 +242,13 @@ export function screenWidth(computer: boolean | number): void {
         }
 
         const pixels = /min-width:\s*(\d+)px/.exec(query)?.[1];
+        const tall = /min-height:\s*(\d+)px/.exec(query)?.[1];
 
-        return pixels !== undefined && computer >= Number(pixels);
+        return (
+            pixels !== undefined &&
+            computer >= Number(pixels) &&
+            (tall === undefined || height >= Number(tall))
+        );
     };
 
     vi.stubGlobal(
