@@ -31,6 +31,7 @@ import {
 } from '@/composables/useSearchBox';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { canGoBack } from '@/lib/visitHistory';
 import { dashboard, search } from '@/routes';
 
 const { results } = defineProps<{
@@ -139,9 +140,9 @@ usePageTrail(() => [
     { label: trans('Search') },
 ]);
 
-/** The arrow of the phone: back to the page before, or to the Home if there is none. */
+/** The arrow of the phone: back to the page of the app before, or to the Home if there is none. */
 function goBack(): void {
-    if (window.history.length > 1) {
+    if (canGoBack()) {
         window.history.back();
 
         return;

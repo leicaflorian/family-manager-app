@@ -20,7 +20,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 
 /**
- * The notices of the bell, for its menu on the Home and for *Notices*.
+ * The notices of the bell, for its menu on every page and for *Notices*.
  */
 final readonly class NoticeList
 {

@@ -19,7 +19,8 @@ export function usePageTrail(pieces: () => TrailPiece[]): void {
     let written: TrailPiece[] | null = null;
 
     watchEffect(() => {
-        written = pieces();
+        // Raw, as the ref keeps it: a page may return a reactive array
+        written = toRaw(pieces());
         state.set(written);
     });
 

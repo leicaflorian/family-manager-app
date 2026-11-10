@@ -1,5 +1,5 @@
 import { render } from '@testing-library/vue';
-import { defineComponent, h, nextTick, provide, ref } from 'vue';
+import { defineComponent, h, nextTick, provide, reactive, ref } from 'vue';
 import { describe, expect, it } from 'vite-plus/test';
 import type { TrailState } from '@/lib/pageTrail';
 import { TRAIL_KEY, createTrailState } from '@/lib/pageTrail';
@@ -74,6 +74,32 @@ describe('usePageTrail', () => {
         await nextTick();
 
         expect(state.pieces.value).toEqual([{ label: 'Next page' }]);
+    });
+
+    it('clears the pieces of a page that returns a reactive array', async () => {
+        const state = createTrailState();
+        const pieces = reactive([{ label: 'Areas', href: '/areas' }]);
+        const show = ref(true);
+        const Child = defineComponent({
+            setup() {
+                usePageTrail(() => pieces);
+
+                return () => h('div');
+            },
+        });
+        const Parent = defineComponent({
+            setup() {
+                provide(TRAIL_KEY, state);
+
+                return () => (show.value ? h(Child) : h('span'));
+            },
+        });
+        render(Parent);
+
+        show.value = false;
+        await nextTick();
+
+        expect(state.pieces.value).toEqual([]);
     });
 
     it('does nothing without a layout', () => {
