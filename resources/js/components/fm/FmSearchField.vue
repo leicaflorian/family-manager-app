@@ -162,7 +162,7 @@ defineExpose({ focus, blur });
         <kbd
             v-if="shortcut && text === ''"
             aria-hidden="true"
-            class="shrink-0 rounded-md border border-edge-soft bg-canvas px-1.5 py-0.5 text-meta-strong whitespace-nowrap text-ink-soft"
+            class="shrink-0 rounded-sm border border-edge-soft bg-canvas px-1.5 py-0.5 font-sans text-caption whitespace-nowrap text-ink-soft"
             >{{ shortcutKey }}</kbd
         >
     </label>
