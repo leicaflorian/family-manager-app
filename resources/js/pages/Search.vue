@@ -24,7 +24,11 @@ import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
+import {
+    SEARCH_MENU_ID,
+    SEARCH_PAGE_FIELD,
+    useSearchBox,
+} from '@/composables/useSearchBox';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { dashboard, search } from '@/routes';
 
@@ -173,7 +177,7 @@ function goBack(): void {
                 </button>
                 <FmSearchField
                     v-model="text"
-                    input-id="search-page-field"
+                    :input-id="SEARCH_PAGE_FIELD"
                     :label="$t('Search in Family Manager')"
                     clearable
                     autofocus

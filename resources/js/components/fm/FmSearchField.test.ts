@@ -5,6 +5,20 @@ import { nextTick, ref } from 'vue';
 import FmSearchField from './FmSearchField.vue';
 
 describe('FmSearchField', () => {
+    it('puts the input id on the input, not on the label around it', () => {
+        render(FmSearchField, {
+            props: {
+                label: 'Search a document',
+                modelValue: '',
+                inputId: 'field',
+            },
+        });
+
+        const box = screen.getByRole('searchbox');
+        expect(box).toHaveAttribute('id', 'field');
+        expect(box.closest('label')).not.toHaveAttribute('id');
+    });
+
     it('is a search box named by its label, that writes what is typed', async () => {
         const text = ref('bolletta');
         render({

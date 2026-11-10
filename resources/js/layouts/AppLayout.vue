@@ -40,14 +40,12 @@ import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { useBellNotices } from '@/composables/useBellNotices';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { SEARCH_PAGE_FIELD } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import type { TrailPiece } from '@/lib/pageTrail';
 import { createTrailState, isSectionPage, TRAIL_KEY } from '@/lib/pageTrail';
 import { search } from '@/routes';
 import { leave } from '@/routes/visit';
-
-/** The id of the box of the *Search* page, which the shortcut focuses on the phone. */
-const SEARCH_PAGE_FIELD = 'search-page-field';
 
 defineSlots<{
     /** The page. */

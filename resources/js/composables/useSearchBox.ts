@@ -4,6 +4,9 @@ import { useSearchSuggest } from '@/composables/useSearchSuggest';
 /** The id of the menu of the first results, for `aria-controls` of the box. */
 export const SEARCH_MENU_ID = 'search-results';
 
+/** The id of the input of the *Search* page on the phone, which the search shortcut focuses. */
+export const SEARCH_PAGE_FIELD = 'search-page-field';
+
 /** What the box asks of the menu of the first results (`FmSearchMenu`). */
 export type SearchMenuControls = {
     /** Moves the choice by one row. */
