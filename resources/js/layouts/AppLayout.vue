@@ -21,15 +21,7 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
-import {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    provide,
-    ref,
-    useTemplateRef,
-    watch,
-} from 'vue';
+import { computed, provide, ref, useTemplateRef, watch } from 'vue';
 import FmBottomBar from '@/components/fm/FmBottomBar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmSidebar from '@/components/fm/FmSidebar.vue';
@@ -40,6 +32,7 @@ import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { useBellNotices } from '@/composables/useBellNotices';
 import { useLayoutMode } from '@/composables/useLayoutMode';
+import { useLeavePage } from '@/composables/useLeavePage';
 import { SEARCH_PAGE_FIELD } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import type { TrailPiece } from '@/lib/pageTrail';
@@ -98,16 +91,10 @@ const query = computed((): string =>
 /** The menu of the tablet is open. */
 const menuOpen = ref(false);
 
-// A visit closes the menu, so it never covers the new page
-let stopClosingMenu: (() => void) | null = null;
-
-onMounted(() => {
-    stopClosingMenu = router.on('navigate', () => {
-        menuOpen.value = false;
-    });
+// A visit closes the menu, so it never covers the new page (also a visit to the open page)
+useLeavePage(() => {
+    menuOpen.value = false;
 });
-
-onBeforeUnmount(() => stopClosingMenu?.());
 
 // The menu belongs to the tablet: another layout closes it
 watch(mode, () => {

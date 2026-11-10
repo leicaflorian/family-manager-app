@@ -7,8 +7,10 @@
  * then the last notices (`FmNoticeList`, at most 10, the server chooses them)
  * and *See all the notices*, which leads to the page with the search. The notices are not in the page until the
  * menu asks for them: opening it emits `open`, and until `notices` arrives the
- * menu says it is loading. The classes of the page (round on the phone, square
- * with a border on the computer) go to the bell itself.
+ * menu says it is loading. The menu closes when the page goes away (a notice
+ * or *See all the notices* opens another page under the layout, which stays).
+ * The classes of the page (round on the phone, square with a border on the
+ * computer) go to the bell itself.
  *
  * @group navigation
  */
@@ -21,8 +23,9 @@ import {
     PopoverRoot,
     PopoverTrigger,
 } from 'reka-ui';
-import { computed, useAttrs } from 'vue';
+import { computed, ref, useAttrs } from 'vue';
 import type { ClassValue } from 'clsx';
+import { useLeavePage } from '@/composables/useLeavePage';
 import type { BellNotices } from '@/lib/notices';
 import { cn } from '@/lib/utils';
 import { notices as noticesPage } from '@/routes';
@@ -92,6 +95,14 @@ const label = computed((): string =>
         : trans('Notices'),
 );
 
+/** The menu is open. */
+const open = ref(false);
+
+// The layout survives the visit: the menu must not stay over the new page
+useLeavePage(() => {
+    open.value = false;
+});
+
 /**
  * Asks for the notices when the menu opens.
  *
@@ -118,7 +129,7 @@ function markAll(): void {
 </script>
 
 <template>
-    <PopoverRoot @update:open="toggled">
+    <PopoverRoot v-model:open="open" @update:open="toggled">
         <PopoverTrigger
             v-bind="otherAttrs()"
             :aria-label="label"

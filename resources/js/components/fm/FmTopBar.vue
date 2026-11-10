@@ -10,7 +10,10 @@
  * there is no Back and no trail. On the right, in both, the search of the
  * whole app (300 px, 420 px while it has the focus or some text, with the menu
  * of the first results under it; Enter opens the *Search* page) and the bell,
- * whose panel opens 8 px under the line.
+ * whose panel opens 8 px under the line. The bar stays across the visits:
+ * when the page goes away the menu of the results closes, the box loses the
+ * focus and empties, unless the visit goes to the *Search* page, whose query
+ * fills it.
  *
  * @group navigation
  */
@@ -18,6 +21,7 @@ import { router } from '@inertiajs/vue3';
 import { ArrowLeft, Menu } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+import { useLeavePage } from '@/composables/useLeavePage';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
 import { countBadge } from '@/lib/badge';
 import type { TrailPiece } from '@/lib/pageTrail';
@@ -104,6 +108,18 @@ watch(
         void nextTick(closeMenu);
     },
 );
+
+// The bar survives the visit: the box starts again on the new page
+useLeavePage((path) => {
+    field.value?.blur();
+
+    if (path !== search.url()) {
+        text.value = '';
+    }
+
+    // after the watcher of the text, which opens the menu again
+    void nextTick(closeMenu);
+});
 
 /** The nearest page above the open one in the trail, where Back leads without a history. */
 const parentHref = computed(

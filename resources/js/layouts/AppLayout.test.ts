@@ -47,7 +47,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
 function visited(): void {
     document.dispatchEvent(
         new CustomEvent('inertia:navigate', {
-            detail: { page: {}, type: 'visit' },
+            detail: { page: { url: '/areas' }, type: 'visit' },
         }),
     );
 }
@@ -124,6 +124,33 @@ describe('AppLayout', () => {
         ).toHaveAttribute('aria-expanded', 'true');
 
         visited();
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Menu' }),
+            ).not.toBeInTheDocument(),
+        );
+    });
+
+    it('on the tablet closes the menu also for a visit to the page already open', async () => {
+        screenWidth(820);
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+        await screen.findByRole('dialog', { name: 'Menu' });
+
+        // the same address fires no navigate: only the start of the visit
+        document.dispatchEvent(
+            new CustomEvent('inertia:start', {
+                detail: {
+                    visit: {
+                        url: new URL('/documents', window.location.origin),
+                        only: [],
+                        except: [],
+                        prefetch: false,
+                    },
+                },
+            }),
+        );
 
         await waitFor(() =>
             expect(

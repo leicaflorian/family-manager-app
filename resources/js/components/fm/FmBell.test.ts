@@ -1,7 +1,8 @@
 import { router } from '@inertiajs/vue3';
-import { render, screen, within } from '@testing-library/vue';
+import { render, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { nextTick } from 'vue';
 import { seenNotices, unreadNotices } from '@/test/fixtures';
 import FmBell from './FmBell.vue';
 
@@ -155,6 +156,45 @@ describe('FmBell', () => {
                 preserveState: true,
                 only: ['bell_notices', 'unread_notices', 'notices'],
             }),
+        );
+    });
+
+    it('closes the menu when the visit to another page starts, not for the reload of the notices', async () => {
+        render(FmBell, {
+            props: {
+                count: 2,
+                notices: { unread: unreadNotices, seen: seenNotices },
+            },
+        });
+        await userEvent.click(screen.getByRole('button', { name: /Notices/ }));
+
+        document.dispatchEvent(
+            new CustomEvent('inertia:start', {
+                detail: {
+                    visit: {
+                        url: new URL('/notices', window.location.origin),
+                        only: ['bell_notices'],
+                        except: [],
+                        prefetch: false,
+                    },
+                },
+            }),
+        );
+        await nextTick();
+        expect(
+            screen.getByRole('dialog', { name: /^Notices/ }),
+        ).toBeInTheDocument();
+
+        document.dispatchEvent(
+            new CustomEvent('inertia:navigate', {
+                detail: { page: { url: '/cards/1' }, type: 'visit' },
+            }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: /^Notices/ }),
+            ).not.toBeInTheDocument(),
         );
     });
 

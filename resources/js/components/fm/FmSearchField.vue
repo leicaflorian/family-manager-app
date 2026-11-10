@@ -84,6 +84,11 @@ function focus(): void {
     box.value?.focus();
 }
 
+/** Takes the cursor out of the box. */
+function blur(): void {
+    box.value?.blur();
+}
+
 /**
  * Esc: with a list of results it only closes the list, so the browser does not
  * empty the box as it does with a search box.
@@ -111,7 +116,7 @@ onMounted(() => {
     }
 });
 
-defineExpose({ focus });
+defineExpose({ focus, blur });
 </script>
 
 <template>

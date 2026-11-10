@@ -1,5 +1,10 @@
 import { router } from '@inertiajs/vue3';
-import { render, screen, type RenderResult } from '@testing-library/vue';
+import {
+    render,
+    screen,
+    waitFor,
+    type RenderResult,
+} from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
     afterEach,
@@ -14,6 +19,70 @@ import { formPlugins } from '@/lib/formPlugins';
 import { renderPage } from '@/test/page';
 import * as visitHistory from '@/lib/visitHistory';
 import FmTopBar from './FmTopBar.vue';
+
+/** The first results for «Pan», as the suggest route sends them. */
+const pan: App.Data.Search.SearchResultsData = {
+    query: 'Pan',
+    type: null,
+    total: 1,
+    groups: [
+        {
+            group: 'cards',
+            label: 'Cards',
+            count: 1,
+            results: [
+                {
+                    key: 'card-1',
+                    group: 'cards',
+                    title: 'Fiat Panda',
+                    subtitle: null,
+                    date: null,
+                    amount: null,
+                    href: '/card-1',
+                    area: 'vehicles',
+                    icon: null,
+                    tone: null,
+                    flag: null,
+                    due_in: null,
+                },
+            ],
+        },
+    ],
+};
+
+/** The server answers the first results for «Pan». */
+function stubResults(): void {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve(pan),
+            }),
+        ),
+    );
+}
+
+/**
+ * What Inertia fires when the visit to a page starts.
+ *
+ * @param url - where the visit goes
+ */
+function startVisit(url: string): void {
+    document.dispatchEvent(
+        new CustomEvent('inertia:start', {
+            detail: {
+                visit: {
+                    url: new URL(url, window.location.origin),
+                    only: [],
+                    except: [],
+                    prefetch: false,
+                },
+            },
+        }),
+    );
+}
 
 const three = [
     { label: 'Areas', href: '/areas' },
@@ -213,6 +282,44 @@ describe('FmTopBar', () => {
         );
 
         expect(visit).toHaveBeenCalledWith('/search?q=Pan');
+    });
+
+    it('after choosing a result closes the menu, leaves the box and empties it', async () => {
+        stubResults();
+        vi.spyOn(router, 'visit').mockImplementation(() => undefined);
+        renderBar(computer);
+        const box = screen.getByRole('combobox', {
+            name: 'Search in Family Manager',
+        });
+        await userEvent.type(box, 'Pan');
+        await screen.findByRole('listbox');
+
+        await userEvent.keyboard('{ArrowDown}{Enter}');
+        startVisit('/card-1');
+
+        await waitFor(() =>
+            expect(screen.queryByRole('listbox')).not.toBeInTheDocument(),
+        );
+        expect(box).toHaveValue('');
+        expect(box).not.toHaveFocus();
+    });
+
+    it('keeps the text when the visit goes to the Search page', async () => {
+        stubResults();
+        renderBar(computer);
+        const box = screen.getByRole('combobox', {
+            name: 'Search in Family Manager',
+        });
+        await userEvent.type(box, 'Pan');
+        await screen.findByRole('listbox');
+
+        startVisit('/search?q=Pan');
+
+        await waitFor(() =>
+            expect(screen.queryByRole('listbox')).not.toBeInTheDocument(),
+        );
+        expect(box).toHaveValue('Pan');
+        expect(box).not.toHaveFocus();
     });
 
     it('puts the query of the Search page in the box', () => {
