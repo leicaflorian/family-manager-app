@@ -498,8 +498,8 @@ describe('Search', () => {
         expect(box()).toHaveValue('Panda');
     });
 
-    it('on the computer, has the link to the Home above the title', () => {
-        wide(true);
+    it('on the tablet, has the link to the Home above the title', () => {
+        screenWidth(820);
         renderPage(Search, { results: panda });
 
         expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute(
@@ -508,6 +508,21 @@ describe('Search', () => {
         );
         expect(
             screen.queryByRole('button', { name: 'Back' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', {
+                level: 1,
+                name: '10 results for «Panda»',
+            }),
+        ).toBeVisible();
+    });
+
+    it('on the computer, has no link to the Home above the title: the top bar has Back', () => {
+        wide(true);
+        renderPage(Search, { results: panda });
+
+        expect(
+            screen.queryByRole('link', { name: 'Home' }),
         ).not.toBeInTheDocument();
         expect(
             screen.getByRole('heading', {

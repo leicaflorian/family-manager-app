@@ -10,12 +10,13 @@ import {
     policyDetail,
     policyFields,
 } from '@/test/fixtures';
-import { renderPage, settle, tapCancel } from '@/test/page';
+import { renderPage, settle, tapCancel, screenWidth } from '@/test/page';
 import EditCard from './EditCard.vue';
 import { hasChanges } from '@/lib/unsavedChanges';
 
 afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('Edit a card', () => {
@@ -467,5 +468,40 @@ describe('Changes not saved', () => {
 
         await tapCancel();
         expect(hasChanges()).toBe(false);
+    });
+});
+
+describe('EditCard on the computer', () => {
+    const type: App.Data.CardTypeData = {
+        type: 'insurance_policy',
+        label: 'Insurance policy',
+        plural_label: 'Policies',
+        description: '',
+        area: 'insurance',
+        area_label: 'Insurance',
+    };
+
+    it('has no back link and no close button above the title on the computer, and both on the tablet and the phone', () => {
+        for (const [width, shown] of [
+            [1280, false],
+            [820, true],
+            [390, true],
+        ] as const) {
+            screenWidth(width);
+            const view = renderPage(EditCard, {
+                type,
+                fields: policyFields,
+                values: {},
+                card: null,
+            });
+
+            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
+                shown,
+            );
+            expect(
+                screen.queryByRole('link', { name: 'Insurance' }) !== null,
+            ).toBe(shown);
+            view.unmount();
+        }
     });
 });

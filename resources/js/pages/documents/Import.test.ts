@@ -1,6 +1,6 @@
 import { getNode } from '@formkit/core';
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen, within } from '@testing-library/vue';
+import { cleanup, fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
     afterEach,
@@ -127,6 +127,29 @@ function row(name: string): HTMLElement {
     return screen.getByRole('button', { name: new RegExp(name) });
 }
 
+/**
+ * A window 1100 px wide but too short for the computer layout: the page lays the files out in a list
+ * (its own `min-width: 1024px` query) while the layout is not the computer one, so the top bar has no Back.
+ */
+function shortWideWindow(): void {
+    vi.stubGlobal(
+        'matchMedia',
+        (query: string): MediaQueryList =>
+            ({
+                matches:
+                    query === '(min-width: 1024px)' ||
+                    query.includes('prefers-reduced-motion'),
+                media: query,
+                onchange: null,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                addListener: () => {},
+                removeListener: () => {},
+                dispatchEvent: () => false,
+            }) satisfies MediaQueryList,
+    );
+}
+
 beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     // On a computer unless a test says otherwise: the list of the files and the button on top
@@ -243,6 +266,7 @@ describe('Import', () => {
     });
 
     it('goes back to the files to sort, throwing away the changes', () => {
+        shortWideWindow();
         renderPage(Import, props([light]));
 
         const back = screen.getByRole('link', { name: 'To sort' });
@@ -250,7 +274,21 @@ describe('Import', () => {
         expect(back).toHaveAttribute('data-discard-changes');
     });
 
+    it('has no back link nor close button above the title on the computer, where the top bar has Back', () => {
+        renderPage(Import, props([light]));
+        expect(
+            screen.queryByRole('link', { name: 'To sort' }),
+        ).not.toBeInTheDocument();
+
+        cleanup();
+        renderPage(Import, props([light], {}, [{ type: 'vehicle', id: 1 }]));
+        expect(
+            screen.queryByRole('link', { name: 'Close' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('from a card, closes to the card and imports going back to it', async () => {
+        shortWideWindow();
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Import, props([light], {}, [{ type: 'vehicle', id: 1 }]));
         await settle();

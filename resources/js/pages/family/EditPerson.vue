@@ -20,6 +20,7 @@ import { personValues } from '@/lib/family';
 import { initialsOf } from '@/lib/names';
 import { index, show, store, update } from '@/routes/people';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const { person, roles } = defineProps<{
     /** The person to change, or null for a new one. */
@@ -53,6 +54,8 @@ function save(): void {
 }
 
 useSaveShortcut(save, () => !form.processing);
+
+const layout = useLayoutMode();
 </script>
 
 <template>
@@ -80,6 +83,7 @@ useSaveShortcut(save, () => !form.processing);
         >
             <template #actions>
                 <Link
+                    v-if="layout !== 'computer'"
                     :href="back"
                     :aria-label="$t('Close')"
                     class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"

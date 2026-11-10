@@ -61,6 +61,7 @@ import { anyFileReading, isReading, readAgain } from '@/lib/reading';
 import { toSort } from '@/routes';
 import { create as createCard, show as showCard } from '@/routes/cards';
 import { store } from '@/routes/import';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const props = defineProps<
     {
@@ -429,6 +430,8 @@ function save(): void {
         },
     );
 }
+
+const layout = useLayoutMode();
 </script>
 
 <template>
@@ -471,7 +474,7 @@ function save(): void {
                         }}
                     </FmButton>
                     <Link
-                        v-if="preset"
+                        v-if="preset && layout !== 'computer'"
                         :href="closeUrl"
                         data-discard-changes
                         :aria-label="$t('Close')"

@@ -22,6 +22,7 @@ import { errors } from '@/lib/errors';
 import { isEmpty, withNone } from '@/lib/forms';
 import { destroy, index, show, store, update } from '@/routes/budget/planned';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const { kind, planned, values, options } = defineProps<{
     /** `expense` or `income`. */
@@ -105,6 +106,8 @@ function save(): void {
 }
 
 useSaveShortcut(save, () => !form.processing);
+
+const layout = useLayoutMode();
 </script>
 
 <template>
@@ -118,6 +121,7 @@ useSaveShortcut(save, () => !form.processing);
         >
             <template #actions>
                 <Link
+                    v-if="layout !== 'computer'"
                     :href="back"
                     :aria-label="$t('Close')"
                     class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"

@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Upload from './Upload.vue';
 
 const shared = vi.hoisted(() => ({ to_sort_count: 0 }));
@@ -18,6 +18,7 @@ const props = { presetLinks: [] };
 afterEach(() => {
     shared.to_sort_count = 0;
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('Upload', () => {
@@ -113,5 +114,23 @@ describe('Upload', () => {
         expect(
             screen.queryByRole('button', { name: 'Save' }),
         ).not.toBeInTheDocument();
+    });
+});
+
+describe('Upload on the computer', () => {
+    it('has no close button beside the title on the computer, and has it on the tablet and the phone', () => {
+        for (const [width, shown] of [
+            [1280, false],
+            [820, true],
+            [390, true],
+        ] as const) {
+            screenWidth(width);
+            const view = renderPage(Upload, { ...props });
+
+            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
+                shown,
+            );
+            view.unmount();
+        }
     });
 });

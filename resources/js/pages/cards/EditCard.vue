@@ -24,6 +24,7 @@ import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const {
     type,
@@ -129,6 +130,8 @@ function save(data: Record<string, unknown>): void {
         visit,
     );
 }
+
+const layout = useLayoutMode();
 </script>
 
 <template>
@@ -142,6 +145,7 @@ function save(data: Record<string, unknown>): void {
         >
             <template #actions>
                 <Link
+                    v-if="layout !== 'computer'"
                     :href="back"
                     :aria-label="$t('Close')"
                     class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"

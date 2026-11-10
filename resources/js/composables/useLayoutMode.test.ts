@@ -2,11 +2,7 @@ import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { defineComponent, h } from 'vue';
 import { screenWidth } from '@/test/page';
-import {
-    COMPUTER_QUERY,
-    TABLET_QUERY,
-    useLayoutMode,
-} from './useLayoutMode';
+import { COMPUTER_QUERY, TABLET_QUERY, useLayoutMode } from './useLayoutMode';
 
 type Listener = (event: { matches: boolean }) => void;
 
@@ -85,9 +81,7 @@ describe('useLayoutMode', () => {
 
         expect(mode.value).toBe('tablet');
         state[COMPUTER_QUERY] = true;
-        listeners
-            .get(COMPUTER_QUERY)!
-            .forEach((l) => l({ matches: true }));
+        listeners.get(COMPUTER_QUERY)!.forEach((l) => l({ matches: true }));
         expect(mode.value).toBe('computer');
 
         wrapper.unmount();

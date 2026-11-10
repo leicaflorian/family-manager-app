@@ -20,6 +20,7 @@ import { useToSortCount } from '@/composables/useToSortCount';
 import type { DocumentLink } from '@/lib/documents';
 import { dashboard } from '@/routes';
 import { show as showCard } from '@/routes/cards';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const props = defineProps<{
     /** The card the person comes from, kept for the files and the ×. */
@@ -42,6 +43,8 @@ const {
     processing,
     errors: uploadErrors,
 } = useFileUpload(() => preset.value);
+
+const layout = useLayoutMode();
 </script>
 
 <template>
@@ -52,6 +55,7 @@ const {
             <template #actions>
                 <FmToSortLink :count="toSortCount" />
                 <Link
+                    v-if="layout !== 'computer'"
                     :href="closeUrl"
                     :aria-label="$t('Close')"
                     class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"

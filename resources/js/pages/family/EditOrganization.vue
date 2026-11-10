@@ -19,6 +19,7 @@ import { errors, listErrors } from '@/lib/errors';
 import { organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const { organization, types } = defineProps<{
     /** The organization to change, or null for a new one. */
@@ -52,6 +53,8 @@ function save(): void {
 }
 
 useSaveShortcut(save, () => !form.processing);
+
+const layout = useLayoutMode();
 </script>
 
 <template>
@@ -75,6 +78,7 @@ useSaveShortcut(save, () => !form.processing);
         >
             <template #actions>
                 <Link
+                    v-if="layout !== 'computer'"
                     :href="back"
                     :aria-label="$t('Close')"
                     class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"

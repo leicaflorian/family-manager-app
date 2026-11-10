@@ -17,6 +17,7 @@ import {
     settle,
     stubObjectUrls,
     tapCancel,
+    screenWidth,
 } from '@/test/page';
 import EditPerson from './EditPerson.vue';
 import { hasChanges } from '@/lib/unsavedChanges';
@@ -159,5 +160,29 @@ describe('Changes not saved', () => {
 
         await tapCancel();
         expect(hasChanges()).toBe(false);
+    });
+});
+
+describe('EditPerson on the computer', () => {
+    it('has no back link and no close button above the title on the computer, and both on the tablet and the phone', () => {
+        for (const [width, shown] of [
+            [1280, false],
+            [820, true],
+            [390, true],
+        ] as const) {
+            screenWidth(width);
+            const view = renderPage(EditPerson, {
+                person: null,
+                roles: personRoles,
+            });
+
+            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
+                shown,
+            );
+            expect(
+                screen.queryByRole('link', { name: 'People' }) !== null,
+            ).toBe(shown);
+            view.unmount();
+        }
     });
 });
