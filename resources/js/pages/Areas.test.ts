@@ -1,11 +1,46 @@
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { allAreas, cardTypes } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Areas from './Areas.vue';
 
+// The shared props of the page (the tools beside the title read the notices)
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({ url: '/', props: { unread_notices: 2 } }),
+}));
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
+
 describe('Areas', () => {
+    it('has the magnifier and the bell beside the title on the phone only', () => {
+        const props = { groups: allAreas, types: cardTypes, canCreate: true };
+        screenWidth(390);
+        const phone = renderPage(Areas, props);
+
+        expect(
+            screen.getByRole('link', { name: 'Search in Family Manager' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: /Notices/ }),
+        ).toBeInTheDocument();
+        phone.unmount();
+
+        screenWidth(1280);
+        renderPage(Areas, props);
+
+        expect(
+            screen.queryByRole('link', { name: 'Search in Family Manager' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: /Notices/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('shows the areas with their cards and the overdue ones', () => {
         renderPage(Areas, {
             groups: allAreas,

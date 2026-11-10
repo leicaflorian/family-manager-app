@@ -8,8 +8,15 @@ import {
     octoberSummary,
     salaryMovement,
 } from '@/test/fixtures';
-import { choose, renderPage, settle } from '@/test/page';
+import { choose, renderPage, screenWidth, settle } from '@/test/page';
 import Movements from './Movements.vue';
+
+// The shared props of the page (the tools beside the title read the notices)
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({ url: '/', props: { unread_notices: 2 } }),
+}));
 
 const parking: App.Data.MovementData = {
     ...danceMovement,
@@ -52,6 +59,29 @@ function onComputer(): void {
 }
 
 describe('Movements', () => {
+    it('has the magnifier and the bell beside the title on the phone only', () => {
+        screenWidth(390);
+        const phone = renderPage(Movements, props);
+
+        expect(
+            screen.getByRole('link', { name: 'Search in Family Manager' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: /Notices/ }),
+        ).toBeInTheDocument();
+        phone.unmount();
+
+        screenWidth(1280);
+        renderPage(Movements, props);
+
+        expect(
+            screen.queryByRole('link', { name: 'Search in Family Manager' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: /Notices/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('sums up the month: what came in, what went out and what is left', () => {
         renderPage(Movements, props);
 

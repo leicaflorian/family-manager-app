@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { screen, waitFor, within } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
     afterEach,
@@ -9,9 +9,8 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { WIDE_QUERY } from '@/composables/useWideLayout';
 import { agendaEntries, seenNotices, unreadNotices } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Home from './Home.vue';
 
 const shared = vi.hoisted(() => ({
@@ -60,160 +59,38 @@ const newFamily: App.Data.HomeData = {
     ],
 };
 
-/**
- * Makes the window wide, as a computer, or narrow, as a phone.
- *
- * @param on - true for the computer
- */
-function wide(on: boolean): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        matches: on && query === WIDE_QUERY,
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-    }));
-}
-
-/** The first results for «Pan», as the suggest route sends them: 10 in all. */
-const pan: App.Data.Search.SearchResultsData = {
-    query: 'Pan',
-    type: null,
-    total: 10,
-    groups: [
-        {
-            group: 'cards',
-            label: 'Cards',
-            count: 3,
-            results: [
-                {
-                    key: 'card-1',
-                    group: 'cards',
-                    title: 'Fiat Panda',
-                    subtitle: 'Vehicles',
-                    date: null,
-                    amount: null,
-                    href: '/card-1',
-                    area: 'vehicles',
-                    icon: null,
-                    tone: null,
-                    flag: null,
-                    due_in: null,
-                },
-            ],
-        },
-    ],
-};
-
-describe('Home search', () => {
-    beforeEach(() => {
-        vi.stubGlobal(
-            'fetch',
-            vi.fn(() =>
-                Promise.resolve({
-                    ok: true,
-                    status: 200,
-                    json: () => Promise.resolve(pan),
-                }),
-            ),
-        );
-    });
-
+describe('Home tools', () => {
     afterEach(() => {
-        vi.restoreAllMocks();
         vi.unstubAllGlobals();
     });
 
-    it('on the computer has the search box with its shortcut beside the square bell', () => {
-        wide(true);
-        renderPage(Home, { home });
-
-        const box = screen.getByRole('combobox', {
-            name: 'Search in Family Manager',
-        });
-        expect(box).toHaveAttribute('aria-keyshortcuts', 'Meta+K Control+K');
-        expect(screen.getByRole('button', { name: /Notices/ })).toHaveClass(
-            'rounded-lg',
-            'border-edge-soft',
-        );
-        expect(
-            screen.queryByRole('link', { name: 'Search in Family Manager' }),
-        ).not.toBeInTheDocument();
-    });
-
-    it('opens the menu with the first results while typing, and Enter searches the text', async () => {
-        wide(true);
-        const visit = vi
-            .spyOn(router, 'visit')
-            .mockImplementation(() => undefined);
-        renderPage(Home, { home });
-        const box = screen.getByRole('combobox', {
-            name: 'Search in Family Manager',
-        });
-
-        await userEvent.type(box, 'Pan');
-
-        expect(
-            await screen.findByRole('link', { name: /See all 10 results/ }),
-        ).toHaveAttribute('href', '/search?q=Pan');
-        expect(box).toHaveAttribute('aria-expanded', 'true');
-
-        await userEvent.keyboard('{Enter}');
-        expect(visit).toHaveBeenCalledWith('/search?q=Pan');
-    });
-
-    it('closes the menu with Esc', async () => {
-        wide(true);
-        renderPage(Home, { home });
-        const box = screen.getByRole('combobox', {
-            name: 'Search in Family Manager',
-        });
-        await userEvent.type(box, 'Pan');
-        await screen.findByRole('link', { name: /See all 10 results/ });
-
-        await userEvent.keyboard('{Escape}');
-
-        await waitFor(() =>
-            expect(
-                screen.queryByRole('link', { name: /See all 10 results/ }),
-            ).not.toBeInTheDocument(),
-        );
-    });
-
-    it('closes the menu when the focus leaves the box', async () => {
-        wide(true);
-        renderPage(Home, { home });
-        const box = screen.getByRole('combobox', {
-            name: 'Search in Family Manager',
-        });
-        await userEvent.type(box, 'Pan');
-        await screen.findByRole('link', { name: /See all 10 results/ });
-
-        await userEvent.click(
-            screen.getByRole('heading', { name: 'Hi, Marco', level: 1 }),
-        );
-
-        await waitFor(() =>
-            expect(
-                screen.queryByRole('link', { name: /See all 10 results/ }),
-            ).not.toBeInTheDocument(),
-        );
-    });
-
-    it('on the phone has the magnifier that opens Search, and no box', () => {
-        wide(false);
+    it('on the phone has the magnifier and the round bell beside the greeting', () => {
+        screenWidth(390);
         renderPage(Home, { home });
 
         expect(
             screen.getByRole('link', { name: 'Search in Family Manager' }),
         ).toHaveAttribute('href', '/search');
+        expect(screen.getByRole('button', { name: /Notices/ })).toHaveClass(
+            'rounded-full',
+        );
+    });
+
+    it('on the computer leaves the search and the bell to the top bar', () => {
+        screenWidth(1280);
+        renderPage(Home, { home });
+
+        expect(
+            screen.queryByRole('link', { name: 'Search in Family Manager' }),
+        ).not.toBeInTheDocument();
         expect(
             screen.queryByRole('combobox', {
                 name: 'Search in Family Manager',
             }),
         ).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Notices/ })).toHaveClass(
-            'rounded-full',
-        );
+        expect(
+            screen.queryByRole('button', { name: /Notices/ }),
+        ).not.toBeInTheDocument();
     });
 });
 

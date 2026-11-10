@@ -21,6 +21,8 @@ import FmMonthSwitch from '@/components/fm/FmMonthSwitch.vue';
 import FmMovementPanel from '@/components/fm/FmMovementPanel.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import FmTitleTools from '@/components/fm/FmTitleTools.vue';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useFormat } from '@/composables/useFormat';
 import type { MovementFormOptions } from '@/lib/budget';
 import { movementsUrl, weekdayShort } from '@/lib/budget';
@@ -47,6 +49,8 @@ const props = defineProps<{
     options: MovementFormOptions;
 }>();
 
+/** The layout: the magnifier and the bell beside the title are only on the phone. */
+const mode = useLayoutMode();
 const desktop = useMediaQuery('(min-width: 1024px)');
 const { euro } = useFormat();
 
@@ -200,6 +204,7 @@ function subtitle(movement: App.Data.MovementData): string {
     <div class="flex flex-col gap-4">
         <FmTitle :title="$t('Budget')">
             <template #actions>
+                <FmTitleTools v-if="mode === 'phone'" />
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')
                 }}</FmButton>

@@ -38,6 +38,7 @@ import type { Section } from '@/components/fm/navigation';
 import { navigationItems, sectionOf } from '@/components/fm/navigation';
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import { Toaster } from '@/components/ui/sonner';
+import { useBellNotices } from '@/composables/useBellNotices';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import type { TrailPiece } from '@/lib/pageTrail';
@@ -63,7 +64,7 @@ const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
 const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
-const unreadNotices = computed((): number => page.props.unread_notices ?? 0);
+const { unread: unreadNotices, notices, loadNotices } = useBellNotices();
 const impersonating = computed(
     (): string | null => page.props.impersonating ?? null,
 );
@@ -114,11 +115,6 @@ onBeforeUnmount(() => stopClosingMenu?.());
 watch(mode, () => {
     menuOpen.value = false;
 });
-
-/** Asks the server for the notices of the bell, without changing the address. */
-function loadNotices(): void {
-    router.reload({ only: ['bell_notices'], preserveUrl: true });
-}
 
 /** Ends the visit of the owner: the server sends the browser back to the panel. */
 function leaveVisit(): void {
@@ -190,7 +186,7 @@ useSearchShortcut(focusSearch);
                     :family="family"
                     :upload-count="toSort"
                     :unread-notices="unreadNotices"
-                    :notices="page.props.bell_notices"
+                    :notices="notices"
                     :query="query"
                     :menu-open="menuOpen"
                     @open-menu="menuOpen = true"

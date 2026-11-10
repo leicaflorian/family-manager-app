@@ -16,6 +16,8 @@ import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import FmTitleTools from '@/components/fm/FmTitleTools.vue';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { newCardUrl } from '@/lib/cards';
 import { cardCountText, overdueText } from '@/lib/cardTexts';
@@ -35,6 +37,9 @@ const { groups, types, canCreate } = defineProps<{
     /** Whoever is looking adds cards (an `admin`). */
     canCreate: boolean;
 }>();
+
+/** The layout: the magnifier and the bell beside the title are only on the phone. */
+const mode = useLayoutMode();
 
 /** The text in the search box. */
 const query = ref('');
@@ -87,8 +92,10 @@ function tile(area: string): string {
 
     <div class="flex flex-col gap-5">
         <FmTitle :title="$t('Areas')">
-            <template v-if="canCreate" #actions>
+            <template v-if="canCreate || mode === 'phone'" #actions>
+                <FmTitleTools v-if="mode === 'phone'" />
                 <FmActions
+                    v-if="canCreate"
                     :actions="[
                         {
                             label: $t('New card'),

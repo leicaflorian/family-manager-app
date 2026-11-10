@@ -6,38 +6,32 @@
  * for a new family, *To begin*. One column on the phone, two from the
  * computer: the box and the deadlines on the left, the incomes on the right.
  * *Something is missing* (on the right, only when a card lacks a document,
- * with the page that uploads it) and the bell of the notices beside the
- * greeting, whose menu loads the notices when it opens. *Mail that arrived* (on the right, between the incomes and
+ * with the page that uploads it). *Mail that arrived* (on the right, between the incomes and
  * what is missing, only when mail with files arrived) lists the last three mails with the card their documents are
  * linked to, each opening *Received mail*. The recently uploaded documents come with their own item.
  *
- * The search of the whole app: on the computer the box beside the greeting
- * (300 px, 420 px while it has the focus or some text) with the menu of the
- * first results under it, and the square bell. On the phone a round magnifier
- * before the round bell opens the *Search* page.
+ * On the phone the magnifier and the bell of the notices (`FmTitleTools`) sit beside the greeting; on
+ * the tablet and the computer they are in the top bar of the layout.
  */
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
-import { ArrowRight, Mail, Search } from '@lucide/vue';
-import { computed, ref, useTemplateRef } from 'vue';
+import { ArrowRight, Mail } from '@lucide/vue';
+import { computed } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
-import type { BellNotices } from '@/components/fm/FmBell.vue';
-import FmBell from '@/components/fm/FmBell.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChecklist from '@/components/fm/FmChecklist.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
-import FmSearchField from '@/components/fm/FmSearchField.vue';
-import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
+import FmTitleTools from '@/components/fm/FmTitleTools.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
-import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
-import { agenda, areas, search, toSort, upload } from '@/routes';
+import { agenda, areas, toSort, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
 import { index as receivedMail } from '@/routes/mail';
 import { create as invite } from '@/routes/family/invitations';
@@ -47,52 +41,13 @@ const { home } = defineProps<{
     home: App.Data.HomeData;
 }>();
 
-const page = usePage();
-
-/** The notices of the menu of the bell: the server sends them only when the menu asks. */
-const notices = computed(
-    (): BellNotices | undefined => page.props.bell_notices,
-);
-
-/** How many notices the account has not seen yet, for the dot of the bell. */
-const unreadNotices = computed((): number => page.props.unread_notices ?? 0);
-
-/** Loads the notices of the bell when its menu opens, without changing the address. */
-function loadNotices(): void {
-    router.reload({ only: ['bell_notices'], preserveUrl: true });
-}
-
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
 
-/**
- * Whether the window has the wide layout: the search box instead of the
- * magnifier, and the button of the documents to complete beside the text.
- */
+/** The layout: the magnifier and the bell beside the greeting are only on the phone. */
+const mode = useLayoutMode();
+
+/** Whether the window has the wide layout: the button of the documents to complete beside the text. */
 const wide = useWideLayout();
-
-/** The text in the search box. */
-const text = ref('');
-
-/** The menu of the first results under the box, for the arrows and Enter. */
-const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
-
-/** Searches the text of the box on the *Search* page. */
-function submit(): void {
-    const q = text.value.trim();
-
-    router.visit(q === '' ? search.url() : search.url({ query: { q } }));
-}
-
-// The box grows to 420 px while it has the focus or some text
-const {
-    menuResults,
-    enter,
-    onKeydown,
-    closeMenu,
-    focused,
-    onFocusIn,
-    onFocusOut,
-} = useSearchBox(text, menu, submit);
 
 /**
  * The step of *To begin* for a step of the server: its text and where it leads.
@@ -201,60 +156,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     {{ $t('Hi, :name', { name: home.first_name }) }}
                 </h1>
             </div>
-            <div
-                class="flex shrink-0 items-center"
-                :class="wide ? 'gap-2.5' : 'gap-2'"
-            >
-                <div
-                    v-if="wide"
-                    class="relative max-w-full transition-[width] duration-200 motion-reduce:transition-none"
-                    :class="focused || text !== '' ? 'w-105' : 'w-75'"
-                    @focusin="onFocusIn"
-                    @focusout="onFocusOut"
-                >
-                    <FmSearchField
-                        v-model="text"
-                        :label="$t('Search in Family Manager')"
-                        shortcut
-                        clearable
-                        :controls="SEARCH_MENU_ID"
-                        :expanded="menuResults !== null"
-                        :active-descendant="
-                            menuResults ? menu?.activeId : undefined
-                        "
-                        @submit="enter"
-                        @escape="closeMenu"
-                        @keydown="onKeydown"
-                    />
-                    <FmSearchMenu
-                        v-if="menuResults"
-                        :id="SEARCH_MENU_ID"
-                        ref="menu"
-                        :results="menuResults"
-                        :query="menuResults.query"
-                        class="max-w-none"
-                        @mousedown.prevent
-                    />
-                </div>
-                <Link
-                    v-else
-                    :href="search.url()"
-                    :aria-label="$t('Search in Family Manager')"
-                    class="flex size-11 items-center justify-center rounded-full bg-card text-ink"
-                >
-                    <FmIcon :icon="Search" :size="22" />
-                </Link>
-                <FmBell
-                    :count="unreadNotices"
-                    :notices="notices"
-                    :class="
-                        wide
-                            ? 'rounded-lg border border-edge-soft bg-card'
-                            : 'rounded-full bg-card'
-                    "
-                    @open="loadNotices"
-                />
-            </div>
+            <FmTitleTools v-if="mode === 'phone'" />
         </div>
 
         <section
