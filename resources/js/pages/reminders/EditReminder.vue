@@ -11,9 +11,10 @@
  */
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
-import { createReusableTemplate, useMediaQuery } from '@vueuse/core';
+import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, defineAsyncComponent } from 'vue';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
@@ -66,7 +67,7 @@ const {
 }>();
 
 /** On the computer the form is a window over the list. */
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 
 /** The form, written once: in the window on the computer, the whole page on the phone. */
 const [DefineForm, ReuseForm] = createReusableTemplate();

@@ -8,10 +8,10 @@
  * only two numbers show.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { useMediaQuery } from '@vueuse/core';
 import { ChartNoAxesColumn } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmBarChart from '@/components/fm/FmBarChart.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -31,7 +31,7 @@ const props = defineProps<{
     comparison: App.Data.ComparisonData;
 }>();
 
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 const { euro } = useFormat();
 
 /** What the spending is next to the plan, for example «185,10 € less». */

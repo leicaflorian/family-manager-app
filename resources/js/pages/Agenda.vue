@@ -14,9 +14,9 @@
  */
 import { Head } from '@inertiajs/vue3';
 import { CalendarRange, Plus } from '@lucide/vue';
-import { useMediaQuery } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -79,7 +79,7 @@ function changeDate(entry: App.Data.AgendaEntryData, renewed: boolean): void {
 const { filters, toggleArea, choosePerson, chooseMonths, reset } =
     useAgendaFilters(agenda.filters);
 
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 const sheetOpen = ref(false);
 
 /** The entries for the person and the areas chosen. */

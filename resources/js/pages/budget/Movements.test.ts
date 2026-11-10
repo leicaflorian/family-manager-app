@@ -46,18 +46,6 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-/** Makes the page believe it is on a computer. */
-function onComputer(): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        matches: query.includes('min-width'),
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-    }));
-}
-
 describe('Movements', () => {
     it('has the magnifier and the bell beside the title on the phone only', () => {
         screenWidth(390);
@@ -172,8 +160,17 @@ describe('Movements', () => {
         ).toHaveAttribute('aria-pressed', 'false');
     });
 
+    it('opens a row on its own page on a wide but short window', () => {
+        screenWidth(1280, 400);
+        renderPage(Movements, props);
+
+        expect(
+            screen.getByRole('link', { name: /Parcheggio/ }),
+        ).toHaveAttribute('href', '/budget/movements/expense/40');
+    });
+
     it('opens a row beside the list on the computer', () => {
-        onComputer();
+        screenWidth(true);
         renderPage(Movements, props);
 
         expect(
@@ -185,7 +182,7 @@ describe('Movements', () => {
     });
 
     it('shows the panel of the movement chosen', () => {
-        onComputer();
+        screenWidth(true);
         renderPage(Movements, { ...props, selected: danceMovement });
 
         expect(screen.getByLabelText('Title')).toHaveValue('Retta di novembre');
@@ -195,7 +192,7 @@ describe('Movements', () => {
     });
 
     it('closes the panel with the cross', async () => {
-        onComputer();
+        screenWidth(true);
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Movements, { ...props, selected: danceMovement });
 
@@ -205,7 +202,7 @@ describe('Movements', () => {
     });
 
     it('opens the panel of a new expense or income on the computer', async () => {
-        onComputer();
+        screenWidth(true);
         renderPage(Movements, props);
         expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
 

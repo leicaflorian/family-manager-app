@@ -19,7 +19,6 @@
  */
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleCheck, FileText, X } from '@lucide/vue';
-import { useMediaQuery } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import ImportAlsoDoBoxes from '@/components/documents/ImportAlsoDoBoxes.vue';
@@ -62,7 +61,7 @@ import { anyFileReading, isReading, readAgain } from '@/lib/reading';
 import { toSort } from '@/routes';
 import { create as createCard, show as showCard } from '@/routes/cards';
 import { store } from '@/routes/import';
-import { useLayoutMode } from '@/composables/useLayoutMode';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<
@@ -101,7 +100,7 @@ const options = computed<DocumentFormOptions>(() => ({
 }));
 
 /** The computer: the badges of the files on top and the import button by the title. */
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 
 /** The card the files come from. */
 const preset = computed(() => props.presetLinks[0]);
@@ -433,8 +432,6 @@ function save(): void {
     );
 }
 
-const layout = useLayoutMode();
-
 usePageTrail(() => [
     { label: trans('To sort'), href: toSort().url },
     {
@@ -485,15 +482,6 @@ usePageTrail(() => [
                             )
                         }}
                     </FmButton>
-                    <Link
-                        v-if="preset && layout !== 'computer'"
-                        :href="closeUrl"
-                        data-discard-changes
-                        :aria-label="$t('Close')"
-                        class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                    >
-                        <FmIcon :icon="X" :size="20" />
-                    </Link>
                 </template>
             </FmTitle>
         </template>

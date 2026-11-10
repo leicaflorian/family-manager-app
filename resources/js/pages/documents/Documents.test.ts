@@ -215,6 +215,24 @@ describe('Documents', () => {
         ).toHaveClass('sticky', 'top-(--app-header)');
     });
 
+    it('on a wide but short window, shows it in a floating panel and a row leads to its page', () => {
+        screenWidth(1500, 400);
+        renderPage(Documents, { ...props, selected: documentDetail });
+
+        expect(
+            screen.getByRole('dialog', { name: 'Busta paga di ottobre' }),
+        ).toBeInTheDocument();
+    });
+
+    it('on a short window 1280 px wide, a row leads to the page of the document', () => {
+        screenWidth(1280, 400);
+        renderPage(Documents, props);
+
+        expect(
+            screen.queryByRole('link', { name: /Busta paga di ottobre/ }),
+        ).toHaveAttribute('href', '/documents/5');
+    });
+
     it('narrower, shows it in a floating panel that the × closes, keeping filters and page', async () => {
         screenWidth(1280);
         address.url = '/documents?person=3&page=2&document=5';

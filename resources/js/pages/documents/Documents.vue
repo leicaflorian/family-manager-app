@@ -7,10 +7,13 @@
  * that invites to upload the first one.
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { useMediaQuery } from '@vueuse/core';
 import { FileText, ListFilter, Search, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+import {
+    useComputerLayout,
+    useWideComputerLayout,
+} from '@/composables/useLayoutMode';
 import FmActiveFilter from '@/components/fm/FmActiveFilter.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -54,10 +57,10 @@ const props = defineProps<{
     selected: App.Data.DocumentDetailData | null;
 }>();
 
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 
 /** Wide enough for the chosen document in a third column, as the board draws it. */
-const wide = useMediaQuery('(min-width: 1440px)');
+const wide = useWideComputerLayout();
 
 const page = usePage();
 

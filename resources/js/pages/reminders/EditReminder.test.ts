@@ -14,6 +14,7 @@ import {
     choose,
     openMenu,
     renderPage,
+    screenWidth,
     withTrail,
     search,
     settle,
@@ -34,20 +35,6 @@ const props = {
     reminders: remindersPage,
     links: reminderLinks,
 };
-
-/** Makes the page believe it is on a computer, or on a phone. */
-function screenWidth(computer: boolean): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        matches:
-            query.includes('prefers-reduced-motion') ||
-            (computer && query.includes('min-width')),
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-    }));
-}
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -258,6 +245,18 @@ describe('Edit a reminder', () => {
 
     it('is the whole screen on the phone, without the list', () => {
         screenWidth(false);
+        renderPage(EditReminder, props);
+
+        expect(
+            screen.queryByRole('region', { name: 'Late' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Save' }),
+        ).toBeInTheDocument();
+    });
+
+    it('is the whole screen on a wide but short window, without the list', () => {
+        screenWidth(1280, 400);
         renderPage(EditReminder, props);
 
         expect(

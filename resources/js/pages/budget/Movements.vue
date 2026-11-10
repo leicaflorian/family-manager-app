@@ -7,10 +7,10 @@
  * phone it opens its page.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { useMediaQuery } from '@vueuse/core';
 import { Plus, Receipt, Wallet } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -51,7 +51,7 @@ const props = defineProps<{
 
 /** The layout: the magnifier and the bell beside the title are only on the phone. */
 const mode = useLayoutMode();
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 const { euro } = useFormat();
 
 /** The panel of a new expense or income is open (on the computer). */

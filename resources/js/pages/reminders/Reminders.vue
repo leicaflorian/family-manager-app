@@ -14,9 +14,9 @@
  */
 import { Head, router } from '@inertiajs/vue3';
 import { BellRing, Plus } from '@lucide/vue';
-import { useMediaQuery } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
 import type { AgendaFilterViews } from '@/components/fm/FmAgendaFilters.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -50,7 +50,7 @@ const { reminders, embedded = false } = defineProps<{
     embedded?: boolean;
 }>();
 
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 
 /** Which list is shown. */
 const view = ref<'open' | 'done'>('open');

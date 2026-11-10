@@ -11,27 +11,12 @@ import {
     vi,
 } from 'vite-plus/test';
 import { inspectionReminder, remindersPage } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Reminders from './Reminders.vue';
 
 let post: MockInstance<typeof router.post>;
 let remove: MockInstance<typeof router.delete>;
 let get: MockInstance<typeof router.get>;
-
-/** Makes the page believe it is on a computer, or on a phone. */
-function screenWidth(computer: boolean): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        // Reduced motion on, as in setup.ts: jsdom cannot animate
-        matches:
-            query.includes('prefers-reduced-motion') ||
-            (computer && query.includes('min-width')),
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-    }));
-}
 
 beforeEach(() => {
     // Monday 26/10: the plumber (31/10) is this week, the inspection later
@@ -357,6 +342,18 @@ describe('Reminders', () => {
             '/reminders/2',
             expect.objectContaining({ preserveScroll: true }),
         );
+    });
+
+    it('on a wide but short window, has the phone filters without the search field', () => {
+        screenWidth(1280, 400);
+        renderPage(Reminders, props());
+
+        expect(
+            screen.queryByRole('searchbox', { name: 'Search a reminder' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('textbox', { name: 'Search a reminder' }),
+        ).not.toBeInTheDocument();
     });
 
     it('on the phone, chooses the list with buttons beside the filters', async () => {

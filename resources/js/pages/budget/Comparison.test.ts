@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { octoberComparison } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Comparison from './Comparison.vue';
 
 const props = { comparison: octoberComparison };
@@ -12,18 +12,6 @@ afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
-
-/** Makes the page believe it is on a computer. */
-function onComputer(): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        matches: query.includes('min-width'),
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-    }));
-}
 
 describe('Comparison', () => {
     it('shows the planned, the spent and the incomes of the month', () => {
@@ -56,12 +44,19 @@ describe('Comparison', () => {
     });
 
     it('shows the incomes against the planned ones on the computer', () => {
-        onComputer();
+        screenWidth(true);
         renderPage(Comparison, props);
 
         expect(screen.getByText('Income')).toBeInTheDocument();
         expect(screen.getByText('1.720,00 €')).toBeInTheDocument();
         expect(screen.getByText('of 3.570,00 € planned')).toBeInTheDocument();
+    });
+
+    it('does not show the incomes tile on a wide but short window', () => {
+        screenWidth(1280, 400);
+        renderPage(Comparison, props);
+
+        expect(screen.queryByText('Income')).not.toBeInTheDocument();
     });
 
     it('says how many days the month in progress has left', () => {
@@ -117,7 +112,7 @@ describe('Comparison', () => {
     });
 
     it('lists the due dates nobody has registered on the computer', () => {
-        onComputer();
+        screenWidth(true);
         renderPage(Comparison, props);
 
         const section = screen.getByRole('region', {

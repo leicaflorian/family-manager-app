@@ -133,29 +133,6 @@ function row(name: string): HTMLElement {
     return screen.getByRole('button', { name: new RegExp(name) });
 }
 
-/**
- * A window 1100 px wide but too short for the computer layout: the page lays the files out in a list
- * (its own `min-width: 1024px` query) while the layout is not the computer one, so the top bar has no Back.
- */
-function shortWideWindow(): void {
-    vi.stubGlobal(
-        'matchMedia',
-        (query: string): MediaQueryList =>
-            ({
-                matches:
-                    query === '(min-width: 1024px)' ||
-                    query.includes('prefers-reduced-motion'),
-                media: query,
-                onchange: null,
-                addEventListener: () => {},
-                removeEventListener: () => {},
-                addListener: () => {},
-                removeListener: () => {},
-                dispatchEvent: () => false,
-            }) satisfies MediaQueryList,
-    );
-}
-
 beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     // On a computer unless a test says otherwise: the list of the files and the button on top
@@ -289,13 +266,19 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
-    it('goes back to the files to sort, throwing away the changes', () => {
-        shortWideWindow();
+    it('on a wide but short window, has the phone layout: a close button to the files to sort, throwing away the changes', () => {
+        screenWidth(1280, 400);
         renderPage(Import, props([light]));
 
-        const back = screen.getByRole('link', { name: 'To sort' });
-        expect(back).toHaveAttribute('href', '/to-sort');
-        expect(back).toHaveAttribute('data-discard-changes');
+        expect(
+            screen.queryByRole('link', { name: 'To sort' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('list', { name: 'Files to import' }),
+        ).not.toBeInTheDocument();
+        const close = screen.getByRole('link', { name: 'Close' });
+        expect(close).toHaveAttribute('href', '/to-sort');
+        expect(close).toHaveAttribute('data-discard-changes');
     });
 
     it('has no back link nor close button above the title on the computer, where the top bar has Back', () => {
@@ -311,8 +294,8 @@ describe('Import', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('from a card, closes to the card and imports going back to it', async () => {
-        shortWideWindow();
+    it('from a card, on a wide but short window, closes to the card and imports going back to it', async () => {
+        screenWidth(1280, 400);
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Import, props([light], {}, [{ type: 'vehicle', id: 1 }]));
         await settle();

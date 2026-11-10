@@ -9,7 +9,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { renderPage, settle, withTrail } from '@/test/page';
+import { renderPage, screenWidth, settle, withTrail } from '@/test/page';
 import { hasChanges } from '@/lib/unsavedChanges';
 import Notices from './Notices.vue';
 
@@ -128,20 +128,6 @@ function sentGroups(put: ReturnType<typeof vi.spyOn>): {
     const call = put.mock.calls[put.mock.calls.length - 1]!;
 
     return (call[1] as { groups: never }).groups;
-}
-
-/** Makes the page believe it is on a computer, or on a phone. */
-function screenWidth(computer: boolean): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        matches:
-            query.includes('prefers-reduced-motion') ||
-            (computer && query.includes('min-width')),
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-    }));
 }
 
 describe('Settings, Notices', () => {
@@ -480,6 +466,17 @@ describe('Settings, Notices', () => {
             within(screenOfGroup).getByRole('button', { name: 'Save' }),
         );
         expect(put).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens the group full screen on a wide but short window', async () => {
+        screenWidth(1280, 400);
+        renderPage(Notices, props());
+
+        await userEvent.click(
+            within(card('Policies')).getByRole('button', { name: 'Edit' }),
+        );
+
+        expect(screen.getByTestId('group-screen')).toBeInTheDocument();
     });
 
     it('drops the changes with Cancel on the phone', async () => {

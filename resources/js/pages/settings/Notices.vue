@@ -10,8 +10,8 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Plus, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { useMediaQuery } from '@vueuse/core';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -84,7 +84,7 @@ const editing = ref<string[]>([]);
 const refused = ref<string[]>([]);
 const saving = ref(false);
 /** On the computer a group is edited in place; on the phone it takes the screen. */
-const desktop = useMediaQuery('(min-width: 1024px)');
+const desktop = useComputerLayout();
 
 // A save redirects here with the new groups: start from them
 watch(

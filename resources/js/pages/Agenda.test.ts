@@ -11,7 +11,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { agendaEntries, peopleList } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Agenda from './Agenda.vue';
 
 const areas = [
@@ -46,21 +46,6 @@ function agenda(
             ...change,
         },
     };
-}
-
-/** Makes the page believe it is on a computer, or on a phone. */
-function screenWidth(computer: boolean): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        // Reduced motion on, as in setup.ts: jsdom cannot animate
-        matches:
-            query.includes('prefers-reduced-motion') ||
-            (computer && query.includes('min-width')),
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-    }));
 }
 
 /** The rows of the list: the links to an entry. */
@@ -120,6 +105,17 @@ describe('Agenda', () => {
         expect(period).toHaveTextContent(
             'Until 26/111.417,49 €10 outgoing entries in the next month',
         );
+    });
+
+    it('on a wide but short window, sums up only this week and the whole period, as on the phone', () => {
+        screenWidth(1280, 400);
+        renderPage(Agenda, agenda());
+
+        const tiles = screen.getByRole('list', { name: 'In short' });
+        expect(within(tiles).getAllByRole('listitem')).toHaveLength(2);
+        expect(
+            within(tiles).queryByText('To sort out'),
+        ).not.toBeInTheDocument();
     });
 
     it('sums up on the phone this week and the whole period', () => {
