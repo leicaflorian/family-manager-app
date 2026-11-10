@@ -10,7 +10,13 @@ import {
     policyDetail,
     policyFields,
 } from '@/test/fixtures';
-import { renderPage, settle, tapCancel, screenWidth } from '@/test/page';
+import {
+    renderPage,
+    withTrail,
+    settle,
+    tapCancel,
+    screenWidth,
+} from '@/test/page';
 import EditCard from './EditCard.vue';
 import { hasChanges } from '@/lib/unsavedChanges';
 
@@ -20,6 +26,63 @@ afterEach(() => {
 });
 
 describe('Edit a card', () => {
+    it('writes the trail of a change and of a new card into the top bar', () => {
+        const edit = withTrail();
+        const first = renderPage(
+            EditCard,
+            {
+                type: {
+                    type: 'insurance_policy',
+                    label: 'Insurance policy',
+                    plural_label: 'Policies',
+                    description: '',
+                    area: 'insurance',
+                    area_label: 'Insurance',
+                },
+                fields: policyFields,
+                values: {},
+                card: policyDetail.card,
+            },
+            edit.provide,
+        );
+
+        expect(edit.state.pieces.value).toEqual([
+            { label: 'Areas', href: '/areas' },
+            { label: 'Insurance', href: '/areas/insurance' },
+            {
+                label: 'RC auto Panda - UnipolSai',
+                href: '/cards/insurance_policy/1',
+            },
+            { label: 'Edit the insurance policy' },
+        ]);
+        first.unmount();
+
+        const created = withTrail();
+        renderPage(
+            EditCard,
+            {
+                type: {
+                    type: 'insurance_policy',
+                    label: 'Insurance policy',
+                    plural_label: 'Policies',
+                    description: '',
+                    area: 'insurance',
+                    area_label: 'Insurance',
+                },
+                fields: policyFields,
+                values: {},
+                card: null,
+            },
+            created.provide,
+        );
+
+        expect(created.state.pieces.value).toEqual([
+            { label: 'Areas', href: '/areas' },
+            { label: 'Insurance', href: '/areas/insurance' },
+            { label: 'New insurance policy' },
+        ]);
+    });
+
     const type: App.Data.CardTypeData = {
         type: 'insurance_policy',
         label: 'Insurance policy',

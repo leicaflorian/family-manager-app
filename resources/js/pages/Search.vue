@@ -29,6 +29,7 @@ import {
     SEARCH_PAGE_FIELD,
     useSearchBox,
 } from '@/composables/useSearchBox';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { dashboard, search } from '@/routes';
 
@@ -132,6 +133,11 @@ function filter(type: App.Enums.SearchGroup | null): void {
         { preserveState: false, replace: true },
     );
 }
+
+usePageTrail(() => [
+    { label: trans('Home'), href: dashboard().url },
+    { label: trans('Search') },
+]);
 
 /** The arrow of the phone: back to the page before, or to the Home if there is none. */
 function goBack(): void {

@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { allAreas, cardTypes, homeArea, luceRow } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Area from './Area.vue';
 
 /** The types of *Home* the cards of `homeArea` belong to. */
@@ -19,6 +19,20 @@ const homeTypes: App.Data.CardTypeData[] = [
 ];
 
 describe('Area', () => {
+    it('writes the trail Areas > the area into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            Area,
+            { area: homeArea, types: cardTypes.slice(0, 2), canCreate: true },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Areas', href: '/areas' },
+            { label: 'Home' },
+        ]);
+    });
+
     it('lists the open cards by name and keeps the closed ones folded', async () => {
         renderPage(Area, {
             area: homeArea,

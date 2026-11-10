@@ -9,7 +9,7 @@ import {
     policyBudget,
     policyDetail,
 } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Card from './Card.vue';
 
 afterEach(() => {
@@ -17,6 +17,17 @@ afterEach(() => {
 });
 
 describe('A card', () => {
+    it('writes the trail Areas > area > card into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Card, { card: policyDetail, linkable: [] }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Areas', href: '/areas' },
+            { label: 'Insurance', href: '/areas/insurance' },
+            { label: 'RC auto Panda - UnipolSai' },
+        ]);
+    });
+
     it('shows the header, the dates, the data, the documents and the linked cards', () => {
         renderPage(Card, { card: policyDetail, linkable: [] });
 

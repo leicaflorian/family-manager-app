@@ -9,6 +9,7 @@
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Search } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmNoticeList from '@/components/fm/FmNoticeList.vue';
@@ -16,6 +17,7 @@ import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { dashboard, notices } from '@/routes';
 import { readAll } from '@/routes/notices';
 
@@ -33,6 +35,11 @@ const props = defineProps<{
     /** The account has at least one notice, whatever the search. */
     hasNotices: boolean;
 }>();
+
+usePageTrail(() => [
+    { label: trans('Home'), href: dashboard().url },
+    { label: trans('Notices') },
+]);
 
 const page = usePage();
 

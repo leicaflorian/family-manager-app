@@ -11,7 +11,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { seenNotices, unreadNotices } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Notices from './Notices.vue';
 
 const shared = vi.hoisted(() => ({ unread_notices: 2 }));
@@ -45,6 +45,20 @@ const props = {
 };
 
 describe('Notices', () => {
+    it('writes the trail Home > Notices into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            Notices,
+            { unread: unreadNotices, seen: seenNotices, search: '' },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Home', href: '/dashboard' },
+            { label: 'Notices' },
+        ]);
+    });
+
     it('has the title and the notices, the new ones apart from the seen ones', () => {
         renderPage(Notices, props);
 

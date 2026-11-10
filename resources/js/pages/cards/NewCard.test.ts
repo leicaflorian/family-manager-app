@@ -1,10 +1,20 @@
 import { screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { cardTypes } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import NewCard from './NewCard.vue';
 
 describe('New card', () => {
+    it('writes the trail Areas > New card into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(NewCard, { types: cardTypes }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Areas', href: '/areas' },
+            { label: 'New card' },
+        ]);
+    });
+
     it('lists the card types by area, with what they are for', () => {
         renderPage(NewCard, { types: cardTypes });
 

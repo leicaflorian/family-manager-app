@@ -10,6 +10,8 @@ import type { Component } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { vi } from 'vite-plus/test';
 import { formPlugins } from '@/lib/formPlugins';
+import type { TrailState } from '@/lib/pageTrail';
+import { TRAIL_KEY, createTrailState } from '@/lib/pageTrail';
 import { guardVisits } from '@/lib/unsavedChanges';
 
 /**
@@ -17,18 +19,41 @@ import { guardVisits } from '@/lib/unsavedChanges';
  *
  * @param page - the component of the page
  * @param props - the props the server would give it
+ * @param provide - values to provide to the page, as `withTrail().provide`
  * @returns the result of Testing Library
  */
 export function renderPage(
     page: Component,
     props: Record<string, unknown> = {},
+    provide: Record<symbol, unknown> = {},
 ): RenderResult {
     return render(page, {
         props,
         global: {
             plugins: formPlugins,
+            provide,
         },
     });
+}
+
+/**
+ * Gives a page the trail of the top bar, as the layout does: the pieces the page writes can be read
+ * from `state.pieces.value`.
+ *
+ * @example
+ * const { state, provide } = withTrail();
+ * renderPage(Area, props, provide);
+ * expect(state.pieces.value).toEqual([...]);
+ *
+ * @returns the trail state and the `provide` to pass as the third argument of `renderPage`
+ */
+export function withTrail(): {
+    state: TrailState;
+    provide: Record<symbol, unknown>;
+} {
+    const state = createTrailState();
+
+    return { state, provide: { [TRAIL_KEY]: state } };
 }
 
 /**

@@ -10,7 +10,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { renderPage, screenWidth } from '@/test/page';
+import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Search from './Search.vue';
 
 /**
@@ -225,6 +225,16 @@ const box = (): HTMLElement =>
     screen.getByRole('combobox', { name: 'Search in Family Manager' });
 
 describe('Search', () => {
+    it('writes the trail Home > Search into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Search, { results: panda }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Home', href: '/dashboard' },
+            { label: 'Search' },
+        ]);
+    });
+
     it('has the title with the number of results and the text in the box', () => {
         renderPage(Search, { results: panda });
 

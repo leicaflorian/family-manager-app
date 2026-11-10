@@ -36,7 +36,9 @@ import FmPager from '@/components/fm/FmPager.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import type { Action } from '@/lib/actions';
+import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
 import { store as linkDocument } from '@/routes/cards/documents';
@@ -69,6 +71,12 @@ const uploading = ref(false);
 
 /** The address of the card in the routes: its type and its number. */
 const address = computed(() => ({ type: card.card.type, id: card.card.id }));
+
+usePageTrail(() => [
+    { label: trans('Areas'), href: areas().url },
+    { label: card.card.area_label, href: showArea.url(card.card.area) },
+    { label: card.card.label },
+]);
 
 /** *Edit* beside the title, *Delete* in the ⋯ menu. */
 const actions = computed((): Action[] => [

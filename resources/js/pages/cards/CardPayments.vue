@@ -13,7 +13,10 @@ import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmNumberTile from '@/components/fm/FmNumberTile.vue';
 import FmPayButton from '@/components/fm/FmPayButton.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { listNames } from '@/lib/names';
+import { areas } from '@/routes';
+import { show as showArea } from '@/routes/areas';
 import { show } from '@/routes/cards';
 
 const { card, budget } = defineProps<{
@@ -26,6 +29,13 @@ const { card, budget } = defineProps<{
     /** The words of the number of payments of each year, for example «9 bills». */
     counts: Record<number, string>;
 }>();
+
+usePageTrail(() => [
+    { label: trans('Areas'), href: areas().url },
+    { label: card.area_label, href: showArea.url(card.area) },
+    { label: card.label, href: show.url({ type: card.type, id: card.id }) },
+    { label: budget.payments_label ?? trans('Payments') },
+]);
 
 /** Whether the planned items are incomes, as the ones of an employment. */
 const income = computed(() => budget.kind === 'income');

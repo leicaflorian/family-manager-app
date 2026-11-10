@@ -9,9 +9,11 @@
  */
 import { Head, Link } from '@inertiajs/vue3';
 import { ScanLine } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { areaOf, areaTile } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
@@ -36,6 +38,11 @@ function formUrl(type: string): string {
         query: { card: type, ...(document === null ? {} : { document }) },
     }).url;
 }
+
+usePageTrail(() => [
+    { label: trans('Areas'), href: areas().url },
+    { label: trans('New card') },
+]);
 
 /** The types grouped by area, the areas in the order they first appear. */
 const groups = computed(() => {

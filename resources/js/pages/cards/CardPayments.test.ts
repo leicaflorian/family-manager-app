@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { luceBudget, luceRow } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import CardPayments from './CardPayments.vue';
 
 const props = {
@@ -28,6 +28,18 @@ const props = {
 };
 
 describe('Payments of a card', () => {
+    it('writes the trail Areas > area > card > payments into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(CardPayments, props, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Areas', href: '/areas' },
+            { label: 'Home', href: '/areas/home' },
+            { label: 'Luce - Edison', href: '/cards/utility/3' },
+            { label: 'Bills paid' },
+        ]);
+    });
+
     it('shows the bills paid of the card year by year, with the figures', async () => {
         renderPage(CardPayments, props);
 

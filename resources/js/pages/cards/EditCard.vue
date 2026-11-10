@@ -20,8 +20,10 @@ import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardForm from '@/components/fm/FmCardForm.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
+import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
 import { useLayoutMode } from '@/composables/useLayoutMode';
@@ -98,6 +100,20 @@ const title = computed(() =>
 const back = computed(() =>
     card ? show.url({ type: card.type, id: card.id }) : showArea.url(type.area),
 );
+
+usePageTrail(() => [
+    { label: trans('Areas'), href: areas().url },
+    { label: type.area_label, href: showArea.url(type.area) },
+    ...(card
+        ? [
+              {
+                  label: card.label,
+                  href: show.url({ type: card.type, id: card.id }),
+              },
+          ]
+        : []),
+    { label: title.value },
+]);
 
 /**
  * Sends the values: a change of the card (PUT), or a new one (POST).
