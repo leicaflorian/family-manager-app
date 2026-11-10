@@ -160,7 +160,7 @@ function save(): void {
         :before-close="changes.confirmClose"
         :title="income ? $t('It arrived') : $t('I paid it')"
     >
-        <p class="m-0 text-[15px] text-ink-soft">
+        <p class="m-0 text-body-sm text-ink-soft">
             {{ deadline.title }}
             <template v-if="income && deadline.card">
                 · {{ deadline.card.label }}
@@ -188,7 +188,7 @@ function save(): void {
             </div>
             <p
                 v-if="income"
-                class="m-0 -mt-1 flex items-start gap-1.5 text-[13px] text-ink-soft"
+                class="m-0 -mt-1 flex items-start gap-1.5 text-meta text-ink-soft"
             >
                 {{
                     $t(
@@ -212,7 +212,7 @@ function save(): void {
             <div class="flex flex-col gap-1.5">
                 <button
                     type="button"
-                    class="flex h-control-lg cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed border-ink-faint bg-card px-3 text-[15px] font-semibold text-action"
+                    class="flex h-control-lg cursor-pointer items-center justify-center gap-2 rounded-lg border-[1.5px] border-dashed border-ink-faint bg-card px-3 text-row text-action"
                     @click="picker?.click()"
                 >
                     <FmIcon :icon="Paperclip" :size="18" />
@@ -230,7 +230,7 @@ function save(): void {
                 />
                 <p
                     v-if="problems.receipt"
-                    class="m-0 text-[13px] font-semibold text-overdue"
+                    class="m-0 text-meta-strong text-overdue"
                 >
                     {{ problems.receipt }}
                 </p>

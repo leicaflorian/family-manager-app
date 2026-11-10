@@ -95,8 +95,8 @@ function save(): void {
         :title="renewed ? $t('Renewed') : $t('Update the date')"
     >
         <div class="flex flex-col rounded-card bg-canvas p-3.5">
-            <span class="truncate text-base font-bold">{{ entry.name }}</span>
-            <span class="truncate text-[13px] text-ink-soft">{{
+            <span class="truncate text-amount">{{ entry.name }}</span>
+            <span class="truncate text-meta text-ink-soft">{{
                 `${entry.detail} · ${formatDate(entry.date)}`
             }}</span>
         </div>

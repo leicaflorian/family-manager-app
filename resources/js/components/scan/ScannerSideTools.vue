@@ -68,7 +68,7 @@ const skewText = computed((): string => {
     <fieldset
         class="m-0 flex w-full max-w-[420px] flex-col gap-3 rounded-card border border-edge-soft bg-card p-4"
     >
-        <legend class="px-1 text-sm font-bold">
+        <legend class="px-1 text-label">
             {{ $t('Improve') }}
         </legend>
 
@@ -84,7 +84,7 @@ const skewText = computed((): string => {
                 :disabled="disabled"
                 @update:model-value="emit('angle', $event)"
             />
-            <span class="text-sm text-ink-soft">{{ skewText }}</span>
+            <span class="text-body-sm text-ink-soft">{{ skewText }}</span>
             <div class="flex flex-wrap items-center gap-2">
                 <FmButton
                     variant="outline"
@@ -120,7 +120,7 @@ const skewText = computed((): string => {
             :disabled="disabled"
             @update:model-value="emit('enhance', $event)"
         />
-        <span class="text-sm text-ink-soft">{{
+        <span class="text-body-sm text-ink-soft">{{
             $t(
                 'Lightens the paper, darkens the text. Halfway it is as on the phone; beyond, more contrast.',
             )

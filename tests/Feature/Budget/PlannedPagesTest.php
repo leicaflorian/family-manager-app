@@ -126,7 +126,7 @@ it('shows the data of a planned expense', function (): void {
 
             expect($values['Category'])->toBe('Scuola e attività › Sport')
                 ->and($values['Organization'])->toBe('Scuola Passo a Due')
-                ->and($values['Account'])->toBe('Carta Laura')
+                ->and($values['Bank account'])->toBe('Carta Laura')
                 ->and($values['Holder'])->toBe('Giulia')
                 ->and($values)->toHaveKey('Refers to');
         });

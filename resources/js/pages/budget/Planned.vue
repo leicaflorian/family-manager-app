@@ -101,13 +101,13 @@ const hasEstimate = computed(() =>
         <template v-else>
             <div class="grid gap-3 sm:grid-cols-2">
                 <div class="flex flex-col gap-1 rounded-card bg-card p-4">
-                    <span class="text-sm text-ink-soft">{{
+                    <span class="text-body-sm text-ink-soft">{{
                         $t('Going out, on average')
                     }}</span>
-                    <span class="text-[28px] font-extrabold">{{
+                    <span class="text-title-mobile">{{
                         euro(monthly_out)
                     }}</span>
-                    <span class="text-sm text-ink-soft">{{
+                    <span class="text-body-sm text-ink-soft">{{
                         $tChoice(
                             '{1} per month, :count planned expense|[2,*] per month, :count planned expenses',
                             expenses.length,
@@ -116,13 +116,13 @@ const hasEstimate = computed(() =>
                     }}</span>
                 </div>
                 <div class="flex flex-col gap-1 rounded-card bg-card p-4">
-                    <span class="text-sm text-ink-soft">{{
+                    <span class="text-body-sm text-ink-soft">{{
                         $t('Coming in')
                     }}</span>
-                    <span class="text-[28px] font-extrabold text-paid">{{
+                    <span class="text-title-mobile text-paid">{{
                         euro(monthly_in)
                     }}</span>
-                    <span class="text-sm text-ink-soft">{{
+                    <span class="text-body-sm text-ink-soft">{{
                         $tChoice(
                             '{1} per month, :count planned income|[2,*] per month, :count planned incomes',
                             incomes.length,
@@ -162,7 +162,7 @@ const hasEstimate = computed(() =>
                 />
             </FmCard>
 
-            <p v-if="hasEstimate" class="m-0 text-[13px] text-ink-soft">
+            <p v-if="hasEstimate" class="m-0 text-meta text-ink-soft">
                 {{
                     $t(
                         '~ means estimated: the amount is an average, because it changes with every bill.',

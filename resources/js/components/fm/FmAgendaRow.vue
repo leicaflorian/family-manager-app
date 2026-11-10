@@ -110,11 +110,11 @@ const soon = computed((): boolean => {
 const distanceClass = computed((): string =>
     soon.value
         ? cn(
-              'inline-flex h-6 items-center rounded-lg bg-action-soft px-2 text-xs font-semibold text-action-dark',
+              'inline-flex h-6 items-center rounded-lg bg-action-soft px-2 text-caption text-action-dark',
           )
         : late.value
-          ? cn('text-xs font-semibold text-overdue lg:text-sm')
-          : cn('text-xs text-ink-soft lg:text-sm'),
+          ? cn('text-caption text-overdue lg:text-label')
+          : cn('text-caption text-ink-soft lg:text-body-sm'),
 );
 
 /** The label of the reminder of a deadline, if it says something. */
@@ -181,7 +181,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
     <div
         v-else
         class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-4"
-        :class="actions && 'py-3 pr-3.5 pl-2 lg:px-4'"
+        :class="actions && 'py-3 pr-3.5 pl-2 lg:flex-wrap lg:px-4'"
     >
         <Link
             :href="entry.href"
@@ -189,20 +189,20 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 cn(
                     'flex min-w-0 grow items-center gap-2.5 text-inherit no-underline lg:gap-x-4',
                     !actions && 'py-3 pr-3.5 pl-2 lg:px-4',
+                    // Room for the columns and the title: without it the buttons go under the row
+                    actions && 'lg:basis-[34rem]',
                     rowLink,
                 )
             "
         >
-            <span
-                class="flex w-9 shrink-0 flex-col items-center leading-[1.1] lg:w-10"
-            >
+            <span class="flex w-9 shrink-0 flex-col items-center lg:w-10">
                 <span
-                    class="text-[19px] font-extrabold lg:text-xl"
+                    class="text-sheet-title lg:text-stat"
                     :class="late ? 'text-overdue' : 'text-ink'"
                     >{{ day }}</span
                 >
                 <span
-                    class="text-xs font-semibold"
+                    class="text-caption"
                     :class="late ? 'text-overdue' : 'text-ink-soft'"
                     >{{ dayLabel }}</span
                 >
@@ -217,11 +217,11 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 class="flex min-w-0 grow flex-wrap items-center gap-x-2 gap-y-[3px] lg:gap-y-1"
             >
                 <span
-                    class="min-w-0 basis-full truncate text-[15px] font-semibold lg:basis-auto lg:text-base"
+                    class="min-w-0 basis-full truncate text-row lg:basis-auto lg:text-body-strong"
                     >{{ entry.name }}</span
                 >
                 <span
-                    class="order-2 flex min-w-0 basis-full items-center gap-1.5 text-[13px] text-ink-soft lg:order-3 lg:text-sm"
+                    class="order-2 flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:order-3 lg:text-body-sm"
                 >
                     <span class="truncate">{{ detail }}</span>
                     <FmAvatar
@@ -235,7 +235,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 </span>
                 <span
                     v-if="badge"
-                    class="order-3 mt-0.5 inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg px-2 text-xs font-semibold whitespace-nowrap lg:order-2 lg:mt-0"
+                    class="order-3 mt-0.5 inline-flex h-6 shrink-0 items-center gap-[5px] rounded-lg px-2 text-caption whitespace-nowrap lg:order-2 lg:mt-0"
                     :class="badge.tone"
                 >
                     <FmIcon :icon="badge.icon" :size="14" />{{ badge.text }}
@@ -243,7 +243,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             </span>
             <!-- Said to screen readers always, seen only on the computer -->
             <span
-                class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-sm lg:text-ink-soft"
+                class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-body-sm lg:text-ink-soft"
             >
                 <template v-if="entry.person">
                     <FmAvatar
@@ -269,7 +269,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 >
                     <span
                         v-if="entry.amount !== null"
-                        class="text-[15px] font-bold whitespace-nowrap tabular-nums lg:text-base"
+                        class="text-row-amount whitespace-nowrap tabular-nums lg:text-amount"
                     >
                         <FmAmount
                             :amount="entry.amount"
@@ -277,7 +277,9 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                             :income="entry.kind === 'income'"
                         />
                     </span>
-                    <span v-else class="hidden text-sm text-ink-faint lg:inline"
+                    <span
+                        v-else
+                        class="hidden text-body-sm text-ink-faint lg:inline"
                         >—</span
                     >
                 </span>
@@ -291,21 +293,16 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
         </Link>
         <span
             v-if="actions && entry.update_url !== null"
-            class="flex gap-2 pl-[46px] lg:pl-0"
+            class="flex flex-wrap gap-2 pl-[46px] lg:ml-auto lg:shrink-0 lg:flex-nowrap lg:pl-0"
         >
-            <FmButton
-                variant="outline"
-                class="grow lg:grow-0"
-                :icon="CalendarDays"
-                @click="emit('update-date')"
-                >{{ $t('Update the date') }}</FmButton
-            >
-            <FmButton
-                class="grow lg:grow-0"
-                :icon="Check"
-                @click="emit('renewed')"
-                >{{ $t('Renewed') }}</FmButton
-            >
+            <FmButton variant="neutral" compact @click="emit('update-date')">
+                <FmIcon :icon="CalendarDays" :size="16" />
+                {{ $t('Update the date') }}
+            </FmButton>
+            <FmButton compact @click="emit('renewed')">
+                <FmIcon :icon="Check" :size="14" />
+                {{ $t('Renewed') }}
+            </FmButton>
         </span>
     </div>
 </template>

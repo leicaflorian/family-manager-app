@@ -4,11 +4,16 @@
  */
 import type { LucideIcon } from '@lucide/vue';
 import {
+    BellPlus,
     CalendarRange,
     FileText,
+    Inbox,
     LayoutDashboard,
+    Receipt,
+    ScanLine,
     Settings,
     Shapes,
+    Upload,
     Users,
     Wallet,
 } from '@lucide/vue';
@@ -20,10 +25,14 @@ import {
     dashboard,
     family,
     logout,
+    scan,
     settings,
+    toSort,
     upload,
 } from '@/routes';
+import { create as newMovement } from '@/routes/budget/movements';
 import { index as documents } from '@/routes/documents';
+import { create as newReminder } from '@/routes/reminders';
 
 /** The sections of the app, to know which one to mark. */
 export type Section =
@@ -33,7 +42,8 @@ export type Section =
     | 'documents'
     | 'budget'
     | 'family'
-    | 'settings';
+    | 'settings'
+    | 'toSort';
 
 /** An item of the navigation. */
 export type NavigationItem = {
@@ -49,14 +59,30 @@ export type NavigationItem = {
     hint?: string;
 };
 
+/** A way to add something, in the panel *Add* of the + on the phone. */
+export type AddItem = {
+    /** What it adds, already translated. */
+    label: string;
+    /** The line below: how, already translated. */
+    hint: string;
+    /** The address. */
+    href: string;
+    /** The Lucide icon. */
+    icon: LucideIcon;
+};
+
 /** All the items, with the addresses of Upload and of Log out. */
 export type NavigationItems = {
     /** Home, Agenda, Areas, Documents, Budget and Family, in this order. */
     sections: NavigationItem[];
     /** The settings, in the account menu or in More. */
     settings: NavigationItem;
+    /** To sort, an item of the sidebar only: on the phone the number on Upload leads there. */
+    toSort: NavigationItem;
     /** The address of Upload. */
     upload: string;
+    /** The ways to add something, in the panel of the + on the phone, after To sort. */
+    add: AddItem[];
     /** The address to log out (called with POST). */
     logout: string;
 };
@@ -113,7 +139,40 @@ export function navigationItems(): NavigationItems {
             href: settings().url,
             icon: Settings,
         },
+        toSort: {
+            section: 'toSort',
+            label: trans('To sort'),
+            href: toSort().url,
+            icon: Inbox,
+            hint: trans('Files uploaded to complete'),
+        },
         upload: upload().url,
+        add: [
+            {
+                label: trans('Upload a file'),
+                hint: trans('PDF or photos from the phone'),
+                href: upload().url,
+                icon: Upload,
+            },
+            {
+                label: trans('Scan a sheet'),
+                hint: trans('Photograph a sheet with the camera'),
+                href: scan().url,
+                icon: ScanLine,
+            },
+            {
+                label: trans('New expense'),
+                hint: trans('An expense already made, without a document'),
+                href: newMovement().url,
+                icon: Receipt,
+            },
+            {
+                label: trans('New reminder'),
+                hint: trans('Something to remember, with the date'),
+                href: newReminder().url,
+                icon: BellPlus,
+            },
+        ],
         logout: logout().url,
     };
 }
@@ -136,7 +195,12 @@ export function sectionOf(path: string, items: NavigationItems): Section {
         return 'agenda';
     }
 
-    const all = [...items.sections, items.settings];
+    // Upload and Import are the pages of the files, which To sort collects
+    if (['/upload', '/import'].includes(path)) {
+        return 'toSort';
+    }
+
+    const all = [...items.sections, items.settings, items.toSort];
     const found = all.find(
         (item) => path === item.href || path.startsWith(`${item.href}/`),
     );

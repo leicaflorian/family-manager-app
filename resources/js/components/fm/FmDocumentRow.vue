@@ -103,9 +103,7 @@ const when = computed(() => {
             <FmFileTile />
         </template>
         <template v-if="!expiry && !dateless" #after>
-            <span class="text-[13px] font-normal text-ink-soft">{{
-                when
-            }}</span>
+            <span class="text-meta text-ink-soft">{{ when }}</span>
         </template>
     </FmRow>
 </template>

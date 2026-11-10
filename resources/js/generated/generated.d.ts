@@ -343,7 +343,6 @@ readonly late: number,
 readonly entries: App.Data.AgendaEntryData[],
 readonly more: boolean,
 readonly incoming: App.Data.AgendaEntryData[],
-readonly pending: App.Data.PendingFileData[],
 readonly pending_count: number,
 readonly checklist: App.Data.ChecklistStepData[],
 readonly missing: App.Data.MissingDocumentData[],
@@ -915,6 +914,34 @@ readonly fields: App.Data.CardFieldData[],
 readonly complete: string[],
 };
 }
+namespace Search {
+export type SearchGroupData = {
+readonly group: App.Enums.SearchGroup,
+readonly label: string,
+readonly count: number,
+readonly results: App.Data.Search.SearchResultData[],
+};
+export type SearchResultData = {
+readonly key: string,
+readonly group: App.Enums.SearchGroup,
+readonly title: string,
+readonly subtitle: string | null,
+readonly date: string | null,
+readonly amount: number | null,
+readonly href: string,
+readonly area: string | null,
+readonly icon: string | null,
+readonly tone: string | null,
+readonly flag: string | null,
+readonly due_in: string | null,
+};
+export type SearchResultsData = {
+readonly query: string,
+readonly type: App.Enums.SearchGroup | null,
+readonly total: number,
+readonly groups: App.Data.Search.SearchGroupData[],
+};
+}
 }
 namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
@@ -954,6 +981,7 @@ export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped'
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance';
 export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
+export type SearchGroup = 'cards' | 'documents' | 'movements' | 'dues' | 'contacts';
 export type SkipReason = 'too_small' | 'too_large' | 'not_a_document' | 'duplicate';
 export type SubscriptionStatus = 'active' | 'cancelled';
 export type SubscriptionType = 'streaming' | 'software' | 'cloud' | 'web' | 'other';

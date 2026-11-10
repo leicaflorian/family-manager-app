@@ -20,7 +20,7 @@ const { href, label } = defineProps<{
 <template>
     <Link
         :href="href"
-        class="flex items-center gap-1.5 self-start text-[15px] font-semibold no-underline"
+        class="flex items-center gap-1.5 self-start text-row no-underline"
     >
         <FmIcon :icon="ChevronLeft" :size="18" />{{ label }}
     </Link>

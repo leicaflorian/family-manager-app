@@ -61,10 +61,10 @@ const note = computed((): string => {
 
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div class="flex min-w-0 flex-col gap-1.5">
-                <span class="text-sm font-semibold text-ink-soft">{{
+                <span class="text-label text-ink-soft">{{
                     `${card.area_label} · ${card.type_label}`
                 }}</span>
-                <h1 class="m-0 text-[28px] leading-tight font-extrabold">
+                <h1 class="m-0 text-title-mobile">
                     {{ budget.payments_label }}
                 </h1>
             </div>
@@ -98,14 +98,14 @@ const note = computed((): string => {
                 linked
                 full-date
             />
-            <p v-else class="m-0 px-4 py-3 text-[15px] text-ink-soft">
+            <p v-else class="m-0 px-4 py-3 text-body-sm text-ink-soft">
                 {{ $t('No payments recorded.') }}
             </p>
         </div>
 
         <p
             v-if="!income || budget.planned.length > 0"
-            class="m-0 text-[13px] text-ink-soft"
+            class="m-0 text-meta text-ink-soft"
         >
             {{ note }}
         </p>

@@ -104,10 +104,10 @@ onMounted(() => {
             >
                 <FmIcon :icon="Smartphone" :size="40" />
             </span>
-            <h1 class="m-0 text-[28px] font-extrabold">
+            <h1 class="m-0 text-title-mobile">
                 {{ $t('Phone linked') }}
             </h1>
-            <p class="m-0 max-w-[300px] text-base leading-normal text-ink-soft">
+            <p class="m-0 max-w-[300px] text-body text-ink-soft">
                 {{
                     $t(
                         'Hi, :name: from this phone you upload the documents to the :family family without a password.',
@@ -117,14 +117,14 @@ onMounted(() => {
             </p>
         </div>
         <div class="flex flex-col gap-3.5 rounded-card bg-canvas p-[18px]">
-            <span class="text-base font-bold">{{
+            <span class="text-amount">{{
                 $t('Put it on the Home screen')
             }}</span>
             <ol class="m-0 flex list-none flex-col gap-3 p-0">
                 <li
                     v-for="step in steps"
                     :key="step.text"
-                    class="flex items-center gap-3 text-[15px]"
+                    class="flex items-center gap-3 text-body-sm"
                 >
                     <span
                         class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card text-action-dark"

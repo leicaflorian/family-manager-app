@@ -791,16 +791,16 @@ onBeforeUnmount(() => {
     >
         <button
             type="button"
-            class="justify-self-start border-0 bg-transparent p-0 text-base font-semibold text-action disabled:text-ink-soft"
+            class="justify-self-start border-0 bg-transparent p-0 text-body-strong text-action disabled:text-ink-soft"
             :disabled="upload.sending.value"
             @click="cancel"
         >
             {{ $t('Cancel') }}
         </button>
-        <h1 class="m-0 font-bold" :class="wide ? 'text-lg' : 'text-[17px]'">
+        <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
             {{ $t('New document') }}
         </h1>
-        <span class="justify-self-end text-[15px] text-ink-soft">{{
+        <span class="justify-self-end text-body-sm text-ink-soft">{{
             count
         }}</span>
     </header>
@@ -844,10 +844,8 @@ onBeforeUnmount(() => {
                     "
                 >
                     <FmIcon :icon="FileText" :size="36" class="text-ink-soft" />
-                    <span class="text-base font-bold">{{
-                        $t('No pages')
-                    }}</span>
-                    <span class="text-sm text-ink-soft">{{
+                    <span class="text-amount">{{ $t('No pages') }}</span>
+                    <span class="text-body-sm text-ink-soft">{{
                         wide
                             ? $t(
                                   'Take a photo of the document with the webcam, or choose photos and PDFs from the computer.',
@@ -898,7 +896,7 @@ onBeforeUnmount(() => {
                         <!-- on the sheet itself, wherever its shape puts it in the box -->
                         <span
                             v-if="!peeking"
-                            class="absolute top-3 right-3 rounded-tag bg-paid-soft px-2.5 py-1 text-xs font-semibold text-paid"
+                            class="absolute top-3 right-3 rounded-tag bg-paid-soft px-2.5 py-1 text-caption text-paid"
                             >{{ $t('Cropped') }}</span
                         >
                     </FmCropStage>
@@ -921,16 +919,16 @@ onBeforeUnmount(() => {
                             :size="40"
                             class="text-action"
                         />
-                        <span class="text-base font-bold">{{
+                        <span class="text-amount">{{
                             isPdfFile(chosen.file) ? 'PDF' : $t('File')
                         }}</span>
-                        <span class="text-sm break-all text-ink-soft">{{
+                        <span class="text-body-sm break-all text-ink-soft">{{
                             chosen.file.name
                         }}</span>
                     </div>
                     <span
                         v-if="chosen.preparing"
-                        class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-tag bg-camera-bg px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-on-action"
+                        class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-tag bg-camera-bg px-2.5 py-1 text-caption whitespace-nowrap text-on-action"
                         >{{ $t('Preparing the photo…') }}</span
                     >
                 </div>
@@ -971,7 +969,7 @@ onBeforeUnmount(() => {
             </template>
 
             <template v-if="!wide && !empty">
-                <span v-if="summary" class="text-[13px] text-ink-soft">{{
+                <span v-if="summary" class="text-meta text-ink-soft">{{
                     summary
                 }}</span>
                 <div
@@ -1020,7 +1018,7 @@ onBeforeUnmount(() => {
                 :placeholder="$t('E.g. electricity bill for September')"
                 maxlength="200"
             />
-            <span v-if="summary" class="text-sm text-ink-soft">{{
+            <span v-if="summary" class="text-body-sm text-ink-soft">{{
                 summary
             }}</span>
             <FormKit
@@ -1068,7 +1066,7 @@ onBeforeUnmount(() => {
     >
         <button
             type="button"
-            class="flex h-12 flex-col items-center justify-center gap-0.5 justify-self-start border-0 bg-transparent text-sm font-semibold text-action disabled:text-ink-soft"
+            class="flex h-12 flex-col items-center justify-center gap-0.5 justify-self-start border-0 bg-transparent text-label text-action disabled:text-ink-soft"
             :disabled="upload.sending.value"
             @click="filesInput?.click()"
         >

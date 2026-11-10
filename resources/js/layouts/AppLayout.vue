@@ -3,9 +3,10 @@
  * The layout of the pages of the app for who is signed in: below 1024 px the
  * bottom bar of the phone, from 1024 px the sidebar. The marked section comes
  * from the address of the page. While a form has changes not saved, it asks
- * before the page changes or the tab closes. During a visit of the owner
- * (*Enter as…*) a strip at the top says whose eyes the app is seen with, and
- * *Leave* ends the visit.
+ * before the page changes or the tab closes. ⌘K, Ctrl K or «/» open the
+ * *Search* page from every page but the Home and *Search*, which put the focus
+ * in their own box. During a visit of the owner (*Enter as…*) a strip at the
+ * top says whose eyes the app is seen with, and *Leave* ends the visit.
  */
 import { router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -16,7 +17,11 @@ import type { Section } from '@/components/fm/navigation';
 import { navigationItems, sectionOf } from '@/components/fm/navigation';
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import { Toaster } from '@/components/ui/sonner';
+import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import { leave } from '@/routes/visit';
+
+/** The pages with their own search box, which take the shortcut themselves. */
+const PAGES_WITH_SEARCH = ['Home', 'Search'];
 
 defineSlots<{
     /** The page. */
@@ -40,6 +45,9 @@ const impersonating = computed(
 function leaveVisit(): void {
     router.post(leave.url());
 }
+
+// The layout stays across visits: which page is open is read at each key
+useSearchShortcut(undefined, () => !PAGES_WITH_SEARCH.includes(page.component));
 </script>
 
 <template>

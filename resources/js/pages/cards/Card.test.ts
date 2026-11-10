@@ -224,7 +224,7 @@ describe('A card', () => {
         const documents = screen.getByRole('region', { name: 'Documents' });
         for (const name of ['Link document', 'Upload']) {
             expect(within(documents).getByRole('button', { name })).toHaveClass(
-                'font-normal',
+                'text-body',
                 'hover:underline',
             );
         }

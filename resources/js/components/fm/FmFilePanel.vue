@@ -66,7 +66,7 @@ function chosen(): void {
             :preview-url="file.preview_url"
             fill
         />
-        <span class="text-center text-sm break-all text-ink-soft">
+        <span class="text-center text-body-sm break-all text-ink-soft">
             <span>{{ file.name }}</span>
             <template v-if="changeUrl">
                 ·
@@ -91,7 +91,7 @@ function chosen(): void {
         <span
             v-if="newFile.errors.file"
             role="alert"
-            class="text-[13px] text-overdue"
+            class="text-meta text-overdue"
             >{{ newFile.errors.file }}</span
         >
     </div>

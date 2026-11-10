@@ -235,6 +235,13 @@ return [
         'limited' => 'Over the limit',
         'suspended' => 'Family suspended',
     ],
+    'search_group' => [
+        'cards' => 'Cards',
+        'documents' => 'Documents',
+        'movements' => 'Expenses and incomes',
+        'dues' => 'Deadlines',
+        'contacts' => 'Organizations and people',
+    ],
     'skip_reason' => [
         'too_small' => 'Too small',
         'too_large' => 'Too large',

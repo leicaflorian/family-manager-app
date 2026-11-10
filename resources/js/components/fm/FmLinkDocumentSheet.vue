@@ -128,7 +128,7 @@ function pick(document: App.Data.DocumentData): void {
                     }"
                 />
             </div>
-            <p v-else class="m-0 p-5 text-[15px] text-ink-soft">
+            <p v-else class="m-0 p-5 text-body-sm text-ink-soft">
                 {{ $t('No document found.') }}
             </p>
         </div>

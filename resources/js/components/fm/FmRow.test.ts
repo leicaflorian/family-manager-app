@@ -178,6 +178,20 @@ describe('FmRow', () => {
         );
     });
 
+    it('writes a subtitle with a tone in the strong style of the design system', () => {
+        render(FmRow, {
+            props: {
+                title: 'Health card',
+                subtitle: 'Expired on 20/10/2026',
+                tone: 'overdue',
+            },
+        });
+
+        const subtitle = screen.getByText('Expired on 20/10/2026');
+        expect(subtitle).toHaveClass('text-meta-strong');
+        expect(subtitle).not.toHaveClass('text-meta', 'font-semibold');
+    });
+
     it('strikes the title through when the thing is done', () => {
         render(FmRow, { props: { title: 'Upload a bill', done: true } });
 

@@ -29,7 +29,7 @@ defineEmits<{
     <button
         type="button"
         :aria-label="removeLabel ?? $t('Remove the filter :label', { label })"
-        class="inline-flex h-7 items-center gap-1.5 rounded-full bg-action-soft py-0 pr-2.5 pl-3.5 text-sm font-semibold text-action-dark"
+        class="inline-flex h-7 items-center gap-1.5 rounded-full bg-action-soft py-0 pr-2.5 pl-3.5 text-label text-action-dark"
         @click="$emit('remove')"
     >
         <span>{{ label }}</span>

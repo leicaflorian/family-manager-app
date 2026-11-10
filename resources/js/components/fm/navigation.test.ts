@@ -23,6 +23,20 @@ describe('sectionOf', () => {
         expect(sectionOf('/dashboard', items)).toBe('home');
     });
 
+    it('marks To sort on its page, which only the sidebar lists', () => {
+        expect(items.toSort.href).toBe('/to-sort');
+        expect(items.toSort.label).toBe('To sort');
+        expect(items.sections.some((item) => item.section === 'toSort')).toBe(
+            false,
+        );
+        expect(sectionOf('/to-sort', items)).toBe('toSort');
+    });
+
+    it('marks To sort on Upload and on Import, the pages of the files', () => {
+        expect(sectionOf('/upload', items)).toBe('toSort');
+        expect(sectionOf('/import', items)).toBe('toSort');
+    });
+
     it('marks Agenda on the reminders, their tab', () => {
         for (const path of [
             '/reminders',

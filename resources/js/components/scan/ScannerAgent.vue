@@ -109,7 +109,7 @@ const iconPlace = (): string =>
         </template>
 
         <template v-else-if="phase === 'missing'">
-            <h2 class="m-0 text-xl font-bold">
+            <h2 class="m-0 text-stat">
                 {{ $t('The scanner agent does not answer') }}
             </h2>
             <p class="m-0 text-ink-soft">
@@ -236,7 +236,7 @@ const iconPlace = (): string =>
                     }}
                 </li>
             </ol>
-            <p class="m-0 text-sm text-ink-soft">
+            <p class="m-0 text-body-sm text-ink-soft">
                 {{
                     $t(
                         'If the agent is already open (its icon is :place) and the page does not find it, the browser is not letting it call the programs of the computer: open this page in Chrome.',

@@ -314,6 +314,9 @@
     --text-row-amount: 15px;
     --text-row-amount--line-height: 1.4;
     --text-row-amount--font-weight: 700;
+    --text-body-sm: 14px;
+    --text-body-sm--line-height: 1.45;
+    --text-body-sm--font-weight: 400;
     --text-label: 14px;
     --text-label--line-height: 1.4;
     --text-label--font-weight: 600;

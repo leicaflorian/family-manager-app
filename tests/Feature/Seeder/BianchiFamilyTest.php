@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use App\Actions\Reading\ImportFiles;
-use App\Data\PendingFileData;
 use App\Data\Reading\DocumentProposalData;
 use App\Data\Reading\ImportChoices;
+use App\Data\ToSortPageData;
 use App\Enums\FileSource;
 use App\Enums\FinancialAccountType;
 use App\Enums\MailOutcome;
@@ -310,7 +310,7 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
     $this->seed(BianchiFamilySeeder::class);
 
     insideBianchi(function (): void {
-        $pending = collect(PendingFileData::waiting())->keyBy('name');
+        $pending = collect(ToSortPageData::for(null)->files)->keyBy('name');
 
         expect(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->count())->toBe(1)
             ->and($pending->keys()->sort()->values()->all())->toBe(['Avviso - La tua fattura è disponibile.txt', 'Avviso TARI 2026.pdf', 'Bolletta Edison settembre.pdf', 'Bolletta Enel ottobre.pdf', 'Fattura Fastweb ottobre.pdf', 'Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'contratto-unipolsai.pdf', 'fattura-studio-ferri.pdf', 'ricevuta-pagamento-scuola.pdf', 'set-informativo-unipolsai.pdf'])

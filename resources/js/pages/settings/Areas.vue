@@ -185,10 +185,10 @@ function cardsStay(count: number): string {
                         />
                         <div class="flex min-w-0 flex-1 flex-col">
                             <span
-                                class="text-base font-semibold break-words text-ink"
+                                class="text-body-strong break-words text-ink"
                                 >{{ item.label }}</span
                             >
-                            <span class="text-[13px] text-ink-soft">
+                            <span class="text-meta text-ink-soft">
                                 {{ cardCountText(item.count)
                                 }}<template v-if="hidden.includes(item.area)">
                                     · {{ $t('Hidden') }}</template
@@ -198,7 +198,7 @@ function cardsStay(count: number): string {
                                 v-if="
                                     hidden.includes(item.area) && item.count > 0
                                 "
-                                class="text-[13px] text-ink-soft"
+                                class="text-meta text-ink-soft"
                                 >{{ cardsStay(item.count) }}</span
                             >
                         </div>

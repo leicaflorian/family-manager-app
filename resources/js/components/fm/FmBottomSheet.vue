@@ -151,10 +151,9 @@ function keepOpenForMenu(event: KeyboardEvent): void {
                     <span class="h-[5px] w-10 rounded-full bg-edge" />
                 </DialogClose>
                 <div class="flex items-center justify-between gap-3">
-                    <DialogTitle
-                        class="m-0 text-[19px] font-extrabold lg:text-[22px]"
-                        >{{ title }}</DialogTitle
-                    >
+                    <DialogTitle class="m-0 text-sheet-title lg:text-stat-lg">{{
+                        title
+                    }}</DialogTitle>
                     <DialogClose
                         :aria-label="$t('Close')"
                         class="-mr-2.5 flex size-11 shrink-0 items-center justify-center text-ink-soft"

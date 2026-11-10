@@ -205,13 +205,13 @@ function deleteAccount(): void {
                         :size="64"
                     />
                     <div class="flex flex-col gap-1">
-                        <span class="text-lg font-extrabold"
+                        <span class="text-subtitle"
                             >{{ account.first_name }}
                             {{ account.last_name }}</span
                         >
                         <button
                             type="button"
-                            class="cursor-pointer border-0 bg-transparent p-0 text-left text-sm font-semibold text-action hover:text-action-dark"
+                            class="cursor-pointer border-0 bg-transparent p-0 text-left text-label text-action hover:text-action-dark"
                             :disabled="newPhoto.processing"
                             @click="photoPicker?.click()"
                         >
@@ -226,7 +226,7 @@ function deleteAccount(): void {
                         />
                         <span
                             v-if="newPhoto.errors.photo"
-                            class="text-[13px] text-overdue"
+                            class="text-meta text-overdue"
                             >{{ newPhoto.errors.photo }}</span
                         >
                     </div>
@@ -271,7 +271,7 @@ function deleteAccount(): void {
         </form>
 
         <section class="flex flex-col gap-2">
-            <h2 class="m-0 text-[17px] font-bold">{{ $t('Theme') }}</h2>
+            <h2 class="m-0 text-section">{{ $t('Theme') }}</h2>
             <FormKit
                 type="togglebuttons"
                 enforced
@@ -280,7 +280,7 @@ function deleteAccount(): void {
                 name="theme"
                 @input="chooseTheme"
             />
-            <p class="m-0 text-sm text-ink-soft">
+            <p class="m-0 text-body-sm text-ink-soft">
                 {{
                     $t(
                         'Automatic follows your phone or computer. The choice applies on all your devices.',
@@ -313,9 +313,7 @@ function deleteAccount(): void {
                     </span>
                 </template>
                 <template #after>
-                    <span class="text-[15px] font-semibold text-action">{{
-                        $t('Change')
-                    }}</span>
+                    <span class="text-row text-action">{{ $t('Change') }}</span>
                 </template>
             </FmRow>
             <FmRow
@@ -336,7 +334,7 @@ function deleteAccount(): void {
                     <button
                         type="button"
                         :aria-label="$t('Unlink :name', { name: device.name })"
-                        class="cursor-pointer border-0 bg-transparent p-2 text-[15px] font-semibold text-overdue"
+                        class="cursor-pointer border-0 bg-transparent p-2 text-row text-overdue"
                         @click="toUnlink = device"
                     >
                         {{ $t('Unlink') }}
@@ -382,7 +380,7 @@ function deleteAccount(): void {
                 >{{ $t('Delete my account') }}</FmButton
             >
         </div>
-        <p v-if="account.is_last_admin" class="m-0 text-sm text-ink-soft">
+        <p v-if="account.is_last_admin" class="m-0 text-body-sm text-ink-soft">
             {{
                 $t(
                     'You are the only administrator of the family: to delete your account, first give the level «Everything, like you» to another person.',

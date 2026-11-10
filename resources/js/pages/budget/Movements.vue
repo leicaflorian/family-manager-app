@@ -229,38 +229,36 @@ function subtitle(movement: App.Data.MovementData): string {
                     <div
                         class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
                     >
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-meta text-ink-soft">{{
                             $t('Money in')
                         }}</span>
-                        <span class="text-lg font-extrabold lg:text-xl">{{
+                        <span class="text-subtitle lg:text-stat">{{
                             euro(summary.incomes)
                         }}</span>
-                        <span
-                            v-if="salaries"
-                            class="text-[13px] text-ink-soft"
-                            >{{ salaries }}</span
-                        >
+                        <span v-if="salaries" class="text-meta text-ink-soft">{{
+                            salaries
+                        }}</span>
                     </div>
                     <div
                         class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
                     >
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-meta text-ink-soft">{{
                             $t('Money out')
                         }}</span>
-                        <span class="text-lg font-extrabold lg:text-xl">{{
+                        <span class="text-subtitle lg:text-stat">{{
                             euro(summary.expenses)
                         }}</span>
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-meta text-ink-soft">{{
                             payments
                         }}</span>
                     </div>
                     <div
                         class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
                     >
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-meta text-ink-soft">{{
                             $t('So far')
                         }}</span>
-                        <span class="text-lg font-extrabold lg:text-xl">
+                        <span class="text-subtitle lg:text-stat">
                             <FmAmount
                                 v-if="summary.balance >= 0"
                                 :amount="summary.balance"
@@ -270,7 +268,7 @@ function subtitle(movement: App.Data.MovementData): string {
                                 euro(summary.balance)
                             }}</template>
                         </span>
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-meta text-ink-soft">{{
                             $t('incomes minus expenses')
                         }}</span>
                     </div>
@@ -283,7 +281,7 @@ function subtitle(movement: App.Data.MovementData): string {
                             :key="choice.value ?? 'all'"
                             type="button"
                             :aria-pressed="kind === choice.value"
-                            class="h-[38px] cursor-pointer rounded-[7px] border-0 bg-transparent px-3.5 text-[15px] text-ink-soft aria-pressed:bg-card aria-pressed:text-ink aria-pressed:shadow-raised"
+                            class="h-tab cursor-pointer rounded-tag border-0 bg-transparent px-3.5 text-body-sm text-ink-soft aria-pressed:bg-card aria-pressed:text-ink aria-pressed:shadow-raised"
                             @click="go({ kind: choice.value })"
                         >
                             {{ choice.label }}
@@ -293,7 +291,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         <FormKit
                             v-model="accountChoice"
                             type="dropdown"
-                            :label="$t('Account')"
+                            :label="$t('Bank account')"
                             name="account"
                             :options="accounts"
                             :classes="{ label: 'sr-only', outer: 'mb-0!' }"
@@ -316,12 +314,12 @@ function subtitle(movement: App.Data.MovementData): string {
                     >
                         <template #before>
                             <span
-                                class="flex w-9 shrink-0 flex-col items-center leading-tight"
+                                class="flex w-9 shrink-0 flex-col items-center"
                             >
-                                <span class="text-base font-bold">{{
+                                <span class="text-amount">{{
                                     Number(movement.date.slice(8, 10))
                                 }}</span>
-                                <span class="text-xs text-ink-soft">{{
+                                <span class="text-caption text-ink-soft">{{
                                     weekdayShort(movement.date)
                                 }}</span>
                             </span>

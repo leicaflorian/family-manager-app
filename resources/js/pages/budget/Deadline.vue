@@ -118,13 +118,13 @@ const status = computed(() => {
                 <Link
                     v-if="deadline.card && cardHref"
                     :href="cardHref"
-                    class="text-sm font-semibold no-underline"
+                    class="text-label no-underline"
                     >{{ deadline.card.label }}</Link
                 >
-                <h1 class="m-0 text-[26px] font-extrabold">
+                <h1 class="m-0 text-title-mobile">
                     {{ deadline.title }}
                 </h1>
-                <span class="text-[40px] font-extrabold whitespace-nowrap">
+                <span class="text-display whitespace-nowrap">
                     <FmAmount
                         :amount="deadline.amount"
                         :base="deadline.base_amount"
@@ -135,15 +135,15 @@ const status = computed(() => {
                 <Link
                     v-if="paymentHref"
                     :href="paymentHref"
-                    class="text-[15px] font-semibold text-paid"
+                    class="text-row text-paid"
                     >{{ status }}</Link
                 >
                 <span
                     v-else
-                    class="text-[15px]"
+                    class="text-body-sm"
                     :class="
                         deadline.late
-                            ? 'font-semibold text-overdue'
+                            ? 'text-label text-overdue'
                             : 'text-ink-soft'
                     "
                     >{{ status }}</span

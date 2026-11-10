@@ -58,13 +58,11 @@ const tile = computed(() =>
             ><FmIcon :icon="areaIcon(notice.area ?? 'general')" :size="20"
         /></span>
         <span class="flex min-w-0 grow flex-col gap-0.5">
-            <span class="truncate text-base font-semibold">{{
-                notice.title
-            }}</span>
-            <span class="truncate text-[13px] text-ink-soft">{{
+            <span class="truncate text-body-strong">{{ notice.title }}</span>
+            <span class="truncate text-meta text-ink-soft">{{
                 notice.due_text
             }}</span>
-            <span class="flex items-center gap-2 text-xs text-ink-soft">
+            <span class="flex items-center gap-2 text-caption text-ink-soft">
                 {{ sentAtText(notice.sent_at) }}
                 <span
                     v-if="notice.state === 'overdue'"

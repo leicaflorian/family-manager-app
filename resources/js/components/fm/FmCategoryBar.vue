@@ -50,9 +50,7 @@ const over = computed((): boolean => spent > planned);
 <template>
     <div class="flex flex-col gap-1.5 px-4 py-3">
         <div class="flex items-baseline justify-between gap-3">
-            <span
-                class="flex min-w-0 items-center gap-2 text-base font-semibold"
-            >
+            <span class="flex min-w-0 items-center gap-2 text-body-strong">
                 <span
                     data-dot
                     class="size-2.5 shrink-0 rounded-full bg-expenses"
@@ -60,9 +58,9 @@ const over = computed((): boolean => spent > planned);
                 />
                 <span class="truncate">{{ category }}</span>
             </span>
-            <span class="shrink-0 text-[13px] whitespace-nowrap text-ink-soft">
+            <span class="shrink-0 text-meta whitespace-nowrap text-ink-soft">
                 <strong
-                    :class="cn('text-base', over ? 'text-overdue' : 'text-ink')"
+                    :class="cn('text-body', over ? 'text-overdue' : 'text-ink')"
                     >{{ euro(spent) }}</strong
                 >
                 <span>{{
@@ -93,11 +91,11 @@ const over = computed((): boolean => spent > planned);
             <span
                 v-if="planned > 0"
                 data-planned
-                class="absolute -top-0.5 h-3.5 w-0.5 bg-ink shadow-[0_0_0_2px_var(--card)]"
+                class="absolute -top-0.5 h-3.5 w-0.5 bg-ink ring-2 ring-card"
                 :style="{ left: `calc(${plannedLeft} - 1px)` }"
             />
         </div>
-        <span class="text-[13px] text-ink-soft">{{
+        <span class="text-meta text-ink-soft">{{
             comparisonComment(spent, planned, estimated, lateTitle)
         }}</span>
     </div>

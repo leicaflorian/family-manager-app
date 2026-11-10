@@ -250,7 +250,7 @@ useSaveShortcut(save, () => !form.processing);
         class="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 rounded-sheet bg-card p-5"
     >
         <div class="flex items-center justify-between gap-3">
-            <h1 class="m-0 text-xl font-extrabold">
+            <h1 class="m-0 text-stat">
                 {{ heading }}
             </h1>
             <Link

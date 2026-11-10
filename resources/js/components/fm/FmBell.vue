@@ -7,7 +7,8 @@
  * then the last notices (`FmNoticeList`, at most 10, the server chooses them)
  * and *See all the notices*, which leads to the page with the search. The notices are not in the page until the
  * menu asks for them: opening it emits `open`, and until `notices` arrives the
- * menu says it is loading.
+ * menu says it is loading. The classes of the page (round on the phone, square
+ * with a border on the computer) go to the bell itself.
  *
  * @group navigation
  */
@@ -20,7 +21,9 @@ import {
     PopoverRoot,
     PopoverTrigger,
 } from 'reka-ui';
-import { computed } from 'vue';
+import { computed, useAttrs } from 'vue';
+import type { ClassValue } from 'clsx';
+import { cn } from '@/lib/utils';
 import { notices as noticesPage } from '@/routes';
 import { readAll } from '@/routes/notices';
 import FmButton from './FmButton.vue';
@@ -35,6 +38,35 @@ export type BellNotices = {
     /** The notices already seen, the most recent first. */
     seen: App.Data.ReminderNoticeData[];
 };
+
+// The root is the popover, which draws no element: the classes go to the bell
+defineOptions({ inheritAttrs: false });
+
+const attrs = useAttrs();
+
+/**
+ * The classes of the bell: its own, merged with the page's (a border replaces
+ * `border-0`). Called from the template, so it follows the page at each render.
+ *
+ * @returns the merged classes
+ */
+function triggerClass(): string {
+    return cn(
+        'relative flex size-11 cursor-pointer items-center justify-center border-0 text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
+        attrs.class as ClassValue,
+    );
+}
+
+/**
+ * The other attributes of the page, without the classes merged above.
+ *
+ * @returns the attributes for the bell
+ */
+function otherAttrs(): Record<string, unknown> {
+    const { class: _class, ...rest } = attrs;
+
+    return rest;
+}
 
 const { count, notices } = defineProps<{
     /** How many notices the person has not seen yet. */
@@ -89,14 +121,15 @@ function markAll(): void {
 <template>
     <PopoverRoot @update:open="toggled">
         <PopoverTrigger
+            v-bind="otherAttrs()"
             :aria-label="label"
-            class="relative flex size-11 cursor-pointer items-center justify-center border-0 text-inherit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+            :class="triggerClass()"
         >
             <FmIcon :icon="Bell" :size="24" />
             <span
                 v-if="count > 0"
                 aria-hidden="true"
-                class="absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-overdue px-1 text-[11px] font-bold text-on-action"
+                class="absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-overdue px-1 text-tiny text-on-action"
                 >{{ count > 99 ? '99+' : count }}</span
             >
         </PopoverTrigger>
@@ -105,10 +138,10 @@ function markAll(): void {
                 align="end"
                 :side-offset="8"
                 :collision-padding="16"
-                class="z-30 flex max-h-[min(720px,var(--reka-popover-content-available-height))] w-[min(380px,calc(100vw-32px))] flex-col gap-4 overflow-y-auto rounded-[18px] border border-edge bg-canvas p-5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                class="z-30 flex max-h-[min(720px,var(--reka-popover-content-available-height))] w-[min(380px,calc(100vw-32px))] flex-col gap-4 overflow-y-auto rounded-card-lg border border-edge-soft bg-canvas p-5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             >
                 <div class="flex items-center justify-between gap-3">
-                    <h2 class="m-0 text-[22px] font-extrabold">
+                    <h2 class="m-0 text-stat-lg">
                         {{ $t('Notices') }}
                     </h2>
                     <FmSectionLink
@@ -122,7 +155,10 @@ function markAll(): void {
                     :unread="notices.unread"
                     :seen="notices.seen"
                 />
-                <p v-else class="m-0 py-6 text-center text-sm text-ink-soft">
+                <p
+                    v-else
+                    class="m-0 py-6 text-center text-body-sm text-ink-soft"
+                >
                     {{ $t('Loading…') }}
                 </p>
                 <FmButton variant="outline" wide :href="noticesPage().url">{{

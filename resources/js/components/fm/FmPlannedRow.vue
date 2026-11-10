@@ -51,12 +51,12 @@ const subtitle = computed(() =>
         <template #after>
             <span class="flex items-center gap-5">
                 <span
-                    class="hidden w-28 truncate text-sm font-normal text-ink-soft lg:block"
+                    class="hidden w-28 truncate text-body-sm text-ink-soft lg:block"
                     >{{ row.person ?? $t('Whole family') }}</span
                 >
                 <span
                     v-if="row.next_date"
-                    class="hidden flex-col items-end text-[13px] font-normal text-ink-soft sm:flex"
+                    class="hidden flex-col items-end text-meta text-ink-soft sm:flex"
                 >
                     <span>{{
                         $t('Next on :date', { date: shortDate(row.next_date) })

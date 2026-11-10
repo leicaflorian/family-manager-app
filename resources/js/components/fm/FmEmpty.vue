@@ -32,11 +32,8 @@ defineSlots<{
         >
             <FmIcon :icon="icon" :size="28" />
         </span>
-        <h2 class="m-0 text-[19px] font-extrabold">{{ title }}</h2>
-        <p
-            v-if="text"
-            class="m-0 max-w-[420px] text-base leading-normal text-ink-soft"
-        >
+        <h2 class="m-0 text-sheet-title">{{ title }}</h2>
+        <p v-if="text" class="m-0 max-w-[420px] text-body text-ink-soft">
             {{ text }}
         </p>
         <div

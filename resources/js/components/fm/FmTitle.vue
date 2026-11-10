@@ -59,14 +59,12 @@ defineSlots<{
                 "
             >
                 <div class="flex min-w-0 flex-col gap-1">
-                    <h1
-                        class="m-0 text-[28px] leading-tight font-extrabold lg:text-[32px]"
-                    >
+                    <h1 class="m-0 text-title-mobile lg:text-title">
                         {{ title }}
                     </h1>
                     <span
                         v-if="subtitle"
-                        class="text-sm text-ink-soft lg:text-[15px]"
+                        class="text-body-sm text-ink-soft lg:text-body-sm"
                         >{{ subtitle }}</span
                     >
                 </div>

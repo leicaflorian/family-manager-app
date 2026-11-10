@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The *Home*: the day and the greeting, the files waiting for their document
- * (on top, only when there are some), the blue box with what to pay in the
+ * The *Home*: the day and the greeting, the box of the documents to complete
+ * (on top, only when files wait for their document, with the button to *To sort*), the blue box with what to pay in the
  * next 30 days and the list of the deadlines, the incomes on their way and,
  * for a new family, *To begin*. One column on the phone, two from the
  * computer: the box and the deadlines on the left, the incomes on the right.
@@ -10,25 +10,36 @@
  * greeting, whose menu loads the notices when it opens. *Mail that arrived* (on the right, between the incomes and
  * what is missing, only when mail with files arrived) lists the last three mails with the card their documents are
  * linked to, each opening *Received mail*. The recently uploaded documents come with their own item.
+ *
+ * The search of the whole app: on the computer the box beside the greeting
+ * (300 px, 420 px while it has the focus or some text) with the menu of the
+ * first results under it, and the square bell; ⌘K, Ctrl K or «/» put the focus
+ * in the box. On the phone a round magnifier before the round bell opens the
+ * *Search* page.
  */
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
-import { Mail } from '@lucide/vue';
-import { computed } from 'vue';
+import { ArrowRight, Mail, Search } from '@lucide/vue';
+import { computed, ref, useTemplateRef } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
+import FmButton from '@/components/fm/FmButton.vue';
 import type { ChecklistStep } from '@/components/fm/FmChecklist.vue';
 import type { BellNotices } from '@/components/fm/FmBell.vue';
 import FmBell from '@/components/fm/FmBell.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChecklist from '@/components/fm/FmChecklist.vue';
-import FmFileTile from '@/components/fm/FmFileTile.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
+import FmSearchField from '@/components/fm/FmSearchField.vue';
+import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
-import { formatLongDate, formatSize, relativeDays } from '@/lib/format';
-import { agenda, areas, toSort, upload } from '@/routes';
+import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
+import { useSearchShortcut } from '@/composables/useSearchShortcut';
+import { useWideLayout } from '@/composables/useWideLayout';
+import { formatLongDate, relativeDays } from '@/lib/format';
+import { agenda, areas, search, toSort, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
 import { index as receivedMail } from '@/routes/mail';
 import { create as invite } from '@/routes/family/invitations';
@@ -52,8 +63,42 @@ function loadNotices(): void {
 
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
 
-/** The files waiting that the section does not show. */
-const morePending = computed(() => home.pending_count - home.pending.length);
+/**
+ * Whether the window has the wide layout: the search box instead of the
+ * magnifier, and the button of the documents to complete beside the text.
+ */
+const wide = useWideLayout();
+
+/** The text in the search box. */
+const text = ref('');
+
+/** The search box of the computer, to focus it with the shortcut. */
+const field = useTemplateRef<InstanceType<typeof FmSearchField>>('field');
+/** The menu of the first results under the box, for the arrows and Enter. */
+const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
+
+/** Searches the text of the box on the *Search* page. */
+function submit(): void {
+    const q = text.value.trim();
+
+    router.visit(q === '' ? search.url() : search.url({ query: { q } }));
+}
+
+// The box grows to 420 px while it has the focus or some text
+const {
+    menuResults,
+    enter,
+    onKeydown,
+    closeMenu,
+    focused,
+    onFocusIn,
+    onFocusOut,
+} = useSearchBox(text, menu, submit);
+
+// On the phone there is no box: the keys open the Search page
+useSearchShortcut(() =>
+    field.value ? field.value.focus() : router.visit(search.url()),
+);
 
 /**
  * The step of *To begin* for a step of the server: its text and where it leads.
@@ -150,57 +195,121 @@ function mailTitle(mail: App.Data.HomeMailData): string {
     <Head :title="$t('Home')" />
 
     <div class="flex flex-col gap-5">
-        <div class="flex items-center justify-between gap-3">
+        <div
+            class="flex justify-between gap-3"
+            :class="wide ? 'items-end' : 'items-center'"
+        >
             <div class="flex flex-col gap-1">
-                <span class="text-sm text-ink-soft lg:text-[15px]">{{
+                <span class="text-body-sm text-ink-soft lg:text-body-sm">{{
                     day
                 }}</span>
-                <h1 class="m-0 text-[28px] font-extrabold lg:text-[32px]">
+                <h1 class="m-0 text-title-mobile lg:text-title">
                     {{ $t('Hi, :name', { name: home.first_name }) }}
                 </h1>
             </div>
-            <FmBell
-                :count="unreadNotices"
-                :notices="notices"
-                class="rounded-full bg-card"
-                @open="loadNotices"
-            />
+            <div
+                class="flex shrink-0 items-center"
+                :class="wide ? 'gap-2.5' : 'gap-2'"
+            >
+                <div
+                    v-if="wide"
+                    class="relative max-w-full transition-[width] duration-200 motion-reduce:transition-none"
+                    :class="focused || text !== '' ? 'w-105' : 'w-75'"
+                    @focusin="onFocusIn"
+                    @focusout="onFocusOut"
+                >
+                    <FmSearchField
+                        ref="field"
+                        v-model="text"
+                        :label="$t('Search in Family Manager')"
+                        shortcut
+                        clearable
+                        :controls="SEARCH_MENU_ID"
+                        :expanded="menuResults !== null"
+                        :active-descendant="
+                            menuResults ? menu?.activeId : undefined
+                        "
+                        @submit="enter"
+                        @escape="closeMenu"
+                        @keydown="onKeydown"
+                    />
+                    <FmSearchMenu
+                        v-if="menuResults"
+                        :id="SEARCH_MENU_ID"
+                        ref="menu"
+                        :results="menuResults"
+                        :query="menuResults.query"
+                        class="max-w-none"
+                        @mousedown.prevent
+                    />
+                </div>
+                <Link
+                    v-else
+                    :href="search.url()"
+                    :aria-label="$t('Search in Family Manager')"
+                    class="flex size-11 items-center justify-center rounded-full bg-card text-ink"
+                >
+                    <FmIcon :icon="Search" :size="22" />
+                </Link>
+                <FmBell
+                    :count="unreadNotices"
+                    :notices="notices"
+                    :class="
+                        wide
+                            ? 'rounded-lg border border-edge-soft bg-card'
+                            : 'rounded-full bg-card'
+                    "
+                    @open="loadNotices"
+                />
+            </div>
         </div>
 
-        <FmCard v-if="home.pending_count > 0" :title="$t('Waiting')" list>
-            <template #actions>
-                <FmSectionLink :href="toSort().url">{{
-                    $t('Finish')
-                }}</FmSectionLink>
-            </template>
-            <FmRow
-                v-for="file in home.pending"
-                :key="file.id"
-                :title="file.title"
-                :subtitle="formatSize(file.size)"
-                :arrow="false"
+        <section
+            v-if="home.pending_count > 0"
+            :aria-label="$t('Documents to complete')"
+            class="flex gap-4 rounded-card bg-card"
+            :class="wide ? 'items-center px-5 py-4.5' : 'flex-col gap-3.5 p-4'"
+        >
+            <div
+                class="flex min-w-0 grow items-center"
+                :class="wide ? 'gap-4' : 'gap-3.5'"
             >
-                <template #before>
-                    <FmFileTile />
-                </template>
-            </FmRow>
-            <p
-                v-if="morePending > 0"
-                class="m-0 px-4 py-3.5 text-[15px] text-ink-soft"
-            >
-                {{
-                    $tChoice(
-                        '{1} +:count more|[2,*] +:count more',
-                        morePending,
-                        { count: String(morePending) },
-                    )
-                }}
-            </p>
-        </FmCard>
+                <span
+                    aria-hidden="true"
+                    class="relative size-15 shrink-0 rounded-xl bg-action-soft"
+                >
+                    <span
+                        class="absolute top-2.25 left-3.5 h-9.5 w-7.5 -translate-x-1.25 translate-y-0.5 -rotate-12 rounded-sm border border-edge bg-card"
+                    />
+                    <span
+                        class="absolute top-2.25 left-3.5 h-9.5 w-7.5 translate-x-1.25 translate-y-px rotate-10 rounded-sm border border-edge bg-card"
+                    />
+                    <span
+                        class="absolute top-2.25 left-3.5 flex h-9.5 w-7.5 items-center justify-center rounded-sm border border-action bg-card text-stat text-action-dark"
+                        >{{ home.pending_count }}</span
+                    >
+                </span>
+                <span class="flex min-w-0 grow flex-col gap-0.75">
+                    <span class="text-section text-ink">{{
+                        $tChoice(
+                            '{1} :count document to complete|[2,*] :count documents to complete',
+                            home.pending_count,
+                        )
+                    }}</span>
+                    <span class="text-meta text-ink-soft">{{
+                        $t('Check what I read and save them')
+                    }}</span>
+                </span>
+            </div>
+            <FmButton :href="toSort().url" :wide="!wide">
+                {{ $t('Complete') }}
+                <FmIcon :icon="ArrowRight" :size="20" />
+            </FmButton>
+        </section>
 
         <div class="grid gap-5 lg:grid-cols-5 lg:items-start lg:gap-6">
             <div
-                class="flex flex-col gap-5"
+                class="flex min-w-0 flex-col gap-5"
                 :class="hasRightColumn ? 'lg:col-span-3' : 'lg:col-span-5'"
             >
                 <FmTotal
@@ -232,7 +341,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
 
             <div
                 v-if="hasRightColumn"
-                class="flex flex-col gap-5 lg:col-span-2"
+                class="flex min-w-0 flex-col gap-5 lg:col-span-2"
                 :class="{
                     'max-lg:hidden':
                         home.incoming.length === 0 &&
@@ -253,7 +362,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     />
                 </FmCard>
                 <FmCard v-else :title="$t('Incoming')" class="max-lg:hidden">
-                    <p class="m-0 text-[15px] text-ink-soft">
+                    <p class="m-0 text-body-sm text-ink-soft">
                         {{
                             $t(
                                 'Salaries and other incomes show here when you add the card of a job.',

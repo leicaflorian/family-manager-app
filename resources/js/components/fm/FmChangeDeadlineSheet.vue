@@ -129,23 +129,23 @@ function save(): void {
     >
         <div class="flex items-center gap-3 rounded-card bg-canvas p-3.5">
             <span class="flex min-w-0 grow flex-col">
-                <span class="truncate text-base font-bold">{{
+                <span class="truncate text-amount">{{
                     deadline.planned_title
                 }}</span>
-                <span class="truncate text-[13px] text-ink-soft">{{
+                <span class="truncate text-meta text-ink-soft">{{
                     $t(':subject · due on :date', {
                         subject: deadline.card?.label ?? deadline.planned_title,
                         date: date(deadline.original_date),
                     })
                 }}</span>
             </span>
-            <span class="shrink-0 text-base font-bold">
+            <span class="shrink-0 text-amount">
                 <FmAmount :amount="plannedAmount" />
             </span>
         </div>
         <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
             <fieldset class="m-0 flex flex-col gap-2.5 border-0 p-0">
-                <legend class="mb-1.5 p-0 text-sm font-semibold text-ink-soft">
+                <legend class="mb-1.5 p-0 text-label text-ink-soft">
                     {{
                         $t(
                             'What changes this time (more than one thing is fine)',
@@ -207,7 +207,7 @@ function save(): void {
                 :label="$t('Note')"
                 :errors="errors(problems.notes)"
             />
-            <p class="m-0 text-[13px] text-ink-soft">
+            <p class="m-0 text-meta text-ink-soft">
                 {{
                     $t(
                         'Only this due date changes. The others stay as the planned expense says.',

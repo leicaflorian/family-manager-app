@@ -475,7 +475,7 @@ function save(): void {
                         :href="closeUrl"
                         data-discard-changes
                         :aria-label="$t('Close')"
-                        class="flex size-11 items-center justify-center rounded-lg border border-edge bg-card text-ink"
+                        class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
                     >
                         <FmIcon :icon="X" :size="20" />
                     </Link>
@@ -492,7 +492,7 @@ function save(): void {
                 >
                     <FmIcon :icon="X" :size="24" />
                 </Link>
-                <h1 class="m-0 grow text-lg font-bold">
+                <h1 class="m-0 grow text-subtitle">
                     {{
                         $tChoice(
                             '{1} Import :count file|[2,*] Import :count files',
@@ -500,7 +500,7 @@ function save(): void {
                         )
                     }}
                 </h1>
-                <span class="text-sm font-semibold text-ink-soft">{{
+                <span class="text-label text-ink-soft">{{
                     $t('File :current of :total', {
                         current: String(position + 1),
                         total: String(files.length),
@@ -568,30 +568,29 @@ function save(): void {
                 >
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge bg-card px-3.5 py-2.5 text-left"
+                        class="flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge-soft bg-card px-3.5 py-2.5 text-left"
                         :class="{
                             'border-action': stateOf(file) === 'looking',
                             'opacity-60': stateOf(file) === 'left-out',
                         }"
                         @click="open(index)"
                     >
+                        <span class="shrink-0 text-label text-ink-soft">{{
+                            index + 1
+                        }}</span>
                         <span
-                            class="shrink-0 text-sm font-extrabold text-ink-soft"
-                            >{{ index + 1 }}</span
-                        >
-                        <span
-                            class="flex size-9 shrink-0 items-center justify-center rounded-md border border-edge bg-canvas text-ink-soft"
+                            class="flex size-9 shrink-0 items-center justify-center rounded-md border border-edge-soft bg-canvas text-ink-soft"
                         >
                             <FmIcon :icon="FileText" :size="18" />
                         </span>
                         <span class="flex min-w-0 flex-col gap-0.5">
                             <span
-                                class="truncate text-sm font-semibold"
+                                class="truncate text-label"
                                 :title="file.name"
                                 >{{ file.name }}</span
                             >
                             <span
-                                class="flex items-center gap-1 text-[13px] font-semibold"
+                                class="flex items-center gap-1 text-meta-strong"
                                 :class="
                                     stateOf(file) === 'looking'
                                         ? 'text-action'
@@ -620,7 +619,7 @@ function save(): void {
                             </span>
                             <span
                                 v-if="problemOf(file)"
-                                class="truncate text-[13px] text-overdue"
+                                class="truncate text-meta text-overdue"
                                 >{{ problemOf(file) }}</span
                             >
                         </span>
@@ -638,9 +637,10 @@ function save(): void {
                         :name="current.name"
                         :preview-url="current.preview_url"
                     />
-                    <span class="text-center text-sm break-all text-ink-soft">{{
-                        current.note ?? current.name
-                    }}</span>
+                    <span
+                        class="text-center text-body-sm break-all text-ink-soft"
+                        >{{ current.note ?? current.name }}</span
+                    >
                 </div>
 
                 <section
@@ -698,7 +698,7 @@ function save(): void {
                         class="mt-1.5 flex flex-wrap items-center justify-between gap-2.5"
                     >
                         <label
-                            class="flex cursor-pointer items-center gap-2.5 text-[15px] text-ink-soft"
+                            class="flex cursor-pointer items-center gap-2.5 text-body-sm text-ink-soft"
                         >
                             <input
                                 type="checkbox"
@@ -721,7 +721,7 @@ function save(): void {
 
             <div
                 v-if="!desktop"
-                class="sticky bottom-0 -mx-5 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2.5 border-t border-edge bg-card px-5 pt-3 pb-4"
+                class="sticky bottom-0 -mx-5 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2.5 border-t border-edge-soft bg-card px-5 pt-3 pb-4"
             >
                 <FmButton
                     variant="outline"

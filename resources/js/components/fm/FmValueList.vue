@@ -19,7 +19,7 @@ const { values, newTab = false } = defineProps<{
 
 <template>
     <dl
-        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
+        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-body-sm"
     >
         <template v-for="value in values" :key="value.label">
             <dt class="text-ink-soft">{{ value.label }}</dt>

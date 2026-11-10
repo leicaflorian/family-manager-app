@@ -14,6 +14,7 @@ import { DROPDOWNS, openOnTheSideWithRoom } from '@/lib/formkitDropdownSide';
 import { closeOnEmptyChoice, showEmptyChoice } from '@/lib/formkitEmptyChoice';
 import { labelLateOptions } from '@/lib/formkitLateOptions';
 import { sayNoResults } from '@/lib/formkitNoResults';
+import { markOptional } from '@/lib/formkitOptional';
 import { openOnFocus } from '@/lib/formkitOpenOnFocus';
 import { toggleAsSwitch } from '@/lib/formkitSwitch';
 import { tabChoosesSuggestion } from '@/lib/formkitTagTab';
@@ -82,6 +83,7 @@ export default defaultConfig({
         openOnTheSideWithRoom,
         openOnFocus,
         sayNoResults,
+        markOptional,
     ],
     locales: { en, it },
     // The server writes the language in <html lang>; the tests have no document language
@@ -119,19 +121,19 @@ export default defaultConfig({
         classes: generateClasses({
             global: {
                 outer: 'mb-3.5 formkit-disabled:opacity-50',
-                label: 'block mb-1.5 text-[15px] font-semibold text-ink',
+                label: 'block mb-1.5 text-row text-ink',
                 inner: 'flex items-center h-control rounded-control border-[1.5px] border-edge bg-card px-3.5 focus-within:border-action focus-within:ring-2 focus-within:ring-action/20 formkit-errors:border-overdue transition-[border-color,box-shadow] duration-150 ease-out motion-reduce:transition-none',
-                input: 'w-full min-w-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-soft',
-                help: 'mt-1 text-[13px] text-ink-soft',
+                input: 'w-full min-w-0 bg-transparent text-body text-ink outline-none placeholder:text-ink-soft',
+                help: 'mt-1 text-meta text-ink-soft',
                 messages: 'mt-1 list-none p-0',
-                message: 'text-sm font-semibold text-overdue',
+                message: 'text-label text-overdue',
             },
             // The classes of a type are added to the global ones, they do not replace
             // them: $reset removes them (bg-transparent of global covered bg-action).
             submit: {
                 outer: 'mt-2 mb-0',
                 inner: '$reset',
-                input: '$reset h-control w-full rounded-control bg-action text-base font-normal text-on-action active:bg-action-dark disabled:bg-edge disabled:text-ink-soft',
+                input: '$reset h-control w-full rounded-control bg-action text-body text-on-action active:bg-action-dark disabled:bg-edge disabled:text-ink-soft',
             },
             textarea: {
                 inner: '$reset flex rounded-control border-[1.5px] border-edge bg-card px-3.5 py-3 focus-within:border-action focus-within:ring-2 focus-within:ring-action/20 formkit-errors:border-overdue transition-[border-color,box-shadow] duration-150 ease-out motion-reduce:transition-none',
@@ -142,9 +144,9 @@ export default defaultConfig({
                 wrapper:
                     'flex items-center gap-3 min-h-control rounded-control border-[1.5px] border-edge bg-card px-3.5 has-[:checked]:border-2 has-[:checked]:border-action has-[:checked]:bg-action-soft',
                 input: '$reset size-[22px] shrink-0 accent-action',
-                label: 'mb-0 text-base font-normal text-ink',
+                label: 'mb-0 text-body text-ink',
                 options: 'flex flex-col gap-2 list-none p-0 m-0',
-                legend: 'mb-1.5 text-[15px] font-semibold text-ink',
+                legend: 'mb-1.5 text-row text-ink',
                 fieldset: 'border-0 p-0 m-0',
             },
             // The toggle: the switch and its label on one row, without the box of the
@@ -156,7 +158,7 @@ export default defaultConfig({
                 input: '$reset peer sr-only',
                 track: '$reset relative h-[26px] w-11 rounded-full bg-edge transition-colors duration-150 peer-checked:bg-action peer-focus-visible:ring-2 peer-focus-visible:ring-action/20 *:transition-transform *:duration-150 peer-checked:*:translate-x-[18px] motion-reduce:transition-none motion-reduce:*:transition-none',
                 thumb: '$reset absolute top-[3px] left-[3px] size-5 rounded-full bg-card shadow-raised',
-                label: '$reset cursor-pointer text-base leading-snug text-ink',
+                label: '$reset cursor-pointer text-body text-ink',
             },
             // A choice among few options: the segments on a grey track, the chosen one
             // white with a shadow. As high as the fields, track included.
@@ -166,7 +168,7 @@ export default defaultConfig({
                 options:
                     '$reset m-0 flex list-none gap-1 rounded-control bg-segment p-1',
                 option: '$reset min-w-0 flex-1 in-[.condensed]:flex-auto',
-                input: '$reset h-full min-h-[calc(var(--control-height)-8px)] w-full cursor-pointer rounded-[7px] px-2 text-[15px] leading-tight in-[.condensed]:px-1.5 in-[.condensed]:text-sm in-[.condensed]:whitespace-nowrap text-ink-soft transition-[background-color,color,box-shadow] duration-150 ease-out aria-pressed:bg-card aria-pressed:text-ink aria-pressed:shadow-raised focus-visible:outline-2 focus-visible:outline-action motion-reduce:transition-none',
+                input: '$reset h-full min-h-[calc(var(--control-height)-8px)] w-full cursor-pointer rounded-[7px] px-2 text-body-sm in-[.condensed]:px-1.5 in-[.condensed]:text-body-sm in-[.condensed]:whitespace-nowrap text-ink-soft transition-[background-color,color,box-shadow] duration-150 ease-out aria-pressed:bg-card aria-pressed:text-ink aria-pressed:shadow-raised focus-visible:outline-2 focus-visible:outline-action motion-reduce:transition-none',
             },
             // The checkboxes are plain, like «Stay signed in»; the choices (radio) stay boxes.
             // The box is drawn here, with the border and the corners of the fields;
@@ -178,14 +180,14 @@ export default defaultConfig({
                 decorator:
                     '$reset pointer-events-none absolute inset-0 flex items-center justify-center text-on-action opacity-0 peer-checked:opacity-100',
                 decoratorIcon: '$reset flex size-4',
-                label: '$reset text-base leading-snug text-ink',
+                label: '$reset text-body text-ink',
             },
             // The dropdown, autocomplete and taglist of FormKit Pro: the list opens
             // over the page with a short fade, and the arrow turns.
             'family:dropdown': {
                 inner: 'relative',
                 selector:
-                    '$reset flex h-full min-w-0 grow cursor-pointer items-center justify-between gap-2 bg-transparent text-left text-base text-ink outline-none',
+                    '$reset flex h-full min-w-0 grow cursor-pointer items-center justify-between gap-2 bg-transparent text-left text-body text-ink outline-none',
                 placeholder: 'text-ink-soft',
                 selectIcon:
                     'flex size-[18px] shrink-0 text-ink-soft motion-safe:transition-transform motion-safe:duration-150 in-data-expanded:rotate-180',
@@ -199,13 +201,13 @@ export default defaultConfig({
                 dropdownWrapper:
                     'pointer-events-none absolute top-full right-0 left-0 z-50! mt-1.5 max-h-0! data-[side=top]:top-auto! data-[side=top]:bottom-full! data-[side=top]:mt-0 data-[side=top]:mb-1.5 overflow-hidden! transition-[max-height] delay-150 duration-0 in-data-expanded:max-h-[400px]! in-data-expanded:overflow-visible! in-data-expanded:delay-0 motion-reduce:delay-0',
                 listbox:
-                    'invisible m-0 max-h-72 -translate-y-1 list-none overflow-auto rounded-md border border-edge bg-card p-1.5 opacity-0 shadow-menu outline-none motion-safe:transition-[opacity,translate,visibility] motion-safe:duration-150 motion-safe:ease-out in-data-expanded:pointer-events-auto in-data-expanded:visible in-data-expanded:translate-y-0 in-data-expanded:opacity-100',
+                    'invisible m-0 max-h-72 -translate-y-1 list-none overflow-auto rounded-md border border-edge-soft bg-card p-1.5 opacity-0 shadow-menu outline-none motion-safe:transition-[opacity,translate,visibility] motion-safe:duration-150 motion-safe:ease-out in-data-expanded:pointer-events-auto in-data-expanded:visible in-data-expanded:translate-y-0 in-data-expanded:opacity-100',
                 listitem:
-                    'relative flex min-h-control cursor-pointer items-center gap-2 rounded-tag px-3 text-[15px] text-ink data-[is-active=true]:bg-canvas aria-selected:text-action-dark',
+                    'relative flex min-h-control cursor-pointer items-center gap-2 rounded-tag px-3 text-body-sm text-ink data-[is-active=true]:bg-canvas aria-selected:text-action-dark',
                 selectedIcon:
                     'order-last ml-auto flex size-4 shrink-0 text-action',
                 option: 'min-w-0 grow truncate',
-                emptyMessage: 'px-3 py-2.5 text-[15px] text-ink-soft',
+                emptyMessage: 'px-3 py-2.5 text-body-sm text-ink-soft',
                 // The name of a group of options (*Homes*, *Utilities*) sits over a
                 // light line, which divides it from its options
                 groupLabel: 'mb-1 block border-b border-divider pt-2 pb-1.5',
@@ -227,7 +229,7 @@ export default defaultConfig({
                 // FormKit adds the panel only when it opens: it fades in from its
                 // starting style, as the other menus; it goes away at once
                 panelWrapper:
-                    'absolute top-full left-0 z-50 mt-1.5 w-[320px] max-w-[calc(100vw-32px)] rounded-xl border border-edge bg-card p-3 shadow-menu outline-none motion-safe:transition-[opacity,translate] motion-safe:duration-150 motion-safe:ease-out starting:-translate-y-1 starting:opacity-0',
+                    'absolute top-full left-0 z-50 mt-1.5 w-[320px] max-w-[calc(100vw-32px)] rounded-xl border border-edge-soft bg-card p-3 shadow-menu outline-none motion-safe:transition-[opacity,translate] motion-safe:duration-150 motion-safe:ease-out starting:-translate-y-1 starting:opacity-0',
                 panelHeader: 'mb-2 flex items-center justify-between gap-2',
                 prev: '$reset flex size-9 cursor-pointer items-center justify-center rounded-tag text-ink hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',
                 next: '$reset flex size-9 cursor-pointer items-center justify-center rounded-tag text-ink hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',
@@ -237,30 +239,30 @@ export default defaultConfig({
                 nextIcon: 'flex size-5',
                 daysHeader: 'flex items-center gap-1',
                 monthButton:
-                    '$reset h-9 cursor-pointer rounded-tag px-2 text-[15px] font-bold text-ink capitalize hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',
+                    '$reset h-9 cursor-pointer rounded-tag px-2 text-row-amount text-ink capitalize hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',
                 yearButton:
-                    '$reset h-9 cursor-pointer rounded-tag px-2 text-[15px] font-bold text-ink hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',
+                    '$reset h-9 cursor-pointer rounded-tag px-2 text-row-amount text-ink hover:bg-canvas motion-safe:transition-colors motion-safe:duration-150',
                 calendar: 'w-full border-collapse',
                 weekDays: 'grid grid-cols-7',
                 weekDay:
-                    'flex h-8 items-center justify-center text-xs font-semibold text-ink-soft capitalize',
+                    'flex h-8 items-center justify-center text-caption text-ink-soft capitalize',
                 calendarWeeks: 'flex flex-col gap-0.5',
                 week: 'grid grid-cols-7',
                 dayCell: 'flex cursor-pointer justify-center outline-none',
-                day: 'flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-150 text-[15px] text-ink hover:bg-canvas in-data-today:font-bold in-data-today:text-action in-data-today:ring-1 in-data-today:ring-action in-aria-selected:bg-action! in-aria-selected:font-bold in-aria-selected:text-on-action! in-data-is-extra:text-ink-soft/50 in-focus-visible:ring-2 in-focus-visible:ring-action/30',
+                day: 'flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-150 text-body-sm text-ink hover:bg-canvas in-data-today:font-bold in-data-today:text-action in-data-today:ring-1 in-data-today:ring-action in-aria-selected:bg-action! in-aria-selected:font-bold in-aria-selected:text-on-action! in-data-is-extra:text-ink-soft/50 in-focus-visible:ring-2 in-focus-visible:ring-action/30',
                 months: 'grid grid-cols-3 gap-1',
-                month: 'flex h-11 cursor-pointer items-center justify-center rounded-tag text-[15px] text-ink capitalize hover:bg-canvas aria-selected:bg-action! aria-selected:text-on-action motion-safe:transition-colors motion-safe:duration-150',
+                month: 'flex h-11 cursor-pointer items-center justify-center rounded-tag text-body-sm text-ink capitalize hover:bg-canvas aria-selected:bg-action! aria-selected:text-on-action motion-safe:transition-colors motion-safe:duration-150',
                 years: 'grid grid-cols-3 gap-1',
-                year: 'flex h-11 cursor-pointer items-center justify-center rounded-tag text-[15px] text-ink hover:bg-canvas aria-selected:bg-action! aria-selected:text-on-action motion-safe:transition-colors motion-safe:duration-150',
+                year: 'flex h-11 cursor-pointer items-center justify-center rounded-tag text-body-sm text-ink hover:bg-canvas aria-selected:bg-action! aria-selected:text-on-action motion-safe:transition-colors motion-safe:duration-150',
             },
             taglist: {
                 inner: 'h-auto! min-h-control px-2.5! py-[5px]',
                 tags: 'flex min-w-0 grow flex-wrap items-center gap-1.5',
                 tagWrapper: 'flex',
-                tag: '$reset flex h-8 items-center gap-1 rounded-full bg-divider pr-1 pl-3 text-sm font-semibold text-ink',
+                tag: '$reset flex h-8 items-center gap-1 rounded-full bg-divider pr-1 pl-3 text-label text-ink',
                 removeSelection:
                     '$reset flex size-6 cursor-pointer items-center justify-center rounded-full text-ink-soft hover:text-ink *:flex *:size-3.5',
-                input: '$reset h-8 min-w-20 grow basis-20 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-soft',
+                input: '$reset h-8 min-w-20 grow basis-20 bg-transparent text-body-sm text-ink outline-none placeholder:text-ink-soft',
                 listboxButton: 'hidden',
             },
         }),

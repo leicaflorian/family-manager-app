@@ -120,7 +120,7 @@ useSaveShortcut(save, () => !form.processing);
                 <Link
                     :href="back"
                     :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge bg-card text-ink"
+                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
                 >
                     <FmIcon :icon="X" :size="20" />
                 </Link>
@@ -133,7 +133,7 @@ useSaveShortcut(save, () => !form.processing);
             @submit.prevent="save"
         >
             <fieldset class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('What') }}
                 </legend>
                 <FormKit
@@ -172,7 +172,7 @@ useSaveShortcut(save, () => !form.processing);
             </fieldset>
 
             <fieldset class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('When') }}
                 </legend>
                 <div class="grid grid-cols-2 gap-3">
@@ -222,7 +222,7 @@ useSaveShortcut(save, () => !form.processing);
             </fieldset>
 
             <fieldset class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('Where') }}
                 </legend>
                 <FormKit
@@ -267,7 +267,7 @@ useSaveShortcut(save, () => !form.processing);
                 <FormKit
                     v-model="form.financial_account_id"
                     type="dropdown"
-                    :label="$t('Account')"
+                    :label="$t('Bank account')"
                     name="financial_account_id"
                     :options="withNone(options.accounts)"
                     :help="$t('Empty means the default account.')"
@@ -286,7 +286,7 @@ useSaveShortcut(save, () => !form.processing);
             </fieldset>
 
             <fieldset v-if="income" class="m-0 flex flex-col border-0 p-0">
-                <legend class="mb-3 p-0 text-[17px] font-bold">
+                <legend class="mb-3 p-0 text-section">
                     {{ $t('Refers to') }}
                 </legend>
                 <FormKit

@@ -68,11 +68,12 @@ defineSlots<{
     after?: () => unknown;
 }>();
 
+/** The style and colour of the subtitle for each tone: a tone takes the strong style, never a font class. */
 const toneColor: Record<RowTone, string> = {
-    normal: cn('text-ink-soft'),
-    overdue: cn('font-semibold text-overdue'),
-    warning: cn('font-semibold text-warning'),
-    paid: cn('font-semibold text-paid'),
+    normal: cn('text-meta text-ink-soft'),
+    overdue: cn('text-meta-strong text-overdue'),
+    warning: cn('text-meta-strong text-warning'),
+    paid: cn('text-meta-strong text-paid'),
 };
 
 /** The title in two: the beginning, cut where room is short, and its last 5 characters. */
@@ -115,7 +116,7 @@ const titleTone = computed(() =>
                  pieces are only seen; the whole title is what is read. -->
             <span
                 v-if="titleParts[1]"
-                class="flex min-w-0 text-base font-semibold whitespace-nowrap"
+                class="flex min-w-0 text-body-strong whitespace-nowrap"
                 :class="titleTone"
                 :title="title"
             >
@@ -135,21 +136,18 @@ const titleTone = computed(() =>
             </span>
             <span
                 v-else
-                class="truncate text-base font-semibold"
+                class="truncate text-body-strong"
                 :class="titleTone"
                 :title="title"
                 >{{ title }}</span
             >
-            <span
-                v-if="subtitle"
-                class="truncate text-[13px]"
-                :class="toneColor[tone]"
-                >{{ subtitle }}</span
-            >
+            <span v-if="subtitle" class="truncate" :class="toneColor[tone]">{{
+                subtitle
+            }}</span>
         </span>
         <span
             v-if="$slots.after"
-            class="shrink-0 text-base font-bold whitespace-nowrap text-ink"
+            class="shrink-0 text-amount whitespace-nowrap text-ink"
         >
             <slot name="after" />
         </span>

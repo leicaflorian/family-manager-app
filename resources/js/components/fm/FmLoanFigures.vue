@@ -32,14 +32,14 @@ function written(amount: number | null | undefined): string {
         data-testid="loan-figures"
     >
         <div class="flex flex-col gap-0.5">
-            <dt class="text-xs text-ink-soft">{{ $t('Total to pay') }}</dt>
-            <dd class="text-base font-semibold text-ink">
+            <dt class="text-caption text-ink-soft">{{ $t('Total to pay') }}</dt>
+            <dd class="text-body-strong text-ink">
                 {{ written(figures?.total_to_pay) }}
             </dd>
         </div>
         <div class="flex flex-col gap-0.5">
-            <dt class="text-xs text-ink-soft">{{ $t('Cost') }}</dt>
-            <dd class="text-base font-semibold text-ink">
+            <dt class="text-caption text-ink-soft">{{ $t('Cost') }}</dt>
+            <dd class="text-body-strong text-ink">
                 {{ written(figures?.cost) }}
             </dd>
         </div>

@@ -132,10 +132,10 @@ const closed = computed(() => area.cards.filter((card) => card.closed));
                 <h2
                     v-if="group.label"
                     :id="`group-${group.type}`"
-                    class="m-0 flex items-baseline gap-2 text-[17px] font-bold"
+                    class="m-0 flex items-baseline gap-2 text-section"
                 >
                     {{ group.label }}
-                    <span class="text-[15px] font-normal text-ink-soft">{{
+                    <span class="text-body-sm text-ink-soft">{{
                         group.cards.length
                     }}</span>
                 </h2>

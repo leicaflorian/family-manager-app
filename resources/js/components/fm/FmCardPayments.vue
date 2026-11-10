@@ -66,7 +66,7 @@ const addExpenseUrl = computed(
         />
         <p
             v-if="budget.planned.length === 0"
-            class="m-0 px-4 py-3 text-[15px] text-ink-soft"
+            class="m-0 px-4 py-3 text-body-sm text-ink-soft"
         >
             {{ $t('Nothing planned yet.') }}
         </p>
@@ -91,7 +91,7 @@ const addExpenseUrl = computed(
                     budget.planned.length === 0 &&
                     budget.payments.length === 0
                 "
-                class="m-0 px-4 py-3 text-[15px] text-ink-soft"
+                class="m-0 px-4 py-3 text-body-sm text-ink-soft"
             >
                 {{
                     income
@@ -101,7 +101,7 @@ const addExpenseUrl = computed(
             </p>
             <p
                 v-else-if="budget.payments.length === 0"
-                class="m-0 px-4 py-3 text-[15px] text-ink-soft"
+                class="m-0 px-4 py-3 text-body-sm text-ink-soft"
             >
                 {{ $t('No payments recorded.') }}
             </p>
@@ -115,7 +115,7 @@ const addExpenseUrl = computed(
         <Link
             v-if="budget.payments.length > 0"
             :href="cardPayments.url(card)"
-            class="px-1 text-sm font-semibold underline underline-offset-2"
+            class="px-1 text-label underline underline-offset-2"
             >{{ budget.payments_more }}</Link
         >
     </div>

@@ -204,9 +204,7 @@ const exceptionIcons = {
 
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="flex min-w-0 flex-col gap-1.5">
-                <span
-                    class="flex items-center gap-1.5 text-sm font-semibold text-warning"
-                >
+                <span class="flex items-center gap-1.5 text-label text-warning">
                     <FmIcon :icon="Repeat" :size="16" />
                     <span>{{
                         income ? $t('Planned income') : $t('Planned expense')
@@ -225,10 +223,10 @@ const exceptionIcons = {
                         >
                     </template>
                 </span>
-                <h1 class="m-0 text-[28px] leading-tight font-extrabold">
+                <h1 class="m-0 text-title-mobile">
                     {{ row.title }}
                 </h1>
-                <span class="text-[15px] text-ink-soft">{{ summary }}</span>
+                <span class="text-body-sm text-ink-soft">{{ summary }}</span>
             </div>
             <FmButton
                 v-if="detail.can_edit"
@@ -298,12 +296,12 @@ const exceptionIcons = {
                             class="text-ink-soft"
                         />
                         <span class="flex min-w-0 grow flex-col gap-0.5">
-                            <span class="text-[15px] font-semibold">{{
+                            <span class="text-row">{{
                                 exceptionText(exception)
                             }}</span>
                             <span
                                 v-if="exception.notes"
-                                class="text-[13px] text-ink-soft"
+                                class="text-meta text-ink-soft"
                                 >{{ exception.notes }}</span
                             >
                         </span>
@@ -319,7 +317,7 @@ const exceptionIcons = {
                     </div>
                     <p
                         v-if="detail.exceptions.length === 0"
-                        class="m-0 px-4 py-3 text-[15px] text-ink-soft"
+                        class="m-0 px-4 py-3 text-body-sm text-ink-soft"
                     >
                         {{
                             $t(
@@ -328,7 +326,7 @@ const exceptionIcons = {
                         }}
                     </p>
                 </FmCard>
-                <p class="m-0 text-[13px] text-ink-soft">
+                <p class="m-0 text-meta text-ink-soft">
                     {{
                         $t(
                             'A due date comes from how it repeats (:rule). An exception changes only that due date; the others stay as the planned item says.',
@@ -354,7 +352,7 @@ const exceptionIcons = {
                     <FmPaymentYears :years="detail.payments" />
                     <p
                         v-if="detail.payments.length === 0"
-                        class="m-0 px-4 py-3 text-[15px] text-ink-soft"
+                        class="m-0 px-4 py-3 text-body-sm text-ink-soft"
                     >
                         {{ $t('No payments yet.') }}
                     </p>

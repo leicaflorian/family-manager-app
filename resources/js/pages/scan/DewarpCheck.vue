@@ -103,13 +103,13 @@ onBeforeUnmount(clearPicture);
             {{ $t('Straighten is not available on this phone') }}
         </FmNotice>
 
-        <label class="flex flex-col gap-2 text-sm font-medium">
+        <label class="flex flex-col gap-2 text-body-sm">
             {{ $t('Photo of a sheet') }}
             <input
                 type="file"
                 accept="image/*"
                 :disabled="!available || working"
-                class="text-sm"
+                class="text-body-sm"
                 @change="start"
             />
         </label>
@@ -117,7 +117,7 @@ onBeforeUnmount(clearPicture);
         <p v-if="working" role="status">
             {{ $t('Straightening…') }}
         </p>
-        <p v-if="timing" class="text-lg font-semibold" role="status">
+        <p v-if="timing" class="text-subtitle" role="status">
             {{ timing }}
         </p>
         <FmNotice v-if="error" tone="danger">{{ error }}</FmNotice>

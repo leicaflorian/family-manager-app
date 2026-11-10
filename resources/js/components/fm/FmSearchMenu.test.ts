@@ -1,0 +1,178 @@
+import { render, screen } from '@testing-library/vue';
+import { nextTick, ref } from 'vue';
+import { describe, expect, it, vi } from 'vite-plus/test';
+import { router } from '@inertiajs/vue3';
+import FmSearchMenu from './FmSearchMenu.vue';
+
+/**
+ * A result as the server sends it.
+ *
+ * @param key - its key
+ * @param group - its group
+ * @param title - its title
+ * @returns a search result
+ */
+function row(
+    key: string,
+    group: App.Enums.SearchGroup,
+    title: string,
+): App.Data.Search.SearchResultData {
+    return {
+        key,
+        group,
+        title,
+        subtitle: null,
+        date: null,
+        amount: null,
+        href: `/${key}`,
+        area: null,
+        icon: 'file-text',
+        tone: 'neutral',
+        flag: null,
+        due_in: null,
+    };
+}
+
+const results: App.Data.Search.SearchResultsData = {
+    query: 'Pan',
+    type: null,
+    total: 10,
+    groups: [
+        {
+            group: 'cards',
+            label: 'Cards',
+            count: 3,
+            results: [
+                row('c1', 'cards', 'Fiat Panda'),
+                row('c2', 'cards', 'Pan 2'),
+            ],
+        },
+        {
+            group: 'documents',
+            label: 'Documents',
+            count: 3,
+            results: [row('d1', 'documents', 'Libretto Panda')],
+        },
+        {
+            group: 'movements',
+            label: 'Expenses and income',
+            count: 4,
+            results: [row('m1', 'movements', 'Tagliando Panda')],
+        },
+    ],
+};
+
+describe('FmSearchMenu', () => {
+    it('shows the groups with their name and the link to all the results', () => {
+        render(FmSearchMenu, { props: { results, query: 'Pan' } });
+
+        expect(screen.getByRole('listbox')).toBeInTheDocument();
+        expect(
+            screen
+                .getAllByRole('group')
+                .map((g) => g.getAttribute('aria-label')),
+        ).toEqual(['Cards', 'Documents', 'Expenses and income']);
+        expect(screen.getAllByRole('option')).toHaveLength(4);
+        expect(
+            screen
+                .getByRole('listbox')
+                .contains(screen.getByRole('link', { name: /See all/ })),
+        ).toBe(false);
+        expect(
+            screen.getByRole('link', { name: /See all 10 results/ }),
+        ).toHaveAttribute('href', '/search?q=Pan');
+    });
+
+    it('takes the classes of the page over its own: max-w-none lets it be wider than the box', () => {
+        render(FmSearchMenu, {
+            props: { results, query: 'Pan' },
+            attrs: { class: 'max-w-none' },
+        });
+
+        const menu = screen.getByRole('listbox').parentElement;
+        expect(menu).toHaveClass('max-w-none', 'w-110');
+        expect(menu).not.toHaveClass('max-w-full');
+    });
+
+    it('follows the classes of the page when they change', async () => {
+        const view = render(FmSearchMenu, {
+            props: { results, query: 'Pan', class: 'max-w-none' },
+        });
+
+        await view.rerender({ results, query: 'Pan', class: 'left-0' });
+
+        const menu = screen.getByRole('listbox').parentElement;
+        expect(menu).toHaveClass('left-0', 'max-w-full');
+        expect(menu).not.toHaveClass('max-w-none');
+    });
+
+    it('puts the id of the page on the list, which the box controls, not on the wrapper', () => {
+        render(FmSearchMenu, {
+            props: { results, query: 'Pan' },
+            attrs: { id: 'search-results' },
+        });
+
+        const list = screen.getByRole('listbox');
+        expect(list).toHaveAttribute('id', 'search-results');
+        expect(list.parentElement).not.toHaveAttribute('id');
+    });
+
+    it('forgets the chosen row with reset()', async () => {
+        const menu = ref<InstanceType<typeof FmSearchMenu> | null>(null);
+        render({
+            components: { FmSearchMenu },
+            setup: () => ({ menu, results }),
+            template:
+                '<FmSearchMenu ref="menu" :results="results" query="Pan" />',
+        });
+
+        menu.value?.move(1);
+        await nextTick();
+        expect(menu.value?.activeId).toBeDefined();
+
+        menu.value?.reset();
+        await nextTick();
+
+        expect(menu.value?.activeId).toBeUndefined();
+        expect(
+            document.querySelectorAll('[aria-selected="true"]'),
+        ).toHaveLength(0);
+    });
+
+    it('moves the choice with move() and opens it with open()', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        const menu = ref<InstanceType<typeof FmSearchMenu> | null>(null);
+        render({
+            components: { FmSearchMenu },
+            setup: () => ({ menu, results }),
+            template:
+                '<FmSearchMenu ref="menu" :results="results" query="Pan" />',
+        });
+
+        expect(menu.value?.open()).toBe(false);
+        expect(menu.value?.activeId).toBeUndefined();
+        expect(
+            document.querySelectorAll('[aria-selected="true"]'),
+        ).toHaveLength(0);
+
+        menu.value?.move(1);
+        menu.value?.move(1);
+        await nextTick();
+
+        const options = screen.getAllByRole('option');
+        expect(options[1]).toHaveAttribute('aria-selected', 'true');
+        expect(options[1]).toHaveAttribute('id', 'search-option-c2');
+        expect(menu.value?.activeId).toBe('search-option-c2');
+        expect(options[0]).toHaveAttribute('aria-selected', 'false');
+
+        expect(menu.value?.open()).toBe(true);
+        expect(visit).toHaveBeenCalledWith('/c2');
+
+        menu.value?.move(-1);
+        await nextTick();
+        expect(screen.getAllByRole('option')[0]).toHaveAttribute(
+            'aria-selected',
+            'true',
+        );
+    });
+});

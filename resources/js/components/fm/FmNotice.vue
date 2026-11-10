@@ -56,7 +56,7 @@ const styles: Record<NoticeTone, { classes: string; icon: LucideIcon }> = {
 <template>
     <div
         :role="tone === 'danger' ? 'alert' : 'status'"
-        class="flex items-start gap-2.5 rounded-lg px-3.5 py-3 text-sm leading-[1.45]"
+        class="flex items-start gap-2.5 rounded-lg px-3.5 py-3 text-body-sm"
         :class="styles[tone].classes"
     >
         <FmIcon :icon="icon ?? styles[tone].icon" :size="20" class="mt-px" />

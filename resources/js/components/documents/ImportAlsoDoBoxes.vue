@@ -385,7 +385,7 @@ function recordFields(
                             accounts,
                         )"
                         :key="String(choice.due)"
-                        class="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md bg-card px-3 text-[15px]"
+                        class="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md bg-card px-3 text-body-sm"
                         :class="
                             choice.checked
                                 ? 'border-2 border-action'
@@ -498,7 +498,7 @@ function recordFields(
                 />
                 <p
                     v-if="proposal.event.reminder"
-                    class="m-0 flex items-center gap-1.5 text-[13px] text-ink-soft"
+                    class="m-0 flex items-center gap-1.5 text-meta text-ink-soft"
                 >
                     <FmIcon :icon="Bell" :size="14" />
                     {{ proposal.event.reminder }}
@@ -571,7 +571,7 @@ function recordFields(
                 />
                 <p
                     v-if="draft.reminder"
-                    class="m-0 flex items-center gap-1.5 text-[13px] text-ink-soft"
+                    class="m-0 flex items-center gap-1.5 text-meta text-ink-soft"
                 >
                     <FmIcon :icon="Bell" :size="14" />
                     {{ draft.reminder }}

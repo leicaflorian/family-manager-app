@@ -28,7 +28,7 @@ describe('FmSectionLink', () => {
         render(FmSectionLink, { slots: { default: 'Add' } });
 
         const button = screen.getByRole('button', { name: 'Add' });
-        expect(button).toHaveClass('font-normal', 'hover:underline');
+        expect(button).toHaveClass('text-body', 'hover:underline');
         expect(button).not.toHaveClass('font-semibold', 'px-3', 'h-11.5');
     });
 });

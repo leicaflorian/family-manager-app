@@ -79,7 +79,7 @@ function join(): void {
         <FmButton type="submit" wide :disabled="form.processing">{{
             $t('Join the family')
         }}</FmButton>
-        <p class="m-0 text-center text-[13px] text-ink-soft">
+        <p class="m-0 text-center text-meta text-ink-soft">
             {{
                 $t('The invitation is valid until :date', {
                     date: date(invitation.expires_on),

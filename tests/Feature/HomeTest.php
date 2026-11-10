@@ -28,6 +28,7 @@ use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -314,10 +315,9 @@ test('the Home of a new family is empty', function (): void {
 test('pending files are on the Home only when there are some', function (): void {
     $marco = registerFamily();
 
-    expect(homeFor($marco)['pending'])->toBe([])
-        ->and(homeFor($marco)['pending_count'])->toBe(0);
+    expect(homeFor($marco)['pending_count'])->toBe(0);
 
-    $files = collect(range(1, 6))->map(fn (int $number): File => File::factory()->for($marco->family)->create([
+    collect(range(1, 6))->each(fn (int $number): File => File::factory()->for($marco->family)->create([
         'original_name' => "Bolletta {$number}.pdf", 'to_sort' => true,
     ]));
     File::factory()->for($marco->family)->create(['original_name' => 'Già archiviata.pdf', 'to_sort' => false]);
@@ -325,10 +325,20 @@ test('pending files are on the Home only when there are some', function (): void
 
     $home = homeFor($marco);
 
+    // Only how many: the Home shows a box that leads to *To sort*, not the files
     expect($home['pending_count'])->toBe(6)
-        ->and($home['pending'])->toHaveCount(5)
-        ->and($home['pending'][0]['id'])->toBe($files[0]->id)
-        ->and($home['pending'][4]['title'])->toBe('Bolletta 5');
+        ->and($home)->not->toHaveKey('pending');
+});
+
+test('a copy is not a document to complete: the Home counts as the red number of Upload', function (): void {
+    $marco = registerFamily();
+    $sum = hash('sha256', 'the bill of october');
+    File::factory()->for($marco->family)->create(['original_name' => 'Bolletta.pdf', 'to_sort' => true, 'checksum' => $sum]);
+    File::factory()->for($marco->family)->create(['original_name' => 'Bolletta copia.pdf', 'to_sort' => true, 'checksum' => $sum]);
+
+    $this->actingAs($marco)->get(route('upload'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('to_sort_count', 1));
+    expect(homeFor($marco)['pending_count'])->toBe(1);
 });
 
 test('a member sees the files waiting too', function (): void {
@@ -338,8 +348,7 @@ test('a member sees the files waiting too', function (): void {
 
     $home = homeFor($member);
 
-    expect($home['pending_count'])->toBe(1)
-        ->and($home['pending'])->toHaveCount(1);
+    expect($home['pending_count'])->toBe(1);
 });
 
 test('an account of the Rossi sees nothing of the Bianchi', function (): void {

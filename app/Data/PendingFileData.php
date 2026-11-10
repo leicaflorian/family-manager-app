@@ -64,17 +64,6 @@ final class PendingFileData extends Data
     ) {}
 
     /**
-     * The files waiting for their document, the oldest first, with their copies found in one query.
-     *
-     * @param  int|null  $limit  how many at most, null for all
-     * @return array<int, self>
-     */
-    public static function waiting(?int $limit = null): array
-    {
-        return self::fromFiles(File::query()->toSort()->with('document')->oldest('id')->limit($limit)->get());
-    }
-
-    /**
      * The data of many files waiting for their document, with their copies found in one query.
      *
      * @param  Collection<int, File>  $files  the files, with their `document` loaded

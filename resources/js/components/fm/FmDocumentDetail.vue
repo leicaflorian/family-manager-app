@@ -92,14 +92,14 @@ const shownGroup = computed(
             class="flex flex-nowrap items-start justify-between gap-3"
         >
             <div class="flex min-w-0 flex-1 flex-col gap-1">
-                <h2 class="m-0 text-xl font-extrabold">
+                <h2 class="m-0 text-stat">
                     <Link
                         :href="show.url(document.id)"
                         class="text-ink underline decoration-ink/30 decoration-2 underline-offset-4 hover:decoration-ink"
                         >{{ document.title }}</Link
                     >
                 </h2>
-                <span v-if="document.date" class="text-sm text-ink-soft">{{
+                <span v-if="document.date" class="text-body-sm text-ink-soft">{{
                     $t('Arrived on :date', { date: date(document.date) })
                 }}</span>
             </div>
@@ -125,7 +125,7 @@ const shownGroup = computed(
                     :class="compact ? 'pt-1' : 'rounded-card-lg bg-card p-5.5'"
                 >
                     <dl
-                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-[15px]"
+                        class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-body-sm"
                     >
                         <dt class="text-ink-soft">
                             {{ $t('What kind it is') }}
@@ -172,7 +172,7 @@ const shownGroup = computed(
                         <dt class="text-ink-soft">{{ $t('Status') }}</dt>
                         <dd class="m-0">
                             <span
-                                class="inline-flex rounded-tag px-2 py-0.5 text-[13px] font-semibold whitespace-nowrap"
+                                class="inline-flex rounded-tag px-2 py-0.5 text-meta-strong whitespace-nowrap"
                                 :class="statusColor[document.status]"
                                 >{{ document.status_label }}</span
                             >
@@ -206,21 +206,21 @@ const shownGroup = computed(
                     v-if="!compact && (shownGroup || document.can_edit)"
                     class="flex flex-col gap-2"
                 >
-                    <h2 class="m-0 text-[17px] font-bold">{{ $t('Links') }}</h2>
+                    <h2 class="m-0 text-section">{{ $t('Links') }}</h2>
                     <div class="flex flex-col rounded-card bg-card px-4 pt-1">
                         <div
-                            class="flex items-center gap-4.5 border-b border-edge"
+                            class="flex items-center gap-4.5 border-b border-edge-soft"
                         >
                             <button
                                 v-for="group in linkGroups"
                                 :key="group.type"
                                 type="button"
                                 :aria-pressed="group.type === shownGroup?.type"
-                                class="flex h-10 items-center gap-1.5 border-0 border-b-2 bg-transparent px-1 text-[15px]"
+                                class="flex h-10 items-center gap-1.5 border-0 border-b-2 bg-transparent px-1 text-body-sm"
                                 :class="
                                     group.type === shownGroup?.type
-                                        ? 'border-action font-bold text-action-dark'
-                                        : 'border-transparent font-medium text-ink-soft'
+                                        ? 'border-action text-label text-action-dark'
+                                        : 'border-transparent text-ink-soft'
                                 "
                                 @click="chosenType = group.type"
                             >
@@ -240,7 +240,7 @@ const shownGroup = computed(
                         </div>
                         <p
                             v-if="!shownGroup"
-                            class="m-0 py-3.5 text-[15px] text-ink-soft"
+                            class="m-0 py-3.5 text-body-sm text-ink-soft"
                         >
                             {{ $t('Nothing linked yet.') }}
                         </p>
@@ -252,10 +252,10 @@ const shownGroup = computed(
                                 :href="link.href ?? undefined"
                                 class="flex flex-col gap-0.5 px-4 py-3 text-ink no-underline"
                             >
-                                <span class="text-base font-semibold">{{
+                                <span class="text-body-strong">{{
                                     link.label
                                 }}</span>
-                                <span class="text-[13px] text-ink-soft">{{
+                                <span class="text-meta text-ink-soft">{{
                                     link.type_label
                                 }}</span>
                             </component>
@@ -267,9 +267,9 @@ const shownGroup = computed(
                     v-if="!compact && document.notes"
                     class="flex flex-col gap-2"
                 >
-                    <h2 class="m-0 text-[17px] font-bold">{{ $t('Notes') }}</h2>
+                    <h2 class="m-0 text-section">{{ $t('Notes') }}</h2>
                     <p
-                        class="m-0 rounded-card bg-card px-4 py-3.5 text-[15px] leading-normal whitespace-pre-line text-ink-soft"
+                        class="m-0 rounded-card bg-card px-4 py-3.5 text-body-sm whitespace-pre-line text-ink-soft"
                     >
                         {{ document.notes }}
                     </p>

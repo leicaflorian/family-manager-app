@@ -91,7 +91,7 @@ describe('FmAgendaRow', () => {
             expect(link).toHaveTextContent('30');
             expect(link).toHaveTextContent('Fri');
             expect(within(link).getByText('Gas - Enel')).toHaveClass(
-                'font-semibold',
+                'text-row',
             );
             expect(link).toHaveTextContent('Bolletta gas');
             expect(link).toHaveTextContent('in 4 days');
@@ -200,6 +200,53 @@ describe('FmAgendaRow', () => {
 
             expect(view.emitted()['update-date']).toHaveLength(1);
             expect(view.emitted().renewed).toHaveLength(1);
+        });
+
+        it('puts the second button under the first when both do not fit in the card', () => {
+            render(FmAgendaRow, {
+                props: { entry: agendaEntries[0], actions: true },
+            });
+
+            // On a narrow phone the two labels can be wider than the card: the
+            // buttons wrap, instead of going out.
+            const update = screen.getByRole('button', {
+                name: 'Update the date',
+            });
+            expect(update.parentElement).toHaveClass('flex-wrap');
+        });
+
+        it('draws the buttons as the board of the Agenda: compact, the first white with a grey edge', () => {
+            render(FmAgendaRow, {
+                props: { entry: agendaEntries[0], actions: true },
+            });
+
+            const update = screen.getByRole('button', {
+                name: 'Update the date',
+            });
+            const renewed = screen.getByRole('button', { name: 'Renewed' });
+            expect(update).toHaveClass(
+                'border-edge-soft',
+                'text-ink',
+                'text-label',
+            );
+            expect(renewed).toHaveClass('bg-action', 'text-label');
+            expect(update.querySelector('svg')).toHaveAttribute('width', '16');
+            expect(renewed.querySelector('svg')).toHaveAttribute('width', '14');
+        });
+
+        it('keeps the buttons side by side on the computer, under the row when the row needs the room', () => {
+            render(FmAgendaRow, {
+                props: { entry: agendaEntries[0], actions: true },
+            });
+
+            // The link keeps room for its columns and the title; the buttons
+            // never shrink: when both do not fit, the buttons go to a new line.
+            const buttons = screen.getByRole('button', {
+                name: 'Update the date',
+            }).parentElement;
+            expect(buttons).toHaveClass('lg:shrink-0', 'lg:flex-nowrap');
+            expect(buttons?.parentElement).toHaveClass('lg:flex-wrap');
+            expect(screen.getByRole('link')).toHaveClass('lg:basis-[34rem]');
         });
 
         it('has no buttons for a deadline the person may not change', () => {

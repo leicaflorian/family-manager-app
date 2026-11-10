@@ -40,7 +40,7 @@ defineSlots<{
                     :side="side"
                     :side-offset="6"
                     :collision-padding="8"
-                    class="z-50 max-w-60 rounded-tag bg-ink px-2.5 py-1.5 text-[13px] leading-snug text-card shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0 motion-reduce:animate-none"
+                    class="z-50 max-w-60 rounded-tag bg-ink px-2.5 py-1.5 text-meta text-card shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0 motion-reduce:animate-none"
                 >
                     {{ text }}
                 </TooltipContent>

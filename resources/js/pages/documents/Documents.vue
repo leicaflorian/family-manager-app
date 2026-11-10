@@ -258,7 +258,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     <button
                         type="button"
                         :aria-label="$t('Filters')"
-                        class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge bg-card text-ink xl:hidden"
+                        class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-ink xl:hidden"
                         @click="filtersOpen = true"
                     >
                         <FmIcon :icon="ListFilter" :size="22" />
@@ -275,7 +275,9 @@ function rowHref(document: App.Data.DocumentData): string {
                 </div>
 
                 <template v-if="documents.length > 0">
-                    <span class="mx-1 text-sm text-ink-soft">{{ count }}</span>
+                    <span class="mx-1 text-body-sm text-ink-soft">{{
+                        count
+                    }}</span>
                     <FmCard list>
                         <FmDocumentRow
                             v-for="document in documents"

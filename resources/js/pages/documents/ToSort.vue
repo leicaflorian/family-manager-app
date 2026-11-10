@@ -234,7 +234,7 @@ function readChosen(): void {
                             class="size-5 shrink-0 accent-action"
                             @change="chooseAll"
                         />
-                        <span class="grow text-[15px] font-semibold">{{
+                        <span class="grow text-row">{{
                             $tChoice(
                                 '{0} :count files chosen of :total|{1} :count file chosen of :total|[2,*] :count files chosen of :total',
                                 chosenIds.length,

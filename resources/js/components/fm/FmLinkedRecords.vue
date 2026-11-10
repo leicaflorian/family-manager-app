@@ -29,16 +29,18 @@ const open = computed(
 
 <template>
     <section class="flex flex-col gap-2">
-        <h2 class="m-0 text-lg font-extrabold">{{ $t('Links') }}</h2>
+        <h2 class="m-0 text-subtitle">{{ $t('Links') }}</h2>
         <div class="rounded-card bg-card px-4 pt-1">
             <template v-if="open || reminders">
-                <div class="flex gap-4 overflow-x-auto border-b border-edge">
+                <div
+                    class="flex gap-4 overflow-x-auto border-b border-edge-soft"
+                >
                     <button
                         v-for="group in groups"
                         :key="group.type"
                         type="button"
                         :aria-pressed="group.type === open.type"
-                        class="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border-0 border-b-2 bg-transparent px-0.5 text-[15px] whitespace-nowrap"
+                        class="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border-0 border-b-2 bg-transparent px-0.5 text-body-sm whitespace-nowrap"
                         :class="
                             group.type === open.type
                                 ? 'border-action text-action-dark'
@@ -54,7 +56,7 @@ const open = computed(
                     <Link
                         v-if="reminders"
                         :href="reminders.href"
-                        class="flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent px-0.5 text-[15px] whitespace-nowrap text-ink-soft no-underline"
+                        class="flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent px-0.5 text-body-sm whitespace-nowrap text-ink-soft no-underline"
                     >
                         {{ $t('Reminders') }}
                         <span class="font-semibold text-ink-soft">{{
@@ -71,7 +73,7 @@ const open = computed(
                     />
                 </div>
             </template>
-            <p v-else class="m-0 py-3 text-[15px] text-ink-soft">
+            <p v-else class="m-0 py-3 text-body-sm text-ink-soft">
                 {{ $t('No records yet.') }}
             </p>
         </div>

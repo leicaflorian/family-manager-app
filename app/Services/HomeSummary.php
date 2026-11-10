@@ -9,7 +9,6 @@ use App\Data\ChecklistStepData;
 use App\Data\HomeData;
 use App\Data\HomeMailData;
 use App\Data\MissingDocumentData;
-use App\Data\PendingFileData;
 use App\Enums\PersonRole;
 use App\Models\Document;
 use App\Models\File;
@@ -44,9 +43,6 @@ final readonly class HomeSummary
     /** How many mails *Arrived by mail* shows. */
     private const int MAILS = 3;
 
-    /** How many files *Waiting* shows. */
-    private const int PENDING = 5;
-
     public function __construct(private Agenda $agenda, private ExpectedDocuments $expected, private ReceivedMails $mails) {}
 
     /**
@@ -79,8 +75,7 @@ final readonly class HomeSummary
             entries: array_slice($ordered, 0, self::ENTRIES),
             more: count($ordered) > self::ENTRIES,
             incoming: $incoming,
-            pending: array_values(PendingFileData::waiting(self::PENDING)),
-            pending_count: File::query()->toSort()->count(),
+            pending_count: File::query()->toSort()->notCopies()->count(),
             checklist: $this->checklist($user),
             missing: $this->missing($today),
             mails: array_map(

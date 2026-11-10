@@ -25,15 +25,62 @@ describe('FmBottomBar', () => {
         );
     });
 
-    it('leads to Upload with the +', () => {
+    it('opens Add with the +: upload a file, scan, a new expense, a new reminder', async () => {
         bar('home');
 
-        expect(
-            screen.getByRole('link', { name: 'Upload a document' }),
-        ).toHaveAttribute('href', '/upload');
+        await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+        const sheet = screen.getByRole('dialog', { name: 'Add' });
+        const rows: [string, string, string][] = [
+            ['Upload a file', 'PDF or photos from the phone', '/upload'],
+            ['Scan a sheet', 'Photograph a sheet with the camera', '/scan'],
+            [
+                'New expense',
+                'An expense already made, without a document',
+                '/budget/movements/create',
+            ],
+            [
+                'New reminder',
+                'Something to remember, with the date',
+                '/reminders/create',
+            ],
+        ];
+        const links = within(sheet).getAllByRole('link');
+        expect(links).toHaveLength(rows.length);
+        rows.forEach(([title, hint, href], i) => {
+            expect(links[i]).toHaveTextContent(title);
+            expect(links[i]).toHaveTextContent(hint);
+            expect(links[i]).toHaveAttribute('href', href);
+        });
     });
 
-    it('has Home, Budget, Upload, Areas and More, in this order', () => {
+    it('puts To sort first in Add, with how many files wait, only when some do', async () => {
+        const view = render(FmBottomBar, {
+            props: { active: 'home', items: navigationItems(), uploadCount: 5 },
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Add, 5 to sort' }),
+        );
+
+        const sheet = screen.getByRole('dialog', { name: 'Add' });
+        const first = within(sheet).getAllByRole('link')[0];
+        expect(first).toHaveAttribute('href', '/to-sort');
+        expect(first).toHaveAccessibleName('To sort, 5 files');
+        expect(first).toHaveTextContent('Files uploaded to complete');
+        view.unmount();
+
+        bar('home');
+        await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+        expect(
+            within(screen.getByRole('dialog', { name: 'Add' })).queryByRole(
+                'link',
+                { name: /To sort/ },
+            ),
+        ).toBeNull();
+    });
+
+    it('has Home, Budget, Add, Areas and More, in this order', () => {
         bar('home');
 
         const nav = screen.getByRole('navigation', { name: 'Sections' });
@@ -42,7 +89,7 @@ describe('FmBottomBar', () => {
                 (item) =>
                     item.getAttribute('aria-label') ?? item.textContent?.trim(),
             ),
-        ).toEqual(['Home', 'Budget', 'Upload a document', 'Areas', 'More']);
+        ).toEqual(['Home', 'Budget', 'Add', 'Areas', 'More']);
         expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute(
             'href',
             '/budget',
@@ -111,16 +158,14 @@ describe('FmBottomBar', () => {
         const none = render(FmBottomBar, {
             props: { active: 'home', items: navigationItems(), uploadCount: 0 },
         });
-        expect(
-            screen.getByRole('link', { name: 'Upload a document' }),
-        ).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
         none.unmount();
 
         const four = render(FmBottomBar, {
             props: { active: 'home', items: navigationItems(), uploadCount: 4 },
         });
         expect(
-            screen.getByRole('link', { name: 'Upload a document, 4 to sort' }),
+            screen.getByRole('button', { name: 'Add, 4 to sort' }),
         ).toBeInTheDocument();
         four.unmount();
 

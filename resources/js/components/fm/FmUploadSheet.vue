@@ -43,7 +43,7 @@ const phone = isPhone();
             <FmButton wide :icon="Camera" :href="scan().url">{{
                 $t('Take a photo')
             }}</FmButton>
-            <p class="m-0 text-center text-sm text-ink-soft">
+            <p class="m-0 text-center text-body-sm text-ink-soft">
                 {{ $t('The photos go to To sort, not to this card.') }}
             </p>
         </div>

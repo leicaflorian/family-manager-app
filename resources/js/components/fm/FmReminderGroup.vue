@@ -42,15 +42,15 @@ const kinds = computed((): string =>
     >
         <div class="flex items-start justify-between gap-3 px-4 py-3.5">
             <div class="flex min-w-0 flex-col gap-0.5">
-                <h3 class="m-0 flex items-center gap-2 text-base font-bold">
+                <h3 class="m-0 flex items-center gap-2 text-amount">
                     {{ group.name }}
                     <span
                         v-if="group.is_default"
-                        class="rounded-full bg-action-soft px-2 py-0.5 text-xs font-bold text-action-dark"
+                        class="rounded-full bg-action-soft px-2 py-0.5 text-badge text-action-dark"
                         >{{ $t('Default') }}</span
                     >
                 </h3>
-                <p class="m-0 text-[13px] text-ink-soft">
+                <p class="m-0 text-meta text-ink-soft">
                     {{
                         group.is_default
                             ? $t(
@@ -63,7 +63,7 @@ const kinds = computed((): string =>
             <button
                 v-if="canEdit"
                 type="button"
-                class="min-h-11 shrink-0 cursor-pointer border-0 bg-transparent px-1 text-[15px] font-semibold text-action-dark"
+                class="min-h-11 shrink-0 cursor-pointer border-0 bg-transparent px-1 text-row text-action-dark"
                 @click="emit('edit')"
             >
                 {{ $t('Edit') }}
@@ -73,7 +73,7 @@ const kinds = computed((): string =>
             <li
                 v-for="(rule, index) in group.rules"
                 :key="index"
-                class="border-b border-divider px-4 py-3 text-sm last:border-b-0"
+                class="border-b border-divider px-4 py-3 text-body-sm last:border-b-0"
             >
                 {{ ruleText(rule, people) }}
             </li>

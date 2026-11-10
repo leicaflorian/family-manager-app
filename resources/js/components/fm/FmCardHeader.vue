@@ -41,15 +41,15 @@ const background = computed((): string => {
 <template>
     <div :class="background">
         <div class="flex min-w-0 flex-col gap-1.5">
-            <span class="flex items-center gap-1.5 text-sm font-semibold">
+            <span class="flex items-center gap-1.5 text-label">
                 <FmIcon :icon="cardIcon(card.type)" :size="18" />{{
                     `${card.area_label} · ${card.type_label}`
                 }}
             </span>
-            <h1 class="m-0 text-[28px] font-extrabold lg:text-4xl">
+            <h1 class="m-0 text-title-mobile lg:text-title">
                 {{ card.label }}
             </h1>
-            <span class="text-base">{{ heading }}</span>
+            <span class="text-body">{{ heading }}</span>
         </div>
         <div v-if="$slots.actions" class="flex items-center gap-2.5">
             <slot name="actions" />

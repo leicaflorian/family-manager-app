@@ -238,7 +238,7 @@ describe('FmCardPayments', () => {
             'href',
             '/budget/movements/create?card=belonging%3A5',
         );
-        expect(add).toHaveClass('font-normal', 'hover:underline');
+        expect(add).toHaveClass('text-body', 'hover:underline');
         expect(
             within(expenses).getByText('No payments recorded.'),
         ).toBeInTheDocument();

@@ -129,12 +129,12 @@ const description = computed(() =>
         <figcaption
             class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
         >
-            <span class="text-base font-bold">{{
+            <span class="text-amount">{{
                 $t('Expenses, the last 6 months')
             }}</span>
-            <span class="flex flex-wrap gap-4 text-[13px] text-ink-soft">
+            <span class="flex flex-wrap gap-4 text-meta text-ink-soft">
                 <span class="flex items-center gap-1.5"
-                    ><span class="size-3 rounded-[3px] bg-action" />{{
+                    ><span class="size-3 rounded-xs bg-action" />{{
                         $t('Spent')
                     }}</span
                 >
@@ -163,7 +163,7 @@ const description = computed(() =>
                     :x="frame.left - 6"
                     :y="line.y + 4"
                     text-anchor="end"
-                    class="fill-ink-soft text-[11px]"
+                    class="fill-ink-soft text-tiny"
                 >
                     {{ euro(line.value).replace(/,00 €$/, '') }}
                 </text>
@@ -207,7 +207,7 @@ const description = computed(() =>
                     :x="bar.centre"
                     :y="bar.barTop - 6"
                     text-anchor="middle"
-                    class="fill-ink text-xs font-bold"
+                    class="fill-ink text-caption"
                 >
                     {{ euro(bar.month.spent) }}
                 </text>
@@ -215,10 +215,10 @@ const description = computed(() =>
                     :x="bar.centre"
                     :y="frame.height - 10"
                     text-anchor="middle"
-                    class="text-xs"
+                    class="text-caption"
                     :class="
                         bar.month.current
-                            ? 'fill-ink font-bold'
+                            ? 'fill-ink text-badge'
                             : 'fill-ink-soft'
                     "
                 >
@@ -227,9 +227,9 @@ const description = computed(() =>
             </g>
         </svg>
 
-        <table v-else class="w-full border-collapse text-left text-[15px]">
+        <table v-else class="w-full border-collapse text-left text-body-sm">
             <thead>
-                <tr class="text-[13px] text-ink-soft">
+                <tr class="text-meta text-ink-soft">
                     <th class="py-1.5 font-semibold">{{ $t('Month') }}</th>
                     <th class="py-1.5 text-right font-semibold">
                         {{ $t('Spent') }}
@@ -258,7 +258,7 @@ const description = computed(() =>
 
         <button
             type="button"
-            class="cursor-pointer self-start border-0 bg-transparent p-0 text-[15px] font-semibold text-action hover:text-action-dark"
+            class="cursor-pointer self-start border-0 bg-transparent p-0 text-row text-action hover:text-action-dark"
             @click="asTable = !asTable"
         >
             {{ asTable ? $t('See as a chart') : $t('See as a table') }}

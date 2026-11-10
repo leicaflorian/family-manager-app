@@ -68,7 +68,7 @@ const linking = ref(false);
 
 /** The look of the ✕ and of *Undo* at the end of a row waiting for the save. */
 const sideButton = cn(
-    'mr-3 flex h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent px-2 text-sm text-ink-soft hover:bg-action-soft',
+    'mr-3 flex h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent px-2 text-body-sm text-ink-soft hover:bg-action-soft',
 );
 
 /** The id that ties the box to its title. */
@@ -154,7 +154,7 @@ function keep(id: number): void {
         :aria-labelledby="titleId"
     >
         <div class="flex items-center justify-between gap-3">
-            <h2 :id="titleId" class="m-0 text-base font-bold">
+            <h2 :id="titleId" class="m-0 text-amount">
                 {{ $t('Documents') }}
             </h2>
             <FmSectionLink
@@ -285,7 +285,10 @@ function keep(id: number): void {
                 </template>
             </div>
         </div>
-        <p v-else-if="files.length === 0" class="m-0 text-sm text-ink-soft">
+        <p
+            v-else-if="files.length === 0"
+            class="m-0 text-body-sm text-ink-soft"
+        >
             {{ $t('No documents yet') }}
         </p>
         <FmLinkDocumentSheet

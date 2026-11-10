@@ -165,3 +165,8 @@ test('a phone unlinked from the computer is signed out at its next request', fun
     linkedPhone()->get(route('scan'))->assertRedirect(route('login'));
     $this->assertGuest();
 });
+
+test('a linked phone cannot open the global search', function (): void {
+    linkedPhone()->get(route('search', ['q' => 'Panda']))->assertRedirect(route('scan'));
+    linkedPhone()->get(route('search.suggest', ['q' => 'Panda']))->assertRedirect(route('scan'));
+});

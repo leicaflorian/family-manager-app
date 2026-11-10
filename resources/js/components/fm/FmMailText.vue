@@ -34,7 +34,7 @@ const frameSrc = computed((): string | null =>
 </script>
 
 <template>
-    <p v-if="frameSrc === null" class="m-0 text-sm text-ink-soft">
+    <p v-if="frameSrc === null" class="m-0 text-body-sm text-ink-soft">
         {{ $t('The text of this mail was not kept.') }}
     </p>
     <div v-else class="flex flex-col gap-2">
@@ -42,7 +42,7 @@ const frameSrc = computed((): string | null =>
             v-if="tooLarge || both"
             class="flex flex-wrap items-center justify-between gap-2"
         >
-            <span v-if="tooLarge" class="text-[13px] text-ink-soft">{{
+            <span v-if="tooLarge" class="text-meta text-ink-soft">{{
                 $t('The original is too large (:size) and was not kept', {
                     size: formatSize(tooLarge),
                 })
@@ -50,7 +50,7 @@ const frameSrc = computed((): string | null =>
             <button
                 v-if="both"
                 type="button"
-                class="ml-auto cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-sm font-semibold text-action hover:bg-action-soft"
+                class="ml-auto cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-label text-action hover:bg-action-soft"
                 @click="plain = !plain"
             >
                 {{ plain ? $t('Original') : $t('Plain text') }}

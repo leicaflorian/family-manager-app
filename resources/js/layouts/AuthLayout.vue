@@ -64,19 +64,19 @@ defineSlots<{
         >
             <div class="flex items-center gap-3">
                 <FmLogo white :size="44" />
-                <span class="text-[22px] font-extrabold">Family Manager</span>
+                <span class="text-stat-lg">Family Manager</span>
             </div>
             <div class="flex max-w-[420px] flex-col gap-3.5">
-                <p class="m-0 text-[34px] leading-[1.15] font-extrabold">
+                <p class="m-0 text-hero">
                     {{ panel.title }}
                 </p>
-                <p v-if="panel.text" class="m-0 text-[17px] leading-normal">
+                <p v-if="panel.text" class="m-0 text-body">
                     {{ panel.text }}
                 </p>
             </div>
             <ul
                 v-if="panel.points?.length"
-                class="m-0 flex list-none flex-col gap-2.5 p-0 text-base"
+                class="m-0 flex list-none flex-col gap-2.5 p-0 text-body"
             >
                 <li
                     v-for="point in panel.points"
@@ -98,9 +98,7 @@ defineSlots<{
             >
                 <div class="flex items-center gap-2.5 lg:hidden">
                     <FmLogo :size="36" />
-                    <span class="text-[17px] font-extrabold"
-                        >Family Manager</span
-                    >
+                    <span class="text-body">Family Manager</span>
                 </div>
                 <FmHeader v-if="title" :title="title" :subtitle="subtitle" />
                 <div class="flex grow flex-col">
@@ -108,7 +106,7 @@ defineSlots<{
                 </div>
                 <p
                     v-if="otherWay"
-                    class="m-0 text-center text-[15px] text-ink-soft"
+                    class="m-0 text-center text-body-sm text-ink-soft"
                 >
                     {{ otherWay.text }}
                     <Link

@@ -82,10 +82,10 @@ function tile(area: string): string {
         >
             <FmIcon :icon="ScanLine" :size="24" class="shrink-0" />
             <span class="flex flex-col gap-0.5">
-                <span class="text-base font-bold">{{
+                <span class="text-amount">{{
                     $t('Have a document? Start from it')
                 }}</span>
-                <span class="text-sm text-ink-soft">{{
+                <span class="text-body-sm text-ink-soft">{{
                     $t(
                         'Upload the bill, the policy or the booklet: we propose the card.',
                     )
@@ -98,7 +98,7 @@ function tile(area: string): string {
             :key="group.area"
             class="flex flex-col gap-2"
         >
-            <h2 class="m-0 text-[17px] font-bold">
+            <h2 class="m-0 text-section">
                 {{ group.types[0]?.area_label }}
             </h2>
             <div
@@ -114,10 +114,8 @@ function tile(area: string): string {
                         <FmIcon :icon="cardIcon(type.type)" :size="22" />
                     </span>
                     <span class="flex min-w-0 flex-col gap-0.5">
-                        <span class="text-base font-bold">{{
-                            type.label
-                        }}</span>
-                        <span class="text-[13px] text-ink-soft">{{
+                        <span class="text-amount">{{ type.label }}</span>
+                        <span class="text-meta text-ink-soft">{{
                             type.description
                         }}</span>
                     </span>

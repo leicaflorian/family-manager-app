@@ -92,26 +92,26 @@ const sources = computed((): Source[] =>
             :aria-label="$t('Where they come from')"
             class="flex flex-col gap-0.5 rounded-card bg-card p-3.5"
         >
-            <span class="px-3 pt-1 pb-2 text-[13px] font-bold text-ink-soft">{{
+            <span class="px-3 pt-1 pb-2 text-meta-strong text-ink-soft">{{
                 $t('Where they come from')
             }}</span>
             <template v-for="item in sources" :key="item.value ?? 'all'">
                 <span
                     v-if="item.disabled"
-                    class="flex h-12 items-center gap-3 px-3 text-base text-ink-faint"
+                    class="flex h-touch items-center gap-3 px-3 text-body text-ink-faint"
                 >
                     <FmIcon :icon="item.icon" :size="20" />
                     <span class="grow">{{ item.label }}</span>
-                    <span class="text-sm">{{ item.count }}</span>
+                    <span class="text-body-sm">{{ item.count }}</span>
                 </span>
                 <Link
                     v-else
                     :href="item.href"
                     :aria-current="item.current ? 'page' : undefined"
-                    class="flex h-12 items-center gap-3 rounded-lg px-3 text-base no-underline"
+                    class="flex h-touch items-center gap-3 rounded-lg px-3 text-body no-underline"
                     :class="
                         item.current
-                            ? 'bg-action-soft font-bold text-action-dark'
+                            ? 'bg-action-soft text-body-strong text-action-dark'
                             : 'text-ink hover:bg-canvas'
                     "
                 >
@@ -123,7 +123,7 @@ const sources = computed((): Source[] =>
                     <span class="grow">{{ item.label }}</span>
                     <!-- A space, so the link reads «All 5» -->
                     {{ ' ' }}
-                    <span class="text-sm font-semibold text-ink-soft">{{
+                    <span class="text-label text-ink-soft">{{
                         item.count
                     }}</span>
                 </Link>
@@ -145,7 +145,7 @@ const sources = computed((): Source[] =>
                 </template>
             </FmRow>
         </div>
-        <p class="m-0 px-1 text-[13px] leading-relaxed text-ink-soft">
+        <p class="m-0 px-1 text-meta text-ink-soft">
             {{
                 $t(
                     'The files that arrive by mail, from the phone or uploaded manually stay until you import or delete them.',

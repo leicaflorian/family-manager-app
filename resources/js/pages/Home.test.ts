@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { screen, within } from '@testing-library/vue';
+import { screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
     afterEach,
@@ -9,13 +9,9 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import {
-    agendaEntries,
-    pendingPayslip,
-    seenNotices,
-    unreadNotices,
-} from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { WIDE_QUERY } from '@/composables/useWideLayout';
+import { agendaEntries, seenNotices, unreadNotices } from '@/test/fixtures';
+import { press, renderPage } from '@/test/page';
 import Home from './Home.vue';
 
 const shared = vi.hoisted(() => ({ unread_notices: 0 }));
@@ -27,16 +23,6 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     usePage: () => ({ url: '/dashboard', props: { ...shared } }),
 }));
 
-const photo = {
-    ...pendingPayslip,
-    id: 13,
-    name: 'IMG_2041.heic',
-    mime_type: 'image/heic',
-    size: 1_258_291,
-    url: '/files/13',
-    title: 'IMG_2041',
-};
-
 /** The Home of the Bianchi on 26/10/2026, as the server sends it. */
 const home: App.Data.HomeData = {
     first_name: 'Marco',
@@ -47,7 +33,6 @@ const home: App.Data.HomeData = {
     entries: agendaEntries.filter((entry) => entry.kind !== 'income'),
     more: false,
     incoming: agendaEntries.filter((entry) => entry.kind === 'income'),
-    pending: [],
     pending_count: 0,
     checklist: [],
     missing: [],
@@ -69,6 +54,197 @@ const newFamily: App.Data.HomeData = {
         { key: 'invite', done: false, name: 'Laura' },
     ],
 };
+
+/**
+ * Makes the window wide, as a computer, or narrow, as a phone.
+ *
+ * @param on - true for the computer
+ */
+function wide(on: boolean): void {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: on && query === WIDE_QUERY,
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+    }));
+}
+
+/** The first results for «Pan», as the suggest route sends them: 10 in all. */
+const pan: App.Data.Search.SearchResultsData = {
+    query: 'Pan',
+    type: null,
+    total: 10,
+    groups: [
+        {
+            group: 'cards',
+            label: 'Cards',
+            count: 3,
+            results: [
+                {
+                    key: 'card-1',
+                    group: 'cards',
+                    title: 'Fiat Panda',
+                    subtitle: 'Vehicles',
+                    date: null,
+                    amount: null,
+                    href: '/card-1',
+                    area: 'vehicles',
+                    icon: null,
+                    tone: null,
+                    flag: null,
+                    due_in: null,
+                },
+            ],
+        },
+    ],
+};
+
+describe('Home search', () => {
+    beforeEach(() => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: () => Promise.resolve(pan),
+                }),
+            ),
+        );
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
+    });
+
+    it('on the computer has the search box with its shortcut beside the square bell', () => {
+        wide(true);
+        renderPage(Home, { home });
+
+        const box = screen.getByRole('combobox', {
+            name: 'Search in Family Manager',
+        });
+        expect(box).toHaveAttribute('aria-keyshortcuts', 'Meta+K Control+K');
+        expect(screen.getByRole('button', { name: /Notices/ })).toHaveClass(
+            'rounded-lg',
+            'border-edge-soft',
+        );
+        expect(
+            screen.queryByRole('link', { name: 'Search in Family Manager' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('focuses the box with ⌘K', () => {
+        wide(true);
+        renderPage(Home, { home });
+
+        press({ key: 'k', metaKey: true });
+
+        expect(
+            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+        ).toHaveFocus();
+    });
+
+    it('opens the menu with the first results while typing, and Enter searches the text', async () => {
+        wide(true);
+        const visit = vi
+            .spyOn(router, 'visit')
+            .mockImplementation(() => undefined);
+        renderPage(Home, { home });
+        const box = screen.getByRole('combobox', {
+            name: 'Search in Family Manager',
+        });
+
+        await userEvent.type(box, 'Pan');
+
+        expect(
+            await screen.findByRole('link', { name: /See all 10 results/ }),
+        ).toHaveAttribute('href', '/search?q=Pan');
+        expect(box).toHaveAttribute('aria-expanded', 'true');
+
+        await userEvent.keyboard('{Enter}');
+        expect(visit).toHaveBeenCalledWith('/search?q=Pan');
+    });
+
+    it('closes the menu with Esc', async () => {
+        wide(true);
+        renderPage(Home, { home });
+        const box = screen.getByRole('combobox', {
+            name: 'Search in Family Manager',
+        });
+        await userEvent.type(box, 'Pan');
+        await screen.findByRole('link', { name: /See all 10 results/ });
+
+        await userEvent.keyboard('{Escape}');
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('link', { name: /See all 10 results/ }),
+            ).not.toBeInTheDocument(),
+        );
+    });
+
+    it('focuses the box with «/» pressed outside a field', () => {
+        wide(true);
+        renderPage(Home, { home });
+
+        press({ key: '/' });
+
+        expect(
+            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+        ).toHaveFocus();
+    });
+
+    it('closes the menu when the focus leaves the box', async () => {
+        wide(true);
+        renderPage(Home, { home });
+        const box = screen.getByRole('combobox', {
+            name: 'Search in Family Manager',
+        });
+        await userEvent.type(box, 'Pan');
+        await screen.findByRole('link', { name: /See all 10 results/ });
+
+        await userEvent.click(
+            screen.getByRole('heading', { name: 'Hi, Marco', level: 1 }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('link', { name: /See all 10 results/ }),
+            ).not.toBeInTheDocument(),
+        );
+    });
+
+    it('on the phone opens the Search page with ⌘K', () => {
+        wide(false);
+        const visit = vi
+            .spyOn(router, 'visit')
+            .mockImplementation(() => undefined);
+        renderPage(Home, { home });
+
+        press({ key: 'k', metaKey: true });
+
+        expect(visit).toHaveBeenCalledWith('/search');
+    });
+
+    it('on the phone has the magnifier that opens Search, and no box', () => {
+        wide(false);
+        renderPage(Home, { home });
+
+        expect(
+            screen.getByRole('link', { name: 'Search in Family Manager' }),
+        ).toHaveAttribute('href', '/search');
+        expect(
+            screen.queryByRole('combobox', {
+                name: 'Search in Family Manager',
+            }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Notices/ })).toHaveClass(
+            'rounded-full',
+        );
+    });
+});
 
 describe('Home', () => {
     beforeEach(() => {
@@ -182,35 +358,45 @@ describe('Home', () => {
         );
     });
 
-    it('shows the files waiting on top, only when there are some', () => {
+    it('shows the documents to complete on top, only when there are some', () => {
         const view = renderPage(Home, { home });
         expect(
-            screen.queryByRole('heading', { name: 'Waiting' }),
+            screen.queryByRole('region', { name: 'Documents to complete' }),
         ).not.toBeInTheDocument();
         view.unmount();
 
-        renderPage(Home, {
-            home: {
-                ...home,
-                pending: [pendingPayslip, photo],
-                pending_count: 7,
-            },
+        renderPage(Home, { home: { ...home, pending_count: 5 } });
+        const waiting = screen.getByRole('region', {
+            name: 'Documents to complete',
         });
-        const waiting = screen
-            .getByRole('heading', { name: 'Waiting' })
-            .closest('section') as HTMLElement;
+        expect(waiting).toHaveTextContent('5 documents to complete');
         expect(
-            within(waiting).getByText('Busta paga novembre 2026'),
+            within(waiting).getByText('Check what I read and save them'),
         ).toBeInTheDocument();
-        expect(within(waiting).getByText('1,2 MB')).toBeInTheDocument();
-        expect(within(waiting).getByText('+5 more')).toBeInTheDocument();
         expect(
-            within(waiting).getByRole('link', { name: 'Finish' }),
+            within(waiting).getByRole('link', { name: 'Complete' }),
         ).toHaveAttribute('href', '/to-sort');
-        const headings = screen
-            .getAllByRole('heading', { level: 2 })
-            .map((heading) => heading.textContent);
-        expect(headings[0]).toBe('Waiting');
+        expect(
+            screen
+                .getByRole('heading', { level: 1 })
+                .compareDocumentPosition(waiting) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+            waiting.compareDocumentPosition(
+                screen.getByRole('region', {
+                    name: 'To pay in the next 30 days',
+                }),
+            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
+    it('says one document to complete', () => {
+        renderPage(Home, { home: { ...home, pending_count: 1 } });
+
+        expect(
+            screen.getByRole('region', { name: 'Documents to complete' }),
+        ).toHaveTextContent('1 document to complete');
     });
 
     it('guides a new family: 0,00 €, the steps to begin and the empty incomes', () => {

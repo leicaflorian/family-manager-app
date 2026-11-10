@@ -196,13 +196,9 @@ function tile(area: string): string {
  */
 function segment(chosen: boolean): string {
     return cn(
-        'relative flex cursor-pointer items-center justify-center text-sm whitespace-nowrap has-focus-visible:outline-2 has-focus-visible:outline-action',
-        compact.value
-            ? 'h-8 rounded-tag px-3'
-            : 'h-[38px] flex-1 rounded-[9px]',
-        chosen
-            ? 'bg-card font-bold shadow-raised'
-            : 'font-medium text-ink-soft',
+        'relative flex cursor-pointer items-center justify-center text-body-sm whitespace-nowrap has-focus-visible:outline-2 has-focus-visible:outline-action',
+        compact.value ? 'h-8 rounded-tag px-3' : 'h-[38px] flex-1 rounded-tag',
+        chosen ? 'bg-card text-label shadow-raised' : 'text-ink-soft',
     );
 }
 
@@ -215,9 +211,9 @@ function segment(chosen: boolean): string {
 function ring(chosen: boolean): string {
     return chosen
         ? cn(
-              'border-[1.5px] border-action bg-action-soft font-bold text-action-dark',
+              'border-[1.5px] border-action bg-action-soft text-label text-action-dark',
           )
-        : cn('border border-edge bg-card font-medium');
+        : cn('border border-edge-soft bg-card');
 }
 
 /**
@@ -228,7 +224,7 @@ function ring(chosen: boolean): string {
  */
 function pill(chosen: boolean): string {
     return cn(
-        'relative flex cursor-pointer items-center rounded-full text-sm whitespace-nowrap has-focus-visible:outline-2 has-focus-visible:outline-action',
+        'relative flex cursor-pointer items-center rounded-full text-body-sm whitespace-nowrap has-focus-visible:outline-2 has-focus-visible:outline-action',
         compact.value
             ? 'h-9 gap-[7px] pr-3.5 pl-[5px]'
             : 'h-10 gap-2 pr-3 pl-[7px]',
@@ -244,14 +240,14 @@ function pill(chosen: boolean): string {
  */
 function viewChip(chosen: boolean): string {
     return cn(
-        'flex h-9 shrink-0 cursor-pointer items-center rounded-full pr-2.5 pl-3 text-sm whitespace-nowrap text-ink',
+        'flex h-9 shrink-0 cursor-pointer items-center rounded-full pr-2.5 pl-3 text-body-sm whitespace-nowrap text-ink',
         ring(chosen),
     );
 }
 
 /** The classes of the buttons of the phone and of the button of the areas. */
 const chip = cn(
-    'flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border border-edge bg-card text-sm font-medium whitespace-nowrap text-ink',
+    'flex h-9 shrink-0 cursor-pointer items-center gap-1.5 border border-edge-soft bg-card text-body-sm whitespace-nowrap text-ink',
 );
 </script>
 
@@ -352,19 +348,17 @@ const chip = cn(
     <DefineAreas>
         <div class="flex flex-col gap-1">
             <div class="flex items-center justify-between gap-3">
-                <span class="text-sm font-bold text-ink-soft">{{
-                    $t('Areas')
-                }}</span>
+                <span class="text-label text-ink-soft">{{ $t('Areas') }}</span>
                 <button
                     v-if="compact"
                     type="button"
-                    class="cursor-pointer border-0 bg-transparent p-0 text-sm font-semibold text-action"
+                    class="cursor-pointer border-0 bg-transparent p-0 text-label text-action"
                     @click="emit('reset')"
                 >
                     {{ $t('Clear filters') }}
                 </button>
             </div>
-            <span class="text-[13px] text-ink-soft">{{
+            <span class="text-meta text-ink-soft">{{
                 $t('Tap an area to hide it; the number stays.')
             }}</span>
             <div
@@ -386,7 +380,7 @@ const chip = cn(
                         <FmIcon :icon="areaIcon(area.value)" :size="16" />
                     </span>
                     <span
-                        class="min-w-0 grow text-sm leading-[1.2] font-medium"
+                        class="min-w-0 grow text-body-sm"
                         :class="
                             isOn(area.value)
                                 ? 'text-ink'
@@ -395,7 +389,7 @@ const chip = cn(
                         >{{ area.label }}</span
                     >
                     <span
-                        class="text-[13px] font-semibold"
+                        class="text-meta-strong"
                         :class="
                             isOn(area.value)
                                 ? 'text-ink-soft'
@@ -523,7 +517,7 @@ const chip = cn(
                 <div class="flex justify-end">
                     <button
                         type="button"
-                        class="cursor-pointer border-0 bg-transparent p-0 text-[15px] font-semibold text-action"
+                        class="cursor-pointer border-0 bg-transparent p-0 text-row text-action"
                         @click="emit('reset')"
                     >
                         {{ $t('Clear filters') }}
@@ -533,13 +527,13 @@ const chip = cn(
                     v-if="hasPeriod"
                     class="m-0 flex flex-col gap-2 border-0 p-0"
                 >
-                    <legend class="mb-2 p-0 text-sm font-bold text-ink-soft">
+                    <legend class="mb-2 p-0 text-label text-ink-soft">
                         {{ $t('Period') }}
                     </legend>
                     <ReusePeriod />
                 </fieldset>
                 <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
-                    <legend class="mb-2 p-0 text-sm font-bold text-ink-soft">
+                    <legend class="mb-2 p-0 text-label text-ink-soft">
                         {{ $t('Person') }}
                     </legend>
                     <ReusePeople />

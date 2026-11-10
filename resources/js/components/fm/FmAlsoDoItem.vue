@@ -112,14 +112,14 @@ const iconClass = computed(() =>
                     :class="iconClass"
                 />
                 <span class="flex min-w-0 flex-col gap-0.5">
-                    <span class="text-base font-semibold">{{ label }}</span>
-                    <span v-if="hint" class="text-[13px] text-ink-soft">{{
+                    <span class="text-body-strong">{{ label }}</span>
+                    <span v-if="hint" class="text-meta text-ink-soft">{{
                         hint
                     }}</span>
                     <span
                         v-for="warning in warnings"
                         :key="warning"
-                        class="text-[13px] text-warning"
+                        class="text-meta text-warning"
                         >{{ warning }}</span
                     >
                 </span>

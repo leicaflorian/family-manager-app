@@ -54,7 +54,7 @@ defineSlots<{
             <button
                 v-if="outline"
                 type="button"
-                class="flex h-9 shrink-0 cursor-pointer items-center gap-[7px] rounded-md border border-edge bg-card px-3 text-sm font-semibold whitespace-nowrap text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+                class="flex h-9 shrink-0 cursor-pointer items-center gap-[7px] rounded-md border border-edge-soft bg-card px-3 text-label whitespace-nowrap text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
             >
                 <FmIcon :icon="icon ?? Ellipsis" :size="18" />{{
                     label ?? $t('More actions')

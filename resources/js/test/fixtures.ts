@@ -851,7 +851,7 @@ export const danceDetail: App.Data.PlannedDetailData = {
             text: 'Scuola Passo a Due',
             href: '/family/organizations/5',
         },
-        { label: 'Account', text: 'Carta Laura', href: null },
+        { label: 'Bank account', text: 'Carta Laura', href: null },
         { label: 'Holder', text: 'Giulia', href: '/family/people/4' },
         {
             label: 'Refers to',

@@ -114,7 +114,7 @@ describe('formkit.config', () => {
         });
 
         expect(box.closest('label')).toHaveClass('items-center', 'gap-3');
-        expect(screen.getByText('Stay signed in')).toHaveClass('text-base');
+        expect(screen.getByText('Stay signed in')).toHaveClass('text-body');
     });
 
     it('draws its own box for the checkbox, with the border and corners of the fields', async () => {

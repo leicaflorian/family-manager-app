@@ -127,13 +127,16 @@ function resetAddress(): void {
                                 @click="copy"
                                 >{{ $t('Copy') }}</FmButton
                             >
-                            <span v-if="copied" role="status" class="text-sm">{{
-                                $t('Address copied')
-                            }}</span>
+                            <span
+                                v-if="copied"
+                                role="status"
+                                class="text-body-sm"
+                                >{{ $t('Address copied') }}</span
+                            >
                             <span
                                 v-if="copyFailed"
                                 role="status"
-                                class="text-sm"
+                                class="text-body-sm"
                                 >{{
                                     $t(
                                         'Could not copy: select the address and copy it.',
@@ -182,7 +185,7 @@ function resetAddress(): void {
                     }}
                 </li>
             </ol>
-            <p class="mt-3 text-sm">
+            <p class="mt-3 text-body-sm">
                 {{
                     $t(
                         "Don't download the file and import it: it would not update. Subscribe with the address.",

@@ -28,6 +28,35 @@ describe('FmBell', () => {
         ).toBeInTheDocument();
     });
 
+    it('gives the classes of the page to the bell itself: round or square', () => {
+        render(FmBell, {
+            props: { count: 0 },
+            attrs: { class: 'rounded-lg border border-edge-soft bg-card' },
+        });
+
+        expect(screen.getByRole('button', { name: 'Notices' })).toHaveClass(
+            'rounded-lg',
+            'border-edge-soft',
+            'bg-card',
+        );
+        // the base border-0 would otherwise hide the border of the square bell
+        expect(screen.getByRole('button', { name: 'Notices' })).not.toHaveClass(
+            'border-0',
+        );
+    });
+
+    it('follows the classes of the page when they change, square to round', async () => {
+        const view = render(FmBell, {
+            props: { count: 0, class: 'rounded-lg border border-edge-soft' },
+        });
+
+        await view.rerender({ count: 0, class: 'rounded-full' });
+
+        const bell = screen.getByRole('button', { name: 'Notices' });
+        expect(bell).toHaveClass('rounded-full', 'border-0');
+        expect(bell).not.toHaveClass('rounded-lg', 'border-edge-soft');
+    });
+
     it('stops counting at 99', () => {
         render(FmBell, { props: { count: 120 } });
 

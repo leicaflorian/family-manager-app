@@ -293,6 +293,16 @@ describe('FmAgendaFilters', () => {
             expect(
                 within(group).getByRole('button', { name: 'To do · 3' }),
             ).toHaveAttribute('aria-pressed', 'true');
+            // The weight changes with the style of the design system, never with a font class.
+            expect(
+                within(group).getByRole('button', { name: 'To do · 3' }),
+            ).toHaveClass('text-label');
+            expect(
+                within(group).getByRole('button', { name: 'Completed' }),
+            ).toHaveClass('text-body-sm');
+            expect(
+                within(group).getByRole('button', { name: 'Completed' }),
+            ).not.toHaveClass('font-medium');
 
             await userEvent.click(
                 within(group).getByRole('button', { name: 'Completed' }),

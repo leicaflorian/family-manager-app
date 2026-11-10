@@ -122,7 +122,7 @@ function tile(area: string): string {
 
         <label
             v-else
-            class="flex items-center gap-2.5 rounded-lg border border-edge bg-card px-3.5"
+            class="flex items-center gap-2.5 rounded-lg border border-edge-soft bg-card px-3.5"
         >
             <FmIcon :icon="Search" :size="20" />
             <input
@@ -130,7 +130,7 @@ function tile(area: string): string {
                 type="search"
                 :placeholder="$t('Search all cards')"
                 :aria-label="$t('Search all cards')"
-                class="h-control-md min-w-0 flex-1 border-0 bg-transparent text-base outline-none"
+                class="h-control-md min-w-0 flex-1 border-0 bg-transparent text-body outline-none"
             />
         </label>
 
@@ -145,7 +145,7 @@ function tile(area: string): string {
                     :card="card"
                 />
             </div>
-            <p v-else class="m-0 text-[15px] text-ink-soft">
+            <p v-else class="m-0 text-body-sm text-ink-soft">
                 {{ $t('No card found.') }}
             </p>
         </div>
@@ -169,10 +169,8 @@ function tile(area: string): string {
                             <FmIcon :icon="areaIcon(area.area)" :size="22" />
                         </span>
                         <span class="flex min-w-0 flex-col gap-0.5">
-                            <span class="text-base font-bold">{{
-                                area.label
-                            }}</span>
-                            <span class="flex flex-wrap gap-x-2 text-[13px]">
+                            <span class="text-amount">{{ area.label }}</span>
+                            <span class="flex flex-wrap gap-x-2 text-meta">
                                 <span class="text-ink-soft">{{
                                     cardCountText(area.count)
                                 }}</span>

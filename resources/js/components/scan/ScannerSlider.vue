@@ -49,7 +49,7 @@ function move(by: number): void {
 
 <template>
     <div class="flex flex-col gap-1.5">
-        <div class="flex items-baseline justify-between gap-3 text-sm">
+        <div class="flex items-baseline justify-between gap-3 text-body-sm">
             <span class="font-bold">{{ label }}</span>
             <span class="text-ink-soft tabular-nums">{{ valueText }}</span>
         </div>
