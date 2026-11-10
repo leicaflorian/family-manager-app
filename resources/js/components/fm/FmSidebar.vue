@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * The sidebar of the computer (from 1024 px): the logo and the family, Upload
- * (which only uploads), the sections with *To sort* right under Home (the files
+ * The sidebar of the computer (from 1024 px), and the content of the menu that
+ * the Menu button of the tablet opens from the left: the logo and the family,
+ * Upload (which only uploads), the sections with *To sort* right under Home (the files
  * waiting in a blue pill, nothing at zero) and the areas under *Areas*, and at
  * the bottom *My account*, which opens Settings and Log out.
  *

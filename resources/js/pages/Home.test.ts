@@ -11,12 +11,14 @@ import {
 } from 'vite-plus/test';
 import { WIDE_QUERY } from '@/composables/useWideLayout';
 import { agendaEntries, seenNotices, unreadNotices } from '@/test/fixtures';
-import { press, renderPage } from '@/test/page';
+import { renderPage } from '@/test/page';
 import Home from './Home.vue';
 
 const shared = vi.hoisted(() => ({
     unread_notices: 0,
-    bell_notices: undefined as { unread: unknown[]; seen: unknown[] } | undefined,
+    bell_notices: undefined as
+        | { unread: unknown[]; seen: unknown[] }
+        | undefined,
 }));
 
 // The shared props of the page, and no <Head> as in `setup.ts`
@@ -138,17 +140,6 @@ describe('Home search', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('focuses the box with ⌘K', () => {
-        wide(true);
-        renderPage(Home, { home });
-
-        press({ key: 'k', metaKey: true });
-
-        expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
-        ).toHaveFocus();
-    });
-
     it('opens the menu with the first results while typing, and Enter searches the text', async () => {
         wide(true);
         const visit = vi
@@ -188,17 +179,6 @@ describe('Home search', () => {
         );
     });
 
-    it('focuses the box with «/» pressed outside a field', () => {
-        wide(true);
-        renderPage(Home, { home });
-
-        press({ key: '/' });
-
-        expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
-        ).toHaveFocus();
-    });
-
     it('closes the menu when the focus leaves the box', async () => {
         wide(true);
         renderPage(Home, { home });
@@ -217,18 +197,6 @@ describe('Home search', () => {
                 screen.queryByRole('link', { name: /See all 10 results/ }),
             ).not.toBeInTheDocument(),
         );
-    });
-
-    it('on the phone opens the Search page with ⌘K', () => {
-        wide(false);
-        const visit = vi
-            .spyOn(router, 'visit')
-            .mockImplementation(() => undefined);
-        renderPage(Home, { home });
-
-        press({ key: 'k', metaKey: true });
-
-        expect(visit).toHaveBeenCalledWith('/search');
     });
 
     it('on the phone has the magnifier that opens Search, and no box', () => {
@@ -287,7 +255,10 @@ describe('Home', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
 
         expect(reload).toHaveBeenCalledWith(
-            expect.objectContaining({ only: ['bell_notices'], preserveUrl: true }),
+            expect.objectContaining({
+                only: ['bell_notices'],
+                preserveUrl: true,
+            }),
         );
         reload.mockRestore();
     });

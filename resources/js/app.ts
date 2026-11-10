@@ -15,6 +15,7 @@ import { pageLayout } from '@/lib/pageLayout';
 import { forgetShared } from '@/lib/pwa/sharedFiles';
 import { login, logout } from '@/routes';
 import { pageVisitOptions } from '@/lib/transitions';
+import { startVisitHistory } from '@/lib/visitHistory';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
 
@@ -23,6 +24,10 @@ const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
 // the translations must be ready first.
 const lang = document.documentElement.lang || 'en';
 I18n.getSharedInstance(i18nOptions(lang));
+
+// Back of the top bar needs the depth of the first page too: the listener must exist
+// before Inertia fires the `initial` navigate, which happens before any layout mounts.
+startVisitHistory();
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

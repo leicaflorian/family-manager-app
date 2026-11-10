@@ -13,9 +13,8 @@
  *
  * The search of the whole app: on the computer the box beside the greeting
  * (300 px, 420 px while it has the focus or some text) with the menu of the
- * first results under it, and the square bell; ⌘K, Ctrl K or «/» put the focus
- * in the box. On the phone a round magnifier before the round bell opens the
- * *Search* page.
+ * first results under it, and the square bell. On the phone a round magnifier
+ * before the round bell opens the *Search* page.
  */
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { getActiveLanguage, trans } from 'laravel-vue-i18n';
@@ -36,7 +35,6 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
-import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
 import { agenda, areas, search, toSort, upload } from '@/routes';
@@ -52,7 +50,9 @@ const { home } = defineProps<{
 const page = usePage();
 
 /** The notices of the menu of the bell: the server sends them only when the menu asks. */
-const notices = computed((): BellNotices | undefined => page.props.bell_notices);
+const notices = computed(
+    (): BellNotices | undefined => page.props.bell_notices,
+);
 
 /** How many notices the account has not seen yet, for the dot of the bell. */
 const unreadNotices = computed((): number => page.props.unread_notices ?? 0);
@@ -73,8 +73,6 @@ const wide = useWideLayout();
 /** The text in the search box. */
 const text = ref('');
 
-/** The search box of the computer, to focus it with the shortcut. */
-const field = useTemplateRef<InstanceType<typeof FmSearchField>>('field');
 /** The menu of the first results under the box, for the arrows and Enter. */
 const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
 
@@ -95,11 +93,6 @@ const {
     onFocusIn,
     onFocusOut,
 } = useSearchBox(text, menu, submit);
-
-// On the phone there is no box: the keys open the Search page
-useSearchShortcut(() =>
-    field.value ? field.value.focus() : router.visit(search.url()),
-);
 
 /**
  * The step of *To begin* for a step of the server: its text and where it leads.
@@ -220,7 +213,6 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     @focusout="onFocusOut"
                 >
                     <FmSearchField
-                        ref="field"
                         v-model="text"
                         :label="$t('Search in Family Manager')"
                         shortcut

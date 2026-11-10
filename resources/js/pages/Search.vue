@@ -24,7 +24,6 @@ import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
-import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { dashboard, search } from '@/routes';
 
@@ -45,11 +44,6 @@ const menu = useTemplateRef<InstanceType<typeof FmSearchMenu>>('menu');
 
 const { onFocusIn, onFocusOut, menuResults, enter, onKeydown, closeMenu } =
     useSearchBox(text, menu, submit);
-
-const field = useTemplateRef<InstanceType<typeof FmSearchField>>('field');
-
-// ⌘K, Ctrl K or «/» bring the focus back into the box of this page
-useSearchShortcut(() => field.value?.focus());
 
 /** On the phone the menu takes the place of the chips and of the results. */
 const inlineMenu = computed(
@@ -174,7 +168,6 @@ function goBack(): void {
                     <FmIcon :icon="ArrowLeft" :size="24" />
                 </button>
                 <FmSearchField
-                    ref="field"
                     v-model="text"
                     :label="$t('Search in Family Manager')"
                     clearable
