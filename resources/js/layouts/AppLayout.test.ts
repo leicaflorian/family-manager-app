@@ -75,6 +75,28 @@ describe('AppLayout', () => {
         page.toSort = 0;
     });
 
+    it('tells the pages how high its sticky top is: the top bar, nothing on the phone', () => {
+        const computer = render(AppLayout, {
+            slots: { default: '<h1>Documents</h1>' },
+        });
+        expect(
+            (computer.container.firstElementChild as HTMLElement).style.getPropertyValue(
+                '--app-header',
+            ),
+        ).toBe('var(--spacing-topbar)');
+        computer.unmount();
+
+        screenWidth(390);
+        const phone = render(AppLayout, {
+            slots: { default: '<h1>Documents</h1>' },
+        });
+        expect(
+            (phone.container.firstElementChild as HTMLElement).style.getPropertyValue(
+                '--app-header',
+            ),
+        ).toBe('0px');
+    });
+
     it('on the phone has the bottom bar, and neither the top bar nor the sidebar', () => {
         screenWidth(390);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });

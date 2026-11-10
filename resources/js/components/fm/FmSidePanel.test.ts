@@ -17,6 +17,18 @@ describe('FmSidePanel', () => {
         expect(panel).toHaveAttribute('aria-modal', 'false');
     });
 
+    it('floats under the top bar of the layout, 16 px from it', () => {
+        render(FmSidePanel, {
+            props: { label: 'Bolletta luce' },
+            slots: { default: () => h('p', 'The preview') },
+        });
+
+        expect(screen.getByRole('dialog', { name: 'Bolletta luce' })).toHaveClass(
+            'top-[calc(var(--app-header,0px)+--spacing(4))]',
+            'max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(8)))]',
+        );
+    });
+
     it('closes with Esc', async () => {
         const result = render(FmSidePanel, {
             props: { label: 'Bolletta luce' },

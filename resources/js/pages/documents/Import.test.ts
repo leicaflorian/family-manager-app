@@ -179,6 +179,14 @@ describe('Import', () => {
         ]);
     });
 
+    it('keeps the preview of the file under the top bar while the form scrolls, on the computer', () => {
+        const { container } = renderPage(Import, props([light, gas]));
+
+        expect(container.querySelector('.lg\\:sticky')).toHaveClass(
+            'lg:top-(--app-header)',
+        );
+    });
+
     it('lists the files with their state: the first is being looked at, the others to check', () => {
         renderPage(Import, props([light, gas, warranty]));
 

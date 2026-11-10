@@ -11,9 +11,12 @@
  * in the box of the top bar on the tablet and the computer; on the phone they
  * open the *Search* page, or focus its box when it is already open. During a
  * visit of the owner (*Enter as…*) a strip at the top says whose eyes the app
- * is seen with, and *Leave* ends the visit.
+ * is seen with, and *Leave* ends the visit. The height of the sticky top (the
+ * strip and the top bar) is in `--app-header`, for what the pages keep sticky
+ * or fixed under it.
  */
 import { router, usePage } from '@inertiajs/vue3';
+import { useElementSize } from '@vueuse/core';
 import {
     DialogContent,
     DialogOverlay,
@@ -106,6 +109,23 @@ function leaveVisit(): void {
     router.post(leave.url());
 }
 
+const header = useTemplateRef<HTMLElement>('header');
+const { height: headerHeight } = useElementSize(header, undefined, {
+    box: 'border-box',
+});
+
+/**
+ * The height of the sticky top, measured once it is drawn; until then the top
+ * bar of the tablet and the computer, nothing on the phone.
+ */
+const appHeader = computed((): string => {
+    if (headerHeight.value > 0) {
+        return `${headerHeight.value}px`;
+    }
+
+    return mode.value === 'phone' ? '0px' : 'var(--spacing-topbar)';
+});
+
 const topBar = useTemplateRef<InstanceType<typeof FmTopBar>>('topBar');
 
 /**
@@ -136,7 +156,10 @@ useSearchShortcut(focusSearch);
 </script>
 
 <template>
-    <div class="flex min-h-dvh bg-canvas text-ink">
+    <div
+        class="flex min-h-dvh bg-canvas text-ink"
+        :style="{ '--app-header': appHeader }"
+    >
         <FmSidebar
             v-if="mode === 'computer'"
             class="sticky top-0 h-dvh"
@@ -149,7 +172,7 @@ useSearchShortcut(focusSearch);
             :upload-count="toSort"
         />
         <div class="flex min-w-0 grow flex-col">
-            <div class="sticky top-0 z-30">
+            <div ref="header" class="sticky top-0 z-30">
                 <div
                     v-if="impersonating"
                     role="status"

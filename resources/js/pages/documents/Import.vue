@@ -644,7 +644,7 @@ usePageTrail(() => [
 
             <div class="flex flex-wrap items-start gap-6">
                 <div
-                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-segment p-5 lg:sticky lg:top-0 lg:p-8"
+                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-segment p-5 lg:sticky lg:top-(--app-header) lg:p-8"
                 >
                     <FmFilePreview
                         :url="current.url"

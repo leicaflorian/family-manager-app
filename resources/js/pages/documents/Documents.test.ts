@@ -204,6 +204,15 @@ describe('Documents', () => {
         expect(
             screen.queryByRole('button', { name: 'Close' }),
         ).not.toBeInTheDocument();
+        // sticky under the top bar of the layout, not under the top of the window
+        expect(
+            screen
+                .getByRole('heading', {
+                    name: 'Busta paga di ottobre',
+                    level: 2,
+                })
+                .closest('section'),
+        ).toHaveClass('sticky', 'top-(--app-header)');
     });
 
     it('narrower, shows it in a floating panel that the × closes, keeping filters and page', async () => {

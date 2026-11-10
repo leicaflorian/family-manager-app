@@ -297,7 +297,10 @@ function rowHref(document: App.Data.DocumentData): string {
                 />
             </div>
 
-            <section v-if="selected && wide" class="sticky top-0 min-w-0">
+            <section
+                v-if="selected && wide"
+                class="sticky top-(--app-header) min-w-0"
+            >
                 <FmDocumentDetail :document="selected" compact />
             </section>
         </div>
