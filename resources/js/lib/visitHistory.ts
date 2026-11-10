@@ -21,12 +21,17 @@
  * last one in `sessionStorage`, for a reload.
  */
 import { router } from '@inertiajs/vue3';
+import { shallowRef } from 'vue';
 
 /** The key of the depth, in the remembered state of an entry and in `sessionStorage`. */
 const KEY = 'fm-visit-depth';
 
-/** The pages of the app before the open one, in this tab. */
-let depth = 0;
+/**
+ * The pages of the app before the open one, in this tab. Reactive, because Inertia
+ * renders the new page before it fires `navigate`: a template that calls `canGoBack()`
+ * renders again when the depth changes.
+ */
+const depth = shallowRef(0);
 
 /**
  * Reads a depth that may be anything.
@@ -72,10 +77,10 @@ function storedDepth(): number {
 
 /** Writes the depth in the open entry and in the tab's storage (a failing storage is ignored). */
 function save(): void {
-    router.remember(depth, KEY);
+    router.remember(depth.value, KEY);
 
     try {
-        window.sessionStorage.setItem(KEY, String(depth));
+        window.sessionStorage.setItem(KEY, String(depth.value));
     } catch {
         // Without the storage a reload only starts again at the first page.
     }
@@ -87,10 +92,10 @@ function save(): void {
  * @returns the function that stops following them
  */
 export function startVisitHistory(): () => void {
-    depth = 0;
+    depth.value = 0;
 
     const offNavigate = router.on('navigate', (event): void => {
-        depth = depthAfter(event.detail.type);
+        depth.value = depthAfter(event.detail.type);
         save();
     });
 
@@ -113,9 +118,9 @@ export function startVisitHistory(): () => void {
 function depthAfter(type: string): number {
     switch (type) {
         case 'visit':
-            return depth + 1;
+            return depth.value + 1;
         case 'history':
-            return asDepth(router.restore(KEY)) ?? depth;
+            return asDepth(router.restore(KEY)) ?? depth.value;
         default:
             return isReturn() ? storedDepth() : 0;
     }
@@ -123,10 +128,11 @@ function depthAfter(type: string): number {
 
 /**
  * Whether another page of the app comes before the open one in this tab, so that
- * `history.back()` stays in the app. A tab with a single entry never goes back.
+ * `history.back()` stays in the app. A tab with a single entry never goes back. A
+ * template or a computed that calls it follows the depth after each visit.
  *
  * @returns true when Back can use the browser's history
  */
 export function canGoBack(): boolean {
-    return depth > 0 && window.history.length > 1;
+    return depth.value > 0 && window.history.length > 1;
 }

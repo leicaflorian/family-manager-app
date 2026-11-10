@@ -88,6 +88,46 @@ describe('FmTopBar', () => {
         renderBar({ ...computer, section: true });
 
         expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    });
+
+    it.each([['Meta'], ['Control']])(
+        'leaves a click on Back with %s to the browser',
+        async (key) => {
+            vi.mocked(visitHistory.canGoBack).mockReturnValue(true);
+            const back = vi
+                .spyOn(window.history, 'back')
+                .mockImplementation(() => undefined);
+            const visit = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => undefined);
+            renderBar(computer);
+            const link = screen.getByRole('link', { name: 'Back' });
+            // jsdom would try to follow the link: stop it after the bar has seen the click
+            link.addEventListener('click', (event) => event.preventDefault());
+
+            // the same session keeps the key held during the click
+            const user = userEvent.setup();
+            await user.keyboard(`{${key}>}`);
+            await user.click(link);
+            await user.keyboard(`{/${key}}`);
+
+            expect(back).not.toHaveBeenCalled();
+            expect(visit).not.toHaveBeenCalled();
+        },
+    );
+
+    it('shows Back as a button that goes back without a page above', async () => {
+        vi.mocked(visitHistory.canGoBack).mockReturnValue(true);
+        const back = vi
+            .spyOn(window.history, 'back')
+            .mockImplementation(() => undefined);
+        renderBar({ ...computer, trail: [{ label: 'Search' }] });
+
+        expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
+        await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+        expect(back).toHaveBeenCalledOnce();
     });
 
     it('goes back in the history when a page of the app comes before', async () => {

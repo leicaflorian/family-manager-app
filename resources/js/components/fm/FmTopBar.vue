@@ -116,8 +116,8 @@ const parentHref = computed(
 
 /**
  * Whether Back is shown: on an inner page of the computer, when it can go
- * back in the history or up in the trail. Called from the template, because
- * the history is not reactive: the bar renders again at each visit.
+ * back in the history or up in the trail. `canGoBack()` reads a reactive
+ * depth, so the template that calls this renders again after each visit.
  *
  * @returns true when Back is shown
  */
@@ -131,13 +131,17 @@ function showBack(): boolean {
 
 /**
  * Back: the previous page of the history when it is a page of the app,
- * otherwise the page above in the trail. With a modifier key the browser
- * opens the link as it wants (a new tab, a new window).
+ * otherwise the page above in the trail. With a modifier key on the link
+ * the browser opens it as it wants (a new tab, a new window); the button
+ * without a page above always goes back.
  *
  * @param event - the click on Back
  */
 function back(event: MouseEvent): void {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    const modified =
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+
+    if (modified && parentHref.value !== undefined) {
         return;
     }
 

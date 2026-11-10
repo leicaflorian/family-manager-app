@@ -7,6 +7,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import { computed } from 'vue';
 import { canGoBack, startVisitHistory } from './visitHistory';
 
 /**
@@ -140,6 +141,19 @@ describe('visit history', () => {
         visit();
 
         expect(canGoBack()).toBe(true);
+    });
+
+    it('tells a computed that reads it when a visit changes the answer', () => {
+        openTab('navigate');
+        stop = startVisitHistory();
+        firstPage();
+        // the top bar reads it while rendering, before Inertia fires navigate
+        const back = computed((): boolean => canGoBack());
+        expect(back.value).toBe(false);
+
+        visit();
+
+        expect(back.value).toBe(true);
     });
 
     it('cannot go back after a replace visit on the first page', () => {
