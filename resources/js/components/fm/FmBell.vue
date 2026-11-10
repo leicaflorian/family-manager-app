@@ -23,6 +23,7 @@ import {
 } from 'reka-ui';
 import { computed, useAttrs } from 'vue';
 import type { ClassValue } from 'clsx';
+import type { BellNotices } from '@/lib/notices';
 import { cn } from '@/lib/utils';
 import { notices as noticesPage } from '@/routes';
 import { readAll } from '@/routes/notices';
@@ -30,14 +31,6 @@ import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 import FmNoticeList from './FmNoticeList.vue';
 import FmSectionLink from './FmSectionLink.vue';
-
-/** The notices of the menu, as the server sends them. */
-export type BellNotices = {
-    /** The notices not seen yet, the most recent first. */
-    unread: App.Data.ReminderNoticeData[];
-    /** The notices already seen, the most recent first. */
-    seen: App.Data.ReminderNoticeData[];
-};
 
 // The root is the popover, which draws no element: the classes go to the bell
 defineOptions({ inheritAttrs: false });

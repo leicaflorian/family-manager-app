@@ -1,7 +1,7 @@
 import { router, usePage } from '@inertiajs/vue3';
 import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
-import type { BellNotices } from '@/components/fm/FmBell.vue';
+import type { BellNotices } from '@/lib/notices';
 
 /**
  * The notices of the bell, from the shared props: how many are new, the ones of the menu (sent only

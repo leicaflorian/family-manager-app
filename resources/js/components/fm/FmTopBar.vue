@@ -24,7 +24,7 @@ import type { TrailPiece } from '@/lib/pageTrail';
 import { cn } from '@/lib/utils';
 import { canGoBack } from '@/lib/visitHistory';
 import { search } from '@/routes';
-import type { BellNotices } from './FmBell.vue';
+import type { BellNotices } from '@/lib/notices';
 import FmBell from './FmBell.vue';
 import FmIcon from './FmIcon.vue';
 import FmLogo from './FmLogo.vue';

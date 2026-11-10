@@ -25,7 +25,10 @@ import { usePageTrail } from '@/composables/usePageTrail';
 import { useFormat } from '@/composables/useFormat';
 import { deadlineStatus, deadlineUrls } from '@/lib/budget';
 import { budget, dashboard } from '@/routes';
-import { index as plannedIndex, show as showPlanned } from '@/routes/budget/planned';
+import {
+    index as plannedIndex,
+    show as showPlanned,
+} from '@/routes/budget/planned';
 import { show as showArea } from '@/routes/areas';
 import { show as showMovement } from '@/routes/budget/movements';
 import { show as showCard } from '@/routes/cards';

@@ -1,6 +1,6 @@
 import type { Directive } from 'vue';
 import type { Auth } from '@/types/auth';
-import type { BellNotices } from '@/components/fm/FmBell.vue';
+import type { BellNotices } from '@/lib/notices';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
