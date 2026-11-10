@@ -10,8 +10,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { WIDE_QUERY } from '@/composables/useWideLayout';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Search from './Search.vue';
 
 /**
@@ -194,12 +193,7 @@ const suggestions: App.Data.Search.SearchResultsData = {
  * @param on - true for the computer
  */
 function wide(on: boolean): void {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-        matches: on && query === WIDE_QUERY,
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-    }));
+    screenWidth(on ? 1280 : 390);
 }
 
 let get: MockInstance<typeof router.get>;
@@ -476,54 +470,32 @@ describe('Search', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('on the computer, while typing, shows the suggestions over the results, which stay', async () => {
+    it('on the computer, leaves the box and the suggestions to the top bar', () => {
         wide(true);
         renderPage(Search, { results: panda });
 
-        await userEvent.clear(box());
-        await userEvent.type(box(), 'Pan');
-
-        expect(await screen.findByRole('listbox')).toBeInTheDocument();
-        expect(box()).toHaveAttribute('aria-expanded', 'true');
         expect(
-            screen.getByRole('region', { name: 'Documents' }),
-        ).toBeInTheDocument();
+            screen.queryByRole('combobox', {
+                name: 'Search in Family Manager',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', {
+                level: 1,
+                name: '10 results for «Panda»',
+            }),
+        ).toBeVisible();
         expect(screen.getByRole('button', { pressed: true })).toHaveTextContent(
             /All results\s*10/,
         );
     });
 
-    it('on the computer, closes the suggestions when the focus leaves the box', async () => {
-        wide(true);
+    it('on the phone, the box has the id the shortcut focuses and the text searched', () => {
+        wide(false);
         renderPage(Search, { results: panda });
 
-        await userEvent.clear(box());
-        await userEvent.type(box(), 'Pan');
-        expect(await screen.findByRole('listbox')).toBeInTheDocument();
-
-        screen.getByRole('button', { name: /All results/ }).focus();
-
-        await waitFor(() =>
-            expect(screen.queryByRole('listbox')).not.toBeInTheDocument(),
-        );
-        expect(box()).toHaveAttribute('aria-expanded', 'false');
-    });
-
-    it('on the computer, keeps the focus in the box when a suggestion is pressed', async () => {
-        wide(true);
-        renderPage(Search, { results: panda });
-
-        await userEvent.clear(box());
-        await userEvent.type(box(), 'Pan');
-        const option = (await screen.findAllByRole('option'))[0];
-
-        // a mousedown that is not prevented would blur the box before the click
-        const down = new MouseEvent('mousedown', {
-            bubbles: true,
-            cancelable: true,
-        });
-        option.dispatchEvent(down);
-        expect(down.defaultPrevented).toBe(true);
+        expect(box()).toHaveAttribute('id', 'search-page-field');
+        expect(box()).toHaveValue('Panda');
     });
 
     it('on the computer, has the link to the Home above the title', () => {

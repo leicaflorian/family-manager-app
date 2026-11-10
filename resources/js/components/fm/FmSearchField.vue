@@ -34,6 +34,7 @@ const {
     controls,
     expanded = false,
     activeDescendant,
+    inputId,
 } = defineProps<{
     /** What is searched: the name of the box and the text shown while it is empty. */
     label: string;
@@ -59,6 +60,8 @@ const {
     expanded?: boolean;
     /** The id of the option of that list chosen with the arrows, if any. */
     activeDescendant?: string;
+    /** The `id` of the input itself (not of the label around it), for a shortcut that focuses it. */
+    inputId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -125,6 +128,7 @@ defineExpose({ focus });
     >
         <FmIcon :icon="Search" :size="small ? 18 : 20" />
         <input
+            :id="inputId"
             ref="box"
             v-model="text"
             type="search"

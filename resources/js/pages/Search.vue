@@ -3,14 +3,15 @@
  * *Search*, the page of the results of the global search (`/search?q=…`): the
  * box with the text, the chips of the groups with their numbers (*All results*
  * and one per group that found something) and the groups one after the other,
- * or only the one of the chip pressed. While the person types a new text the
- * first results open under the box (on the phone in place of the results);
- * Enter, or *See all*, searches the text on this page. A search that finds
- * nothing says so with three tips; at the bottom, always, what is searched.
+ * or only the one of the chip pressed. While the person types a new text, on the
+ * phone the first results open in place of the results; Enter, or *See all*,
+ * searches the text on this page. A search that finds nothing says so with
+ * three tips; at the bottom, always, what is searched.
  *
- * On the computer the link to the Home and the title are above the box; on the
- * phone the arrow back is beside the box and the title is only for screen
- * readers.
+ * On the phone the page has its own box (with the arrow back beside it, and the
+ * title only for screen readers); on the tablet and the computer the box and
+ * its menu are in the top bar, which shows the text, and the link to the Home
+ * and the title are above the results.
  */
 import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft, SearchX } from '@lucide/vue';
@@ -24,7 +25,7 @@ import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
-import { useWideLayout } from '@/composables/useWideLayout';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { dashboard, search } from '@/routes';
 
 const { results } = defineProps<{
@@ -35,7 +36,10 @@ const { results } = defineProps<{
 /** One piece of a tip: plain text, or an example in bold or in italics. */
 type TipPart = { text: string; tag?: 'strong' | 'em' };
 
-const wide = useWideLayout();
+const mode = useLayoutMode();
+
+/** The phone: the page has its own box and menu; the tablet and the computer have them in the top bar. */
+const phone = computed((): boolean => mode.value === 'phone');
 
 /** The text in the box. */
 const text = ref(results.query);
@@ -47,7 +51,7 @@ const { onFocusIn, onFocusOut, menuResults, enter, onKeydown, closeMenu } =
 
 /** On the phone the menu takes the place of the chips and of the results. */
 const inlineMenu = computed(
-    (): boolean => !wide.value && menuResults.value !== null,
+    (): boolean => phone.value && menuResults.value !== null,
 );
 
 /** The groups listed: all of them, or only the one of the chip pressed. */
@@ -142,24 +146,24 @@ function goBack(): void {
 
     <div
         class="flex w-full flex-col"
-        :class="wide ? 'mx-auto max-w-220 gap-6' : 'gap-5'"
+        :class="phone ? 'gap-5' : 'mx-auto max-w-220 gap-6'"
     >
         <FmTitle
-            v-if="wide"
+            v-if="!phone"
             :title="title"
             :back="dashboard().url"
             :back-label="$t('Home')"
         />
         <h1 v-else class="sr-only">{{ title }}</h1>
 
-        <div class="flex flex-col" :class="wide ? 'gap-6' : 'gap-3'">
+        <div class="flex flex-col" :class="phone ? 'gap-3' : 'gap-6'">
             <div
+                v-if="phone"
                 class="relative flex items-center gap-2"
                 @focusin="onFocusIn"
                 @focusout="onFocusOut"
             >
                 <button
-                    v-if="!wide"
                     type="button"
                     :aria-label="$t('Back')"
                     class="-ml-2.5 flex size-11 shrink-0 items-center justify-center rounded-full text-ink"
@@ -169,6 +173,7 @@ function goBack(): void {
                 </button>
                 <FmSearchField
                     v-model="text"
+                    input-id="search-page-field"
                     :label="$t('Search in Family Manager')"
                     clearable
                     autofocus
@@ -182,15 +187,6 @@ function goBack(): void {
                     @escape="closeMenu"
                     @keydown="onKeydown"
                 />
-                <FmSearchMenu
-                    v-if="wide && menuResults"
-                    :id="SEARCH_MENU_ID"
-                    ref="menu"
-                    :results="menuResults"
-                    :query="menuResults.query"
-                    class="left-0"
-                    @mousedown.prevent
-                />
             </div>
 
             <div
@@ -199,9 +195,9 @@ function goBack(): void {
                 :aria-label="$t('Filters')"
                 class="flex gap-2"
                 :class="
-                    wide
-                        ? 'flex-wrap'
-                        : '-mx-(--main-gutter) overflow-x-auto px-(--main-gutter)'
+                    phone
+                        ? '-mx-(--main-gutter) overflow-x-auto px-(--main-gutter)'
+                        : 'flex-wrap'
                 "
             >
                 <FmChip
