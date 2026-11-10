@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Family;
 use App\Models\LinkedDevice;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
@@ -23,6 +25,7 @@ function bellReload(string $component): array
 {
     return [
         'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) resolve(HandleInertiaRequests::class)->version(Request::create('/')),
         'X-Inertia-Partial-Component' => $component,
         'X-Inertia-Partial-Data' => 'bell_notices',
     ];
@@ -53,7 +56,9 @@ test('a phone linked with a code does not receive the notices of the bell', func
     $device = LinkedDevice::factory()->for($this->family)->for($this->marco)->create(['token_hash' => hash('sha256', 'x'), 'last_used_at' => now()]);
 
     $response = $this->actingAs($this->marco)->withSession(['linked_device_id' => $device->id])
-        ->get(route('scan'), bellReload('scan/Scan'));
+        ->get(route('scan'), bellReload('scan/Scan'))
+        ->assertOk();
 
-    expect($response->json('props') ?? [])->not->toHaveKey('bell_notices');
+    expect($response->json('component'))->toBe('scan/Scan')
+        ->and($response->json('props'))->not->toHaveKey('bell_notices');
 });
