@@ -134,18 +134,18 @@ test('marking one read twice keeps the first date', function (): void {
     expect(insideBianchi(fn (): string => ReminderNotice::query()->findOrFail($notice->id)->read_at->format('Y-m-d H:i')))->toBe('2026-10-25 08:00');
 });
 
-test('the Home sends the notices of the bell only when the menu asks for them', function (): void {
+test('the bell gets its notices only when the menu asks for them', function (): void {
     $new = noticeFor($this->marco);
     $seen = noticeFor($this->marco, ['read_at' => now()]);
     noticeFor($this->laura);
 
     $this->actingAs($this->marco)->get('/dashboard')
-        ->assertInertia(fn ($page) => $page->missing('notices')
-            ->reloadOnly('notices', fn ($reload) => $reload
-                ->where('notices.unread.0.id', $new->id)
-                ->has('notices.unread', 1)
-                ->where('notices.seen.0.id', $seen->id)
-                ->has('notices.seen', 1)));
+        ->assertInertia(fn ($page) => $page->missing('bell_notices')
+            ->reloadOnly('bell_notices', fn ($reload) => $reload
+                ->where('bell_notices.unread.0.id', $new->id)
+                ->has('bell_notices.unread', 1)
+                ->where('bell_notices.seen.0.id', $seen->id)
+                ->has('bell_notices.seen', 1)));
 });
 
 test('read all goes back to the page it was asked from', function (): void {
@@ -227,7 +227,7 @@ function noticesFor(User $user, int $count, array $notice = [], array $reminder 
 }
 
 /**
- * The notices the menu of the bell gets, as the Home sends them when it asks.
+ * The notices the menu of the bell gets, as they arrive when it asks for them.
  *
  * @return array{unread: list<array<string, mixed>>, seen: list<array<string, mixed>>}
  */
@@ -239,8 +239,8 @@ function bellMenu(User $user): array
         'X-Inertia' => 'true',
         'X-Inertia-Version' => $version,
         'X-Inertia-Partial-Component' => 'Home',
-        'X-Inertia-Partial-Data' => 'notices',
-    ])->assertOk()->json('props.notices');
+        'X-Inertia-Partial-Data' => 'bell_notices',
+    ])->assertOk()->json('props.bell_notices');
 }
 
 test('the menu of the bell has the last 10 notices, the new ones first even when older', function (): void {
