@@ -14,7 +14,10 @@ import { agendaEntries, seenNotices, unreadNotices } from '@/test/fixtures';
 import { press, renderPage } from '@/test/page';
 import Home from './Home.vue';
 
-const shared = vi.hoisted(() => ({ unread_notices: 0 }));
+const shared = vi.hoisted(() => ({
+    unread_notices: 0,
+    bell_notices: undefined as { unread: unknown[]; seen: unknown[] } | undefined,
+}));
 
 // The shared props of the page, and no <Head> as in `setup.ts`
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -284,23 +287,22 @@ describe('Home', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
 
         expect(reload).toHaveBeenCalledWith(
-            expect.objectContaining({ only: ['notices'], preserveUrl: true }),
+            expect.objectContaining({ only: ['bell_notices'], preserveUrl: true }),
         );
         reload.mockRestore();
     });
 
     it('shows the notices in the menu of the bell once they arrive', async () => {
         vi.spyOn(router, 'reload').mockImplementation(() => undefined);
-        renderPage(Home, {
-            home,
-            notices: { unread: unreadNotices, seen: seenNotices },
-        });
+        shared.bell_notices = { unread: unreadNotices, seen: seenNotices };
+        renderPage(Home, { home });
 
         await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
 
         expect(
             screen.getByRole('region', { name: 'New notices' }),
         ).toHaveTextContent('Pay the road tax');
+        shared.bell_notices = undefined;
         vi.restoreAllMocks();
     });
 

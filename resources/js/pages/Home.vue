@@ -44,21 +44,22 @@ import { create as newCard } from '@/routes/cards';
 import { index as receivedMail } from '@/routes/mail';
 import { create as invite } from '@/routes/family/invitations';
 
-const { home, notices } = defineProps<{
+const { home } = defineProps<{
     /** What the Home shows, as the server sends it. */
     home: App.Data.HomeData;
-    /** The notices of the menu of the bell: the server sends them only when the menu asks. */
-    notices?: BellNotices;
 }>();
 
 const page = usePage();
+
+/** The notices of the menu of the bell: the server sends them only when the menu asks. */
+const notices = computed((): BellNotices | undefined => page.props.bell_notices);
 
 /** How many notices the account has not seen yet, for the dot of the bell. */
 const unreadNotices = computed((): number => page.props.unread_notices ?? 0);
 
 /** Loads the notices of the bell when its menu opens, without changing the address. */
 function loadNotices(): void {
-    router.reload({ only: ['notices'], preserveUrl: true });
+    router.reload({ only: ['bell_notices'], preserveUrl: true });
 }
 
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));

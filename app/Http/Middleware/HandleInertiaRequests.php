@@ -10,8 +10,11 @@ use App\Models\File;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\CardSummaries;
+use App\Services\Reminders\NoticeList;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -27,8 +30,9 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * @param  CardSummaries  $summaries  the cards of the family, for the counts of the sidebar
+     * @param  NoticeList  $notices  the notices of the bell
      */
-    public function __construct(private readonly CardSummaries $summaries) {}
+    public function __construct(private readonly CardSummaries $summaries, private readonly NoticeList $notices) {}
 
     /**
      * Determines the current asset version.
@@ -64,6 +68,10 @@ class HandleInertiaRequests extends Middleware
             'family' => fn (): ?FamilyData => $this->family($request),
             'areas' => fn (): array => $request->user() instanceof User ? $this->summaries->counts() : [],
             'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->where('user_id', $request->user()->id)->unread()->count() : 0,
+            // The menu of the bell: sent only when a page asks for it (`only: ['bell_notices']`)
+            'bell_notices' => Inertia::optional(fn (): array => $request->user() instanceof User
+                ? $this->notices->latest($request->user()->id, CarbonImmutable::today('Europe/Rome'))
+                : ['unread' => [], 'seen' => []]),
             // The number on *Upload*: the files waiting for their document, the copies left out
             'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
             'locale' => app()->getLocale(),
