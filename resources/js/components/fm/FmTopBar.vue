@@ -264,9 +264,11 @@ defineExpose({ focusSearch });
                     @mousedown.prevent
                 />
             </div>
+            <!-- The 44 px bell is centred in the 68 px bar: 20 px under it is 8 px under the line, as the boards draw it -->
             <FmBell
                 :count="unreadNotices"
                 :notices="notices"
+                :side-offset="20"
                 class="rounded-md border border-edge-soft bg-card"
                 @open="emit('loadNotices')"
             />

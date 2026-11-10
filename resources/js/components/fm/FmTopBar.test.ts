@@ -231,6 +231,29 @@ describe('FmTopBar', () => {
         expect(bar.emitted('loadNotices')).toHaveLength(1);
     });
 
+    it('opens the notices 8 px under its line, 20 px under the bell', async () => {
+        render(FmTopBar, {
+            props: computer,
+            global: {
+                plugins: formPlugins,
+                stubs: {
+                    PopoverContent: {
+                        props: ['sideOffset'],
+                        template:
+                            '<div data-testid="panel" :data-side-offset="sideOffset"><slot /></div>',
+                    },
+                },
+            },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
+
+        expect(screen.getByTestId('panel')).toHaveAttribute(
+            'data-side-offset',
+            '20',
+        );
+    });
+
     it('puts the focus in the box with focusSearch', async () => {
         // the layout holds the bar in a template ref and calls the method
         const Layout = defineComponent({

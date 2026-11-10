@@ -9,7 +9,40 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
+/** A panel that shows the distance from the bell it was given, which jsdom cannot measure. */
+const PanelStub = {
+    props: ['sideOffset'],
+    template:
+        '<div data-testid="panel" :data-side-offset="sideOffset"><slot /></div>',
+};
+
 describe('FmBell', () => {
+    it('opens the panel 8 px under the bell, or as far as the page asks', async () => {
+        const stubs = { PopoverContent: PanelStub };
+        const first = render(FmBell, {
+            props: { count: 0 },
+            global: { stubs },
+        });
+        await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
+
+        expect(screen.getByTestId('panel')).toHaveAttribute(
+            'data-side-offset',
+            '8',
+        );
+        first.unmount();
+
+        render(FmBell, {
+            props: { count: 0, sideOffset: 20 },
+            global: { stubs },
+        });
+        await userEvent.click(screen.getByRole('button', { name: 'Notices' }));
+
+        expect(screen.getByTestId('panel')).toHaveAttribute(
+            'data-side-offset',
+            '20',
+        );
+    });
+
     it('has no number when there is nothing new', () => {
         render(FmBell, { props: { count: 0 } });
 

@@ -61,11 +61,17 @@ function otherAttrs(): Record<string, unknown> {
     return rest;
 }
 
-const { count, notices } = defineProps<{
+const {
+    count,
+    notices,
+    sideOffset = 8,
+} = defineProps<{
     /** How many notices the person has not seen yet. */
     count: number;
     /** The notices of the menu; missing until the page loads them. */
     notices?: BellNotices;
+    /** How far under the bell the panel opens, in px (the top bar puts it 8 px under its line). */
+    sideOffset?: number;
 }>();
 
 const emit = defineEmits<{
@@ -129,7 +135,7 @@ function markAll(): void {
         <PopoverPortal>
             <PopoverContent
                 align="end"
-                :side-offset="8"
+                :side-offset="sideOffset"
                 :collision-padding="16"
                 class="z-30 flex max-h-[min(720px,var(--reka-popover-content-available-height))] w-[min(380px,calc(100vw-32px))] flex-col gap-4 overflow-y-auto rounded-card-lg border border-edge-soft bg-canvas p-5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             >
