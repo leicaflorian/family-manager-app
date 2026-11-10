@@ -1798,5 +1798,7 @@
     "New expense": "Nuova spesa",
     "An expense already made, without a document": "Una spesa già fatta, senza documento",
     "Something to remember, with the date": "Una cosa da ricordare, con la data",
-    "{1} :label, :count file|[2,*] :label, :count files": "{1} :label, :count file|[2,*] :label, :count file"
+    "{1} :label, :count file|[2,*] :label, :count files": "{1} :label, :count file|[2,*] :label, :count file",
+    "Menu": "Menu",
+    "{1} Menu, :count file to sort|[2,*] Menu, :count files to sort": "{1} Menu, :count file da smistare|[2,*] Menu, :count file da smistare"
 }
