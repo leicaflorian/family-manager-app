@@ -46,7 +46,7 @@ import { desktopSystem } from '@/lib/devices';
 import { anyFileReading } from '@/lib/reading';
 import { filterLinks } from '@/lib/toSort';
 import type { FilterLink } from '@/lib/toSort';
-import { scan, scanner, toSort, upload as uploadPage } from '@/routes';
+import { scan, scanner, upload as uploadPage } from '@/routes';
 import { destroy, read } from '@/routes/to-sort';
 
 const props = defineProps<{
