@@ -12,7 +12,8 @@ import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
-import { toSort } from '@/routes';
+import { filterLinks } from '@/lib/toSort';
+import type { FilterLink } from '@/lib/toSort';
 
 const { filters, source } = defineProps<{
     /** The filters in order, with their names and how many files each has. */
@@ -21,22 +22,10 @@ const { filters, source } = defineProps<{
     source: App.Enums.FileSource | null;
 }>();
 
-/** A filter as the box shows it. */
-type Source = {
-    /** The value of the filter, `null` for *All*. */
-    value: string | null;
-    /** The name in the box, longer than the one of the tabs. */
-    label: string;
+/** A filter as the box shows it: the link, with a longer name and its icon. */
+type Source = FilterLink & {
     /** The icon of where the files come from. */
     icon: LucideIcon;
-    /** How many files it has. */
-    count: number;
-    /** The address of the page with the filter. */
-    href: string;
-    /** It is the filter chosen. */
-    current: boolean;
-    /** It has no file, and it is not *All*. */
-    disabled: boolean;
 };
 
 /**
@@ -69,16 +58,9 @@ function describe(
 
 /** The filters of the box. */
 const sources = computed((): Source[] =>
-    filters.map((filter) => ({
-        ...describe(filter.value, filter.label),
-        value: filter.value,
-        count: filter.count,
-        href:
-            filter.value === null
-                ? toSort().url
-                : toSort({ query: { source: filter.value } }).url,
-        current: source === filter.value,
-        disabled: filter.count === 0 && filter.value !== null,
+    filterLinks(filters, source).map((link) => ({
+        ...link,
+        ...describe(link.value, link.label),
     })),
 );
 </script>

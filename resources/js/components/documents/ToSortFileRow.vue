@@ -44,6 +44,27 @@ const emit = defineEmits<{
 /** A copy is left out of the choice: it can only be deleted. */
 const isCopy = computed((): boolean => file.copy_of !== null);
 
+/** What the bin of the row says and asks, the same in both rows: a copy names itself. */
+const deleteProps = computed(
+    (): {
+        label: string;
+        url: string;
+        question: string;
+        text: string;
+        confirmLabel: string;
+    } => ({
+        label: isCopy.value ? trans('Delete the copy') : trans('Delete'),
+        url: destroy.url(file.id),
+        question: isCopy.value
+            ? trans('Delete this copy?')
+            : trans('Delete this file?'),
+        text: trans('The file is deleted for good.'),
+        confirmLabel: isCopy.value
+            ? trans('Delete the copy')
+            : trans('Delete the file'),
+    }),
+);
+
 /** The icon of where the file came from, before its note. */
 const sourceIcon = computed((): LucideIcon => {
     switch (file.source) {
@@ -142,19 +163,7 @@ const readingText = computed((): string => {
                 shortDate(file.created_on)
             }}</span>
         </button>
-        <FmDeleteButton
-            v-if="file.can_delete"
-            compact
-            :label="isCopy ? $t('Delete the copy') : $t('Delete')"
-            :url="destroy.url(file.id)"
-            :question="
-                isCopy ? $t('Delete this copy?') : $t('Delete this file?')
-            "
-            :text="$t('The file is deleted for good.')"
-            :confirm-label="
-                isCopy ? $t('Delete the copy') : $t('Delete the file')
-            "
-        />
+        <FmDeleteButton v-if="file.can_delete" compact v-bind="deleteProps" />
     </li>
     <li
         v-else
@@ -214,15 +223,7 @@ const readingText = computed((): string => {
             <FmDeleteButton
                 v-if="file.can_delete"
                 compact
-                :label="isCopy ? $t('Delete the copy') : $t('Delete')"
-                :url="destroy.url(file.id)"
-                :question="
-                    isCopy ? $t('Delete this copy?') : $t('Delete this file?')
-                "
-                :text="$t('The file is deleted for good.')"
-                :confirm-label="
-                    isCopy ? $t('Delete the copy') : $t('Delete the file')
-                "
+                v-bind="deleteProps"
             />
         </span>
     </li>

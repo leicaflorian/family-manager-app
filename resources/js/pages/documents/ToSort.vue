@@ -44,6 +44,8 @@ import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { desktopSystem } from '@/lib/devices';
 import { anyFileReading } from '@/lib/reading';
+import { filterLinks } from '@/lib/toSort';
+import type { FilterLink } from '@/lib/toSort';
 import { scan, scanner, toSort, upload as uploadPage } from '@/routes';
 import { destroy, read } from '@/routes/to-sort';
 
@@ -70,35 +72,9 @@ const waiting = computed(
         props.filters.find((filter) => filter.value === null)?.count ?? 0,
 );
 
-/** A filter as a chip, for the tablet and the phone: a filter with no files cannot be chosen. */
-type Chip = {
-    /** The value of the filter, `null` for *All*. */
-    value: string | null;
-    /** Its short name. */
-    label: string;
-    /** The address of the page with the filter. */
-    href: string;
-    /** How many files it has. */
-    count: number;
-    /** It is the filter chosen. */
-    current: boolean;
-    /** It has no file, and it is not *All*. */
-    disabled: boolean;
-};
-
-/** The filters as chips. */
-const chips = computed((): Chip[] =>
-    props.filters.map((filter) => ({
-        value: filter.value,
-        label: filter.label,
-        href:
-            filter.value === null
-                ? toSort().url
-                : toSort({ query: { source: filter.value } }).url,
-        count: filter.count,
-        current: props.source === filter.value,
-        disabled: filter.count === 0 && filter.value !== null,
-    })),
+/** The filters as chips, for the tablet and the phone: a filter with no files cannot be chosen. */
+const chips = computed((): FilterLink[] =>
+    filterLinks(props.filters, props.source),
 );
 
 // The files dropped here stay among those to sort, instead of opening Import
@@ -115,6 +91,9 @@ const confirmingDelete = ref(false);
 
 /** The chosen files are being deleted. */
 const deleting = ref(false);
+
+/** How many files the question to delete names, kept from when it opens so it does not change while the panel closes. */
+const deletingCount = ref(0);
 
 /** The ids of the files chosen. */
 const chosen = ref<number[]>([]);
@@ -170,11 +149,17 @@ function readChosen(): void {
 
 /** Asks before deleting the files chosen: they cannot be recovered. */
 function deleteChosen(): void {
+    deletingCount.value = chosenIds.value.length;
     confirmingDelete.value = true;
 }
 
 /** Deletes the files chosen, once the person confirmed, and stays on the same filter. */
 function confirmDelete(): void {
+    // A second tap on Delete, while the first one is on its way, would send it again
+    if (deleting.value) {
+        return;
+    }
+
     deleting.value = true;
     router.delete(destroy.url(), {
         data: { ids: chosenIds.value },
@@ -309,7 +294,7 @@ function confirmDelete(): void {
                     "
                 />
 
-                <div v-else class="overflow-hidden rounded-card-lg bg-card">
+                <div v-else class="overflow-hidden rounded-card bg-card">
                     <!-- On the phone the rows are touched to choose them, and the bar is at the bottom -->
                     <div
                         v-if="!phone"
@@ -343,7 +328,7 @@ function confirmDelete(): void {
                         >
                         <FmButton
                             :icon="Sparkles"
-                            :disabled="chosenIds.length === 0"
+                            :disabled="chosenIds.length === 0 || deleting"
                             @click="readChosen"
                         >
                             {{
@@ -394,8 +379,8 @@ function confirmDelete(): void {
             :question="
                 $tChoice(
                     '{1} Delete the chosen file?|[2,*] Delete :count files?',
-                    chosenIds.length,
-                    { count: String(chosenIds.length) },
+                    deletingCount,
+                    { count: String(deletingCount) },
                 )
             "
             :text="$t('Deleted files cannot be recovered.')"

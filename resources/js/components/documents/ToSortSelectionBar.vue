@@ -44,7 +44,7 @@ defineEmits<{
                     count,
                 )
             "
-            class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-overdue disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-overdue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-50"
             @click="$emit('delete')"
         >
             <FmIcon :icon="Trash2" :size="20" />

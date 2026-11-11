@@ -8,6 +8,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import { nextTick } from 'vue';
 import { pendingPayslip } from '@/test/fixtures';
 import { renderPage, screenWidth } from '@/test/page';
 import ToSort from './ToSort.vue';
@@ -519,6 +520,49 @@ describe('ToSort on the computer', () => {
                 preserveScroll: true,
             }),
         );
+    });
+
+    it('deletes once on a double tap, and keeps Check off while it deletes', async () => {
+        const remove = vi.spyOn(router, 'delete').mockImplementation(() => {});
+        renderPage(ToSort, page);
+
+        await fireEvent.click(box('Avviso TARI 2026.pdf'));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Delete the chosen' }),
+        );
+        const confirm = within(await screen.findByRole('dialog')).getByRole(
+            'button',
+            { name: 'Delete' },
+        );
+        await fireEvent.click(confirm);
+        await fireEvent.click(confirm);
+
+        expect(remove).toHaveBeenCalledOnce();
+        // The panel is still open over the page, which is hidden from the roles meanwhile
+        expect(
+            screen.getByRole('button', { name: 'Check 1 file', hidden: true }),
+        ).toBeDisabled();
+    });
+
+    it('keeps the count of the question while the panel closes after deleting', async () => {
+        const remove = vi.spyOn(router, 'delete').mockImplementation(() => {});
+        renderPage(ToSort, page);
+
+        await fireEvent.click(box('Avviso TARI 2026.pdf'));
+        await fireEvent.click(box('Garanzia lavatrice.jpg'));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Delete the chosen' }),
+        );
+        await fireEvent.click(
+            within(await screen.findByRole('dialog')).getByRole('button', {
+                name: 'Delete',
+            }),
+        );
+        const options = remove.mock.calls[0]?.[1];
+        options?.onSuccess?.({} as never);
+        await nextTick();
+
+        expect(screen.getByText('Delete 2 files?')).toBeInTheDocument();
     });
 
     it('has no Delete the chosen for who cannot delete many files', async () => {

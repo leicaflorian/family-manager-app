@@ -45,7 +45,8 @@ defineEmits<{
     click: [];
 }>();
 
-const classes = computed(() =>
+/** The look of the chip: on (soft or solid) or off, dimmed when disabled. */
+const classes = computed((): string =>
     cn(
         'inline-flex h-9.5 shrink-0 items-center gap-1.5 rounded-full border px-3.5 whitespace-nowrap',
         pressed
@@ -57,7 +58,8 @@ const classes = computed(() =>
     ),
 );
 
-const countClasses = computed(() =>
+/** The look of the number: on the solid chip it takes the text of the chip. */
+const countClasses = computed((): string =>
     cn(
         'text-meta-strong',
         pressed && variant === 'solid' ? 'text-on-action' : 'text-ink-soft',
