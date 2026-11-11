@@ -211,6 +211,19 @@ test('delete many needs at least one id', function (): void {
     $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => ['foo' => 1]])->assertSessionHasErrors('ids');
 });
 
+test('delete many takes at most 500 ids, and nothing is deleted beyond them', function (): void {
+    // The same id 501 times: the files are found (the ids are counted once), so the list reaches the rules
+    $file = waiting();
+
+    $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => array_fill(0, 501, $file->id)])
+        ->assertSessionHasErrors('ids');
+    expect($file->fresh())->not->toBeNull();
+
+    $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => array_fill(0, 500, $file->id)])
+        ->assertSessionHasNoErrors();
+    expect($file->fresh())->toBeNull();
+});
+
 test('a copy among the ids is deleted like the others', function (): void {
     $files = bianchiToSort();
 

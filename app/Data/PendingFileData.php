@@ -9,9 +9,9 @@ use App\Enums\FileSource;
 use App\Enums\ReadingStatus;
 use App\Models\File;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use App\Support\FileTitle;
 use App\Support\PresetLink;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Gate;
 use Spatie\LaravelData\Data;
@@ -122,19 +122,30 @@ final class PendingFileData extends Data
     {
         $name = self::creatorName($file);
 
-        if ($name === null) {
+        if ($name === null || $file->source === FileSource::Mail) {
             return $file->note;
         }
 
+        return self::arrival($file, $name);
+    }
+
+    /**
+     * When and who for a file uploaded here, from the phone (with its caption) or scanned.
+     *
+     * @param  File  $file  a file that did not arrive by mail
+     * @param  string  $name  who uploaded or scanned it
+     */
+    private static function arrival(File $file, string $name): string
+    {
         $date = self::date($file);
 
         return match ($file->source) {
-            FileSource::Upload => __('Uploaded here on :date by :name', ['date' => $date, 'name' => $name]),
             FileSource::Phone => filled($file->note)
                 ? __('Uploaded from the phone on :date by :name: «:note»', ['date' => $date, 'name' => $name, 'note' => $file->note])
                 : __('Uploaded from the phone on :date by :name', ['date' => $date, 'name' => $name]),
             FileSource::Scanner => __('Scanned on :date by :name', ['date' => $date, 'name' => $name]),
-            FileSource::Mail => $file->note,
+            // A mail never comes here: its note is the one saved
+            FileSource::Upload, FileSource::Mail => __('Uploaded here on :date by :name', ['date' => $date, 'name' => $name]),
         };
     }
 
@@ -148,7 +159,11 @@ final class PendingFileData extends Data
         if ($file->source === FileSource::Mail) {
             $sender = self::mailSender($file);
 
-            return $sender !== null && $file->mime_type === 'text/plain' ? __(':sender · mail without attachment', ['sender' => $sender]) : $sender;
+            if ($sender === null || $file->mime_type !== 'text/plain') {
+                return $sender;
+            }
+
+            return __(':sender · mail without attachment', ['sender' => $sender]);
         }
 
         $name = self::creatorName($file);

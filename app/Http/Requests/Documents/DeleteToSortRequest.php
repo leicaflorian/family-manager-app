@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * The files chosen in *To sort* to be deleted: at least one, all still waiting in the family. They are looked up
- * in `authorize()`, so a wrong id answers 404 before the permission (403) and the body (422).
+ * The files chosen in *To sort* to be deleted: at least one and at most 500, all still waiting in the family. They
+ * are looked up in `authorize()`, so a wrong id answers 404 before the permission (403) and the body (422).
  */
 final class DeleteToSortRequest extends FormRequest
 {
@@ -33,14 +33,14 @@ final class DeleteToSortRequest extends FormRequest
     }
 
     /**
-     * The ids of the files.
+     * The ids of the files: at least one, at most 500.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'ids' => ['required', 'array', 'list', 'min:1'],
+            'ids' => ['required', 'array', 'list', 'min:1', 'max:500'],
             'ids.*' => ['integer'],
         ];
     }
