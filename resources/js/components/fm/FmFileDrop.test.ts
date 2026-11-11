@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import FmFileDrop from './FmFileDrop.vue';
 
 const libretto = new File(['%PDF-1.4'], 'Libretto.pdf', {
@@ -117,5 +117,21 @@ describe('FmFileDrop', () => {
         expect(
             screen.getByText('Drag the files here, or').closest('span'),
         ).toHaveTextContent('Drag the files here, or choose from the computer');
+    });
+
+    it('is 320 px high by default and takes another least height', () => {
+        const { rerender } = render(FmFileDrop);
+        const box = () =>
+            screen
+                .getByText('Drag the files here, or choose them')
+                .closest('label');
+
+        expect(box()).toHaveStyle({ minHeight: '320px' });
+
+        rerender({ minHeight: 260 });
+
+        return vi.waitFor(() =>
+            expect(box()).toHaveStyle({ minHeight: '260px' }),
+        );
     });
 });

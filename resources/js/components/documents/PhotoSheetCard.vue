@@ -40,7 +40,7 @@ const { stacked = false } = defineProps<{
             <FmIcon :icon="Camera" :size="stacked ? 34 : 26" />
         </span>
         <span :class="cn('flex min-w-0 flex-col gap-0.5', !stacked && 'grow')">
-            <span :class="stacked ? 'text-title-sm' : 'text-body-strong'">{{
+            <span :class="stacked ? 'text-subtitle' : 'text-body-strong'">{{
                 $t('Take a photo of a sheet')
             }}</span>
             <span :class="stacked ? 'text-body-sm' : 'text-meta'">{{

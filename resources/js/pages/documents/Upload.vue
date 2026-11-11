@@ -108,6 +108,7 @@ usePageTrail(() => [
             />
             <FmFileDrop
                 v-bind="phoneWording"
+                :min-height="layout === 'phone' ? 260 : undefined"
                 :processing="processing"
                 @files="send"
             />
