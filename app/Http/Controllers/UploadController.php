@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Files\DeletePendingFiles;
 use App\Actions\Reading\QueueReading;
 use App\Enums\FileSource;
 use App\Http\Requests\Documents\UploadRequest;
@@ -63,12 +64,12 @@ final class UploadController extends Controller
      * Discards a file still waiting, if the person may (`FilePolicy`): a filed one is no longer here. It goes back
      * to the page it was deleted from, *Upload* or *To sort*.
      */
-    public function destroy(File $file, FileStore $store): RedirectResponse
+    public function destroy(File $file, DeletePendingFiles $delete): RedirectResponse
     {
         abort_unless($file->to_sort, 404);
         Gate::authorize('delete', $file);
 
-        $store->delete($file);
+        $delete->handle([$file]);
 
         return back(fallback: route('to-sort'));
     }

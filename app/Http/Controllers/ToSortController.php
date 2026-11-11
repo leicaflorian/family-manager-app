@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Files\DeletePendingFiles;
 use App\Actions\Reading\QueueReading;
 use App\Data\ToSortPageData;
+use App\Http\Requests\Documents\DeleteToSortRequest;
 use App\Http\Requests\Documents\ReadToSortRequest;
 use App\Models\File;
 use App\Models\User;
@@ -46,5 +48,15 @@ final class ToSortController extends Controller
         return $files->isEmpty()
             ? to_route('to-sort')
             : to_route('import', ['files' => $files->pluck('id')->implode(',')]);
+    }
+
+    /**
+     * Deletes the files chosen, for an `admin` only (a copy too), and goes back to the page it came from.
+     */
+    public function destroy(DeleteToSortRequest $request, DeletePendingFiles $delete): RedirectResponse
+    {
+        $delete->handle($request->files());
+
+        return back(fallback: route('to-sort'));
     }
 }

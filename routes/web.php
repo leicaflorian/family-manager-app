@@ -227,6 +227,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('files/{file}/read', FileReadingController::class)->name('files.read');
 
         Route::get('to-sort', [ToSortController::class, 'index'])->name('to-sort');
+        Route::delete('to-sort', [ToSortController::class, 'destroy'])->name('to-sort.destroy');
         Route::post('to-sort/read', [ToSortController::class, 'read'])->name('to-sort.read');
         Route::get('import', [ImportController::class, 'index'])->name('import');
         Route::post('import', [ImportController::class, 'store'])->name('import.store');

@@ -6,6 +6,7 @@ namespace App\Data;
 
 use App\Enums\FileSource;
 use App\Models\File;
+use Illuminate\Support\Facades\Gate;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -23,11 +24,13 @@ final class ToSortPageData extends Data
      * @param  list<PendingFileData>  $files  the files of the filter chosen, the newest first
      * @param  FileSource|null  $source  the filter chosen, null for *All*
      * @param  list<array{value: string|null, label: string, count: int}>  $filters  the tabs in order, *All* first, with how many files each has whatever the one chosen
+     * @param  bool  $can_delete_many  whether the person may delete the files chosen all at once (an `admin`)
      */
     public function __construct(
         public readonly array $files,
         public readonly ?FileSource $source,
         public readonly array $filters,
+        public readonly bool $can_delete_many,
     ) {}
 
     /**
@@ -44,7 +47,7 @@ final class ToSortPageData extends Data
             ->when($source instanceof FileSource, static fn ($query) => $query->where('source', $source))
             ->latest('id')->get();
 
-        return new self(array_values(PendingFileData::fromFiles($files)), $source, self::filters());
+        return new self(array_values(PendingFileData::fromFiles($files)), $source, self::filters(), Gate::allows('deleteMany', File::class));
     }
 
     /**

@@ -59,4 +59,14 @@ final class FilePolicy extends FamilyPolicy
 
         return $user->isAdmin() || $model->created_by === $user->id || $model->copyOf() instanceof File;
     }
+
+    /**
+     * Deleting many files at once in *To sort*: only an `admin`.
+     *
+     * @param  User  $user  whoever signed in
+     */
+    public function deleteMany(User $user): bool
+    {
+        return $user->isAdmin();
+    }
 }

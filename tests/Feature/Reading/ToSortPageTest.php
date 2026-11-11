@@ -171,6 +171,59 @@ test('deleting a file goes back to the page it was deleted from', function (): v
     expect($file->fresh())->toBeNull();
 });
 
+test('an admin deletes the files chosen', function (): void {
+    $one = waiting();
+    $two = waiting();
+    $three = waiting();
+
+    $this->actingAs($this->marco)->from(route('to-sort'))->delete(route('to-sort.destroy'), ['ids' => [$one->id, $two->id]])
+        ->assertRedirect(route('to-sort'));
+
+    expect($one->fresh())->toBeNull()->and($two->fresh())->toBeNull()->and($three->fresh())->not->toBeNull();
+    Storage::disk('local')->assertMissing($one->path);
+    Storage::disk('local')->assertMissing($two->path);
+});
+
+test('a member cannot delete many files, not even his own', function (): void {
+    $mine = waiting(['created_by' => $this->laura->id]);
+
+    $this->actingAs($this->laura)->delete(route('to-sort.destroy'), ['ids' => [$mine->id]])->assertForbidden();
+
+    expect($mine->fresh())->not->toBeNull();
+});
+
+test('an id that is not waiting answers 404 and nothing is deleted', function (): void {
+    $mine = waiting();
+    $foreign = File::factory()->create(['to_sort' => true]);
+    $filed = File::factory()->for($this->marco->family)->create(['to_sort' => false]);
+
+    foreach ([$foreign->id, $filed->id, 999999] as $wrong) {
+        $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => [$mine->id, $wrong]])->assertNotFound();
+    }
+    $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => 'x'])->assertSessionHasErrors('ids');
+    $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => [$mine->id, $foreign->id, 'x']])->assertNotFound();
+
+    expect($mine->fresh())->not->toBeNull()->and($foreign->fresh())->not->toBeNull();
+});
+
+test('delete many needs at least one id', function (): void {
+    $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => []])->assertSessionHasErrors('ids');
+    $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => ['foo' => 1]])->assertSessionHasErrors('ids');
+});
+
+test('a copy among the ids is deleted like the others', function (): void {
+    $files = bianchiToSort();
+
+    $this->actingAs($this->marco)->delete(route('to-sort.destroy'), ['ids' => [$files['copy']->id, $files['tari']->id]])->assertRedirect();
+
+    expect($files['copy']->fresh())->toBeNull()->and($files['tari']->fresh())->toBeNull()->and($files['phone']->fresh())->not->toBeNull();
+});
+
+test('the page says whether the person can delete many', function (): void {
+    $this->actingAs($this->marco)->get(route('to-sort'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can_delete_many', true));
+    $this->actingAs($this->laura)->get(route('to-sort'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can_delete_many', false));
+});
+
 test('read queues the files that are not read, and a file already read is not read again', function (): void {
     $files = bianchiToSort();
 

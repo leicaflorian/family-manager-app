@@ -716,6 +716,7 @@ value: string | null,
 label: string,
 count: number,
 }[],
+readonly can_delete_many: boolean,
 };
 namespace Mail {
 export type MailScreeningAnswer = {
