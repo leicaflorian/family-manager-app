@@ -73,5 +73,10 @@ describe('ToSortSelectionBar', () => {
                 .getByRole('button', { name: 'Check 2 files' })
                 .hasAttribute('disabled'),
         ).toBe(true);
+        expect(
+            screen
+                .getByRole('button', { name: 'Delete the 2 chosen files' })
+                .hasAttribute('disabled'),
+        ).toBe(true);
     });
 });

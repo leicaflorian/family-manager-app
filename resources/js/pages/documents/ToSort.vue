@@ -1,45 +1,51 @@
 <script setup lang="ts">
 /**
  * *To sort*: the files waiting for their document, whoever sent them (the
- * upload, the mail, the phone), newest first, as the board *Da smistare-pc*
- * draws it. Under the title, how many files wait. On the computer the filters
- * (*All*, *Arrived by mail*, *Uploaded from the phone*, *Uploaded manually*) are in
- * the box *Where they come from* beside the list; on the tablet and the phone
- * they are tabs above it. Files dropped in the zone above the list stay here.
- * The bar at the top of the list chooses all the files (a copy is left out),
- * counts the ones chosen and has *Read and review* read them, then opens the
- * import, where the person checks and changes what was read before importing.
- * The link to *Received mail* is an icon beside the title on the phone and the tablet, and a row under the
- * filters on the computer. While a file is queued or read the page asks for its state every 2 seconds.
+ * upload, the mail, the phone), newest first, as the boards *Da smistare*,
+ * *Da smistare-tablet* and *Da smistare-pc* draw it; `useLayoutMode()` decides
+ * what each layout shows.
+ * - Phone: the short count under the title, *Take a photo* and *Choose a file*
+ *   side by side, the filters as chips, rows touched to choose them and, once a
+ *   file is chosen, the bar at the bottom with the bin and *Check N files*.
+ * - Tablet: the long count, *Choose the files* and *Take a photo* beside the
+ *   title, the chips, and the list with its bar at the top.
+ * - Computer: *Link the phone* and *Scan* (only where the scanner of the house
+ *   is driven) beside the title, the box *Where they come from* beside the
+ *   list, and the zone where files are dropped above it: they stay here.
+ * The bar of the list chooses all the files (a copy is left out), counts the
+ * chosen ones, deletes them (only who can delete many files, after asking) and
+ * has *Check N files* read them, then opens the import. While a file is queued
+ * or read the page asks for its state every 2 seconds.
  */
 import { Head, router } from '@inertiajs/vue3';
 import {
     Camera,
+    FolderOpen,
     Inbox,
-    Mail,
     ScanLine,
     Smartphone,
     Sparkles,
+    Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
+import ToSortSelectionBar from '@/components/documents/ToSortSelectionBar.vue';
 import ToSortSources from '@/components/documents/ToSortSources.vue';
 import FmButton from '@/components/fm/FmButton.vue';
+import FmChip from '@/components/fm/FmChip.vue';
+import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
 import FmLinkPhoneSheet from '@/components/fm/FmLinkPhoneSheet.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
-import type { Tab } from '@/components/fm/FmTabs.vue';
-import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import FmTooltip from '@/components/fm/FmTooltip.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useReadingPoll } from '@/composables/useReadingPoll';
-import { desktopSystem, isPhone } from '@/lib/devices';
+import { desktopSystem } from '@/lib/devices';
 import { anyFileReading } from '@/lib/reading';
-import { scan, scanner, toSort } from '@/routes';
-import { index as receivedMail } from '@/routes/mail';
-import { read } from '@/routes/to-sort';
+import { scan, scanner, toSort, upload as uploadPage } from '@/routes';
+import { destroy, read } from '@/routes/to-sort';
 
 const props = defineProps<{
     /** The files of the filter chosen, newest first. */
@@ -48,7 +54,15 @@ const props = defineProps<{
     source: App.Enums.FileSource | null;
     /** The filters in order, with their names and how many files each has. */
     filters: App.Data.ToSortPageData['filters'];
+    /** Whether the person can delete the chosen files together (only an admin). */
+    can_delete_many: boolean;
 }>();
+
+/** The layout of the window: it decides the header, the filters, the rows and the bars. */
+const mode = useLayoutMode();
+
+/** The phone layout. */
+const phone = computed((): boolean => mode.value === 'phone');
 
 /** How many files wait in all, whatever the filter: the count of *All*. */
 const waiting = computed(
@@ -56,9 +70,26 @@ const waiting = computed(
         props.filters.find((filter) => filter.value === null)?.count ?? 0,
 );
 
-/** The filters as tabs, for the tablet and the phone: a filter with no files cannot be chosen. */
-const tabs = computed<Tab[]>(() =>
+/** A filter as a chip, for the tablet and the phone: a filter with no files cannot be chosen. */
+type Chip = {
+    /** The value of the filter, `null` for *All*. */
+    value: string | null;
+    /** Its short name. */
+    label: string;
+    /** The address of the page with the filter. */
+    href: string;
+    /** How many files it has. */
+    count: number;
+    /** It is the filter chosen. */
+    current: boolean;
+    /** It has no file, and it is not *All*. */
+    disabled: boolean;
+};
+
+/** The filters as chips. */
+const chips = computed((): Chip[] =>
     props.filters.map((filter) => ({
+        value: filter.value,
         label: filter.label,
         href:
             filter.value === null
@@ -73,14 +104,17 @@ const tabs = computed<Tab[]>(() =>
 // The files dropped here stay among those to sort, instead of opening Import
 const upload = useFileUpload(() => undefined, { stay: true });
 
-/** On the phone the camera comes first: *Take a photo* opens the scan, as the board *Da smistare*. */
-const phone = isPhone();
-
 /** The scanner of the house is driven from a Mac or a Windows PC, the one it is plugged into: only there is it offered. */
 const scannerHere = desktopSystem() !== 'other';
 
 /** The panel *Link the phone* is open. */
 const linkPhone = ref(false);
+
+/** The panel that asks before deleting the chosen files is open. */
+const confirmingDelete = ref(false);
+
+/** The chosen files are being deleted. */
+const deleting = ref(false);
 
 /** The ids of the files chosen. */
 const chosen = ref<number[]>([]);
@@ -133,6 +167,27 @@ function chooseAll(): void {
 function readChosen(): void {
     router.post(read.url(), { ids: chosenIds.value });
 }
+
+/** Asks before deleting the files chosen: they cannot be recovered. */
+function deleteChosen(): void {
+    confirmingDelete.value = true;
+}
+
+/** Deletes the files chosen, once the person confirmed, and stays on the same filter. */
+function confirmDelete(): void {
+    deleting.value = true;
+    router.delete(destroy.url(), {
+        data: { ids: chosenIds.value },
+        preserveScroll: true,
+        onSuccess: () => {
+            chosen.value = [];
+        },
+        onFinish: () => {
+            deleting.value = false;
+            confirmingDelete.value = false;
+        },
+    });
+}
 </script>
 
 <template>
@@ -142,68 +197,100 @@ function readChosen(): void {
         <FmTitle
             :title="$t('To sort')"
             :subtitle="
-                waiting > 0
-                    ? $tChoice(
-                          '{1} :count file waiting to be imported|[2,*] :count files waiting to be imported',
-                          waiting,
-                          { count: String(waiting) },
-                      )
-                    : undefined
+                waiting === 0
+                    ? undefined
+                    : phone
+                      ? $tChoice(
+                            '{1} :count file waiting|[2,*] :count files waiting',
+                            waiting,
+                            { count: String(waiting) },
+                        )
+                      : $tChoice(
+                            '{1} :count file waiting to be imported|[2,*] :count files waiting to be imported',
+                            waiting,
+                            { count: String(waiting) },
+                        )
             "
         >
-            <!-- On the computer the same link is the row under the filters -->
-            <template #actions>
+            <template v-if="mode === 'tablet'" #actions>
+                <FmButton
+                    variant="neutral"
+                    :icon="FolderOpen"
+                    :href="uploadPage().url"
+                    >{{ $t('Choose the files') }}</FmButton
+                >
+                <FmButton :icon="Camera" :href="scan().url">{{
+                    $t('Take a photo')
+                }}</FmButton>
+            </template>
+            <template v-else-if="mode === 'computer'" #actions>
                 <!-- Linking the phone is done from the computer: the phone itself has no use for it -->
                 <FmButton
-                    class="hidden lg:flex"
-                    variant="outline"
+                    variant="neutral"
                     :icon="Smartphone"
                     @click="linkPhone = true"
                     >{{ $t('Link the phone') }}</FmButton
                 >
                 <FmButton
                     v-if="scannerHere"
-                    variant="outline"
+                    variant="neutral"
                     :icon="ScanLine"
                     :href="scanner().url"
                     >{{ $t('Scan the sheets') }}</FmButton
                 >
-                <FmButton
-                    class="lg:hidden"
-                    :icon="Mail"
-                    :label="$t('Received mail')"
-                    :href="receivedMail().url"
-                />
             </template>
         </FmTitle>
 
-        <FmTabs
-            class="lg:hidden"
-            :tabs="tabs"
-            :label="$t('Files to sort')"
-            variant="pill"
-        />
+        <!-- On the phone the camera comes first, as the board Da smistare -->
+        <div v-if="phone" class="grid grid-cols-2 gap-3">
+            <FmButton wide :icon="Camera" :href="scan().url">{{
+                $t('Take a photo')
+            }}</FmButton>
+            <FmButton
+                wide
+                variant="neutral"
+                :icon="FolderOpen"
+                :href="uploadPage().url"
+                >{{ $t('Choose a file') }}</FmButton
+            >
+        </div>
+
+        <nav
+            v-if="mode !== 'computer'"
+            :aria-label="$t('Files to sort')"
+            class="-mr-(--main-gutter) flex gap-2 overflow-x-auto pr-(--main-gutter)"
+        >
+            <FmChip
+                v-for="chip in chips"
+                :key="chip.value ?? 'all'"
+                :label="chip.label"
+                :count="chip.count"
+                :href="chip.href"
+                :pressed="chip.current"
+                :disabled="chip.disabled"
+                variant="solid"
+            />
+        </nav>
 
         <div
-            class="flex flex-col gap-4 lg:grid lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start lg:gap-7"
+            :class="
+                mode === 'computer'
+                    ? 'grid grid-cols-[290px_minmax(0,1fr)] items-start gap-7'
+                    : 'flex flex-col gap-4'
+            "
         >
             <ToSortSources
-                class="hidden lg:flex"
+                v-if="mode === 'computer'"
                 :filters="filters"
                 :source="source"
             />
 
             <div class="flex min-w-0 flex-col gap-4">
-                <FmButton v-if="phone" wide :icon="Camera" :href="scan().url">{{
-                    $t('Take a photo')
-                }}</FmButton>
                 <FmFileDrop
+                    v-if="mode === 'computer'"
                     compact
-                    :label="
-                        $t(
-                            'Drag the files here, or choose them from the computer',
-                        )
-                    "
+                    :label="$t('Drag the files here, or')"
+                    :action="$t('choose from the computer')"
                     :processing="upload.processing.value"
                     @files="upload.send"
                 />
@@ -223,8 +310,10 @@ function readChosen(): void {
                 />
 
                 <div v-else class="overflow-hidden rounded-card-lg bg-card">
+                    <!-- On the phone the rows are touched to choose them, and the bar is at the bottom -->
                     <div
-                        class="flex flex-wrap items-center gap-3 border-b border-divider px-4 py-3"
+                        v-if="!phone"
+                        class="flex flex-wrap items-center gap-3 border-b border-edge-soft px-5 py-3"
                     >
                         <input
                             type="checkbox"
@@ -244,27 +333,27 @@ function readChosen(): void {
                                 },
                             )
                         }}</span>
-                        <FmTooltip
-                            :text="
-                                $t(
-                                    'Nothing is saved yet: you see what was read, and you can read it again or change it before importing.',
-                                )
-                            "
+                        <FmButton
+                            v-if="can_delete_many"
+                            variant="danger"
+                            :icon="Trash2"
+                            :disabled="chosenIds.length === 0 || deleting"
+                            @click="deleteChosen"
+                            >{{ $t('Delete the chosen') }}</FmButton
                         >
-                            <FmButton
-                                :icon="Sparkles"
-                                :disabled="chosenIds.length === 0"
-                                @click="readChosen"
-                            >
-                                {{
-                                    $tChoice(
-                                        '{0} Read and review files|{1} Read and review :count file|[2,*] Read and review :count files',
-                                        chosenIds.length,
-                                        { count: String(chosenIds.length) },
-                                    )
-                                }}
-                            </FmButton>
-                        </FmTooltip>
+                        <FmButton
+                            :icon="Sparkles"
+                            :disabled="chosenIds.length === 0"
+                            @click="readChosen"
+                        >
+                            {{
+                                $tChoice(
+                                    '{0} Check files|{1} Check :count file|[2,*] Check :count files',
+                                    chosenIds.length,
+                                    { count: String(chosenIds.length) },
+                                )
+                            }}
+                        </FmButton>
                     </div>
                     <ul
                         v-auto-animate
@@ -275,6 +364,7 @@ function readChosen(): void {
                             :key="file.id"
                             :file="file"
                             :chosen="chosenIds.includes(file.id)"
+                            :touch="phone"
                             @choose="choose(file.id, $event)"
                         />
                     </ul>
@@ -282,6 +372,37 @@ function readChosen(): void {
             </div>
         </div>
 
-        <FmLinkPhoneSheet v-model:open="linkPhone" />
+        <!--
+            In the flow after the list, so it takes its own room and never covers the last row;
+            held 84 px from the bottom, just above the navigation bar of the phone
+        -->
+        <div
+            v-if="phone && chosenIds.length > 0"
+            class="sticky bottom-21 z-20 -mx-(--main-gutter)"
+        >
+            <ToSortSelectionBar
+                :count="chosenIds.length"
+                :can-delete="can_delete_many"
+                :processing="deleting"
+                @check="readChosen"
+                @delete="deleteChosen"
+            />
+        </div>
+
+        <FmConfirm
+            v-model:open="confirmingDelete"
+            :question="
+                $tChoice(
+                    '{1} Delete the chosen file?|[2,*] Delete :count files?',
+                    chosenIds.length,
+                    { count: String(chosenIds.length) },
+                )
+            "
+            :text="$t('Deleted files cannot be recovered.')"
+            :confirm-label="$t('Delete')"
+            @confirm="confirmDelete"
+        />
+
+        <FmLinkPhoneSheet v-if="mode === 'computer'" v-model:open="linkPhone" />
     </div>
 </template>
