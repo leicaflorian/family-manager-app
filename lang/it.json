@@ -1179,6 +1179,7 @@
     "Waiting to be read": "In attesa di essere letto",
     "Same as :name": "Uguale a :name",
     "Delete the copy": "Elimina la copia",
+    "It is a copy: it can be deleted": "È una copia: si può eliminare",
     "Delete this copy?": "Eliminare questa copia?",
     "Delete this file?": "Eliminare questo file?",
     "The file is deleted for good.": "Il file viene eliminato per sempre.",

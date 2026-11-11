@@ -6,9 +6,14 @@
  * from, or for a copy the label *Copy* and which file it is the same as; then
  * the pages and the size, the short date and the bin. The whole row lights up
  * under the mouse, and stays light blue once chosen. A copy cannot be chosen.
+ *
+ * With `touch` (the phone, as the board *Da smistare* draws it) the row is one
+ * button: a circle of 40 px (the icon of where the file came from, a tick once
+ * chosen), the name on one line, the short note below and the short date at
+ * the end; the bin stays outside the button. A copy says it can be deleted.
  */
 import type { LucideIcon } from '@lucide/vue';
-import { Mail, ScanLine, Smartphone, Upload } from '@lucide/vue';
+import { Check, Mail, ScanLine, Smartphone, Upload } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
@@ -18,11 +23,17 @@ import { shortDate } from '@/lib/budget';
 import { formatSize } from '@/lib/format';
 import { destroy } from '@/routes/upload';
 
-const { file, chosen } = defineProps<{
+const {
+    file,
+    chosen,
+    touch = false,
+} = defineProps<{
     /** The file waiting. */
     file: App.Data.PendingFileData;
     /** Its box is ticked. */
     chosen: boolean;
+    /** The phone's row: a button to touch, with the short note. */
+    touch?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -87,6 +98,66 @@ const readingText = computed((): string => {
 
 <template>
     <li
+        v-if="touch"
+        class="flex items-center gap-2 px-4 py-3"
+        :class="chosen ? 'bg-action-soft' : ''"
+    >
+        <button
+            type="button"
+            :aria-pressed="chosen"
+            :aria-label="file.name"
+            :disabled="isCopy"
+            class="flex min-w-0 grow items-center gap-3 border-0 bg-transparent p-0 text-left text-ink"
+            @click="emit('choose', !chosen)"
+        >
+            <span
+                aria-hidden="true"
+                class="flex size-10 shrink-0 items-center justify-center"
+                :class="
+                    chosen
+                        ? 'rounded-full bg-action text-on-action'
+                        : 'rounded-md border border-edge-soft bg-canvas text-ink-soft'
+                "
+            >
+                <FmIcon
+                    v-if="chosen"
+                    :icon="Check"
+                    :size="22"
+                    :stroke-width="3"
+                />
+                <FmIcon v-else :icon="sourceIcon" :size="20" />
+            </span>
+            <span class="flex min-w-0 grow flex-col gap-0.5">
+                <span class="truncate text-body-strong">{{ file.name }}</span>
+                <span v-if="isCopy" class="text-meta-strong text-warning">{{
+                    $t('It is a copy: it can be deleted')
+                }}</span>
+                <span
+                    v-else-if="file.short_note"
+                    class="truncate text-meta text-ink-soft"
+                    >{{ file.short_note }}</span
+                >
+            </span>
+            <span class="shrink-0 text-meta text-ink-soft">{{
+                shortDate(file.created_on)
+            }}</span>
+        </button>
+        <FmDeleteButton
+            v-if="file.can_delete"
+            compact
+            :label="isCopy ? $t('Delete the copy') : $t('Delete')"
+            :url="destroy.url(file.id)"
+            :question="
+                isCopy ? $t('Delete this copy?') : $t('Delete this file?')
+            "
+            :text="$t('The file is deleted for good.')"
+            :confirm-label="
+                isCopy ? $t('Delete the copy') : $t('Delete the file')
+            "
+        />
+    </li>
+    <li
+        v-else
         class="flex items-center gap-3 px-4 py-3.5 transition-colors"
         :class="chosen ? 'bg-action-soft' : 'hover:bg-canvas'"
     >
