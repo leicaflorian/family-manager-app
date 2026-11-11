@@ -326,7 +326,8 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
             ->and($bill?->links)->toEqual([['type' => 'utility', 'id' => Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole()->id]])
             ->and($bill?->headline)->toBe('Ho trovato una bolletta della luce')
             ->and($warranty?->title)->not->toBeEmpty()
-            ->and($pending['Garanzia lavatrice.jpg']->note)->toContain('Marco');
+            ->and($pending['Garanzia lavatrice.jpg']->note)->toBe('Uploaded here on 29/10/2026 by Marco')
+            ->and($pending['fattura-studio-ferri.pdf']->short_note)->toBe('Laura');
 
         $visit = resolve(Proposal::class)->for(File::query()->where('original_name', 'fattura-studio-ferri.pdf')->sole(), ImportChoices::fromArray([]), [], 'it');
         expect($visit->document->person_id)->toBe(Person::query()->where('first_name', 'Giulia')->sole()->id)

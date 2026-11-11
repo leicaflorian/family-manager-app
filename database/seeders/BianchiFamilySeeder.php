@@ -721,13 +721,12 @@ final class BianchiFamilySeeder extends Seeder
      * @param  string|null  $as  the name the file arrived with, when it is not the one of the folder
      * @param  bool  $toSort  true for a file that waits in *To sort*
      * @param  FileSource  $source  where the file came from
-     * @param  string|null  $note  how it arrived
      */
-    private function file(string $name, ?string $as = null, bool $toSort = false, FileSource $source = FileSource::Upload, ?string $note = null): File
+    private function file(string $name, ?string $as = null, bool $toSort = false, FileSource $source = FileSource::Upload): File
     {
         $path = __DIR__.'/files/'.$name;
 
-        return $this->files->store(new UploadedFile($path, $as ?? $name, (string) mime_content_type($path), null, true), $toSort, null, $source, $note);
+        return $this->files->store(new UploadedFile($path, $as ?? $name, (string) mime_content_type($path), null, true), $toSort, null, $source);
     }
 
     /**
@@ -739,38 +738,55 @@ final class BianchiFamilySeeder extends Seeder
     {
         $edison = $this->organizations['Edison'];
         $ferri = $this->organizations['Studio Ferri'];
-        $uploaded = static fn (string $name): string => __('Uploaded manually on :date by :name', ['date' => '29/10/2026', 'name' => $name]);
 
         $this->reading(
             $this->file('bolletta-edison-novembre.pdf', toSort: true, source: FileSource::Mail),
             new Extraction(kind: 'utility_bill', issuer_name: 'Edison', organization_id: $edison->id, total_amount: 91.40, issue_date: '2026-11-03', due_date: '2026-12-05', supply_point_code: 'IT 001 E 12345678', utility_type: 'electricity', confidence: 'high'),
         );
         $this->reading(
-            $this->file('fattura-studio-ferri.pdf', toSort: true, note: $uploaded('Laura')),
+            $this->uploadedBy($this->file('fattura-studio-ferri.pdf', toSort: true), 'Laura'),
             new Extraction(kind: 'medical', issuer_name: 'Studio Ferri', organization_id: $ferri->id, total_amount: 120.0, issue_date: '2026-10-22', person_id: $this->people['Giulia']->id, health_type: 'visit', next_checkup_date: '2027-04-22', confidence: 'high'),
         );
         $this->reading(
-            $this->file('garanzia-lavatrice.jpg', 'Garanzia lavatrice.jpg', toSort: true, note: $uploaded('Marco')),
+            $this->uploadedBy($this->file('garanzia-lavatrice.jpg', 'Garanzia lavatrice.jpg', toSort: true), 'Marco'),
             new Extraction(kind: 'receipt', issue_date: '2025-03-14', durable_good: true, item_name: 'Lavatrice', warranty_expiry_date: '2027-03-14', confidence: 'medium'),
         );
 
         $school = $this->organizations['Scuola Passo a Due'];
         $unipol = $this->organizations['UnipolSai'];
         $this->reading(
-            $this->file('ricevuta-pagamento-scuola.pdf', toSort: true, note: $uploaded('Laura')),
+            $this->uploadedBy($this->file('ricevuta-pagamento-scuola.pdf', toSort: true), 'Laura'),
             new Extraction(kind: 'payment_receipt', issuer_name: 'Scuola Passo a Due', organization_id: $school->id, total_amount: 60.0, fee_amount: 1.5, issue_date: '2026-10-30', confidence: 'high'),
         );
         $this->reading(
-            $this->file('contratto-unipolsai.pdf', toSort: true, note: $uploaded('Marco')),
+            $this->uploadedBy($this->file('contratto-unipolsai.pdf', toSort: true), 'Marco'),
             new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, expiry_date: '2027-11-21', policy_number: '40/123456', plate_number: 'GH 482 TK', insurance_type: 'car', contract_start_date: '2026-11-21', confidence: 'high'),
         );
         $this->reading(
-            $this->file('set-informativo-unipolsai.pdf', toSort: true, note: $uploaded('Marco')),
+            $this->uploadedBy($this->file('set-informativo-unipolsai.pdf', toSort: true), 'Marco'),
             new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, policy_number: '40/123456', plate_number: 'GH 482 TK', insurance_type: 'car', confidence: 'medium'),
         );
 
         // The same file as the October bill, which is the file of a document: the page tells it is a copy
-        $this->file('bolletta-luce-ottobre.pdf', toSort: true, note: $uploaded('Laura'));
+        $this->uploadedBy($this->file('bolletta-luce-ottobre.pdf', toSort: true), 'Laura');
+    }
+
+    /**
+     * Gives a file of *To sort* the account that uploaded it, on 29/10/2026, as an upload from the page leaves it: the
+     * page writes the note from them.
+     *
+     * @param  File  $file  the file in *To sort*
+     * @param  string  $firstName  the first name of the Bianchi who uploaded it (Marco or Laura)
+     * @return File the same file
+     */
+    private function uploadedBy(File $file, string $firstName): File
+    {
+        $file->forceFill([
+            'created_by' => User::query()->where('email', strtolower($firstName).'.bianchi@example.com')->value('id'),
+            'created_at' => '2026-10-29 10:00:00',
+        ])->save();
+
+        return $file;
     }
 
     /**
