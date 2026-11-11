@@ -114,5 +114,8 @@ describe('FmFileDrop', () => {
             'text-body-strong',
         );
         expect(screen.getByLabelText('Choose the files')).toBeInTheDocument();
+        expect(
+            screen.getByText('Drag the files here, or').closest('span'),
+        ).toHaveTextContent('Drag the files here, or choose from the computer');
     });
 });

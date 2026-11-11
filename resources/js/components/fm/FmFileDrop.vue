@@ -102,8 +102,9 @@ function dropped(event: DragEvent): void {
         />
         <span class="text-body-strong text-ink"
             >{{ label
-            }}<template v-if="compact && action">
-                <span class="text-body-strong text-action">{{
+            }}<template v-if="compact && action"
+                >{{ ' '
+                }}<span class="text-body-strong text-action">{{
                     action
                 }}</span></template
             ></span
