@@ -1811,5 +1811,8 @@
     "{1} Menu, :count file to sort|[2,*] Menu, :count files to sort": "{1} Menu, :count file da smistare|[2,*] Menu, :count file da smistare",
     "From the gallery or the phone's files. PDF, JPG, PNG or HEIC, up to 25 MB each": "Dalla galleria o dai file del telefono. PDF, JPG, PNG o HEIC, fino a 25 MB l'uno",
     "Drag the files here, or": "Trascina qui i file, oppure",
-    "choose from the computer": "scegli dal computer"
+    "choose from the computer": "scegli dal computer",
+    "{1} :count chosen|[2,*] :count chosen": "{1} :count scelto|[2,*] :count scelti",
+    "{1} Check :count file|[2,*] Check :count files": "Controlla :count file",
+    "{1} Delete the chosen file|[2,*] Delete the :count chosen files": "{1} Elimina il file scelto|[2,*] Elimina i :count file scelti"
 }
