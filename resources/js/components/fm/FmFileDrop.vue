@@ -22,11 +22,17 @@ import FmIcon from './FmIcon.vue';
 
 const {
     label = trans('Drag the files here, or choose them'),
+    hint = trans('PDF, JPG, PNG or HEIC, up to 25 MB each'),
+    action,
     compact = false,
     processing = false,
 } = defineProps<{
     /** What the zone asks for. */
     label?: string;
+    /** The line below the title: formats and size, unless the page says it otherwise. */
+    hint?: string;
+    /** Compact only: the end of the sentence, written as a link after `label`. */
+    action?: string;
     /** A small zone, below a form, instead of the large one of an empty page. */
     compact?: boolean;
     /** The files are being sent: the zone says so. */
@@ -94,10 +100,15 @@ function dropped(event: DragEvent): void {
             :size="compact ? 22 : 40"
             class="text-action"
         />
-        <span class="text-body-strong text-ink">{{ label }}</span>
-        <span class="text-body-sm">{{
-            $t('PDF, JPG, PNG or HEIC, up to 25 MB each')
-        }}</span>
+        <span class="text-body-strong text-ink"
+            >{{ label
+            }}<template v-if="compact && action">
+                <span class="text-body-strong text-action">{{
+                    action
+                }}</span></template
+            ></span
+        >
+        <span class="text-body-sm text-ink-soft">{{ hint }}</span>
         <span v-if="processing" class="text-label text-action">{{
             $t('Uploading…')
         }}</span>

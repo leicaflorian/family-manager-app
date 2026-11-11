@@ -85,4 +85,34 @@ describe('FmFileDrop', () => {
         expect(zone).toHaveClass('border-edge', 'bg-card');
         expect(zone).not.toHaveClass('bg-action-soft');
     });
+
+    it('shows its own hint line instead of the default one', () => {
+        render(FmFileDrop, {
+            props: { hint: "From the gallery or the phone's files." },
+        });
+
+        expect(
+            screen.getByText("From the gallery or the phone's files."),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText('PDF, JPG, PNG or HEIC, up to 25 MB each'),
+        ).not.toBeInTheDocument();
+    });
+
+    it('writes the action as a link inside the sentence when compact', () => {
+        render(FmFileDrop, {
+            props: {
+                compact: true,
+                label: 'Drag the files here, or',
+                action: 'choose from the computer',
+            },
+        });
+
+        expect(screen.getByText('Drag the files here, or')).toBeInTheDocument();
+        expect(screen.getByText('choose from the computer')).toHaveClass(
+            'text-action',
+            'text-body-strong',
+        );
+        expect(screen.getByLabelText('Choose the files')).toBeInTheDocument();
+    });
 });
