@@ -72,7 +72,7 @@ const sectionPage = computed((): boolean => isSectionPage(page.component));
 
 /** The name of the marked section, as the navigation writes it. */
 const sectionLabel = computed((): string => {
-    const all = [...items.sections, items.toSort, items.settings];
+    const all = [...items.sections, items.toSort, items.mail, items.settings];
 
     return all.find((item) => item.section === active.value)?.label ?? '';
 });

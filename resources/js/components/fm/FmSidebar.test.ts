@@ -204,9 +204,9 @@ describe('FmSidebar', () => {
         const nav = screen.getByRole('navigation', { name: 'Sections' });
         const names = within(nav)
             .getAllByRole('link')
-            .slice(0, 3)
+            .slice(0, 2)
             .map((link) => link.textContent?.replace(/\s+/g, ' ').trim());
-        expect(names).toEqual(['Home', 'To sort 4', 'Agenda']);
+        expect(names).toEqual(['Home', 'To sort 4']);
         expect(
             within(nav).getByRole('link', { name: 'To sort 4' }),
         ).toHaveAttribute('href', '/to-sort');
@@ -216,6 +216,19 @@ describe('FmSidebar', () => {
         expect(
             screen.getByRole('link', { name: 'To sort 99+' }),
         ).toBeInTheDocument();
+    });
+
+    it('has Received mail right after To sort, before Agenda, marked on its page', () => {
+        bar('mail', '/mail', 0);
+        const nav = screen.getByRole('navigation', { name: 'Sections' });
+        const names = within(nav)
+            .getAllByRole('link')
+            .slice(0, 4)
+            .map((link) => link.textContent?.replace(/\s+/g, ' ').trim());
+        expect(names).toEqual(['Home', 'To sort', 'Received mail', 'Agenda']);
+        expect(
+            screen.getByRole('link', { name: 'Received mail' }),
+        ).toHaveAttribute('aria-current', 'page');
     });
 
     it('keeps To sort without a number when no file waits', () => {

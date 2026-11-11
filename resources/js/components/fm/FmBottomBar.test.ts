@@ -119,6 +119,34 @@ describe('FmBottomBar', () => {
         ).toBeInTheDocument();
     });
 
+    it('has Received mail in More, after Documents and before Family, with its line', async () => {
+        bar('home');
+
+        await userEvent.click(screen.getByRole('button', { name: 'More' }));
+
+        const links = within(
+            screen.getByRole('dialog', { name: 'More' }),
+        ).getAllByRole('link');
+        const titles = links.map((link) => link.textContent ?? '');
+        const documents = titles.findIndex((t) => t.includes('Documents'));
+        const family = titles.findIndex((t) => t.includes('Family'));
+        expect(titles[documents + 1]).toContain('Received mail');
+        expect(titles[documents + 1]).toContain(
+            'The mail that arrived at the address for bills',
+        );
+        expect(links[documents + 1]).toHaveAttribute('href', '/mail');
+        expect(family).toBe(documents + 2);
+    });
+
+    it('marks More on Received mail', () => {
+        bar('mail');
+
+        expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
     it('marks More on a page of More', () => {
         bar('documents');
 

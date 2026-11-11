@@ -52,9 +52,13 @@ const inBar = computed((): NavigationItem[] =>
     ),
 );
 
-/** The items inside More: the sections that are not in the bar, and Settings. */
+/** The items inside More: the sections that are not in the bar, with Received mail after Documents, and Settings. */
 const inMore = computed((): NavigationItem[] => [
-    ...items.sections.filter((item) => !barSections.includes(item.section)),
+    ...items.sections
+        .filter((item) => !barSections.includes(item.section))
+        .flatMap((item) =>
+            item.section === 'documents' ? [item, items.mail] : [item],
+        ),
     items.settings,
 ]);
 

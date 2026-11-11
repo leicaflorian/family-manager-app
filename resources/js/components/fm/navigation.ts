@@ -9,6 +9,7 @@ import {
     FileText,
     Inbox,
     LayoutDashboard,
+    Mail,
     Receipt,
     ScanLine,
     Settings,
@@ -32,6 +33,7 @@ import {
 } from '@/routes';
 import { create as newMovement } from '@/routes/budget/movements';
 import { index as documents } from '@/routes/documents';
+import { index as mail } from '@/routes/mail';
 import { create as newReminder } from '@/routes/reminders';
 
 /** The sections of the app, to know which one to mark. */
@@ -43,7 +45,8 @@ export type Section =
     | 'budget'
     | 'family'
     | 'settings'
-    | 'toSort';
+    | 'toSort'
+    | 'mail';
 
 /** An item of the navigation. */
 export type NavigationItem = {
@@ -79,6 +82,8 @@ export type NavigationItems = {
     settings: NavigationItem;
     /** To sort, an item of the sidebar only: on the phone the number on Upload leads there. */
     toSort: NavigationItem;
+    /** Received mail, under To sort in the sidebar and after Documents in More on the phone. */
+    mail: NavigationItem;
     /** The address of Upload. */
     upload: string;
     /** The ways to add something, in the panel of the + on the phone, after To sort. */
@@ -146,6 +151,13 @@ export function navigationItems(): NavigationItems {
             icon: Inbox,
             hint: trans('Files uploaded to complete'),
         },
+        mail: {
+            section: 'mail',
+            label: trans('Received mail'),
+            href: mail().url,
+            icon: Mail,
+            hint: trans('The mail that arrived at the address for bills'),
+        },
         upload: upload().url,
         add: [
             {
@@ -200,7 +212,7 @@ export function sectionOf(path: string, items: NavigationItems): Section {
         return 'toSort';
     }
 
-    const all = [...items.sections, items.settings, items.toSort];
+    const all = [...items.sections, items.settings, items.toSort, items.mail];
     const found = all.find(
         (item) => path === item.href || path.startsWith(`${item.href}/`),
     );

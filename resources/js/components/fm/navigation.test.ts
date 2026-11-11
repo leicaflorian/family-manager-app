@@ -37,6 +37,20 @@ describe('sectionOf', () => {
         expect(sectionOf('/import', items)).toBe('toSort');
     });
 
+    it('has Received mail, marked on every page of the mail', () => {
+        expect(items.mail.href).toBe('/mail');
+        expect(items.mail.label).toBe('Received mail');
+        expect(items.mail.hint).toBe(
+            'The mail that arrived at the address for bills',
+        );
+        expect(items.sections.some((item) => item.section === 'mail')).toBe(
+            false,
+        );
+        for (const path of ['/mail', '/mail/7']) {
+            expect(sectionOf(path, items)).toBe('mail');
+        }
+    });
+
     it('marks Agenda on the reminders, their tab', () => {
         for (const path of [
             '/reminders',

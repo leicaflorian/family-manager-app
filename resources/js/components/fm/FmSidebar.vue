@@ -2,7 +2,7 @@
 /**
  * The sidebar of the computer (from 1024 px), and the content of the menu that
  * the Menu button of the tablet opens from the left: the logo and the family,
- * Upload (which only uploads), the sections with *To sort* right under Home (the files
+ * Upload (which only uploads), the sections with *To sort* and *Received mail* right under Home (the files
  * waiting in a blue pill, nothing at zero) and the areas under *Areas*, and at
  * the bottom *My account*, which opens Settings and Log out.
  *
@@ -84,10 +84,11 @@ function otherAttrs(): Record<string, unknown> {
     return rest;
 }
 
-/** The sections, with *To sort* right under Home. */
+/** The sections, with *To sort* and *Received mail* right under Home. */
 const sections = computed((): NavigationItem[] => [
     ...items.sections.slice(0, 1),
     items.toSort,
+    items.mail,
     ...items.sections.slice(1),
 ]);
 
