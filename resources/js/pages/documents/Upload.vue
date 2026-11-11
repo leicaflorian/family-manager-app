@@ -51,8 +51,16 @@ const {
 
 const layout = useLayoutMode();
 
-/** The phone has its own wording, for the gallery and the files of the phone. */
-const phoneWording = computed(() =>
+/** The wording of the drop zone on the phone, for its gallery and files. */
+type PhoneWording = {
+    /** The text of the button that chooses the files. */
+    label?: string;
+    /** The line under it, with the accepted types. */
+    hint?: string;
+};
+
+/** The phone has its own wording, for the gallery and the files of the phone; elsewhere the zone keeps its own. */
+const phoneWording = computed((): PhoneWording =>
     layout.value === 'phone'
         ? {
               label: trans('Choose the files'),
@@ -73,19 +81,28 @@ usePageTrail(() => [
     <Head :title="$t('Upload a document')" />
 
     <div class="flex flex-col gap-6">
-        <FmTitle :title="$t('Upload a document')">
-            <template #actions>
+        <!-- On the phone the link to the files to sort has its own row under the title, as the board Carica -->
+        <div class="flex flex-col gap-3">
+            <FmTitle :title="$t('Upload a document')">
+                <template #actions>
+                    <FmToSortLink
+                        v-if="layout !== 'phone'"
+                        :count="toSortCount"
+                    />
+                    <Link
+                        v-if="layout !== 'computer'"
+                        :href="closeUrl"
+                        :aria-label="$t('Close')"
+                        class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
+                    >
+                        <FmIcon :icon="X" :size="20" />
+                    </Link>
+                </template>
+            </FmTitle>
+            <div v-if="layout === 'phone' && toSortCount > 0" class="flex">
                 <FmToSortLink :count="toSortCount" />
-                <Link
-                    v-if="layout !== 'computer'"
-                    :href="closeUrl"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
+            </div>
+        </div>
 
         <FmNotice v-if="uploadErrors.length > 0" tone="warning">
             <p v-for="message in uploadErrors" :key="message" class="m-0">

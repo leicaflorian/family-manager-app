@@ -152,6 +152,33 @@ describe('Upload by layout', () => {
         expect(screen.getByRole('link', { name: 'Close' })).toBeInTheDocument();
     });
 
+    it('on the phone puts the link to the files to sort on its own row under the title, and on the tablet beside the ×', () => {
+        shared.to_sort_count = 5;
+        for (const [width, below] of [
+            [390, true],
+            [820, false],
+        ] as const) {
+            screenWidth(width);
+            const view = renderPage(Upload, { ...props });
+
+            const link = screen.getByRole('link', { name: '5 files to sort' });
+            const close = screen.getByRole('link', { name: 'Close' });
+            expect(
+                Boolean(
+                    close.compareDocumentPosition(link) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+                ),
+            ).toBe(below);
+            expect(
+                screen
+                    .getByRole('heading', { name: 'Upload a document' })
+                    .compareDocumentPosition(link) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).toBeTruthy();
+            view.unmount();
+        }
+    });
+
     it('on the tablet shows the photo card beside the drop zone, with the default wording', () => {
         screenWidth(820);
         renderPage(Upload, { ...props });
