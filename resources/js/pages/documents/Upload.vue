@@ -5,12 +5,14 @@
  * starts their reading and opens *Import more files* with them, where each is
  * checked and filed as a document: this page only takes the files. The card
  * the upload starts from travels with them. The × goes back to that card, or
- * to the home page.
+ * to the home page. The phone and the tablet offer *Take a photo of a sheet*
+ * beside the drop zone (above it on the phone); the computer has only the zone.
  */
 import { Head, Link } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import PhotoSheetCard from '@/components/documents/PhotoSheetCard.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
@@ -18,6 +20,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import { useToSortCount } from '@/composables/useToSortCount';
+import { cn } from '@/lib/utils';
 import type { DocumentLink } from '@/lib/documents';
 import { dashboard, toSort } from '@/routes';
 import { show as showCard } from '@/routes/cards';
@@ -47,6 +50,18 @@ const {
 } = useFileUpload(() => preset.value);
 
 const layout = useLayoutMode();
+
+/** The phone has its own wording, for the gallery and the files of the phone. */
+const phoneWording = computed(() =>
+    layout.value === 'phone'
+        ? {
+              label: trans('Choose the files'),
+              hint: trans(
+                  "From the gallery or the phone's files. PDF, JPG, PNG or HEIC, up to 25 MB each",
+              ),
+          }
+        : {},
+);
 
 usePageTrail(() => [
     { label: trans('To sort'), href: toSort().url },
@@ -78,6 +93,24 @@ usePageTrail(() => [
             </p>
         </FmNotice>
 
-        <FmFileDrop :processing="processing" @files="send" />
+        <div
+            :class="
+                cn(
+                    layout === 'tablet'
+                        ? 'grid min-h-[420px] grid-cols-[1fr_2fr] gap-4'
+                        : 'flex flex-col gap-4',
+                )
+            "
+        >
+            <PhotoSheetCard
+                v-if="layout !== 'computer'"
+                :stacked="layout === 'tablet'"
+            />
+            <FmFileDrop
+                v-bind="phoneWording"
+                :processing="processing"
+                @files="send"
+            />
+        </div>
     </div>
 </template>

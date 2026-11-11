@@ -42,9 +42,6 @@ describe('Upload', () => {
             'accept',
             expect.stringContaining('.heic'),
         );
-        expect(
-            screen.getByText('PDF, JPG, PNG or HEIC, up to 25 MB each'),
-        ).toBeInTheDocument();
     });
 
     it('sends the chosen files', async () => {
@@ -124,6 +121,77 @@ describe('Upload', () => {
         expect(
             screen.queryByRole('button', { name: 'Save' }),
         ).not.toBeInTheDocument();
+    });
+});
+
+describe('Upload by layout', () => {
+    it('on the phone puts the photo card before the drop zone, with the phone wording', () => {
+        shared.to_sort_count = 5;
+        renderPage(Upload, { ...props });
+
+        expect(
+            screen.getByRole('link', { name: '5 files to sort' }),
+        ).toBeInTheDocument();
+        const photo = screen.getByRole('link', {
+            name: /Take a photo of a sheet/,
+        });
+        expect(photo).toHaveAttribute('href', '/scan');
+        const files = screen.getByLabelText('Choose the files');
+        expect(
+            photo.compareDocumentPosition(files) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+            screen.getByText(
+                "From the gallery or the phone's files. PDF, JPG, PNG or HEIC, up to 25 MB each",
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText('Drag the files here, or choose them'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Close' })).toBeInTheDocument();
+    });
+
+    it('on the tablet shows the photo card beside the drop zone, with the default wording', () => {
+        screenWidth(820);
+        renderPage(Upload, { ...props });
+
+        expect(
+            screen.getByRole('link', { name: /Take a photo of a sheet/ }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Drag the files here, or choose them'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('PDF, JPG, PNG or HEIC, up to 25 MB each'),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Close' })).toBeInTheDocument();
+    });
+
+    it('on the computer has no photo card and no close button', () => {
+        screenWidth(1280);
+        renderPage(Upload, { ...props });
+
+        expect(
+            screen.queryByRole('link', { name: /Take a photo of a sheet/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'Close' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByText('Drag the files here, or choose them'),
+        ).toBeInTheDocument();
+    });
+
+    it('on the computer keeps the trail To sort > Upload a document', () => {
+        screenWidth(1280);
+        const { state, provide } = withTrail();
+        renderPage(Upload, { ...props }, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'To sort', href: '/to-sort' },
+            { label: 'Upload a document' },
+        ]);
     });
 });
 
