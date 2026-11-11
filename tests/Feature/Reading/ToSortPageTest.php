@@ -8,6 +8,8 @@ use App\Enums\ReadingStatus;
 use App\Enums\Role;
 use App\Jobs\ReadFile;
 use App\Models\File;
+use App\Models\Organization;
+use App\Models\ReceivedMail;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +21,7 @@ beforeEach(function (): void {
     Queue::fake();
     app()->instance(DocumentReader::class, new FakeDocumentReader);
     $this->marco = registerFamily();
-    $this->laura = User::factory()->for($this->marco->family)->create(['role' => Role::Member, 'email_verified_at' => now()]);
+    $this->laura = User::factory()->for($this->marco->family)->create(['name' => 'Laura', 'role' => Role::Member, 'email_verified_at' => now()]);
 });
 
 /**
@@ -61,7 +63,7 @@ test('the example of the analysis: five files, one copy, four to sort', function
             ['value' => null, 'label' => 'All', 'count' => 5],
             ['value' => 'mail', 'label' => 'By mail', 'count' => 1],
             ['value' => 'phone', 'label' => 'From the phone', 'count' => 2],
-            ['value' => 'upload', 'label' => 'Uploaded manually', 'count' => 2],
+            ['value' => 'upload', 'label' => 'Uploaded here', 'count' => 2],
         ])
         ->where('files.3.source_label', 'From the phone')
         ->where('files.2.source_label', 'By mail')
@@ -217,4 +219,69 @@ test('read needs at least one file', function (): void {
 test('the page and read need an account', function (): void {
     $this->post(route('to-sort.read'), ['ids' => [1]])->assertRedirect(route('login'));
     $this->get(route('to-sort'))->assertRedirect(route('login'));
+});
+
+/**
+ * The first file of *To sort* as the page sends it.
+ *
+ * @return array<string, mixed>
+ */
+function firstSent(): array
+{
+    return test()->actingAs(test()->marco)->get(route('to-sort'))->viewData('page')['props']['files'][0];
+}
+
+test('the note of a file uploaded here says when and who', function (): void {
+    waiting(['source' => FileSource::Upload, 'note' => null, 'created_at' => '2026-10-22 10:15:00']);
+
+    expect(firstSent())->note->toBe('Uploaded here on 22/10/2026 by Marco')->short_note->toBe('Marco');
+});
+
+test('the note of a file from the phone carries the caption', function (): void {
+    waiting(['source' => FileSource::Phone, 'note' => 'dentista Giulia', 'created_by' => $this->laura->id, 'created_at' => '2026-10-25 19:04:00']);
+
+    expect(firstSent())->note->toBe('Uploaded from the phone on 25/10/2026 by Laura: «dentista Giulia»')->short_note->toBe('Laura · «dentista Giulia»');
+
+    File::query()->update(['note' => null]);
+
+    expect(firstSent())->note->toBe('Uploaded from the phone on 25/10/2026 by Laura')->short_note->toBe('Laura');
+});
+
+test('the note of a scanned file says who scanned it', function (): void {
+    waiting(['source' => FileSource::Scanner, 'note' => null, 'created_by' => $this->laura->id, 'created_at' => '2026-10-25 19:04:00']);
+
+    expect(firstSent())->note->toBe('Scanned on 25/10/2026 by Laura')->short_note->toBe('Laura');
+});
+
+test('the short note of a mail is the organization, then the sender', function (): void {
+    $hera = Organization::factory()->for($this->marco->family)->create(['name' => 'Hera']);
+    $mail = fn (array $attributes): ReceivedMail => ReceivedMail::factory()->for($this->marco->family)->create($attributes);
+    $mailFile = fn (ReceivedMail $received, array $attributes = []): File => waiting(['source' => FileSource::Mail, 'note' => 'Saved note', 'created_by' => null, 'received_mail_id' => $received->id, ...$attributes]);
+
+    $mailFile($mail(['organization_id' => $hera->id]));
+    expect(firstSent())->short_note->toBe('Hera')->note->toBe('Saved note');
+
+    $mailFile($mail(['sender' => 'Comune di Bologna', 'sender_address' => 'tributi@comune.bologna.it']));
+    expect(firstSent())->short_note->toBe('Comune di Bologna');
+
+    $mailFile($mail(['sender' => '', 'sender_address' => 'tributi@comune.bologna.it']));
+    expect(firstSent())->short_note->toBe('tributi@comune.bologna.it');
+
+    $mailFile($mail(['organization_id' => $hera->id]), ['mime_type' => 'text/plain']);
+    expect(firstSent())->short_note->toBe('Hera · mail without attachment')->note->toBe('Saved note');
+});
+
+test('a file without who uploaded it keeps its saved note', function (): void {
+    waiting(['source' => FileSource::Upload, 'created_by' => null, 'note' => 'Caricato manualmente il 01/02/2025 da Marco']);
+
+    expect(firstSent())->note->toBe('Caricato manualmente il 01/02/2025 da Marco')->short_note->toBeNull();
+
+    File::query()->update(['note' => null]);
+
+    expect(firstSent())->note->toBeNull()->short_note->toBeNull();
+});
+
+test('the filter of the files uploaded here is called Uploaded here', function (): void {
+    $this->actingAs($this->marco)->get(route('to-sort'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('filters.3.label', 'Uploaded here'));
 });

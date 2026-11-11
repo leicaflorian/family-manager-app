@@ -52,7 +52,7 @@ final class ImportController extends Controller
             return to_route('to-sort');
         }
 
-        $files = File::query()->toSort()->with('document')->whereKey($ids)->get();
+        $files = File::query()->toSort()->with(['document', 'creator.person', 'receivedMail.organization'])->whereKey($ids)->get();
         abort_unless($files->count() === count($ids), 404);
         Gate::authorize('create', Document::class);
 

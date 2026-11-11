@@ -40,7 +40,7 @@ final class ToSortPageData extends Data
         $source = is_string($asked) ? FileSource::tryFrom($asked) : null;
         $source = in_array($source, self::TABS, true) ? $source : null;
 
-        $files = File::query()->toSort()->with('document')
+        $files = File::query()->toSort()->with(['document', 'creator.person', 'receivedMail.organization'])
             ->when($source instanceof FileSource, static fn ($query) => $query->where('source', $source))
             ->latest('id')->get();
 

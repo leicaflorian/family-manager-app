@@ -62,7 +62,7 @@ return [
         'date_override' => 'Different date',
     ],
     'file_source' => [
-        'upload' => 'Uploaded manually',
+        'upload' => 'Uploaded here',
         'mail' => 'By mail',
         'phone' => 'From the phone',
         'scanner' => 'Scanned',

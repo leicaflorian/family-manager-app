@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -47,8 +48,10 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property string|null $mail_key
  * @property-read Collection<int, AiReading> $aiReadings
  * @property-read int|null $ai_readings_count
+ * @property-read User|null $creator
  * @property-read Document|null $document
  * @property-read Family $family
+ * @property-read ReceivedMail|null $receivedMail
  *
  * @method static FileFactory factory($count = null, $state = [])
  * @method static Builder<static>|File newModelQuery()
@@ -76,6 +79,26 @@ final class File extends FamilyModel
     public function document(): HasOne
     {
         return $this->hasOne(Document::class);
+    }
+
+    /**
+     * The account that uploaded, scanned or sent the file (`created_by`), null for a file copied from Directus or a mail.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * The mail the file came with, null for a file that did not come by mail.
+     *
+     * @return BelongsTo<ReceivedMail, $this>
+     */
+    public function receivedMail(): BelongsTo
+    {
+        return $this->belongsTo(ReceivedMail::class);
     }
 
     /**

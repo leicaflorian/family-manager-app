@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Services\FileStore;
 use App\Support\ImportPage;
 use App\Support\PresetLink;
-use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,11 +46,10 @@ final class UploadController extends Controller
     public function store(UploadRequest $request, FileStore $store, QueueReading $queue, #[CurrentUser] User $user): RedirectResponse
     {
         $link = PresetLink::from($request->query('link'));
-        $note = $this->note($user);
         $ids = [];
 
         foreach ($request->file('files', []) as $file) {
-            $stored = $store->store($file, toSort: true, link: $link, source: FileSource::Upload, note: $note);
+            $stored = $store->store($file, toSort: true, link: $link, source: FileSource::Upload);
             $queue->handle($stored, $user, app()->getLocale());
             $ids[] = $stored->id;
         }
@@ -73,19 +71,5 @@ final class UploadController extends Controller
         $store->delete($file);
 
         return back(fallback: route('to-sort'));
-    }
-
-    /**
-     * How the files arrived, «Uploaded manually on 22/10/2026 by Marco»: in the language of the request (`SetLocale`),
-     * like the titles of the reminders; with the first name of the person of the account, as the Home greets it.
-     *
-     * @param  User  $user  who uploads
-     */
-    private function note(User $user): string
-    {
-        return __('Uploaded manually on :date by :name', [
-            'date' => CarbonImmutable::now('Europe/Rome')->format('d/m/Y'),
-            'name' => $user->person->first_name ?? $user->name,
-        ]);
     }
 }

@@ -318,29 +318,14 @@ test('a stored proposal that cannot be read is no proposal', function (): void {
     Exceptions::assertReported(CannotCreateData::class);
 });
 
-test('the checksum and the note are written', function (): void {
+test('an upload no longer saves a note', function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-10-22 10:15', 'Europe/Rome'));
 
     $file = uploadContent('Bolletta Edison.pdf', 'the bill of october');
 
-    expect($file)
-        ->checksum->toBe(hash('sha256', 'the bill of october'))
-        ->source->toBe(FileSource::Upload)
-        ->note->toBe('Uploaded manually on 22/10/2026 by Marco');
-    expect(waitingData()[0])->source->toBe('upload')->note->toBe('Uploaded manually on 22/10/2026 by Marco')->copy_of->toBeNull();
+    expect($file)->checksum->toBe(hash('sha256', 'the bill of october'))->source->toBe(FileSource::Upload)->note->toBeNull();
+    expect(waitingData()[0])->source->toBe('upload')->note->toBe('Uploaded here on 22/10/2026 by Marco')->short_note->toBe('Marco')->copy_of->toBeNull();
 });
-
-test('the note follows the language of the request', function (string $language, string $note): void {
-    Date::setTestNow(CarbonImmutable::parse('2026-10-22 10:15', 'Europe/Rome'));
-
-    $this->withHeader('Accept-Language', $language);
-    $file = uploadContent('Bolletta Edison.pdf', 'the bill of october');
-
-    expect($file->note)->toBe($note);
-})->with([
-    'Italian' => ['it-IT,it;q=0.9', 'Caricato manualmente il 22/10/2026 da Marco'],
-    'English' => ['en-GB,en;q=0.9', 'Uploaded manually on 22/10/2026 by Marco'],
-]);
 
 test('a copy is marked', function (): void {
     $bill = uploadContent('Telefono 2026-10-25 19.04.pdf', 'the bill of october');
