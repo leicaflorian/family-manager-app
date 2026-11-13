@@ -58,3 +58,46 @@ describe('showEmptyChoice', () => {
         expect(box).not.toHaveTextContent('All the accounts');
     });
 });
+
+describe('blankHiddenPlaceholder', () => {
+    it('does not write the word placeholder in a menu with nothing chosen and no placeholder', async () => {
+        render(
+            {
+                render: () =>
+                    h(FormKit, {
+                        type: 'dropdown',
+                        label: 'Type of the event',
+                        options: [{ value: 'visit', label: 'Visit' }],
+                        modelValue: null,
+                    }),
+            },
+            { global: { plugins: [[formkit, formkitConfig]] } },
+        );
+
+        const box = await screen.findByRole('button', {
+            name: /^Type of the event/,
+        });
+
+        expect(box).not.toHaveTextContent('placeholder');
+    });
+
+    it('keeps the placeholder of the page', async () => {
+        render(
+            {
+                render: () =>
+                    h(FormKit, {
+                        type: 'dropdown',
+                        label: 'Type of the event',
+                        placeholder: 'Choose',
+                        options: [{ value: 'visit', label: 'Visit' }],
+                        modelValue: null,
+                    }),
+            },
+            { global: { plugins: [[formkit, formkitConfig]] } },
+        );
+
+        expect(
+            await screen.findByRole('button', { name: /^Type of the event/ }),
+        ).toHaveTextContent('Choose');
+    });
+});
