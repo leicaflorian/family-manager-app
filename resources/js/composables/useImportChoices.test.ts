@@ -8,9 +8,15 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { defineComponent, ref } from 'vue';
+import { defineComponent, nextTick, ref } from 'vue';
+import type { Ref } from 'vue';
 import type { DocumentPayload } from '@/lib/documents';
-import { enrolmentProposal, ferriProposal } from '@/test/fixtures';
+import {
+    enrolmentProposal,
+    ferriProposal,
+    homeDraft,
+    homeProposal,
+} from '@/test/fixtures';
 import type { ImportChoices } from './useImportChoices';
 import { useImportChoices } from './useImportChoices';
 
@@ -40,6 +46,8 @@ const document: DocumentPayload = {
 function mount(
     options: {
         proposal?: App.Data.Reading.ProposalData;
+        /** A proposal that changes, as the server sends a new one. */
+        live?: Ref<App.Data.Reading.ProposalData>;
         document?: ReturnType<typeof ref<DocumentPayload>>;
         enabled?: ReturnType<typeof ref<boolean>>;
     } = {},
@@ -50,7 +58,10 @@ function mount(
             setup() {
                 choices = useImportChoices(
                     7,
-                    () => options.proposal ?? ferriProposal,
+                    () =>
+                        options.live?.value ??
+                        options.proposal ??
+                        ferriProposal,
                     {
                         document: () => options.document?.value,
                         enabled: () => options.enabled?.value ?? true,
@@ -290,5 +301,58 @@ describe('useImportChoices', () => {
         choices.setOverride('event', 'title', 'Controllo');
 
         expect(choices.changed.value).toBe(true);
+    });
+
+    it('forgets the box of the card, and of the boxes gone, when the category asks another card', async () => {
+        vi.spyOn(router, 'reload').mockImplementation(() => {});
+        const live = ref(homeProposal);
+        const { choices } = mount({ live });
+
+        choices.setTicked('card', true);
+        choices.setOverride('card', 'name', 'Via Roma 12');
+        choices.setTarget('card', 'new');
+        choices.setTicked('organization', false);
+        choices.setTicked('movement', false);
+        choices.setOverride('movement', 'amount', 80);
+
+        // The same card in a new proposal keeps what the person did
+        live.value = { ...homeProposal };
+        await nextTick();
+        expect(choices.overrideOf('card', 'name')).toBe('Via Roma 12');
+
+        live.value = {
+            ...homeProposal,
+            records: [
+                ferriProposal.records[0]!,
+                {
+                    ...homeDraft,
+                    title: 'the subscription',
+                    cardType: 'subscription',
+                },
+            ],
+            cardType: 'subscription',
+        };
+        await nextTick();
+
+        expect(choices.picks.records.card).toBeUndefined();
+        expect(choices.overrideOf('card', 'name')).toBeUndefined();
+        expect(choices.targetOf('card')).toBe('auto');
+        expect(choices.picks.records.organization).toBe(false);
+        expect(choices.picks.movement).toBe(false);
+        expect(choices.overrideOf('movement', 'amount')).toBe(80);
+
+        choices.setTicked('card', true);
+        choices.setOverride('card', 'name', 'Netflix');
+        live.value = {
+            ...homeProposal,
+            records: [],
+            cardType: 'utility',
+        };
+        await nextTick();
+
+        expect(choices.picks.records.organization).toBeUndefined();
+        expect(choices.picks.records.card).toBeUndefined();
+        expect(choices.picks.overrides.records).toEqual({});
+        expect(choices.picks.movement).toBe(false);
     });
 });

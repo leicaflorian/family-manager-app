@@ -94,7 +94,11 @@ const WAIT = 400;
  * address; the server merges it with the others. The fields count too: what
  * is missing, and the deadline of *To pay*, change the proposal. A request
  * still running is cancelled by the next one, so an older proposal never comes
- * after a newer one, and nothing is asked after the page went away.
+ * after a newer one, and nothing is asked after the page went away. When a
+ * new proposal follows another card (`cardType`, the kind of the document
+ * changed), the tick, the fields written and the card picked of the box of
+ * the card, and of the boxes that went away, are forgotten; the expense and
+ * the event keep theirs.
  *
  * @param fileId - the file
  * @param proposal - gives the proposal of the file, as the server sent it last
@@ -319,6 +323,38 @@ export function useImportChoices(
             }
         },
     );
+
+    /**
+     * Forgets the tick, the fields written and the card picked of a box.
+     *
+     * @param kind - the box of the card
+     */
+    function forget(kind: App.Enums.RecordKind): void {
+        delete picks.records[kind];
+        delete picks.targets.records[kind];
+        delete picks.overrides.records[kind];
+    }
+
+    // Another kind of document asks another card: what the person did in the box of the old card, or in a box that
+    // went away, would end up on a card that is not proposed any more. The expense and the event stay.
+    watch(proposal, (now, before) => {
+        if (!now || !before || now.cardType === before.cardType) {
+            return;
+        }
+
+        const kinds = new Set(now.records.map((draft) => draft.kind));
+        const known = new Set<App.Enums.RecordKind>([
+            ...(Object.keys(picks.records) as App.Enums.RecordKind[]),
+            ...(Object.keys(picks.targets.records) as App.Enums.RecordKind[]),
+            ...(Object.keys(picks.overrides.records) as App.Enums.RecordKind[]),
+        ]);
+
+        for (const kind of known) {
+            if (kind === 'card' || !kinds.has(kind)) {
+                forget(kind);
+            }
+        }
+    });
 
     onBeforeUnmount(() => {
         gone = true;

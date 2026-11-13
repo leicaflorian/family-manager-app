@@ -14,6 +14,8 @@ import { hasChanges } from '@/lib/unsavedChanges';
 import {
     enrolmentProposal,
     ferriProposal,
+    homeDraft,
+    homeProposal,
     pendingPayslip,
 } from '@/test/fixtures';
 import {
@@ -1395,6 +1397,69 @@ describe('Import', () => {
             expect(
                 screen.queryByRole('checkbox', { name: /Create the card/ }),
             ).not.toBeInTheDocument();
+        });
+
+        it('says the proposals follow the type of the document only when they follow a card', () => {
+            const line =
+                'The proposals follow "What kind it is": if you change it, they change too.';
+            const view = renderPage(Import, ferriProps(homeProposal));
+            expect(screen.getByText(line)).toBeInTheDocument();
+            view.unmount();
+
+            renderPage(Import, ferriProps());
+            expect(screen.queryByText(line)).not.toBeInTheDocument();
+        });
+
+        it('offers the card of the category with the words of the server, and sends its field', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(Import, ferriProps(homeProposal));
+            await settle();
+
+            const box = screen.getByRole('checkbox', {
+                name: /Create the residence/,
+            });
+            expect(box).not.toBeChecked();
+            expect(
+                screen.getByText('Tick the box to create the residence.'),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('checkbox', { name: /Create the card/ }),
+            ).not.toBeInTheDocument();
+
+            await fireEvent.click(box);
+            await userEvent.type(
+                screen.getByRole('textbox', { name: 'Name' }),
+                'Via Roma 12',
+            );
+            await fireEvent.click(importButton('Import the file'));
+
+            expect(sent(post)[0]?.also).toMatchObject({
+                records: ['organization', 'card'],
+                overrides: { records: { card: { name: 'Via Roma 12' } } },
+            });
+        });
+
+        it('links the card of the category already there, by its name', async () => {
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(
+                Import,
+                ferriProps({
+                    ...homeProposal,
+                    records: [
+                        {
+                            ...homeDraft,
+                            suggested: true,
+                            existing: { id: 4, title: 'Via Roma 12' },
+                        },
+                    ],
+                }),
+            );
+            await settle();
+
+            expect(
+                screen.getByRole('checkbox', { name: /Link to "Via Roma 12"/ }),
+            ).toBeChecked();
         });
 
         it('sends nothing more for a file without a proposal', async () => {

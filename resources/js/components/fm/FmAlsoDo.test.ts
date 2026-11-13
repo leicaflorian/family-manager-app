@@ -41,4 +41,17 @@ describe('FmAlsoDo', () => {
             screen.getByRole('heading', { level: 3, name: 'And also' }),
         ).toBeInTheDocument();
     });
+
+    it('says a line under the title, when it has one', () => {
+        const view = render(FmAlsoDo, {
+            props: { hint: 'The proposals follow the kind.' },
+        });
+        expect(
+            screen.getByText('The proposals follow the kind.'),
+        ).toBeInTheDocument();
+        view.unmount();
+
+        render(FmAlsoDo);
+        expect(screen.queryByRole('paragraph')).not.toBeInTheDocument();
+    });
 });
