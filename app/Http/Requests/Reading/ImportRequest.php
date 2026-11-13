@@ -93,6 +93,8 @@ final class ImportRequest extends FormRequest
             'files.*.also.overrides.records' => ['sometimes', 'array'],
             'files.*.also.overrides.records.*' => ['array'],
             'files.*.also.overrides.records.*.home_id' => ['nullable', new OfFamily('homes')],
+            // The fields of the box of the card of the category depend on its type: each is bound as a text field
+            'files.*.also.overrides.records.card.*' => ['nullable', 'max:255'],
             'files.*.also.targets' => ['sometimes', 'array'],
             // The corrections are bound as in the forms of the expense and of the cards
             'files.*.also.overrides.movement.title' => self::TEXT,

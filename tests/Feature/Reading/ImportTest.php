@@ -439,6 +439,18 @@ describe('what each file does too', function (): void {
         expect(Document::query()->count())->toBe(0)->and(PlannedExpense::query()->count())->toBe(0);
     });
 
+    test('a text too long written in the box of the card of the category is refused, and nothing is saved', function (): void {
+        $deeds = DocumentCategory::factory()->for($this->marco->family)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice, ['category_id' => $deeds->id]), 'also' => ['records' => ['card'], 'overrides' => [
+                'records' => ['card' => ['name' => str_repeat('c', 256)]],
+            ]]],
+        ]])->assertSessionHasErrors(['files.0.also.overrides.records.card.name']);
+
+        expect(Document::query()->count())->toBe(0);
+    });
+
     test('the corrections of the expense reach the import', function (): void {
         $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
             [...importEntry($this->invoice), 'also' => ['movement' => true, 'overrides' => ['movement' => ['title' => 'Dentista di Giulia']]]],
