@@ -9,6 +9,7 @@ import {
     openMenu,
     pressSave,
     renderPage,
+    screenWidth,
     search,
     settle,
     shown,
@@ -39,7 +40,15 @@ const options = {
         },
     ],
     people: [{ value: '7', label: 'Laura Bianchi', help: null }],
-    organizations: [{ value: '9', label: 'Comune di Bologna', help: null }],
+    organizations: [
+        {
+            value: '9',
+            label: 'Comune di Bologna',
+            help: null,
+            types: ['employer'],
+            logo: '/files/30/image',
+        },
+    ],
     links: [
         {
             type: 'employment',
@@ -66,6 +75,7 @@ const props = {
 
 afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('FmDocumentForm', () => {
@@ -79,6 +89,80 @@ describe('FmDocumentForm', () => {
         await choose('Whose it is', 'Laura Bianchi');
         await choose('Who it is from', 'Comune di Bologna');
         expect(screen.getByLabelText('Tags')).toBeInTheDocument();
+    });
+
+    it('orders the fields as the boards Proposta: status, the links with their chips under them, the notes and the tags', () => {
+        renderPage(FmDocumentForm, {
+            ...props,
+            initial: {
+                ...newDocument('Busta paga novembre 2026'),
+                links: [{ type: 'employment', id: 3 }],
+            },
+        });
+
+        const order = [
+            screen.getByText('Status'),
+            screen.getByLabelText('Link it to'),
+            screen.getByRole('button', {
+                name: 'Remove the link Laura - Comune di Bologna',
+            }),
+            screen.getByLabelText('Notes'),
+            screen.getByLabelText('Tags'),
+        ];
+        for (const [index, field] of order.slice(1).entries()) {
+            expect(
+                order[index]!.compareDocumentPosition(field) &
+                    Node.DOCUMENT_POSITION_FOLLOWING,
+            ).toBeTruthy();
+        }
+    });
+
+    it('shows the mark of the chosen organization in the field Who it is from', async () => {
+        renderPage(FmDocumentForm, props);
+        const field = (): HTMLElement =>
+            screen.getByLabelText('Who it is from').closest('.formkit-inner')!;
+
+        expect(within(field()).queryByRole('img')).not.toBeInTheDocument();
+
+        await choose('Who it is from', 'Comune di Bologna');
+
+        expect(
+            within(field()).getByRole('img', { name: 'Comune di Bologna' }),
+        ).toHaveAttribute('src', '/files/30/image');
+    });
+
+    it('explains Link it to under the field on the phone', () => {
+        screenWidth(false);
+        renderPage(FmDocumentForm, props);
+
+        expect(
+            screen.getByText(
+                'Link the document to a card, like the electricity, the car or a policy: so you find it there too.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'What linking it means' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('explains Link it to with the ⓘ by its label on the computer', async () => {
+        screenWidth(true);
+        renderPage(FmDocumentForm, props);
+        const info = screen.getByRole('button', {
+            name: 'What linking it means',
+        });
+
+        expect(
+            screen.queryByText(
+                'Link the document to a card, like the electricity, the car or a policy: so you find it there too.',
+            ),
+        ).not.toBeInTheDocument();
+
+        await userEvent.hover(info);
+
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            'Link the document to a card, like the electricity, the car or a policy: so you find it there too.',
+        );
     });
 
     it('lists «None» first, then the categories indented under their main one', async () => {

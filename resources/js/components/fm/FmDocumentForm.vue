@@ -11,11 +11,13 @@
 import type { FormKitNode } from '@formkit/core';
 import { useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
+import { Info } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import type { FillMode } from '@/composables/useReadingFill';
 import { useReadingFill } from '@/composables/useReadingFill';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { categoryOptions } from '@/lib/categories';
 import type {
     DocumentFormOptions,
@@ -31,6 +33,9 @@ import FmActiveFilter from './FmActiveFilter.vue';
 import FmButton from './FmButton.vue';
 import FmCategoryOption from './FmCategoryOption.vue';
 import FmConfirm from './FmConfirm.vue';
+import FmIcon from './FmIcon.vue';
+import FmOrganizationMark from './FmOrganizationMark.vue';
+import FmTooltip from './FmTooltip.vue';
 
 const {
     action,
@@ -156,6 +161,23 @@ function neededHelp(field: string): string | undefined {
         : undefined;
 }
 const organizations = computed(() => withNone(options.organizations));
+
+/** The organization chosen in *Who it is from*, for its mark in the field. */
+const organization = computed(() =>
+    options.organizations.find(
+        (choice) => choice.value === String(form.organization_id ?? ''),
+    ),
+);
+
+/** The tablet and the computer explain *Link it to* with the ⓘ by its label; the phone, under the field. */
+const wide = useWideLayout();
+
+/** What linking a document means, under *Link it to* or in the bubble of its ⓘ. */
+const linkHint = computed(() =>
+    trans(
+        'Link the document to a card, like the electricity, the car or a policy: so you find it there too.',
+    ),
+);
 
 /** The name of each record that can be linked, by `linkKey()`. */
 const linkLabels = computed(
@@ -340,17 +362,29 @@ useSaveShortcut(save, () => !form.processing);
                 open-on-click
                 :errors="errors(form.errors.person_id)"
             />
-            <FormKit
-                v-model="form.organization_id"
-                type="autocomplete"
-                open-on-click
-                :label="$t('Who it is from')"
-                name="organization_id"
-                :help="neededHelp('organization_id')"
-                :help-class="neededClass"
-                :options="organizations"
-                :errors="errors(form.errors.organization_id)"
-            />
+        </div>
+        <FormKit
+            v-model="form.organization_id"
+            type="autocomplete"
+            open-on-click
+            :label="$t('Who it is from')"
+            name="organization_id"
+            :help="neededHelp('organization_id')"
+            :help-class="neededClass"
+            :options="organizations"
+            :errors="errors(form.errors.organization_id)"
+        >
+            <template v-if="organization" #prefix>
+                <FmOrganizationMark
+                    :types="organization.types"
+                    :logo="organization.logo"
+                    :name="organization.label"
+                    :icon-size="14"
+                    class="mr-2 size-6 rounded-tag bg-canvas"
+                />
+            </template>
+        </FormKit>
+        <div class="grid grid-cols-2 gap-3">
             <FormKit
                 v-model="form.date"
                 type="datepicker"
@@ -367,46 +401,68 @@ useSaveShortcut(save, () => !form.processing);
                 name="expiry_date"
                 :errors="errors(form.errors.expiry_date)"
             />
-            <FormKit
-                v-model="form.status"
-                type="togglebuttons"
-                enforced
-                :label="$t('Status')"
-                name="status"
-                :options="options.statuses"
-                :errors="errors(form.errors.status)"
-            />
         </div>
         <FormKit
-            v-model="form.tags"
-            type="taglist"
-            :label="$t('Tags')"
-            name="tags"
-            :options="tagChoices"
-            show-empty-message
-            :empty-message="$t('Press Enter to add the tag')"
-            allow-new-values
-            :placeholder="$t('Add…')"
-            :help="$t('Write a tag and press Enter, for example: salary')"
-            :errors="tagErrors"
+            v-model="form.status"
+            type="togglebuttons"
+            enforced
+            :label="$t('Status')"
+            name="status"
+            :options="options.statuses"
+            :errors="errors(form.errors.status)"
         />
-        <FormKit
-            v-model="form.notes"
-            type="textarea"
-            :label="$t('Notes')"
-            name="notes"
-            :errors="errors(form.errors.notes)"
-        />
-        <div v-if="form.links.length > 0" class="flex flex-wrap gap-2">
-            <FmActiveFilter
-                v-for="link in form.links"
-                :key="linkKey(link)"
-                :label="linkLabel(link)"
-                :remove-label="
-                    $t('Remove the link :label', { label: linkLabel(link) })
+        <!-- The chips of the links sit just under the field, as the boards Proposta -->
+        <div class="mb-3.5 flex flex-col gap-2">
+            <FormKit
+                v-model="linkChoice"
+                type="autocomplete"
+                open-on-click
+                :label="$t('Link it to')"
+                :placeholder="$t('Choose a record')"
+                name="link"
+                outer-class="$reset formkit-disabled:opacity-50"
+                :options="linkChoices"
+                @node="linkNode = $event"
+                :help="
+                    options.links.length === 0
+                        ? $t(
+                              'The records of the areas (homes, cars, jobs…) will appear here.',
+                          )
+                        : wide
+                          ? undefined
+                          : linkHint
                 "
-                @remove="askToUnlink(link)"
-            />
+                :disabled="options.links.length === 0"
+                :errors="linkErrors"
+            >
+                <template v-if="wide" #label="{ id }">
+                    <div class="mb-1.5 flex items-center gap-1.5">
+                        <label :for="id" class="text-row text-ink">{{
+                            $t('Link it to')
+                        }}</label>
+                        <FmTooltip :text="linkHint" side="right">
+                            <button
+                                type="button"
+                                :aria-label="$t('What linking it means')"
+                                class="flex size-7 cursor-pointer items-center justify-center rounded-full text-ink-soft"
+                            >
+                                <FmIcon :icon="Info" :size="18" />
+                            </button>
+                        </FmTooltip>
+                    </div>
+                </template>
+            </FormKit>
+            <div v-if="form.links.length > 0" class="flex flex-wrap gap-2">
+                <FmActiveFilter
+                    v-for="link in form.links"
+                    :key="linkKey(link)"
+                    :label="linkLabel(link)"
+                    :remove-label="
+                        $t('Remove the link :label', { label: linkLabel(link) })
+                    "
+                    @remove="askToUnlink(link)"
+                />
+            </div>
         </div>
         <FmConfirm
             v-model:open="confirmingUnlink"
@@ -424,23 +480,24 @@ useSaveShortcut(save, () => !form.processing);
             @confirm="confirmUnlink"
         />
         <FormKit
-            v-model="linkChoice"
-            type="autocomplete"
-            open-on-click
-            :label="$t('Link it to')"
-            :placeholder="$t('Choose a record')"
-            name="link"
-            :options="linkChoices"
-            @node="linkNode = $event"
-            :help="
-                options.links.length === 0
-                    ? $t(
-                          'The records of the areas (homes, cars, jobs…) will appear here.',
-                      )
-                    : undefined
-            "
-            :disabled="options.links.length === 0"
-            :errors="linkErrors"
+            v-model="form.notes"
+            type="textarea"
+            :label="$t('Notes')"
+            name="notes"
+            :errors="errors(form.errors.notes)"
+        />
+        <FormKit
+            v-model="form.tags"
+            type="taglist"
+            :label="$t('Tags')"
+            name="tags"
+            :options="tagChoices"
+            show-empty-message
+            :empty-message="$t('Press Enter to add the tag')"
+            allow-new-values
+            :placeholder="$t('Add…')"
+            :help="$t('Write a tag and press Enter, for example: salary')"
+            :errors="tagErrors"
         />
         <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">
             <slot name="start" />

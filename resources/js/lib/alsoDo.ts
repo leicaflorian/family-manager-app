@@ -736,3 +736,91 @@ export function documentNeeds(
 
     return [...new Set(columns)];
 }
+
+/** The fields the person wrote in the boxes of *What I do too*, as `ImportAlso` sends them. */
+type WrittenFields = {
+    movement?: Record<string, unknown>;
+    event?: Record<string, unknown>;
+    records?: Partial<Record<App.Enums.RecordKind, Record<string, unknown>>>;
+};
+
+/**
+ * Whether a field of a box has a value, written by the person or already in the proposal.
+ *
+ * @param value - the value
+ * @returns true unless it is empty
+ */
+function filled(value: unknown): boolean {
+    return value !== undefined && value !== null && value !== '';
+}
+
+/**
+ * What a file still misses before going on (*Next file*, the import): the title of its document, the fields of
+ * the document its ticked boxes need, then the fields to fill in those boxes. The server says what is missing in
+ * the proposal, asked again at every change; a field the person already wrote in a box no longer counts while the
+ * new proposal is on its way.
+ *
+ * @param title - the title written in the form of the document
+ * @param proposal - what the file does too, if it was read
+ * @param ticked - which boxes of *What I do too* are ticked, with the fields written in them
+ * @returns the names of the fields, translated, none when nothing is missing
+ */
+export function missingData(
+    title: string,
+    proposal: App.Data.Reading.ProposalData | undefined,
+    ticked:
+        | {
+              movement: boolean;
+              event: boolean;
+              records: App.Enums.RecordKind[];
+              overrides?: WrittenFields;
+          }
+        | undefined,
+): string[] {
+    const document = [
+        ...(title.trim() === '' ? ['What it is'] : []),
+        ...(proposal && ticked
+            ? documentNeeds(proposal, ticked).map(
+                  (column) => DOCUMENT_LABELS[column] ?? column,
+              )
+            : []),
+    ];
+
+    if (!proposal || !ticked) {
+        return document.map((label) => trans(label));
+    }
+
+    const written = ticked.overrides ?? {};
+    const { movement, event, records } = proposal;
+    const boxes = [
+        ...(movement && ticked.movement && !movement.duplicate
+            ? movement.fill
+                  .filter((column) => !filled(written.movement?.[column]))
+                  .map((column) => MOVEMENT_LABELS[column] ?? column)
+            : []),
+        ...(event && ticked.event && !event.existing
+            ? event.fill
+                  .filter((column) => !filled(written.event?.[column]))
+                  .map((column) => EVENT_LABELS[column] ?? column)
+            : []),
+        ...records
+            .filter(
+                (draft) =>
+                    ticked.records.includes(draft.kind) && !draft.existing,
+            )
+            .flatMap((draft) =>
+                draft.fields
+                    .filter(
+                        (field) =>
+                            field.required &&
+                            !filled(draft.values[field.column]) &&
+                            !filled(
+                                written.records?.[draft.kind]?.[field.column],
+                            ),
+                    )
+                    .map((field) => field.label),
+            ),
+    ];
+
+    return [...document, ...boxes].map((label) => trans(label));
+}

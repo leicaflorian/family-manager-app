@@ -484,6 +484,13 @@ readonly notes: string | null,
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 };
+export type OrganizationOptionData = {
+readonly value: string,
+readonly label: string,
+readonly help: string | null,
+readonly types: string[],
+readonly logo: string | null,
+};
 export type PaymentData = {
 readonly kind: string,
 readonly id: number,

@@ -135,7 +135,15 @@ export const documentFilterOptions = {
         ]),
     ],
     people: [{ value: '7', label: 'Laura Bianchi', help: null }],
-    organizations: [{ value: '9', label: 'Comune di Bologna', help: null }],
+    organizations: [
+        {
+            value: '9',
+            label: 'Comune di Bologna',
+            help: null,
+            types: ['employer'],
+            logo: null,
+        },
+    ],
     statuses: [
         { value: 'active', label: 'Active', help: null },
         { value: 'archived', label: 'Archived', help: null },

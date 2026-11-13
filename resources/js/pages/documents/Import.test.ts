@@ -123,9 +123,23 @@ function sent(
     return body.files;
 }
 
-/** The box that leaves the open file out of the import. */
+/** The button that leaves the open file out of the import, in the bar at the bottom. */
 function leaveOut(): HTMLElement {
-    return screen.getByRole('checkbox', { name: 'Do not import this file' });
+    return screen.getByRole('button', { name: 'Not yet' });
+}
+
+/** The import button on top (on the last file the bar at the bottom has one too, as the board Importa-ultimo (pc)). */
+function importButton(name: string): HTMLElement {
+    return screen.getAllByRole('button', { name })[0]!;
+}
+
+/** Goes through the files with *Next file*, so that all of them are checked. */
+async function checkAll(count: number): Promise<void> {
+    for (let step = 1; step < count; step++) {
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Next file' }),
+        );
+    }
 }
 
 /** The row of a file in the list of the computer. */
@@ -156,11 +170,11 @@ describe('Import', () => {
         ]);
     });
 
-    it('keeps the preview of the file under the top bar while the form scrolls, on the computer', () => {
+    it('keeps the preview of the file 24 px under the top bar while the form scrolls, on the computer, as the board Importa (pc)', () => {
         const { container } = renderPage(Import, props([light, gas]));
 
         expect(container.querySelector('.lg\\:sticky')).toHaveClass(
-            'lg:top-(--app-header)',
+            'lg:top-[calc(var(--app-header)+24px)]',
         );
     });
 
@@ -186,6 +200,46 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
+    it('says under the preview how to open the whole document, its pages and where it comes from, as the board Importa (pc)', () => {
+        renderPage(Import, props([file({ id: 1, pages: 2 })]));
+
+        expect(
+            screen.getByRole('link', { name: 'Open the whole document' }),
+        ).toHaveAttribute('href', '/files/12');
+        expect(
+            screen.getByText(
+                'Here you see only the first page · 2 pages: click to open it all.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Uploaded here on 22/10/2026 by Marco'),
+        ).toBeInTheDocument();
+    });
+
+    it('does not speak of the first page for a file of one page', () => {
+        renderPage(Import, props([file({ id: 1, pages: 1 })]));
+
+        expect(
+            screen.getByRole('link', { name: 'Open the whole document' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText(/Here you see only the first page/),
+        ).not.toBeInTheDocument();
+    });
+
+    it('marks the file looked at as the current step, with the coloured border of the board Importa (pc)', () => {
+        renderPage(Import, props([light, gas]));
+
+        expect(row('bolletta-luce.pdf')).toHaveAttribute(
+            'aria-current',
+            'step',
+        );
+        expect(row('bolletta-luce.pdf')).toHaveClass('border-action');
+        expect(row('bolletta-luce.pdf')).not.toHaveClass('border-edge-soft');
+        expect(row('bolletta-gas.pdf')).not.toHaveAttribute('aria-current');
+        expect(row('bolletta-gas.pdf')).toHaveClass('border-edge-soft');
+    });
+
     it('moves on with Next file, and a file left behind is checked', async () => {
         renderPage(Import, props([light, gas, warranty]));
 
@@ -206,6 +260,73 @@ describe('Import', () => {
         expect(
             screen.queryByRole('button', { name: 'Next file' }),
         ).not.toBeInTheDocument();
+    });
+
+    it('turns on the import on top only once every file is checked, saying how many are left', async () => {
+        renderPage(Import, props([light, gas, warranty]));
+
+        expect(importButton('Import the 3 files')).toBeDisabled();
+        expect(
+            screen.getByText(
+                'It turns on when you have checked them all · 2 to go',
+            ),
+        ).toBeInTheDocument();
+
+        await checkAll(3);
+
+        expect(importButton('Import the 3 files')).toBeEnabled();
+        expect(
+            screen.getByText('You have checked them all'),
+        ).toBeInTheDocument();
+    });
+
+    it('has Not yet, Previous file and Next file at the bottom, and the import in place of Next file on the last file', async () => {
+        renderPage(Import, props([light, gas]));
+
+        expect(leaveOut()).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Previous file' }),
+        ).toBeDisabled();
+
+        await checkAll(2);
+
+        expect(
+            screen.getAllByRole('button', { name: 'Import the 2 files' }),
+        ).toHaveLength(2);
+    });
+
+    it('does not go to the next file while its document misses something, and says what', async () => {
+        renderPage(Import, props([file({ id: 1, title: '' }), gas]));
+        await settle();
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Next file' }),
+        );
+
+        expect(
+            within(row('Busta paga novembre 2026.pdf')).getByText(
+                'You are looking at it',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('1 piece of data is missing'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('What it is. Complete it to go to the next file.'),
+        ).toBeInTheDocument();
+
+        await fireEvent.update(
+            screen.getAllByLabelText('What it is')[0]!,
+            'Busta paga',
+        );
+        await settle();
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Next file' }),
+        );
+
+        expect(
+            within(row('bolletta-gas.pdf')).getByText('You are looking at it'),
+        ).toBeInTheDocument();
     });
 
     it('numbers the files in the row on top', () => {
@@ -266,6 +387,16 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
+    it('counts a file as checked only after Next file, not when another row is opened', async () => {
+        renderPage(Import, props([light, gas, warranty]));
+
+        await fireEvent.click(row('garanzia.jpg'));
+
+        expect(
+            within(row('bolletta-luce.pdf')).getByText('To check'),
+        ).toBeInTheDocument();
+    });
+
     it('on a wide but short window, has the phone layout: a close button to the files to sort, throwing away the changes', () => {
         screenWidth(1280, 400);
         renderPage(Import, props([light]));
@@ -304,9 +435,7 @@ describe('Import', () => {
         expect(close).toHaveAttribute('href', '/cards/vehicle/1');
         expect(close).toHaveAttribute('data-discard-changes');
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Import the file' }),
-        );
+        await fireEvent.click(importButton('Import the file'));
         expect(decodeURIComponent(`${post.mock.calls[0]?.[0] as string}`)).toBe(
             '/import?link=vehicle:1',
         );
@@ -315,37 +444,34 @@ describe('Import', () => {
     it('counts the files on the button', () => {
         renderPage(Import, props([light, gas, warranty]));
 
-        expect(
-            screen.getByRole('button', { name: 'Import the 3 files' }),
-        ).toBeEnabled();
+        expect(importButton('Import the 3 files')).toBeInTheDocument();
     });
 
     it('counts one file in the singular', () => {
         renderPage(Import, props([light]));
 
-        expect(
-            screen.getByRole('button', { name: 'Import the file' }),
-        ).toBeInTheDocument();
+        expect(importButton('Import the file')).toBeInTheDocument();
     });
 
-    it('leaves a file out with Do not import this file, and takes it back', async () => {
+    it('leaves a file out with Not yet, and takes it back', async () => {
         renderPage(Import, props([light, gas, warranty]));
 
         await fireEvent.click(leaveOut());
 
-        expect(leaveOut()).toBeChecked();
+        expect(leaveOut()).toHaveAttribute('aria-pressed', 'true');
+        expect(leaveOut()).toHaveAccessibleDescription(
+            'The file stays among the files to sort',
+        );
         expect(
-            within(row('bolletta-luce.pdf')).getByText('Left out'),
+            within(row('bolletta-luce.pdf')).getByText(
+                'Postponed · stays to sort',
+            ),
         ).toBeInTheDocument();
-        expect(
-            screen.getByRole('button', { name: 'Import the 2 files' }),
-        ).toBeInTheDocument();
+        expect(importButton('Import the 2 files')).toBeInTheDocument();
 
         await fireEvent.click(leaveOut());
 
-        expect(
-            screen.getByRole('button', { name: 'Import the 3 files' }),
-        ).toBeInTheDocument();
+        expect(importButton('Import the 3 files')).toBeInTheDocument();
     });
 
     it('cannot import with every file left out', async () => {
@@ -353,9 +479,7 @@ describe('Import', () => {
 
         await fireEvent.click(leaveOut());
 
-        expect(
-            screen.getByRole('button', { name: 'Import the file' }),
-        ).toBeDisabled();
+        expect(importButton('Import the file')).toBeDisabled();
     });
 
     it('fills each form with its proposal and sends the three documents', async () => {
@@ -363,9 +487,7 @@ describe('Import', () => {
         renderPage(Import, props([light, gas, warranty]));
         await settle();
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Import the 3 files' }),
-        );
+        await fireEvent.click(importButton('Import the 3 files'));
 
         expect(post).toHaveBeenCalledWith(
             '/import',
@@ -409,9 +531,7 @@ describe('Import', () => {
             screen.getByRole('button', { name: 'Next file' }),
         );
         await fireEvent.click(leaveOut());
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Import the file' }),
-        );
+        await fireEvent.click(importButton('Import the file'));
 
         const [, body] = post.mock.calls[0] as unknown as [
             string,
@@ -433,15 +553,50 @@ describe('Import', () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Import, props([light, reading]));
 
-        expect(
-            screen.getByRole('button', { name: 'Import the 2 files' }),
-        ).toBeDisabled();
+        expect(importButton('Import the 2 files')).toBeDisabled();
 
         vi.advanceTimersByTime(2000);
         expect(visit).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({ only: ['files'], preserveUrl: true }),
         );
+    });
+
+    it('shows only the wait while the open file is being read, as the board Importa - sto leggendo, and the form after', async () => {
+        const reading = file({
+            id: 4,
+            name: 'in-lettura.pdf',
+            reading_status: 'reading',
+        });
+        vi.spyOn(router, 'visit').mockImplementation(() => {});
+        const view = renderPage(Import, props([reading]));
+
+        expect(screen.getByText('Reading the document…')).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'When I am done I show you what I found: you check it and correct it before importing it.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('textbox', { name: 'What it is' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Not yet' }),
+        ).not.toBeInTheDocument();
+
+        await view.rerender(
+            props([{ ...reading, reading_status: 'done', proposal }]),
+        );
+
+        expect(
+            screen.queryByText(
+                'When I am done I show you what I found: you check it and correct it before importing it.',
+            ),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('textbox', { name: 'What it is' }),
+        ).toBeInTheDocument();
+        expect(leaveOut()).toBeInTheDocument();
     });
 
     it('does not ask when nothing is being read', () => {
@@ -476,9 +631,7 @@ describe('Import', () => {
         renderPage(Import, props([light, gas]));
         await settle();
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Import the 2 files' }),
-        );
+        await fireEvent.click(importButton('Import the 2 files'));
 
         expect(
             within(row('bolletta-gas.pdf')).getByText(
@@ -502,9 +655,7 @@ describe('Import', () => {
         renderPage(Import, props([light, gas]));
         await settle();
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Import the 2 files' }),
-        );
+        await fireEvent.click(importButton('Import the 2 files'));
 
         expect(
             screen.getByText('Import at most 50 files at a time.'),
@@ -521,9 +672,7 @@ describe('Import', () => {
         await settle();
         await fireEvent.click(leaveOut());
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Import the file' }),
-        );
+        await fireEvent.click(importButton('Import the file'));
 
         expect(
             within(row('bolletta-gas.pdf')).getByText(
@@ -642,9 +791,7 @@ describe('Import', () => {
             renderPage(Import, ferriProps());
             await settle();
 
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]).toMatchObject({
                 file_id: 7,
@@ -672,9 +819,7 @@ describe('Import', () => {
                 }),
             );
             expect(hasChanges()).toBe(true);
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({ movement: false });
         });
@@ -688,9 +833,7 @@ describe('Import', () => {
             await fireEvent.click(
                 screen.getByRole('radio', { name: 'To pay' }),
             );
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({ due: true });
         });
@@ -738,9 +881,7 @@ describe('Import', () => {
                 'The expense to link',
                 'Dentista settembre · 15/09/2026 · 80,00 €',
             );
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
             expect(sent(post)[0]?.also).toMatchObject({
                 targets: { movement: 41 },
             });
@@ -748,9 +889,7 @@ describe('Import', () => {
             await fireEvent.click(
                 screen.getByRole('button', { name: 'Back to the proposal' }),
             );
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
             expect(sent(post)[0]?.also).toMatchObject({
                 targets: { movement: 'auto' },
             });
@@ -779,9 +918,7 @@ describe('Import', () => {
             await fireEvent.click(
                 screen.getByRole('button', { name: 'Create a new card' }),
             );
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({
                 targets: { records: { organization: 'new' } },
@@ -800,9 +937,7 @@ describe('Import', () => {
             renderPage(Import, ferriProps());
             await settle();
 
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             const message =
                 'To create the organization Studio Ferri the name is needed: enter it or untick it.';
@@ -897,9 +1032,7 @@ describe('Import', () => {
             ).toBeInTheDocument();
 
             await fireEvent.click(box);
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
             expect(sent(post)[0]?.also).toMatchObject({ policy: 'none' });
         });
 
@@ -917,9 +1050,7 @@ describe('Import', () => {
             // The calendar of the datepicker cannot be driven in jsdom: the day is set on the field
             await deadline?.input('2026-11-30');
             await settle();
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({
                 due: true,
@@ -978,9 +1109,7 @@ describe('Import', () => {
             await getNode('also-due-date-7')?.input('2026-11-30');
             await settle();
             expect(hasChanges()).toBe(true);
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
             expect(sent(post)[0]?.also).toMatchObject({
                 overrides: { movement: { due_date: '2026-11-30' } },
             });
@@ -1029,9 +1158,7 @@ describe('Import', () => {
                 screen.getByText('Fill in «Policy type» here below.'),
             ).toBeInTheDocument();
             await choose('Policy type', 'Car');
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({
                 records: ['policy'],
@@ -1056,9 +1183,7 @@ describe('Import', () => {
             ).toBeInTheDocument();
             await fireEvent.update(screen.getByLabelText('Amount'), '84,20');
             await settle();
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({
                 overrides: { movement: { amount: '84.20' } },
@@ -1150,9 +1275,7 @@ describe('Import', () => {
                 'Controllo',
             );
             await choose('Type of the event', 'Exam');
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({
                 overrides: { event: { title: 'Controllo', type: 'exam' } },
@@ -1174,9 +1297,7 @@ describe('Import', () => {
             await fireEvent.click(
                 screen.getByRole('radio', { name: 'To pay' }),
             );
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
             await vi.advanceTimersByTimeAsync(1000);
 
             expect(reload).not.toHaveBeenCalled();
@@ -1229,9 +1350,7 @@ describe('Import', () => {
             ).toBeInTheDocument();
 
             await fireEvent.click(box);
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]?.also).toMatchObject({ create_card: true });
         });
@@ -1282,9 +1401,7 @@ describe('Import', () => {
             renderPage(Import, props([light]));
             await settle();
 
-            await fireEvent.click(
-                screen.getByRole('button', { name: 'Import the file' }),
-            );
+            await fireEvent.click(importButton('Import the file'));
 
             expect(sent(post)[0]).not.toHaveProperty('also');
             expect(
@@ -1356,9 +1473,7 @@ describe('Import', () => {
             expect(
                 screen.queryByRole('button', { name: 'Next file' }),
             ).not.toBeInTheDocument();
-            expect(
-                screen.getByRole('button', { name: 'Import the 3 files' }),
-            ).toBeEnabled();
+            expect(importButton('Import the 3 files')).toBeEnabled();
 
             await fireEvent.click(previous);
             expect(screen.getByText('File 2 of 3')).toBeInTheDocument();
@@ -1375,6 +1490,25 @@ describe('Import', () => {
                 field.compareDocumentPosition(heading) &
                     Node.DOCUMENT_POSITION_FOLLOWING,
             ).toBeTruthy();
+        });
+
+        it('puts the wait of a file being read above its preview', () => {
+            vi.spyOn(router, 'visit').mockImplementation(() => {});
+            renderPage(
+                Import,
+                props([
+                    file({
+                        id: 4,
+                        name: 'in-lettura.pdf',
+                        reading_status: 'reading',
+                    }),
+                ]),
+            );
+
+            // jsdom lays nothing out: the section comes first on the screen by its order, as the board Importa-lettura
+            expect(screen.getByRole('status').closest('section')).toHaveClass(
+                'order-first',
+            );
         });
 
         it('says on the bar which file needs a look', () => {

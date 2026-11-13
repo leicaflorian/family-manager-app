@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Data\CategoryData;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
+use App\Data\OrganizationOptionData;
 use App\Enums\DocumentStatus;
 use App\Models\Document;
 use App\Models\Organization;
@@ -25,7 +26,7 @@ final readonly class DocumentFormOptions
     /**
      * The props of the form, ready for the page.
      *
-     * @return array{categories: list<CategoryData>, people: list<OptionData>, organizations: list<OptionData>, links: list<LinkGroupData>, statuses: list<OptionData>, tags: list<string>}
+     * @return array{categories: list<CategoryData>, people: list<OptionData>, organizations: list<OrganizationOptionData>, links: list<LinkGroupData>, statuses: list<OptionData>, tags: list<string>}
      */
     public function all(): array
     {
@@ -51,7 +52,7 @@ final readonly class DocumentFormOptions
     /**
      * The choices of the filters of *Documents*.
      *
-     * @return array{categories: list<CategoryData>, people: list<OptionData>, organizations: list<OptionData>, statuses: list<OptionData>}
+     * @return array{categories: list<CategoryData>, people: list<OptionData>, organizations: list<OrganizationOptionData>, statuses: list<OptionData>}
      */
     public function filters(): array
     {
@@ -60,8 +61,8 @@ final readonly class DocumentFormOptions
             'people' => array_values(Person::query()->orderBy('first_name')->orderBy('last_name')->get()
                 ->map(static fn (Person $person): OptionData => new OptionData((string) $person->id, "{$person->first_name} {$person->last_name}"))
                 ->all()),
-            'organizations' => array_values(Organization::query()->orderBy('name')->get()
-                ->map(static fn (Organization $organization): OptionData => new OptionData((string) $organization->id, $organization->name))
+            'organizations' => array_values(Organization::query()->with('logo')->orderBy('name')->get()
+                ->map(OrganizationOptionData::fromModel(...))
                 ->all()),
             'statuses' => OptionData::list(DocumentStatus::options()),
         ];

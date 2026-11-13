@@ -11,6 +11,7 @@ import {
     eventHint,
     eventLabel,
     eventWarnings,
+    missingData,
     movementHint,
     movementLabel,
     movementWarnings,
@@ -720,6 +721,59 @@ describe('documentNeeds', () => {
                 },
                 all,
             ),
+        ).toEqual([]);
+    });
+});
+
+describe('missingData', () => {
+    const ticked = { movement: true, event: true, records: [] };
+
+    it('names the title when it is empty, and nothing when the document is complete', () => {
+        expect(missingData('', undefined, undefined)).toEqual(['What it is']);
+        expect(missingData('Visita', ferriProposal, ticked)).toEqual([]);
+    });
+
+    it('names the fields of the document the ticked boxes need, then the fields of the boxes', () => {
+        const proposal = {
+            ...ferriProposal,
+            movement: movement({
+                complete: ['organization_id'],
+                fill: ['amount'],
+            }),
+        };
+
+        expect(missingData('Visita', proposal, ticked)).toEqual([
+            'Who it is from',
+            'Amount',
+        ]);
+    });
+
+    it('does not count a field of a box the person already wrote', () => {
+        const proposal = {
+            ...ferriProposal,
+            movement: movement({ fill: ['amount'] }),
+        };
+
+        expect(
+            missingData('Visita', proposal, {
+                ...ticked,
+                overrides: {
+                    movement: { amount: '120' },
+                    event: {},
+                    records: {},
+                },
+            }),
+        ).toEqual([]);
+    });
+
+    it('does not count what an unticked box would need', () => {
+        const proposal = {
+            ...ferriProposal,
+            movement: movement({ complete: ['date'], fill: ['amount'] }),
+        };
+
+        expect(
+            missingData('Visita', proposal, { ...ticked, movement: false }),
         ).toEqual([]);
     });
 });

@@ -49,7 +49,7 @@ export type DocumentFilters = {
 export type DocumentFilterOptions = {
     categories: App.Data.CategoryData[];
     people: App.Data.OptionData[];
-    organizations: App.Data.OptionData[];
+    organizations: App.Data.OrganizationOptionData[];
     statuses: App.Data.OptionData[];
 };
 
@@ -57,7 +57,7 @@ export type DocumentFilterOptions = {
 export type DocumentFormOptions = {
     categories: App.Data.CategoryData[];
     people: App.Data.OptionData[];
-    organizations: App.Data.OptionData[];
+    organizations: App.Data.OrganizationOptionData[];
     links: App.Data.LinkGroupData[];
     statuses: App.Data.OptionData[];
     /** The tags already used in the family, to reuse them. */

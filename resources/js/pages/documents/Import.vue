@@ -18,7 +18,15 @@
  * *Create the card* while other files failed, with the link to *New card* for them (`cardDocuments`).
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CircleCheck, FileText, X } from '@lucide/vue';
+import {
+    ChevronLeft,
+    ChevronRight,
+    CircleCheck,
+    Clock,
+    ExternalLink,
+    FileText,
+    X,
+} from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import ImportAlsoDoBoxes from '@/components/documents/ImportAlsoDoBoxes.vue';
@@ -42,6 +50,7 @@ import {
     eventHint,
     eventLabel,
     eventWarnings,
+    missingData,
     movementHint,
     movementLabel,
     movementWarnings,
@@ -194,6 +203,9 @@ watch(
     },
 );
 
+/** Whether the file open is still being read: its section shows only the wait, the form comes after. */
+const waiting = computed(() => isReading(current.value?.reading_status));
+
 /** The choices of the file open. */
 const chosen = computed(() =>
     current.value ? choices.get(current.value.id) : undefined,
@@ -212,6 +224,44 @@ const needed = computed((): string[] => {
 
     return proposal.value && also ? documentNeeds(proposal.value, also) : [];
 });
+
+/** What the file open still misses before going on: its title, and the fields its ticked boxes need. */
+const missing = computed((): string[] => {
+    const file = current.value;
+
+    if (!file || leftOut.has(file.id) || isReading(file.reading_status)) {
+        return [];
+    }
+
+    const title = (values[file.id] ?? initialValues(file)).title;
+
+    return missingData(title, proposal.value, chosen.value?.also.value);
+});
+
+/** The file that tried to go on while something was missing: it says what, until it is complete. */
+const stopped = ref<number | undefined>();
+
+/** Whether the file open says what it misses. */
+const showMissing = computed(
+    () => stopped.value === current.value?.id && missing.value.length > 0,
+);
+
+/** The files to import that are not checked yet, besides the one open. */
+const toCheck = computed(
+    () =>
+        included.value.filter(
+            (file) => !checked.has(file.id) && file.id !== current.value?.id,
+        ).length,
+);
+
+/** Whether the import can start: a file to import, none being read or sent, and every file checked. */
+const canImport = computed(
+    () =>
+        included.value.length > 0 &&
+        !anyReading.value &&
+        !processing.value &&
+        toCheck.value === 0,
+);
 
 /** How many documents wait for their card, from `cardDocuments`. */
 const cardDocumentCount = computed(() =>
@@ -345,16 +395,42 @@ function stateOf(file: App.Data.PendingFileData): FileState {
 }
 
 /**
- * Opens a file; the one left behind counts as checked.
+ * Opens a file. The one left behind stays as it was: only *Next file* counts it as checked.
  *
  * @param index - the place of the file in the list
  */
 function open(index: number): void {
-    if (current.value) {
-        checked.add(current.value.id);
+    position.value = Math.min(Math.max(index, 0), props.files.length - 1);
+}
+
+/**
+ * Stops on the file open while it misses something, so that it says what.
+ *
+ * @returns true when the file can go on
+ */
+function complete(): boolean {
+    if (missing.value.length > 0) {
+        stopped.value = current.value?.id;
+
+        return false;
     }
 
-    position.value = Math.min(Math.max(index, 0), props.files.length - 1);
+    return true;
+}
+
+/** *Next file*: the file open, if complete, counts as checked, and the next one opens. */
+function next(): void {
+    const file = current.value;
+
+    if (!file || !complete()) {
+        return;
+    }
+
+    if (!isReading(file.reading_status)) {
+        checked.add(file.id);
+    }
+
+    open(position.value + 1);
 }
 
 /**
@@ -391,8 +467,12 @@ function toggleLeftOut(): void {
     }
 }
 
-/** Files the documents of the files that are not left out. */
+/** Files the documents of the files that are not left out, once the file open is complete. */
 function save(): void {
+    if (!complete()) {
+        return;
+    }
+
     errors.value = {};
     listError.value = undefined;
     const sent = included.value;
@@ -469,19 +549,35 @@ usePageTrail(() => [
                 "
             >
                 <template #actions>
-                    <FmButton
-                        :disabled="
-                            included.length === 0 || anyReading || processing
-                        "
-                        @click="save"
-                    >
-                        {{
-                            $tChoice(
-                                '{1} Import the file|[2,*] Import the :count files',
-                                included.length || 1,
-                            )
-                        }}
-                    </FmButton>
+                    <div class="flex flex-col items-end gap-1.5">
+                        <FmButton
+                            :disabled="!canImport"
+                            :aria-describedby="
+                                files.length > 1 ? 'import-all-hint' : undefined
+                            "
+                            @click="save"
+                        >
+                            {{
+                                $tChoice(
+                                    '{1} Import the file|[2,*] Import the :count files',
+                                    included.length || 1,
+                                )
+                            }}
+                        </FmButton>
+                        <span
+                            v-if="files.length > 1"
+                            id="import-all-hint"
+                            class="text-meta text-ink-soft"
+                            >{{
+                                toCheck === 0
+                                    ? $t('You have checked them all')
+                                    : $tChoice(
+                                          '{1} It turns on when you have checked them all · :count to go|[2,*] It turns on when you have checked them all · :count to go',
+                                          toCheck,
+                                      )
+                            }}</span
+                        >
+                    </div>
                 </template>
             </FmTitle>
         </template>
@@ -567,15 +663,20 @@ usePageTrail(() => [
                 <li
                     v-for="(file, index) in files"
                     :key="file.id"
-                    class="min-w-0 flex-[1_1_240px]"
+                    class="min-w-0 flex-[0_1_300px]"
                 >
                     <button
                         type="button"
-                        class="flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge-soft bg-card px-3.5 py-2.5 text-left"
-                        :class="{
-                            'border-action': stateOf(file) === 'looking',
-                            'opacity-60': stateOf(file) === 'left-out',
-                        }"
+                        :aria-current="
+                            stateOf(file) === 'looking' ? 'step' : undefined
+                        "
+                        :class="
+                            cn(
+                                'flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge-soft bg-card px-3.5 py-2.5 text-left',
+                                stateOf(file) === 'looking' && 'border-action',
+                                stateOf(file) === 'left-out' && 'opacity-60',
+                            )
+                        "
                         @click="open(index)"
                     >
                         <span class="shrink-0 text-label text-ink-soft">{{
@@ -616,7 +717,9 @@ usePageTrail(() => [
                                 >
                                 <template
                                     v-else-if="stateOf(file) === 'left-out'"
-                                    >{{ $t('Left out') }}</template
+                                    >{{
+                                        $t('Postponed · stays to sort')
+                                    }}</template
                                 >
                                 <template v-else>{{ $t('To check') }}</template>
                             </span>
@@ -632,7 +735,7 @@ usePageTrail(() => [
 
             <div class="flex flex-wrap items-start gap-6">
                 <div
-                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-segment p-5 lg:sticky lg:top-(--app-header) lg:p-8"
+                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-segment p-5 lg:sticky lg:top-[calc(var(--app-header)+24px)] lg:p-8"
                 >
                     <FmFilePreview
                         :url="current.url"
@@ -640,17 +743,64 @@ usePageTrail(() => [
                         :name="current.name"
                         :preview-url="current.preview_url"
                     />
+                    <div class="flex flex-col items-center gap-0.5 text-center">
+                        <a
+                            :href="current.url"
+                            target="_blank"
+                            rel="noopener"
+                            class="flex min-h-9 items-center gap-1.5 text-label text-action no-underline"
+                        >
+                            <FmIcon :icon="ExternalLink" :size="16" />
+                            {{ $t('Open the whole document') }}
+                        </a>
+                        <span
+                            v-if="(current.pages ?? 0) > 1"
+                            class="text-meta text-ink-soft"
+                            >{{
+                                $t(
+                                    'Here you see only the first page · :pages: click to open it all.',
+                                    {
+                                        pages: $tChoice(
+                                            '{1} :count page|[2,*] :count pages',
+                                            current.pages ?? 0,
+                                        ),
+                                    },
+                                )
+                            }}</span
+                        >
+                    </div>
                     <span
-                        class="text-center text-body-sm break-all text-ink-soft"
+                        class="text-center text-meta break-all text-ink-soft"
                         >{{ current.note ?? current.name }}</span
                     >
                 </div>
 
+                <!-- On the phone the wait comes before the file, as the board Importa-lettura -->
                 <section
+                    :aria-label="$t('The document')"
                     class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-card p-5 lg:p-7"
+                    :class="{ 'order-first': waiting && !desktop }"
                 >
                     <FmNotice v-if="problemOf(current)" tone="warning">
                         {{ problemOf(current) }}
+                    </FmNotice>
+                    <FmNotice
+                        v-if="showMissing"
+                        tone="warning"
+                        :title="
+                            $tChoice(
+                                '{1} :count piece of data is missing|[2,*] :count pieces of data are missing',
+                                missing.length,
+                            )
+                        "
+                    >
+                        {{
+                            $tChoice(
+                                '{1} :fields. Complete it to go to the next file.|[2,*] :fields. Complete them to go to the next file.',
+                                missing.length,
+                                { fields: missing.join(', ') },
+                            )
+                        }}
                     </FmNotice>
                     <FmReadingNotice
                         :status="current.reading_status"
@@ -659,11 +809,19 @@ usePageTrail(() => [
                         again
                         @again="readAgain(current.id)"
                     />
-                    <FmReadingProgress
-                        v-if="isReading(current.reading_status)"
-                        :name="current.name"
-                        :pages="current.pages"
-                    />
+                    <template v-if="waiting">
+                        <FmReadingProgress
+                            :name="current.name"
+                            :pages="current.pages"
+                        />
+                        <p class="m-0 text-body-sm text-ink-soft">
+                            {{
+                                $t(
+                                    'When I am done I show you what I found: you check it and correct it before importing it.',
+                                )
+                            }}
+                        </p>
+                    </template>
                     <FmNotice v-if="leftOut.has(current.id)">
                         {{ $t('This file stays in the files to sort.') }}
                     </FmNotice>
@@ -671,7 +829,11 @@ usePageTrail(() => [
                     <!-- Every form stays in the page, so what is written in one is kept while the others are open -->
                     <FmDocumentForm
                         v-for="file in files"
-                        v-show="file.id === current.id && !leftOut.has(file.id)"
+                        v-show="
+                            file.id === current.id &&
+                            !leftOut.has(file.id) &&
+                            !waiting
+                        "
                         :key="file.id"
                         :initial="initialValues(file)"
                         :options="options"
@@ -685,7 +847,7 @@ usePageTrail(() => [
                     />
 
                     <ImportAlsoDoBoxes
-                        v-if="proposal && chosen"
+                        v-if="proposal && chosen && !waiting"
                         :key="current.id"
                         :file-id="current.id"
                         :proposal="proposal"
@@ -697,49 +859,73 @@ usePageTrail(() => [
                         :health-types="healthTypes ?? []"
                     />
 
+                    <!-- On the phone Not yet closes the form; Previous and Next stay in the bar under the page -->
                     <div
-                        class="mt-1.5 flex flex-wrap items-center justify-between gap-2.5"
+                        :class="
+                            desktop
+                                ? cn(
+                                      'sticky bottom-0 z-1 -mx-7 mt-1.5 -mb-7 flex flex-wrap items-center justify-between gap-2.5 rounded-b-sheet border-t border-edge-soft bg-card px-7 py-3.5',
+                                  )
+                                : cn('flex')
+                        "
                     >
-                        <label
-                            class="flex cursor-pointer items-center gap-2.5 text-body-sm text-ink-soft"
+                        <button
+                            v-if="!waiting"
+                            type="button"
+                            :aria-pressed="leftOut.has(current.id)"
+                            aria-describedby="not-yet-hint"
+                            class="-ml-3.5 inline-flex h-control cursor-pointer items-center gap-2 rounded-control px-3.5 text-label whitespace-nowrap text-ink-soft aria-pressed:text-action"
+                            @click="toggleLeftOut"
                         >
-                            <input
-                                type="checkbox"
-                                class="m-0 size-5 accent-action"
-                                :checked="leftOut.has(current.id)"
-                                @change="toggleLeftOut"
-                            />
-                            {{ $t('Do not import this file') }}
-                        </label>
-                        <FmButton
-                            v-if="desktop && !last"
-                            variant="outline"
-                            @click="open(position + 1)"
-                        >
-                            {{ $t('Next file') }}
-                        </FmButton>
+                            <FmIcon :icon="Clock" :size="18" />
+                            {{ $t('Not yet') }}
+                        </button>
+                        <span id="not-yet-hint" class="sr-only">{{
+                            $t('The file stays among the files to sort')
+                        }}</span>
+                        <div v-if="desktop" class="ml-auto flex gap-2.5">
+                            <FmButton
+                                variant="outline"
+                                :icon="ChevronLeft"
+                                :disabled="position === 0"
+                                @click="open(position - 1)"
+                            >
+                                {{ $t('Previous file') }}
+                            </FmButton>
+                            <FmButton
+                                v-if="last"
+                                :disabled="!canImport"
+                                @click="save"
+                            >
+                                {{
+                                    $tChoice(
+                                        '{1} Import the file|[2,*] Import the :count files',
+                                        included.length || 1,
+                                    )
+                                }}
+                            </FmButton>
+                            <FmButton v-else @click="next">
+                                {{ $t('Next file') }}
+                                <FmIcon :icon="ChevronRight" :size="20" />
+                            </FmButton>
+                        </div>
                     </div>
                 </section>
             </div>
 
             <div
                 v-if="!desktop"
-                class="sticky bottom-0 -mx-5 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2.5 border-t border-edge-soft bg-card px-5 pt-3 pb-4"
+                class="sticky bottom-0 -mx-5 grid grid-cols-2 gap-2.5 border-t border-edge-soft bg-card px-5 pt-3 pb-4"
             >
                 <FmButton
                     variant="outline"
+                    :icon="ChevronLeft"
                     :disabled="position === 0"
                     @click="open(position - 1)"
                 >
                     {{ $t('Previous file') }}
                 </FmButton>
-                <FmButton
-                    v-if="last"
-                    :disabled="
-                        included.length === 0 || anyReading || processing
-                    "
-                    @click="save"
-                >
+                <FmButton v-if="last" :disabled="!canImport" @click="save">
                     {{
                         $tChoice(
                             '{1} Import the file|[2,*] Import the :count files',
@@ -747,8 +933,9 @@ usePageTrail(() => [
                         )
                     }}
                 </FmButton>
-                <FmButton v-else @click="open(position + 1)">
+                <FmButton v-else @click="next">
                     {{ $t('Next file') }}
+                    <FmIcon :icon="ChevronRight" :size="20" />
                 </FmButton>
             </div>
         </template>
