@@ -4,6 +4,7 @@ import { fireEvent, screen, within } from '@testing-library/vue';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { layOut, watchLayout } from '@/test/layout';
 import {
+    choose,
     openMenu,
     pressSave,
     renderPage,
@@ -31,6 +32,11 @@ const category = (
     children,
 });
 
+const cardTypes: App.Data.OptionData[] = [
+    { value: 'home', label: 'Home', help: null },
+    { value: 'utility', label: 'Utility', help: null },
+];
+
 const categories = [
     category(1, 'Home and utilities', 4, [
         category(2, 'Electricity', 2, [], 1),
@@ -42,7 +48,11 @@ const categories = [
 describe('Document categories', () => {
     it('writes the trail Settings > Document categories into the top bar', () => {
         const { state, provide } = withTrail();
-        renderPage(Categories, { categories, canEdit: true }, provide);
+        renderPage(
+            Categories,
+            { categories, cardTypes, canEdit: true },
+            provide,
+        );
 
         expect(state.pieces.value).toEqual([
             { label: 'Settings', href: '/settings' },
@@ -51,7 +61,7 @@ describe('Document categories', () => {
     });
 
     it('shows the tree with the number of documents, and opens the subcategories', async () => {
-        renderPage(Categories, { categories, canEdit: true });
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
 
         expect(screen.getByText('Home and utilities')).toBeInTheDocument();
         expect(screen.queryByText('Electricity')).toBeNull();
@@ -67,7 +77,7 @@ describe('Document categories', () => {
     });
 
     it('edits a category in the panel, and does not put it under itself', async () => {
-        renderPage(Categories, { categories, canEdit: true });
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
 
         await fireEvent.click(
             screen.getByRole('button', { name: /^Home and utilities/ }),
@@ -105,6 +115,7 @@ describe('Document categories', () => {
     it('writes the singular for a category with one document', async () => {
         renderPage(Categories, {
             categories: [category(5, 'School', 1)],
+            cardTypes,
             canEdit: true,
         });
 
@@ -117,7 +128,7 @@ describe('Document categories', () => {
     });
 
     it('lets an empty category be deleted', async () => {
-        renderPage(Categories, { categories, canEdit: true });
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
         await fireEvent.click(
             screen.getByRole('button', { name: 'Open Home and utilities' }),
         );
@@ -136,7 +147,7 @@ describe('Document categories', () => {
     });
 
     it('shows the categories to a family member without letting them change them', () => {
-        renderPage(Categories, { categories, canEdit: false });
+        renderPage(Categories, { categories, cardTypes, canEdit: false });
 
         expect(
             screen.queryByRole('button', { name: 'New category' }),
@@ -147,7 +158,7 @@ describe('Document categories', () => {
 
     it('saves the category of the open panel with ⌘S, and nothing with the panel closed', async () => {
         const put = vi.spyOn(router, 'put').mockImplementation(() => {});
-        renderPage(Categories, { categories, canEdit: true });
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
 
         pressSave();
         expect(put).not.toHaveBeenCalled();
@@ -162,7 +173,7 @@ describe('Document categories', () => {
 
     it('puts New category in the menu when there is no room for it, and it still opens the panel', async () => {
         watchLayout();
-        renderPage(Categories, { categories, canEdit: true });
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
 
         await layOut(40);
 
@@ -183,7 +194,7 @@ describe('Document categories', () => {
 
 describe('Changes not saved', () => {
     it('asks before closing the panel with the × once the name changes', async () => {
-        renderPage(Categories, { categories, canEdit: true });
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
         await fireEvent.click(
             screen.getByRole('button', { name: /^Home and utilities/ }),
         );
@@ -197,5 +208,101 @@ describe('Changes not saved', () => {
 
         expect(leaveQuestion.open).toBe(true);
         answerLeave(false);
+    });
+
+    it('offers the card on a main category, first No card, and says what the choice does', async () => {
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
+        await fireEvent.click(screen.getByRole('button', { name: /^Work/ }));
+
+        const sheet = await screen.findByRole('dialog');
+        const menu = await openMenu('Card');
+        const labels = within(menu)
+            .getAllByRole('option')
+            .map((option) => option.textContent?.trim());
+        expect(labels).toEqual(['No card', 'Home', 'Utility']);
+        await fireEvent.keyDown(menu, { key: 'Escape' });
+        expect(within(sheet).getByText(/The proposals of/).textContent).toBe(
+            'The proposals of Import for the documents of this category start from here.',
+        );
+        expect(within(sheet).getByText('Import').tagName).toBe('EM');
+    });
+
+    it('names the card of the main category in the first voice of a subcategory', async () => {
+        const withCard = [
+            {
+                ...category(1, 'Home and utilities', 0, [
+                    {
+                        ...category(2, 'Electricity', 2, [], 1),
+                        inherited_card_type: 'utility',
+                    },
+                ]),
+                card_type: 'utility',
+            },
+        ];
+        renderPage(Categories, {
+            categories: withCard,
+            cardTypes,
+            canEdit: true,
+        });
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Open Home and utilities' }),
+        );
+        await fireEvent.click(
+            screen.getByRole('button', { name: /^Electricity/ }),
+        );
+        await screen.findByRole('dialog');
+
+        const menu = await openMenu('Card');
+        expect(within(menu).getAllByRole('option')[0].textContent?.trim()).toBe(
+            'Same as the main one (Utility)',
+        );
+    });
+
+    it('drops the name of the card when the main category has none', async () => {
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Open Home and utilities' }),
+        );
+        await fireEvent.click(
+            screen.getByRole('button', { name: /^Electricity/ }),
+        );
+        await screen.findByRole('dialog');
+
+        const menu = await openMenu('Card');
+        expect(within(menu).getAllByRole('option')[0].textContent?.trim()).toBe(
+            'Same as the main one',
+        );
+    });
+
+    it('saves the chosen card', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
+        await fireEvent.click(screen.getByRole('button', { name: /^Work/ }));
+        const sheet = await screen.findByRole('dialog');
+
+        await choose('Card', 'Home');
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Save' }),
+        );
+
+        expect(put.mock.calls.at(-1)?.[1]).toMatchObject({ card_type: 'home' });
+    });
+
+    it('saves null for the first voice', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Categories, {
+            categories: [{ ...category(4, 'Work', 5), card_type: 'home' }],
+            cardTypes,
+            canEdit: true,
+        });
+        await fireEvent.click(screen.getByRole('button', { name: /^Work/ }));
+        const sheet = await screen.findByRole('dialog');
+
+        await choose('Card', 'No card');
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Save' }),
+        );
+
+        expect(put.mock.calls.at(-1)?.[1]).toMatchObject({ card_type: null });
     });
 });

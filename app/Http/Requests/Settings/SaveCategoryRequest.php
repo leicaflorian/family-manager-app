@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
+use App\Cards\CardType;
+use App\Cards\CardTypes;
 use App\Models\DocumentCategory;
 use App\Rules\OfFamily;
 use App\Services\CategoryTree;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
- * A document category, new or changed: the name and where it sits.
+ * A document category, new or changed: the name, where it sits and the card its documents go with.
  */
 final class SaveCategoryRequest extends FormRequest
 {
@@ -29,7 +32,7 @@ final class SaveCategoryRequest extends FormRequest
     }
 
     /**
-     * The rules of the fields. A category does not go under itself nor under one of its children.
+     * The rules of the fields. The card is empty or one of the card types, on a main category and on a subcategory alike. A category does not go under itself nor under one of its children.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -38,6 +41,7 @@ final class SaveCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', new OfFamily('document_categories'), $this->notUnderItself(...)],
+            'card_type' => ['nullable', 'string', Rule::in(array_map(static fn (CardType $type): string => $type->type(), CardTypes::all()))],
         ];
     }
 
@@ -48,7 +52,7 @@ final class SaveCategoryRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => __('name'), 'parent_id' => __('inside')];
+        return ['name' => __('name'), 'parent_id' => __('inside'), 'card_type' => __('Card')];
     }
 
     /**
