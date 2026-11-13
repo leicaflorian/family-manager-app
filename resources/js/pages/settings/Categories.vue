@@ -85,23 +85,19 @@ const places = computed(() => {
 });
 
 /**
- * The card type of the main category the panel's category sits under: the one a subcategory without its own takes.
+ * The card type a subcategory without its own takes: the one of the nearest category above it with a card, that is
+ * the card of the chosen parent, else the one the parent itself takes.
  */
-const inheritedCardType = computed(() => {
+const inheritedCardType = computed((): string | null => {
     if (form.parent_id === '') {
         return null;
     }
 
-    const main = flatten(categories).find(
+    const parent = flatten(categories).find(
         ({ category }) => String(category.id) === form.parent_id,
     )?.category;
-    const root = main
-        ? categories.find((candidate) =>
-              withDescendants(candidate).includes(main.id),
-          )
-        : undefined;
 
-    return root?.card_type ?? null;
+    return parent ? (parent.card_type ?? parent.inherited_card_type) : null;
 });
 
 /**

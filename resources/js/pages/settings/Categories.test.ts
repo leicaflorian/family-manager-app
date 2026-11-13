@@ -258,6 +258,59 @@ describe('Changes not saved', () => {
         );
     });
 
+    it.each([
+        ['the middle category has a card', 'utility', 'Utility'],
+        ['only the main category has a card', null, 'Home'],
+    ])(
+        'names the card of the nearest category above in a deeper tree: %s',
+        async (_case, middleCard, label) => {
+            const deep = [
+                {
+                    ...category(1, 'Home and utilities', 0, [
+                        {
+                            ...category(
+                                2,
+                                'Electricity',
+                                0,
+                                [
+                                    {
+                                        ...category(5, 'Bills', 1, [], 2),
+                                        inherited_card_type:
+                                            middleCard ?? 'home',
+                                    },
+                                ],
+                                1,
+                            ),
+                            card_type: middleCard,
+                            inherited_card_type: 'home',
+                        },
+                    ]),
+                    card_type: 'home',
+                },
+            ];
+            renderPage(Categories, {
+                categories: deep,
+                cardTypes,
+                canEdit: true,
+            });
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Open Home and utilities' }),
+            );
+            await fireEvent.click(
+                screen.getByRole('button', { name: 'Open Electricity' }),
+            );
+            await fireEvent.click(
+                screen.getByRole('button', { name: /^Bills/ }),
+            );
+            await screen.findByRole('dialog');
+
+            const menu = await openMenu('Card');
+            expect(
+                within(menu).getAllByRole('option')[0].textContent?.trim(),
+            ).toBe(`Same as the main one (${label})`);
+        },
+    );
+
     it('drops the name of the card when the main category has none', async () => {
         renderPage(Categories, { categories, cardTypes, canEdit: true });
         await fireEvent.click(

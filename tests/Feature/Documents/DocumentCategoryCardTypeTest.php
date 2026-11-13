@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\CategoryData;
 use App\Models\DocumentCategory;
 use App\Models\Family;
 use App\Services\CategoryTree;
@@ -63,4 +64,41 @@ it('sends the own card and the inherited one with the tree', function (): void {
         ->and($purchases->card_type)->toBeNull()
         ->and($warranties->card_type)->toBe('belonging')
         ->and($warranties->inherited_card_type)->toBeNull();
+});
+
+it('walks up a deeper tree: the nearest category with a card wins', function (): void {
+    insideFamilyOf(registerFamily(), function (): void {
+        $make = fn (string $name, ?int $parent, ?string $card): DocumentCategory => DocumentCategory::factory()
+            ->create(['family_id' => CurrentFamily::id(), 'name' => $name, 'parent_id' => $parent, 'card_type' => $card]);
+        $root = $make('Root', null, 'home');
+        $middle = $make('Middle', $root->id, 'utility');
+        $leaf = $make('Leaf', $middle->id, null);
+        $own = $make('Own', $middle->id, 'vehicle');
+        $plainMiddle = $make('Plain middle', $root->id, null);
+        $deepLeaf = $make('Deep leaf', $plainMiddle->id, null);
+
+        $tree = resolve(CategoryTree::class)->tree();
+        $find = function (array $branches, string $name) use (&$find): ?CategoryData {
+            foreach ($branches as $branch) {
+                if ($branch->name === $name) {
+                    return $branch;
+                }
+                $found = $find($branch->children, $name);
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+
+            return null;
+        };
+
+        expect(DocumentCategory::cardTypeOf($leaf->id))->toBe('utility')
+            ->and(DocumentCategory::cardTypeOf($deepLeaf->id))->toBe('home')
+            ->and(DocumentCategory::cardTypeOf($own->id))->toBe('vehicle')
+            ->and($find($tree, 'Leaf')?->inherited_card_type)->toBe('utility')
+            ->and($find($tree, 'Deep leaf')?->inherited_card_type)->toBe('home')
+            ->and($find($tree, 'Own')?->inherited_card_type)->toBe('utility')
+            ->and($find($tree, 'Middle')?->inherited_card_type)->toBe('home')
+            ->and($find($tree, 'Root')?->inherited_card_type)->toBeNull();
+    });
 });

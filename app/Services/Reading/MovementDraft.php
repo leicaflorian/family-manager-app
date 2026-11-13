@@ -76,7 +76,8 @@ final readonly class MovementDraft
 
         return [
             'movement' => $movement,
-            'movementSuggested' => $x->kind === 'payslip' || $job
+            // A job category ticks the income only with an amount read: a contract without one proposes it unticked
+            'movementSuggested' => $x->kind === 'payslip' || ($job && $x->total_amount !== null)
                 || in_array($x->kind, self::EXPENSE_KINDS, true)
                 || ($x->kind === 'insurance' && $movement->lead !== null)
                 || ($x->kind === 'medical' && $x->total_amount !== null),

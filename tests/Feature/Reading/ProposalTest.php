@@ -521,6 +521,19 @@ describe('the proposal follows the card of the category', function (): void {
             ->and($proposal->createCard)->toBeFalse();
     });
 
+    test('a paper without an amount in a job category proposes the income, not ticked', function (): void {
+        $marco = Person::factory()->for($this->family)->create(['first_name' => 'Marco']);
+        Employment::factory()->for($this->family)->create(['person_id' => $marco->id]);
+        $work = DocumentCategory::factory()->for($this->family)->create(['name' => 'Lavoro', 'card_type' => 'employment']);
+
+        $proposal = proposalOf(['kind' => 'other', 'title' => 'Contratto di lavoro', 'issue_date' => '2026-10-01'], [
+            'document' => ['category_id' => $work->id, 'person_id' => $marco->id],
+        ]);
+
+        expect($proposal->movement->values->kind)->toBe('income')
+            ->and($proposal->movement->suggested)->toBeFalse();
+    });
+
     test('a payslip of a person without a job proposes to create the job', function (): void {
         $payslips = DocumentCategory::factory()->for($this->family)->create(['name' => 'Buste paga', 'card_type' => 'employment']);
 

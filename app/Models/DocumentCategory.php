@@ -79,30 +79,32 @@ final class DocumentCategory extends FamilyModel
     }
 
     /**
-     * The card type of a category: its own, else the one of its main category.
+     * The card type of a category: the one of the nearest category with a card walking up from it (its own, else
+     * its parent's, else its grandparent's… up to the main one).
      *
      * @param  int|null  $id  the category; one of another family counts as missing (the family scope)
-     * @return string|null the type of the morph map, null when the category is missing or has none
+     * @return string|null the type of the morph map, null when the category is missing or none up the tree has one
      */
     public static function cardTypeOf(?int $id): ?string
     {
-        if ($id === null) {
-            return null;
+        $seen = [];
+
+        // A loop in the tree (which the settings refuse) stops at the first category seen twice
+        while ($id !== null && ! in_array($id, $seen, true)) {
+            $seen[] = $id;
+            $category = self::query()->find($id, ['id', 'parent_id', 'card_type']);
+            if ($category === null) {
+                return null;
+            }
+
+            if ($category->card_type !== null) {
+                return $category->card_type;
+            }
+
+            $id = $category->parent_id;
         }
 
-        $category = self::query()->find($id, ['id', 'parent_id', 'card_type']);
-
-        if ($category === null) {
-            return null;
-        }
-
-        if ($category->card_type !== null || $category->parent_id === null) {
-            return $category->card_type;
-        }
-
-        $type = self::query()->whereKey($category->parent_id)->value('card_type');
-
-        return is_string($type) ? $type : null;
+        return null;
     }
 
     /**

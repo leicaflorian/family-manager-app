@@ -81,7 +81,7 @@ final class CategoryTree
      * @param  Collection<int|string, Collection<int, DocumentCategory>>  $byParent  the categories grouped by `parent_id`
      * @param  int|null  $parent  the category whose children to read, null for the main ones
      * @param  string|null  $color  the colour of the main category, for the subcategories
-     * @param  string|null  $cardType  the card of the main category, for the subcategories
+     * @param  string|null  $cardType  the card of the nearest category above with one, for the subcategories
      * @return list<CategoryData>
      */
     private function branches(Collection $byParent, ?int $parent, ?string $color, ?string $cardType): array
@@ -93,9 +93,9 @@ final class CategoryTree
             icon: $category->icon,
             color: $category->color ?? $color,
             card_type: $category->card_type,
-            inherited_card_type: $category->parent_id === null ? null : $cardType,
+            inherited_card_type: $cardType,
             documents_count: (int) $category->documents_count,
-            children: $this->branches($byParent, $category->id, $category->color ?? $color, $category->parent_id === null ? $category->card_type : $cardType),
+            children: $this->branches($byParent, $category->id, $category->color ?? $color, $category->card_type ?? $cardType),
         ))->all());
     }
 }
