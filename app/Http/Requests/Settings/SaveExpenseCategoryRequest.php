@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
-use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Models\ExpenseCategory;
 use Closure;
@@ -39,7 +38,7 @@ final class SaveExpenseCategoryRequest extends FormRequest
             'card_type' => [
                 'nullable',
                 'string',
-                Rule::in(array_map(static fn (CardType $type): string => $type->type(), CardTypes::all())),
+                Rule::in(CardTypes::types()),
                 $this->onMainCategory(...),
             ],
         ];

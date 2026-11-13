@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Cards\CardType;
 use App\Cards\CardTypes;
-use App\Data\OptionData;
 use App\Http\Requests\Settings\SaveCategoryRequest;
 use App\Models\DocumentCategory;
 use App\Models\User;
@@ -31,7 +29,7 @@ final class CategoryController extends Controller
     {
         return Inertia::render('settings/Categories', [
             'categories' => $tree->tree(),
-            'cardTypes' => array_map(static fn (CardType $type): OptionData => new OptionData($type->type(), $type->label()), CardTypes::all()),
+            'cardTypes' => CardTypes::options(),
             'canEdit' => $user->can('create', DocumentCategory::class),
         ]);
     }

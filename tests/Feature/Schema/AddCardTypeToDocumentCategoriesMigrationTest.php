@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Family;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /*
  * The migration is run by hand, down and up again: MySQL commits the transaction of RefreshDatabase at the first
@@ -47,4 +48,15 @@ it('does not change a category that already has a card', function (): void {
     $migration->up();
 
     expect(DB::table('document_categories')->find($this->english)->card_type)->toBe('home');
+});
+
+it('goes down also when the column is already gone', function (): void {
+    /** @var Migration $migration */
+    $migration = require database_path('migrations/2026_11_13_000001_add_card_type_to_document_categories.php');
+    $migration->down();
+    $migration->down();
+
+    expect(Schema::hasColumn('document_categories', 'card_type'))->toBeFalse();
+
+    $migration->up();
 });

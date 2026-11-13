@@ -7,6 +7,7 @@ use App\Cards\CardField;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Cards\FieldKind;
+use App\Data\OptionData;
 use App\Enums\Area;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\NoticeTone;
@@ -331,3 +332,12 @@ test('it gives the card types a new card can be linked to, with the values that 
     'employment' => ['employment', [['insurance_policy', ['employment_id' => 5]]]],
     'policy' => ['insurance_policy', []],
 ]);
+
+test('the types of the cards and their options for the menus, in the order of New card', function (): void {
+    $types = array_map(fn (CardType $card): string => $card->type(), CardTypes::all());
+
+    expect(CardTypes::types())->toBe($types)
+        ->and(array_map(fn (OptionData $option): string => $option->value, CardTypes::options()))->toBe($types)
+        ->and(CardTypes::options()[0]->label)->toBe(CardTypes::all()[0]->label())
+        ->and(CardTypes::options()[0]->help)->toBeNull();
+});

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
-use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Models\DocumentCategory;
 use App\Rules\OfFamily;
@@ -41,7 +40,7 @@ final class SaveCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', new OfFamily('document_categories'), $this->notUnderItself(...)],
-            'card_type' => ['nullable', 'string', Rule::in(array_map(static fn (CardType $type): string => $type->type(), CardTypes::all()))],
+            'card_type' => ['nullable', 'string', Rule::in(CardTypes::types())],
         ];
     }
 

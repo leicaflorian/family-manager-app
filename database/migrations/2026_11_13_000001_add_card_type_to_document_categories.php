@@ -38,8 +38,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('document_categories', function (Blueprint $table): void {
-            $table->dropColumn('card_type');
-        });
+        if (Schema::hasColumn('document_categories', 'card_type')) {
+            Schema::table('document_categories', function (Blueprint $table): void {
+                $table->dropColumn('card_type');
+            });
+        }
     }
 };

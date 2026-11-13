@@ -17,6 +17,7 @@ use App\Cards\Types\MaintenanceRecordCard;
 use App\Cards\Types\SubscriptionCard;
 use App\Cards\Types\UtilityCard;
 use App\Cards\Types\VehicleCard;
+use App\Data\OptionData;
 use App\Enums\Area;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -57,6 +58,26 @@ final class CardTypes
     public static function all(): array
     {
         return array_map(static fn (string $class): CardType => new $class, self::TYPES);
+    }
+
+    /**
+     * The type of the morph map of every card type, in the order of *New card*: the values a `card_type` can take.
+     *
+     * @return list<string>
+     */
+    public static function types(): array
+    {
+        return array_map(static fn (CardType $card): string => $card->type(), self::all());
+    }
+
+    /**
+     * Every card type as a choice of a menu (type and name), in the order of *New card*.
+     *
+     * @return list<OptionData>
+     */
+    public static function options(): array
+    {
+        return array_map(static fn (CardType $card): OptionData => new OptionData($card->type(), $card->label()), self::all());
     }
 
     /**
