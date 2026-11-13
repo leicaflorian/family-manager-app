@@ -76,8 +76,8 @@ export default defineConfig({
         environment: 'jsdom',
         include: ['resources/js/**/*.test.ts'],
         setupFiles: ['resources/js/test/setup.ts'],
-        // Docker gets 8 GB but sees every core of the Mac: one worker per core runs it out of memory
-        maxWorkers: 4,
+        // Docker gets 16 GB but sees every core of the Mac: one worker per core would be too many alongside Pest
+        maxWorkers: 8,
     },
     fmt: {
         printWidth: 80,
