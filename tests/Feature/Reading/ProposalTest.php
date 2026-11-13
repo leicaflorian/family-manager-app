@@ -16,6 +16,7 @@ use App\Enums\OrganizationType;
 use App\Enums\RecordKind;
 use App\Models\Document;
 use App\Models\DocumentCategory;
+use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
@@ -466,5 +467,163 @@ describe('what a box still needs, and where it is written', function (): void {
 
         expect($draft?->complete)->toBe(['date'])
             ->and(array_find($records, fn (RecordDraftData $record): bool => $record->kind === RecordKind::Organization)?->complete)->toBe([]);
+    });
+});
+
+describe('the proposal follows the card of the category', function (): void {
+    beforeEach(function (): void {
+        $this->giulia = Person::factory()->for($this->family)->create(['first_name' => 'Giulia', 'last_name' => 'Bianchi']);
+        $this->homeAndUtilities = DocumentCategory::factory()->for($this->family)->create(['name' => 'Casa e utenze', 'card_type' => 'utility']);
+        $this->light = DocumentCategory::factory()->for($this->family)->create(['name' => 'Luce', 'parent_id' => $this->homeAndUtilities->id]);
+        $this->healthDocs = DocumentCategory::factory()->for($this->family)->create(['name' => 'Salute', 'card_type' => 'health_event']);
+        $this->bill = ['kind' => 'other', 'supply_point_code' => 'IT001E00000001', 'total_amount' => 84.2, 'issue_date' => '2026-10-10', 'expense_category_id' => $this->health->id];
+    });
+
+    test('a bill filed under a utility category proposes the utility and the expense in the first category with the utility', function (): void {
+        $bills = ExpenseCategory::factory()->for($this->family)->create(['name' => 'Bollette e utenze', 'card_type' => 'utility']);
+
+        $proposal = proposalOf($this->bill, ['document' => ['category_id' => $this->light->id]]);
+
+        expect(array_map(fn (RecordDraftData $record): RecordKind => $record->kind, $proposal->records))->toBe([RecordKind::Utility])
+            ->and($proposal->records[0]->cardType)->toBe('utility')
+            ->and($proposal->cardType)->toBe('utility')
+            ->and($proposal->movement->values->kind)->toBe('expense')
+            ->and($proposal->movement->values->category_id)->toBe($bills->id)
+            ->and($proposal->createCard)->toBeFalse();
+    });
+
+    test('the category the reading chose decides when the person did not change it', function (): void {
+        $proposal = proposalOf([...$this->bill, 'document_category_id' => $this->light->id]);
+
+        expect($proposal->cardType)->toBe('utility')
+            ->and(array_map(fn (RecordDraftData $record): RecordKind => $record->kind, $proposal->records))->toBe([RecordKind::Utility]);
+    });
+
+    test('a payslip filed under a job category proposes the income of the job of the person', function (): void {
+        $marco = Person::factory()->for($this->family)->create(['first_name' => 'Marco']);
+        $job = Employment::factory()->for($this->family)->create(['person_id' => $marco->id]);
+        $work = DocumentCategory::factory()->for($this->family)->create(['name' => 'Lavoro']);
+        $payslips = DocumentCategory::factory()->for($this->family)->create(['name' => 'Buste paga', 'parent_id' => $work->id, 'card_type' => 'employment']);
+
+        $proposal = proposalOf(['kind' => 'other', 'total_amount' => 1800, 'issue_date' => '2026-10-27'], [
+            'document' => ['category_id' => $payslips->id, 'person_id' => $marco->id],
+        ]);
+
+        expect($proposal->movement->values->kind)->toBe('income')
+            ->and($proposal->movement->values->employment_id)->toBe($job->id)
+            ->and($proposal->movement->suggested)->toBeTrue()
+            ->and($proposal->records)->toBe([])
+            ->and($proposal->event)->toBeNull()
+            ->and($proposal->createCard)->toBeFalse();
+    });
+
+    test('a payslip of a person without a job proposes to create the job', function (): void {
+        $payslips = DocumentCategory::factory()->for($this->family)->create(['name' => 'Buste paga', 'card_type' => 'employment']);
+
+        $proposal = proposalOf(['kind' => 'payslip', 'total_amount' => 1800, 'issue_date' => '2026-10-27'], [
+            'document' => ['category_id' => $payslips->id, 'person_id' => $this->giulia->id],
+        ]);
+
+        expect($proposal->movement->values->employment_id)->toBeNull()
+            ->and($proposal->records)->toHaveCount(1)
+            ->and($proposal->records[0]->kind)->toBe(RecordKind::Card)
+            ->and($proposal->records[0]->cardType)->toBe('employment')
+            ->and($proposal->records[0]->title)->toBe('il lavoro')
+            ->and($proposal->records[0]->values['person_id'])->toBe($this->giulia->id)
+            ->and($proposal->records[0]->missing)->toBe([]);
+    });
+
+    test('a dentist invoice filed under a health category proposes the health event ticked and the expense', function (): void {
+        $invoices = DocumentCategory::factory()->for($this->family)->create(['name' => 'Fatture mediche', 'parent_id' => $this->healthDocs->id]);
+
+        $proposal = proposalOf(
+            ['kind' => 'invoice', 'title' => 'Visita dal dentista', 'total_amount' => 120, 'issue_date' => '2026-10-22', 'person_id' => $this->giulia->id],
+            ['document' => ['category_id' => $invoices->id]],
+        );
+
+        expect($proposal->event)->not->toBeNull()
+            ->and($proposal->event->suggested)->toBeTrue()
+            ->and($proposal->event->values->title)->toBe('Visita dal dentista')
+            ->and($proposal->event->values->person_id)->toBe($this->giulia->id)
+            ->and($proposal->event->values->date)->toBe('2026-10-22')
+            ->and($proposal->movement->values->kind)->toBe('expense')
+            ->and($proposal->movement->suggested)->toBeTrue()
+            ->and($proposal->records)->toBe([])
+            ->and($proposal->createCard)->toBeFalse();
+    });
+
+    test('a health event without a title read takes the title of the document', function (): void {
+        $proposal = proposalOf(['kind' => 'other', 'issue_date' => '2026-10-22'], ['document' => ['category_id' => $this->healthDocs->id]]);
+
+        expect($proposal->event)->not->toBeNull()
+            ->and($proposal->event->values->title)->toBe($proposal->document->title);
+    });
+
+    test('a prescription filed under a health category proposes the health event not ticked', function (): void {
+        $proposal = proposalOf(
+            ['kind' => 'medical', 'health_type' => HealthEventType::Prescription->value, 'issue_date' => '2026-10-22', 'person_id' => $this->giulia->id],
+            ['document' => ['category_id' => $this->healthDocs->id]],
+        );
+
+        expect($proposal->cardType)->toBe('health_event')
+            ->and($proposal->event)->not->toBeNull()
+            ->and($proposal->event->suggested)->toBeFalse();
+    });
+
+    test('a deed filed under a home category with no home proposes a new home with the required fields of its card', function (): void {
+        $deeds = DocumentCategory::factory()->for($this->family)->create(['name' => 'Rogiti', 'parent_id' => $this->homeAndUtilities->id, 'card_type' => 'home']);
+
+        $proposal = proposalOf(['kind' => 'other', 'issue_date' => '2026-10-01'], ['document' => ['category_id' => $deeds->id]]);
+
+        $card = $proposal->records[0];
+        expect($proposal->records)->toHaveCount(1)
+            ->and($card->kind)->toBe(RecordKind::Card)
+            ->and($card->cardType)->toBe('home')
+            ->and($card->title)->toBe("l'abitazione")
+            ->and($card->missing)->toBe(['il nome'])
+            ->and(array_map(fn (CardFieldData $field): string => $field->column, $card->fields))->toBe(['name'])
+            ->and($card->existing)->toBeNull()
+            ->and($card->candidates)->toBe([]);
+    });
+
+    test('with a home category a plate proposes no vehicle, but the organization stays', function (): void {
+        $deeds = DocumentCategory::factory()->for($this->family)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+
+        $proposal = proposalOf(
+            ['kind' => 'road_tax', 'plate_number' => 'GH482TK', 'vehicle_brand' => 'Fiat', 'issuer_name' => 'ACI', 'total_amount' => 180, 'issue_date' => '2026-10-01'],
+            ['document' => ['category_id' => $deeds->id, 'organization_id' => null]],
+        );
+
+        expect(array_map(fn (RecordDraftData $record): RecordKind => $record->kind, $proposal->records))->toBe([RecordKind::Organization, RecordKind::Card]);
+    });
+
+    test('a category without a card proposes the same as no category', function (): void {
+        $plain = DocumentCategory::factory()->for($this->family)->create(['name' => 'Varie']);
+        $without = proposalOf($this->invoice)->toArray();
+        $with = proposalOf($this->invoice, ['document' => ['category_id' => $plain->id]])->toArray();
+
+        expect(array_diff_key($with, ['fileId' => true]))->toEqual(array_diff_key($without, ['fileId' => true]))
+            ->and($with['cardType'])->toBeNull();
+    });
+
+    test('a category of another family proposes the same as no category', function (): void {
+        $other = Family::factory()->create();
+        $theirs = DocumentCategory::factory()->for($other)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+        $without = proposalOf($this->invoice)->toArray();
+        $with = proposalOf($this->invoice, ['document' => ['category_id' => $theirs->id]])->toArray();
+
+        expect(array_diff_key($with, ['fileId' => true]))->toEqual(array_diff_key($without, ['fileId' => true]));
+    });
+
+    test('a category changed keeps the amount written in the expense', function (): void {
+        $proposal = proposalOf($this->bill, ['document' => ['category_id' => $this->light->id], 'overrides' => ['movement' => ['amount' => 99.5]]]);
+
+        expect($proposal->movement->values->amount)->toBe(99.5);
+    });
+
+    test('a category with a card that no expense category has keeps the expense category of the reading', function (): void {
+        $proposal = proposalOf($this->bill, ['document' => ['category_id' => $this->light->id]]);
+
+        expect($proposal->movement->values->category_id)->toBe($this->health->id);
     });
 });

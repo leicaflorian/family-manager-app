@@ -24,6 +24,7 @@ final class ProposalData extends Data
      * @param  array{need: bool, giver: ?PolicyGiverData, many: bool}|null  $policy  for an insurance paper: whether it needs the policy of another file or of one registered, the one it takes, and whether more than one fits
      * @param  list<string>  $warnings  the codes on the paper that no card has and no box creates
      * @param  bool  $createCard  the paper names no card (no card to create or link, no health event): the box *Create the card* opens *New card* with the document linked after the import
+     * @param  string|null  $cardType  the card of the document category chosen in *What kind it is* (its own, otherwise its main one's), which decides the boxes; null when the reading decides
      */
     public function __construct(
         public readonly int $fileId,
@@ -34,6 +35,7 @@ final class ProposalData extends Data
         public readonly ?array $policy,
         public readonly array $warnings,
         public readonly bool $createCard = false,
+        public readonly ?string $cardType = null,
     ) {}
 
     /**
@@ -42,6 +44,6 @@ final class ProposalData extends Data
      */
     public function withoutCreateCard(): self
     {
-        return new self($this->fileId, $this->document, $this->movement, $this->event, $this->records, $this->policy, $this->warnings);
+        return new self($this->fileId, $this->document, $this->movement, $this->event, $this->records, $this->policy, $this->warnings, cardType: $this->cardType);
     }
 }

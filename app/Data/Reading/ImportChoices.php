@@ -50,6 +50,8 @@ final readonly class ImportChoices
         'policy' => ['title' => 'text', 'type' => 'insurance', 'policy_number' => 'text', 'start_date' => 'date', 'expiry_date' => 'date', 'home_id' => 'id'],
         'belonging' => ['name' => 'text', 'brand' => 'text', 'model' => 'text', 'purchase_price' => 'fee', 'home_id' => 'id', 'warranty_expiry_date' => 'date'],
         'maintenance' => ['title' => 'text', 'type' => 'maintenance', 'home_id' => 'id'],
+        // The fields of the card of the document category depend on its class: none can be corrected yet
+        'card' => [],
     ];
 
     /**

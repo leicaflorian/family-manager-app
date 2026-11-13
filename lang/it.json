@@ -1827,5 +1827,16 @@
     "Delete the chosen": "Elimina i selezionati",
     "{1} Delete the chosen file?|[2,*] Delete :count files?": "{1} Elimino il file scelto?|[2,*] Elimino :count file?",
     "Deleted files cannot be recovered.": "I file eliminati non si possono recuperare.",
-    "The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.": "I file arrivati per posta, dal telefono o caricati qui restano finché non li importi o li elimini."
+    "The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.": "I file arrivati per posta, dal telefono o caricati qui restano finché non li importi o li elimini.",
+    "the residence": "l'abitazione",
+    "the account or card": "il conto o la carta",
+    "the loan": "il finanziamento",
+    "the subscription": "l'abbonamento",
+    "the filing": "la pratica",
+    "the job": "il lavoro",
+    "the health event": "l'evento di salute",
+    "the enrollment": "l'iscrizione",
+    "the card :name": "la scheda :name",
+    "Tick the box to create the card.": "Spunta la casella per creare la scheda.",
+    "Link to the card \":title\"": "Collega alla scheda \":title\""
 }

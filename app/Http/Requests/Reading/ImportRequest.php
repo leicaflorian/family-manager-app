@@ -223,7 +223,12 @@ final class ImportRequest extends FormRequest
         }
 
         foreach ($choices->targets['records'] as $kind => $target) {
-            $model = RecordLabel::model(RecordKind::from($kind));
+            // A card of the category picked by hand needs its type; without one there is no such box
+            if ($kind === RecordKind::Card->value && $proposal->cardType === null) {
+                continue;
+            }
+
+            $model = RecordLabel::model(RecordKind::from($kind), $proposal->cardType);
             if (is_int($target) && $model::query()->find($target) === null) {
                 $problems['targets.records.'.$kind] = ImportErrors::gone('card');
             }

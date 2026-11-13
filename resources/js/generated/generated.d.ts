@@ -905,6 +905,7 @@ many: boolean,
 } | null,
 readonly warnings: string[],
 readonly createCard: boolean,
+readonly cardType: string | null,
 };
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,
@@ -923,6 +924,7 @@ label: string,
 readonly reminder: string | null,
 readonly fields: App.Data.CardFieldData[],
 readonly complete: string[],
+readonly cardType: string | null,
 };
 }
 namespace Search {
@@ -989,7 +991,7 @@ export type OwnerActionType = 'suspended' | 'reactivated' | 'deletion_scheduled'
 export type PersonRole = 'parent' | 'child' | 'other';
 export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
-export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance';
+export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance' | 'card';
 export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
 export type SearchGroup = 'cards' | 'documents' | 'movements' | 'dues' | 'contacts';

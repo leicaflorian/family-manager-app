@@ -1795,11 +1795,13 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             reminder: null,
             fields: [],
             complete: [],
+            cardType: null,
         },
     ],
     policy: null,
     warnings: [],
     createCard: false,
+    cardType: null,
 };
 
 /**

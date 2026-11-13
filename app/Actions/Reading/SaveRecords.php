@@ -127,7 +127,9 @@ final readonly class SaveRecords
      */
     private function existing(RecordDraftData $draft): Organization|Vehicle|Utility|InsurancePolicy|Belonging|MaintenanceRecord|null
     {
-        return $draft->existing === null ? null : RecordLabel::model($draft->kind)::query()->findOrFail($draft->existing['id']);
+        return $draft->existing === null
+            ? null
+            : $this->known(RecordLabel::model($draft->kind, $draft->cardType)::query()->findOrFail($draft->existing['id']), $draft);
     }
 
     /**
@@ -155,6 +157,19 @@ final readonly class SaveRecords
             ? Organization::query()->create($columns)
             : $this->saveCard->handle(CardTypes::findOrFail($type), $columns);
 
+        return $this->known($card, $draft);
+    }
+
+    /**
+     * The card as one of the kinds the import saves today.
+     *
+     * @param  Model  $card  the card created or found
+     * @param  RecordDraftData  $draft  its box
+     *
+     * @throws ModelNotFoundException if it is another card
+     */
+    private function known(Model $card, RecordDraftData $draft): Organization|Vehicle|Utility|InsurancePolicy|Belonging|MaintenanceRecord
+    {
         return $card instanceof Organization || $card instanceof Vehicle || $card instanceof Utility || $card instanceof InsurancePolicy
             || $card instanceof Belonging || $card instanceof MaintenanceRecord
             ? $card

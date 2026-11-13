@@ -14,6 +14,7 @@ use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
 use App\Enums\RecordKind;
+use App\Models\DocumentCategory;
 use App\Models\Expense;
 use App\Models\File;
 use App\Models\HealthEvent;
@@ -98,16 +99,18 @@ final readonly class Proposal
         $x = Extraction::ofFile($file);
         $context = ReadingContext::for($file);
         $document = $this->documents->of($x, $context, $locale);
-        $draft = $this->drafts->of($x, $context, $locale);
         $side = $this->documentSide($document, $context, $choices);
+        $cardType = DocumentCategory::cardTypeOf($this->categoryId($document, $choices));
+        $draft = $this->drafts->of($x, $context, $locale, $cardType, $side['person_id']);
 
         $movement = $draft['movement'] === null
             ? null
             : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $choices, $side['date']);
         $document = $this->receiptCategory($x, $document, $movement);
         $amount = $choices->movementOverrides($movement->values->kind ?? 'expense')['amount'] ?? $x->total_amount;
-        ['records' => $records, 'warnings' => $warnings] = $this->records->of($x, $side, is_numeric($amount) ? (float) $amount : null, $choices);
-        $event = $draft['event'] === null ? null : $this->event($draft['event'], $draft['eventSuggested'], $side, $choices);
+        ['records' => $records, 'warnings' => $warnings] = $this->records->of($x, $side, is_numeric($amount) ? (float) $amount : null, $choices, $cardType);
+        $eventDraft = $this->healthEvent($draft['event'], $cardType, $document);
+        $event = $eventDraft instanceof EventValuesData ? $this->event($eventDraft, $draft['eventSuggested'], $side, $choices) : null;
 
         return new ProposalData(
             fileId: $file->id,
@@ -117,8 +120,43 @@ final readonly class Proposal
             records: $records,
             policy: $this->policy($x, $document, $side, $records, $choices, $roundGivers),
             warnings: $warnings,
-            createCard: $this->namesNoCard($document, $event, $records),
+            // With the card of the category the boxes already say which card the document belongs to
+            createCard: $cardType === null && $this->namesNoCard($document, $event, $records),
+            cardType: $cardType,
         );
+    }
+
+    /**
+     * The document category that decides the boxes: the one the person chose in *What kind it is*, otherwise the one
+     * the reading proposes.
+     *
+     * @param  DocumentProposalData  $document  the document the reading proposes
+     * @param  ImportChoices  $choices  the choices of the person
+     */
+    private function categoryId(DocumentProposalData $document, ImportChoices $choices): ?int
+    {
+        if (! array_key_exists('category_id', $choices->document)) {
+            return $document->category_id;
+        }
+
+        $chosen = $choices->document['category_id'];
+
+        return is_numeric($chosen) ? (int) $chosen : null;
+    }
+
+    /**
+     * The health event the reading proposes; with the card *Health event* (the box is always there) one without a
+     * title read takes the title of the document.
+     *
+     * @param  EventValuesData|null  $event  the event the reading proposes
+     * @param  string|null  $cardType  the card of the document category
+     * @param  DocumentProposalData  $document  the document, whose title the event takes
+     */
+    private function healthEvent(?EventValuesData $event, ?string $cardType, DocumentProposalData $document): ?EventValuesData
+    {
+        return $cardType === 'health_event' && $event instanceof EventValuesData && $this->blank($event->title)
+            ? EventValuesData::from([...$event->toArray(), 'title' => $document->title])
+            : $event;
     }
 
     /**

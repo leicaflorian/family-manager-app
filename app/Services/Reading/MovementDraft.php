@@ -10,6 +10,7 @@ use App\Data\Reading\MovementValuesData;
 use App\Enums\HealthEventType;
 use App\Enums\IncomeType;
 use App\Models\Employment;
+use App\Models\ExpenseCategory;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\CurrentFamily;
@@ -22,7 +23,8 @@ use Carbon\CarbonImmutable;
 /**
  * What a read file proposes besides the document: the expense (or the income, for a payslip) and the health event,
  * each with whether it starts ticked. The `expense`, `income` and `health` profiles of the old reader and its
- * `movementSide` rules.
+ * `movementSide` rules. With the card of the document category, a job makes it the income of the job of the person
+ * and any other card puts the expense in the first expense category with that card.
  */
 final readonly class MovementDraft
 {
@@ -42,13 +44,15 @@ final readonly class MovementDraft
      * @param  Extraction  $x  what the model read
      * @param  ReadingContext  $context  the lists the model chose from; its family is where the cards are searched
      * @param  string  $locale  the language of the titles
+     * @param  string|null  $cardType  the card of the document category; null when the reading decides
+     * @param  int|null  $personId  the person of the document as it will be saved, whose job an income of a job category is linked to
      * @return array{movement: ?MovementValuesData, movementSuggested: bool, event: ?EventValuesData, eventSuggested: bool}
      */
-    public function of(Extraction $x, ReadingContext $context, string $locale): array
+    public function of(Extraction $x, ReadingContext $context, string $locale, ?string $cardType = null, ?int $personId = null): array
     {
         return $context->familyId === null
-            ? $this->build($x, $context, $locale)
-            : CurrentFamily::using($context->familyId, fn (): array => $this->build($x, $context, $locale));
+            ? $this->build($x, $context, $locale, $cardType, $personId)
+            : CurrentFamily::using($context->familyId, fn (): array => $this->build($x, $context, $locale, $cardType, $personId));
     }
 
     /**
@@ -57,17 +61,22 @@ final readonly class MovementDraft
      * @param  Extraction  $x  what the model read
      * @param  ReadingContext  $context  the lists the model chose from
      * @param  string  $locale  the language of the titles
+     * @param  string|null  $cardType  the card of the document category
+     * @param  int|null  $personId  the person of the document
      * @return array{movement: ?MovementValuesData, movementSuggested: bool, event: ?EventValuesData, eventSuggested: bool}
      */
-    private function build(Extraction $x, ReadingContext $context, string $locale): array
+    private function build(Extraction $x, ReadingContext $context, string $locale, ?string $cardType, ?int $personId): array
     {
         $links = $this->links->resolve($x, $context);
-        $movement = $x->kind === 'payslip' ? $this->income($x, $context, $links, $locale) : $this->expense($x, $context, $links, $locale);
-        $event = $this->event($x, $links, $locale);
+        $job = $cardType === 'employment';
+        $movement = $x->kind === 'payslip' || $job
+            ? $this->income($x, $context, $links, $locale, $job ? $personId : null)
+            : $this->expense($x, $context, $links, $locale, $cardType);
+        $event = $this->event($x, $links, $locale, $cardType === 'health_event');
 
         return [
             'movement' => $movement,
-            'movementSuggested' => $x->kind === 'payslip'
+            'movementSuggested' => $x->kind === 'payslip' || $job
                 || in_array($x->kind, self::EXPENSE_KINDS, true)
                 || ($x->kind === 'insurance' && $movement->lead !== null)
                 || ($x->kind === 'medical' && $x->total_amount !== null),
@@ -84,8 +93,9 @@ final readonly class MovementDraft
      * @param  ReadingContext  $context  the lists the model chose from
      * @param  ResolvedLinks  $links  what the paper points to
      * @param  string  $locale  the language of the title
+     * @param  string|null  $cardType  the card of the document category, whose first expense category the expense takes
      */
-    private function expense(Extraction $x, ReadingContext $context, ResolvedLinks $links, string $locale): MovementValuesData
+    private function expense(Extraction $x, ReadingContext $context, ResolvedLinks $links, string $locale, ?string $cardType): MovementValuesData
     {
         $paid = $x->kind === 'payment_receipt';
         $issue = ValidDate::of($x->issue_date);
@@ -108,7 +118,8 @@ final readonly class MovementDraft
             date: $date,
             due_date: $due,
             organization_id: $links->organizationId ?? $planned?->organization_id,
-            category_id: $planned->category_id ?? Choices::pick($context->expenseCategories, $x->expense_category_id),
+            category_id: ($cardType === null ? null : ExpenseCategory::firstOfCardType($cardType))
+                ?? $planned->category_id ?? Choices::pick($context->expenseCategories, $x->expense_category_id),
             financial_account_id: $this->accountId($x, $planned),
             person_id: $planned->person_id ?? $links->personId,
             income_type: null,
@@ -125,13 +136,17 @@ final readonly class MovementDraft
      * @param  ReadingContext  $context  the lists the model chose from
      * @param  ResolvedLinks  $links  what the paper points to
      * @param  string  $locale  the language of the title
+     * @param  int|null  $jobOf  for a job category, the person of the document: the job is theirs, with any employer if the one read has none of theirs
      */
-    private function income(Extraction $x, ReadingContext $context, ResolvedLinks $links, string $locale): MovementValuesData
+    private function income(Extraction $x, ReadingContext $context, ResolvedLinks $links, string $locale, ?int $jobOf = null): MovementValuesData
     {
         $date = ValidDate::of($x->issue_date) ?? ValidDate::of($x->period_end);
         $month = ValidDate::of($x->period_start) ?? $date;
+        $employer = Choices::pick($context->organizations, $x->organization_id);
 
-        $employment = $this->matcher->employment($links->personId, Choices::pick($context->organizations, $x->organization_id), ValidDate::carbon($month));
+        $employment = $jobOf === null
+            ? $this->matcher->employment($links->personId, $employer, ValidDate::carbon($month))
+            : $this->matcher->employment($jobOf, $employer, ValidDate::carbon($month)) ?? $this->matcher->employment($jobOf, null, ValidDate::carbon($month));
         $planned = $this->search->planned('income', null, $employment, ValidDate::carbon($date));
         $planned = $planned instanceof PlannedIncome ? $planned : null;
 
@@ -154,16 +169,17 @@ final readonly class MovementDraft
     }
 
     /**
-     * The health event of a medical paper, or of any paper with a health type. The patient, the clinic and the date
-     * are those of the document the event belongs to.
+     * The health event of a medical paper, or of any paper with a health type, or of any paper of a category with the
+     * card *Health event*. The patient, the clinic and the date are those of the document the event belongs to.
      *
      * @param  Extraction  $x  what the model read
      * @param  ResolvedLinks  $links  what the paper points to
      * @param  string  $locale  the language of the title
+     * @param  bool  $always  the document category has the card *Health event*: the event is there whatever the paper
      */
-    private function event(Extraction $x, ResolvedLinks $links, string $locale): ?EventValuesData
+    private function event(Extraction $x, ResolvedLinks $links, string $locale, bool $always = false): ?EventValuesData
     {
-        if ($x->kind !== 'medical' && ($x->health_type === null || $x->health_type === '')) {
+        if (! $always && $x->kind !== 'medical' && ($x->health_type === null || $x->health_type === '')) {
             return null;
         }
 

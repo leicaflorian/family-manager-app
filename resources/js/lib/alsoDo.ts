@@ -43,6 +43,7 @@ const RECORD_UNTICKED: Record<App.Enums.RecordKind, string> = {
     belonging:
         'Under 100 € a purchase does not become an item by itself: tick the box if you want to keep it among the items, with the warranty.',
     maintenance: 'Tick the box to create the intervention.',
+    card: 'Tick the box to create the card.',
 };
 
 /** The labels of the fields of the document form a box may need, as the form names them. */
@@ -102,6 +103,7 @@ const LINK_TO: Record<App.Enums.RecordKind, string> = {
     policy: 'Link to the policy ":title"',
     belonging: 'Link to the item ":title"',
     maintenance: 'Link to the intervention ":title"',
+    card: 'Link to the card ":title"',
 };
 
 /**

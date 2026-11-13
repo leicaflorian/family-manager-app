@@ -21,11 +21,12 @@ final class RecordDraftData extends Data
      * @param  array<string, mixed>  $values  the fields the card is created with, by column (`type`, `home_id`, `activation_date`)
      * @param  bool  $suggested  whether the box starts ticked
      * @param  list<string>  $missing  the required fields still empty, as words (`the type`)
-     * @param  array{id: int, title: string}|null  $existing  the organization, belonging or intervention already there, to link
+     * @param  array{id: int, title: string}|null  $existing  the card already there, to link
      * @param  list<array{id: int, label: string}>  $candidates  the cards of this kind, to pick one by hand
      * @param  string|null  $reminder  the reminder the new card makes (`I'll remind you before the warranty ends`)
      * @param  list<CardFieldData>  $fields  the required fields still empty that the person can write in the box, as the card form draws them
      * @param  list<string>  $complete  the (`date`, `person_id`, `organization_id`) required fields still empty that come from the document, written in its form
+     * @param  string|null  $cardType  the type of the morph map of the card (`utility`, `home`); null for an organization
      */
     public function __construct(
         public readonly RecordKind $kind,
@@ -38,5 +39,6 @@ final class RecordDraftData extends Data
         public readonly ?string $reminder = null,
         public readonly array $fields = [],
         public readonly array $complete = [],
+        public readonly ?string $cardType = null,
     ) {}
 }

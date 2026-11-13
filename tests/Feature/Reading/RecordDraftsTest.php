@@ -8,6 +8,7 @@ use App\Enums\RecordKind;
 use App\Models\Belonging;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
+use App\Models\Loan;
 use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Utility;
@@ -363,5 +364,60 @@ test('an uncertain reading ticks nothing', function (): void {
 });
 
 test('the creation order', function (): void {
-    expect(array_column(RecordKind::cases(), 'value'))->toBe(['organization', 'vehicle', 'utility', 'policy', 'belonging', 'maintenance']);
+    expect(array_column(RecordKind::cases(), 'value'))->toBe(['organization', 'vehicle', 'utility', 'policy', 'belonging', 'maintenance', 'card']);
+});
+
+describe('the box of the card of the category', function (): void {
+    test('a utility category proposes the utility even when the reading did not see a bill', function (): void {
+        $draft = RecordDrafts::forCategory('utility', draftReading(['supply_point_code' => 'IT001E12345678']), foundNothing(), draftDocument(), 84.2);
+
+        expect($draft->kind)->toBe(RecordKind::Utility)
+            ->and($draft->cardType)->toBe('utility')
+            ->and($draft->values['supply_point_code'])->toBe('IT001E12345678')
+            ->and($draft->existing)->toBeNull();
+    });
+
+    test('a vehicle category links the vehicle the plate finds', function (): void {
+        $panda = unsaved(Vehicle::class, ['id' => 7, 'name' => 'Panda', 'plate_number' => 'GH482TK']);
+
+        $draft = RecordDrafts::forCategory('vehicle', draftReading(['plate_number' => 'GH482TK']), foundNothing(['vehicle' => $panda]), draftDocument(), null);
+
+        expect($draft->kind)->toBe(RecordKind::Vehicle)
+            ->and($draft->existing)->toBe(['id' => 7, 'title' => 'Panda (GH482TK)'])
+            ->and($draft->missing)->toBe([]);
+    });
+
+    test('a home category proposes a new home with the required fields of its card', function (): void {
+        $draft = RecordDrafts::forCategory('home', draftReading(), foundNothing(), draftDocument(), null);
+
+        expect($draft->kind)->toBe(RecordKind::Card)
+            ->and($draft->cardType)->toBe('home')
+            ->and($draft->title)->toBe('the residence')
+            ->and($draft->values)->toBe(['name' => null])
+            ->and($draft->missing)->toBe(['the name'])
+            ->and($draft->suggested)->toBeFalse();
+    });
+
+    test('a card with a name takes the title read, and the issuer and person of the document', function (): void {
+        $draft = RecordDrafts::forCategory(
+            'subscription',
+            draftReading(['title' => 'Netflix Premium']),
+            foundNothing(),
+            draftDocument(['organization_id' => 4]),
+            null,
+        );
+
+        expect($draft->values)->toBe(['name' => 'Netflix Premium', 'organization_id' => 4, 'person_id' => 2])
+            ->and($draft->missing)->toBe(['the type'])
+            ->and($draft->title)->toBe('the subscription');
+    });
+
+    test('the card of the category links the card found with the same issuer', function (): void {
+        $loan = unsaved(Loan::class, ['id' => 3, 'name' => 'Mutuo casa']);
+
+        $draft = RecordDrafts::forCategory('loan', draftReading(), foundNothing(['card' => $loan]), draftDocument(), null);
+
+        expect($draft->existing)->toBe(['id' => 3, 'title' => 'Mutuo casa'])
+            ->and($draft->missing)->toBe([]);
+    });
 });

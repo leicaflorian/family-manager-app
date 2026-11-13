@@ -187,6 +187,7 @@ return [
         'policy' => 'Polizza',
         'belonging' => 'Bene',
         'maintenance' => 'Intervento',
+        'card' => 'Scheda',
     ],
     'reminder_status' => [
         'open' => 'Aperto',

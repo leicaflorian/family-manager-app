@@ -16,6 +16,7 @@ import {
     Building2,
     Car,
     HeartPulse,
+    LayoutGrid,
     Package,
     Plug,
     Shield,
@@ -81,6 +82,7 @@ const RECORD_ICONS: Record<App.Enums.RecordKind, LucideIcon> = {
     policy: Shield,
     belonging: Package,
     maintenance: Wrench,
+    card: LayoutGrid,
 };
 
 /** The actions of a box while it is ticked: create a new one, choose another, back to the proposal. */

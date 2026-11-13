@@ -1142,6 +1142,7 @@ describe('Import', () => {
                     },
                 ],
                 complete: [],
+                cardType: 'insurance_policy',
             };
             renderPage(
                 Import,

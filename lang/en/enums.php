@@ -187,6 +187,7 @@ return [
         'policy' => 'Policy',
         'belonging' => 'Item',
         'maintenance' => 'Intervention',
+        'card' => 'Card',
     ],
     'reminder_status' => [
         'open' => 'Open',
