@@ -84,7 +84,7 @@ it('walks up a deeper tree: the nearest category with a card wins', function ():
                     return $branch;
                 }
                 $found = $find($branch->children, $name);
-                if ($found !== null) {
+                if ($found instanceof CategoryData) {
                     return $found;
                 }
             }
