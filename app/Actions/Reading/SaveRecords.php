@@ -8,14 +8,10 @@ use App\Actions\Cards\SaveCard;
 use App\Cards\CardTypes;
 use App\Data\Reading\RecordDraftData;
 use App\Enums\RecordKind;
-use App\Models\Belonging;
 use App\Models\Document;
 use App\Models\Expense;
-use App\Models\InsurancePolicy;
 use App\Models\MaintenanceRecord;
 use App\Models\Organization;
-use App\Models\Utility;
-use App\Models\Vehicle;
 use App\Services\Reading\RecordDrafts;
 use App\Support\Reading\ImportErrors;
 use App\Support\Reading\RecordLabel;
@@ -25,7 +21,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * The cards a file creates or links when it is imported (`saveRecords` of the old reader), in two steps:
- * organization, vehicle, utility, policy and belonging *before* the document, which is linked to them; the
+ * organization, vehicle, utility, policy, belonging and the card of the document category *before* the document,
+ * which is linked to them; the
  * intervention *after* the movement, whose expense it takes. The ones saved first give the next ones what they
  * left empty: the organization its supplier, the vehicle the policy and the intervention. It runs inside the
  * transaction of the file: a card that cannot be saved throws, and nothing of the file stays.
@@ -33,7 +30,7 @@ use Illuminate\Validation\ValidationException;
 final readonly class SaveRecords
 {
     /** The kinds saved before the document. */
-    private const array BEFORE = [RecordKind::Organization, RecordKind::Vehicle, RecordKind::Utility, RecordKind::Policy, RecordKind::Belonging];
+    private const array BEFORE = [RecordKind::Organization, RecordKind::Vehicle, RecordKind::Utility, RecordKind::Policy, RecordKind::Belonging, RecordKind::Card];
 
     /**
      * @param  SaveCard  $saveCard  creates a card
@@ -62,13 +59,13 @@ final readonly class SaveRecords
 
             $card = $this->existing($draft) ?? $this->create($draft, $out['ids']);
             $out['records'][$draft->kind->value] = $card;
-            $out['ids'][$draft->kind->value] = $card->id;
+            $out['ids'][$draft->kind->value] = RecordLabel::id($card);
 
-            $type = $draft->kind->cardType();
+            $type = $this->type($draft);
             if ($type === null) {
-                $out['organization'] = $card->id;
+                $out['organization'] = RecordLabel::id($card);
             } else {
-                $out['links'][] = ['type' => $type, 'id' => $card->id];
+                $out['links'][] = ['type' => $type, 'id' => RecordLabel::id($card)];
             }
         }
 
@@ -125,11 +122,11 @@ final readonly class SaveRecords
      *
      * @throws ModelNotFoundException if it is no longer there
      */
-    private function existing(RecordDraftData $draft): Organization|Vehicle|Utility|InsurancePolicy|Belonging|MaintenanceRecord|null
+    private function existing(RecordDraftData $draft): ?Model
     {
         return $draft->existing === null
             ? null
-            : $this->known(RecordLabel::model($draft->kind, $draft->cardType)::query()->findOrFail($draft->existing['id']), $draft);
+            : RecordLabel::model($draft->kind, $draft->cardType)::query()->findOrFail($draft->existing['id']);
     }
 
     /**
@@ -141,39 +138,32 @@ final readonly class SaveRecords
      *
      * @throws ValidationException if it misses a required field
      */
-    private function create(RecordDraftData $draft, array $ids, array $extra = []): Organization|Vehicle|Utility|InsurancePolicy|Belonging|MaintenanceRecord
+    private function create(RecordDraftData $draft, array $ids, array $extra = []): Model
     {
         $values = $this->filled($draft, $ids);
-        $missing = RecordDrafts::missing($draft->kind, $values);
+        $missing = RecordDrafts::missing($draft->kind, $values, $draft->cardType);
         if ($missing !== []) {
             throw ValidationException::withMessages(['records.'.$draft->kind->value => ImportErrors::record($draft->title, $missing)]);
         }
 
         // Empty values are left out, so the columns keep their defaults
         $columns = array_filter([...$values, ...$extra], static fn (mixed $value): bool => ! in_array($value, [null, '', []], true));
-        $type = $draft->kind->cardType();
+        $type = $this->type($draft);
 
-        $card = $type === null
+        return $type === null
             ? Organization::query()->create($columns)
             : $this->saveCard->handle(CardTypes::findOrFail($type), $columns);
-
-        return $this->known($card, $draft);
     }
 
     /**
-     * The card as one of the kinds the import saves today.
+     * The type of the morph map of the card of a box: the one of the category for the card of the category, the one
+     * of its kind for the five the reading fills; none for the organization, which is not a card.
      *
-     * @param  Model  $card  the card created or found
-     * @param  RecordDraftData  $draft  its box
-     *
-     * @throws ModelNotFoundException if it is another card
+     * @param  RecordDraftData  $draft  the box
      */
-    private function known(Model $card, RecordDraftData $draft): Organization|Vehicle|Utility|InsurancePolicy|Belonging|MaintenanceRecord
+    private function type(RecordDraftData $draft): ?string
     {
-        return $card instanceof Organization || $card instanceof Vehicle || $card instanceof Utility || $card instanceof InsurancePolicy
-            || $card instanceof Belonging || $card instanceof MaintenanceRecord
-            ? $card
-            : throw new ModelNotFoundException("The card {$draft->kind->value} was not created.");
+        return $draft->kind === RecordKind::Organization ? null : $draft->cardType ?? $draft->kind->cardType();
     }
 
     /**

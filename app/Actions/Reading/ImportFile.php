@@ -20,6 +20,7 @@ use App\Data\Reading\ProposalData;
 use App\Enums\Area;
 use App\Enums\DocumentStatus;
 use App\Enums\DueMode;
+use App\Enums\RecordKind;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\File;
@@ -38,6 +39,7 @@ use App\Support\DocumentRules;
 use App\Support\PaymentTitle;
 use App\Support\PlannedKind;
 use App\Support\Reading\ImportErrors;
+use App\Support\Reading\RecordLabel;
 use App\Support\Translated;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -51,7 +53,8 @@ use Throwable;
  * Saves one read file with what the person confirmed (`importFile` of the old reader), in one transaction: an
  * exception leaves nothing of the file. The order is the old one:
  *
- * 1. the cards the document names (organization, vehicle, utility, policy, belonging), {@see SaveRecords};
+ * 1. the cards the document names (organization, vehicle, utility, policy, belonging, the card of the document
+ *    category), {@see SaveRecords};
  * 2. the document, linked to them and to the policy taken from another file;
  * 3. the expense or income, or the expense to pay, or the payment of a due date;
  * 4. the health event;
@@ -161,9 +164,9 @@ final readonly class ImportFile
         // The form was filled before the other files of the import were saved: the cards they created, which this file
         // names too (a second paper with the number of the policy the first one created), are not in it
         $found = array_values(array_filter($proposal->document->links, static fn (array $link): bool => in_array($link, $roundCards, true)));
-        $document = $this->document($file, $proposal, $choices, [...$before['links'], ...$found], $policy);
+        $document = $this->document($file, $proposal, $choices, [...$before['links'], ...$found], $policy, $this->unticked($first, $choices));
         $movement = $choices->movement && $proposal->movement instanceof MovementProposalData
-            ? $this->movement($file, $proposal->movement, $choices, $document)
+            ? $this->movement($file, $proposal->movement, $choices, $document, $this->ownCard($first, $before['records']))
             : null;
         $expense = $movement instanceof Expense ? $movement : null;
         $event = $choices->event && $proposal->event instanceof EventProposalData ? $this->event($proposal->event, $document, $expense) : null;
@@ -176,6 +179,42 @@ final readonly class ImportFile
         }
 
         return ['document' => $document, 'movement' => $movement, 'event' => $event, 'records' => [...$before['records'], ...$after], 'warnings' => $warnings];
+    }
+
+    /**
+     * The card of the document category the file created or linked with its box, which a new expense refers to
+     * before the cards the document is linked to.
+     *
+     * @param  ProposalData  $first  the proposal before anything is saved
+     * @param  array<string, Model>  $records  the cards saved before the document, by kind
+     * @return array{card_type?: string, card_id?: int}
+     */
+    private function ownCard(ProposalData $first, array $records): array
+    {
+        $type = $first->cardType;
+        $card = $type === null ? null : $records[RecordKind::forCardType($type)->value] ?? null;
+
+        return $type !== null && $card instanceof Model ? ['card_type' => $type, 'card_id' => RecordLabel::id($card)] : [];
+    }
+
+    /**
+     * The card of the document category the box found but the person unticked: the box decides, so the document is
+     * not linked to it through the links proposed with the form.
+     *
+     * @param  ProposalData  $first  the proposal the person saw
+     * @param  ImportChoices  $choices  what the person confirmed
+     * @return list<array{type: string, id: int}>
+     */
+    private function unticked(ProposalData $first, ImportChoices $choices): array
+    {
+        $links = [];
+        foreach ($first->records as $draft) {
+            if ($first->cardType !== null && $draft->cardType === $first->cardType && $draft->existing !== null && ! in_array($draft->kind, $choices->records, true)) {
+                $links[] = ['type' => $first->cardType, 'id' => $draft->existing['id']];
+            }
+        }
+
+        return $links;
     }
 
     /**
@@ -210,8 +249,9 @@ final readonly class ImportFile
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  list<array{type: string, id: int}>  $cardLinks  the cards saved in step 1
      * @param  InsurancePolicy|null  $policy  the policy taken from another file
+     * @param  list<array{type: string, id: int}>  $unlinked  the cards the document is not linked to, whatever the form says
      */
-    private function document(File $file, ProposalData $proposal, ImportChoices $choices, array $cardLinks, ?InsurancePolicy $policy): Document
+    private function document(File $file, ProposalData $proposal, ImportChoices $choices, array $cardLinks, ?InsurancePolicy $policy, array $unlinked): Document
     {
         $proposed = $proposal->document;
         $fields = [
@@ -236,6 +276,8 @@ final readonly class ImportFile
             }
         }
 
+        $links = array_values(array_filter($links, static fn (array $link): bool => ! in_array($link, $unlinked, false)));
+
         return $this->fileDocument->handle($file, ['fields' => $fields, 'links' => $links]);
     }
 
@@ -247,10 +289,11 @@ final readonly class ImportFile
      * @param  MovementProposalData  $proposed  the movement side of the proposal
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  Document  $document  the document of the file
+     * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
      *
      * @throws ValidationException if the movement misses its amount or date, or its due date is already paid
      */
-    private function movement(File $file, MovementProposalData $proposed, ImportChoices $choices, Document $document): Expense|Income|PlannedExpense
+    private function movement(File $file, MovementProposalData $proposed, ImportChoices $choices, Document $document, array $own): Expense|Income|PlannedExpense
     {
         $kind = $proposed->values->kind;
 
@@ -266,14 +309,14 @@ final readonly class ImportFile
         }
 
         if ($toPay) {
-            return $this->toPay($proposed, $document);
+            return $this->toPay($proposed, $document, $own);
         }
 
         if ($proposed->pays !== null) {
-            return $this->payment($proposed->values, $proposed->pays, $document);
+            return $this->payment($proposed->values, $proposed->pays, $document, $own);
         }
 
-        $columns = $this->columns($proposed->values, $document);
+        $columns = $this->columns($proposed->values, $document, $own);
         $movement = $this->saveMovement->handle($kind, $columns);
         $movement->documents()->syncWithoutDetaching([$document->id]);
 
@@ -326,10 +369,11 @@ final readonly class ImportFile
      *
      * @param  MovementProposalData  $proposed  the movement side, with "to pay" in effect and its deadline
      * @param  Document  $document  the document
+     * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
      *
      * @throws ModelNotFoundException if the planned expense is no longer there
      */
-    private function toPay(MovementProposalData $proposed, Document $document): PlannedExpense
+    private function toPay(MovementProposalData $proposed, Document $document, array $own): PlannedExpense
     {
         $due = $proposed->due;
         $values = $proposed->values;
@@ -350,7 +394,7 @@ final readonly class ImportFile
                 'financial_account_id' => $values->financial_account_id,
                 'person_id' => $values->person_id,
                 'notes' => $values->notes,
-                ...$this->card($document),
+                ...$this->card($document, $own),
             ])
             : PlannedExpense::query()->findOrFail($due->plan['id'] ?? 0);
 
@@ -406,17 +450,18 @@ final readonly class ImportFile
      * @param  MovementValuesData  $values  the expense, with the fee
      * @param  array{planned: int, title: string, date: string, occurrence: string, others: int}  $pays  the due date paid
      * @param  Document  $document  the document
+     * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
      *
      * @throws ModelNotFoundException if the planned expense is no longer there
      * @throws ValidationException if the due date is already paid
      */
-    private function payment(MovementValuesData $values, array $pays, Document $document): Expense
+    private function payment(MovementValuesData $values, array $pays, Document $document, array $own): Expense
     {
         $planned = PlannedExpense::query()->findOrFail($pays['planned']);
         $occurrence = CarbonImmutable::parse($pays['occurrence'], 'Europe/Rome');
 
         $expense = $this->saveMovement->handle('expense', [
-            ...$this->columns($values, $document),
+            ...$this->columns($values, $document, $own),
             'planned_id' => $planned->id,
             'occurrence_date' => $occurrence->toDateString(),
             'title' => PaymentTitle::for($pays['title'], $occurrence),
@@ -438,9 +483,10 @@ final readonly class ImportFile
      *
      * @param  MovementValuesData  $values  the values of the proposal
      * @param  Document  $document  the document, whose title names a movement without one and whose links give the card
+     * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
      * @return array<string, mixed>
      */
-    private function columns(MovementValuesData $values, Document $document): array
+    private function columns(MovementValuesData $values, Document $document, array $own): array
     {
         $shared = [
             'title' => $values->title ?? $document->title,
@@ -461,19 +507,24 @@ final readonly class ImportFile
             ...$shared,
             'fee_amount' => $values->fee_amount,
             'category_id' => $values->category_id,
-            ...($values->lead === null ? $this->card($document) : []),
+            ...($values->lead === null ? $this->card($document, $own) : []),
         ];
     }
 
     /**
-     * The card a new expense or planned expense refers to: the first utility, policy, vehicle or subscription the
-     * document is linked to.
+     * The card a new expense or planned expense refers to: the card of the document category saved with the file,
+     * otherwise the first utility, policy, vehicle or subscription the document is linked to.
      *
      * @param  Document  $document  the document
+     * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
      * @return array{card_type?: string, card_id?: int}
      */
-    private function card(Document $document): array
+    private function card(Document $document, array $own): array
     {
+        if ($own !== []) {
+            return $own;
+        }
+
         foreach (self::MOVEMENT_CARDS as $type) {
             $relation = match ($type) {
                 'utility' => $document->utilities(),

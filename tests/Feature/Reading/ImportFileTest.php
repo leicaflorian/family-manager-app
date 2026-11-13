@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Actions\Reading\ImportFile;
 use App\Actions\Reading\ImportFiles;
 use App\Actions\Reading\SaveRecords;
+use App\Cards\CardType;
+use App\Cards\CardTypes;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\RecordDraftData;
@@ -16,12 +18,15 @@ use App\Enums\OrganizationType;
 use App\Enums\RecordKind;
 use App\Enums\UtilityType;
 use App\Models\Document;
+use App\Models\DocumentCategory;
+use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
 use App\Models\File;
 use App\Models\HealthEvent;
 use App\Models\Home;
+use App\Models\Income;
 use App\Models\InsurancePolicy;
 use App\Models\MaintenanceRecord;
 use App\Models\Organization;
@@ -29,16 +34,19 @@ use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
 use App\Models\Reminder;
+use App\Models\Subscription;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Deadlines;
 use App\Services\FamilyAreas;
 use App\Services\Reading\Proposal;
+use App\Services\Reading\RecordDrafts;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -86,6 +94,17 @@ function luceExceptions(): array
         $exception->occurrence_date->toDateString(),
         $exception->type === ExceptionType::AmountOverride ? number_format((float) $exception->amount_override, 2, '.', '') : (string) $exception->date_override?->toDateString(),
     ])->all();
+}
+
+/**
+ * Whether the document is linked to the card.
+ *
+ * @param  string  $type  the type of the morph map of the card
+ * @param  int  $id  the id of the card
+ */
+function linkedTo(Document $document, string $type, int $id): bool
+{
+    return DB::table('documentables')->where(['document_id' => $document->id, 'documentable_type' => $type, 'documentable_id' => $id])->exists();
 }
 
 beforeEach(function (): void {
@@ -679,5 +698,131 @@ describe('the hidden areas', function (): void {
         ]);
 
         expect(importReadFile($file, ['due' => false, 'event' => true, 'links' => []])['warnings'])->toBe([]);
+    });
+});
+
+describe('the card of the category', function (): void {
+    beforeEach(function (): void {
+        $this->giulia = Person::factory()->for($this->family)->create(['first_name' => 'Giulia']);
+        $this->paper = ['kind' => 'other', 'title' => 'Documento di prova', 'total_amount' => 50, 'issue_date' => '2026-10-10'];
+    });
+
+    test('a ticked box creates the card of the category with its required fields and links it to the document', function (string $type): void {
+        $category = DocumentCategory::factory()->for($this->family)->create(['name' => 'Categoria', 'card_type' => $type]);
+        $kind = RecordKind::forCardType($type);
+        // The minimal values: each required field the box can write, with a value of its kind
+        $values = [];
+        foreach (RecordDrafts::requiredFields($kind, $type) as $field) {
+            if (array_key_exists($field->column, ImportChoices::recordFields($kind, $type))) {
+                $values[$field->column] = $field->enum === null ? 'Prova '.$field->column : $field->enum::cases()[0]->value;
+            }
+        }
+        if ($kind === RecordKind::Maintenance) {
+            $values['home_id'] = Home::factory()->for($this->family)->create()->id;
+        }
+
+        $result = importReadFile(readWaitingFile($this->paper), [
+            'movement' => false,
+            'event' => $type === 'health_event',
+            'document' => ['category_id' => $category->id, 'person_id' => $this->giulia->id, 'date' => '2026-10-10', 'title' => 'Documento di prova'],
+            // A health event has its own box, not a card box
+            'records' => $type === 'health_event' ? [] : [$kind->value],
+            'overrides' => $type === 'health_event' ? ['event' => $values] : ['records' => [$kind->value => $values]],
+        ]);
+
+        $card = CardTypes::findOrFail($type)->model()::query()->sole();
+        foreach ($values as $column => $value) {
+            $saved = $card->getAttribute($column);
+            expect($saved instanceof BackedEnum ? $saved->value : $saved)->toBe($value);
+        }
+        expect(linkedTo($result['document'], $type, (int) $card->getKey()))->toBeTrue();
+    })->with(fn (): array => array_map(fn (CardType $card): string => $card->type(), array_values(CardTypes::all())));
+
+    test('the expense of a bill takes the utility created by the box', function (): void {
+        $light = DocumentCategory::factory()->for($this->family)->create(['name' => 'Luce', 'card_type' => 'utility']);
+
+        $result = importReadFile(readWaitingFile($this->paper), [
+            'due' => false,
+            'document' => ['category_id' => $light->id, 'date' => '2026-10-10', 'title' => 'Bolletta'],
+            'records' => ['utility'],
+            'overrides' => ['records' => ['utility' => ['type' => 'electricity']]],
+        ]);
+
+        $utility = Utility::query()->sole();
+        expect($result['movement'])->toBeInstanceOf(Expense::class)
+            ->and($result['movement']->card_type)->toBe('utility')
+            ->and($result['movement']->card_id)->toBe($utility->id);
+    });
+
+    test('the expense takes the card of the category before the cards the document is linked to', function (): void {
+        $netflix = Subscription::factory()->for($this->family)->create(['name' => 'Netflix', 'organization_id' => $this->edison->id]);
+        $clio = Vehicle::factory()->for($this->family)->create(['name' => 'Clio']);
+        $subscriptions = DocumentCategory::factory()->for($this->family)->create(['name' => 'Abbonamenti', 'card_type' => 'subscription']);
+
+        $result = importReadFile(readWaitingFile($this->paper), [
+            'due' => false,
+            'document' => ['category_id' => $subscriptions->id, 'date' => '2026-10-10', 'title' => 'Netflix', 'links' => [['type' => 'vehicle', 'id' => $clio->id]]],
+            'records' => ['card'],
+            'targets' => ['records' => ['card' => $netflix->id]],
+        ]);
+
+        expect($result['movement']->card_type)->toBe('subscription')
+            ->and($result['movement']->card_id)->toBe($netflix->id)
+            ->and(linkedTo($result['document'], 'subscription', $netflix->id))->toBeTrue();
+    });
+
+    test('the payslip of a person without a job creates the job, and the income takes it', function (): void {
+        $payslips = DocumentCategory::factory()->for($this->family)->create(['name' => 'Buste paga', 'card_type' => 'employment']);
+
+        $result = importReadFile(readWaitingFile(['kind' => 'payslip', 'title' => 'Busta paga', 'total_amount' => 1800, 'issue_date' => '2026-10-27']), [
+            'document' => ['category_id' => $payslips->id, 'person_id' => $this->giulia->id, 'date' => '2026-10-27', 'title' => 'Busta paga'],
+            'records' => ['card'],
+        ]);
+
+        $job = Employment::query()->sole();
+        expect($job->person_id)->toBe($this->giulia->id)
+            ->and($result['movement'])->toBeInstanceOf(Income::class)
+            ->and($result['movement']->employment_id)->toBe($job->id)
+            ->and(linkedTo($result['document'], 'employment', $job->id))->toBeTrue();
+    });
+
+    test('a utility found and unticked is not linked through the links the form proposed', function (): void {
+        $light = DocumentCategory::factory()->for($this->family)->create(['name' => 'Luce', 'card_type' => 'utility']);
+        $utility = Utility::factory()->for($this->family)->create(['supply_point_code' => 'IT001E00000001', 'organization_id' => $this->edison->id]);
+        $file = readWaitingFile([...$this->paper, 'supply_point_code' => 'IT001E00000001']);
+        $proposed = resolve(Proposal::class)->for($file, ImportChoices::fromArray(['document' => ['category_id' => $light->id]]), [], 'it');
+
+        $result = importReadFile($file, [
+            'movement' => false,
+            'document' => ['category_id' => $light->id, 'date' => '2026-10-10', 'title' => 'Bolletta', 'links' => $proposed->document->links],
+        ]);
+
+        expect($proposed->document->links)->toContain(['type' => 'utility', 'id' => $utility->id])
+            ->and($proposed->records[0]->existing['id'] ?? null)->toBe($utility->id)
+            ->and(linkedTo($result['document'], 'utility', $utility->id))->toBeFalse();
+    });
+
+    test('the box not ticked creates nothing, and a card found is not linked', function (): void {
+        $deeds = DocumentCategory::factory()->for($this->family)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+        $subscriptions = DocumentCategory::factory()->for($this->family)->create(['name' => 'Abbonamenti', 'card_type' => 'subscription']);
+        $netflix = Subscription::factory()->for($this->family)->create(['name' => 'Netflix', 'organization_id' => $this->edison->id, 'person_id' => null]);
+
+        importReadFile(readWaitingFile($this->paper), [
+            'movement' => false,
+            'document' => ['category_id' => $deeds->id, 'date' => '2026-10-10', 'title' => 'Rogito'],
+            'overrides' => ['records' => ['card' => ['name' => 'Casa al mare']]],
+        ]);
+        $file = readWaitingFile($this->paper);
+        $proposed = resolve(Proposal::class)->for($file, ImportChoices::fromArray(['document' => ['category_id' => $subscriptions->id, 'organization_id' => $this->edison->id]]), [], 'it');
+        $result = importReadFile($file, [
+            'due' => false,
+            'document' => ['category_id' => $subscriptions->id, 'organization_id' => $this->edison->id, 'date' => '2026-10-10', 'title' => 'Netflix', 'links' => $proposed->document->links],
+        ]);
+
+        expect($proposed->records[0]->existing)->toBe(['id' => $netflix->id, 'title' => 'Netflix'])
+            ->and(Home::query()->count())->toBe(0)
+            ->and(Subscription::query()->count())->toBe(1)
+            ->and(linkedTo($result['document'], 'subscription', $netflix->id))->toBeFalse()
+            ->and($result['movement']->card_type)->toBeNull();
     });
 });

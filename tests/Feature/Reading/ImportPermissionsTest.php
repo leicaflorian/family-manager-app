@@ -6,9 +6,11 @@ use App\Enums\HealthEventType;
 use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Expense;
 use App\Models\File;
 use App\Models\HealthEvent;
+use App\Models\Home;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -50,6 +52,22 @@ test('a member imports the Studio Ferri invoice', function (): void {
         ->and((float) Expense::query()->sole()->amount)->toBe(120.0)
         ->and(HealthEvent::query()->sole()->organization_id)->toBe($ferri->id)
         ->and(HealthEvent::query()->sole()->person_id)->toBe($this->giulia->id);
+});
+
+test('a member creates the card of the category with the file', function (): void {
+    $deeds = DocumentCategory::factory()->for($this->marco->family)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+    $file = File::factory()->for($this->marco->family)->read(['kind' => 'other', 'issue_date' => '2026-10-01'])
+        ->create(['to_sort' => true, 'created_by' => $this->marco->id]);
+
+    $this->actingAs($this->laura)->post(route('import.store'), ['files' => [[
+        'file_id' => $file->id,
+        'document' => ['title' => 'Rogito', 'status' => 'active', 'category_id' => $deeds->id, 'date' => '2026-10-01'],
+        'also' => ['records' => ['card'], 'overrides' => ['records' => ['card' => ['name' => 'Casa al mare']]]],
+    ]]])->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+    $home = Home::query()->sole();
+    expect($home->name)->toBe('Casa al mare')
+        ->and(Document::query()->sole()->homes()->pluck('homes.id')->all())->toBe([$home->id]);
 });
 
 test('outside the import a member still cannot create an organization', function (): void {
