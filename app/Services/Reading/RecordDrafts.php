@@ -169,8 +169,10 @@ final class RecordDrafts
         $name = self::has($x->utility_type)
             ? ucfirst(UtilityType::tryFrom((string) $x->utility_type)?->label() ?? (string) $x->utility_type)
             : $code;
+        // Without a type or a code (a box of the category) the issuer alone does not name it
+        $title = $name === '' ? __('the utility') : __('the utility :name', ['name' => self::withIssuer($name, $x, $document)]);
 
-        return self::draft($x, RecordKind::Utility, __('the utility :name', ['name' => self::withIssuer($name, $x, $document) ?: '?']), [
+        return self::draft($x, RecordKind::Utility, $title, [
             'type' => $x->utility_type,
             'supply_point_code' => $x->supply_point_code,
             'customer_code' => $x->customer_code,
@@ -193,8 +195,9 @@ final class RecordDrafts
         $plate = (string) $x->plate_number;
         $name = $x->vehicle_model ?? ($plate === '' ? null : $plate);
         $title = match (true) {
-            $name === null => __('the vehicle :plate', ['plate' => '?']),
+            $name === null => __('the vehicle'),
             $name === $plate => __('the vehicle :plate', ['plate' => $plate]),
+            $plate === '' => __('the vehicle :name', ['name' => $name]),
             default => __('the vehicle :name (:plate)', ['name' => $name, 'plate' => $plate]),
         };
 
@@ -218,7 +221,12 @@ final class RecordDrafts
      */
     private static function policy(Extraction $x, array $found, array $document, ?array $existing = null): RecordDraftData
     {
-        return self::draft($x, RecordKind::Policy, __('the policy :name', ['name' => self::withIssuer((string) $x->policy_number, $x, $document) ?: '?']), [
+        // Without a number (a box of the category) the issuer alone does not name it
+        $title = self::has($x->policy_number)
+            ? __('the policy :name', ['name' => self::withIssuer((string) $x->policy_number, $x, $document)])
+            : __('the policy');
+
+        return self::draft($x, RecordKind::Policy, $title, [
             'title' => self::policyTitle($x->insurance_type),
             'policy_number' => $x->policy_number,
             'type' => $x->insurance_type,
@@ -243,11 +251,12 @@ final class RecordDrafts
     {
         $name = $x->item_name ?? $x->title;
         $belonging = $found['belonging'];
+        $label = self::joined($name, $x->item_brand, $x->item_model);
 
         return self::draft(
             $x,
             RecordKind::Belonging,
-            __('the item :name', ['name' => self::joined($name, $x->item_brand, $x->item_model) ?: '?']),
+            $label === '' ? __('the item') : __('the item :name', ['name' => $label]),
             [
                 'name' => $name,
                 'brand' => $x->item_brand,
@@ -280,7 +289,7 @@ final class RecordDrafts
         return self::draft(
             $x,
             RecordKind::Maintenance,
-            __('the intervention :name', ['name' => $title ?? '?']),
+            $title === null ? __('the intervention') : __('the intervention :name', ['name' => $title]),
             [
                 'title' => $title,
                 'date' => $document['date']?->toDateString(),

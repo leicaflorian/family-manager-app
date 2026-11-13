@@ -1441,6 +1441,34 @@ describe('Import', () => {
             });
         });
 
+        it('does not speak of 100 € under the item the category asks for', async () => {
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(
+                Import,
+                ferriProps({
+                    ...homeProposal,
+                    records: [
+                        {
+                            ...homeDraft,
+                            kind: 'belonging',
+                            title: 'the item',
+                            cardType: 'belonging',
+                        },
+                    ],
+                    cardType: 'belonging',
+                }),
+            );
+            await settle();
+
+            expect(
+                screen.getByRole('checkbox', { name: /Create the item/ }),
+            ).not.toBeChecked();
+            expect(
+                screen.getByText('Tick the box to create the item.'),
+            ).toBeInTheDocument();
+            expect(screen.queryByText(/Under 100 €/)).not.toBeInTheDocument();
+        });
+
         it('links the card of the category already there, by its name', async () => {
             vi.spyOn(router, 'reload').mockImplementation(() => {});
             renderPage(

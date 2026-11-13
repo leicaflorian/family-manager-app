@@ -552,6 +552,7 @@ function recordFields(
                     amount: proposal.movement
                         ? proposal.movement.values.amount
                         : undefined,
+                    cardType: proposal.cardType,
                 })
             "
             :warnings="

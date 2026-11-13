@@ -412,6 +412,26 @@ describe('the box of the card of the category', function (): void {
             ->and($draft->title)->toBe('the subscription');
     });
 
+    test('a box of the category with nothing read to name it is called by its card, never with a question mark', function (string $type, string $title, array $missing): void {
+        $draft = RecordDrafts::forCategory($type, draftReading(), foundNothing(), draftDocument(['organization_name' => 'Edison']), 40.0);
+
+        expect($draft->title)->toBe($title)
+            ->and($draft->title)->not->toContain('?')
+            ->and($draft->missing)->toBe($missing);
+    })->with([
+        'utility' => ['utility', 'the utility', ['the type']],
+        'vehicle' => ['vehicle', 'the vehicle', ['the name']],
+        'policy' => ['insurance_policy', 'the policy', ['the type']],
+        'item' => ['belonging', 'the item', ['the name']],
+        'intervention' => ['maintenance_record', 'the intervention', ['the title']],
+    ]);
+
+    test('a vehicle of the category with a model but no plate is named by its model', function (): void {
+        $draft = RecordDrafts::forCategory('vehicle', draftReading(['vehicle_model' => 'Panda']), foundNothing(), draftDocument(), null);
+
+        expect($draft->title)->toBe('the vehicle Panda');
+    });
+
     test('the card of the category links the card found with the same issuer', function (): void {
         $loan = unsaved(Loan::class, ['id' => 3, 'name' => 'Mutuo casa']);
 

@@ -34,9 +34,11 @@ export type PolicyBox = {
 };
 
 /**
- * Why the box of a card starts unticked, when it is not for a missing field.
- * The card of the category of the document says it with the title of the
- * server (`Tick the box to create the residence.`).
+ * Why the box of a card the reading proposes starts unticked, when it is not
+ * for a missing field. The box of the card of the category of the document
+ * says it with the title of the server (`Tick the box to create the
+ * residence.`): the category asked for it, the rules of the reading do not
+ * count.
  */
 const RECORD_UNTICKED: Record<Exclude<App.Enums.RecordKind, 'card'>, string> = {
     organization:
@@ -406,15 +408,31 @@ export function eventWarnings(
  * linked to.
  *
  * @param draft - the card of the proposal
- * @param state - whether it is ticked, its target, and the amount of the
+ * @param state - whether it is ticked, its target, the amount of the
  *   expense (null when it was not read; missing when the paper has no expense)
+ *   and the card of the category of the document (`ProposalData.cardType`)
  * @returns the line, if there is one
  */
 export function recordHint(
     draft: App.Data.Reading.RecordDraftData,
-    state: { ticked: boolean; target: ImportTarget; amount?: number | null },
+    state: {
+        ticked: boolean;
+        target: ImportTarget;
+        amount?: number | null;
+        cardType?: string | null;
+    },
 ): string | undefined {
     if (!state.ticked && !draft.suggested && !draft.existing) {
+        // The box the category asks for: the rules of the reading (100 €, a shop on a receipt) do not count
+        if (
+            draft.kind === 'card' ||
+            (draft.cardType !== null && draft.cardType === state.cardType)
+        ) {
+            return trans('Tick the box to create :title.', {
+                title: draft.title,
+            });
+        }
+
         // The 100 € rule says nothing about a purchase whose amount was not read
         if (draft.kind === 'belonging' && state.amount === null) {
             return trans(
@@ -422,9 +440,7 @@ export function recordHint(
             );
         }
 
-        return draft.kind === 'card'
-            ? trans('Tick the box to create :title.', { title: draft.title })
-            : trans(RECORD_UNTICKED[draft.kind]);
+        return trans(RECORD_UNTICKED[draft.kind]);
     }
 
     if (state.ticked && draft.existing) {

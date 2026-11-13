@@ -432,6 +432,33 @@ describe('recordHint', () => {
         );
     });
 
+    it('does not speak of 100 € for the item the category of the document asks for', () => {
+        const item = {
+            ...organization,
+            kind: 'belonging' as const,
+            title: 'the item',
+            suggested: false,
+            cardType: 'belonging',
+        };
+
+        expect(
+            recordHint(item, {
+                ticked: false,
+                target: 'auto',
+                amount: 40,
+                cardType: 'belonging',
+            }),
+        ).toBe('Tick the box to create the item.');
+        expect(
+            recordHint(item, {
+                ticked: false,
+                target: 'auto',
+                amount: null,
+                cardType: 'belonging',
+            }),
+        ).toBe('Tick the box to create the item.');
+    });
+
     it('says the card is already there, or the one chosen is linked', () => {
         const existing = {
             ...organization,
