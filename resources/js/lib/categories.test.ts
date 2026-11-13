@@ -13,6 +13,8 @@ function category(
         parent_id: null,
         icon: null,
         color: null,
+        card_type: null,
+        inherited_card_type: null,
         documents_count: 0,
         children,
     };

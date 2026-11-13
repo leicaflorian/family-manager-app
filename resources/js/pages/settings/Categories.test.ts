@@ -25,6 +25,8 @@ const category = (
     parent_id,
     icon: parent_id ? null : 'house',
     color: 'home',
+    card_type: null,
+    inherited_card_type: null,
     documents_count,
     children,
 });
