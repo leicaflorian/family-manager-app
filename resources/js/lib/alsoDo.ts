@@ -33,8 +33,12 @@ export type PolicyBox = {
     disabled: boolean;
 };
 
-/** Why the box of a card starts unticked, when it is not for a missing field. */
-const RECORD_UNTICKED: Record<App.Enums.RecordKind, string> = {
+/**
+ * Why the box of a card starts unticked, when it is not for a missing field.
+ * The card of the category of the document says it with the title of the
+ * server (`Tick the box to create the residence.`).
+ */
+const RECORD_UNTICKED: Record<Exclude<App.Enums.RecordKind, 'card'>, string> = {
     organization:
         'A shop on a receipt does not become an organization by itself: tick the box if you want to keep it among the organizations.',
     vehicle: 'Tick the box to create the vehicle.',
@@ -43,7 +47,6 @@ const RECORD_UNTICKED: Record<App.Enums.RecordKind, string> = {
     belonging:
         'Under 100 € a purchase does not become an item by itself: tick the box if you want to keep it among the items, with the warranty.',
     maintenance: 'Tick the box to create the intervention.',
-    card: 'Tick the box to create the card.',
 };
 
 /** The labels of the fields of the document form a box may need, as the form names them. */
@@ -95,7 +98,10 @@ function neededLines(complete: string[], fill: string[]): string[] {
     ];
 }
 
-/** How a box speaks of a card already there, by its kind: `Link to the vehicle "…"`. */
+/**
+ * How a box speaks of a card already there, by its kind: `Link to the vehicle "…"`. The card of the category of the
+ * document, of any type, is named by itself: `Link to "Via Roma 12"`.
+ */
 const LINK_TO: Record<App.Enums.RecordKind, string> = {
     organization: 'Link to the organization ":title"',
     vehicle: 'Link to the vehicle ":title"',
@@ -103,7 +109,7 @@ const LINK_TO: Record<App.Enums.RecordKind, string> = {
     policy: 'Link to the policy ":title"',
     belonging: 'Link to the item ":title"',
     maintenance: 'Link to the intervention ":title"',
-    card: 'Link to the card ":title"',
+    card: 'Link to ":title"',
 };
 
 /**
@@ -410,10 +416,14 @@ export function recordHint(
 ): string | undefined {
     if (!state.ticked && !draft.suggested && !draft.existing) {
         // The 100 € rule says nothing about a purchase whose amount was not read
-        return draft.kind === 'belonging' && state.amount === null
-            ? trans(
-                  'Amount not found: tick the box if you want to keep it among the items, with the warranty.',
-              )
+        if (draft.kind === 'belonging' && state.amount === null) {
+            return trans(
+                'Amount not found: tick the box if you want to keep it among the items, with the warranty.',
+            );
+        }
+
+        return draft.kind === 'card'
+            ? trans('Tick the box to create :title.', { title: draft.title })
             : trans(RECORD_UNTICKED[draft.kind]);
     }
 

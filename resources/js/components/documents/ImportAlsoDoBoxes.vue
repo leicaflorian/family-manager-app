@@ -3,7 +3,9 @@
  * *What I do too* of one file in *Import*, as the boards *Importa* and
  * *Importa (pc)*: the boxes of the expense or income (with *Already paid* /
  * *To pay* and its deadline), of the health event, of the missing cards and of
- * the policy. A ticked box shows the fields the server still needs (the
+ * the policy. When the proposals follow the card of the category of the
+ * document (`cardType`), a line under the heading says so, and the box of that
+ * card takes the title and the icon of its type. A ticked box shows the fields the server still needs (the
  * deadline, the title and type of a new event, the required fields of a new
  * card) and the actions *Create a new …*, *Choose another…* and *Back to the
  * proposal*. A paper that names no card offers *Create the card*, unticked:
@@ -16,7 +18,6 @@ import {
     Building2,
     Car,
     HeartPulse,
-    LayoutGrid,
     Package,
     Plug,
     Shield,
@@ -25,6 +26,7 @@ import {
     Wrench,
 } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
+import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref } from 'vue';
 import FmAlsoDo from '@/components/fm/FmAlsoDo.vue';
 import FmAlsoDoItem from '@/components/fm/FmAlsoDoItem.vue';
@@ -53,7 +55,7 @@ import {
     recordLabel,
     recordWarnings,
 } from '@/lib/alsoDo';
-import { fieldInput, isMenuField } from '@/lib/cards';
+import { cardIcon, fieldInput, isMenuField } from '@/lib/cards';
 
 const props = defineProps<{
     /** The file, to name its fields. */
@@ -74,16 +76,30 @@ const props = defineProps<{
     healthTypes: App.Data.OptionData[];
 }>();
 
-/** The icon of the box of each card. */
-const RECORD_ICONS: Record<App.Enums.RecordKind, LucideIcon> = {
+/** The icon of the box of each card; the card of the category takes the icon of its type. */
+const RECORD_ICONS: Record<
+    Exclude<App.Enums.RecordKind, 'card'>,
+    LucideIcon
+> = {
     organization: Building2,
     vehicle: Car,
     utility: Plug,
     policy: Shield,
     belonging: Package,
     maintenance: Wrench,
-    card: LayoutGrid,
 };
+
+/**
+ * The icon of the box of a card.
+ *
+ * @param draft - the card of the proposal
+ * @returns the icon of its kind, or of its type for the card of the category
+ */
+function recordIcon(draft: App.Data.Reading.RecordDraftData): LucideIcon {
+    return draft.kind === 'card'
+        ? cardIcon(draft.cardType ?? '')
+        : RECORD_ICONS[draft.kind];
+}
 
 /** The actions of a box while it is ticked: create a new one, choose another, back to the proposal. */
 const [DefineActions, ReuseActions] = createReusableTemplate<{
@@ -103,6 +119,15 @@ const toPay = computed((): boolean =>
     props.proposal.movement
         ? dueInEffect(props.proposal.movement, props.choices.picks.due)
         : false,
+);
+
+/** The line under the heading when the proposals follow the card of the kind of the document. */
+const followsKind = computed((): string | undefined =>
+    props.proposal.cardType
+        ? trans(
+              'The proposals follow "What kind it is": if you change it, they change too.',
+          )
+        : undefined,
 );
 
 /** Whether the movement is an income. */
@@ -323,7 +348,7 @@ function recordFields(
         </FmButton>
     </DefineActions>
 
-    <FmAlsoDo v-if="ticked">
+    <FmAlsoDo v-if="ticked" :hint="followsKind">
         <FmAlsoDoItem
             v-if="proposal.movement"
             :model-value="ticked.movement"
@@ -538,7 +563,7 @@ function recordFields(
                     recordWarnings(draft, ticked.records.includes(draft.kind)),
                 )
             "
-            :icon="RECORD_ICONS[draft.kind]"
+            :icon="recordIcon(draft)"
             @update:model-value="choices.setTicked(draft.kind, $event)"
         >
             <template v-if="!draft.existing">

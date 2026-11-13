@@ -1818,6 +1818,47 @@ export const enrolmentProposal: App.Data.Reading.ProposalData = {
     createCard: true,
 };
 
+/**
+ * The box of the home of a deed filed under a category of homes, as `RecordDrafts::forCategory('home', …)` sends it
+ * when the family has no home (`ProposalTest`): the name to write, unticked.
+ */
+export const homeDraft: App.Data.Reading.RecordDraftData = {
+    kind: 'card',
+    title: 'the residence',
+    values: { name: null },
+    suggested: false,
+    missing: ['the name'],
+    existing: null,
+    candidates: [],
+    reminder: null,
+    fields: [
+        {
+            column: 'name',
+            label: 'Name',
+            kind: 'text',
+            required: true,
+            options: [],
+            show_when: {},
+            label_when: {},
+        },
+    ],
+    complete: [],
+    cardType: 'home',
+};
+
+/**
+ * The Studio Ferri invoice filed under a category of homes: the proposals follow the card of the category
+ * (`cardType`), so besides the expense and the organization there is the box of the home, and no *Create the card*.
+ */
+export const homeProposal: App.Data.Reading.ProposalData = {
+    ...ferriProposal,
+    document: { ...ferriProposal.document, category_id: 30 },
+    event: null,
+    records: [...ferriProposal.records, homeDraft],
+    createCard: false,
+    cardType: 'home',
+};
+
 /** *Settings → Areas* of the Bianchis as the server sends it: the default order, nothing hidden, *Work* with 2 cards. */
 export const areaSettings: App.Data.AreaSettingsData = {
     areas: (

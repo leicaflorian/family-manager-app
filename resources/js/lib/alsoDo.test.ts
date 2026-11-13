@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { ferriProposal } from '@/test/fixtures';
+import { ferriProposal, homeDraft } from '@/test/fixtures';
 import {
     actionTexts,
     candidateOptions,
@@ -196,6 +196,16 @@ describe('recordLabel', () => {
                 label,
             );
         }
+    });
+
+    it('names the card of the category with the title of the server', () => {
+        expect(recordLabel(homeDraft)).toBe('Create the residence');
+        expect(
+            recordLabel({
+                ...homeDraft,
+                existing: { id: 4, title: 'Via Roma 12' },
+            }),
+        ).toBe('Link to "Via Roma 12"');
     });
 });
 
@@ -413,6 +423,12 @@ describe('recordHint', () => {
             ),
         ).toBe(
             'Amount not found: tick the box if you want to keep it among the items, with the warranty.',
+        );
+    });
+
+    it('says to tick the box of the card of the category, with the title of the server', () => {
+        expect(recordHint(homeDraft, { ticked: false, target: 'auto' })).toBe(
+            'Tick the box to create the residence.',
         );
     });
 

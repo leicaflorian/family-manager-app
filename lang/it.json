@@ -1840,6 +1840,7 @@
     "the health event": "l'evento di salute",
     "the enrollment": "l'iscrizione",
     "the card :name": "la scheda :name",
-    "Tick the box to create the card.": "Spunta la casella per creare la scheda.",
-    "Link to the card \":title\"": "Collega alla scheda \":title\""
+    "Tick the box to create :title.": "Spunta la casella per creare :title.",
+    "Link to \":title\"": "Collega a «:title»",
+    "The proposals follow \"What kind it is\": if you change it, they change too.": "Le proposte seguono «Che tipo è»: se lo cambi, cambiano anche loro."
 }
