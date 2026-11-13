@@ -59,22 +59,3 @@ export function showEmptyChoice(node: FormKitNode): void {
     update();
     node.on('prop:options', update);
 }
-
-/**
- * A FormKit plugin, after {@link showEmptyChoice}: a menu with nothing chosen
- * and no placeholder writes nothing. FormKit Pro then writes the word
- * «placeholder», invisible, to keep the height of the box, and whoever reads
- * the text of the page (a copy, a page reader) finds it under the label; a
- * non-breaking space keeps the height and says nothing.
- *
- * @param node - a field that FormKit is creating
- */
-export function blankHiddenPlaceholder(node: FormKitNode): void {
-    if (!MENUS.has(String(node.props.type)) || node.props.multiple) {
-        return;
-    }
-
-    if (node.props.placeholder === undefined) {
-        node.props.placeholder = ' ';
-    }
-}
