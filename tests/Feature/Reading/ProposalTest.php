@@ -17,6 +17,7 @@ use App\Enums\RecordKind;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\Employment;
+use App\Models\Enrollment;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
@@ -27,6 +28,7 @@ use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
+use App\Models\Subscription;
 use App\Models\Utility;
 use App\Services\Reading\Proposal;
 use App\Support\CurrentFamily;
@@ -625,5 +627,89 @@ describe('the proposal follows the card of the category', function (): void {
         $proposal = proposalOf($this->bill, ['document' => ['category_id' => $this->light->id]]);
 
         expect($proposal->movement->values->category_id)->toBe($this->health->id);
+    });
+    test('a school letter of the second child does not link the enrollment of the first child', function (): void {
+        $school = Organization::factory()->for($this->family)->create(['name' => 'Scuola Rodari']);
+        $first = Person::factory()->for($this->family)->create(['first_name' => 'Luca']);
+        Enrollment::factory()->for($this->family)->create(['person_id' => $first->id, 'organization_id' => $school->id]);
+        $schoolDocs = DocumentCategory::factory()->for($this->family)->create(['name' => 'Scuola', 'card_type' => 'enrollment']);
+
+        $proposal = proposalOf(['kind' => 'other', 'issue_date' => '2026-10-01'], [
+            'document' => ['category_id' => $schoolDocs->id, 'organization_id' => $school->id, 'person_id' => $this->giulia->id],
+        ]);
+
+        expect($proposal->records[0]->cardType)->toBe('enrollment')
+            ->and($proposal->records[0]->existing)->toBeNull();
+    });
+
+    test('the payslip of Marco from the employer of the job of Laura does not link the job of Laura', function (): void {
+        $employer = Organization::factory()->for($this->family)->create(['name' => 'Comune di Bologna']);
+        $laura = Person::factory()->for($this->family)->create(['first_name' => 'Laura']);
+        $marco = Person::factory()->for($this->family)->create(['first_name' => 'Marco']);
+        Employment::factory()->for($this->family)->create(['person_id' => $laura->id, 'organization_id' => $employer->id]);
+        $payslips = DocumentCategory::factory()->for($this->family)->create(['name' => 'Buste paga', 'card_type' => 'employment']);
+
+        $proposal = proposalOf(['kind' => 'payslip', 'total_amount' => 1800, 'issue_date' => '2026-10-27'], [
+            'document' => ['category_id' => $payslips->id, 'organization_id' => $employer->id, 'person_id' => $marco->id],
+        ]);
+
+        expect($proposal->records)->toHaveCount(1)
+            ->and($proposal->records[0]->cardType)->toBe('employment')
+            ->and($proposal->records[0]->existing)->toBeNull();
+    });
+
+    test('a document without a person does not link a card of a person', function (): void {
+        $netflix = Organization::factory()->for($this->family)->create(['name' => 'Netflix']);
+        Subscription::factory()->for($this->family)->create(['person_id' => $this->giulia->id, 'organization_id' => $netflix->id]);
+        $subscriptions = DocumentCategory::factory()->for($this->family)->create(['name' => 'Abbonamenti', 'card_type' => 'subscription']);
+
+        $proposal = proposalOf(['kind' => 'other', 'issue_date' => '2026-10-01'], [
+            'document' => ['category_id' => $subscriptions->id, 'organization_id' => $netflix->id, 'person_id' => null],
+        ]);
+
+        expect($proposal->records[0]->existing)->toBeNull();
+    });
+
+    test('a category keeps only the warning of its own card', function (): void {
+        $deeds = DocumentCategory::factory()->for($this->family)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+        $bill = ['kind' => 'utility_bill', 'supply_point_code' => 'IT001E00000009', 'utility_type' => 'electricity', 'total_amount' => 80, 'issue_date' => '2026-10-20'];
+
+        expect(proposalOf($bill, ['document' => ['category_id' => $deeds->id]])->warnings)->toBe([])
+            ->and(proposalOf([...$bill, 'plate_number' => 'GH482TK'], ['document' => ['category_id' => $this->light->id]])->warnings)->toBe([]);
+    });
+
+    test('an expense that pays a planned deadline keeps the category of the planned expense', function (): void {
+        $utility = Utility::factory()->for($this->family)->create(['supply_point_code' => 'IT001E00000001', 'person_id' => null]);
+        $planned = ExpenseCategory::factory()->for($this->family)->create(['name' => 'Luce di casa']);
+        PlannedExpense::factory()->for($this->family)->forCard($utility)->create(['title' => 'Luce', 'amount' => 80, 'category_id' => $planned->id, 'start_date' => '2026-01-15']);
+        ExpenseCategory::factory()->for($this->family)->create(['name' => 'Bollette e utenze', 'card_type' => 'utility']);
+
+        $proposal = proposalOf(
+            ['kind' => 'utility_bill', 'supply_point_code' => 'IT001E00000001', 'total_amount' => 84.2, 'due_date' => '2026-10-15'],
+            ['document' => ['category_id' => $this->light->id]],
+        );
+
+        expect($proposal->movement->values->category_id)->toBe($planned->id);
+    });
+
+    test('the expense category written by the person wins over the one of the card', function (): void {
+        ExpenseCategory::factory()->for($this->family)->create(['name' => 'Bollette e utenze', 'card_type' => 'utility']);
+
+        $proposal = proposalOf($this->bill, ['document' => ['category_id' => $this->light->id], 'overrides' => ['movement' => ['category_id' => $this->health->id]]]);
+
+        expect($proposal->movement->values->category_id)->toBe($this->health->id);
+    });
+
+    test('a person whose only job has ended gets the box to create the job', function (): void {
+        $marco = Person::factory()->for($this->family)->create(['first_name' => 'Marco']);
+        Employment::factory()->for($this->family)->create(['person_id' => $marco->id, 'start_date' => '2020-01-01', 'end_date' => '2025-12-31']);
+        $payslips = DocumentCategory::factory()->for($this->family)->create(['name' => 'Buste paga', 'card_type' => 'employment']);
+
+        $proposal = proposalOf(['kind' => 'payslip', 'total_amount' => 1800, 'issue_date' => '2026-10-27'], [
+            'document' => ['category_id' => $payslips->id, 'person_id' => $marco->id],
+        ]);
+
+        expect($proposal->records)->toHaveCount(1)
+            ->and($proposal->records[0]->cardType)->toBe('employment');
     });
 });

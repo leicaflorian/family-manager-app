@@ -118,8 +118,10 @@ final readonly class MovementDraft
             date: $date,
             due_date: $due,
             organization_id: $links->organizationId ?? $planned?->organization_id,
-            category_id: ($cardType === null ? null : ExpenseCategory::firstOfCardType($cardType))
-                ?? $planned->category_id ?? Choices::pick($context->expenseCategories, $x->expense_category_id),
+            // The planned expense the paper pays keeps its category; otherwise the first one of the card of the category
+            category_id: $planned->category_id
+                ?? ($cardType === null ? null : ExpenseCategory::firstOfCardType($cardType))
+                ?? Choices::pick($context->expenseCategories, $x->expense_category_id),
             financial_account_id: $this->accountId($x, $planned),
             person_id: $planned->person_id ?? $links->personId,
             income_type: null,

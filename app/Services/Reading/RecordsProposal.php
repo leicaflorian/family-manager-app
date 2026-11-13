@@ -20,6 +20,7 @@ use App\Services\CardDetails;
 use App\Support\Reading\RecordLabel;
 use App\Support\Translated;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -90,7 +91,7 @@ final readonly class RecordsProposal
                 $document['date'],
             ),
             'homes' => $homes,
-            'card' => $cardType === null ? null : $this->cardOfIssuer($cardType, $document['organization_id']),
+            'card' => $cardType === null ? null : $this->cardOfIssuer($cardType, $document['organization_id'], $document['person_id']),
         ];
 
         // A card created or picked by hand is proposed even when the search found one; one picked and gone is
@@ -106,13 +107,18 @@ final readonly class RecordsProposal
             }
         }
 
-        $drafts = RecordDrafts::of($xc, $found, $document, $amount, $cardType, $cardType !== null && $this->wantsCard($cardType, $document['person_id']));
+        $drafts = RecordDrafts::of($xc, $found, $document, $amount, $cardType, $cardType !== null && $this->wantsCard($cardType, $document['person_id'], $document['date']));
         $records = array_map(
             fn (RecordDraftData $draft): RecordDraftData => $this->withChoices($draft, $edits[$draft->kind->value] ?? [], $targets[$draft->kind->value] ?? 'auto'),
             $drafts,
         );
 
-        return ['records' => $records, 'warnings' => $this->warnings($xc, $found['utility'], $found['vehicle'], $found['policy'], $records)];
+        $warnings = $this->warnings($xc, $found['utility'], $found['vehicle'], $found['policy'], $records);
+
+        // With the card of the category only the warning about that card is said: the others have no box to make
+        $own = $cardType === null ? null : RecordKind::forCardType($cardType)->value;
+
+        return ['records' => $records, 'warnings' => $own === null ? array_values($warnings) : (isset($warnings[$own]) ? [$warnings[$own]] : [])];
     }
 
     /**
@@ -227,27 +233,42 @@ final readonly class RecordsProposal
 
     /**
      * Whether the card of the category has its box: a health event has its own box, and a job only when the person
-     * of the document has none.
+     * of the document has none in progress on the date of the document (an ended job does not count).
      *
      * @param  string  $cardType  the type of the morph map
      * @param  int|null  $personId  the person of the document
+     * @param  CarbonImmutable|null  $date  the date of the document
      */
-    private function wantsCard(string $cardType, ?int $personId): bool
+    private function wantsCard(string $cardType, ?int $personId, ?CarbonImmutable $date): bool
     {
-        return match ($cardType) {
-            'health_event' => false,
-            'employment' => $personId === null || ! Employment::query()->where('person_id', $personId)->exists(),
-            default => true,
-        };
+        if ($cardType === 'health_event') {
+            return false;
+        }
+
+        if ($cardType !== 'employment' || $personId === null) {
+            return true;
+        }
+
+        $day = $date?->toDateString();
+
+        return ! Employment::query()
+            ->where('person_id', $personId)
+            ->when($day !== null, static fn (Builder $query) => $query
+                ->where(static fn (Builder $start) => $start->whereNull('start_date')->orWhere('start_date', '<=', $day))
+                ->where(static fn (Builder $end) => $end->whereNull('end_date')->orWhere('end_date', '>=', $day)))
+            ->exists();
     }
 
     /**
      * The only card of a type (not one of the five the reading searches) with the issuer of the document, to link.
+     * A card that belongs to a person must be the person's of the document: without a person on the document, a
+     * card of a person is not linked (the school letter of one child is not the enrollment of the other).
      *
      * @param  string  $cardType  the type of the morph map
      * @param  int|null  $organizationId  the issuer of the document
+     * @param  int|null  $personId  the person of the document
      */
-    private function cardOfIssuer(string $cardType, ?int $organizationId): ?Model
+    private function cardOfIssuer(string $cardType, ?int $organizationId, ?int $personId): ?Model
     {
         $card = CardTypes::find($cardType);
         if ($organizationId === null || RecordKind::forCardType($cardType) !== RecordKind::Card || ! $card instanceof CardType) {
@@ -259,7 +280,12 @@ final readonly class RecordsProposal
             return null;
         }
 
-        $found = $card->model()::query()->where('organization_id', $organizationId)->orderBy('id')->limit(2)->get();
+        $found = $card->model()::query()
+            ->where('organization_id', $organizationId)
+            ->when(in_array('person_id', $columns, true), static fn (Builder $query) => $personId === null
+                ? $query->whereNull('person_id')
+                : $query->where('person_id', $personId))
+            ->orderBy('id')->limit(2)->get();
 
         return $found->count() === 1 ? $found->first() : null;
     }
@@ -299,28 +325,28 @@ final readonly class RecordsProposal
     }
 
     /**
-     * The codes on the paper that no card has and no box creates.
+     * The codes on the paper that no card has and no box creates, by the kind of card they are about.
      *
      * @param  Extraction  $x  the reading with the corrections
      * @param  Utility|null  $utility  the active utility found
      * @param  Vehicle|null  $vehicle  the vehicle found
      * @param  InsurancePolicy|null  $policy  the policy found
      * @param  list<RecordDraftData>  $records  the boxes
-     * @return list<string>
+     * @return array<string, string> by the value of `RecordKind`, in the order of the page
      */
     private function warnings(Extraction $x, ?Utility $utility, ?Vehicle $vehicle, ?InsurancePolicy $policy, array $records): array
     {
         $proposed = array_map(static fn (RecordDraftData $draft): RecordKind => $draft->kind, $records);
         $code = $x->supply_point_code ?? $x->customer_code;
 
-        return array_values(array_filter([
-            ! $utility instanceof Utility && $x->kind === 'utility_bill' && $code !== null && ! in_array(RecordKind::Utility, $proposed, true)
+        return array_filter([
+            RecordKind::Utility->value => ! $utility instanceof Utility && $x->kind === 'utility_bill' && $code !== null && ! in_array(RecordKind::Utility, $proposed, true)
                 ? Translated::text('Utility not found (:code): choose it by hand.', ['code' => $code]) : null,
-            ! $vehicle instanceof Vehicle && $x->plate_number !== null && ! in_array(RecordKind::Vehicle, $proposed, true)
+            RecordKind::Vehicle->value => ! $vehicle instanceof Vehicle && $x->plate_number !== null && ! in_array(RecordKind::Vehicle, $proposed, true)
                 ? Translated::text('No vehicle with the plate :plate.', ['plate' => $x->plate_number]) : null,
-            ! $policy instanceof InsurancePolicy && $x->kind === 'insurance' && $x->policy_number !== null && ! in_array(RecordKind::Policy, $proposed, true)
+            RecordKind::Policy->value => ! $policy instanceof InsurancePolicy && $x->kind === 'insurance' && $x->policy_number !== null && ! in_array(RecordKind::Policy, $proposed, true)
                 ? Translated::text('No policy with the number :number.', ['number' => $x->policy_number]) : null,
-        ]));
+        ]);
     }
 
     /**
