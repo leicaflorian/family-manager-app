@@ -24,12 +24,14 @@ use App\Models\Family;
 use App\Models\File;
 use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
+use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\Subscription;
 use App\Models\Utility;
+use App\Models\Vehicle;
 use App\Services\Reading\Proposal;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
@@ -711,5 +713,66 @@ describe('the proposal follows the card of the category', function (): void {
 
         expect($proposal->records)->toHaveCount(1)
             ->and($proposal->records[0]->cardType)->toBe('employment');
+    });
+});
+
+describe('the choices of the box of the card of the category', function (): void {
+    beforeEach(function (): void {
+        $this->deeds = DocumentCategory::factory()->for($this->family)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+        $this->deed = ['kind' => 'other', 'issue_date' => '2026-10-01'];
+    });
+
+    test('the fields written in the box of a home reach its values, and a field the home has not is dropped', function (): void {
+        $proposal = proposalOf($this->deed, [
+            'document' => ['category_id' => $this->deeds->id],
+            'overrides' => ['records' => ['card' => ['name' => ' Casa al mare ', 'plate_number' => 'GH482TK']]],
+        ]);
+
+        $card = $proposal->records[0];
+        expect($card->kind)->toBe(RecordKind::Card)
+            ->and($card->values['name'])->toBe('Casa al mare')
+            ->and($card->values)->not->toHaveKey('plate_number')
+            ->and($card->missing)->toBe([])
+            ->and($card->fields)->toBe([]);
+    });
+
+    test('a home picked by hand is linked', function (): void {
+        $home = Home::factory()->for($this->family)->create(['name' => 'Casa di Milano']);
+
+        $card = proposalOf($this->deed, [
+            'document' => ['category_id' => $this->deeds->id],
+            'targets' => ['records' => ['card' => $home->id]],
+        ])->records[0];
+
+        expect($card->existing)->toBe(['id' => $home->id, 'title' => 'Casa di Milano'])
+            ->and($card->missing)->toBe([]);
+    });
+
+    test('the id of a vehicle, of a deleted home or of a home of another family links nothing', function (): void {
+        $vehicle = Vehicle::factory()->for($this->family)->create();
+        $deleted = Home::factory()->for($this->family)->create();
+        $deleted->delete();
+        $theirs = Home::factory()->for(Family::factory())->create();
+
+        foreach ([$vehicle->id, $deleted->id, $theirs->id] as $id) {
+            expect(Home::query()->find($id))->toBeNull()
+                ->and(proposalOf($this->deed, [
+                    'document' => ['category_id' => $this->deeds->id],
+                    'targets' => ['records' => ['card' => $id]],
+                ])->records[0]->existing)->toBeNull();
+        }
+    });
+
+    test('"Choose another one" lists the cards of the type, by title', function (): void {
+        $villa = Home::factory()->for($this->family)->create(['name' => 'Villa al lago']);
+        $flat = Home::factory()->for($this->family)->create(['name' => 'Appartamento Milano']);
+        Vehicle::factory()->for($this->family)->create(['name' => 'Panda']);
+
+        $card = proposalOf($this->deed, ['document' => ['category_id' => $this->deeds->id]])->records[0];
+
+        expect($card->candidates)->toBe([
+            ['id' => $flat->id, 'label' => 'Appartamento Milano'],
+            ['id' => $villa->id, 'label' => 'Villa al lago'],
+        ]);
     });
 });

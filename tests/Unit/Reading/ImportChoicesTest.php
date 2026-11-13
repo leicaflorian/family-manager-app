@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Data\Reading\ImportChoices;
+use App\Enums\EnrollmentType;
+use App\Enums\FilingType;
 use App\Enums\RecordKind;
 
 describe('cleanOverrides', function (): void {
@@ -82,6 +84,36 @@ describe('cleanRecordEdits', function (): void {
     test('nothing sent: nothing', function (): void {
         expect(ImportChoices::fromArray([])->overrides['records'])->toBe([])
             ->and(ImportChoices::fromArray(['overrides' => ['records' => 'x']])->overrides['records'])->toBe([]);
+    });
+});
+
+describe('the fields of the card of the category', function (): void {
+    test('the five cards and the organization keep their fixed list', function (): void {
+        expect(ImportChoices::recordFields(RecordKind::Vehicle, null))->toBe(ImportChoices::RECORD_FIELDS['vehicle'])
+            ->and(ImportChoices::recordFields(RecordKind::Organization, 'home'))->toBe(ImportChoices::RECORD_FIELDS['organization']);
+    });
+
+    test('a card of the category has the required fields of its class that are not the document\'s, checked by their kind', function (): void {
+        expect(ImportChoices::recordFields(RecordKind::Card, 'home'))->toBe(['name' => 'text'])
+            ->and(ImportChoices::recordFields(RecordKind::Card, 'filing'))->toBe(['title' => 'text', 'type' => 'choice:'.FilingType::class])
+            ->and(ImportChoices::recordFields(RecordKind::Card, 'enrollment'))->toBe(['type' => 'choice:'.EnrollmentType::class])
+            ->and(ImportChoices::recordFields(RecordKind::Card, null))->toBe([])
+            ->and(ImportChoices::recordFields(RecordKind::Card, 'nonsense'))->toBe([]);
+    });
+
+    test('what was written in the card box is cleaned with the fields of the type, the others dropped', function (): void {
+        $choices = ImportChoices::fromArray(['overrides' => ['records' => [
+            'card' => ['title' => ' Dichiarazione 2026 ', 'type' => 'income_tax', 'plate_number' => 'AB123CD', 'person_id' => 4],
+            'vehicle' => ['plate_number' => 'AB123CD'],
+        ]]]);
+        $type = FilingType::cases()[0]->value;
+        $withType = ImportChoices::fromArray(['overrides' => ['records' => ['card' => ['type' => $type, 'title' => '']]]]);
+
+        expect($choices->overrides['records'])->toBe(['vehicle' => ['plate_number' => 'AB123CD']])
+            ->and($choices->recordOverrides('home'))->toBe(['vehicle' => ['plate_number' => 'AB123CD'], 'card' => []])
+            ->and($choices->recordOverrides(null))->toBe(['vehicle' => ['plate_number' => 'AB123CD']])
+            ->and($withType->recordOverrides('filing'))->toBe(['card' => ['title' => null, 'type' => $type]])
+            ->and(ImportChoices::fromArray(['overrides' => ['records' => ['card' => ['type' => 'nonsense']]]])->recordOverrides('filing'))->toBe(['card' => []]);
     });
 });
 

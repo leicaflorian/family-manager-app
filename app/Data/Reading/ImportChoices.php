@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Data\Reading;
 
+use App\Cards\CardField;
+use App\Cards\FieldKind;
 use App\Enums\HealthEventType;
 use App\Enums\InsurancePolicyType;
 use App\Enums\MaintenanceType;
 use App\Enums\OrganizationType;
 use App\Enums\RecordKind;
 use App\Enums\UtilityType;
+use App\Services\Reading\RecordDrafts;
 use App\Support\DocumentRules;
 use App\Support\Reading\ValidDate;
 
@@ -42,7 +45,17 @@ final readonly class ImportChoices
     /** The fields of the event the person can correct: person, place and date are the document's. */
     private const array EVENT_FIELDS = ['title' => 'title', 'type' => 'health', 'outcome' => 'text', 'next_checkup_date' => 'date'];
 
-    /** The fields of each card the person can correct, by column; issuer, person and date are the document's. */
+    /** The columns of a card that are the document's: they are written in its form, not in the box. */
+    public const array DOCUMENT_COLUMNS = ['date', 'person_id', 'organization_id'];
+
+    /** The prefix of the check of a choice, followed by its enum. */
+    private const string CHOICE = 'choice:';
+
+    /**
+     * The fields the person can correct of the organization and of the five cards the reading fills, by column; issuer,
+     * person and date are the document's. The card of the document category takes its fields from its class
+     * (`recordFields()`).
+     */
     public const array RECORD_FIELDS = [
         'organization' => ['name' => 'text', 'types' => 'types'],
         'vehicle' => ['name' => 'text', 'plate_number' => 'text', 'brand' => 'text', 'model' => 'text', 'registration_year' => 'year'],
@@ -50,8 +63,6 @@ final readonly class ImportChoices
         'policy' => ['title' => 'text', 'type' => 'insurance', 'policy_number' => 'text', 'start_date' => 'date', 'expiry_date' => 'date', 'home_id' => 'id'],
         'belonging' => ['name' => 'text', 'brand' => 'text', 'model' => 'text', 'purchase_price' => 'fee', 'home_id' => 'id', 'warranty_expiry_date' => 'date'],
         'maintenance' => ['title' => 'text', 'type' => 'maintenance', 'home_id' => 'id'],
-        // The fields of the card of the document category depend on its class: none can be corrected yet
-        'card' => [],
     ];
 
     /**
@@ -64,6 +75,7 @@ final readonly class ImportChoices
      * @param  bool|null  $due  "to pay" (true) or "already paid" (false); null is the automatic choice
      * @param  string  $policy  `auto`, `none` or the `key` of a policy giver
      * @param  bool  $createCard  the box *Create the card* is ticked: after the import *New card* opens with the document linked
+     * @param  array<string, mixed>  $cardOverrides  what was written in the box of the card of the document category, still to clean: its fields depend on the type of the card, known only with the proposal (`recordOverrides()`)
      */
     public function __construct(
         public array $document = [],
@@ -75,6 +87,7 @@ final readonly class ImportChoices
         public ?bool $due = null,
         public string $policy = 'auto',
         public bool $createCard = false,
+        public array $cardOverrides = [],
     ) {}
 
     /**
@@ -106,6 +119,7 @@ final readonly class ImportChoices
             due: self::bool($raw['due'] ?? null),
             policy: is_string($policy) && ($policy === 'none' || preg_match('/^(file|policy):\d+$/', $policy) === 1) ? $policy : 'auto',
             createCard: self::bool($raw['create_card'] ?? null) ?? false,
+            cardOverrides: self::stringKeys(self::arrayOf($overrides['records'] ?? null)[RecordKind::Card->value] ?? null),
         );
     }
 
@@ -131,7 +145,67 @@ final readonly class ImportChoices
             due: $this->due,
             policy: $this->policy,
             createCard: $this->createCard,
+            cardOverrides: $this->cardOverrides,
         );
+    }
+
+    /**
+     * The corrections of the cards, by the value of `RecordKind`, with the box of the card of the document category
+     * cleaned by the fields of its type; without a type that box does not exist and its corrections are dropped.
+     *
+     * @param  string|null  $cardType  the type of the morph map of the card of the document category
+     * @return array<string, array<string, mixed>>
+     */
+    public function recordOverrides(?string $cardType): array
+    {
+        if ($cardType === null) {
+            return $this->overrides['records'];
+        }
+
+        return [...$this->overrides['records'], RecordKind::Card->value => self::clean($this->cardOverrides, self::recordFields(RecordKind::Card, $cardType))];
+    }
+
+    /**
+     * The fields of a card the person can write in its box, by column, with their check: the fixed list of the
+     * organization and of the five cards the reading fills; for the card of the document category the required fields
+     * of its class that are not the document's, checked by their kind.
+     *
+     * @param  RecordKind  $kind  which card
+     * @param  string|null  $cardType  the type of the morph map of a `Card`
+     * @return array<string, string>
+     */
+    public static function recordFields(RecordKind $kind, ?string $cardType): array
+    {
+        if ($kind !== RecordKind::Card) {
+            return self::RECORD_FIELDS[$kind->value];
+        }
+
+        $fields = [];
+        foreach (RecordDrafts::requiredFields($kind, $cardType) as $field) {
+            if (! in_array($field->column, self::DOCUMENT_COLUMNS, true)) {
+                $fields[$field->column] = self::checkOf($field);
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * The check of a field of a card class, by its kind.
+     *
+     * @param  CardField  $field  the field
+     */
+    private static function checkOf(CardField $field): string
+    {
+        return match ($field->kind) {
+            FieldKind::Text, FieldKind::Textarea => 'text',
+            FieldKind::Date => 'date',
+            FieldKind::Currency => 'fee',
+            FieldKind::Number => 'number',
+            FieldKind::Toggle => 'toggle',
+            FieldKind::Choice, FieldKind::Dropdown => self::CHOICE.$field->enum,
+            FieldKind::Person, FieldKind::Organization, FieldKind::Card => 'id',
+        };
     }
 
     /**
@@ -191,8 +265,9 @@ final readonly class ImportChoices
     {
         $out = [];
         foreach (RecordKind::cases() as $kind) {
-            if (is_array($input[$kind->value] ?? null)) {
-                $out[$kind->value] = self::clean($input[$kind->value], self::RECORD_FIELDS[$kind->value]);
+            // The box of the card of the document category is cleaned once its type is known
+            if ($kind !== RecordKind::Card && is_array($input[$kind->value] ?? null)) {
+                $out[$kind->value] = self::clean($input[$kind->value], self::recordFields($kind, null));
             }
         }
 
@@ -236,12 +311,20 @@ final readonly class ImportChoices
      */
     private static function check(string $rule, mixed $value): mixed
     {
+        if (str_starts_with($rule, self::CHOICE)) {
+            $enum = substr($rule, strlen(self::CHOICE));
+
+            return is_subclass_of($enum, \BackedEnum::class) ? self::oneOf($value, $enum::cases()) : null;
+        }
+
         return match ($rule) {
             'title', 'text' => is_string($value) && trim($value) !== '' && mb_strlen(trim($value)) <= self::MAX_TEXT ? trim($value) : null,
             'date' => is_string($value) ? ValidDate::of($value) : null,
             'id' => self::id($value),
             'price', 'fee' => is_numeric($value) && (float) $value >= 0 && (float) $value <= self::MAX_AMOUNT ? round((float) $value, 2) : null,
             'year' => self::id($value) !== null && self::id($value) > 1900 ? self::id($value) : null,
+            'number' => is_int($value) || (is_string($value) && preg_match('/^-?\d+$/', $value) === 1) ? (int) $value : null,
+            'toggle' => self::bool($value),
             'health' => self::oneOf($value, HealthEventType::cases()),
             'utility' => self::oneOf($value, UtilityType::cases()),
             'insurance' => self::oneOf($value, InsurancePolicyType::cases()),

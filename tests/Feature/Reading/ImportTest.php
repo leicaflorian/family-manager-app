@@ -6,6 +6,7 @@ use App\Enums\HealthEventType;
 use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\File;
@@ -365,6 +366,24 @@ describe('what each file does too', function (): void {
             'files.0.also.targets.records.utility' => 'The chosen card no longer exists: choose another one.',
             'files.0.also.targets.event' => 'The chosen event no longer exists: choose another one.',
         ]);
+
+        expect(Document::query()->count())->toBe(0);
+    });
+
+    test('a card of the category picked by hand of another type, deleted or of another family', function (): void {
+        $deeds = DocumentCategory::factory()->for($this->marco->family)->create(['name' => 'Rogiti', 'card_type' => 'home']);
+        $vehicle = Vehicle::factory()->for($this->marco->family)->create();
+        $deleted = Home::factory()->for($this->marco->family)->create();
+        $deleted->delete();
+        $theirs = Home::factory()->create();
+
+        foreach ([$vehicle->id, $deleted->id, $theirs->id] as $id) {
+            expect(Home::query()->find($id))->toBeNull();
+
+            $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+                [...importEntry($this->invoice, ['category_id' => $deeds->id]), 'also' => ['records' => ['card'], 'targets' => ['records' => ['card' => $id]]]],
+            ]])->assertSessionHasErrors(['files.0.also.targets.records.card' => 'The chosen card no longer exists: choose another one.']);
+        }
 
         expect(Document::query()->count())->toBe(0);
     });

@@ -30,9 +30,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class RecordsProposal
 {
-    /** The columns of a card that are the document's: they are written in its form, not in the box. */
-    private const array DOCUMENT_COLUMNS = ['date', 'person_id', 'organization_id'];
-
     /**
      * The fields of the reading a correction of a card replaces, with the kind and column of the correction. The
      * proposed title and home of a policy follow a type changed by hand.
@@ -67,7 +64,7 @@ final readonly class RecordsProposal
      */
     public function of(Extraction $x, array $document, ?float $amount, ImportChoices $choices, ?string $cardType = null): array
     {
-        $edits = $choices->overrides['records'];
+        $edits = $choices->recordOverrides($cardType);
         $targets = $choices->targets['records'];
         $xc = $this->corrected($x, $edits);
 
@@ -170,11 +167,11 @@ final readonly class RecordsProposal
      */
     private function fromDocument(RecordKind $kind, array $values, ?string $cardType): array
     {
-        $editable = $this->editable($kind, $cardType);
+        $editable = ImportChoices::recordFields($kind, $cardType);
         $complete = [];
         foreach (RecordDrafts::requiredFields($kind, $cardType) as $field) {
             $column = $field->column;
-            if (! array_key_exists($column, $editable) && in_array($column, self::DOCUMENT_COLUMNS, true)
+            if (! array_key_exists($column, $editable) && in_array($column, ImportChoices::DOCUMENT_COLUMNS, true)
                 && (($values[$column] ?? null) === null || $values[$column] === '')) {
                 $complete[] = $column;
             }
@@ -196,7 +193,7 @@ final readonly class RecordsProposal
     {
         // An organization has no card class: its box exists only with the name read, and emptying the name drops it
         $empty = static fn (string $column): bool => ($values[$column] ?? null) === null || $values[$column] === '';
-        $editable = $this->editable($kind, $cardType);
+        $editable = ImportChoices::recordFields($kind, $cardType);
 
         return array_values(array_map(
             $this->details->fieldData(...),
@@ -205,30 +202,6 @@ final readonly class RecordsProposal
                 static fn (CardField $field): bool => array_key_exists($field->column, $editable) && $empty($field->column),
             ),
         ));
-    }
-
-    /**
-     * The fields of a card the person can write in its box, by column: the fixed list of the five cards the reading
-     * fills, and for any other card its required fields that are not the document's.
-     *
-     * @param  RecordKind  $kind  which card
-     * @param  string|null  $cardType  the type of the morph map of a `Card`
-     * @return array<string, string>
-     */
-    private function editable(RecordKind $kind, ?string $cardType): array
-    {
-        if ($kind !== RecordKind::Card) {
-            return ImportChoices::RECORD_FIELDS[$kind->value];
-        }
-
-        $editable = [];
-        foreach (RecordDrafts::requiredFields($kind, $cardType) as $field) {
-            if (! in_array($field->column, self::DOCUMENT_COLUMNS, true)) {
-                $editable[$field->column] = $field->kind->value;
-            }
-        }
-
-        return $editable;
     }
 
     /**
