@@ -22,9 +22,11 @@ import { destroy, store, update } from '@/routes/categories';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageTrail } from '@/composables/usePageTrail';
 
-const { categories, canEdit } = defineProps<{
+const { categories, cardTypes, canEdit } = defineProps<{
     /** The tree, from the main ones. */
     categories: App.Data.CategoryData[];
+    /** The card types a category can start the proposals of *Import* from. */
+    cardTypes: App.Data.OptionData[];
     /** Whether who looks can change the categories (only an administrator). */
     canEdit: boolean;
 }>();
@@ -32,7 +34,7 @@ const { categories, canEdit } = defineProps<{
 /** The category in the panel: null for a new one. */
 const selected = ref<App.Data.CategoryData | null>(null);
 const open = ref(false);
-const form = useForm({ name: '', parent_id: '' });
+const form = useForm({ name: '', parent_id: '', card_type: '' });
 
 /** Closing the panel with the × asks first once something changed. */
 const changes = useUnsavedChanges(() => form.data(), {
@@ -82,6 +84,50 @@ const places = computed(() => {
     ];
 });
 
+/**
+ * The card type of the main category the panel's category sits under: the one a subcategory without its own takes.
+ */
+const inheritedCardType = computed(() => {
+    if (form.parent_id === '') {
+        return null;
+    }
+
+    const main = flatten(categories).find(
+        ({ category }) => String(category.id) === form.parent_id,
+    )?.category;
+    const root = main
+        ? categories.find((candidate) =>
+              withDescendants(candidate).includes(main.id),
+          )
+        : undefined;
+
+    return root?.card_type ?? null;
+});
+
+/**
+ * The card types after the first voice: «No card» on a main category, «Same as the main one» (with the card when it has one) on a subcategory.
+ */
+const cardOptions = computed(() => {
+    const inherited = cardTypes.find(
+        (type) => type.value === inheritedCardType.value,
+    );
+    const first =
+        form.parent_id === ''
+            ? trans('No card')
+            : inherited
+              ? trans('Same as the main one (:card)', { card: inherited.label })
+              : trans('Same as the main one');
+
+    return [{ value: '', label: first }, ...cardTypes];
+});
+
+/** The line under the card menu, split at the `*` that mark the emphasis: the odd pieces are in italics. */
+const cardHelp = computed(() =>
+    trans(
+        'The proposals of *Import* for the documents of this category start from here.',
+    ).split('*'),
+);
+
 /** Why the category of the panel can be deleted or not. */
 const note = computed(() => {
     const category = selected.value;
@@ -124,6 +170,7 @@ function openSheet(category: App.Data.CategoryData | null): void {
     deletion.clearErrors();
     form.name = category?.name ?? '';
     form.parent_id = category?.parent_id ? String(category.parent_id) : '';
+    form.card_type = category?.card_type ?? '';
     changes.reset();
     open.value = true;
 }
@@ -135,6 +182,7 @@ function save(): void {
     form.transform((data) => ({
         ...data,
         parent_id: data.parent_id === '' ? null : Number(data.parent_id),
+        card_type: data.card_type === '' ? null : data.card_type,
     })).submit(selected.value ? update(selected.value.id) : store(), {
         preserveScroll: true,
         onSuccess: () => (open.value = false),
@@ -218,6 +266,20 @@ usePageTrail(() => [
                     :options="places"
                     :errors="errors(form.errors.parent_id)"
                 />
+                <FormKit
+                    v-model="form.card_type"
+                    type="dropdown"
+                    :label="$t('Card')"
+                    name="card_type"
+                    :options="cardOptions"
+                    :errors="errors(form.errors.card_type)"
+                />
+                <p class="m-0 text-meta text-ink-soft">
+                    <template v-for="(piece, index) in cardHelp" :key="index"
+                        ><em v-if="index % 2 === 1">{{ piece }}</em
+                        ><template v-else>{{ piece }}</template></template
+                    >
+                </p>
                 <p v-if="note" class="m-0 text-meta text-ink-soft">
                     {{ note }}
                 </p>

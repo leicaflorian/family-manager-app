@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Cards\CardType;
+use App\Cards\CardTypes;
+use App\Data\OptionData;
 use App\Http\Requests\Settings\SaveCategoryRequest;
 use App\Models\DocumentCategory;
 use App\Models\User;
@@ -28,6 +31,7 @@ final class CategoryController extends Controller
     {
         return Inertia::render('settings/Categories', [
             'categories' => $tree->tree(),
+            'cardTypes' => array_map(static fn (CardType $type): OptionData => new OptionData($type->type(), $type->label()), CardTypes::all()),
             'canEdit' => $user->can('create', DocumentCategory::class),
         ]);
     }
@@ -44,19 +48,22 @@ final class CategoryController extends Controller
             'name' => $request->string('name')->toString(),
             'parent_id' => $parent,
             'sort' => ($last->sort ?? 0) + 1,
+            'card_type' => $request->validated('card_type'),
         ]);
 
         return to_route('categories.index');
     }
 
     /**
-     * The new name, or the new place in the tree.
+     * The new name, the new place in the tree, and the card.
      */
     public function update(SaveCategoryRequest $request, DocumentCategory $category): RedirectResponse
     {
         $category->update([
             'name' => $request->string('name')->toString(),
             'parent_id' => $request->integer('parent_id') ?: null,
+            // A request without the field leaves the card as it is
+            ...$request->has('card_type') ? ['card_type' => $request->validated('card_type')] : [],
         ]);
 
         return to_route('categories.index');

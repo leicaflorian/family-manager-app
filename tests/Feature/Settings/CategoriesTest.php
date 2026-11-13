@@ -87,8 +87,48 @@ test('a member sees the categories but does not change them', function (): void 
         ->where('canEdit', false));
     $this->post(route('categories.store'), ['name' => 'Test'])->assertForbidden();
     $this->put(route('categories.update', $this->electricity), ['name' => 'Power'])->assertForbidden();
+    $this->put(route('categories.update', $this->electricity), ['name' => 'Electricity', 'card_type' => 'utility'])->assertForbidden();
     $this->delete(route('categories.destroy', $wasteTax))->assertForbidden();
 
     expect($this->electricity->fresh()?->name)->toBe('Electricity')
         ->and($wasteTax->fresh())->not->toBeNull();
+});
+
+test('an admin gives a main category and a subcategory their card, and takes it away', function (): void {
+    $this->put(route('categories.update', $this->home), ['name' => 'Home and utilities', 'parent_id' => null, 'card_type' => 'home'])
+        ->assertSessionHasNoErrors();
+    $this->put(route('categories.update', $this->electricity), ['name' => 'Electricity', 'parent_id' => $this->home->id, 'card_type' => 'utility'])
+        ->assertSessionHasNoErrors();
+
+    expect($this->home->fresh()?->card_type)->toBe('home')
+        ->and($this->electricity->fresh()?->card_type)->toBe('utility');
+
+    $this->put(route('categories.update', $this->electricity), ['name' => 'Electricity', 'parent_id' => $this->home->id, 'card_type' => null])
+        ->assertSessionHasNoErrors();
+
+    expect($this->electricity->fresh()?->card_type)->toBeNull();
+});
+
+test('a new category can start with a card, and a save without the field keeps the card', function (): void {
+    $this->post(route('categories.store'), ['name' => 'Condominium', 'parent_id' => $this->home->id, 'card_type' => 'utility'])
+        ->assertSessionHasNoErrors();
+    expect(DocumentCategory::query()->where('name', 'Condominium')->sole()->card_type)->toBe('utility');
+
+    $this->put(route('categories.update', $this->home), ['name' => 'Home and utilities', 'card_type' => 'home'])->assertSessionHasNoErrors();
+    $this->put(route('categories.update', $this->home), ['name' => 'Home and more'])->assertSessionHasNoErrors();
+
+    expect($this->home->fresh()?->card_type)->toBe('home');
+});
+
+test('a card that does not exist is refused', function (): void {
+    $this->put(route('categories.update', $this->home), ['name' => 'Home and utilities', 'card_type' => 'pet'])
+        ->assertSessionHasErrors('card_type');
+
+    expect($this->home->fresh()?->card_type)->not->toBe('pet');
+});
+
+test('the page sends the card types as options', function (): void {
+    $this->get(route('categories.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('cardTypes', 13)
+        ->has('cardTypes.0', fn (AssertableInertia $option): AssertableInertia => $option->has('value')->has('label')->etc()));
 });
