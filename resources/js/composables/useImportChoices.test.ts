@@ -86,7 +86,14 @@ describe('useImportChoices', () => {
             records: ['organization'],
             targets: { movement: 'auto', event: 'auto', records: {} },
             policy: 'auto',
+            card_type: null,
         });
+    });
+
+    it('says for which card of the category the choices were made', () => {
+        const { choices } = mount({ proposal: homeProposal });
+
+        expect(choices.also.value?.card_type).toBe('home');
     });
 
     it('takes the boxes, the targets, to pay and the policy the person chose', () => {
@@ -110,6 +117,7 @@ describe('useImportChoices', () => {
             },
             due: true,
             policy: 'none',
+            card_type: null,
         });
     });
 

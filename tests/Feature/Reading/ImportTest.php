@@ -17,6 +17,7 @@ use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
@@ -24,6 +25,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -384,6 +386,22 @@ describe('what each file does too', function (): void {
                 [...importEntry($this->invoice, ['category_id' => $deeds->id]), 'also' => ['records' => ['card'], 'targets' => ['records' => ['card' => $id]]]],
             ]])->assertSessionHasErrors(['files.0.also.targets.records.card' => 'The chosen card no longer exists: choose another one.']);
         }
+
+        expect(Document::query()->count())->toBe(0);
+    });
+
+    test('a card picked for the card the page showed is not applied to another card', function (): void {
+        $subscriptions = DocumentCategory::factory()->for($this->marco->family)->create(['name' => 'Abbonamenti', 'card_type' => 'subscription']);
+        $home = Home::factory()->for($this->marco->family)->create();
+        $netflix = Subscription::factory()->for($this->marco->family)->create(['name' => 'Netflix']);
+        // The home and the subscription share the id, so the stale choice would link the subscription
+        DB::table('subscriptions')->where('id', $netflix->id)->update(['id' => $home->id]);
+
+        $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+            [...importEntry($this->invoice, ['category_id' => $subscriptions->id]), 'also' => [
+                'card_type' => 'home', 'records' => ['card'], 'targets' => ['records' => ['card' => $home->id]],
+            ]],
+        ]])->assertSessionHasErrors(['files.0.also.records.card']);
 
         expect(Document::query()->count())->toBe(0);
     });

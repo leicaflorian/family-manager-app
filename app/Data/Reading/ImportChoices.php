@@ -76,6 +76,7 @@ final readonly class ImportChoices
      * @param  string  $policy  `auto`, `none` or the `key` of a policy giver
      * @param  bool  $createCard  the box *Create the card* is ticked: after the import *New card* opens with the document linked
      * @param  array<string, mixed>  $cardOverrides  what was written in the box of the card of the document category, still to clean: its fields depend on the type of the card, known only with the proposal (`recordOverrides()`)
+     * @param  string|false|null  $cardFor  the card type of the proposal the page showed when the person chose (null: no card); false when the page did not say
      */
     public function __construct(
         public array $document = [],
@@ -88,6 +89,7 @@ final readonly class ImportChoices
         public string $policy = 'auto',
         public bool $createCard = false,
         public array $cardOverrides = [],
+        public string|false|null $cardFor = false,
     ) {}
 
     /**
@@ -114,12 +116,13 @@ final readonly class ImportChoices
             targets: [
                 'movement' => self::target($targets['movement'] ?? null),
                 'event' => self::target($targets['event'] ?? null),
-                'records' => self::recordTargets(self::arrayOf($targets['records'] ?? null)),
+                'records' => self::cleanTargets(self::arrayOf($targets['records'] ?? null)),
             ],
             due: self::bool($raw['due'] ?? null),
             policy: is_string($policy) && ($policy === 'none' || preg_match('/^(file|policy):\d+$/', $policy) === 1) ? $policy : 'auto',
             createCard: self::bool($raw['create_card'] ?? null) ?? false,
             cardOverrides: self::stringKeys(self::arrayOf($overrides['records'] ?? null)[RecordKind::Card->value] ?? null),
+            cardFor: array_key_exists('card_type', $raw) ? (is_string($raw['card_type']) ? $raw['card_type'] : null) : false,
         );
     }
 
@@ -146,6 +149,7 @@ final readonly class ImportChoices
             policy: $this->policy,
             createCard: $this->createCard,
             cardOverrides: $this->cardOverrides,
+            cardFor: $this->cardFor,
         );
     }
 
@@ -158,11 +162,36 @@ final readonly class ImportChoices
      */
     public function recordOverrides(?string $cardType): array
     {
-        if ($cardType === null) {
+        if ($cardType === null || ! $this->madeFor($cardType)) {
             return $this->overrides['records'];
         }
 
         return [...$this->overrides['records'], RecordKind::Card->value => self::clean($this->cardOverrides, self::recordFields(RecordKind::Card, $cardType))];
+    }
+
+    /**
+     * The cards picked by hand, by the value of `RecordKind`, without the card of the document category picked for
+     * another card than the one of the proposal (the page showed the proposal of the kind of document before).
+     *
+     * @param  string|null  $cardType  the type of the morph map of the card of the document category
+     * @return array<string, 'auto'|'new'|int>
+     */
+    public function recordTargets(?string $cardType): array
+    {
+        return $this->madeFor($cardType)
+            ? $this->targets['records']
+            : array_diff_key($this->targets['records'], [RecordKind::Card->value => true]);
+    }
+
+    /**
+     * Whether the choices of the box of the card of the document category were made for this card: true also when the
+     * page did not say for which.
+     *
+     * @param  string|null  $cardType  the type of the morph map of the card of the proposal
+     */
+    private function madeFor(?string $cardType): bool
+    {
+        return $this->cardFor === false || $this->cardFor === $cardType;
     }
 
     /**
@@ -280,7 +309,7 @@ final readonly class ImportChoices
      * @param  array<mixed>  $input  what the page sent, by the value of `RecordKind`
      * @return array<string, 'auto'|'new'|int>
      */
-    private static function recordTargets(array $input): array
+    private static function cleanTargets(array $input): array
     {
         $out = [];
         foreach (RecordKind::cases() as $kind) {

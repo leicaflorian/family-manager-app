@@ -117,6 +117,27 @@ describe('the fields of the card of the category', function (): void {
     });
 });
 
+describe('the card the box was made for', function (): void {
+    test('the card picked and the fields written for another card are dropped; the other boxes stay', function (): void {
+        $raw = ['overrides' => ['records' => ['card' => ['name' => 'Casa al mare'], 'vehicle' => ['name' => 'Panda']]], 'targets' => ['records' => ['card' => 3, 'vehicle' => 'new']]];
+        $forHome = ImportChoices::fromArray([...$raw, 'card_type' => 'home']);
+
+        expect($forHome->recordOverrides('home'))->toBe(['vehicle' => ['name' => 'Panda'], 'card' => ['name' => 'Casa al mare']])
+            ->and($forHome->recordTargets('home'))->toBe(['vehicle' => 'new', 'card' => 3])
+            ->and($forHome->recordOverrides('subscription'))->toBe(['vehicle' => ['name' => 'Panda']])
+            ->and($forHome->recordTargets('subscription'))->toBe(['vehicle' => 'new'])
+            ->and(ImportChoices::fromArray([...$raw, 'card_type' => null])->recordTargets('home'))->toBe(['vehicle' => 'new']);
+    });
+
+    test('without the card the box was made for, the choices follow the card of the proposal', function (): void {
+        $choices = ImportChoices::fromArray(['targets' => ['records' => ['card' => 3]]]);
+
+        expect($choices->recordTargets('subscription'))->toBe(['card' => 3])
+            ->and($choices->withOrganization(5)->recordTargets('home'))->toBe(['card' => 3])
+            ->and(ImportChoices::fromArray(['targets' => ['records' => ['card' => 3]], 'card_type' => 'home'])->withOrganization(5)->recordTargets('vehicle'))->toBe([]);
+    });
+});
+
 describe('cleanRecordTargets', function (): void {
     test('new, an id, or auto for anything else; unknown records dropped', function (): void {
         expect(ImportChoices::fromArray(['targets' => ['records' => ['utility' => 'new', 'belonging' => 12, 'maintenance' => 'x', 'policy' => -1, 'nonsense' => 'new']]])->targets['records'])

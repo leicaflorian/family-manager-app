@@ -56,6 +56,8 @@ export type ImportAlso = {
     policy: string;
     /** Only when the paper names no card and the person ticked *Create the card*. */
     create_card?: true;
+    /** The card of the category of the proposal shown: the server drops the choices of its box for another card. */
+    card_type: string | null;
 };
 
 /** The choices of one file, and how to ask its proposal again. */
@@ -172,6 +174,7 @@ export function useImportChoices(
             ...(current.createCard && picks.createCard
                 ? { create_card: true as const }
                 : {}),
+            card_type: current.cardType,
         };
     });
 

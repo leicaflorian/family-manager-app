@@ -65,7 +65,7 @@ final readonly class RecordsProposal
     public function of(Extraction $x, array $document, ?float $amount, ImportChoices $choices, ?string $cardType = null): array
     {
         $edits = $choices->recordOverrides($cardType);
-        $targets = $choices->targets['records'];
+        $targets = $choices->recordTargets($cardType);
         $xc = $this->corrected($x, $edits);
 
         $vehicle = $this->matcher->vehicle($xc->plate_number);

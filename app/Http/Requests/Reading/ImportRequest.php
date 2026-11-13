@@ -77,11 +77,13 @@ final class ImportRequest extends FormRequest
             'files.*' => ['required', 'array:file_id,document,also'],
             'files.*.file_id' => [...DocumentRules::fileId(), 'distinct'],
             'files.*.document' => ['required', 'array'],
-            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card'],
+            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card,card_type'],
             'files.*.also.movement' => ['sometimes', 'boolean'],
             'files.*.also.event' => ['sometimes', 'boolean'],
             'files.*.also.due' => ['sometimes', 'nullable', 'boolean'],
             'files.*.also.create_card' => ['sometimes', 'boolean'],
+            // The card of the proposal the page showed: the choices of its box are dropped for another card
+            'files.*.also.card_type' => ['sometimes', 'nullable', 'string', 'max:50'],
             'files.*.also.policy' => ['sometimes', 'string', 'max:50'],
             'files.*.also.records' => ['sometimes', 'array', 'list'],
             'files.*.also.overrides' => ['sometimes', 'array'],
@@ -224,7 +226,7 @@ final class ImportRequest extends FormRequest
             $problems['event'] = ImportErrors::event();
         }
 
-        foreach ($choices->targets['records'] as $kind => $target) {
+        foreach ($choices->recordTargets($proposal->cardType) as $kind => $target) {
             // A card of the category picked by hand needs its type; without one there is no such box
             if ($kind === RecordKind::Card->value && $proposal->cardType === null) {
                 continue;

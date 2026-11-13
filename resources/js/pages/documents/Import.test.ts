@@ -803,6 +803,7 @@ describe('Import', () => {
                     records: ['organization'],
                     targets: { movement: 'auto', event: 'auto', records: {} },
                     policy: 'auto',
+                    card_type: null,
                 },
             });
             expect(sent(post)[0]?.also).not.toHaveProperty('due');
