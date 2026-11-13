@@ -211,6 +211,8 @@ readonly name: string,
 readonly parent_id: number | null,
 readonly icon: string | null,
 readonly color: string | null,
+readonly card_type: string | null,
+readonly inherited_card_type: string | null,
 readonly documents_count: number,
 readonly children: App.Data.CategoryData[],
 };

@@ -104,7 +104,8 @@ test('the copy brings the family with its records, links, categories and account
         ->and(DB::table('people')->where('first_name', 'Paolo')->value('user_id'))->toBeNull();
 
     $casa = DB::table('document_categories')->where('name', 'Casa')->value('id');
-    expect(DB::table('document_categories')->where('name', 'Bollette')->value('parent_id'))->toBe($casa);
+    expect(DB::table('document_categories')->where('name', 'Bollette')->value('parent_id'))->toBe($casa)
+        ->and(DB::table('document_categories')->whereNotNull('card_type')->count())->toBe(0);
 
     $bill = DB::table('documents')->where('title', 'Bolletta luce di ottobre')->sole();
     expect(DB::table('people')->where('id', $bill->person_id)->value('first_name'))->toBe('Laura')

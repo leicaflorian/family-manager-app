@@ -63,7 +63,7 @@ final readonly class CreateFamily
                     'user_id' => $account->id,
                 ]);
 
-                $this->createTree(DocumentCategory::class, DefaultCategories::documents(), DefaultCategories::documentLooks());
+                $this->createTree(DocumentCategory::class, DefaultCategories::documents(), DefaultCategories::documentLooks(), DefaultCategories::documentCardTypes());
                 $this->createTree(ExpenseCategory::class, DefaultCategories::expenses());
                 FamilySetting::query()->create([]);
                 $this->assignMailAddress->handle($family);
@@ -84,16 +84,17 @@ final readonly class CreateFamily
      * @param  class-string<DocumentCategory|ExpenseCategory>  $model  the model of the categories
      * @param  array<string, list<string>>  $tree  main category => subcategories
      * @param  array<string, array{icon: string, color: string}>  $looks  icon and colour of the main categories
+     * @param  array<string, string>  $cardTypes  the card type of the categories, by English name
      */
-    private function createTree(string $model, array $tree, array $looks = []): void
+    private function createTree(string $model, array $tree, array $looks = [], array $cardTypes = []): void
     {
         $sort = 0;
 
         foreach ($tree as $main => $subcategories) {
-            $parent = $model::query()->create(['name' => __($main), 'sort' => ++$sort, ...$looks[$main] ?? []]);
+            $parent = $model::query()->create(['name' => __($main), 'sort' => ++$sort, ...$looks[$main] ?? [], ...isset($cardTypes[$main]) ? ['card_type' => $cardTypes[$main]] : []]);
 
             foreach ($subcategories as $position => $name) {
-                $model::query()->create(['name' => __($name), 'parent_id' => $parent->id, 'sort' => $position + 1]);
+                $model::query()->create(['name' => __($name), 'parent_id' => $parent->id, 'sort' => $position + 1, ...isset($cardTypes[$name]) ? ['card_type' => $cardTypes[$name]] : []]);
             }
         }
     }

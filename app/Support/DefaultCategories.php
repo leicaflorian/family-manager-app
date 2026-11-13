@@ -58,6 +58,26 @@ final class DefaultCategories
     }
 
     /**
+     * The card each starter document category belongs to, main or sub, by name; the others have none. A
+     * subcategory may have a card different from its main category.
+     *
+     * @return array<string, string> the type of the morph map, by name of the category
+     */
+    public static function documentCardTypes(): array
+    {
+        return [
+            'Home and utilities' => 'utility',
+            'Vehicles' => 'vehicle',
+            'Warranties and receipts' => 'belonging',
+            'Subscriptions' => 'subscription',
+            'Insurance and funds' => 'insurance_policy',
+            'Payslips' => 'employment',
+            'Health' => 'health_event',
+            'School and activities' => 'enrollment',
+        ];
+    }
+
+    /**
      * The expense categories, those of Family Manager on Directus.
      *
      * @return array<string, list<string>>

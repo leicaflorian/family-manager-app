@@ -25,7 +25,7 @@ final class CategoryTree
     {
         $categories = DocumentCategory::query()->withCount('documents')->orderBy('sort')->orderBy('name')->get();
 
-        return $this->branches($categories->toBase()->groupBy('parent_id'), null, null);
+        return $this->branches($categories->toBase()->groupBy('parent_id'), null, null, null);
     }
 
     /**
@@ -81,9 +81,10 @@ final class CategoryTree
      * @param  Collection<int|string, Collection<int, DocumentCategory>>  $byParent  the categories grouped by `parent_id`
      * @param  int|null  $parent  the category whose children to read, null for the main ones
      * @param  string|null  $color  the colour of the main category, for the subcategories
+     * @param  string|null  $cardType  the card of the main category, for the subcategories
      * @return list<CategoryData>
      */
-    private function branches(Collection $byParent, ?int $parent, ?string $color): array
+    private function branches(Collection $byParent, ?int $parent, ?string $color, ?string $cardType): array
     {
         return array_values($byParent->get($parent ?? '', collect())->map(fn (DocumentCategory $category): CategoryData => new CategoryData(
             id: $category->id,
@@ -91,8 +92,10 @@ final class CategoryTree
             parent_id: $category->parent_id,
             icon: $category->icon,
             color: $category->color ?? $color,
+            card_type: $category->card_type,
+            inherited_card_type: $category->parent_id === null ? null : $cardType,
             documents_count: (int) $category->documents_count,
-            children: $this->branches($byParent, $category->id, $category->color ?? $color),
+            children: $this->branches($byParent, $category->id, $category->color ?? $color, $category->parent_id === null ? $category->card_type : $cardType),
         ))->all());
     }
 }

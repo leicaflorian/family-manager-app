@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $parent_id
  * @property string|null $icon
  * @property string|null $color
+ * @property string|null $card_type The type of card the documents of the category go with
  * @property int|null $sort
  * @property int|null $created_by
  * @property int|null $updated_by
@@ -41,7 +42,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort'])]
+#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort', 'card_type'])]
 final class DocumentCategory extends FamilyModel
 {
     /** @use HasFactory<DocumentCategoryFactory> */
@@ -75,6 +76,33 @@ final class DocumentCategory extends FamilyModel
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class, 'category_id');
+    }
+
+    /**
+     * The card type of a category: its own, else the one of its main category.
+     *
+     * @param  int|null  $id  the category; one of another family counts as missing (the family scope)
+     * @return string|null the type of the morph map, null when the category is missing or has none
+     */
+    public static function cardTypeOf(?int $id): ?string
+    {
+        if ($id === null) {
+            return null;
+        }
+
+        $category = self::query()->find($id, ['id', 'parent_id', 'card_type']);
+
+        if ($category === null) {
+            return null;
+        }
+
+        if ($category->card_type !== null || $category->parent_id === null) {
+            return $category->card_type;
+        }
+
+        $type = self::query()->whereKey($category->parent_id)->value('card_type');
+
+        return is_string($type) ? $type : null;
     }
 
     /**
