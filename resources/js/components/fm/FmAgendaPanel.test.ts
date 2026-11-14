@@ -323,6 +323,22 @@ describe('FmAgendaPanel', () => {
                 expect.anything(),
             );
         });
+
+        it('closes once reopened', async () => {
+            vi.spyOn(router, 'delete').mockImplementation((_url, options) => {
+                options?.onSuccess?.({} as never);
+            });
+            const view = renderPage(FmAgendaPanel, {
+                entry: closed,
+                done: true,
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Reopen' }),
+            );
+
+            expect(view.emitted().close).toHaveLength(1);
+        });
     });
 
     it('the close button emits close', async () => {

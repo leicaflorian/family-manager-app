@@ -36,9 +36,9 @@ import { useFormat } from '@/composables/useFormat';
 import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { shortDate } from '@/lib/budget';
-import { withoutPayQuery } from '@/lib/agenda';
+import { reopenReminder, withoutPayQuery } from '@/lib/agenda';
 import { daysFromToday, relativeDays } from '@/lib/format';
-import { destroy, done as markDone, reopen } from '@/routes/reminders';
+import { destroy, done as markDone } from '@/routes/reminders';
 import FmAmount from './FmAmount.vue';
 import FmAvatar from './FmAvatar.vue';
 import FmButton from './FmButton.vue';
@@ -199,17 +199,11 @@ function markAsDone(): void {
     );
 }
 
-/** Puts the reminder back among the things to do. */
-function reopenReminder(): void {
-    if (reminder.value === null) {
-        return;
+/** Puts the reminder back among the things to do and closes the panel. */
+function reopenTask(): void {
+    if (reminder.value !== null) {
+        reopenReminder(reminder.value.id, () => emit('close'));
     }
-
-    router.delete(reopen.url(reminder.value.id), {
-        preserveScroll: true,
-        preserveUrl: true,
-        onSuccess: () => emit('close'),
-    });
 }
 </script>
 
@@ -306,7 +300,7 @@ function reopenReminder(): void {
                     v-if="reminder"
                     :icon="RotateCcw"
                     wide
-                    @click="reopenReminder"
+                    @click="reopenTask"
                     >{{ $t('Reopen') }}</FmButton
                 >
             </template>
@@ -318,9 +312,11 @@ function reopenReminder(): void {
                     <FmButton :icon="Wallet" wide @click="emit('pay')">{{
                         $t('I paid it')
                     }}</FmButton>
-                    <FmSectionLink :href="withoutPayQuery(entry.href)" :icon="ArrowRight">{{
-                        $t('Open the due date')
-                    }}</FmSectionLink>
+                    <FmSectionLink
+                        :href="withoutPayQuery(entry.href)"
+                        :icon="ArrowRight"
+                        >{{ $t('Open the due date') }}</FmSectionLink
+                    >
                 </div>
                 <div v-if="reminder" class="flex gap-2.5">
                     <FmButton

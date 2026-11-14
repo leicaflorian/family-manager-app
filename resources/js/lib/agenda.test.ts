@@ -1,11 +1,13 @@
 import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
 import { createApp } from 'vue';
-import { beforeAll, describe, expect, it } from 'vite-plus/test';
+import { router } from '@inertiajs/vue3';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
 import { agendaAreas, agendaEntries } from '@/test/fixtures';
 import {
     areaCounts,
     doneByMonth,
     groupByWeek,
+    reopenReminder,
     visibleEntries,
     withoutPayQuery,
 } from './agenda';
@@ -174,34 +176,73 @@ describe('doneByMonth', () => {
     }
 
     it('makes a group for each month of the closing, the most recent first', () => {
-        const groups = doneByMonth([
-            closed('2026-11-05'),
-            closed('2026-10-30'),
-            closed('2026-11-01'),
-        ]);
+        const groups = doneByMonth(
+            [closed('2026-11-05'), closed('2026-10-30'), closed('2026-11-01')],
+            today,
+        );
 
         expect(groups.map((group) => group.key)).toEqual([
             '2026-11',
             '2026-10',
         ]);
         expect(groups.map((group) => group.title)).toEqual([
-            'November 2026',
-            'October 2026',
+            'November',
+            'October',
         ]);
         expect(groups.map((group) => group.entries.length)).toEqual([2, 1]);
         expect(groups.every((group) => !group.overdue)).toBe(true);
     });
 
     it('keeps the order of the server inside a month and is empty without entries', () => {
-        const groups = doneByMonth([
-            closed('2026-11-05'),
-            closed('2026-11-01'),
-        ]);
+        const groups = doneByMonth(
+            [closed('2026-11-05'), closed('2026-11-01')],
+            today,
+        );
 
         expect(
             groups[0].entries.map((entry) => entry.reminder?.done_on),
         ).toEqual(['2026-11-05', '2026-11-01']);
-        expect(doneByMonth([])).toEqual([]);
+        expect(doneByMonth([], today)).toEqual([]);
+    });
+
+    it('names the months of this year alone, and keeps the year for the others', async () => {
+        const entries = [closed('2026-01-10'), closed('2025-12-20')];
+
+        expect(doneByMonth(entries, today).map((group) => group.title)).toEqual(
+            ['January', 'December 2025'],
+        );
+
+        await speak('it');
+        expect(doneByMonth(entries, today).map((group) => group.title)).toEqual(
+            ['Gennaio', 'Dicembre 2025'],
+        );
+        await speak('en');
+    });
+});
+
+describe('reopenReminder', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('puts a done reminder back among the things to do, leaving the page where it is', () => {
+        const remove = vi
+            .spyOn(router, 'delete')
+            .mockImplementation((_url, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        const done = vi.fn();
+
+        reopenReminder(7, done);
+
+        expect(remove).toHaveBeenCalledWith(
+            '/reminders/7/done',
+            expect.objectContaining({
+                preserveScroll: true,
+                preserveUrl: true,
+            }),
+        );
+        expect(done).toHaveBeenCalledOnce();
     });
 });
 

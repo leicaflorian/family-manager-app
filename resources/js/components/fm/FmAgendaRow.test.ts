@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/vue3';
 import { render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
@@ -225,6 +226,59 @@ describe('FmAgendaRow', () => {
             await userEvent.click(screen.getByRole('button'));
 
             expect(view.emitted().open).toHaveLength(1);
+        });
+
+        it('has Reopen beside a done row with reopen, apart from the row', async () => {
+            const remove = vi
+                .spyOn(router, 'delete')
+                .mockImplementation(() => undefined);
+            const view = render(FmAgendaRow, {
+                props: { entry: agendaEntries[8], done: true, reopen: true },
+            });
+
+            const button = screen.getByRole('button', {
+                name: "Reopen: Scade la carta d'identità",
+            });
+            expect(button).toHaveTextContent('Reopen');
+            expect(
+                screen.getByRole('button', { name: /Done on 05\/11/ }),
+            ).not.toContainElement(button);
+
+            await userEvent.click(button);
+
+            expect(remove).toHaveBeenCalledWith(
+                '/reminders/3/done',
+                expect.anything(),
+            );
+            expect(view.emitted().open).toBeUndefined();
+            remove.mockRestore();
+        });
+
+        it('has no Reopen without reopen, outside the done list or without a reminder', async () => {
+            const view = render(FmAgendaRow, {
+                props: { entry: agendaEntries[8], done: true },
+            });
+            expect(
+                screen.queryByRole('button', { name: /^Reopen/ }),
+            ).toBeNull();
+
+            await view.rerender({
+                entry: agendaEntries[8],
+                done: false,
+                reopen: true,
+            });
+            expect(
+                screen.queryByRole('button', { name: /^Reopen/ }),
+            ).toBeNull();
+
+            await view.rerender({
+                entry: { ...agendaEntries[8], reminder: null },
+                done: true,
+                reopen: true,
+            });
+            expect(
+                screen.queryByRole('button', { name: /^Reopen/ }),
+            ).toBeNull();
         });
     });
 });

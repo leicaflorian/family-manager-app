@@ -1855,5 +1855,7 @@
     "New task": "Nuovo impegno",
     "{1} :count thing late|[2,*] :count things late": "{1} :count cosa in ritardo|[2,*] :count cose in ritardo",
     "{1} Nothing to do in the next month|[2,*] Nothing to do in the next :count months": "{1} Niente da fare nel prossimo mese|[2,*] Niente da fare nei prossimi :count mesi",
-    "Paid expenses are in the movements of the Budget": "Le spese pagate sono nei movimenti del Bilancio"
+    "Paid expenses are in the movements of the Budget": "Le spese pagate sono nei movimenti del Bilancio",
+    "Show earlier months": "Mostra i mesi prima",
+    "Reopen: :name": "Riapri: :name"
 }

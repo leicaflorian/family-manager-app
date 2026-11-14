@@ -462,18 +462,6 @@ describe('Agenda', () => {
 });
 
 describe('Agenda, the Done view', () => {
-    beforeEach(() => {
-        // The end of the list is watched to load the next page; jsdom has no observer
-        vi.stubGlobal(
-            'IntersectionObserver',
-            class {
-                observe(): void {}
-
-                disconnect(): void {}
-            },
-        );
-    });
-
     it('groups the done things by month, saying who closed them and when', () => {
         renderPage(Agenda, doneView());
 
@@ -481,8 +469,8 @@ describe('Agenda, the Done view', () => {
             screen
                 .getAllByRole('heading', { level: 2 })
                 .map((heading) => heading.textContent?.trim()),
-        ).toEqual(['November 2026', 'October 2026']);
-        const november = screen.getByRole('region', { name: 'November 2026' });
+        ).toEqual(['November', 'October']);
+        const november = screen.getByRole('region', { name: 'November' });
         expect(within(november).getAllByRole('button')).toHaveLength(2);
         expect(
             within(november).getByText('Done on 01/11 · Marco'),
@@ -525,36 +513,44 @@ describe('Agenda, the Done view', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('loads the next page of the done things at the end of the list, without changing the address', () => {
-        const observed: IntersectionObserverCallback[] = [];
-        vi.stubGlobal(
-            'IntersectionObserver',
-            class {
-                constructor(callback: IntersectionObserverCallback) {
-                    observed.push(callback);
-                }
-
-                observe(): void {}
-
-                disconnect(): void {}
-            },
-        );
+    it('loads the earlier months with a button, without changing the address', async () => {
         renderPage(Agenda, doneView({ done_next_page: 2 }));
 
-        return vi.waitFor(() => {
-            expect(observed.length).toBeGreaterThan(0);
-            observed[0]!(
-                [{ isIntersecting: true } as IntersectionObserverEntry],
-                {} as IntersectionObserver,
-            );
-            expect(reload).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    data: { done_page: 2 },
-                    only: ['done', 'done_next_page'],
-                    preserveUrl: true,
-                }),
-            );
-        });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Show earlier months' }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: { done_page: 2 },
+                only: ['done', 'done_next_page'],
+                preserveUrl: true,
+            }),
+        );
+    });
+
+    it('has no button for earlier months on the last page', () => {
+        renderPage(Agenda, doneView());
+
+        expect(
+            screen.queryByRole('button', { name: 'Show earlier months' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('has Reopen on each done row on the computer, and only in the panel on the phone', () => {
+        screenWidth(true);
+        const view = renderPage(Agenda, doneView());
+
+        expect(
+            screen.getByRole('button', { name: 'Reopen: Revisione Panda' }),
+        ).toBeInTheDocument();
+        view.unmount();
+
+        screenWidth(false);
+        renderPage(Agenda, doneView());
+        expect(
+            screen.queryByRole('button', { name: 'Reopen: Revisione Panda' }),
+        ).not.toBeInTheDocument();
     });
 
     it('shows only the done things the server sends after a filter changed them', async () => {

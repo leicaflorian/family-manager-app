@@ -4,9 +4,12 @@
  * by area and filtered by the person and the areas. The server sends the
  * entries already in order; the pages do the rest.
  */
+import { router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { monthName, shortDate } from './budget';
+import { reopen } from '@/routes/reminders';
+import { capitalized, longMonth, monthName, shortDate } from './budget';
 import { addDays, endOfWeek } from './days';
+import { isoDate } from './format';
 
 /** A block of the list: the entries to sort out, a week, or one month. */
 export type AgendaGroup = {
@@ -103,13 +106,17 @@ export function groupByWeek(
 
 /**
  * Groups the done entries by the month they were closed in, the most recent
- * month first; inside a month the order of the server stays.
+ * month first; inside a month the order of the server stays. A month of this
+ * year is named alone («November»), one of another year with it («December
+ * 2025»), since the list goes back more than a year.
  *
  * @param entries - the done entries, with `reminder.done_on` set
- * @returns the blocks, one for each month, titled like «November 2026»
+ * @param today - today, `yyyy-mm-dd`
+ * @returns the blocks, one for each month
  */
 export function doneByMonth(
     entries: App.Data.AgendaEntryData[],
+    today: string = isoDate(),
 ): AgendaGroup[] {
     const groups = new Map<string, AgendaGroup>();
 
@@ -123,7 +130,9 @@ export function doneByMonth(
         const key = doneOn.slice(0, 7);
         const group = groups.get(key) ?? {
             key,
-            title: monthName(key),
+            title: key.startsWith(today.slice(0, 4))
+                ? capitalized(longMonth(key))
+                : monthName(key),
             overdue: false,
             entries: [],
         };
@@ -208,4 +217,19 @@ export function withoutPayQuery(href: string): string {
     const rest = `${url.pathname}${url.search}${url.hash}`;
 
     return /^[a-z][a-z0-9+.-]*:/i.test(href) ? `${url.origin}${rest}` : rest;
+}
+
+/**
+ * Puts a done reminder back among the things to do, leaving the page where it
+ * is: *Reopen* of the panel and of the done rows on the computer.
+ *
+ * @param id - the id of the reminder
+ * @param onSuccess - what to do once it is reopened, for example close the panel
+ */
+export function reopenReminder(id: number, onSuccess?: () => void): void {
+    router.delete(reopen.url(id), {
+        preserveScroll: true,
+        preserveUrl: true,
+        onSuccess: () => onSuccess?.(),
+    });
 }

@@ -8,7 +8,7 @@
  * are late, the filters (period, person and areas: a bar on the computer,
  * three buttons that open a panel from below on the phone), then the late
  * things, this week, next week and the rest of the period. In *Done* the
- * things closed, month by month, the next pages loaded at the end of the list.
+ * things closed, month by month, *Show earlier months* at the end.
  * A row opens its panel (`FmAgendaPanel`): from below on the phone, beside the
  * list on the computer (the boards *Agenda-scadenza*, *Agenda-pagamento*,
  * *Agenda-impegno* and *Agenda-pannello-pc*); from there *Postpone*, *Update
@@ -16,8 +16,14 @@
  * the entries of the period and the done ones of the person; the person and
  * the areas filter in the page.
  */
-import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
-import { CalendarRange, CircleAlert, CircleCheck, Plus } from '@lucide/vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import {
+    CalendarRange,
+    ChevronDown,
+    CircleAlert,
+    CircleCheck,
+    Plus,
+} from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
@@ -146,6 +152,27 @@ function avatarOf(
     return entry.person_id === null
         ? undefined
         : avatars.value.get(entry.person_id);
+}
+
+/** The earlier months of the Done list are being loaded. */
+const loadingEarlier = ref(false);
+
+/**
+ * *Show earlier months*: adds the next page of the done things to the list,
+ * without changing the address.
+ *
+ * @param page - the page to load
+ */
+function showEarlier(page: number): void {
+    loadingEarlier.value = true;
+    router.reload({
+        data: { done_page: page },
+        only: ['done', 'done_next_page'],
+        preserveUrl: true,
+        onFinish: () => {
+            loadingEarlier.value = false;
+        },
+    });
 }
 
 /** The entry whose panel is shown; it stays after closing, so the panel can slide away. */
@@ -409,21 +436,21 @@ const payAction = computed((): string =>
                     :key="entry.key"
                     :entry="entry"
                     :done="doneView"
+                    :reopen="desktop"
                     :person-avatar="avatarOf(entry)"
                     @open="openPanel(entry)"
                 />
             </FmCard>
 
-            <WhenVisible
+            <FmButton
                 v-if="doneView && done_next_page !== null"
-                :key="done_next_page"
-                always
-                :params="{
-                    data: { done_page: done_next_page },
-                    only: ['done', 'done_next_page'],
-                    preserveUrl: true,
-                }"
-            />
+                variant="neutral"
+                wide
+                :icon="ChevronDown"
+                :disabled="loadingEarlier"
+                @click="showEarlier(done_next_page)"
+                >{{ $t('Show earlier months') }}</FmButton
+            >
         </template>
 
         <p

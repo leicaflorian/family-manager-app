@@ -8,7 +8,8 @@
  * (only a payment has one). The whole row is a button that emits `open`, to
  * show the panel of the entry. With `done` (the Done list) the day on the left
  * is the one it was closed on, the line below says «Done on 05/11 · Laura»
- * with a green tick, and there is no amount nor how far it is. In the Home
+ * with a green tick, and there is no amount nor how far it is; with `reopen`
+ * (the computer) a *Reopen* button sits beside the row. In the Home
  * (`home`): the dot of the area, the title, below the card with how far it is
  * («Gas - Enel · in 4 days»), or «Late by 3 days · 23/10/2026» in red, and the
  * amount, with «~» if it is an estimate. There the whole row is a link to the
@@ -16,7 +17,7 @@
  *
  * @group rows
  */
-import { Bell, Check, ChevronRight } from '@lucide/vue';
+import { Bell, Check, ChevronRight, RotateCcw } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
@@ -24,10 +25,12 @@ import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { shortDate, shortMonth, weekdayShort } from '@/lib/budget';
 import { daysFromToday, relativeDays, toDate } from '@/lib/format';
+import { reopenReminder } from '@/lib/agenda';
 import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
 import FmAmount from './FmAmount.vue';
 import FmAvatar from './FmAvatar.vue';
+import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
 
@@ -39,6 +42,7 @@ const {
     layout = 'agenda',
     personAvatar,
     done = false,
+    reopen = false,
 } = defineProps<{
     /** The entry, as the server sends it. */
     entry: App.Data.AgendaEntryData;
@@ -48,6 +52,8 @@ const {
     personAvatar?: Pick<App.Data.PersonData, 'initials' | 'photo'>;
     /** Only in the Agenda: the row of the Done list, with who closed it and when instead of how far it is. */
     done?: boolean;
+    /** With `done`, on the computer: a *Reopen* button beside the row, for an entry with a reminder. */
+    reopen?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -56,6 +62,11 @@ const emit = defineEmits<{
 }>();
 
 const { date } = useFormat();
+
+/** The reminder of a done row that can be reopened from the row itself. */
+const reopenable = computed((): App.Data.AgendaReminderData | null =>
+    done && reopen ? entry.reminder : null,
+);
 
 /** Whether it is already passed: the deadlines of the cards, and the payments of the Home. */
 const late = computed(() => daysFromToday(entry.date) < 0);
@@ -159,114 +170,129 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             />
         </template>
     </FmRow>
-    <button
-        v-else
-        type="button"
-        :class="
-            cn(
-                'flex w-full min-w-0 items-center gap-2.5 border-0 bg-transparent py-3 pr-3.5 pl-2 text-left text-inherit lg:gap-x-4 lg:px-4',
-                rowLink,
-            )
-        "
-        @click="emit('open')"
-    >
-        <span class="flex w-9 shrink-0 flex-col items-center lg:w-10">
-            <span
-                class="text-sheet-title lg:text-stat"
-                :class="late && !done ? 'text-overdue' : 'text-ink'"
-                >{{ day }}</span
-            >
-            <span
-                class="text-caption"
-                :class="late && !done ? 'text-overdue' : 'text-ink-soft'"
-                >{{ dayLabel }}</span
-            >
-        </span>
-        <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-md lg:size-9"
-            :class="areaTile[area]"
+    <div v-else class="flex min-w-0 items-center">
+        <button
+            type="button"
+            :class="
+                cn(
+                    'flex w-full min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent py-3 pr-3.5 pl-2 text-left text-inherit lg:gap-x-4 lg:px-4',
+                    rowLink,
+                )
+            "
+            @click="emit('open')"
         >
-            <FmIcon :icon="areaIcon(area)" :size="20" />
-        </span>
-        <span
-            class="flex min-w-0 grow flex-wrap items-center gap-x-1.5 gap-y-[3px] lg:gap-y-1"
-        >
-            <span class="min-w-0 truncate text-row lg:text-body-strong">{{
-                entry.name
-            }}</span>
-            <span
-                v-if="hasNotice"
-                role="img"
-                :aria-label="$t('Notice set')"
-                :title="$t('Notice set')"
-                class="inline-flex shrink-0 text-ink-soft"
-            >
-                <FmIcon :icon="Bell" :size="14" />
-            </span>
-            <span
-                v-if="done"
-                class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:text-body-sm"
-            >
-                <FmIcon class="text-paid" :icon="Check" :size="14" />
-                <span class="truncate">{{ doneLine }}</span>
-            </span>
-            <span
-                v-else
-                class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:text-body-sm"
-            >
-                <span class="truncate">{{ detail }}</span>
-                <FmAvatar
-                    v-if="entry.person"
-                    class="lg:hidden"
-                    :initials="personAvatar?.initials ?? initial"
-                    :photo="personAvatar?.photo ?? null"
-                    :size="18"
-                    aria-hidden="true"
-                />
-            </span>
-        </span>
-        <!-- Said to screen readers always, seen only on the computer -->
-        <span
-            class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-body-sm lg:text-ink-soft"
-        >
-            <template v-if="entry.person">
-                <FmAvatar
-                    :initials="personAvatar?.initials ?? initial"
-                    :photo="personAvatar?.photo ?? null"
-                    :size="26"
-                    aria-hidden="true"
-                />
-                <span class="truncate">{{ entry.person }}</span>
-            </template>
-        </span>
-        <span
-            class="flex shrink-0 flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4"
-        >
-            <span v-if="!done" class="order-2 flex lg:order-none lg:w-[104px]">
-                <span class="whitespace-nowrap" :class="distanceClass">{{
-                    relativeDays(entry.date)
-                }}</span>
-            </span>
-            <span
-                v-if="!done"
-                class="order-1 flex justify-end lg:order-none lg:w-[110px]"
-            >
+            <span class="flex w-9 shrink-0 flex-col items-center lg:w-10">
                 <span
-                    v-if="entry.amount !== null"
-                    class="text-row-amount whitespace-nowrap tabular-nums lg:text-amount"
+                    class="text-sheet-title lg:text-stat"
+                    :class="late && !done ? 'text-overdue' : 'text-ink'"
+                    >{{ day }}</span
                 >
-                    <FmAmount
-                        :amount="entry.amount"
-                        :estimated="entry.estimated"
-                        :income="entry.kind === 'income'"
+                <span
+                    class="text-caption"
+                    :class="late && !done ? 'text-overdue' : 'text-ink-soft'"
+                    >{{ dayLabel }}</span
+                >
+            </span>
+            <span
+                class="flex size-8 shrink-0 items-center justify-center rounded-md lg:size-9"
+                :class="areaTile[area]"
+            >
+                <FmIcon :icon="areaIcon(area)" :size="20" />
+            </span>
+            <span
+                class="flex min-w-0 grow flex-wrap items-center gap-x-1.5 gap-y-[3px] lg:gap-y-1"
+            >
+                <span class="min-w-0 truncate text-row lg:text-body-strong">{{
+                    entry.name
+                }}</span>
+                <span
+                    v-if="hasNotice"
+                    role="img"
+                    :aria-label="$t('Notice set')"
+                    :title="$t('Notice set')"
+                    class="inline-flex shrink-0 text-ink-soft"
+                >
+                    <FmIcon :icon="Bell" :size="14" />
+                </span>
+                <span
+                    v-if="done"
+                    class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:text-body-sm"
+                >
+                    <FmIcon class="text-paid" :icon="Check" :size="14" />
+                    <span class="truncate">{{ doneLine }}</span>
+                </span>
+                <span
+                    v-else
+                    class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:text-body-sm"
+                >
+                    <span class="truncate">{{ detail }}</span>
+                    <FmAvatar
+                        v-if="entry.person"
+                        class="lg:hidden"
+                        :initials="personAvatar?.initials ?? initial"
+                        :photo="personAvatar?.photo ?? null"
+                        :size="18"
+                        aria-hidden="true"
                     />
                 </span>
             </span>
-            <FmIcon
-                class="hidden text-ink-faint lg:block"
-                :icon="ChevronRight"
-                :size="18"
-            />
-        </span>
-    </button>
+            <!-- Said to screen readers always, seen only on the computer -->
+            <span
+                class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-body-sm lg:text-ink-soft"
+            >
+                <template v-if="entry.person">
+                    <FmAvatar
+                        :initials="personAvatar?.initials ?? initial"
+                        :photo="personAvatar?.photo ?? null"
+                        :size="26"
+                        aria-hidden="true"
+                    />
+                    <span class="truncate">{{ entry.person }}</span>
+                </template>
+            </span>
+            <span
+                class="flex shrink-0 flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4"
+            >
+                <span
+                    v-if="!done"
+                    class="order-2 flex lg:order-none lg:w-[104px]"
+                >
+                    <span class="whitespace-nowrap" :class="distanceClass">{{
+                        relativeDays(entry.date)
+                    }}</span>
+                </span>
+                <span
+                    v-if="!done"
+                    class="order-1 flex justify-end lg:order-none lg:w-[110px]"
+                >
+                    <span
+                        v-if="entry.amount !== null"
+                        class="text-row-amount whitespace-nowrap tabular-nums lg:text-amount"
+                    >
+                        <FmAmount
+                            :amount="entry.amount"
+                            :estimated="entry.estimated"
+                            :income="entry.kind === 'income'"
+                        />
+                    </span>
+                </span>
+                <FmIcon
+                    v-if="!reopenable"
+                    class="hidden text-ink-faint lg:block"
+                    :icon="ChevronRight"
+                    :size="18"
+                />
+            </span>
+        </button>
+        <FmButton
+            v-if="reopenable"
+            class="mr-4 shrink-0"
+            variant="neutral"
+            compact
+            :icon="RotateCcw"
+            :aria-label="$t('Reopen: :name', { name: entry.name })"
+            @click="reopenReminder(reopenable.id)"
+            >{{ $t('Reopen') }}</FmButton
+        >
+    </div>
 </template>
