@@ -18,6 +18,7 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmNotificationRule from '@/components/fm/FmNotificationRule.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { NoticeRule, RulePerson } from '@/lib/reminders';
@@ -327,25 +328,27 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Notices')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('Notices')"
-            :subtitle="$t('How many days before, where and to whom')"
-            :back="settings().url"
-            :back-label="$t('Settings')"
-        >
-            <template v-if="page.can_change" #actions>
-                <FmActions
-                    :actions="[
-                        {
-                            label: $t('New group'),
-                            icon: Plus,
-                            onSelect: addGroup,
-                        },
-                    ]"
-                />
-            </template>
-        </FmTitle>
+    <FmSettingsPage current="notices">
+        <template #title>
+            <FmTitle
+                :title="$t('Notices')"
+                :subtitle="$t('How many days before, where and to whom')"
+                :back="settings().url"
+                :back-label="$t('Settings')"
+            >
+                <template v-if="page.can_change" #actions>
+                    <FmActions
+                        :actions="[
+                            {
+                                label: $t('New group'),
+                                icon: Plus,
+                                onSelect: addGroup,
+                            },
+                        ]"
+                    />
+                </template>
+            </FmTitle>
+        </template>
 
         <div
             v-for="draft in drafts"
@@ -506,5 +509,5 @@ usePageTrail(() => [
                       )
             }}
         </p>
-    </div>
+    </FmSettingsPage>
 </template>

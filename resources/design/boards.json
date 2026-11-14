@@ -92,6 +92,7 @@
         "FmCardDocumentActions": "pages",
         "FmCardFiles": "pages",
         "FmCardHeader": "pages",
+        "FmSettingsPage": "pages",
         "FmCardPayments": "pages",
         "FmChecklist": "pages",
         "FmDocumentDetail": "pages",

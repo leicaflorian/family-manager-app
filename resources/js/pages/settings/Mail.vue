@@ -15,6 +15,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCopy } from '@/composables/useCopy';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -112,24 +113,26 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Address for the bills')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('Address for the bills')"
-            :subtitle="
-                $t('Forward the bills that arrive by email: we read them')
-            "
-            :back="settingsIndex().url"
-            :back-label="$t('Settings')"
-        >
-            <template #actions>
-                <FmButton
-                    variant="outline"
-                    :icon="MailIcon"
-                    :href="mailIndex().url"
-                    >{{ $t('Received mail') }}</FmButton
-                >
-            </template>
-        </FmTitle>
+    <FmSettingsPage current="mail">
+        <template #title>
+            <FmTitle
+                :title="$t('Address for the bills')"
+                :subtitle="
+                    $t('Forward the bills that arrive by email: we read them')
+                "
+                :back="settingsIndex().url"
+                :back-label="$t('Settings')"
+            >
+                <template #actions>
+                    <FmButton
+                        variant="outline"
+                        :icon="MailIcon"
+                        :href="mailIndex().url"
+                        >{{ $t('Received mail') }}</FmButton
+                    >
+                </template>
+            </FmTitle>
+        </template>
 
         <FmCard>
             <div class="flex flex-col gap-4">
@@ -297,5 +300,5 @@ usePageTrail(() => [
             :confirm-label="$t('Change the address')"
             @confirm="changeTheAddress"
         />
-    </div>
+    </FmSettingsPage>
 </template>

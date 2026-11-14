@@ -1,11 +1,28 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
-import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { fireEvent, screen, within } from '@testing-library/vue';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { useTheme } from '@/composables/useTheme';
 import { account, linkedPhone, themes } from '@/test/fixtures';
-import { pressSave, renderPage, settle, withTrail } from '@/test/page';
+import {
+    pressSave,
+    renderPage,
+    screenWidth,
+    settle,
+    withTrail,
+} from '@/test/page';
 import Account from './Account.vue';
 import { answerLeave, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 describe('My account', () => {
     it('writes the trail Settings > My account into the top bar', () => {
@@ -97,6 +114,18 @@ describe('My account', () => {
         pressSave();
 
         expect(patch).toHaveBeenCalled();
+    });
+    it('has the sections of the settings beside it on the computer, on My account', () => {
+        screenWidth(1280);
+        renderPage(Account, { account, themes, devices: [] });
+
+        const nav = screen.getByRole('navigation', {
+            name: 'Settings sections',
+        });
+
+        expect(
+            within(nav).getByRole('link', { name: 'My account' }),
+        ).toHaveAttribute('aria-current', 'page');
     });
 });
 

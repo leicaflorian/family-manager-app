@@ -11,6 +11,7 @@ import { computed } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import { formatDateTime } from '@/lib/format';
@@ -77,12 +78,14 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Support')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('Support')"
-            :back="settings().url"
-            :back-label="$t('Settings')"
-        />
+    <FmSettingsPage current="support">
+        <template #title>
+            <FmTitle
+                :title="$t('Support')"
+                :back="settings().url"
+                :back-label="$t('Settings')"
+            />
+        </template>
         <FmCard>
             <div class="flex flex-col gap-4">
                 <div class="flex items-start gap-3.5">
@@ -137,5 +140,5 @@ usePageTrail(() => [
                 </div>
             </div>
         </FmCard>
-    </div>
+    </FmSettingsPage>
 </template>

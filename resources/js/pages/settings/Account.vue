@@ -20,6 +20,7 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmPasswordField from '@/components/fm/FmPasswordField.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmUnlinkPhone from '@/components/fm/FmUnlinkPhone.vue';
 import { useFormat } from '@/composables/useFormat';
@@ -190,17 +191,19 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('My account')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('My account')"
-            :back="settings().url"
-            :back-label="$t('Settings')"
-            :subtitle="
-                $t(
-                    'Yours only: the rest of the settings applies to the whole family',
-                )
-            "
-        />
+    <FmSettingsPage current="account">
+        <template #title>
+            <FmTitle
+                :title="$t('My account')"
+                :back="settings().url"
+                :back-label="$t('Settings')"
+                :subtitle="
+                    $t(
+                        'Yours only: the rest of the settings applies to the whole family',
+                    )
+                "
+            />
+        </template>
 
         <form novalidate @submit.prevent="saveDetails">
             <FmCard>
@@ -480,5 +483,5 @@ usePageTrail(() => [
                 </div>
             </form>
         </FmBottomSheet>
-    </div>
+    </FmSettingsPage>
 </template>

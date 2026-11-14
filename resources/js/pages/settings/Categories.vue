@@ -15,6 +15,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCategoryTree from '@/components/fm/FmCategoryTree.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { settings } from '@/routes';
@@ -209,29 +210,31 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Document categories')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('Document categories')"
-            :back="settings().url"
-            :back-label="$t('Settings')"
-            :subtitle="
-                $t(
-                    'They say what kind of document it is; whose it is and what it refers to is said by the links',
-                )
-            "
-        >
-            <template v-if="canEdit" #actions>
-                <FmActions
-                    :actions="[
-                        {
-                            label: $t('New category'),
-                            icon: Plus,
-                            onSelect: () => openSheet(null),
-                        },
-                    ]"
-                />
-            </template>
-        </FmTitle>
+    <FmSettingsPage current="categories">
+        <template #title>
+            <FmTitle
+                :title="$t('Document categories')"
+                :back="settings().url"
+                :back-label="$t('Settings')"
+                :subtitle="
+                    $t(
+                        'They say what kind of document it is; whose it is and what it refers to is said by the links',
+                    )
+                "
+            >
+                <template v-if="canEdit" #actions>
+                    <FmActions
+                        :actions="[
+                            {
+                                label: $t('New category'),
+                                icon: Plus,
+                                onSelect: () => openSheet(null),
+                            },
+                        ]"
+                    />
+                </template>
+            </FmTitle>
+        </template>
 
         <FmCard list>
             <FmCategoryTree
@@ -305,5 +308,5 @@ usePageTrail(() => [
                 </div>
             </form>
         </FmBottomSheet>
-    </div>
+    </FmSettingsPage>
 </template>

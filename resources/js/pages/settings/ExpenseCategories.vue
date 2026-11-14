@@ -13,6 +13,7 @@ import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCategoryTree from '@/components/fm/FmCategoryTree.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
 import { settings } from '@/routes';
@@ -87,17 +88,19 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Expense categories')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('Expense categories')"
-            :back="settings().url"
-            :back-label="$t('Settings')"
-            :subtitle="
-                $t(
-                    'The card a category refers to is chosen on its main category',
-                )
-            "
-        />
+    <FmSettingsPage current="expense-categories">
+        <template #title>
+            <FmTitle
+                :title="$t('Expense categories')"
+                :back="settings().url"
+                :back-label="$t('Settings')"
+                :subtitle="
+                    $t(
+                        'The card a category refers to is chosen on its main category',
+                    )
+                "
+            />
+        </template>
 
         <FmCard list>
             <FmCategoryTree
@@ -145,5 +148,5 @@ usePageTrail(() => [
                 </div>
             </form>
         </FmBottomSheet>
-    </div>
+    </FmSettingsPage>
 </template>

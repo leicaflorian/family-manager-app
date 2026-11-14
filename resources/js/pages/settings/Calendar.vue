@@ -13,6 +13,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { settings } from '@/routes';
 import { destroy, reset, store } from '@/routes/calendar';
@@ -98,13 +99,15 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Calendar')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('Calendar')"
-            :subtitle="$t('Reminders and deadlines in Google Calendar')"
-            :back="settings().url"
-            :back-label="$t('Settings')"
-        />
+    <FmSettingsPage current="calendar">
+        <template #title>
+            <FmTitle
+                :title="$t('Calendar')"
+                :subtitle="$t('Reminders and deadlines in Google Calendar')"
+                :back="settings().url"
+                :back-label="$t('Settings')"
+            />
+        </template>
         <FmCard>
             <div class="flex flex-col gap-4">
                 <FormKit
@@ -211,5 +214,5 @@ usePageTrail(() => [
             :confirm-label="$t('Change the address')"
             @confirm="resetAddress"
         />
-    </div>
+    </FmSettingsPage>
 </template>

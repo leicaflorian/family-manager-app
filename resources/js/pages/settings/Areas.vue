@@ -18,6 +18,7 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmSortableList from '@/components/fm/FmSortableList.vue';
+import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useVisitQueue } from '@/composables/useVisitQueue';
 import type { Area } from '@/lib/areas';
@@ -162,13 +163,15 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Areas')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
-        <FmTitle
-            :title="$t('Areas')"
-            :subtitle="$t('Their order, and the ones you hide')"
-            :back="settings().url"
-            :back-label="$t('Settings')"
-        />
+    <FmSettingsPage current="areas">
+        <template #title>
+            <FmTitle
+                :title="$t('Areas')"
+                :subtitle="$t('Their order, and the ones you hide')"
+                :back="settings().url"
+                :back-label="$t('Settings')"
+            />
+        </template>
 
         <FmCard>
             <FmSortableList
@@ -260,5 +263,5 @@ usePageTrail(() => [
                 >{{ $t('Back to the default order') }}</FmButton
             >
         </div>
-    </div>
+    </FmSettingsPage>
 </template>
