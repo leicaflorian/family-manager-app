@@ -25,7 +25,7 @@ import {
     Plus,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
 import FmAgendaPanel from '@/components/fm/FmAgendaPanel.vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
@@ -309,26 +309,56 @@ function askPayment(entry: App.Data.AgendaEntryData): void {
     });
 }
 
+/**
+ * The due date and the accounts that arrived for the panel. They are kept
+ * here because the props go away with the next full visit of the Agenda (the
+ * payment goes back to the Agenda without them): the form must stay through
+ * that answer, to close the panel or to show the messages of the server.
+ */
+const arrived = shallowRef<{
+    key: string;
+    payment: App.Data.DeadlineData;
+    accounts: App.Data.OptionData[];
+} | null>(null);
+
+watch(
+    () => payment,
+    (due) => {
+        if (due !== null) {
+            arrived.value = {
+                key: `${due.kind === 'income' ? 'income' : 'payment'}:${due.planned_id}:${due.original_date}`,
+                payment: due,
+                accounts,
+            };
+        }
+    },
+    { immediate: true },
+);
+
 /** The due date for the form of the panel: only the one of the entry open, not one asked before. */
 const panelPayment = computed((): App.Data.DeadlineData | null =>
-    payment !== null &&
+    arrived.value !== null &&
     panelEntry.value !== null &&
     isOpenPayment(panelEntry.value) &&
-    panelEntry.value.key ===
-        `${payment.kind === 'income' ? 'income' : 'payment'}:${payment.planned_id}:${payment.original_date}`
-        ? payment
+    panelEntry.value.key === arrived.value.key
+        ? arrived.value.payment
         : null,
+);
+
+/** The accounts for the form of the panel, arrived with its due date. */
+const panelAccounts = computed(
+    (): App.Data.OptionData[] => arrived.value?.accounts ?? [],
 );
 
 /** Where the payment is sent: back to the Agenda once recorded. */
 const payAction = computed((): string =>
-    payment === null
+    panelPayment.value === null
         ? ''
         : paymentRoute.url(
               {
-                  kind: payment.kind,
-                  id: payment.planned_id,
-                  date: payment.original_date,
+                  kind: panelPayment.value.kind,
+                  id: panelPayment.value.planned_id,
+                  date: panelPayment.value.original_date,
               },
               { query: { from_agenda: 1 } },
           ),
@@ -519,7 +549,7 @@ const payAction = computed((): string =>
                         @renewed="changeDate(panelEntry, true)"
                         ref="panel"
                         :payment="panelPayment"
-                        :accounts="accounts"
+                        :accounts="panelAccounts"
                         :pay-action="payAction"
                         @paid="panelOpen = false"
                         @close="closePanel"
@@ -543,7 +573,7 @@ const payAction = computed((): string =>
                     @renewed="changeDate(panelEntry, true)"
                     ref="panel"
                     :payment="panelPayment"
-                    :accounts="accounts"
+                    :accounts="panelAccounts"
                     :pay-action="payAction"
                     @paid="panelOpen = false"
                     @close="closePanel"

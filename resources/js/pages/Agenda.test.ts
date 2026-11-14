@@ -363,11 +363,14 @@ describe('Agenda', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('closes the panel of a payment once it is recorded', async () => {
-        post.mockImplementation((_url, _data, options) => {
+    it('closes the panel of a payment once it is recorded, though the answer no longer has the due date', async () => {
+        const view = renderPage(Agenda, agenda());
+        // As the server: the payment goes back to the Agenda with a visit
+        // that does not send the due date of the panel again
+        post.mockImplementation(async (_url, _data, options) => {
+            await view.rerender(agenda({}, { payment: null, accounts: [] }));
             options?.onSuccess?.({} as never);
         });
-        const view = renderPage(Agenda, agenda());
         await userEvent.click(row(/Luce - Edison/));
         await view.rerender(
             agenda({}, { payment: lateDeadline, accounts: accountOptions }),
@@ -385,6 +388,31 @@ describe('Agenda', () => {
                 screen.queryByRole('dialog', { name: 'Luce - Edison' }),
             ).not.toBeInTheDocument(),
         );
+    });
+
+    it('keeps the form and shows the messages when the server refuses the payment', async () => {
+        const view = renderPage(Agenda, agenda());
+        post.mockImplementation(async (_url, _data, options) => {
+            await view.rerender(agenda({}, { payment: null, accounts: [] }));
+            options?.onError?.({ amount: 'The amount is required.' });
+            options?.onFinish?.({} as never);
+        });
+        await userEvent.click(row(/Luce - Edison/));
+        await view.rerender(
+            agenda({}, { payment: lateDeadline, accounts: accountOptions }),
+        );
+        const panel = await screen.findByRole('dialog', {
+            name: 'Luce - Edison',
+        });
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'I paid it' }),
+        );
+
+        expect(
+            await within(panel).findByText('The amount is required.'),
+        ).toBeInTheDocument();
+        expect(within(panel).getByLabelText('How much')).toBeInTheDocument();
     });
 
     it('asks before closing the panel of a payment with changes', async () => {
