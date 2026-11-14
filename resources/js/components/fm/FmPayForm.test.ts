@@ -165,9 +165,9 @@ describe('FmPayForm', () => {
 
     it('starts again from a new due date', async () => {
         const view = renderPage(FmPayForm, props);
-        const amount = await screen.findByLabelText('How much');
-        await userEvent.clear(amount);
-        await userEvent.type(amount, '99');
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Conto BPER' }),
+        );
         await settle();
 
         await view.rerender({
@@ -177,5 +177,9 @@ describe('FmPayForm', () => {
         await settle();
 
         expect(screen.getByLabelText('How much')).toHaveValue('12,00 €');
+        // Back to the account of the due date, Carta Laura
+        expect(
+            screen.getByRole('button', { name: 'Carta Laura' }),
+        ).toHaveAttribute('aria-pressed', 'true');
     });
 });
