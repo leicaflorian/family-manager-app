@@ -15,6 +15,7 @@ use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
+use App\Models\PlannedIncome;
 use App\Models\Reminder;
 use App\Models\Subscription;
 use App\Models\User;
@@ -533,6 +534,19 @@ it('sends a payment on request', function (): void {
                 ->where('payment.amount', 50)
                 ->where('accounts.0.label', 'Conto BPER')
                 ->missing('agenda')));
+});
+
+it('sends the due date of an income on request', function (): void {
+    $marco = registerFamily();
+    $planned = insideFamilyOf($marco, fn (): PlannedIncome => PlannedIncome::factory()->create([
+        'family_id' => CurrentFamily::id(), 'title' => 'Stipendio di Marco', 'amount' => 1850, 'start_date' => '2026-10-27', 'is_recurring' => false,
+    ]));
+
+    agendaPaymentReload($marco, "income:{$planned->id}:2026-10-27")
+        ->assertOk()
+        ->assertJsonPath('props.payment.kind', 'income')
+        ->assertJsonPath('props.payment.planned_id', $planned->id)
+        ->assertJsonPath('props.payment.original_date', '2026-10-27');
 });
 
 it('answers 404 to a payment of another family or a wrong key', function (string $key): void {

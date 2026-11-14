@@ -6,8 +6,10 @@
  * area, the lines of the values (the notes of a task, the notices of its
  * reminder, the card) and the buttons. A deadline has *Done* and *Postpone*
  * (when it has an automatic reminder), *Update the date* and *Renewed* (when
- * the person can edit the card) and *Open the card*; a payment has *I paid it*
- * and *Open the due date*, never *Done*; a task has *Done*, *Postpone* and the
+ * the person can edit the card) and *Open the card*; an open payment (or
+ * income) holds the form of the payment (`FmPayForm`), already filled, whose
+ * *I paid it* (*It arrived*) records it in one tap, and *Open the due date*,
+ * never *Done*; a task has *Done*, *Postpone* and the
  * ⋯ menu with *Edit* and *Delete*. In the Done list (`done`) it says who closed
  * it and when, and only *Reopen* is left. *Done*, *Reopen* and *Delete* are
  * done here (*Done* says so for a moment with *Undo*); the others are emitted,
@@ -52,6 +54,7 @@ import FmConfirmDelete from './FmConfirmDelete.vue';
 import FmIcon from './FmIcon.vue';
 import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
+import FmPayForm from './FmPayForm.vue';
 import FmSectionLink from './FmSectionLink.vue';
 import FmValueList from './FmValueList.vue';
 import type { ValueLine } from './FmValueList.vue';
@@ -61,6 +64,9 @@ const {
     done = false,
     areaName,
     personAvatar,
+    payment = null,
+    accounts = [],
+    payAction = '',
 } = defineProps<{
     /** The entry, as the server sends it. */
     entry: App.Data.AgendaEntryData;
@@ -70,6 +76,12 @@ const {
     areaName?: string;
     /** The initials and photo of the person, from the people of the page; without it the first letter of the name shows. */
     personAvatar?: Pick<App.Data.PersonData, 'initials' | 'photo'>;
+    /** The due date of this payment or income, for its form; null while the page asks for it. */
+    payment?: App.Data.DeadlineData | null;
+    /** The accounts to pay with, sent with `payment`. */
+    accounts?: App.Data.OptionData[];
+    /** Where the payment is sent (POST). */
+    payAction?: string;
 }>();
 
 const emit = defineEmits<{
@@ -79,13 +91,33 @@ const emit = defineEmits<{
     updateDate: [];
     /** *Renewed* was tapped: the page asks for the new date, as a renewal. */
     renewed: [];
-    /** *I paid it* was tapped: the page opens the payment. */
-    pay: [];
+    /** The payment was recorded with the form of the panel. */
+    paid: [];
     /** The panel is to be closed: the close button, or *Done* once saved. */
     close: [];
 }>();
 
 const { date } = useFormat();
+
+/** The form of the payment, to ask before the panel closes with changes. */
+const payForm = ref<InstanceType<typeof FmPayForm> | null>(null);
+
+/**
+ * Whether the panel may close: the form of the payment asks first when
+ * something changed in it.
+ *
+ * @returns true when it may close
+ */
+function confirmClose(): Promise<boolean> {
+    return payForm.value?.confirmClose() ?? Promise.resolve(true);
+}
+
+defineExpose({ confirmClose });
+
+/** The text of the button that records the payment. */
+const payLabel = computed((): string =>
+    entry.kind === 'income' ? trans('It arrived') : trans('I paid it'),
+);
 
 /** Whether the panel of the confirmation of *Delete* is open. */
 const confirming = ref(false);
@@ -312,8 +344,18 @@ function reopenTask(): void {
                     v-if="entry.kind === 'payment' || entry.kind === 'income'"
                     class="flex flex-col gap-2.5"
                 >
-                    <FmButton :icon="Wallet" wide @click="emit('pay')">{{
-                        $t('I paid it')
+                    <FmPayForm
+                        v-if="payment"
+                        ref="payForm"
+                        class="border-t border-divider pt-4"
+                        :deadline="payment"
+                        :accounts="accounts"
+                        :action="payAction"
+                        :submit-label="payLabel"
+                        @saved="emit('paid')"
+                    />
+                    <FmButton v-else :icon="Wallet" wide disabled>{{
+                        payLabel
                     }}</FmButton>
                     <FmSectionLink
                         :href="withoutPayQuery(entry.href)"
