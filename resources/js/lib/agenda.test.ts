@@ -2,6 +2,7 @@ import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
 import { createApp } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
+import { toast } from 'vue-sonner';
 import { agendaAreas, agendaEntries } from '@/test/fixtures';
 import {
     areaCounts,
@@ -255,6 +256,20 @@ describe('markReminderDone', () => {
             }),
         );
         expect(done).toHaveBeenCalledOnce();
+    });
+    it('shows the reason of the server and no undo message when it refuses', () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onError?.({ status: 'This cannot be confirmed.' });
+        });
+        const success = vi.spyOn(toast, 'success');
+        const error = vi.spyOn(toast, 'error').mockImplementation(() => 1);
+        const done = vi.fn();
+
+        markReminderDone(7, 'Polizza auto', done);
+
+        expect(error).toHaveBeenCalledWith('This cannot be confirmed.');
+        expect(success).not.toHaveBeenCalled();
+        expect(done).not.toHaveBeenCalled();
     });
 });
 

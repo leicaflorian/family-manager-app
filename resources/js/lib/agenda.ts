@@ -266,7 +266,7 @@ export function reopenReminder(id: number, onSuccess?: () => void): void {
 /**
  * Marks a reminder done, leaving the page where it is, and says so for a
  * moment with *Undo*, which puts it back with `reopenReminder`: *Done* of the
- * panel of the Agenda.
+ * panel of the Agenda. When the server refuses, its reason is shown instead.
  *
  * @param id - the id of the reminder
  * @param title - what was done, for the message, for example «Polizza auto»
@@ -291,6 +291,14 @@ export function markReminderDone(
                         onClick: () => reopenReminder(id),
                     },
                 });
+            },
+            onError: (errors) => {
+                // The server says why on `status`, for example for a renewal
+                // that cannot be confirmed.
+                toast.error(
+                    errors.status ??
+                        trans('This could not be marked done, try again.'),
+                );
             },
         },
     );
