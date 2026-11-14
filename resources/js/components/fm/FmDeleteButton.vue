@@ -6,6 +6,8 @@
  * Use it instead of a red `FmButton` every time something is deleted: a red
  * button that deletes at once is never right. `compact` leaves only the bin,
  * with `label` as its name, where a row or a panel has no room for the text.
+ * `quiet` is the bin at the end of a row of a list (*To sort*): grey, 40 px,
+ * with no background until hovered, so that a list of rows is not all red.
  *
  * @group basics
  */
@@ -20,6 +22,7 @@ const {
     text,
     confirmLabel,
     compact = false,
+    quiet = false,
     label,
 } = defineProps<{
     /** The address the deletion is sent to. */
@@ -32,6 +35,8 @@ const {
     confirmLabel: string;
     /** Only the bin, without the text, as in the panel beside the list. */
     compact?: boolean;
+    /** The grey bin at the end of a row of a list: only the bin, 40 px, no background. */
+    quiet?: boolean;
     /** The name of the button, when it is not *Delete*: «Delete the copy». */
     label?: string;
 }>();
@@ -48,7 +53,10 @@ defineOptions({ inheritAttrs: false });
         v-bind="$attrs"
         variant="danger"
         :icon="Trash2"
-        :label="compact ? (label ?? $t('Delete')) : undefined"
+        :label="compact || quiet ? (label ?? $t('Delete')) : undefined"
+        :small="quiet"
+        :plain="quiet"
+        :muted="quiet"
         @click="confirming = true"
     >
         {{ label ?? $t('Delete') }}

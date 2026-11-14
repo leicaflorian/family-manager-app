@@ -97,6 +97,21 @@ describe('FmButton', () => {
         expect(button.querySelector('svg')).toHaveAttribute('width', '16');
     });
 
+    it('muted and with label has the grey icon, also when danger, as the bin of a row', () => {
+        render(FmButton, {
+            props: {
+                variant: 'danger',
+                icon: Pencil,
+                label: 'Delete',
+                muted: true,
+            },
+        });
+
+        const button = screen.getByRole('button', { name: 'Delete' });
+        expect(button).toHaveClass('text-ink-soft');
+        expect(button).not.toHaveClass('text-overdue');
+    });
+
     it('with label and danger keeps the red icon', () => {
         render(FmButton, {
             props: { variant: 'danger', icon: Pencil, label: 'Delete' },

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /**
  * A file of *To sort*, as the board *Da smistare-pc* draws it: the box that
- * chooses it, the sheet of the file, the name (which opens the file in a new
- * tab) and below the note of how it arrived with the icon of where it came
- * from, or for a copy the label *Copy* and which file it is the same as; then
+ * chooses it, the box with the kind of file (where it came from in a small
+ * circle on its corner, or *Copy* under it for a copy), the name (which opens
+ * the file in a new tab) and below the note of how it arrived, or for a copy
+ * which file it is the same as; then
  * the pages and the size, the short date and the bin. The whole row lights up
  * under the mouse, and stays light blue once chosen. A copy cannot be chosen.
  *
@@ -13,7 +14,15 @@
  * the end; the bin stays outside the button. A copy says it can be deleted.
  */
 import type { LucideIcon } from '@lucide/vue';
-import { Check, Mail, ScanLine, Smartphone, Upload } from '@lucide/vue';
+import {
+    Check,
+    FileImage,
+    FileText,
+    Mail,
+    ScanLine,
+    Smartphone,
+    Upload,
+} from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
@@ -77,6 +86,15 @@ const sourceIcon = computed((): LucideIcon => {
         default:
             return Upload;
     }
+});
+
+/** The icon of the kind of file in its box: the envelope of a mail, the photo or the sheet. */
+const kindIcon = computed((): LucideIcon => {
+    if (file.mime_type === 'text/plain') {
+        return Mail;
+    }
+
+    return file.mime_type.startsWith('image/') ? FileImage : FileText;
 });
 
 /** What the file is: «3 pages · 1,1 MB», «Photo · 860 KB», «Text of the email». */
@@ -163,7 +181,7 @@ const readingText = computed((): string => {
                 shortDate(file.created_on)
             }}</span>
         </button>
-        <FmDeleteButton v-if="file.can_delete" compact v-bind="deleteProps" />
+        <FmDeleteButton v-if="file.can_delete" quiet v-bind="deleteProps" />
     </li>
     <li
         v-else
@@ -180,34 +198,30 @@ const readingText = computed((): string => {
                 emit('choose', ($event.target as HTMLInputElement).checked)
             "
         />
-        <FmFileTile class="hidden sm:flex" />
+        <FmFileTile
+            class="hidden sm:flex"
+            square
+            :icon="kindIcon"
+            :badge="sourceIcon"
+            :copy="isCopy"
+        />
         <div class="flex min-w-0 grow flex-col gap-1">
             <a
                 :href="file.url"
                 target="_blank"
                 rel="noopener"
-                class="truncate text-body-strong text-ink no-underline hover:underline"
+                class="truncate text-body-strong no-underline hover:underline"
+                :class="isCopy ? 'text-ink-soft' : 'text-ink'"
                 >{{ file.name }}</a
             >
-            <div
-                v-if="isCopy"
-                class="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta"
-            >
-                <span
-                    class="rounded-tag bg-warning-soft px-1.5 py-0.5 font-semibold text-warning"
-                    >{{ $t('Copy') }}</span
-                >
-                <span class="text-warning">{{
-                    $t('Same as :name', { name: file.copy_of ?? '' })
-                }}</span>
-            </div>
+            <span v-if="isCopy" class="truncate text-meta text-warning">{{
+                $t('Same as :name', { name: file.copy_of ?? '' })
+            }}</span>
             <span
                 v-else-if="file.note"
-                class="flex items-start gap-1.5 text-meta text-ink-soft"
+                class="line-clamp-2 text-meta text-ink-soft"
+                >{{ file.note }}</span
             >
-                <FmIcon :icon="sourceIcon" :size="14" class="mt-0.5 shrink-0" />
-                <span class="line-clamp-2">{{ file.note }}</span>
-            </span>
             <span v-if="readingText" class="text-meta text-ink-soft">{{
                 readingText
             }}</span>
@@ -220,11 +234,7 @@ const readingText = computed((): string => {
             shortDate(file.created_on)
         }}</span>
         <span class="flex w-10 shrink-0 justify-center">
-            <FmDeleteButton
-                v-if="file.can_delete"
-                compact
-                v-bind="deleteProps"
-            />
+            <FmDeleteButton v-if="file.can_delete" quiet v-bind="deleteProps" />
         </span>
     </li>
 </template>

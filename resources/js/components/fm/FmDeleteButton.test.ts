@@ -59,6 +59,25 @@ describe('FmDeleteButton', () => {
         );
     });
 
+    it('quiet is the grey bin of a row: 40 px, no background until hovered, and still asks first', async () => {
+        renderPage(FmDeleteButton, { ...props, quiet: true });
+
+        const button = screen.getByRole('button', { name: 'Delete' });
+        expect(button).toHaveClass(
+            'size-10',
+            'bg-transparent',
+            'hover:bg-canvas',
+            'text-ink-soft',
+        );
+        expect(button).not.toHaveClass('text-overdue', 'bg-canvas');
+        expect(button).toHaveTextContent('');
+
+        await fireEvent.click(button);
+        expect(
+            await screen.findByRole('heading', { name: 'Delete Edison?' }),
+        ).toBeInTheDocument();
+    });
+
     it('names the button as the page says, for a thing other than the usual', () => {
         renderPage(FmDeleteButton, {
             ...props,

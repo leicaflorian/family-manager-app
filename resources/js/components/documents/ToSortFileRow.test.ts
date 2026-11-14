@@ -99,6 +99,45 @@ describe('ToSortFileRow on the phone (touch)', () => {
 });
 
 describe('ToSortFileRow without touch', () => {
+    it('shows the kind of file in the box and where it came from on its corner, not before the note', () => {
+        const { container } = row({
+            file: file({ mime_type: 'image/jpeg', source: 'upload' }),
+            chosen: false,
+        });
+
+        expect(
+            container.querySelector('[class*="lucide-file-image"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelector('[data-badge] [class*="lucide-upload"]'),
+        ).not.toBeNull();
+        expect(
+            container.querySelectorAll('[class*="lucide-upload"]'),
+        ).toHaveLength(1);
+    });
+
+    it('a mail text has the envelope in the box', () => {
+        const { container } = row({
+            file: file({ mime_type: 'text/plain', source: 'mail' }),
+            chosen: false,
+        });
+
+        expect(
+            container.querySelector(
+                '[aria-hidden="true"] > [class*="lucide-mail"]',
+            ),
+        ).not.toBeNull();
+    });
+
+    it('a copy says which file it is the same as, with Copy under the box', () => {
+        row({ file: file({ copy_of: 'Other.pdf' }), chosen: false });
+
+        expect(screen.getByText('Same as Other.pdf')).toHaveClass(
+            'text-warning',
+        );
+        expect(screen.getAllByText('Copy')).toHaveLength(1);
+    });
+
     it('keeps the name as a link that opens the file in a new tab, with the long note', () => {
         row({ file: file(), chosen: false });
 

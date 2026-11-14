@@ -319,10 +319,10 @@ function confirmDelete(): void {
                             )
                         }}</span>
                         <FmButton
-                            v-if="can_delete_many"
+                            v-if="can_delete_many && chosenIds.length > 0"
                             variant="danger"
                             :icon="Trash2"
-                            :disabled="chosenIds.length === 0 || deleting"
+                            :disabled="deleting"
                             @click="deleteChosen"
                             >{{ $t('Delete the chosen') }}</FmButton
                         >

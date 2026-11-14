@@ -462,15 +462,21 @@ describe('ToSort on the computer', () => {
             screen.getByRole('button', { name: 'Check files' }),
         ).toBeDisabled();
         expect(
-            screen.getByRole('button', { name: 'Delete the chosen' }),
-        ).toBeDisabled();
+            screen.queryByRole('button', { name: 'Delete the chosen' }),
+        ).not.toBeInTheDocument();
 
         await fireEvent.click(all);
         expect(screen.getByText('4 files chosen of 5')).toBeInTheDocument();
         expect(all).toBeChecked();
+        expect(
+            screen.getByRole('button', { name: 'Delete the chosen' }),
+        ).toBeEnabled();
 
         await fireEvent.click(all);
         expect(screen.getByText('0 files chosen of 5')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Delete the chosen' }),
+        ).not.toBeInTheDocument();
     });
 
     it('counts the files chosen and sends them to be read with Check', async () => {
