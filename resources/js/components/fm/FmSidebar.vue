@@ -205,10 +205,11 @@ function isPage(section: Section): boolean {
             {{ $t('Upload') }}
         </Link>
 
-        <!-- Only the sections scroll, when the open areas make them taller than the window -->
+        <!-- Only the sections scroll, when the open areas make them taller than the window;
+             they reach the edges of the sidebar, so the scroll bar sits on its border -->
         <nav
             :aria-label="$t('Sections')"
-            class="flex min-h-0 flex-col gap-0.5 overflow-y-auto"
+            class="-mx-3.5 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-3.5"
         >
             <div
                 v-for="(group, index) in groups"
@@ -324,9 +325,8 @@ function isPage(section: Section): boolean {
             </div>
         </nav>
 
-        <span class="min-h-6 grow" />
-
-        <div class="shrink-0 border-t border-divider pt-2">
+        <!-- At the bottom when there is room, right under the sections when they scroll -->
+        <div class="mt-auto shrink-0 border-t border-divider pt-2">
             <DropdownMenuRoot>
                 <DropdownMenuTrigger
                     class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"
