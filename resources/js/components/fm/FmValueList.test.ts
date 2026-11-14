@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/vue';
+import { Bell } from '@lucide/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import FmValueList from './FmValueList.vue';
 
@@ -31,5 +32,29 @@ describe('FmValueList', () => {
         expect(
             screen.getByRole('link', { name: /Scuola Passo a Due/ }),
         ).toHaveAttribute('target', '_blank');
+    });
+
+    it('shows the icon of a value before its text', () => {
+        const { container } = render(FmValueList, {
+            props: {
+                values: [
+                    {
+                        label: 'Reminder',
+                        text: 'Notice on 31/10',
+                        href: null,
+                        icon: Bell,
+                    },
+                    { label: 'Card', text: 'Polizza', href: null },
+                ],
+            },
+        });
+
+        expect(container.querySelectorAll('dd svg')).toHaveLength(1);
+        expect(
+            screen.getByText('Notice on 31/10').closest('dd')?.querySelector('svg'),
+        ).not.toBeNull();
+        expect(
+            screen.getByText('Polizza').closest('dd')?.querySelector('svg'),
+        ).toBeNull();
     });
 });

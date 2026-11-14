@@ -6,12 +6,20 @@
  *
  * @group rows
  */
+import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
+import FmIcon from './FmIcon.vue';
 import FmNewTabLink from './FmNewTabLink.vue';
+
+/** A line: the value of a card, with an icon to show before the text when it needs one (the bell of a reminder). */
+export type ValueLine = App.Data.CardValueData & {
+    /** The icon before the text. */
+    icon?: LucideIcon;
+};
 
 const { values, newTab = false } = defineProps<{
     /** The lines. */
-    values: App.Data.CardValueData[];
+    values: ValueLine[];
     /** A link opens in a new tab. */
     newTab?: boolean;
 }>();
@@ -38,6 +46,17 @@ const { values, newTab = false } = defineProps<{
                         >{{ value.text }}</Link
                     >
                 </template>
+                <span
+                    v-else-if="value.icon"
+                    class="inline-flex items-start gap-1.5"
+                >
+                    <FmIcon
+                        class="mt-0.5 shrink-0 text-ink-soft"
+                        :icon="value.icon"
+                        :size="14"
+                    />
+                    <span>{{ value.text }}</span>
+                </span>
                 <template v-else>{{ value.text }}</template>
             </dd>
         </template>

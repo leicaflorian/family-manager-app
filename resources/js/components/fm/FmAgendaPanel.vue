@@ -15,6 +15,7 @@
  *
  * @group panels
  */
+import type { LucideIcon } from '@lucide/vue';
 import {
     ArrowRight,
     Bell,
@@ -35,6 +36,7 @@ import { useFormat } from '@/composables/useFormat';
 import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { shortDate } from '@/lib/budget';
+import { withoutPayQuery } from '@/lib/agenda';
 import { daysFromToday, relativeDays } from '@/lib/format';
 import { destroy, done as markDone, reopen } from '@/routes/reminders';
 import FmAmount from './FmAmount.vue';
@@ -45,6 +47,8 @@ import FmIcon from './FmIcon.vue';
 import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
 import FmSectionLink from './FmSectionLink.vue';
+import FmValueList from './FmValueList.vue';
+import type { ValueLine } from './FmValueList.vue';
 
 const {
     entry,
@@ -132,18 +136,43 @@ const doneLine = computed((): string =>
     }),
 );
 
-/** The card of a deadline, for the line *Card*. */
-const card = computed((): string =>
-    entry.kind === 'deadline' ? entry.subtitle : '',
-);
+/**
+ * The lines of the values, in the order of the boards: the account and the
+ * planned expense of a payment, what a task is linked to, the notes, the
+ * notices of the reminder and the card of a deadline.
+ */
+const lines = computed((): ValueLine[] => {
+    const list: ValueLine[] = [];
+    const add = (label: string, text: string, icon?: LucideIcon): void => {
+        list.push({ label, text, href: null, icon });
+    };
 
-/** Whether the lines of the values have anything to show. */
-const hasValues = computed(
-    (): boolean =>
-        entry.notes !== null ||
-        (!done && notices.value !== '') ||
-        card.value !== '',
-);
+    if (entry.account) {
+        add(trans('Account'), entry.account);
+    }
+
+    if (entry.planned) {
+        add(trans('Planned expense'), entry.planned);
+    }
+
+    if (entry.kind === 'task' && entry.subtitle !== '') {
+        add(trans('Referred to'), entry.subtitle);
+    }
+
+    if (entry.notes) {
+        add(trans('Notes'), entry.notes);
+    }
+
+    if (!done && notices.value !== '') {
+        add(trans('Reminder'), notices.value, Bell);
+    }
+
+    if (entry.kind === 'deadline' && entry.subtitle !== '') {
+        add(trans('Card'), entry.subtitle);
+    }
+
+    return list;
+});
 
 /** The entries of the ⋯ menu of a task: *Edit* and *Delete*, for who can. */
 const canEdit = computed(
@@ -258,32 +287,11 @@ function reopenReminder(): void {
             {{ doneLine }}
         </span>
 
-        <dl
-            v-if="hasValues"
-            class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 border-t border-divider pt-3.5 text-body-sm"
-        >
-            <template v-if="entry.notes !== null">
-                <dt class="text-ink-soft">{{ $t('Notes') }}</dt>
-                <dd class="m-0 text-label break-words">{{ entry.notes }}</dd>
-            </template>
-            <template v-if="!done && notices !== ''">
-                <dt class="text-ink-soft">{{ $t('Reminder') }}</dt>
-                <dd class="m-0 text-label break-words">
-                    <span class="inline-flex items-start gap-1.5">
-                        <FmIcon
-                            class="mt-0.5 shrink-0 text-ink-soft"
-                            :icon="Bell"
-                            :size="14"
-                        />
-                        <span>{{ notices }}</span>
-                    </span>
-                </dd>
-            </template>
-            <template v-if="card !== ''">
-                <dt class="text-ink-soft">{{ $t('Card') }}</dt>
-                <dd class="m-0 text-label break-words">{{ card }}</dd>
-            </template>
-        </dl>
+        <FmValueList
+            v-if="lines.length > 0"
+            class="border-t border-divider pt-3.5"
+            :values="lines"
+        />
 
         <FmSectionLink
             v-if="entry.kind === 'deadline'"
@@ -310,7 +318,7 @@ function reopenReminder(): void {
                     <FmButton :icon="Wallet" wide @click="emit('pay')">{{
                         $t('I paid it')
                     }}</FmButton>
-                    <FmSectionLink :href="entry.href" :icon="ArrowRight">{{
+                    <FmSectionLink :href="withoutPayQuery(entry.href)" :icon="ArrowRight">{{
                         $t('Open the due date')
                     }}</FmSectionLink>
                 </div>
@@ -328,7 +336,7 @@ function reopenReminder(): void {
                         @click="emit('postpone')"
                         >{{ $t('Postpone') }}</FmButton
                     >
-                    <FmMenu v-if="canEdit || canDelete">
+                    <FmMenu v-if="canEdit || canDelete" :label="$t('More')">
                         <FmMenuItem
                             v-if="canEdit"
                             :icon="Pencil"

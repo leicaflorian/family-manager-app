@@ -2,7 +2,13 @@ import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
 import { createApp } from 'vue';
 import { beforeAll, describe, expect, it } from 'vite-plus/test';
 import { agendaAreas, agendaEntries } from '@/test/fixtures';
-import { areaCounts, doneByMonth, groupByWeek, visibleEntries } from './agenda';
+import {
+    areaCounts,
+    doneByMonth,
+    groupByWeek,
+    visibleEntries,
+    withoutPayQuery,
+} from './agenda';
 import { i18nOptions } from './i18n';
 
 const today = '2026-10-26';
@@ -243,5 +249,25 @@ describe('visibleEntries', () => {
         expect(
             visibleEntries(withoutPerson, { ...defaults, person_id: 2 }),
         ).toHaveLength(3);
+    });
+});
+
+describe('withoutPayQuery', () => {
+    it('takes the pay flag off an address, keeping the rest', () => {
+        expect(
+            withoutPayQuery(
+                'http://localhost:8090/budget/planned/expense/3/occurrences/2026-10-28?pay=1',
+            ),
+        ).toBe(
+            'http://localhost:8090/budget/planned/expense/3/occurrences/2026-10-28',
+        );
+        expect(withoutPayQuery('/budget/x?pay=1&month=2026-10#top')).toBe(
+            '/budget/x?month=2026-10#top',
+        );
+    });
+
+    it('leaves an address without the flag as it is', () => {
+        expect(withoutPayQuery('/cards/4')).toBe('/cards/4');
+        expect(withoutPayQuery('/a?month=2026-10')).toBe('/a?month=2026-10');
     });
 });

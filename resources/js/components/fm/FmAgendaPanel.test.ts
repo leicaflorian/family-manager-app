@@ -52,6 +52,8 @@ function entry(
         href: '/cards/4',
         update_url: '/agenda/deadlines/policies.expiry_date/4',
         notes: null,
+        account: null,
+        planned: null,
         ...change,
     };
 }
@@ -171,7 +173,9 @@ describe('FmAgendaPanel', () => {
             amount: 84.2,
             reminder: null,
             update_url: null,
-            href: '/budget/planned/expense/3/occurrences/2026-10-28',
+            href: 'http://localhost/budget/planned/expense/3/occurrences/2026-10-28?pay=1',
+            account: 'Conto BPER',
+            planned: 'Gas - Hera, every 2 months',
         });
 
         it('shows the amount, I paid it and a link to the due date, without Done', async () => {
@@ -182,8 +186,14 @@ describe('FmAgendaPanel', () => {
                 screen.getByRole('link', { name: 'Open the due date' }),
             ).toHaveAttribute(
                 'href',
-                '/budget/planned/expense/3/occurrences/2026-10-28',
+                'http://localhost/budget/planned/expense/3/occurrences/2026-10-28',
             );
+            expect(screen.getByText('Account')).toBeInTheDocument();
+            expect(screen.getByText('Conto BPER')).toBeInTheDocument();
+            expect(screen.getByText('Planned expense')).toBeInTheDocument();
+            expect(
+                screen.getByText('Gas - Hera, every 2 months'),
+            ).toBeInTheDocument();
             expect(
                 screen.queryByRole('button', { name: 'Done' }),
             ).not.toBeInTheDocument();
@@ -209,6 +219,7 @@ describe('FmAgendaPanel', () => {
             kind: 'task',
             name: 'Call the plumber',
             detail: 'Task',
+            subtitle: 'Casa di via Roma',
             notes: 'Ask about the water heater too',
             update_url: null,
             href: '/reminders/9/edit',
@@ -219,6 +230,8 @@ describe('FmAgendaPanel', () => {
             renderPage(FmAgendaPanel, { entry: task });
             const user = userEvent.setup();
 
+            expect(screen.getByText('Referred to')).toBeInTheDocument();
+            expect(screen.getByText('Casa di via Roma')).toBeInTheDocument();
             expect(
                 screen.getByText('Ask about the water heater too'),
             ).toBeInTheDocument();
@@ -228,9 +241,7 @@ describe('FmAgendaPanel', () => {
             expect(
                 screen.getByRole('button', { name: 'Postpone' }),
             ).toBeInTheDocument();
-            await user.click(
-                screen.getByRole('button', { name: 'More actions' }),
-            );
+            await user.click(screen.getByRole('button', { name: 'More' }));
             const menu = await screen.findByRole('menu');
 
             expect(
@@ -248,9 +259,7 @@ describe('FmAgendaPanel', () => {
                     reminder: reminder({ id: 9, can_delete: false }),
                 },
             });
-            await userEvent.click(
-                screen.getByRole('button', { name: 'More actions' }),
-            );
+            await userEvent.click(screen.getByRole('button', { name: 'More' }));
             const menu = await screen.findByRole('menu');
 
             expect(
@@ -265,9 +274,7 @@ describe('FmAgendaPanel', () => {
             renderPage(FmAgendaPanel, { entry: task });
             const user = userEvent.setup();
 
-            await user.click(
-                screen.getByRole('button', { name: 'More actions' }),
-            );
+            await user.click(screen.getByRole('button', { name: 'More' }));
             await user.click(
                 await screen.findByRole('menuitem', { name: 'Delete' }),
             );

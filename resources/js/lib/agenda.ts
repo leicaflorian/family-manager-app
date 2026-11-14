@@ -193,3 +193,19 @@ export function visibleEntries(
         (entry) => !filters.hidden_areas.includes(entry.area),
     );
 }
+
+/**
+ * Takes the `pay` flag off an address: the Home links a payment with the panel
+ * of *I paid it* open, the panel of the Agenda links the due date itself.
+ *
+ * @param href - an address, absolute or from the root of the site
+ * @returns the same address without `pay` in its query
+ */
+export function withoutPayQuery(href: string): string {
+    const url = new URL(href, 'http://relative.invalid');
+
+    url.searchParams.delete('pay');
+    const rest = `${url.pathname}${url.search}${url.hash}`;
+
+    return /^[a-z][a-z0-9+.-]*:/i.test(href) ? `${url.origin}${rest}` : rest;
+}

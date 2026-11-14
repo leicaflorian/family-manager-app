@@ -1411,6 +1411,8 @@ function agendaEntry(
         reminder: null,
         update_url: null,
         notes: null,
+        account: null,
+        planned: null,
         href: '/agenda',
         name: entry.subtitle ?? '',
         detail: entry.title,
