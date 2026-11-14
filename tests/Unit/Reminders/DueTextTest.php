@@ -71,5 +71,6 @@ test('the start of the subject of the mail', function (): void {
 
     expect(DueText::subject($today, romeDay('2026-10-20')))->toBe('Promemoria')
         ->and(DueText::subject($today, romeDay('2026-10-14')))->toBe('Scade oggi')
-        ->and(DueText::subject($today, romeDay('2026-10-13')))->toBe('Scaduto');
+        ->and(DueText::subject($today, romeDay('2026-10-13')))->toBe('Scaduto')
+        ->and(DueText::subject($today, romeDay('2026-10-20'), true))->toBe('Impegno');
 });

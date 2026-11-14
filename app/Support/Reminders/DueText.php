@@ -40,12 +40,13 @@ final class DueText
      *
      * @param  CarbonImmutable  $today  today in Rome
      * @param  CarbonImmutable  $due  the due date
-     * @return string "Reminder" before the day, "Due today" on it, "Overdue" after it
+     * @param  bool  $manual  whether it was written by hand, so it is a task and not a reminder
+     * @return string "Reminder" (or "Task" when written by hand) before the day, "Due today" on it, "Overdue" after it
      */
-    public static function subject(CarbonImmutable $today, CarbonImmutable $due): string
+    public static function subject(CarbonImmutable $today, CarbonImmutable $due, bool $manual = false): string
     {
         return match (self::daysBetween($today, $due) <=> 0) {
-            1 => __('Reminder'),
+            1 => $manual ? __('Task') : __('Reminder'),
             0 => __('Due today'),
             default => __('Overdue'),
         };

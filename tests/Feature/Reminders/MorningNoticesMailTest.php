@@ -43,6 +43,16 @@ test('the subject of a single notice', function (): void {
     new MorningNoticesMail($user, [item('Renew the policy', '2026-12-02')], '2026-11-25')->assertHasSubject('Reminder: Renew the policy · Panda');
 });
 
+test('a task written by hand is called a task in the subject', function (): void {
+    $user = User::factory()->for(Family::factory())->create();
+    $task = static fn (string $title, string $dueOn): MorningItem => new MorningItem($title, false, true, null, $dueOn, 'https://app.test/reminders');
+
+    new MorningNoticesMail($user, [$task('Call the plumber', '2026-12-02')], '2026-11-25')->assertHasSubject('Task: Call the plumber');
+    new MorningNoticesMail($user, [$task('Call the plumber', '2026-11-25')], '2026-11-25')->assertHasSubject('Due today: Call the plumber');
+    new MorningNoticesMail($user, [$task('Call the plumber', '2026-12-02'), $task('Book the dentist', '2026-12-03')], '2026-11-25')->assertHasSubject('2 tasks coming up');
+    new MorningNoticesMail($user, [$task('Call the plumber', '2026-12-02'), item('Renew the policy')], '2026-11-25')->assertHasSubject('2 reminders coming up');
+});
+
 test('the language of the account', function (): void {
     $user = User::factory()->for(Family::factory())->create(['locale' => 'en']);
     $italian = User::factory()->for(Family::factory())->create(['locale' => 'it']);

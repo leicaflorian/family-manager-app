@@ -46,12 +46,16 @@ final class MorningNoticesMail extends Mailable
         $first = $this->items[0];
 
         if (count($this->items) > 1) {
-            return new Envelope(subject: trans_choice('{1} :count reminder coming up|[2,*] :count reminders coming up', count($this->items)));
+            $allManual = array_all($this->items, static fn (MorningItem $item): bool => $item->manual);
+
+            return new Envelope(subject: $allManual
+                ? trans_choice('{1} :count task coming up|[2,*] :count tasks coming up', count($this->items))
+                : trans_choice('{1} :count reminder coming up|[2,*] :count reminders coming up', count($this->items)));
         }
 
         $title = $this->title($first);
 
-        return new Envelope(subject: DueText::subject($today, $this->day($first->dueOn)).': '.ReminderList::joinTitle($title, $first->subject));
+        return new Envelope(subject: DueText::subject($today, $this->day($first->dueOn), $first->manual).': '.ReminderList::joinTitle($title, $first->subject));
     }
 
     /**

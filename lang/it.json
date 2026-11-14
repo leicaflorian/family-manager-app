@@ -969,6 +969,7 @@
     ":label: the recipient is missing. Choose Everybody or at least one person.": ":label: manca il destinatario. Scegli Tutti o almeno una persona.",
     ":label: Everybody and specific people exclude each other. Choose Everybody or the people.": ":label: Tutti e le persone precise si escludono. Scegli Tutti oppure le persone.",
     ":label: a recipient is not a person.": ":label: un destinatario non è una persona.",
+    "{1} :count task coming up|[2,*] :count tasks coming up": "{1} :count impegno in arrivo|[2,*] :count impegni in arrivo",
     "{1} :count reminder coming up|[2,*] :count reminders coming up": "{1} :count promemoria in arrivo|[2,*] :count promemoria in arrivo",
     "Mark it as done when it is sorted.": "Segnalo come fatto quando è sistemato.",
     "and": "e",
