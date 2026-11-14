@@ -24,8 +24,6 @@ readonly filters: App.Data.AgendaFiltersData,
 readonly areas: App.Data.OptionData[],
 readonly overdue: number,
 readonly view: string,
-readonly done: App.Data.AgendaEntryData[],
-readonly done_next_page: number | null,
 readonly periods: number[],
 readonly family_hidden: string[],
 };

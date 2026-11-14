@@ -77,10 +77,11 @@ final class AgendaController extends Controller
                 areas: AgendaData::areas($this->familyAreas),
                 overdue: count(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->date < $today->toDateString())),
                 view: $view,
-                done: $done['entries'] ?? [],
-                done_next_page: $done['next'] ?? null,
                 family_hidden: $this->familyAreas->hiddenValues(),
             ),
+            // Own props of the page, because only a top-level prop can merge: the pages of the done rows add up
+            'done' => Inertia::merge($done['entries'] ?? []),
+            'done_next_page' => $done['next'] ?? null,
         ]);
     }
 

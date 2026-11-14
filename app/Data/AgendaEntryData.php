@@ -16,7 +16,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class AgendaEntryData extends Data
 {
     /**
-     * @param  string  $key  stable and unique: `deadline:<field>:<id>:<date>`, `payment:<planned id>:<original date>`, `income:<planned id>:<original date>` or `task:<reminder id>`
+     * @param  string  $key  stable and unique: `deadline:<field>:<id>:<date>`, `payment:<planned id>:<original date>`, `income:<planned id>:<original date>` or `task:<reminder id>`, or `reminder:<reminder id>` for a done automatic reminder
      * @param  string  $kind  `deadline`, `payment`, `income` or `task`
      * @param  string  $date  the day, `yyyy-mm-dd`
      * @param  string  $title  what expires or what to pay, for example «Bolletta gas»

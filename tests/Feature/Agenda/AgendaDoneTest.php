@@ -47,14 +47,17 @@ function doneReminder(string $doneOn, array $state = []): Reminder
 }
 
 /**
- * The props of the Agenda as Marco sees it.
+ * The Agenda as Marco sees it: its data plus the two props of the done rows.
  *
  * @param  string  $query  the query string, for example `?view=done`
  * @return array<string, mixed>
  */
 function doneAgenda(string $query = '?view=done'): array
 {
-    return test()->actingAs(test()->marco)->get('/agenda'.$query)->assertOk()->viewData('page')['props']['agenda'];
+    $props = test()->actingAs(test()->marco)->get('/agenda'.$query)->assertOk()->viewData('page')['props'];
+
+    // `done` and `done_next_page` are props of the page, next to `agenda`
+    return [...$props['agenda'], 'done' => $props['done'], 'done_next_page' => $props['done_next_page']];
 }
 
 it('lists the done things, latest first', function (): void {

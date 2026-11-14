@@ -405,8 +405,7 @@ test('the agenda counts what is late', function (): void {
     expect($agenda['overdue'])->toBeGreaterThan(0)
         ->and($agenda['overdue'])->toBe(count($late))
         ->and($agenda['view'])->toBe('todo')
-        ->and($agenda['done'])->toBe([])
-        ->and($agenda['done_next_page'])->toBeNull();
+        ->and($agenda)->not->toHaveKeys(['done', 'done_next_page']);
 });
 
 test('the agenda sends the notices of a deadline reminder', function (): void {
