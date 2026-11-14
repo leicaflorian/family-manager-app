@@ -129,6 +129,8 @@ A family copied from Directus before the `occurrence_date` migration has payment
 
 The *Home*, the *Agenda* and the family's calendar read the same list: `App\Services\Agenda` joins the dates of the cards (`App\Cards\DeadlineSources`, read by `App\Queries\CardDeadlines`), the due dates of the planned expenses and incomes, and merges a payment with the card date of the same day. The *Home* takes its numbers from `App\Services\HomeSummary`. The Agenda filters (period, person, areas) are saved on the account (`users.agenda_filters`), so they are the same on the phone and the computer.
 
+The Agenda is one list of things to do: card deadlines, unpaid payments (up to 90 days late) and tasks, the reminders written by hand (`App\Services\AgendaTasks`, which also pages the *Done* view by 20). `App\Services\AgendaPage` builds its props for `AgendaController` and for the task form (`ReminderController`), which sits over the Agenda on the computer. There is no reminders page: `/reminders` redirects to the Agenda (`?status=done` to `?view=done`, `?person=` saves the person in the Agenda filters).
+
 The calendar to subscribe to is one secret link per family, `GET /calendar/<secret>.ics`, read without signing in (`App\Services\CalendarFeed`). An admin turns it on, off or changes it in *Settings → Calendar*; a member sees and copies it. The secret is stored encrypted (`families.calendar_token`) and found by its sha256 (`calendar_token_hash`); the texts of the events are in the language saved when it was turned on (`calendar_locale`). Every wrong link answers the same 404. The address is built with `APP_URL`, which online must be the public address. A card date with its automatic reminder is not an event: the open reminder is.
 
 ## Copy from Directus
