@@ -8,6 +8,7 @@ use App\Data\AgendaData;
 use App\Data\AgendaEntryData;
 use App\Data\AgendaReminderData;
 use App\Data\ReminderSubjectData;
+use App\Enums\ReminderStatus;
 use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
@@ -53,13 +54,86 @@ final readonly class AgendaTasks
     }
 
     /**
+     * The done reminders, the most recent first, one page of them. A task stays a `task`; an automatic reminder
+     * becomes the `deadline` it came from, with the card or the document as its link.
+     *
+     * @param  CarbonImmutable  $today  today in Rome
+     * @param  int  $page  the page, from 1
+     * @param  int|null  $personId  only the reminders of this person; null for everybody
+     * @param  int  $perPage  how many rows a page has
+     * @return array{entries: list<AgendaEntryData>, next: int|null}
+     */
+    public function done(CarbonImmutable $today, int $page, ?int $personId, int $perPage = 20): array
+    {
+        // One more than the page tells whether there is a next one
+        $reminders = Reminder::query()
+            ->where('status', ReminderStatus::Done)
+            ->when($personId !== null, static fn ($query) => $query->where('person_id', $personId))
+            ->with(['link', 'person'])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage + 1)
+            ->get();
+
+        $next = $reminders->count() > $perPage ? $page + 1 : null;
+        $reminders = $reminders->take($perPage)->values();
+
+        $this->list->loadSubjects($reminders);
+        $groups = ReminderGroup::query()->get();
+        $accounts = $this->agenda->accounts();
+
+        return [
+            'entries' => array_values($reminders->map(function (Reminder $reminder) use ($today, $groups, $accounts): AgendaEntryData {
+                $subject = $this->list->subject($reminder->link);
+                $data = $this->agenda->reminderOf($reminder, $today, $groups, $accounts);
+
+                return $reminder->is_automatic ? $this->deadlineEntry($reminder, $subject, $data) : $this->entry($reminder, $subject, $data, true);
+            })->all()),
+            'next' => $next,
+        ];
+    }
+
+    /**
+     * The entry of a done automatic reminder, as the deadline it came from.
+     *
+     * @param  Reminder  $reminder  the reminder, with `person` loaded
+     * @param  ReminderSubjectData|null  $subject  the card or the document it is linked to
+     * @param  AgendaReminderData  $data  its reminder as the Agenda shows it
+     */
+    private function deadlineEntry(Reminder $reminder, ?ReminderSubjectData $subject, AgendaReminderData $data): AgendaEntryData
+    {
+        $person = $reminder->person instanceof Person ? $reminder->person : null;
+        $title = $this->list->titleOf($reminder);
+
+        return new AgendaEntryData(
+            key: 'reminder:'.$reminder->id,
+            kind: 'deadline',
+            date: $reminder->due_date->toDateString(),
+            title: $title,
+            subtitle: $subject instanceof ReminderSubjectData ? $subject->label : '',
+            name: $subject instanceof ReminderSubjectData ? $subject->label : $title,
+            detail: $subject?->type === 'document' ? __('Document expiry') : $title,
+            area: $subject instanceof ReminderSubjectData ? $subject->area : AgendaData::GENERAL_AREA,
+            person_id: $person?->id,
+            person: $person?->first_name,
+            amount: null,
+            estimated: false,
+            reminder_done: true,
+            reminder: $data,
+            href: $this->list->hrefOf($reminder, $subject),
+        );
+    }
+
+    /**
      * The entry of a task.
      *
      * @param  Reminder  $reminder  the task, with `person` loaded
      * @param  ReminderSubjectData|null  $subject  the card it is linked to
      * @param  AgendaReminderData  $data  its reminder as the Agenda shows it
+     * @param  bool  $done  whether the task is done
      */
-    private function entry(Reminder $reminder, ?ReminderSubjectData $subject, AgendaReminderData $data): AgendaEntryData
+    private function entry(Reminder $reminder, ?ReminderSubjectData $subject, AgendaReminderData $data, bool $done = false): AgendaEntryData
     {
         $person = $reminder->person instanceof Person ? $reminder->person : null;
 
@@ -76,7 +150,7 @@ final readonly class AgendaTasks
             person: $person?->first_name,
             amount: null,
             estimated: false,
-            reminder_done: false,
+            reminder_done: $done,
             reminder: $data,
             href: route('reminders.edit', $reminder),
             notes: $reminder->notes,

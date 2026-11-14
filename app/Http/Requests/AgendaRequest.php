@@ -47,4 +47,20 @@ final class AgendaRequest extends FormRequest
     {
         return $this->query->has('months') ? ($this->askedMonths() ?? self::DEFAULT_MONTHS) : $saved;
     }
+
+    /**
+     * The view of the Agenda: `done` only when the address asks for `?view=done`, else `todo`.
+     */
+    public function view(): string
+    {
+        return $this->query('view') === 'done' ? 'done' : 'todo';
+    }
+
+    /**
+     * The page of the done rows asked by `?done_page=`, 1 when it is missing, empty or not a number.
+     */
+    public function donePage(): int
+    {
+        return max(1, $this->integer('done_page'));
+    }
 }

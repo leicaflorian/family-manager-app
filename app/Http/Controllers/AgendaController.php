@@ -63,6 +63,9 @@ final class AgendaController extends Controller
         ];
         usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
 
+        $view = $request->view();
+        $done = $view === 'done' ? $this->tasks->done($today, $request->donePage(), $shown->person_id) : null;
+
         return Inertia::render('Agenda', [
             'agenda' => new AgendaData(
                 entries: $entries,
@@ -73,7 +76,9 @@ final class AgendaController extends Controller
                 filters: $shown,
                 areas: AgendaData::areas($this->familyAreas),
                 overdue: count(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->date < $today->toDateString())),
-                view: 'todo',
+                view: $view,
+                done: $done['entries'] ?? [],
+                done_next_page: $done['next'] ?? null,
                 family_hidden: $this->familyAreas->hiddenValues(),
             ),
         ]);
