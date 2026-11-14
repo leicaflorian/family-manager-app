@@ -40,7 +40,7 @@ describe('FmBottomBar', () => {
                 '/budget/movements/create',
             ],
             [
-                'New reminder',
+                'New task',
                 'Something to remember, with the date',
                 '/reminders/create',
             ],

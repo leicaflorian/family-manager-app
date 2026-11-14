@@ -324,3 +324,16 @@ test('the form no longer carries the list beside it', function (): void {
         expect($this->get($url)->assertOk()->viewData('page')['props'])->not->toHaveKey('reminders');
     }
 });
+
+it('shows the agenda behind the task form', function (): void {
+    $this->actingAs($this->marco);
+
+    $create = $this->get('/reminders/create')->assertOk()->viewData('page')['props'];
+    expect($create)->toHaveKeys(['agenda', 'done', 'done_next_page'])
+        ->and($create['agenda']['entries'])->toBeArray()
+        ->and($create['agenda']['view'])->toBe('todo')
+        ->and($create)->not->toHaveKey('reminders');
+
+    $reminder = handWrittenReminder();
+    expect($this->get("/reminders/{$reminder->id}/edit")->assertOk()->viewData('page')['props'])->toHaveKey('agenda');
+});

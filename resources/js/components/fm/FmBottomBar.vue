@@ -3,7 +3,7 @@
  * The bottom bar of the phone (below 1024 px): Home, Budget, the + of Add in
  * the middle, Areas and More. The + opens the panel *Add*: To sort (only when
  * files wait, with their number), then Upload a file, Scan a sheet, New expense
- * and New reminder. More opens a panel with Agenda, Documents, Family,
+ * and New task. More opens a panel with Agenda, Documents, Family,
  * Settings and Log out, and stays marked when one of those pages is open.
  *
  * The + (60 px, `fab` shadow) is the only round button of the app and

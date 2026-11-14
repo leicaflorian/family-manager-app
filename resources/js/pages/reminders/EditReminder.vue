@@ -1,13 +1,12 @@
 <script setup lang="ts">
 /**
- * *New reminder* and the change of one written by hand: what to do, the day,
+ * *New task* and the change of one written by hand: what to do, the day,
  * who takes care of it, the thing it refers to (a card, a document or a person)
  * and the group of notices, with when it notifies and the people who get them.
- * On the computer the form is a window in the middle, over the list of the
- * reminders (board `Nuovo-promemoria-pc`), and closing it goes back to the
- * list; on the phone it is the whole screen, with *Cancel* and *Save* at the
- * bottom. An
- * `admin` can also delete a reminder written by hand.
+ * On the computer the form is a window in the middle, over the Agenda (board
+ * `Nuovo-impegno-pc`), and closing it goes back to the Agenda; on the phone it
+ * is the whole screen (board `Nuovo-impegno`), with *Cancel* and *Save* at the
+ * bottom. An `admin` can also delete a task written by hand.
  */
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
@@ -25,16 +24,16 @@ import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
 import { isEmpty, withMethod, withNone } from '@/lib/forms';
 import { offsetsHint, recipientsSentence } from '@/lib/reminders';
-import { agenda } from '@/routes';
-import { destroy, index, store, update } from '@/routes/reminders';
+import { agenda as agendaRoute } from '@/routes';
+import { destroy, store, update } from '@/routes/reminders';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 /**
- * The list of *Reminders* beside the form. It is a page of its own too, so it
- * loads with import(): imported at the top it would become a shared piece of
- * the build, and Laravel would not find the page *Reminders* any more.
+ * The *Agenda* behind the form. It is a page of its own too, so it loads with
+ * import(): imported at the top it would become a shared piece of the build,
+ * and Laravel would not find the page *Agenda* any more.
  */
-const Reminders = defineAsyncComponent(() => import('./Reminders.vue'));
+const Agenda = defineAsyncComponent(() => import('@/pages/Agenda.vue'));
 
 const {
     reminder,
@@ -44,7 +43,9 @@ const {
     default_offsets,
     links,
     can_delete,
-    reminders,
+    agenda,
+    done,
+    done_next_page,
 } = defineProps<{
     /** The reminder to change, or null for a new one. */
     reminder: App.Data.ReminderData | null;
@@ -62,24 +63,28 @@ const {
     links: App.Data.LinkGroupData[];
     /** Whoever is looking can delete this reminder (an `admin`, and not an automatic one). */
     can_delete: boolean;
-    /** The list of the reminders, shown beside the form on the computer. */
-    reminders: App.Data.RemindersPageData;
+    /** The Agenda, shown behind the form on the computer. */
+    agenda: App.Data.AgendaData;
+    /** The done things of the Agenda, sent only in its Done view. */
+    done: App.Data.AgendaEntryData[];
+    /** The next page of the done things, or null. */
+    done_next_page: number | null;
 }>();
 
-/** On the computer the form is a window over the list. */
+/** On the computer the form is a window over the Agenda. */
 const desktop = useComputerLayout();
 
 /** The form, written once: in the window on the computer, the whole page on the phone. */
 const [DefineForm, ReuseForm] = createReusableTemplate();
 
 /**
- * Goes back to the list when the window closes (×, Esc or a tap outside).
+ * Goes back to the Agenda when the window closes (×, Esc or a tap outside).
  *
  * @param open - whether the window is still open
  */
 function closeWindow(open: boolean): void {
     if (!open) {
-        router.visit(index().url);
+        router.visit(agendaRoute().url);
     }
 }
 
@@ -99,18 +104,17 @@ const form = useForm({
 
 /**
  * While the form has changes not saved, leaving asks first: also closing the
- * window, which goes back to the list.
+ * window, which goes back to the Agenda.
  */
 useUnsavedChanges(() => form.data());
 
 /** The title of the page. */
 const heading = computed(() =>
-    reminder ? trans('Edit reminder') : trans('New reminder'),
+    reminder ? trans('Edit task') : trans('New task'),
 );
 
 usePageTrail(() => [
-    { label: trans('Agenda'), href: agenda().url },
-    { label: trans('Reminders'), href: index().url },
+    { label: trans('Agenda'), href: agendaRoute().url },
     { label: heading.value },
 ]);
 
@@ -233,7 +237,7 @@ useSaveShortcut(save, () => !form.processing);
                 />
                 <FmButton
                     :variant="desktop ? 'text' : 'soft'"
-                    :href="index().url"
+                    :href="agendaRoute().url"
                     class="flex-1 lg:flex-none"
                     data-discard-changes
                     >{{ $t('Cancel') }}</FmButton
@@ -249,7 +253,12 @@ useSaveShortcut(save, () => !form.processing);
     </DefineForm>
 
     <template v-if="desktop">
-        <Reminders embedded :reminders="reminders" />
+        <Agenda
+            embedded
+            :agenda="agenda"
+            :done="done"
+            :done_next_page="done_next_page"
+        />
         <FmBottomSheet :open="true" :title="heading" @update:open="closeWindow">
             <ReuseForm />
         </FmBottomSheet>
@@ -263,7 +272,7 @@ useSaveShortcut(save, () => !form.processing);
                 {{ heading }}
             </h1>
             <Link
-                :href="index().url"
+                :href="agendaRoute().url"
                 :aria-label="$t('Close')"
                 class="flex size-11 items-center justify-center text-ink-soft"
             >

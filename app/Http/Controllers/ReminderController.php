@@ -8,10 +8,13 @@ use App\Actions\Reminders\SaveReminder;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
 use App\Data\ReminderGroupChoiceData;
+use App\Http\Requests\AgendaRequest;
 use App\Http\Requests\Reminders\SaveReminderRequest;
 use App\Models\Document;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
+use App\Models\User;
+use App\Services\AgendaPage;
 use App\Services\BudgetFormOptions;
 use App\Services\DocumentLinks;
 use App\Services\Reminders\GroupRecipients;
@@ -27,12 +30,12 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * *Reminders* and the form of a reminder written by hand: everyone sees them and a `member` writes them too, only an
+ * The form of a task (a reminder written by hand), shown over the Agenda,: everyone sees them and a `member` writes them too, only an
  * `admin` deletes. A reminder made from a date of a card or a document is not edited or deleted.
  */
 final class ReminderController extends Controller
 {
-    public function __construct(private readonly ReminderList $list) {}
+    public function __construct(private readonly ReminderList $list, private readonly AgendaPage $agendaPage) {}
 
     /**
      * The old *Reminders* page: the list lives in the Agenda now, and the done filter keeps its place as `?view=done`.
@@ -45,7 +48,7 @@ final class ReminderController extends Controller
     }
 
     /**
-     * *New reminder*: the empty form; `?remindable=vehicle:1` fills *Refers to* when it is a record of the family.
+     * *New task*: the empty form; `?remindable=vehicle:1` fills *Refers to* when it is a record of the family.
      */
     public function create(Request $request): Response
     {
@@ -53,7 +56,7 @@ final class ReminderController extends Controller
 
         $subject = SubjectLink::find($request->query('remindable'));
 
-        return $this->form(null, $subject === null ? null : $subject['type'].':'.$subject['id']);
+        return $this->form($request, null, $subject === null ? null : $subject['type'].':'.$subject['id']);
     }
 
     /**
@@ -67,7 +70,7 @@ final class ReminderController extends Controller
     }
 
     /**
-     * *Edit a reminder*: a written one only.
+     * *Edit task*: a written one only.
      */
     public function edit(Request $request, Reminder $reminder): Response
     {
@@ -75,7 +78,7 @@ final class ReminderController extends Controller
 
         $reminder->load('link');
 
-        return $this->form($reminder, $reminder->link === null ? null : $reminder->link->remindable_type.':'.$reminder->link->remindable_id);
+        return $this->form($request, $reminder, $reminder->link === null ? null : $reminder->link->remindable_type.':'.$reminder->link->remindable_id);
     }
 
     /**
@@ -103,10 +106,11 @@ final class ReminderController extends Controller
     /**
      * The form, empty or with a reminder.
      *
+     * @param  Request  $request  the address, whose Agenda settings the page behind the form uses
      * @param  Reminder|null  $reminder  the reminder to change, null for a new one
      * @param  string|null  $remindable  the chosen thing as `type:id`
      */
-    private function form(?Reminder $reminder, ?string $remindable): Response
+    private function form(Request $request, ?Reminder $reminder, ?string $remindable): Response
     {
         $today = CarbonImmutable::today('Europe/Rome');
         $row = null;
@@ -120,7 +124,12 @@ final class ReminderController extends Controller
         $groups = ReminderGroup::query()->orderBy('name')->get();
         $recipients = new GroupRecipients;
 
+        /** @var User $user */
+        $user = $request->user();
+
         return Inertia::render('reminders/EditReminder', [
+            // The Agenda is behind the form on the computer
+            ...$this->agendaPage->props(AgendaRequest::createFrom($request), $user),
             'reminder' => $row,
             'remindable' => $remindable,
             'people' => BudgetFormOptions::people(),

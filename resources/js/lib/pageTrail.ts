@@ -41,7 +41,6 @@ export const TRAIL_KEY: InjectionKey<TrailState> = Symbol('page-trail');
 export const SECTION_PAGES: readonly string[] = [
     'Home',
     'Agenda',
-    'reminders/Reminders',
     'Areas',
     'documents/Documents',
     'documents/ToSort',

@@ -1657,17 +1657,6 @@ export const reminderPeople: App.Data.OptionData[] = [
     { value: '4', label: 'Giulia', help: null },
 ];
 
-/** The props of *Reminders* as the controller sends them. */
-export const remindersPage: App.Data.RemindersPageData = {
-    open: [healthCardReminder, plumberReminder, inspectionReminder],
-    done: [doneReminder],
-    people: peopleList,
-    person_id: null,
-    open_total: 10,
-    areas: agendaAreas,
-    family_hidden: [],
-};
-
 /** The alert groups of the form, with the people who get their notices. */
 export const reminderGroups: App.Data.ReminderGroupChoiceData[] = [
     {

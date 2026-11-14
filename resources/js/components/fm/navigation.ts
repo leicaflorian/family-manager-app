@@ -179,7 +179,7 @@ export function navigationItems(): NavigationItems {
                 icon: Receipt,
             },
             {
-                label: trans('New reminder'),
+                label: trans('New task'),
                 hint: trans('Something to remember, with the date'),
                 href: newReminder().url,
                 icon: BellPlus,

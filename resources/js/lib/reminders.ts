@@ -1,20 +1,15 @@
 /**
  * The words and the logic of the reminders and notices: how a rule of a group
- * reads, when a notice went out, and how the list of the reminders is grouped,
- * searched, counted by area and postponed. The pages and the components do
- * these the same way, so they live here.
+ * reads, when a notice went out, and how a reminder is postponed. The pages
+ * and the components do these the same way, so they live here.
  */
 import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
-import type { Tab } from '@/components/fm/FmTabs.vue';
 import type { VisitOptions } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';
-import { edit, index as remindersIndex, postpone } from '@/routes/reminders';
-import { agenda } from '@/routes';
+import { edit, postpone } from '@/routes/reminders';
 import { shortDate } from './budget';
-import { addDays, addMonths, endOfWeek } from './days';
 import { daysFromToday, toDate } from './format';
-import { plainText } from './text';
 
 /** Before or after the due date; the day itself is 0 days. */
 export type NoticeTiming = 'before' | 'after';
@@ -183,22 +178,6 @@ export type ReminderItem = {
     can_delete: boolean;
 };
 
-/** A block of the list of the reminders to do. */
-export type ReminderGroup = {
-    /** Late, this week (today to Sunday), or later. */
-    key: 'late' | 'week' | 'later';
-    /** The reminders of the block, in the order of the server. */
-    items: ReminderItem[];
-};
-
-/** A quick choice of *Postpone*: its words and the day it moves the reminder to. */
-export type PostponeChoice = {
-    /** For example «Tomorrow». */
-    label: string;
-    /** The new day, `yyyy-mm-dd`. */
-    to: string;
-};
-
 /** A notice of the bell as the list shows it. */
 export type NoticeItem = {
     /** The id of the notice. */
@@ -234,8 +213,8 @@ export type ReminderGroupItem = {
 /**
  * A reminder as the server sends it, in the shape the row of the list reads.
  *
- * @param reminder - the reminder of `RemindersPageData`
- * @returns the item for `FmReminderRow`
+ * @param reminder - the reminder as the Agenda or the form sends it
+ * @returns the item for `FmPostponeSheet`
  */
 export function toReminderItem(reminder: App.Data.ReminderData): ReminderItem {
     const { subject, person } = reminder;
@@ -270,64 +249,6 @@ export function toReminderItem(reminder: App.Data.ReminderData): ReminderItem {
 }
 
 /**
- * Splits the reminders to do as the list shows them: the late ones (their day
- * is passed), this week (today to Sunday) and later.
- *
- * @param items - the reminders to do, in the order of the server
- * @param today - today, `yyyy-mm-dd`
- * @returns the blocks, without the empty ones
- */
-export function groupReminders(
-    items: ReminderItem[],
-    today: string,
-): ReminderGroup[] {
-    const sunday = endOfWeek(today);
-    const keyOf = (item: ReminderItem): ReminderGroup['key'] =>
-        item.due_date < today
-            ? 'late'
-            : item.due_date <= sunday
-              ? 'week'
-              : 'later';
-
-    return (['late', 'week', 'later'] as const)
-        .map((key) => ({
-            key,
-            items: items.filter((item) => keyOf(item) === key),
-        }))
-        .filter((group) => group.items.length > 0);
-}
-
-/**
- * Whether a reminder holds what is searched, in its title or in the name of
- * the thing it refers to, without capitals and accents.
- *
- * @param item - the reminder
- * @param search - the text typed
- * @returns true when it holds it, or nothing is typed
- */
-export function matchesReminder(item: ReminderItem, search: string): boolean {
-    const text = plainText(search.trim());
-
-    return [item.title, item.subject?.label ?? ''].some((part) =>
-        plainText(part).includes(text),
-    );
-}
-
-/**
- * The quick choices of *Postpone*, counted from today.
- *
- * @param today - today, `yyyy-mm-dd`
- * @returns tomorrow, in a week and in a month
- */
-export function postponeChoices(today: string): PostponeChoice[] {
-    return [
-        { label: trans('Tomorrow'), to: addDays(today, 1) },
-        { label: trans('In a week'), to: addDays(today, 7) },
-        { label: trans('In a month'), to: addMonths(today, 1) },
-    ];
-}
-
-/**
  * Moves a reminder to another day; the page stays where it is.
  *
  * @param id - the reminder
@@ -340,29 +261,6 @@ export function postponeReminder(
     options: VisitOptions = {},
 ): void {
     router.post(postpone.url(id), { to }, { preserveScroll: true, ...options });
-}
-
-/**
- * How many reminders each area has. The areas turned off count too: their
- * number stays when their name is struck.
- *
- * @param items - the reminders
- * @param areas - the areas the server sends, in order
- * @returns the count of each area, zero included
- */
-export function reminderAreaCounts(
-    items: ReminderItem[],
-    areas: App.Data.OptionData[],
-): Record<string, number> {
-    const counts: Record<string, number> = Object.fromEntries(
-        areas.map((area) => [area.value, 0]),
-    );
-
-    for (const item of items) {
-        counts[item.area] = (counts[item.area] ?? 0) + 1;
-    }
-
-    return counts;
 }
 
 /**
@@ -387,32 +285,6 @@ export function toNoticeItem(notice: App.Data.ReminderNoticeData): NoticeItem {
                   : null,
         href: notice.href,
     };
-}
-
-/**
- * The tabs of the Agenda, shared by *Deadlines* and *Reminders* so neither builds its own.
- *
- * @param current - the page that is open
- * @param open - how many reminders are still to do
- * @returns the two tabs, with the open one marked
- */
-export function agendaTabs(
-    current: 'deadlines' | 'reminders',
-    open: number,
-): Tab[] {
-    return [
-        {
-            label: trans('Deadlines'),
-            href: agenda().url,
-            current: current === 'deadlines',
-        },
-        {
-            label: trans('Reminders'),
-            href: remindersIndex().url,
-            count: open,
-            current: current === 'reminders',
-        },
-    ];
 }
 
 /**

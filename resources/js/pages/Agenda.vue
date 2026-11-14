@@ -61,6 +61,7 @@ const {
     done_next_page = null,
     payment = null,
     accounts = [],
+    embedded = false,
 } = defineProps<{
     /** The entries of the period with the filters saved, the people and the areas. */
     agenda: App.Data.AgendaData;
@@ -72,6 +73,8 @@ const {
     payment?: App.Data.DeadlineData | null;
     /** The accounts to pay with, sent with `payment`. */
     accounts?: App.Data.OptionData[];
+    /** The Agenda is shown behind the task form, which has the head of the page. */
+    embedded?: boolean;
 }>();
 
 const desktop = useComputerLayout();
@@ -304,7 +307,7 @@ const payAction = computed((): string =>
 </script>
 
 <template>
-    <Head :title="$t('Agenda')" />
+    <Head v-if="!embedded" :title="$t('Agenda')" />
 
     <FmTitle :title="$t('Agenda')">
         <template #beside>

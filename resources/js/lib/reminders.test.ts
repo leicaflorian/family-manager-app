@@ -1,14 +1,9 @@
 import { router } from '@inertiajs/vue3';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import type { NoticeRule, ReminderItem, RulePerson } from './reminders';
+import type { NoticeRule, RulePerson } from './reminders';
 import {
-    agendaTabs,
-    groupReminders,
-    matchesReminder,
     offsetsHint,
-    postponeChoices,
     postponeReminder,
-    reminderAreaCounts,
     recipientsSentence,
     ruleText,
     sentAtText,
@@ -169,107 +164,6 @@ describe('toReminderItem', () => {
         });
 
         expect(item.subject).toEqual({ label: 'Fiat Panda', href: null });
-    });
-});
-
-describe('groupReminders', () => {
-    /** A reminder due on a day. */
-    const due = (id: number, day: string): ReminderItem => ({
-        ...toReminderItem(row),
-        id,
-        due_date: day,
-    });
-
-    it('splits late, this week (today to Sunday) and later, without the empty groups', () => {
-        const groups = groupReminders(
-            [
-                due(1, '2026-10-20'),
-                due(2, '2026-11-02'),
-                due(3, '2026-11-08'),
-                due(4, '2026-11-09'),
-                due(5, '2026-11-01'),
-            ],
-            '2026-11-02',
-        );
-
-        expect(
-            groups.map((group) => [
-                group.key,
-                group.items.map((item) => item.id),
-            ]),
-        ).toEqual([
-            ['late', [1, 5]],
-            ['week', [2, 3]],
-            ['later', [4]],
-        ]);
-        expect(groupReminders([due(4, '2026-12-01')], '2026-11-02')).toEqual([
-            expect.objectContaining({ key: 'later' }),
-        ]);
-    });
-});
-
-describe('matchesReminder', () => {
-    const item = toReminderItem({
-        ...row,
-        title: 'Rinnovare la tessera sanitaria',
-        subject: { ...row.subject!, label: 'Tessera di Giulia, già scaduta' },
-    });
-
-    it('finds the text in the title or in the thing, without capitals and accents', () => {
-        expect(matchesReminder(item, 'TESSERA')).toBe(true);
-        expect(matchesReminder(item, 'gia scaduta')).toBe(true);
-        expect(matchesReminder(item, '  giulia ')).toBe(true);
-        expect(matchesReminder(item, 'panda')).toBe(false);
-    });
-
-    it('lets everything through with nothing typed', () => {
-        expect(matchesReminder(item, '')).toBe(true);
-        expect(matchesReminder({ ...item, subject: null }, 'giulia')).toBe(
-            false,
-        );
-    });
-});
-
-describe('postponeChoices', () => {
-    it('offers tomorrow, a week and a month from today', () => {
-        expect(postponeChoices('2026-10-31')).toEqual([
-            { label: 'Tomorrow', to: '2026-11-01' },
-            { label: 'In a week', to: '2026-11-07' },
-            { label: 'In a month', to: '2026-11-30' },
-        ]);
-    });
-});
-
-describe('reminderAreaCounts', () => {
-    it('counts the reminders of each area, the areas without any at zero', () => {
-        const items = [
-            toReminderItem(row),
-            toReminderItem(row),
-            toReminderItem({ ...row, subject: null }),
-        ];
-
-        expect(
-            reminderAreaCounts(items, [
-                { value: 'vehicles', label: 'Vehicles', help: null },
-                { value: 'home', label: 'Home', help: null },
-                { value: 'general', label: 'People', help: null },
-            ]),
-        ).toEqual({ vehicles: 2, home: 0, general: 1 });
-    });
-});
-
-describe('agendaTabs', () => {
-    it('lists the two pages with the number of reminders and the open one marked', () => {
-        expect(agendaTabs('reminders', 10)).toEqual([
-            { label: 'Deadlines', href: '/agenda', current: false },
-            {
-                label: 'Reminders',
-                href: '/reminders',
-                count: 10,
-                current: true,
-            },
-        ]);
-        expect(agendaTabs('deadlines', 0)[0]?.current).toBe(true);
     });
 });
 

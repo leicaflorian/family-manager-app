@@ -8,7 +8,10 @@ import {
     reminderGroups,
     reminderLinks,
     reminderPeople,
-    remindersPage,
+    agendaEntries,
+    agendaAreas,
+    agendaPeriods,
+    peopleList,
 } from '@/test/fixtures';
 import {
     choose,
@@ -32,7 +35,21 @@ const props = {
     default_recipients: ['Marco', 'Laura'],
     default_offsets: [-7, -1, 0],
     can_delete: false,
-    reminders: remindersPage,
+    agenda: {
+        entries: agendaEntries.filter((entry) => entry.kind !== 'income'),
+        months: 1,
+        from: '2026-10-26',
+        to: '2026-11-26',
+        people: peopleList,
+        filters: { months: 1, person_id: null, hidden_areas: [] },
+        areas: agendaAreas,
+        periods: agendaPeriods,
+        overdue: 1,
+        view: 'todo',
+        family_hidden: [],
+    },
+    done: [],
+    done_next_page: null,
     links: reminderLinks,
 };
 
@@ -42,14 +59,13 @@ afterEach(() => {
 });
 
 describe('Edit a reminder', () => {
-    it('writes the trail Agenda > Reminders > the page into the top bar', () => {
+    it('writes the trail Agenda > the page into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(EditReminder, props, provide);
 
         expect(state.pieces.value).toEqual([
             { label: 'Agenda', href: '/agenda' },
-            { label: 'Reminders', href: '/reminders' },
-            { label: 'New reminder' },
+            { label: 'New task' },
         ]);
     });
 
@@ -57,7 +73,7 @@ describe('Edit a reminder', () => {
         renderPage(EditReminder, props);
 
         expect(
-            screen.getByRole('heading', { name: 'New reminder', level: 1 }),
+            screen.getByRole('heading', { name: 'New task', level: 1 }),
         ).toBeInTheDocument();
         expect(
             screen.getByText(
@@ -66,7 +82,7 @@ describe('Edit a reminder', () => {
         ).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute(
             'href',
-            '/reminders',
+            '/agenda',
         );
     });
 
@@ -136,7 +152,7 @@ describe('Edit a reminder', () => {
         });
 
         expect(
-            screen.getByRole('heading', { name: 'Edit reminder', level: 1 }),
+            screen.getByRole('heading', { name: 'Edit task', level: 1 }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('textbox', { name: /What needs doing/ }),
@@ -243,40 +259,44 @@ describe('Edit a reminder', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('is the whole screen on the phone, without the list', () => {
+    it('is the whole screen on the phone, without the Agenda', () => {
         screenWidth(false);
         renderPage(EditReminder, props);
 
         expect(
-            screen.queryByRole('region', { name: 'Late' }),
+            screen.queryByRole('heading', { name: 'Agenda', level: 1 }),
         ).not.toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Save' }),
         ).toBeInTheDocument();
     });
 
-    it('is the whole screen on a wide but short window, without the list', () => {
+    it('is the whole screen on a wide but short window, without the Agenda', () => {
         screenWidth(1280, 400);
         renderPage(EditReminder, props);
 
         expect(
-            screen.queryByRole('region', { name: 'Late' }),
+            screen.queryByRole('heading', { name: 'Agenda', level: 1 }),
         ).not.toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Save' }),
         ).toBeInTheDocument();
     });
 
-    it('is a window over the list of the reminders on the computer', async () => {
+    it('is a window over the Agenda on the computer', async () => {
         screenWidth(true);
         renderPage(EditReminder, props);
 
         // The list is behind the window, which hides it from screen readers
         expect(
-            await screen.findByRole('region', { name: 'Late', hidden: true }),
+            await screen.findByRole('heading', {
+                name: 'Agenda',
+                level: 1,
+                hidden: true,
+            }),
         ).toBeInTheDocument();
         const window = await screen.findByRole('dialog', {
-            name: 'New reminder',
+            name: 'New task',
         });
         expect(
             within(window).getByRole('button', { name: 'Save' }),
@@ -286,14 +306,14 @@ describe('Edit a reminder', () => {
         ).toBeInTheDocument();
     });
 
-    it('goes back to the reminders when the window closes', async () => {
+    it('goes back to the Agenda when the window closes', async () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         screenWidth(true);
         renderPage(EditReminder, props);
 
         await userEvent.keyboard('{Escape}');
 
-        expect(visit).toHaveBeenCalledWith('/reminders');
+        expect(visit).toHaveBeenCalledWith('/agenda');
     });
 
     it('offers Delete only when the server says it can be deleted', async () => {
