@@ -454,7 +454,8 @@ test('the agenda sends the notices of a deadline reminder', function (): void {
     expect($entry)->not->toBeNull()
         ->and($entry['reminder']['id'])->toBeInt()
         ->and($entry['reminder']['notice_days'])->not->toBeEmpty()
-        ->and($entry['reminder']['recipients'])->toContain('Marco Bianchi', 'Laura Bianchi');
+        ->and($entry['reminder']['recipients'])->toContain('Marco', 'Laura')
+        ->and($entry['reminder']['recipients'])->not->toContain('Marco Bianchi');
 });
 
 test('a payment says its account and how its planned expense repeats', function (): void {

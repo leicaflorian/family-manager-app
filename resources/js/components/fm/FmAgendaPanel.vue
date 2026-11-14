@@ -38,6 +38,7 @@ import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { shortDate } from '@/lib/budget';
 import {
+    doneLineOf,
     markReminderDone,
     reopenReminder,
     withoutPayQuery,
@@ -142,10 +143,10 @@ const notices = computed((): string => {
 
 /** The line of the Done list: when it was closed and by whom. */
 const doneLine = computed((): string =>
-    trans('Done on :date · :name', {
-        date: shortDate(reminder.value?.done_on ?? entry.date),
-        name: reminder.value?.done_by ?? '',
-    }),
+    doneLineOf(
+        reminder.value?.done_on ?? entry.date,
+        reminder.value?.done_by ?? null,
+    ),
 );
 
 /**

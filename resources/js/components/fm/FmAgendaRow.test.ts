@@ -156,13 +156,13 @@ describe('FmAgendaRow', () => {
             expect(screen.getByText('tomorrow')).toHaveClass('bg-action-soft');
         });
 
-        it('shows a passed deadline in red with its month, the date and how long ago', () => {
+        it('shows a passed deadline in red with its month, what happens and how long ago', () => {
             render(FmAgendaRow, { props: { entry: agendaEntries[0] } });
 
             const link = screen.getByRole('button');
             expect(within(link).getByText('sep')).toHaveClass('text-overdue');
             expect(
-                within(link).getByText('Document expiry · 30/09/2026'),
+                within(link).getByText('Document expiry'),
             ).toBeInTheDocument();
             expect(screen.getByText('26 days ago')).toHaveClass('text-overdue');
         });
@@ -207,6 +207,39 @@ describe('FmAgendaRow', () => {
             expect(row).toHaveTextContent('Done on 05/11 · Laura');
             expect(row).not.toHaveTextContent('days');
             expect(row).not.toHaveTextContent('—');
+        });
+
+        it('has no dangling dot when nobody is known to have closed it', () => {
+            render(FmAgendaRow, {
+                props: {
+                    entry: entry({
+                        reminder: {
+                            ...agendaEntries[8].reminder!,
+                            done_by: null,
+                        },
+                    }),
+                    done: true,
+                },
+            });
+
+            const row = screen.getByRole('button');
+            expect(row).toHaveTextContent('Done on 05/11');
+            expect(row.textContent).not.toContain('·');
+        });
+
+        it('does not repeat the late date in the second line of the agenda', () => {
+            render(FmAgendaRow, {
+                props: {
+                    entry: entry({
+                        date: '2026-10-20',
+                        detail: 'Document expiry',
+                    }),
+                },
+            });
+
+            const row = screen.getByRole('button');
+            expect(row).toHaveTextContent('Document expiry');
+            expect(row).not.toHaveTextContent('Document expiry · 20/10/2026');
         });
 
         it('tells the day of the closing on the left in the done list', () => {

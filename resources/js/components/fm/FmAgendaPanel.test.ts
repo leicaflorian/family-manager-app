@@ -344,6 +344,21 @@ describe('FmAgendaPanel', () => {
             }),
         });
 
+        it('says only when without a known name', () => {
+            renderPage(FmAgendaPanel, {
+                entry: entry({
+                    reminder: reminder({
+                        state: 'done' as App.Enums.AgendaReminderState,
+                        done_on: '2026-11-01',
+                        done_by: null,
+                    }),
+                }),
+                done: true,
+            });
+
+            expect(screen.getByText('Done on 01/11')).toBeInTheDocument();
+        });
+
         it('says when and by whom, and has Reopen instead of Done and Postpone', async () => {
             const reopen = vi
                 .spyOn(router, 'delete')

@@ -18,14 +18,14 @@
  * @group rows
  */
 import { Bell, Check, ChevronRight, RotateCcw } from '@lucide/vue';
-import { trans, transChoice } from 'laravel-vue-i18n';
+import { transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { shortDate, shortMonth, weekdayShort } from '@/lib/budget';
 import { daysFromToday, relativeDays, toDate } from '@/lib/format';
-import { reopenReminder } from '@/lib/agenda';
+import { doneLineOf, reopenReminder } from '@/lib/agenda';
 import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
 import FmAmount from './FmAmount.vue';
@@ -87,13 +87,6 @@ const homeSubtitle = computed((): string =>
               .join(' · '),
 );
 
-/** The line under the thing: what happens, with the whole date once passed. */
-const detail = computed((): string =>
-    [entry.detail, late.value ? date(entry.date) : '']
-        .filter((part) => part !== '')
-        .join(' · '),
-);
-
 /** The day shown on the left: when it was closed in the Done list, else the day it falls on. */
 const shownDate = computed((): string =>
     done ? (entry.reminder?.done_on ?? entry.date) : entry.date,
@@ -109,10 +102,7 @@ const hasNotice = computed(
 
 /** The line of the Done list: when it was closed and by whom. */
 const doneLine = computed((): string =>
-    trans('Done on :date · :name', {
-        date: shortDate(shownDate.value),
-        name: entry.reminder?.done_by ?? '',
-    }),
+    doneLineOf(shownDate.value, entry.reminder?.done_by ?? null),
 );
 
 /** Under the day: its weekday, or the month for what is already passed. */
@@ -225,7 +215,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                     v-else
                     class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:text-body-sm"
                 >
-                    <span class="truncate">{{ detail }}</span>
+                    <span class="truncate">{{ entry.detail }}</span>
                     <FmAvatar
                         v-if="entry.person"
                         class="lg:hidden"

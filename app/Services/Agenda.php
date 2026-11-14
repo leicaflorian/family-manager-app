@@ -297,7 +297,7 @@ final readonly class Agenda
         $days = array_map(static fn (NotificationRule $rule): string => $day->addDays($rule->offset)->toDateString(), $rules);
         sort($days);
         $recipients = array_values(array_unique(array_map(
-            static fn (Delivery $delivery): string => $delivery->user->name,
+            static fn (Delivery $delivery): string => $delivery->user->person instanceof Person ? $delivery->user->person->first_name : $delivery->user->name,
             Notices::deliveriesOf($rules, $accounts),
         )));
         $late = $reminder->day()->toDateString() < $today->toDateString();

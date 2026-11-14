@@ -12,6 +12,19 @@ import { capitalized, longMonth, monthName, shortDate } from './budget';
 import { addDays, endOfWeek } from './days';
 import { isoDate } from './format';
 
+/**
+ * The line of the Done list: when it was closed and, if known, by whom.
+ *
+ * @param day the day it was closed, `yyyy-mm-dd`
+ * @param by the name of who closed it, null when unknown
+ * @returns «Done on 05/11 · Laura», or «Done on 05/11» without a name
+ */
+export function doneLineOf(day: string, by: string | null): string {
+    return by
+        ? trans('Done on :date · :name', { date: shortDate(day), name: by })
+        : trans('Done on :date', { date: shortDate(day) });
+}
+
 /** A block of the list: the entries to sort out, a week, or one month. */
 export type AgendaGroup = {
     /** `overdue`, `this-week`, `next-week`, `later`, or the month as `yyyy-mm`. */
