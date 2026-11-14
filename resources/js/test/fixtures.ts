@@ -1366,6 +1366,29 @@ export const documentFormOptions = {
 };
 
 /**
+ * Builds the reminder of an entry of the Agenda as the server sends it.
+ *
+ * @param reminder - the fields that differ from an open reminder with no notice left
+ * @returns the reminder, with the id and the permissions of an admin
+ */
+function agendaReminder(
+    reminder: Partial<App.Data.AgendaReminderData> = {},
+): App.Data.AgendaReminderData {
+    return {
+        state: 'open' as App.Enums.AgendaReminderState,
+        next_notice: null,
+        id: 1,
+        notice_days: [],
+        recipients: [],
+        done_on: null,
+        done_by: null,
+        can_edit: true,
+        can_delete: true,
+        ...reminder,
+    };
+}
+
+/**
  * Builds an entry of the Agenda as the server sends it.
  *
  * @param entry - the fields that differ from a payment of Marco in the home area
@@ -1387,6 +1410,7 @@ function agendaEntry(
         reminder_done: false,
         reminder: null,
         update_url: null,
+        notes: null,
         href: '/agenda',
         name: entry.subtitle ?? '',
         detail: entry.title,
@@ -1403,7 +1427,12 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         subtitle: 'Document of Giulia',
         name: 'Tessera sanitaria di Giulia',
         detail: 'Document expiry',
-        reminder: { state: 'late', next_notice: null },
+        reminder: agendaReminder({
+            id: 1,
+            state: 'late' as App.Enums.AgendaReminderState,
+            notice_days: ['2026-09-28'],
+            recipients: ['Marco'],
+        }),
         update_url: '/agenda/deadlines/documents.expiry_date/17',
         area: 'general',
         person_id: 3,
@@ -1434,7 +1463,12 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         date: '2026-11-04',
         title: 'End of the free trial',
         subtitle: 'Netflix',
-        reminder: { state: 'open', next_notice: '2026-11-03' },
+        reminder: agendaReminder({
+            id: 2,
+            next_notice: '2026-11-03',
+            notice_days: ['2026-11-03'],
+            recipients: ['Laura'],
+        }),
         area: 'subscriptions',
         person_id: 2,
         person: 'Laura',
@@ -1470,7 +1504,12 @@ export const agendaEntries: App.Data.AgendaEntryData[] = [
         detail: 'Document expiry',
         area: 'general',
         reminder_done: true,
-        reminder: { state: 'done', next_notice: null },
+        reminder: agendaReminder({
+            id: 3,
+            state: 'done' as App.Enums.AgendaReminderState,
+            done_on: '2026-11-05',
+            done_by: 'Laura',
+        }),
     }),
     agendaEntry({
         date: '2026-11-15',

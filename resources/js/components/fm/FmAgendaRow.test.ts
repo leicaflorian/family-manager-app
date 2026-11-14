@@ -83,11 +83,7 @@ describe('FmAgendaRow', () => {
         it('shows the day, its weekday, the thing, what happens, the person and how far it is', () => {
             render(FmAgendaRow, { props: { entry: entry() } });
 
-            const link = screen.getByRole('link');
-            expect(link).toHaveAttribute(
-                'href',
-                '/budget/planned/expense/3/occurrences/2026-10-30',
-            );
+            const link = screen.getByRole('button');
             expect(link).toHaveTextContent('30');
             expect(link).toHaveTextContent('Fri');
             expect(within(link).getByText('Gas - Enel')).toHaveClass(
@@ -135,10 +131,10 @@ describe('FmAgendaRow', () => {
             expect(screen.getByText('+1.850,00 €')).toBeInTheDocument();
         });
 
-        it('puts a dash where a deadline has no amount', () => {
+        it('puts no dash where a deadline has no amount', () => {
             render(FmAgendaRow, { props: { entry: agendaEntries[4] } });
 
-            expect(screen.getByRole('link')).toHaveTextContent('—');
+            expect(screen.getByRole('button')).not.toHaveTextContent('—');
         });
 
         it('highlights tomorrow', () => {
@@ -150,7 +146,7 @@ describe('FmAgendaRow', () => {
         it('shows a passed deadline in red with its month, the date and how long ago', () => {
             render(FmAgendaRow, { props: { entry: agendaEntries[0] } });
 
-            const link = screen.getByRole('link');
+            const link = screen.getByRole('button');
             expect(within(link).getByText('sep')).toHaveClass('text-overdue');
             expect(
                 within(link).getByText('Document expiry · 30/09/2026'),
@@ -158,112 +154,65 @@ describe('FmAgendaRow', () => {
             expect(screen.getByText('26 days ago')).toHaveClass('text-overdue');
         });
 
-        it('tells when the notice of its reminder goes out', () => {
+        it('has a bell next to the name when the reminder has notices', () => {
             render(FmAgendaRow, { props: { entry: agendaEntries[4] } });
 
-            expect(screen.getByText('Notice on 03/11')).toBeInTheDocument();
-        });
-
-        it('tells that the reminder is done', () => {
-            render(FmAgendaRow, { props: { entry: agendaEntries[8] } });
-
-            expect(screen.getByText('Reminder done')).toBeInTheDocument();
-        });
-
-        it('tells that the reminder is late', () => {
-            render(FmAgendaRow, { props: { entry: agendaEntries[0] } });
-
-            expect(screen.getByText('Reminder late')).toBeInTheDocument();
-        });
-
-        it('has no reminder label without a reminder', () => {
-            render(FmAgendaRow, { props: { entry: entry() } });
-
-            expect(screen.queryByText('Reminder done')).toBeNull();
+            expect(
+                screen.getByRole('img', { name: 'Notice set' }),
+            ).toBeInTheDocument();
             expect(screen.queryByText(/Notice on/)).toBeNull();
             expect(screen.queryByText('Reminder late')).toBeNull();
         });
 
-        it('has the buttons to update the date and to renew, outside the link, when asked', async () => {
+        it('has no bell without notices, without a reminder or once done', async () => {
+            const reminder = agendaEntries[4].reminder;
+            const bare = { ...reminder!, notice_days: [] };
             const view = render(FmAgendaRow, {
-                props: { entry: agendaEntries[0], actions: true },
+                props: { entry: { ...agendaEntries[4], reminder: bare } },
             });
+            expect(
+                screen.queryByRole('img', { name: 'Notice set' }),
+            ).toBeNull();
 
-            const update = screen.getByRole('button', {
-                name: 'Update the date',
-            });
-            const renewed = screen.getByRole('button', { name: 'Renewed' });
-            expect(screen.getByRole('link')).not.toContainElement(update);
+            await view.rerender({ entry: entry() });
+            expect(
+                screen.queryByRole('img', { name: 'Notice set' }),
+            ).toBeNull();
 
-            await userEvent.click(update);
-            await userEvent.click(renewed);
-
-            expect(view.emitted()['update-date']).toHaveLength(1);
-            expect(view.emitted().renewed).toHaveLength(1);
+            await view.rerender({ entry: agendaEntries[4], done: true });
+            expect(
+                screen.queryByRole('img', { name: 'Notice set' }),
+            ).toBeNull();
         });
 
-        it('puts the second button under the first when both do not fit in the card', () => {
+        it('says who closed it and when, without the amount, in the done list', () => {
             render(FmAgendaRow, {
-                props: { entry: agendaEntries[0], actions: true },
+                props: { entry: agendaEntries[8], done: true },
             });
 
-            // On a narrow phone the two labels can be wider than the card: the
-            // buttons wrap, instead of going out.
-            const update = screen.getByRole('button', {
-                name: 'Update the date',
-            });
-            expect(update.parentElement).toHaveClass('flex-wrap');
+            const row = screen.getByRole('button');
+            expect(row).toHaveTextContent('Done on 05/11/2026 · Laura');
+            expect(row).not.toHaveTextContent('days');
+            expect(row).not.toHaveTextContent('—');
         });
 
-        it('draws the buttons as the board of the Agenda: compact, the first white with a grey edge', () => {
+        it('tells the day of the closing on the left in the done list', () => {
             render(FmAgendaRow, {
-                props: { entry: agendaEntries[0], actions: true },
+                props: { entry: agendaEntries[8], done: true },
             });
 
-            const update = screen.getByRole('button', {
-                name: 'Update the date',
-            });
-            const renewed = screen.getByRole('button', { name: 'Renewed' });
-            expect(update).toHaveClass(
-                'border-edge-soft',
-                'text-ink',
-                'text-label',
-            );
-            expect(renewed).toHaveClass('bg-action', 'text-label');
-            expect(update.querySelector('svg')).toHaveAttribute('width', '16');
-            expect(renewed.querySelector('svg')).toHaveAttribute('width', '14');
+            const row = screen.getByRole('button');
+            expect(row).toHaveTextContent('5');
+            expect(row).toHaveTextContent('nov');
         });
 
-        it('keeps the buttons side by side on the computer, under the row when the row needs the room', () => {
-            render(FmAgendaRow, {
-                props: { entry: agendaEntries[0], actions: true },
-            });
+        it('opens the panel when the row is tapped, with no link', async () => {
+            const view = render(FmAgendaRow, { props: { entry: entry() } });
 
-            // The link keeps room for its columns and the title; the buttons
-            // never shrink: when both do not fit, the buttons go to a new line.
-            const buttons = screen.getByRole('button', {
-                name: 'Update the date',
-            }).parentElement;
-            expect(buttons).toHaveClass('lg:shrink-0', 'lg:flex-nowrap');
-            expect(buttons?.parentElement).toHaveClass('lg:flex-wrap');
-            expect(screen.getByRole('link')).toHaveClass('lg:basis-[34rem]');
-        });
+            expect(screen.queryByRole('link')).toBeNull();
+            await userEvent.click(screen.getByRole('button'));
 
-        it('has no buttons for a deadline the person may not change', () => {
-            render(FmAgendaRow, {
-                props: {
-                    entry: { ...agendaEntries[0], update_url: null },
-                    actions: true,
-                },
-            });
-
-            expect(screen.queryByRole('button')).toBeNull();
-        });
-
-        it('has no buttons when not asked', () => {
-            render(FmAgendaRow, { props: { entry: agendaEntries[0] } });
-
-            expect(screen.queryByRole('button')).toBeNull();
+            expect(view.emitted().open).toHaveLength(1);
         });
     });
 });

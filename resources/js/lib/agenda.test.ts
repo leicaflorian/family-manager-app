@@ -2,12 +2,7 @@ import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
 import { createApp } from 'vue';
 import { beforeAll, describe, expect, it } from 'vite-plus/test';
 import { agendaAreas, agendaEntries } from '@/test/fixtures';
-import {
-    agendaTotals,
-    areaCounts,
-    groupByWeek,
-    visibleEntries,
-} from './agenda';
+import { areaCounts, doneByMonth, groupByWeek, visibleEntries } from './agenda';
 import { i18nOptions } from './i18n';
 
 const today = '2026-10-26';
@@ -98,18 +93,32 @@ describe('groupByWeek', () => {
         ]);
     });
 
-    it('sums the payments of a group, not the incomes', () => {
-        const [overdue, week, next, later] = groupByWeek(
-            agendaEntries,
+    it('puts every passed entry in the group to sort out: deadlines, payments and tasks', () => {
+        const task = {
+            ...agendaEntries[4],
+            key: 'task:7',
+            kind: 'task',
+            title: 'Portare la bici a riparare',
+            date: '2026-10-20',
+        };
+        const payment = { ...agendaEntries[2], date: '2026-10-25' };
+        const [overdue] = groupByWeek(
+            [agendaEntries[0], task, payment],
             today,
             '2026-11-26',
             1,
         );
 
-        expect(overdue.outgoing).toBeNull();
-        expect(week.outgoing).toBe(122.1);
-        expect(next.outgoing).toBe(76.39);
-        expect(later.outgoing).toBe(1219);
+        expect(overdue.overdue).toBe(true);
+        expect(overdue.entries).toHaveLength(3);
+    });
+
+    it('has no sum on the groups', () => {
+        const groups = groupByWeek(agendaEntries, today, '2026-11-26', 1);
+
+        for (const group of groups) {
+            expect(group).not.toHaveProperty('outgoing');
+        }
     });
 
     it('has no group to sort out when nothing is passed', () => {
@@ -148,33 +157,45 @@ describe('groupByWeek', () => {
     });
 });
 
-describe('agendaTotals', () => {
-    it('counts the passed deadlines', () => {
-        expect(agendaTotals(agendaEntries, today).overdue).toBe(1);
+describe('doneByMonth', () => {
+    /** A closed entry, done on the day given. */
+    function closed(doneOn: string): App.Data.AgendaEntryData {
+        return {
+            ...agendaEntries[8],
+            key: `deadline:${doneOn}`,
+            reminder: { ...agendaEntries[8].reminder!, done_on: doneOn },
+        };
+    }
+
+    it('makes a group for each month of the closing, the most recent first', () => {
+        const groups = doneByMonth([
+            closed('2026-11-05'),
+            closed('2026-10-30'),
+            closed('2026-11-01'),
+        ]);
+
+        expect(groups.map((group) => group.key)).toEqual([
+            '2026-11',
+            '2026-10',
+        ]);
+        expect(groups.map((group) => group.title)).toEqual([
+            'November 2026',
+            'October 2026',
+        ]);
+        expect(groups.map((group) => group.entries.length)).toEqual([2, 1]);
+        expect(groups.every((group) => !group.overdue)).toBe(true);
     });
 
-    it('sums the payments of this week, up to Sunday, and counts what goes out', () => {
-        expect(agendaTotals(agendaEntries, today).week).toEqual({
-            amount: 122.1,
-            count: 2,
-            from: '2026-10-26',
-            to: '2026-11-01',
-        });
-    });
+    it('keeps the order of the server inside a month and is empty without entries', () => {
+        const groups = doneByMonth([
+            closed('2026-11-05'),
+            closed('2026-11-01'),
+        ]);
 
-    it('sums the payments of the whole period and counts what goes out, the passed deadlines too', () => {
-        expect(agendaTotals(agendaEntries, today).period).toEqual({
-            amount: 1417.49,
-            count: 10,
-        });
-    });
-
-    it('is all zero without entries', () => {
-        expect(agendaTotals([], today)).toEqual({
-            overdue: 0,
-            week: { amount: 0, count: 0, from: today, to: '2026-11-01' },
-            period: { amount: 0, count: 0 },
-        });
+        expect(
+            groups[0].entries.map((entry) => entry.reminder?.done_on),
+        ).toEqual(['2026-11-05', '2026-11-01']);
+        expect(doneByMonth([])).toEqual([]);
     });
 });
 
