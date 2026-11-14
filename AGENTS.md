@@ -9,6 +9,8 @@ La [tela di Claude Design](https://claude.ai/artifact/XwCgtJdtBEgWrGDbLAmRrr) (*
 - Un componente nuovo prende la sua riga in `boards.json` e la sua scheda nella tavola nello stesso lavoro; un componente che cambia aspetto aggiorna la sua scheda prima del commit.
 - Le tavole scrivono i colori e le ombre con `var(--…)` di `ds/family-manager/tokens.css` (copia di `resources/css/tokens.css`), mai in esadecimale; i raggi in px, con i valori dei token.
 - Quando il proprietario chiede di portare una tavola nel codice, si confrontano tavola e componente e si cambia il componente.
+- **Pagine e layout**: prima di creare o cambiare una pagina si scaricano le sue tavole delle schermate, quella del telefono (`project/<Schermata>.dc.html`) e quella larga (`project/<Schermata>-pc.dc.html`, la disposizione di `useWideLayout()`), e la si costruisce con i componenti di `components/fm/` che quelle tavole usano. Una schermata nuova si disegna prima nella tela, in tutte e due le versioni, e poi si scrive. L'elenco delle tavole si legge con `Artifact list`, `scope: "files"`, `url` della tela; il design system (`Artifact list` sul suo `url`) pubblica solo i token (`project/tokens.json`) e la scheda che porta alla tela, i componenti come tavole stanno nella tela.
+- **I subagenti non aprono la tela**: chi coordina scarica le tavole che servono al task (`Artifact read`, `paths: ["project/<Tavola>.dc.html"]`, `out_dir` nella cartella del piano, per esempio `.superpowers/sdd/…/boards/`) e nel prompt del subagente scrive i percorsi dei file da leggere, così il confronto con la tavola si fa nel task e non solo alla fine nel browser.
 
 ## Regole del progetto
 
