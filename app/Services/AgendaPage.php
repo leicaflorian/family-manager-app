@@ -69,19 +69,17 @@ final readonly class AgendaPage
         };
 
         return [
-            'agenda' => function () use ($today, $until, $months, $user, $shown, $view): AgendaData {
-                return new AgendaData(
-                    entries: $this->entries($today, $until),
-                    months: $months,
-                    from: $today->toDateString(),
-                    to: $until->toDateString(),
-                    people: PersonData::ofFamily($user),
-                    filters: $shown,
-                    areas: AgendaData::areas($this->familyAreas),
-                    view: $view,
-                    family_hidden: $this->familyAreas->hiddenValues(),
-                );
-            },
+            'agenda' => fn (): AgendaData => new AgendaData(
+                entries: $this->entries($today, $until),
+                months: $months,
+                from: $today->toDateString(),
+                to: $until->toDateString(),
+                people: PersonData::ofFamily($user),
+                filters: $shown,
+                areas: AgendaData::areas($this->familyAreas),
+                view: $view,
+                family_hidden: $this->familyAreas->hiddenValues(),
+            ),
             // Own props of the page, because only a top-level prop can merge: the pages of the done rows add up
             'done' => Inertia::merge(fn (): array => $done()['entries'] ?? []),
             'done_next_page' => fn (): ?int => $done()['next'] ?? null,

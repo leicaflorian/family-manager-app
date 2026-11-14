@@ -22,7 +22,7 @@ final class AgendaReminderData extends Data
      * @param  list<string>  $notice_days  the days of all the notices of the current date, `yyyy-mm-dd`, by date
      * @param  list<string>  $recipients  the first names of the people whose accounts receive them (the account name when it has no person)
      * @param  string|null  $done_on  the day it was marked done, `yyyy-mm-dd`; null while it is not done
-     * @param  string|null  $done_by  the name of the account that marked it done
+     * @param  string|null  $done_by  the first name of whoever marked it done (the account's name without a person)
      * @param  bool  $can_edit  whether whoever looks may change it
      * @param  bool  $can_delete  whether whoever looks may delete it
      */
