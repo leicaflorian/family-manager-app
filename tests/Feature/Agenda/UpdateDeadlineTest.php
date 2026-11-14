@@ -123,7 +123,7 @@ test('the entries of the Agenda carry the address to change their date, only to 
         ->and($url($this->member, "deadline:documents.expiry_date:{$card->id}:"))->not->toBeNull()
         ->and($url($this->marco, $warranty))->toStartWith(url('/agenda/deadlines/belongings.warranty_expiry_date/'))
         ->and($url($this->member, $warranty))->toBeNull()
-        ->and(collect(test()->actingAs($this->marco)->get('/agenda')->viewData('page')['props']['agenda']['entries'])->firstWhere('kind', 'income')['update_url'])->toBeNull();
+        ->and(collect(test()->actingAs($this->marco)->get('/agenda')->viewData('page')['props']['agenda']['entries'])->firstWhere('kind', 'payment')['update_url'])->toBeNull();
 });
 
 test('a new reminder is born only for this family', function (): void {

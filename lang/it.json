@@ -1048,6 +1048,7 @@
     "There must always be a default group: the one of the deadlines that are in no group. To change it, mark another group as the default.": "Serve sempre un gruppo predefinito: è quello delle scadenze che non stanno in nessun gruppo. Per cambiarlo, segna come predefinito un altro gruppo.",
     "Unnamed": "Senza nome",
     "Document expiry": "Scadenza del documento",
+    "Task": "Impegno",
     "Some of the people chosen do not have an account.": "Alcune delle persone scelte non hanno un account.",
     "With :kind – :card – of :date the notices go out on :days.": "Con :kind – :card – del :date gli avvisi partono il :days.",
     "How many days before, where and to whom": "Quanti giorni prima, dove e a chi",

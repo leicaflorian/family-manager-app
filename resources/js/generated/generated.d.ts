@@ -22,7 +22,10 @@ readonly to: string,
 readonly people: App.Data.PersonData[],
 readonly filters: App.Data.AgendaFiltersData,
 readonly areas: App.Data.OptionData[],
-readonly open_reminders: number,
+readonly overdue: number,
+readonly view: string,
+readonly done: App.Data.AgendaEntryData[],
+readonly done_next_page: number | null,
 readonly periods: number[],
 readonly family_hidden: string[],
 };
@@ -43,6 +46,7 @@ readonly reminder_done: boolean,
 readonly reminder: App.Data.AgendaReminderData | null,
 readonly href: string,
 readonly update_url: string | null,
+readonly notes: string | null,
 };
 export type AgendaFiltersData = {
 readonly months: number,
@@ -52,6 +56,13 @@ readonly hidden_areas: string[],
 export type AgendaReminderData = {
 readonly state: App.Enums.AgendaReminderState,
 readonly next_notice: string | null,
+readonly id: number,
+readonly notice_days: string[],
+readonly recipients: string[],
+readonly done_on: string | null,
+readonly done_by: string | null,
+readonly can_edit: boolean,
+readonly can_delete: boolean,
 };
 export type AgentReleaseData = {
 readonly version: string,

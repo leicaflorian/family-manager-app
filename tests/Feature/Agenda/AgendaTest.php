@@ -13,7 +13,6 @@ use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
-use App\Models\PlannedIncome;
 use App\Models\Reminder;
 use App\Models\Subscription;
 use App\Models\User;
@@ -23,6 +22,7 @@ use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -50,6 +50,17 @@ function agendaFor(User $user, string $query = ''): array
 }
 
 /**
+ * What the old Agenda showed: the late deadlines and the entries of today and after, without the late payments.
+ *
+ * @param  array<string, mixed>  $agenda  the props of the Agenda
+ * @return list<array<string, mixed>>
+ */
+function agendaUpcoming(array $agenda): array
+{
+    return array_values(array_filter($agenda['entries'], static fn (array $entry): bool => $entry['kind'] !== 'payment' || $entry['date'] >= $agenda['from']));
+}
+
+/**
  * Only some keys of the entries, to compare them.
  *
  * @param  list<array<string, mixed>>  $entries  the entries
@@ -67,9 +78,8 @@ test('the agenda of one month has the twelve entries of the board in its order',
     expect($agenda['months'])->toBe(1)
         ->and($agenda['from'])->toBe('2026-10-26')
         ->and($agenda['to'])->toBe('2026-11-26')
-        ->and(agendaColumns($agenda['entries'], ['kind', 'date', 'title', 'subtitle', 'person', 'amount']))->toBe([
+        ->and(agendaColumns(agendaUpcoming($agenda), ['kind', 'date', 'title', 'subtitle', 'person', 'amount']))->toBe([
             ['kind' => 'deadline', 'date' => '2026-09-30', 'title' => 'Tessera sanitaria di Giulia', 'subtitle' => 'Document of Giulia', 'person' => 'Giulia', 'amount' => null],
-            ['kind' => 'income', 'date' => '2026-10-27', 'title' => 'Stipendio di Marco', 'subtitle' => 'Marco - Studio Rinaldi', 'person' => 'Marco', 'amount' => 1850.0],
             ['kind' => 'payment', 'date' => '2026-10-30', 'title' => 'Bolletta gas', 'subtitle' => 'Gas - Enel', 'person' => 'Marco', 'amount' => 84.2],
             ['kind' => 'payment', 'date' => '2026-10-31', 'title' => 'Bolletta acqua', 'subtitle' => 'Water - Hera', 'person' => 'Marco', 'amount' => 37.9],
             ['kind' => 'deadline', 'date' => '2026-11-04', 'title' => 'End of the free trial', 'subtitle' => 'Netflix', 'person' => 'Laura', 'amount' => null],
@@ -79,16 +89,15 @@ test('the agenda of one month has the twelve entries of the board in its order',
             ['kind' => 'deadline', 'date' => '2026-11-14', 'title' => "Scade la carta d'identità", 'subtitle' => 'Document of Marco', 'person' => 'Marco', 'amount' => null],
             ['kind' => 'payment', 'date' => '2026-11-15', 'title' => 'Rata mutuo', 'subtitle' => 'Mutuo casa', 'person' => 'Marco', 'amount' => 612.0],
             ['kind' => 'payment', 'date' => '2026-11-21', 'title' => 'Policy renewal', 'subtitle' => 'RC auto Panda - UnipolSai', 'person' => 'Marco', 'amount' => 418.0],
-            ['kind' => 'income', 'date' => '2026-11-23', 'title' => 'Stipendio di Laura', 'subtitle' => 'Laura - Comune di Bologna', 'person' => 'Laura', 'amount' => 1720.0],
         ]);
 
-    $payments = array_filter($agenda['entries'], static fn (array $entry): bool => $entry['kind'] === 'payment');
-    $byArea = array_count_values(array_column($agenda['entries'], 'area'));
+    $payments = array_filter(agendaUpcoming($agenda), static fn (array $entry): bool => $entry['kind'] === 'payment');
+    $byArea = array_count_values(array_column(agendaUpcoming($agenda), 'area'));
     ksort($byArea);
 
     expect(count($payments))->toBe(7)
         ->and(round(array_sum(array_column($payments, 'amount')), 2))->toBe(1417.49)
-        ->and($byArea)->toBe(['banks' => 2, 'general' => 2, 'home' => 3, 'insurance' => 1, 'subscriptions' => 2, 'work' => 2])
+        ->and($byArea)->toBe(['banks' => 2, 'general' => 2, 'home' => 3, 'insurance' => 1, 'subscriptions' => 2])
         ->and(collect($agenda['entries'])->firstWhere('title', "Scade la carta d'identità")['reminder_done'])->toBeTrue()
         ->and(collect($agenda['entries'])->firstWhere('title', 'Tessera sanitaria di Giulia')['reminder_done'])->toBeFalse()
         ->and(array_column($agenda['people'], 'first_name'))->toBe(['Marco', 'Laura', 'Giulia'])
@@ -96,11 +105,10 @@ test('the agenda of one month has the twelve entries of the board in its order',
 });
 
 test('each entry names the thing first and, below, what happens to it', function (): void {
-    $entries = agendaFor(boardFamily())['entries'];
+    $entries = agendaUpcoming(agendaFor(boardFamily()));
 
     expect(agendaColumns($entries, ['name', 'detail']))->toBe([
         ['name' => 'Tessera sanitaria di Giulia', 'detail' => 'Document expiry'],
-        ['name' => 'Marco - Studio Rinaldi', 'detail' => 'Stipendio di Marco'],
         ['name' => 'Gas - Enel', 'detail' => 'Bolletta gas'],
         ['name' => 'Water - Hera', 'detail' => 'Bolletta acqua'],
         ['name' => 'Netflix', 'detail' => 'End of the free trial'],
@@ -110,7 +118,6 @@ test('each entry names the thing first and, below, what happens to it', function
         ['name' => "Scade la carta d'identità", 'detail' => 'Document expiry'],
         ['name' => 'Mutuo casa', 'detail' => 'Rata mutuo'],
         ['name' => 'RC auto Panda - UnipolSai', 'detail' => 'Policy renewal'],
-        ['name' => 'Laura - Comune di Bologna', 'detail' => 'Stipendio di Laura'],
     ]);
 });
 
@@ -153,8 +160,8 @@ test('a deadline carries the state of its automatic reminder and its next notice
     $entries = collect(agendaFor($marco)['entries']);
     $by = static fn (string $name, string $detail): array => $entries->first(static fn (array $entry): bool => $entry['name'] === $name && $entry['detail'] === $detail);
 
-    expect($by('Tessera sanitaria di Giulia', 'Document expiry')['reminder'])->toBe(['state' => 'late', 'next_notice' => null])
-        ->and($by("Scade la carta d'identità", 'Document expiry')['reminder'])->toBe(['state' => 'done', 'next_notice' => null])
+    expect(Arr::only($by('Tessera sanitaria di Giulia', 'Document expiry')['reminder'], ['state', 'next_notice']))->toBe(['state' => 'late', 'next_notice' => null])
+        ->and(Arr::only($by("Scade la carta d'identità", 'Document expiry')['reminder'], ['state', 'next_notice']))->toBe(['state' => 'done', 'next_notice' => null])
         ->and($by('Netflix', 'End of the free trial')['reminder']['state'])->toBe('open')
         ->and($by('Netflix', 'End of the free trial')['reminder']['next_notice'])->toBeString()
         ->and($by('Gas - Enel', 'Bolletta gas')['reminder'])->toBeNull();
@@ -163,17 +170,14 @@ test('a deadline carries the state of its automatic reminder and its next notice
 test('the keys and the addresses of the entries', function (): void {
     $marco = boardFamily();
     $entries = collect(agendaFor($marco)['entries'])->keyBy('title');
-    [$gas, $salary, $identity, $netflix] = insideFamilyOf($marco, fn (): array => [
+    [$gas, $identity, $netflix] = insideFamilyOf($marco, fn (): array => [
         PlannedExpense::query()->where('title', 'Bolletta gas')->sole(),
-        PlannedIncome::query()->where('title', 'Stipendio di Marco')->sole(),
         Document::query()->where('expiry_date', '2026-11-14')->sole(),
         Subscription::query()->where('name', 'Netflix')->sole(),
     ]);
 
     expect($entries['Bolletta gas']['key'])->toBe("payment:{$gas->id}:2026-10-30")
         ->and($entries['Bolletta gas']['href'])->toBe(route('budget.deadlines.show', ['kind' => 'expense', 'id' => $gas->id, 'date' => '2026-10-30']).'?pay=1')
-        ->and($entries['Stipendio di Marco']['key'])->toBe("income:{$salary->id}:2026-10-27")
-        ->and($entries['Stipendio di Marco']['href'])->toBe(route('budget.deadlines.show', ['kind' => 'income', 'id' => $salary->id, 'date' => '2026-10-27']).'?pay=1')
         ->and($entries["Scade la carta d'identità"]['key'])->toBe("deadline:documents.expiry_date:{$identity->id}:2026-11-14")
         ->and($entries["Scade la carta d'identità"]['href'])->toBe(route('documents.show', $identity))
         ->and($entries['End of the free trial']['key'])->toBe("deadline:subscriptions.trial_end_date:{$netflix->id}:2026-11-04")
@@ -181,14 +185,17 @@ test('the keys and the addresses of the entries', function (): void {
         ->and($entries['End of the free trial']['person_id'])->toBe($netflix->person_id);
 });
 
-test('an unpaid payment of yesterday is not in the agenda', function (): void {
+test('an unpaid payment of yesterday is late in the agenda', function (): void {
     $marco = registerFamily();
     insideFamilyOf($marco, fn (): PlannedExpense => agendaPlanned(null, 'Bolletta luce', 50, '2026-10-25', ['is_recurring' => false]));
 
-    expect(agendaFor($marco)['entries'])->toBe([]);
+    expect(array_column(agendaFor($marco)['entries'], 'date'))->toBe(['2026-10-25']);
 
-    // The Home and the calendar look 30 days back
-    $entries = insideFamilyOf($marco, fn (): array => resolve(Agenda::class)->entries(CarbonImmutable::today('Europe/Rome'), CarbonImmutable::parse('2026-11-26', 'Europe/Rome'), paymentsBack: 30));
+    // The Home and the calendar keep their own window: 0 days back by default, 30 for them
+    $today = CarbonImmutable::today('Europe/Rome');
+    $until = CarbonImmutable::parse('2026-11-26', 'Europe/Rome');
+    expect(insideFamilyOf($marco, fn (): array => resolve(Agenda::class)->entries($today, $until)))->toBe([]);
+    $entries = insideFamilyOf($marco, fn (): array => resolve(Agenda::class)->entries($today, $until, paymentsBack: 30));
     expect(array_map(static fn (AgendaEntryData $entry): string => $entry->date, $entries))->toBe(['2026-10-25']);
 });
 
@@ -282,20 +289,17 @@ test('the areas', function (): void {
     $entries = collect(agendaFor(boardFamily())['entries'])->keyBy('title');
 
     expect($entries['Bolletta gas']['area'])->toBe('home')
-        ->and($entries['Stipendio di Marco']['area'])->toBe('work')
         ->and($entries['Tessera sanitaria di Giulia']['area'])->toBe('general');
 });
 
-test('a payment or an income without a card is general', function (): void {
+test('a payment without a card is general', function (): void {
     $marco = registerFamily();
     insideFamilyOf($marco, function (): void {
         agendaPlanned(null, 'Regalo', 30, '2026-11-02', ['is_recurring' => false, 'organization_id' => Organization::factory()->create(['family_id' => CurrentFamily::id(), 'name' => 'Negozio'])->id]);
-        PlannedIncome::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Affitto', 'amount' => 400, 'start_date' => '2026-11-03', 'is_recurring' => false]);
     });
 
     expect(agendaColumns(agendaFor($marco)['entries'], ['title', 'subtitle', 'area', 'person']))->toBe([
         ['title' => 'Regalo', 'subtitle' => 'Negozio', 'area' => 'general', 'person' => null],
-        ['title' => 'Affitto', 'subtitle' => '', 'area' => 'general', 'person' => null],
     ]);
 });
 
@@ -306,7 +310,7 @@ test('a paid due date leaves the agenda', function (): void {
         Expense::factory()->create(['family_id' => CurrentFamily::id(), 'planned_expense_id' => $gas->id, 'occurrence_date' => '2026-10-30', 'amount' => 84.20, 'date' => '2026-10-26']);
     });
 
-    expect(array_column(agendaFor($marco)['entries'], 'title'))->not->toContain('Bolletta gas')->toHaveCount(11);
+    expect(array_column(array_filter(agendaFor($marco)['entries'], static fn (array $entry): bool => $entry['date'] === '2026-10-30'), 'title'))->not->toContain('Bolletta gas');
 });
 
 test('a skipped due date is not in the agenda', function (): void {
@@ -316,7 +320,7 @@ test('a skipped due date is not in the agenda', function (): void {
         PlannedExpenseException::factory()->create(['family_id' => CurrentFamily::id(), 'planned_expense_id' => $gas->id, 'type' => ExceptionType::Skip, 'occurrence_date' => '2026-10-30']);
     });
 
-    expect(array_column(agendaFor($marco)['entries'], 'title'))->not->toContain('Bolletta gas');
+    expect(array_column(array_filter(agendaFor($marco)['entries'], static fn (array $entry): bool => $entry['date'] === '2026-10-30'), 'title'))->not->toContain('Bolletta gas');
 });
 
 test('more months show more entries', function (): void {
@@ -325,7 +329,7 @@ test('more months show more entries', function (): void {
 
     expect($three['months'])->toBe(3)
         ->and($three['to'])->toBe('2027-01-26')
-        ->and(count($three['entries']))->toBeGreaterThan(12);
+        ->and(count($three['entries']))->toBeGreaterThan(count(agendaUpcoming(agendaFor($marco))));
 });
 
 test('an unknown months value counts as one month', function (string $query): void {
@@ -333,7 +337,7 @@ test('an unknown months value counts as one month', function (string $query): vo
 
     expect($agenda['months'])->toBe(1)
         ->and($agenda['to'])->toBe('2026-11-26')
-        ->and($agenda['entries'])->toHaveCount(12);
+        ->and(agendaUpcoming($agenda))->toHaveCount(10);
 })->with(['?months=2', '?months=abc', '?months=', '?months[]=3']);
 
 test('a member sees the agenda', function (): void {
@@ -342,7 +346,7 @@ test('a member sees the agenda', function (): void {
 
     $this->actingAs($member)->get('/agenda')
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Agenda')->has('agenda.entries', 12));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('Agenda')->has('agenda.entries'));
 });
 
 test('an account of the Rossi sees nothing of the Bianchi', function (): void {
@@ -375,12 +379,45 @@ test('the filters accept every area the agenda sends and nothing else', function
     $this->actingAs($marco)->put('/agenda/filters', $payload(['nowhere']))->assertSessionHasErrors('hidden_areas.0');
 });
 
-test('the agenda counts the open reminders of the whole family for the tab, whatever the filters', function (): void {
+test('the agenda has no incomes', function (): void {
+    $agenda = agendaFor(boardFamily(), '?months=3');
+
+    expect($agenda['entries'])->not->toBeEmpty()
+        ->and(array_column($agenda['entries'], 'kind'))->not->toContain('income');
+});
+
+test('the agenda keeps an unpaid payment for 90 days', function (): void {
+    $marco = boardFamily();
+    insideFamilyOf($marco, function (): void {
+        agendaPlanned(null, 'Tre settimane fa', 10.0, '2026-10-15', ['is_recurring' => false]);
+        agendaPlanned(null, 'Tre mesi fa', 10.0, '2026-07-20', ['is_recurring' => false]);
+    });
+
+    $titles = array_column(agendaFor($marco)['entries'], 'title');
+
+    expect($titles)->toContain('Tre settimane fa')->not->toContain('Tre mesi fa');
+});
+
+test('the agenda counts what is late', function (): void {
+    $agenda = agendaFor(boardFamily());
+    $late = array_filter($agenda['entries'], static fn (array $entry): bool => $entry['date'] < $agenda['from']);
+
+    expect($agenda['overdue'])->toBeGreaterThan(0)
+        ->and($agenda['overdue'])->toBe(count($late))
+        ->and($agenda['view'])->toBe('todo')
+        ->and($agenda['done'])->toBe([])
+        ->and($agenda['done_next_page'])->toBeNull();
+});
+
+test('the agenda sends the notices of a deadline reminder', function (): void {
     $this->seed(BianchiFamilySeeder::class);
     $marco = User::query()->where('email', 'marco.bianchi@example.com')->sole();
-    $open = CurrentFamily::using($marco->family_id, fn (): int => Reminder::query()->where('status', ReminderStatus::Open)->count());
 
-    expect($open)->toBeGreaterThan(0)
-        ->and(agendaFor($marco)['open_reminders'])->toBe($open)
-        ->and(agendaFor($marco, '?months=3')['open_reminders'])->toBe($open);
+    $entries = agendaFor($marco, '?months=3')['entries'];
+    $entry = collect($entries)->first(static fn (array $row): bool => $row['kind'] === 'deadline' && $row['reminder'] !== null && $row['reminder']['state'] !== 'done');
+
+    expect($entry)->not->toBeNull()
+        ->and($entry['reminder']['id'])->toBeInt()
+        ->and($entry['reminder']['notice_days'])->not->toBeEmpty()
+        ->and($entry['reminder']['recipients'])->toContain('Marco Bianchi', 'Laura Bianchi');
 });

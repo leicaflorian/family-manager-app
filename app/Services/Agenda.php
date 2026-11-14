@@ -16,12 +16,16 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
+use App\Models\User;
 use App\Queries\CardDeadlines;
 use App\Support\CardDeadline;
+use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use App\Support\ModelId;
 use App\Support\PlannedKind;
+use App\Support\Reminders\Delivery;
 use App\Support\Reminders\Notices;
+use App\Support\Reminders\NotificationRule;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -102,7 +106,8 @@ final readonly class Agenda
         $deadlines = $this->cardDeadlines->between($today->subDays($deadlinesBack), $until, $today);
         $this->loadLabels($deadlines);
         $groups = ReminderGroup::query()->get();
-        $reminder = fn (?CardDeadline $deadline): ?AgendaReminderData => $this->reminderOf($deadline, $today, $groups);
+        $accounts = $this->accounts();
+        $reminder = fn (?CardDeadline $deadline): ?AgendaReminderData => $deadline?->reminder instanceof Reminder ? $this->reminderOf($deadline->reminder, $today, $groups, $accounts) : null;
 
         $byCard = [];
 
@@ -273,30 +278,52 @@ final readonly class Agenda
     }
 
     /**
-     * The automatic reminder of a deadline as the Agenda shows it: to do, late or done, with its next notice.
+     * A reminder as the Agenda shows it: to do, late or done, with its next notice, the days and the recipients of
+     * all its notices, who marked it done and what whoever looks may do with it.
      *
-     * @param  CardDeadline|null  $deadline  the deadline, null for a payment that pays none
+     * @param  Reminder  $reminder  the reminder
      * @param  CarbonImmutable  $today  today in Rome
      * @param  Collection<int, ReminderGroup>  $groups  the groups of notices of the family
+     * @param  Collection<int, User>  $accounts  the accounts of the family, with `person` loaded
      */
-    private function reminderOf(?CardDeadline $deadline, CarbonImmutable $today, Collection $groups): ?AgendaReminderData
+    public function reminderOf(Reminder $reminder, CarbonImmutable $today, Collection $groups, Collection $accounts): AgendaReminderData
     {
-        $reminder = $deadline?->reminder;
-
-        if (! $reminder instanceof Reminder) {
-            return null;
-        }
-
-        if ($reminder->status === ReminderStatus::Done) {
-            return new AgendaReminderData(AgendaReminderState::Done, null);
-        }
-
+        $done = $reminder->status === ReminderStatus::Done;
+        $rules = Notices::rulesFor($reminder, $groups);
+        $day = CarbonImmutable::parse($reminder->day()->toDateString(), $today->timezone);
+        $days = array_map(static fn (NotificationRule $rule): string => $day->addDays($rule->offset)->toDateString(), $rules);
+        sort($days);
+        $recipients = array_values(array_unique(array_map(
+            static fn (Delivery $delivery): string => $delivery->user->name,
+            Notices::deliveriesOf($rules, $accounts),
+        )));
         $late = $reminder->day()->toDateString() < $today->toDateString();
 
         return new AgendaReminderData(
-            $late ? AgendaReminderState::Late : AgendaReminderState::Open,
-            Notices::next($reminder, Notices::rulesFor($reminder, $groups), $today)?->toDateString(),
+            state: match (true) {
+                $done => AgendaReminderState::Done,
+                $late => AgendaReminderState::Late,
+                default => AgendaReminderState::Open,
+            },
+            next_notice: $done ? null : Notices::next($reminder, $rules, $today)?->toDateString(),
+            id: $reminder->id,
+            notice_days: $done ? [] : $days,
+            recipients: $done ? [] : $recipients,
+            done_on: $done ? $reminder->updated_at?->setTimezone($today->timezone)->toDateString() : null,
+            done_by: $done ? $accounts->firstWhere('id', $reminder->updated_by)?->name : null,
+            can_edit: Gate::allows('update', $reminder),
+            can_delete: Gate::allows('delete', $reminder),
         );
+    }
+
+    /**
+     * The accounts of the family with their person, who receive the notices.
+     *
+     * @return Collection<int, User>
+     */
+    public function accounts(): Collection
+    {
+        return User::query()->where('family_id', CurrentFamily::id())->with('person')->orderBy('id')->get();
     }
 
     /**

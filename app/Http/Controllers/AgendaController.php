@@ -7,15 +7,16 @@ namespace App\Http\Controllers;
 use App\Actions\Agenda\SaveAgendaFilters;
 use App\Actions\Agenda\UpdateDeadline;
 use App\Data\AgendaData;
+use App\Data\AgendaEntryData;
 use App\Data\AgendaFiltersData;
 use App\Data\PersonData;
 use App\Http\Middleware\LimitVisit;
 use App\Http\Requests\Agenda\UpdateDeadlineRequest;
 use App\Http\Requests\AgendaFiltersRequest;
 use App\Http\Requests\AgendaRequest;
-use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Agenda;
+use App\Services\AgendaTasks;
 use App\Services\FamilyAreas;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -29,7 +30,7 @@ use Inertia\Response;
  */
 final class AgendaController extends Controller
 {
-    public function __construct(private readonly Agenda $agenda, private readonly FamilyAreas $familyAreas) {}
+    public function __construct(private readonly Agenda $agenda, private readonly AgendaTasks $tasks, private readonly FamilyAreas $familyAreas) {}
 
     /**
      * The Agenda of `?months=1|3|6|12`: the period asked is used and remembered, the remembered one is used when
@@ -55,16 +56,24 @@ final class AgendaController extends Controller
         $shown = new AgendaFiltersData($months, $filters->person_id, $filters->hidden_areas);
         $until = $this->agenda->period($today, $months);
 
+        // Incomes are not things to do; late deadlines and unpaid payments stay for 90 days, tasks without limit
+        $entries = [
+            ...array_filter($this->agenda->entries($today, $until, 90, 90), static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'),
+            ...$this->tasks->open($today, $until),
+        ];
+        usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
+
         return Inertia::render('Agenda', [
             'agenda' => new AgendaData(
-                entries: $this->agenda->entries($today, $until),
+                entries: $entries,
                 months: $months,
                 from: $today->toDateString(),
                 to: $until->toDateString(),
                 people: PersonData::ofFamily($user),
                 filters: $shown,
                 areas: AgendaData::areas($this->familyAreas),
-                open_reminders: Reminder::query()->open()->count(),
+                overdue: count(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->date < $today->toDateString())),
+                view: 'todo',
                 family_hidden: $this->familyAreas->hiddenValues(),
             ),
         ]);

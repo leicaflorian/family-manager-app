@@ -16,8 +16,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class AgendaEntryData extends Data
 {
     /**
-     * @param  string  $key  stable and unique: `deadline:<field>:<id>:<date>`, `payment:<planned id>:<original date>` or `income:<planned id>:<original date>`
-     * @param  string  $kind  `deadline`, `payment` or `income`
+     * @param  string  $key  stable and unique: `deadline:<field>:<id>:<date>`, `payment:<planned id>:<original date>`, `income:<planned id>:<original date>` or `task:<reminder id>`
+     * @param  string  $kind  `deadline`, `payment`, `income` or `task`
      * @param  string  $date  the day, `yyyy-mm-dd`
      * @param  string  $title  what expires or what to pay, for example «Bolletta gas»
      * @param  string  $subtitle  the card or the document, for example «Gas - Enel»; empty when there is nothing to say
@@ -32,6 +32,7 @@ final class AgendaEntryData extends Data
      * @param  AgendaReminderData|null  $reminder  the automatic reminder of the deadline, null when there is none
      * @param  string  $href  the card or the document of a deadline; *A due date* with *I paid it* open for a payment or an income
      * @param  string|null  $update_url  where *Update the date* and *Renewed* send the new date of a deadline; null for a payment, an income, or when whoever looks cannot edit the card
+     * @param  string|null  $notes  the notes of a task; null for the other kinds and for a task without notes
      */
     public function __construct(
         public readonly string $key,
@@ -50,5 +51,6 @@ final class AgendaEntryData extends Data
         public readonly ?AgendaReminderData $reminder,
         public readonly string $href,
         public readonly ?string $update_url = null,
+        public readonly ?string $notes = null,
     ) {}
 }
