@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The tabs at the top of a set of pages (the three of the budget, *Deadlines*
- * and *Reminders* of the Agenda). The page lists its tabs; the one of the open
+ * The tabs at the top of a set of pages (the three of the budget, *To do* and
+ * *Completed* of the Agenda). The page lists its tabs; the one of the open
  * page is marked, and a tab can show a number after its name, and one with nothing behind it can be shown soft and without a link (`disabled`). They are lines
  * under the names (`underline`) or, as in the Agenda, a grey pill with the open
  * tab in white (`pill`). A number of things late (`countLabel`) is a red badge,

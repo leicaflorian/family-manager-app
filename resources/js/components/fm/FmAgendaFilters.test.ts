@@ -223,65 +223,27 @@ describe('FmAgendaFilters', () => {
         });
     });
 
-    describe('without the period, as in Reminders', () => {
-        /** The props of *Reminders*: the two lists in place of the period, and the search. */
-        const reminders = (
+    describe('without the period, as in the Done view', () => {
+        /** The props of the Done view: no period to choose. */
+        const noPeriod = (
             change: Partial<ComponentProps<typeof FmAgendaFilters>> = {},
         ): ComponentProps<typeof FmAgendaFilters> =>
-            props({
-                periods: undefined,
-                views: {
-                    label: 'Status',
-                    options: [
-                        { value: 'open', label: 'To do · 3' },
-                        { value: 'done', label: 'Completed' },
-                    ],
-                },
-                view: 'open',
-                searchLabel: 'Search a reminder',
-                search: '',
-                ...change,
-            });
+            props({ periods: [], ...change });
 
-        it('chooses the list in place of the period, on the computer', async () => {
-            const view = render(FmAgendaFilters, { props: reminders() });
+        it('has no period on the computer', () => {
+            render(FmAgendaFilters, { props: noPeriod() });
 
             expect(
                 screen.queryByRole('radiogroup', { name: 'Period' }),
             ).toBeNull();
             expect(
-                screen.getByRole('radio', { name: 'To do · 3' }),
-            ).toBeChecked();
-
-            await userEvent.click(
-                screen.getByRole('radio', { name: 'Completed' }),
-            );
-
-            expect(view.emitted()['update:view']).toEqual([['done']]);
+                screen.getByRole('radiogroup', { name: 'Person' }),
+            ).toBeInTheDocument();
         });
 
-        it('searches while typing, on the computer', async () => {
-            const view = render(FmAgendaFilters, { props: reminders() });
-
-            await userEvent.type(
-                screen.getByRole('searchbox', { name: 'Search a reminder' }),
-                'a',
-            );
-
-            expect(view.emitted()['update:search']).toEqual([['a']]);
-        });
-
-        it('has no search without its label', () => {
+        it('has only the person and the areas on the phone', () => {
             render(FmAgendaFilters, {
-                props: reminders({ searchLabel: undefined }),
-            });
-
-            expect(screen.queryByRole('searchbox')).toBeNull();
-        });
-
-        it('shows the lists as buttons beside the person and the areas, on the phone', async () => {
-            const view = render(FmAgendaFilters, {
-                props: reminders({ variant: 'sheet', open: false }),
+                props: noPeriod({ variant: 'sheet', open: false }),
             });
 
             const group = screen.getByRole('group', { name: 'Filters' });
@@ -289,32 +251,12 @@ describe('FmAgendaFilters', () => {
                 within(group)
                     .getAllByRole('button')
                     .map((button) => button.textContent?.trim()),
-            ).toEqual(['To do · 3', 'Completed', 'Everyone', 'All areas']);
-            expect(
-                within(group).getByRole('button', { name: 'To do · 3' }),
-            ).toHaveAttribute('aria-pressed', 'true');
-            // The weight changes with the style of the design system, never with a font class.
-            expect(
-                within(group).getByRole('button', { name: 'To do · 3' }),
-            ).toHaveClass('text-label');
-            expect(
-                within(group).getByRole('button', { name: 'Completed' }),
-            ).toHaveClass('text-body-sm');
-            expect(
-                within(group).getByRole('button', { name: 'Completed' }),
-            ).not.toHaveClass('font-medium');
-
-            await userEvent.click(
-                within(group).getByRole('button', { name: 'Completed' }),
-            );
-
-            expect(view.emitted()['update:view']).toEqual([['done']]);
-            expect(view.emitted()['update:open']).toBeUndefined();
+            ).toEqual(['Everyone', 'All areas']);
         });
 
         it('leaves the period out of the panel', async () => {
             render(FmAgendaFilters, {
-                props: reminders({ variant: 'sheet', open: true }),
+                props: noPeriod({ variant: 'sheet', open: true }),
             });
 
             const dialog = await screen.findByRole('dialog', {

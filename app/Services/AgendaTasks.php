@@ -70,7 +70,7 @@ final readonly class AgendaTasks
             ->where('status', ReminderStatus::Done)
             ->when($personId !== null, static fn ($query) => $query->where('person_id', $personId))
             ->with(['link', 'person'])
-            ->orderByDesc('updated_at')
+            ->latest('updated_at')
             ->orderByDesc('id')
             ->offset(($page - 1) * $perPage)
             ->limit($perPage + 1)

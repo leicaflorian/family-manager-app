@@ -11,10 +11,8 @@
  * hidden entries stay counted. The page keeps the filters: the component only
  * says what the person chose.
  *
- * *Reminders* has no period: in its place `views` chooses the list (*To do* and
- * *Done*), a segmented control on the computer and two buttons beside the
- * others on the phone, which choose without opening the panel; and with
- * `searchLabel` the toolbar has a search box before the areas.
+ * Without `periods` (the Done view) the period is left out, on the computer
+ * and on the phone.
  *
  * An area the family hid in the settings (`familyHidden`) is left out of the
  * menu of the areas, unless it still has entries.
@@ -38,7 +36,6 @@ import FmAvatar from './FmAvatar.vue';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
-import FmSearchField from './FmSearchField.vue';
 
 /** Where the filters are shown. */
 export type AgendaFiltersVariant = 'sheet' | 'toolbar';
@@ -48,14 +45,6 @@ export type AgendaFilterState = Pick<
     App.Data.AgendaFiltersData,
     'person_id' | 'hidden_areas'
 > & { months?: number };
-
-/** The lists the person chooses between, in place of the period, and the name of the choice. */
-export type AgendaFilterViews = {
-    /** The name of the choice, for example «Status». */
-    label: string;
-    /** The lists: the value the page knows them by and the text of the button. */
-    options: { value: string; label: string }[];
-};
 
 /** A person of the family the entries can be filtered by. */
 export type AgendaFilterPerson = Pick<
@@ -68,8 +57,6 @@ const {
     filters,
     people,
     periods = [],
-    views,
-    searchLabel,
     areas,
     counts,
     familyHidden = [],
@@ -84,10 +71,6 @@ const {
     areas: App.Data.OptionData[];
     /** The periods the person can choose, in months, as the server offers them; none, no period. */
     periods?: number[];
-    /** The lists to choose between in place of the period, chosen with `v-model:view`. */
-    views?: AgendaFilterViews;
-    /** What is searched: with it the toolbar has a search box, filled with `v-model:search`. */
-    searchLabel?: string;
     /** How many entries each area has for the person chosen, hidden areas too. */
     counts: Record<string, number>;
     /** The areas the family hid in the settings: one shows only while it has entries. */
@@ -110,12 +93,6 @@ const emit = defineEmits<{
 /** The panel is open (only for `sheet`). */
 const open = defineModel<boolean>('open', { default: false });
 
-/** The list chosen among `views`. */
-const view = defineModel<string>('view', { default: '' });
-
-/** The text typed in the search box. */
-const search = defineModel<string>('search', { default: '' });
-
 /** The period can be chosen. */
 const hasPeriod = computed(
     () => periods.length > 0 && filters.months !== undefined,
@@ -125,7 +102,6 @@ const hasPeriod = computed(
 const id = useId();
 
 const [DefinePeriod, ReusePeriod] = createReusableTemplate();
-const [DefineViews, ReuseViews] = createReusableTemplate();
 const [DefinePeople, ReusePeople] = createReusableTemplate();
 const [DefineAreas, ReuseAreas] = createReusableTemplate();
 
@@ -203,7 +179,7 @@ function segment(chosen: boolean): string {
 }
 
 /**
- * The border and the colours of a round button: of a person, or of a list on the phone.
+ * The border and the colours of the round button of a person.
  *
  * @param chosen - whether it is the one chosen
  * @returns ringed in blue when chosen
@@ -228,19 +204,6 @@ function pill(chosen: boolean): string {
         compact.value
             ? 'h-9 gap-[7px] pr-3.5 pl-[5px]'
             : 'h-10 gap-2 pr-3 pl-[7px]',
-        ring(chosen),
-    );
-}
-
-/**
- * The classes of a button of a list on the phone.
- *
- * @param chosen - whether it is the list shown
- * @returns ringed in blue when chosen, as the round button of a person
- */
-function viewChip(chosen: boolean): string {
-    return cn(
-        'flex h-9 shrink-0 cursor-pointer items-center rounded-full pr-2.5 pl-3 text-body-sm whitespace-nowrap text-ink',
         ring(chosen),
     );
 }
@@ -275,30 +238,6 @@ const chip = cn(
             </label>
         </div>
     </DefinePeriod>
-
-    <DefineViews>
-        <div
-            v-if="views"
-            role="radiogroup"
-            :aria-label="views.label"
-            class="flex gap-0.5 rounded-lg bg-divider p-[3px]"
-        >
-            <label
-                v-for="option in views.options"
-                :key="option.value"
-                :class="segment(view === option.value)"
-            >
-                <input
-                    type="radio"
-                    :name="`view-${id}`"
-                    class="absolute size-px opacity-0"
-                    :checked="view === option.value"
-                    @change="view = option.value"
-                />
-                {{ option.label }}
-            </label>
-        </div>
-    </DefineViews>
 
     <DefinePeople>
         <div
@@ -407,21 +346,13 @@ const chip = cn(
         class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-card px-3 py-2.5"
     >
         <ReusePeriod v-if="hasPeriod" />
-        <ReuseViews v-else />
         <span
-            v-if="hasPeriod || views"
+            v-if="hasPeriod"
             aria-hidden="true"
             class="h-6 w-px bg-edge-soft"
         />
         <ReusePeople />
         <span class="grow" />
-        <FmSearchField
-            v-if="searchLabel"
-            v-model="search"
-            small
-            :label="searchLabel"
-            class="min-w-40 shrink basis-[220px]"
-        />
         <PopoverRoot>
             <PopoverTrigger :class="cn(chip, 'gap-2 rounded-md px-3')">
                 {{ areasText }}
@@ -445,18 +376,6 @@ const chip = cn(
             :aria-label="$t('Filters')"
             class="-mx-4 flex gap-2 overflow-x-auto px-4"
         >
-            <template v-if="views">
-                <button
-                    v-for="option in views.options"
-                    :key="option.value"
-                    type="button"
-                    :aria-pressed="view === option.value"
-                    :class="viewChip(view === option.value)"
-                    @click="view = option.value"
-                >
-                    {{ option.label }}
-                </button>
-            </template>
             <button
                 v-if="hasPeriod"
                 type="button"

@@ -51,7 +51,10 @@ describe('FmValueList', () => {
 
         expect(container.querySelectorAll('dd svg')).toHaveLength(1);
         expect(
-            screen.getByText('Notice on 31/10').closest('dd')?.querySelector('svg'),
+            screen
+                .getByText('Notice on 31/10')
+                .closest('dd')
+                ?.querySelector('svg'),
         ).not.toBeNull();
         expect(
             screen.getByText('Polizza').closest('dd')?.querySelector('svg'),

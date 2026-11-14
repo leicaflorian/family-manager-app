@@ -231,9 +231,9 @@ useSaveShortcut(save, () => !form.processing);
                     class="lg:mr-auto"
                     v-if="can_delete && reminder"
                     :url="destroy.url(reminder.id)"
-                    :question="$t('Delete this reminder?')"
-                    :text="$t('It will not come back.')"
-                    :confirm-label="$t('Delete the reminder')"
+                    :question="$t('Delete this task?')"
+                    :text="$t('The task and its notices are deleted for good.')"
+                    :confirm-label="$t('Delete the task')"
                 />
                 <FmButton
                     :variant="desktop ? 'text' : 'soft'"

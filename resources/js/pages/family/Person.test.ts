@@ -196,9 +196,10 @@ describe('A person', () => {
         expect(
             within(late).getByRole('link', { name: 'Agenda' }),
         ).toHaveAttribute('href', '/reminders?person=3');
-        expect(
-            screen.getByRole('link', { name: 'To do 2' }),
-        ).toHaveAttribute('href', '/reminders?person=3');
+        expect(screen.getByRole('link', { name: 'To do 2' })).toHaveAttribute(
+            'href',
+            '/reminders?person=3',
+        );
         expect(coming).not.toHaveClass('text-overdue');
         expect(within(coming).getByText(/in 5 days/)).toBeInTheDocument();
     });

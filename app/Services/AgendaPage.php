@@ -70,10 +70,8 @@ final readonly class AgendaPage
 
         return [
             'agenda' => function () use ($today, $until, $months, $user, $shown, $view): AgendaData {
-                $entries = $this->entries($today, $until);
-
                 return new AgendaData(
-                    entries: $entries,
+                    entries: $this->entries($today, $until),
                     months: $months,
                     from: $today->toDateString(),
                     to: $until->toDateString(),
@@ -104,7 +102,7 @@ final readonly class AgendaPage
     {
         $entries = [
             ...array_filter($this->agenda->entries($today, $until, 90, 90), static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'
-                && ! ($entry->kind === 'deadline' && $entry->reminder?->state === AgendaReminderState::Done)),
+                && ($entry->kind !== 'deadline' || $entry->reminder?->state !== AgendaReminderState::Done)),
             ...$this->tasks->open($today, $until),
         ];
         usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);

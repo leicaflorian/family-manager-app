@@ -202,7 +202,7 @@ export function sectionOf(path: string, items: NavigationItems): Section {
         return 'areas';
     }
 
-    // The reminders are the second tab of the Agenda
+    // The task form (`/reminders/create`, `/reminders/<id>/edit`) opens over the Agenda
     if (path === '/reminders' || path.startsWith('/reminders/')) {
         return 'agenda';
     }

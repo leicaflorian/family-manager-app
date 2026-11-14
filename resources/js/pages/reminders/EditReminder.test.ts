@@ -326,7 +326,7 @@ describe('Edit a reminder', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
         expect(
-            await screen.findByText('Delete this reminder?'),
+            await screen.findByText('Delete this task?'),
         ).toBeInTheDocument();
     });
 
