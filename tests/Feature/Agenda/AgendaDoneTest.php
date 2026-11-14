@@ -69,7 +69,7 @@ it('lists the done things, latest first', function (): void {
     expect($agenda['view'])->toBe('done')
         ->and(collect($agenda['done'])->pluck('key')->take(2)->all())->toBe(['task:'.$recent->id, 'task:'.$old->id])
         ->and($agenda['done'][0]['reminder']['done_on'])->toBe('2026-11-09')
-        ->and($agenda['done'][0]['reminder']['done_by'])->toBe($this->marco->name)
+        ->and($agenda['done'][0]['reminder']['done_by'])->toBe('Marco')
         ->and($agenda['done'][0]['kind'])->toBe('task')
         ->and($agenda['done'][0]['reminder']['state'])->toBe('done');
 });

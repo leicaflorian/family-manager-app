@@ -281,6 +281,16 @@ final readonly class Agenda
     }
 
     /**
+     * How the Agenda names an account: the first name of its person, the account name when it has none.
+     *
+     * @param  User  $user  the account, with `person` loaded
+     */
+    private function shortName(User $user): string
+    {
+        return $user->person instanceof Person ? $user->person->first_name : $user->name;
+    }
+
+    /**
      * A reminder as the Agenda shows it: to do, late or done, with its next notice, the days and the recipients of
      * all its notices, who marked it done and what whoever looks may do with it.
      *
@@ -297,7 +307,7 @@ final readonly class Agenda
         $days = array_map(static fn (NotificationRule $rule): string => $day->addDays($rule->offset)->toDateString(), $rules);
         sort($days);
         $recipients = array_values(array_unique(array_map(
-            static fn (Delivery $delivery): string => $delivery->user->person instanceof Person ? $delivery->user->person->first_name : $delivery->user->name,
+            fn (Delivery $delivery): string => $this->shortName($delivery->user),
             Notices::deliveriesOf($rules, $accounts),
         )));
         $late = $reminder->day()->toDateString() < $today->toDateString();
@@ -313,7 +323,7 @@ final readonly class Agenda
             notice_days: $done ? [] : $days,
             recipients: $done ? [] : $recipients,
             done_on: $done ? $reminder->updated_at?->setTimezone($today->timezone)->toDateString() : null,
-            done_by: $done ? $accounts->firstWhere('id', $reminder->updated_by)?->name : null,
+            done_by: $done && ($closer = $accounts->firstWhere('id', $reminder->updated_by)) instanceof User ? $this->shortName($closer) : null,
             can_edit: Gate::allows('update', $reminder),
             can_delete: Gate::allows('delete', $reminder),
         );
