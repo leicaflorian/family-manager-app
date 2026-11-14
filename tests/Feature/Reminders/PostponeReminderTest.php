@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Models\Document;
 use App\Models\Reminder;
 use App\Models\User;
+use App\Services\Reminders\ReminderList;
 use App\Support\CurrentFamily;
 use App\Support\Reminders\Notices;
 use App\Support\Reminders\NotificationRule;
@@ -36,7 +37,21 @@ function overdueHealthCardReminder(): Reminder
 }
 
 /**
- * The open reminder of the list with this id, as the reminders page sends it.
+ * The open rows of the reminder list, as the pages get them (read from the list service as the account sees it).
+ *
+ * @param  User  $user  the account
+ * @return list<array<string, mixed>>
+ */
+function openReminderRows(User $user): array
+{
+    /** @var list<array<string, mixed>> $open */
+    $open = json_decode((string) json_encode(insideFamilyOf($user, fn (): array => resolve(ReminderList::class)->for(CarbonImmutable::today('Europe/Rome'), null)['open'])), true);
+
+    return $open;
+}
+
+/**
+ * The open reminder of the list with this id, as the pages get it.
  *
  * @param  User  $user  the account
  * @param  int  $id  the reminder
@@ -44,9 +59,7 @@ function overdueHealthCardReminder(): Reminder
  */
 function openReminderRow(User $user, int $id): array
 {
-    $open = test()->actingAs($user)->get('/reminders')->assertOk()->viewData('page')['props']['reminders']['open'];
-
-    return collect($open)->firstWhere('id', $id);
+    return collect(openReminderRows($user))->firstWhere('id', $id);
 }
 
 test('postponing moves the day of the reminder and keeps the deadline it comes from', function (): void {
@@ -71,7 +84,7 @@ test('the list puts a postponed reminder at its new day', function (): void {
     $reminder = overdueHealthCardReminder();
     $this->actingAs($this->marco)->post("/reminders/{$reminder->id}/postpone", ['to' => '2026-12-31']);
 
-    $open = $this->get('/reminders')->viewData('page')['props']['reminders']['open'];
+    $open = openReminderRows($this->marco);
 
     $days = array_column($open, 'due_date');
     $sorted = $days;

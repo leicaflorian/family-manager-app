@@ -13,7 +13,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The window *I paid it* / *It arrived*: when, how much, with which account and an optional receipt.
+ * The window *I paid it* / *It arrived*: when, how much, with which account and an optional receipt; `from_agenda` sends the answer back to the Agenda.
  */
 final class RecordPaymentRequest extends FormRequest
 {
@@ -44,6 +44,7 @@ final class RecordPaymentRequest extends FormRequest
             'amount' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
             'receipt' => ['nullable', ...array_slice(self::FILE, 1)],
+            'from_agenda' => ['sometimes', 'boolean'],
         ];
     }
 

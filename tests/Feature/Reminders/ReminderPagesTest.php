@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Data\AgendaData;
 use App\Enums\ReminderStatus;
 use App\Enums\Role;
 use App\Models\Document;
@@ -12,14 +11,12 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Models\Vehicle;
-use App\Services\FamilyAreas;
 use App\Services\Reminders\ReminderList;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -57,90 +54,17 @@ function openAutomaticReminder(): Reminder
 }
 
 /**
- * The props of the reminders page as an account sees them.
+ * The lists of reminders as the rows the pages get (open and done), read from the list service as an account sees them.
  *
- * @return array<string, mixed>
+ * @return array{open: list<array<string, mixed>>, done: list<array<string, mixed>>}
  */
-function remindersPage(User $user, string $query = ''): array
+function remindersPage(User $user): array
 {
-    return test()->actingAs($user)->get('/reminders'.$query)->assertOk()->viewData('page')['props']['reminders'];
+    /** @var array{open: list<array<string, mixed>>, done: list<array<string, mixed>>} $lists */
+    $lists = json_decode((string) json_encode(insideFamilyOf($user, fn (): array => resolve(ReminderList::class)->for(CarbonImmutable::today('Europe/Rome'), null))), true);
+
+    return $lists;
 }
-
-test('the list is the board: the health card of Giulia is overdue with no more notices, the plumber is the first coming', function (): void {
-    $page = remindersPage($this->marco);
-    $open = collect($page['open']);
-
-    $health = $open->firstWhere('title', 'Renew the document');
-    $plumber = $open->firstWhere('title', "Chiamare l'idraulico per il preventivo del bagno");
-
-    expect($health)->not->toBeNull()
-        ->and($health['due_date'])->toBe('2026-10-20')
-        ->and($health['next_notice'])->toBeNull()
-        ->and($health['is_automatic'])->toBeTrue()
-        ->and($health['person']['name'])->toBe('Giulia')
-        ->and($health['subject']['label'])->toBe('Tessera sanitaria')
-        ->and($health['href'])->toBe('/documents/'.$health['subject']['id'])
-        ->and($open->first()['id'])->toBe($health['id'])
-        ->and($open->skip(1)->first()['id'])->toBe($plumber['id'])
-        ->and($plumber['next_notice'])->toBe('2026-10-30')
-        ->and($plumber['notice_sent'])->toBeTrue()
-        ->and($plumber['is_automatic'])->toBeFalse()
-        ->and($plumber['href'])->toBe('/reminders/'.$plumber['id'].'/edit')
-        ->and($plumber['subject']['type'])->toBe('home')
-        ->and($plumber['subject']['area'])->toBe('home')
-        ->and($health['subject']['area'])->toBe('general')
-        ->and($health['person']['initials'])->toBe('GB')
-        ->and($health['person'])->toHaveKey('photo')
-        ->and($plumber['subject']['href'])->toBe('/cards/home/'.$plumber['subject']['id'])
-        ->and(collect($page['done'])->pluck('status')->unique()->all())->toBe(['done']);
-});
-
-test('the page sends the people with their circles and the areas, for the filters', function (): void {
-    $page = remindersPage($this->marco);
-
-    expect(array_column($page['people'], 'first_name'))->toBe(['Marco', 'Laura', 'Giulia'])
-        ->and($page['people'][0])->toHaveKeys(['id', 'initials', 'photo'])
-        ->and(array_column($page['areas'], 'value'))->toBe(array_column(insideFamilyOf($this->marco, fn (): array => AgendaData::areas(resolve(FamilyAreas::class))), 'value'));
-});
-
-test('each row says whether whoever looks may edit and delete it', function (): void {
-    $written = handWrittenReminder();
-    $automatic = openAutomaticReminder();
-    $row = static fn (User $user, Reminder $reminder): array => collect(remindersPage($user)['open'])->firstWhere('id', $reminder->id);
-
-    expect($row($this->marco, $written))->toMatchArray(['can_edit' => true, 'can_delete' => true])
-        ->and($row($this->member, $written))->toMatchArray(['can_edit' => true, 'can_delete' => false])
-        ->and($row($this->marco, $automatic))->toMatchArray(['can_edit' => false, 'can_delete' => false]);
-});
-
-test('Who filters the list', function (): void {
-    $laura = insideBianchi(fn (): int => Person::query()->where('first_name', 'Laura')->sole()->id);
-
-    $page = remindersPage($this->marco, "?person={$laura}");
-
-    expect(collect($page['open'])->pluck('person.name')->unique()->all())->toBe(['Laura'])
-        ->and($page['person_id'])->toBe($laura)
-        ->and($page['done'])->toBe([]);
-});
-
-test('the list does not ask the database once for each row', function (): void {
-    $this->actingAs($this->marco);
-    $this->get('/reminders')->assertOk();
-    $queries = 0;
-    DB::listen(function () use (&$queries): void {
-        $queries++;
-    });
-    $this->get('/reminders')->assertOk();
-    $before = $queries;
-
-    foreach (range(1, 6) as $i) {
-        handWrittenReminder(['title' => "More {$i}"]);
-    }
-    $queries = 0;
-    $this->get('/reminders')->assertOk();
-
-    expect($queries)->toBeLessThanOrEqual($before);
-});
 
 test('a reminder is created by hand, linked to a card', function (): void {
     $vehicle = insideBianchi(fn (): Vehicle => Vehicle::query()->firstOrFail());
@@ -151,7 +75,7 @@ test('a reminder is created by hand, linked to a card', function (): void {
         'person_id' => null,
         'remindable' => "vehicle:{$vehicle->id}",
         'reminder_group_id' => null,
-    ])->assertRedirect('/reminders');
+    ])->assertRedirect('/agenda');
 
     $reminder = insideBianchi(fn (): Reminder => Reminder::query()->where('title', 'Cambiare le gomme')->with('link')->sole());
 
@@ -174,7 +98,7 @@ test('a reminder written by hand is changed, with its group, its person and its 
         'person_id' => $laura,
         'remindable' => "vehicle:{$vehicle->id}",
         'reminder_group_id' => $group,
-    ])->assertRedirect('/reminders');
+    ])->assertRedirect('/agenda');
 
     $reminder = insideBianchi(fn (): Reminder => Reminder::query()->with('link')->findOrFail($reminder->id));
 
@@ -186,7 +110,7 @@ test('a reminder written by hand is changed, with its group, its person and its 
 
     $this->actingAs($this->marco)->put("/reminders/{$reminder->id}", [
         'title' => 'Pagare il bollo della Panda', 'due_date' => '2026-12-01', 'remindable' => null,
-    ])->assertRedirect('/reminders');
+    ])->assertRedirect('/agenda');
 
     expect(insideBianchi(fn (): bool => Reminder::query()->findOrFail($reminder->id)->link()->exists()))->toBeFalse();
 });
@@ -205,7 +129,7 @@ test('moving the date of a reminder lets its notices go out again', function ():
 test('a reminder written by hand is deleted by an admin', function (): void {
     $reminder = handWrittenReminder();
 
-    $this->actingAs($this->marco)->delete("/reminders/{$reminder->id}")->assertRedirect('/reminders');
+    $this->actingAs($this->marco)->delete("/reminders/{$reminder->id}")->assertRedirect('/agenda');
 
     expect(insideBianchi(fn (): bool => Reminder::query()->whereKey($reminder->id)->exists()))->toBeFalse();
 });
@@ -243,8 +167,8 @@ test('a member creates, edits, marks done and reopens but does not delete', func
     $reminder = handWrittenReminder();
     $this->actingAs($this->member);
 
-    $this->post('/reminders', ['title' => 'Nuovo', 'due_date' => '2026-12-05'])->assertRedirect('/reminders');
-    $this->put("/reminders/{$reminder->id}", ['title' => 'Cambiato', 'due_date' => '2026-12-06'])->assertRedirect('/reminders');
+    $this->post('/reminders', ['title' => 'Nuovo', 'due_date' => '2026-12-05'])->assertRedirect('/agenda');
+    $this->put("/reminders/{$reminder->id}", ['title' => 'Cambiato', 'due_date' => '2026-12-06'])->assertRedirect('/agenda');
     $this->post("/reminders/{$reminder->id}/done")->assertRedirect();
     expect(insideBianchi(fn (): ReminderStatus => Reminder::query()->findOrFail($reminder->id)->status))->toBe(ReminderStatus::Done);
 
@@ -313,9 +237,9 @@ test('a reminder refers to a document or a person, and keeps it when it is saved
     $reminder = handWrittenReminder();
     $this->actingAs($this->marco);
 
-    $this->put("/reminders/{$reminder->id}", ['title' => 'Pagare il bollo', 'due_date' => '2026-11-20', 'remindable' => "document:{$document->id}"])->assertRedirect('/reminders');
-    $this->put("/reminders/{$reminder->id}", ['title' => 'Pagare il bollo 2', 'due_date' => '2026-11-20', 'remindable' => "document:{$document->id}"])->assertRedirect('/reminders');
-    $this->post('/reminders', ['title' => 'Per Laura', 'due_date' => '2026-12-01', 'remindable' => "person:{$laura->id}"])->assertRedirect('/reminders');
+    $this->put("/reminders/{$reminder->id}", ['title' => 'Pagare il bollo', 'due_date' => '2026-11-20', 'remindable' => "document:{$document->id}"])->assertRedirect('/agenda');
+    $this->put("/reminders/{$reminder->id}", ['title' => 'Pagare il bollo 2', 'due_date' => '2026-11-20', 'remindable' => "document:{$document->id}"])->assertRedirect('/agenda');
+    $this->post('/reminders', ['title' => 'Per Laura', 'due_date' => '2026-12-01', 'remindable' => "person:{$laura->id}"])->assertRedirect('/agenda');
 
     $row = collect(remindersPage($this->marco)['open'])->firstWhere('title', 'Per Laura');
     $types = collect($this->get('/reminders/create')->viewData('page')['props']['links'])->pluck('type');
@@ -330,13 +254,6 @@ test('a reminder refers to a document or a person, and keeps it when it is saved
 
 test('an expense is not something a reminder refers to', function (): void {
     $this->actingAs($this->marco)->post('/reminders', ['title' => 'x', 'due_date' => '2026-12-01', 'remindable' => 'expense:1'])->assertSessionHasErrors('remindable');
-});
-
-test('the title of an automatic reminder is in the language of whoever looks', function (): void {
-    $page = $this->actingAs($this->marco)->withHeader('Accept-Language', 'it')->get('/reminders')->assertOk()->viewData('page')['props']['reminders'];
-    $health = collect($page['open'])->firstWhere('is_automatic', true);
-
-    expect($health['title'])->toBe('Rinnovare il documento');
 });
 
 test('the form tells who gets the notices of each group, and of the default one (an account without a person by its name)', function (): void {
@@ -370,19 +287,6 @@ test('the form says when each group notifies, as offsets from the day, and the d
         ->and($props['default_offsets'])->toBe([-7, -1, 0]);
 });
 
-test('the form carries the list beside it and the family-wide open count', function (): void {
-    $reminder = handWrittenReminder();
-    $this->actingAs($this->marco);
-    $open = insideBianchi(fn (): int => Reminder::query()->where('status', ReminderStatus::Open)->count());
-
-    foreach (['/reminders/create', "/reminders/{$reminder->id}/edit", '/reminders'] as $url) {
-        $page = $this->get($url)->assertOk()->viewData('page')['props']['reminders'];
-        expect($page['open_total'])->toBe($open);
-    }
-
-    expect($this->get('/reminders/create')->viewData('page')['props']['reminders']['open'])->not->toBeEmpty();
-});
-
 test('only an admin can delete, and not an automatic reminder', function (): void {
     $written = handWrittenReminder();
     $automatic = openAutomaticReminder();
@@ -398,13 +302,25 @@ test('the title of a reminder joins with its subject in one place', function ():
         ->and(ReminderList::joinTitle('Call the plumber', null))->toBe('Call the plumber');
 });
 
-test('an automatic reminder whose thing is gone leads to the list, not to the edit page that refuses it', function (): void {
-    $id = insideBianchi(fn (): int => Reminder::factory()->create([
-        'family_id' => $this->marco->family_id, 'title' => 'Renew the document', 'is_automatic' => true,
-        'status' => ReminderStatus::Done, 'due_date' => '2026-09-01',
-    ])->id);
+test('it sends the reminders page to the agenda', function (): void {
+    $this->actingAs($this->marco)->get('/reminders')->assertRedirect('/agenda');
+    $this->actingAs($this->marco)->get('/reminders?status=done&person=3')->assertRedirect('/agenda?view=done');
+});
 
-    $row = collect(remindersPage($this->marco)['done'])->firstWhere('id', $id);
+test('it goes back to the agenda after saving or deleting a task', function (): void {
+    $reminder = handWrittenReminder();
+    $this->actingAs($this->marco);
 
-    expect($row['href'])->toBe('/reminders');
+    $this->post('/reminders', ['title' => 'Nuovo', 'due_date' => '2026-12-05'])->assertRedirect(route('agenda'));
+    $this->put("/reminders/{$reminder->id}", ['title' => 'Cambiato', 'due_date' => '2026-12-06'])->assertRedirect(route('agenda'));
+    $this->delete("/reminders/{$reminder->id}")->assertRedirect(route('agenda'));
+});
+
+test('the form no longer carries the list beside it', function (): void {
+    $reminder = handWrittenReminder();
+    $this->actingAs($this->marco);
+
+    foreach (['/reminders/create', "/reminders/{$reminder->id}/edit"] as $url) {
+        expect($this->get($url)->assertOk()->viewData('page')['props'])->not->toHaveKey('reminders');
+    }
 });

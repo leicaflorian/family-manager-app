@@ -5,21 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Reminders\SaveReminder;
-use App\Data\AgendaData;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
-use App\Data\PersonData;
 use App\Data\ReminderGroupChoiceData;
-use App\Data\RemindersPageData;
 use App\Http\Requests\Reminders\SaveReminderRequest;
 use App\Models\Document;
-use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
-use App\Models\User;
 use App\Services\BudgetFormOptions;
 use App\Services\DocumentLinks;
-use App\Services\FamilyAreas;
 use App\Services\Reminders\GroupRecipients;
 use App\Services\Reminders\ReminderList;
 use App\Support\ModelId;
@@ -38,29 +32,16 @@ use Inertia\Response;
  */
 final class ReminderController extends Controller
 {
-    public function __construct(private readonly ReminderList $list, private readonly FamilyAreas $familyAreas) {}
+    public function __construct(private readonly ReminderList $list) {}
 
     /**
-     * *Reminders*: the open ones and the done ones, of everybody or of the person chosen in *Who*.
+     * The old *Reminders* page: the list lives in the Agenda now, and the done filter keeps its place as `?view=done`.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): RedirectResponse
     {
-        return Inertia::render('reminders/Reminders', ['reminders' => $this->page($request)]);
-    }
-
-    /**
-     * The lists of the page, filtered by `?person=` as the index does; the form shows them beside it.
-     */
-    private function page(Request $request): RemindersPageData
-    {
-        $asked = $request->query('person');
-        $personId = is_string($asked) && ctype_digit($asked) && Person::query()->whereKey((int) $asked)->exists() ? (int) $asked : null;
-        $lists = $this->list->for(CarbonImmutable::today('Europe/Rome'), $personId);
-
-        $viewer = $request->user();
-        abort_unless($viewer instanceof User, 401);
-
-        return new RemindersPageData($lists['open'], $lists['done'], PersonData::ofFamily($viewer), $personId, Reminder::query()->open()->count(), AgendaData::areas($this->familyAreas), $this->familyAreas->hiddenValues());
+        return $request->query('status') === 'done'
+            ? to_route('agenda', ['view' => 'done'])
+            : to_route('agenda');
     }
 
     /**
@@ -72,7 +53,7 @@ final class ReminderController extends Controller
 
         $subject = SubjectLink::find($request->query('remindable'));
 
-        return $this->form($request, null, $subject === null ? null : $subject['type'].':'.$subject['id']);
+        return $this->form(null, $subject === null ? null : $subject['type'].':'.$subject['id']);
     }
 
     /**
@@ -82,7 +63,7 @@ final class ReminderController extends Controller
     {
         $save->handle(null, $request->fields(), $request->subject());
 
-        return to_route('reminders.index');
+        return to_route('agenda');
     }
 
     /**
@@ -94,7 +75,7 @@ final class ReminderController extends Controller
 
         $reminder->load('link');
 
-        return $this->form($request, $reminder, $reminder->link === null ? null : $reminder->link->remindable_type.':'.$reminder->link->remindable_id);
+        return $this->form($reminder, $reminder->link === null ? null : $reminder->link->remindable_type.':'.$reminder->link->remindable_id);
     }
 
     /**
@@ -104,7 +85,7 @@ final class ReminderController extends Controller
     {
         $save->handle($reminder, $request->fields(), $request->subject());
 
-        return to_route('reminders.index');
+        return to_route('agenda');
     }
 
     /**
@@ -116,17 +97,16 @@ final class ReminderController extends Controller
 
         $reminder->delete();
 
-        return to_route('reminders.index');
+        return to_route('agenda');
     }
 
     /**
      * The form, empty or with a reminder.
      *
-     * @param  Request  $request  the request, for the filter of the list beside the form
      * @param  Reminder|null  $reminder  the reminder to change, null for a new one
      * @param  string|null  $remindable  the chosen thing as `type:id`
      */
-    private function form(Request $request, ?Reminder $reminder, ?string $remindable): Response
+    private function form(?Reminder $reminder, ?string $remindable): Response
     {
         $today = CarbonImmutable::today('Europe/Rome');
         $row = null;
@@ -149,7 +129,6 @@ final class ReminderController extends Controller
             'default_recipients' => $recipients->ofDefault($groups),
             'default_offsets' => $recipients->offsetsOfDefault($groups),
             'can_delete' => $reminder instanceof Reminder && Gate::allows('delete', $reminder),
-            'reminders' => $this->page($request),
             'links' => $this->links(),
         ]);
     }

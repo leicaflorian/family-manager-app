@@ -712,15 +712,6 @@ readonly label: string,
 readonly href: string | null,
 readonly area: string,
 };
-export type RemindersPageData = {
-readonly open: App.Data.ReminderData[],
-readonly done: App.Data.ReminderData[],
-readonly people: App.Data.PersonData[],
-readonly person_id: number | null,
-readonly open_total: number,
-readonly areas: App.Data.OptionData[],
-readonly family_hidden: string[],
-};
 export type SentInvitationData = {
 readonly email: string,
 readonly link: string | null,

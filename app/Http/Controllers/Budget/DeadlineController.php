@@ -65,7 +65,7 @@ final class DeadlineController extends Controller
     }
 
     /**
-     * *I paid it* / *It arrived*: records the payment and goes back to the due date.
+     * *I paid it* / *It arrived*: records the payment and goes back to the due date, or to the page it was sent from (the Agenda).
      *
      * @throws NotFoundHttpException if the address is not a due date of the family
      */
@@ -79,7 +79,7 @@ final class DeadlineController extends Controller
         $record->handle($deadline, $paid, $request->float('amount'), $account === 0 ? null : $account, $receipt instanceof UploadedFile ? $receipt : null);
         Inertia::flash('toast', ['type' => 'success', 'message' => $kind === 'income' ? __('Income recorded.') : __('Payment recorded.')]);
 
-        return $this->back($kind, $id, $date);
+        return $request->boolean('from_agenda') ? back() : $this->back($kind, $id, $date);
     }
 
     /**

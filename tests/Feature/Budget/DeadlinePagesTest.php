@@ -110,6 +110,18 @@ test('it records the payment and goes back to the due date', function (): void {
         ->where('deadline.payment.date', '2026-10-26'));
 });
 
+test('it goes back to the agenda after paying from it', function (): void {
+    $address = deadlineAddress('Assicurazione auto', '2026-11-21');
+
+    $this->actingAs($this->marco)
+        ->from(route('agenda'))
+        ->post("{$address}/payment", ['date' => '2026-10-26', 'amount' => 418, 'from_agenda' => true])
+        ->assertRedirect(route('agenda'))
+        ->assertInertiaFlash('toast.type', 'success');
+
+    $this->post("{$address}/payment", ['date' => '2026-10-26', 'amount' => 418, 'from_agenda' => 'nope'])->assertSessionHasErrors('from_agenda');
+});
+
 test('it refuses to pay twice and keeps one expense', function (): void {
     $address = deadlineAddress('Retta danza', '2026-11-05');
 

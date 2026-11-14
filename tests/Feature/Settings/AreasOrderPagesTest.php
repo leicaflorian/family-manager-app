@@ -86,16 +86,13 @@ test('a visible area is not marked as hidden', function (): void {
         ->where('hidden', false));
 });
 
-test('the Agenda and Reminders list the visible areas, then the hidden ones, then People and documents', function (): void {
+test('the Agenda lists the visible areas, then the hidden ones, then People and documents', function (): void {
     $expected = ['home', 'health', 'vehicles', 'insurance', 'banks', 'school', 'subscriptions', 'paperwork', 'work', 'general'];
 
     $agenda = $this->actingAs($this->marco)->get('/agenda')->assertOk()->viewData('page')['props']['agenda'];
-    $reminders = $this->actingAs($this->marco)->get('/reminders')->assertOk()->viewData('page')['props']['reminders'];
 
     expect(optionValues($agenda['areas']))->toBe($expected)
-        ->and($agenda['family_hidden'])->toBe(['work'])
-        ->and(optionValues($reminders['areas']))->toBe($expected)
-        ->and($reminders['family_hidden'])->toBe(['work']);
+        ->and($agenda['family_hidden'])->toBe(['work']);
 });
 
 test('the filters of the Agenda still accept a hidden area', function (): void {
