@@ -1,63 +1,182 @@
 <script setup lang="ts">
 /**
- * The *Agenda*: what expires and what is to pay or to arrive, from today to the
- * end of the period chosen, as the boards *Agenda* and *Agenda-pc* draw it.
- * Under the title the tiles sum up what is to sort out (the passed deadlines,
- * only on the computer), what goes out this week and in the whole period. The
- * filters (period, person and areas) are a bar above the list on the computer
- * and three buttons that open a panel from below on the phone. Then the list:
- * first the deadlines already passed (*To sort out*, in red, with *Update the
- * date* and *Renewed*, which open the panel of the new date), then this week, next week and the rest of the period
- * (month by month when it is longer than one), each with what goes out. The
- * server sends the entries of the period; the person and the areas filter in
- * the page.
+ * The *Agenda*: one list of the things to do (deadlines of the cards,
+ * payments of the planned expenses and tasks written by hand), as the boards
+ * *Agenda*, *Agenda-pc*, *Agenda-fatti* and *Agenda-fatti-pc* draw it. Under
+ * the title a switch between *To do* (with the number of the late things in
+ * red) and *Done*, and *New task*. In *To do* a red line says how many things
+ * are late, the filters (period, person and areas: a bar on the computer,
+ * three buttons that open a panel from below on the phone), then the late
+ * things, this week, next week and the rest of the period. In *Done* the
+ * things closed, month by month, the next pages loaded at the end of the list.
+ * A row opens its panel (`FmAgendaPanel`): from below on the phone, beside the
+ * list on the computer (the boards *Agenda-scadenza*, *Agenda-pagamento*,
+ * *Agenda-impegno* and *Agenda-pannello-pc*); from there *Postpone*, *Update
+ * the date*, *Renewed* and *I paid it* open their own panels. The server sends
+ * the entries of the period and the done ones of the person; the person and
+ * the areas filter in the page.
  */
-import { Head } from '@inertiajs/vue3';
-import { CalendarRange, Plus } from '@lucide/vue';
-import { trans, transChoice } from 'laravel-vue-i18n';
+import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
+import { CalendarRange, CircleAlert, CircleCheck, Plus } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
-import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
+import FmAgendaPanel from '@/components/fm/FmAgendaPanel.vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
+import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDeadlineDateSheet from '@/components/fm/FmDeadlineDateSheet.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
+import FmPaySheet from '@/components/fm/FmPaySheet.vue';
+import FmPostponeSheet from '@/components/fm/FmPostponeSheet.vue';
+import FmSidePanel from '@/components/fm/FmSidePanel.vue';
+import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useAgendaFilters } from '@/composables/useAgendaFilters';
-import { useFormat } from '@/composables/useFormat';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import {
-    agendaTotals,
     areaCounts,
+    doneByMonth,
     groupByWeek,
     visibleEntries,
 } from '@/lib/agenda';
-import { shortDate } from '@/lib/budget';
-import { agendaTabs } from '@/lib/reminders';
-import { cn } from '@/lib/utils';
+import type { ReminderItem } from '@/lib/reminders';
+import { agenda as agendaRoute } from '@/routes';
+import { payment as paymentRoute } from '@/routes/budget/deadlines';
+import { index as movements } from '@/routes/budget/movements';
 import { create } from '@/routes/reminders';
 
-/** A tile above the list: what it sums up, the figure and the line below. */
-type Tile = {
-    /** What it sums up, for example «This week». */
-    label: string;
-    /** The figure: a count or an amount. */
-    value: string;
-    /** The line below. */
-    hint: string;
-    /** The red tile of what is to sort out. */
-    overdue: boolean;
-};
-
-const { agenda } = defineProps<{
+const {
+    agenda,
+    done = [],
+    done_next_page = null,
+    payment = null,
+    accounts = [],
+} = defineProps<{
     /** The entries of the period with the filters saved, the people and the areas. */
     agenda: App.Data.AgendaData;
+    /** The done things of the person chosen, page after page (only in the Done view). */
+    done?: App.Data.AgendaEntryData[];
+    /** The next page of the done things, or null when there is none. */
+    done_next_page?: number | null;
+    /** The due date of *I paid it*, sent only when the panel asks for it. */
+    payment?: App.Data.DeadlineData | null;
+    /** The accounts to pay with, sent with `payment`. */
+    accounts?: App.Data.OptionData[];
 }>();
 
-const { euro } = useFormat();
+const desktop = useComputerLayout();
 
-/** The passed deadline whose date is being changed, and whether it was renewed; it stays after closing, so the panel can slide away. */
+/** The Done view is open. */
+const doneView = computed(() => agenda.view === 'done');
+
+const { filters, toggleArea, choosePerson, chooseMonths, reset } =
+    useAgendaFilters(agenda.filters);
+
+/** The phone panel of the filters is open. */
+const sheetOpen = ref(false);
+
+/** The two views, with the late things beside *To do*. */
+const tabs = computed((): Tab[] => [
+    {
+        label: trans('To do'),
+        href: agendaRoute().url,
+        current: !doneView.value,
+        ...(agenda.overdue > 0
+            ? {
+                  count: agenda.overdue,
+                  countLabel: trans('To do, :count late', {
+                      count: String(agenda.overdue),
+                  }),
+              }
+            : {}),
+    },
+    {
+        label: trans('Completed'),
+        href: agendaRoute({ query: { view: 'done' } }).url,
+        current: doneView.value,
+    },
+]);
+
+/** The entries of the view open, before the filters of the page. */
+const listed = computed(() => (doneView.value ? done : agenda.entries));
+
+/** The entries for the person and the areas chosen. */
+const shown = computed(() => visibleEntries(listed.value, filters.value));
+
+/** The blocks of the list: by week in *To do* (`from` is today), by month in *Done*. */
+const groups = computed(() =>
+    doneView.value
+        ? doneByMonth(shown.value)
+        : groupByWeek(shown.value, agenda.from, agenda.to, agenda.months),
+);
+
+/** How many entries each area has for the person chosen, the areas turned off too. */
+const counts = computed(() =>
+    areaCounts(listed.value, filters.value.person_id, agenda.areas),
+);
+
+/** The people of the family by id, for the circle of the row and of the panel. */
+const avatars = computed(
+    (): Map<number, Pick<App.Data.PersonData, 'initials' | 'photo'>> =>
+        new Map(agenda.people.map((person) => [person.id, person])),
+);
+
+/** The names of the areas, for the panel. */
+const areaNames = computed(
+    (): Map<string, string> =>
+        new Map(agenda.areas.map((area) => [area.value, area.label])),
+);
+
+/** The server sent nothing for the view, whatever the filters. */
+const nothingListed = computed(() => listed.value.length === 0);
+
+/**
+ * The circle of the person of an entry.
+ *
+ * @param entry - the entry
+ * @returns the initials and photo, or undefined without a person
+ */
+function avatarOf(
+    entry: App.Data.AgendaEntryData,
+): Pick<App.Data.PersonData, 'initials' | 'photo'> | undefined {
+    return entry.person_id === null
+        ? undefined
+        : avatars.value.get(entry.person_id);
+}
+
+/** The entry whose panel is shown; it stays after closing, so the panel can slide away. */
+const opened = ref<App.Data.AgendaEntryData | null>(null);
+
+/** The panel of the entry is open. */
+const panelOpen = ref(false);
+
+/** The entry of the panel as the server sends it now, so a reload refreshes it. */
+const panelEntry = computed(
+    (): App.Data.AgendaEntryData | null =>
+        listed.value.find((entry) => entry.key === opened.value?.key) ??
+        opened.value,
+);
+
+/**
+ * Shows the panel of an entry.
+ *
+ * @param entry - the entry tapped
+ */
+function openPanel(entry: App.Data.AgendaEntryData): void {
+    opened.value = entry;
+    panelOpen.value = true;
+}
+
+/** Closes the panel of the entry. */
+function closePanel(): void {
+    panelOpen.value = false;
+}
+
+/** The passed deadline whose date is being changed, and whether it was renewed. */
 const changing = ref<{
     entry: App.Data.AgendaEntryData;
     renewed: boolean;
@@ -67,123 +186,94 @@ const changing = ref<{
 const changingOpen = ref(false);
 
 /**
- * Opens the panel of the new date of a passed deadline.
+ * Opens the panel of the new date of a deadline, in place of its panel.
  *
  * @param entry - the deadline
  * @param renewed - it was renewed, not only corrected
  */
 function changeDate(entry: App.Data.AgendaEntryData, renewed: boolean): void {
+    closePanel();
     changing.value = { entry, renewed };
     changingOpen.value = true;
 }
-const { filters, toggleArea, choosePerson, chooseMonths, reset } =
-    useAgendaFilters(agenda.filters);
 
-const desktop = useComputerLayout();
-const sheetOpen = ref(false);
+/** The reminder being postponed, as *Postpone* reads it. */
+const postponing = ref<Pick<
+    ReminderItem,
+    'id' | 'title' | 'due_date' | 'subject'
+> | null>(null);
 
-/** The entries for the person and the areas chosen. */
-const shown = computed(() => visibleEntries(agenda.entries, filters.value));
-
-/** The blocks of the list; `from` is today. */
-const groups = computed(() =>
-    groupByWeek(shown.value, agenda.from, agenda.to, agenda.months),
-);
-
-/** How many entries each area has for the person chosen, the areas turned off too. */
-const counts = computed(() =>
-    areaCounts(agenda.entries, filters.value.person_id, agenda.areas),
-);
-
-/** The people of the family by id, for the circle of the row. */
-const avatars = computed(
-    (): Map<number, Pick<App.Data.PersonData, 'initials' | 'photo'>> =>
-        new Map(agenda.people.map((person) => [person.id, person])),
-);
-
-/** The tiles above the list: on the phone without *To sort out*, and with shorter lines. */
-const tiles = computed((): Tile[] => {
-    const totals = agendaTotals(shown.value, agenda.from);
-    const week = totals.week;
-    const period = totals.period;
-
-    const overdue: Tile = {
-        label: trans('To sort out'),
-        value: String(totals.overdue),
-        hint: transChoice(
-            '{1} passed deadline|[0,*] passed deadlines',
-            totals.overdue,
-        ),
-        overdue: true,
-    };
-    const thisWeek: Tile = {
-        label: trans('This week'),
-        value: euro(week.amount),
-        hint: desktop.value
-            ? transChoice(
-                  '{1} :count entry, from :from to :to|[0,*] :count entries, from :from to :to',
-                  week.count,
-                  {
-                      count: String(week.count),
-                      from: shortDate(week.from),
-                      to: shortDate(week.to),
-                  },
-              )
-            : transChoice('{1} :count entry|[0,*] :count entries', week.count, {
-                  count: String(week.count),
-              }),
-        overdue: false,
-    };
-    const untilEnd: Tile = {
-        label: trans('Until :date', { date: shortDate(agenda.to) }),
-        value: euro(period.amount),
-        hint: desktop.value
-            ? transChoice(
-                  '{1} :count outgoing entry :period|[0,*] :count outgoing entries :period',
-                  period.count,
-                  {
-                      count: String(period.count),
-                      period: transChoice(
-                          '{1} in the next month|[2,*] in the next :count months',
-                          agenda.months,
-                          { count: String(agenda.months) },
-                      ),
-                  },
-              )
-            : transChoice(
-                  '{1} :count outgoing entry|[0,*] :count outgoing entries',
-                  period.count,
-                  { count: String(period.count) },
-              ),
-        overdue: false,
-    };
-
-    // A red tile with nothing to sort out would only alarm
-    return desktop.value && totals.overdue > 0
-        ? [overdue, thisWeek, untilEnd]
-        : [thisWeek, untilEnd];
-});
+/** The panel of *Postpone* is open. */
+const postponeOpen = ref(false);
 
 /**
- * The classes of a tile: separate white boxes on the computer (the one to sort
- * out in red), two halves of one box on the phone.
+ * Opens *Postpone* for the reminder of an entry, in place of its panel.
  *
- * @param tile - the tile
- * @returns the classes of its box
+ * @param entry - the entry, with its reminder
  */
-function tileClass(tile: Tile): string {
-    return desktop.value
-        ? cn(
-              'flex flex-[1_1_220px] flex-col gap-1 rounded-card px-[18px] py-4',
-              tile.overdue ? 'bg-overdue/8' : 'bg-card',
-          )
-        : cn(
-              'flex flex-1 flex-col gap-0.5 px-3.5 py-3 not-last:border-r not-last:border-divider',
-          );
+function postpone(entry: App.Data.AgendaEntryData): void {
+    if (entry.reminder === null) {
+        return;
+    }
+
+    closePanel();
+    postponing.value = {
+        id: entry.reminder.id,
+        title: entry.name,
+        due_date: entry.date,
+        subject:
+            entry.subtitle === ''
+                ? null
+                : { label: entry.subtitle, href: null },
+    };
+    postponeOpen.value = true;
 }
 
-/** The server sent nothing for the period, whatever the filters. */
-const nothingInPeriod = computed(() => agenda.entries.length === 0);
+/** The key of the payment asked to the server for *I paid it*, until its panel closes. */
+const paying = ref<string | null>(null);
+
+/**
+ * *I paid it*: asks the server for the due date and the accounts, without
+ * changing the address; the panel of the payment opens when they arrive.
+ *
+ * @param entry - the payment
+ */
+function pay(entry: App.Data.AgendaEntryData): void {
+    closePanel();
+    paying.value = entry.key;
+    router.reload({
+        only: ['payment', 'accounts'],
+        data: { payment: entry.key },
+        preserveUrl: true,
+    });
+}
+
+/** The panel of the payment: open once the due date asked has arrived. */
+const payOpen = computed({
+    get: (): boolean =>
+        payment !== null &&
+        paying.value ===
+            `payment:${payment.planned_id}:${payment.original_date}`,
+    set: (open: boolean): void => {
+        if (!open) {
+            paying.value = null;
+        }
+    },
+});
+
+/** Where the payment is sent: back to the Agenda once recorded. */
+const payAction = computed((): string =>
+    payment === null
+        ? ''
+        : paymentRoute.url(
+              {
+                  kind: payment.kind,
+                  id: payment.planned_id,
+                  date: payment.original_date,
+              },
+              { query: { from_agenda: 1 } },
+          ),
+);
 </script>
 
 <template>
@@ -193,15 +283,26 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
         <template #beside>
             <FmTabs
                 variant="pill"
-                class="w-full sm:w-[340px]"
+                class="w-full sm:w-[260px]"
                 :label="$t('Agenda views')"
-                :tabs="agendaTabs('deadlines', agenda.open_reminders)"
+                :tabs="tabs"
             />
         </template>
         <template #actions>
-            <FmButton variant="outline" :icon="Plus" :href="create().url">{{
-                $t('New reminder')
-            }}</FmButton>
+            <FmButton
+                v-if="desktop"
+                variant="neutral"
+                :icon="Plus"
+                :href="create().url"
+                >{{ $t('New task') }}</FmButton
+            >
+            <FmButton
+                v-else
+                variant="neutral"
+                :icon="Plus"
+                :label="$t('New task')"
+                :href="create().url"
+            />
         </template>
     </FmTitle>
 
@@ -214,7 +315,7 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
             :people="agenda.people"
             :areas="agenda.areas"
             :family-hidden="agenda.family_hidden"
-            :periods="agenda.periods"
+            :periods="doneView ? [] : agenda.periods"
             :counts="counts"
             :shown="shown.length"
             @months="chooseMonths"
@@ -223,37 +324,20 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
             @reset="reset"
         />
 
-        <ul
-            v-if="!nothingInPeriod"
-            :aria-label="$t('In short')"
-            class="m-0 flex list-none p-0"
-            :class="desktop ? 'flex-wrap gap-3' : 'rounded-card bg-card'"
+        <div
+            v-if="!doneView && agenda.overdue > 0"
+            role="status"
+            class="flex items-center gap-2.5 rounded-lg bg-overdue-soft px-3.5 py-2.5 text-label text-overdue lg:px-4 lg:py-3"
         >
-            <li
-                v-for="tile in tiles"
-                :key="tile.label"
-                :class="tileClass(tile)"
-            >
-                <span
-                    class="text-ink-soft"
-                    :class="desktop ? 'text-label' : 'text-meta-strong'"
-                    >{{ tile.label }}</span
-                >
-                <span
-                    class="whitespace-nowrap tabular-nums"
-                    :class="[
-                        desktop ? 'text-stat-lg' : 'text-stat',
-                        tile.overdue ? 'text-overdue' : 'text-ink',
-                    ]"
-                    >{{ tile.value }}</span
-                >
-                <span
-                    class="text-ink-soft"
-                    :class="desktop ? 'text-meta' : 'text-caption'"
-                    >{{ tile.hint }}</span
-                >
-            </li>
-        </ul>
+            <FmIcon :icon="CircleAlert" :size="18" />
+            {{
+                $tChoice(
+                    '{1} :count thing late|[2,*] :count things late',
+                    agenda.overdue,
+                    { count: String(agenda.overdue) },
+                )
+            }}
+        </div>
 
         <FmAgendaFilters
             v-if="desktop"
@@ -262,7 +346,7 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
             :people="agenda.people"
             :areas="agenda.areas"
             :family-hidden="agenda.family_hidden"
-            :periods="agenda.periods"
+            :periods="doneView ? [] : agenda.periods"
             :counts="counts"
             :shown="shown.length"
             @months="chooseMonths"
@@ -271,21 +355,28 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
             @reset="reset"
         />
 
-        <FmEmpty
-            v-if="nothingInPeriod"
-            :icon="CalendarRange"
-            :title="
-                $tChoice(
-                    '{1} Nothing expiring in the next month|[2,*] Nothing expiring in the next :count months',
-                    filters.months,
-                    { count: String(filters.months) },
-                )
-            "
-        >
-            <FmButton v-if="filters.months < 3" @click="chooseMonths(3)">{{
-                $t('See the next 3 months')
-            }}</FmButton>
-        </FmEmpty>
+        <template v-if="nothingListed">
+            <FmEmpty
+                v-if="doneView"
+                :icon="CircleCheck"
+                :title="$t('Nothing done yet')"
+            />
+            <FmEmpty
+                v-else
+                :icon="CalendarRange"
+                :title="
+                    $tChoice(
+                        '{1} Nothing to do in the next month|[2,*] Nothing to do in the next :count months',
+                        filters.months,
+                        { count: String(filters.months) },
+                    )
+                "
+            >
+                <FmButton v-if="filters.months < 3" @click="chooseMonths(3)">{{
+                    $t('See the next 3 months')
+                }}</FmButton>
+            </FmEmpty>
+        </template>
 
         <template v-else>
             <div
@@ -307,43 +398,108 @@ const nothingInPeriod = computed(() => agenda.entries.length === 0);
                 :tone="group.overdue ? 'overdue' : undefined"
                 list
             >
-                <template v-if="group.outgoing !== null" #actions>
+                <template v-if="doneView" #actions>
                     <span
                         class="text-meta whitespace-nowrap text-ink-soft lg:text-body-sm"
-                        >{{
-                            $t(':amount outgoing', {
-                                amount: euro(group.outgoing),
-                            })
-                        }}</span
+                        >{{ group.entries.length }}</span
                     >
                 </template>
                 <FmAgendaRow
                     v-for="entry in group.entries"
                     :key="entry.key"
                     :entry="entry"
-                    :actions="group.overdue"
-                    @update-date="changeDate(entry, false)"
-                    @renewed="changeDate(entry, true)"
-                    :person-avatar="
-                        entry.person_id === null
-                            ? undefined
-                            : avatars.get(entry.person_id)
-                    "
+                    :done="doneView"
+                    :person-avatar="avatarOf(entry)"
+                    @open="openPanel(entry)"
                 />
-                <template v-if="group.overdue" #note>
-                    {{
-                        $t(
-                            'A passed deadline stays here for three months, until you renew it or fix the date.',
-                        )
-                    }}
-                </template>
             </FmCard>
+
+            <WhenVisible
+                v-if="doneView && done_next_page !== null"
+                :key="done_next_page"
+                always
+                :params="{
+                    data: { done_page: done_next_page },
+                    only: ['done', 'done_next_page'],
+                    preserveUrl: true,
+                }"
+            />
         </template>
+
+        <p
+            v-if="doneView"
+            class="m-0 px-1 pb-4 text-center text-meta text-ink-soft"
+        >
+            <Link
+                v-if="desktop"
+                :href="movements().url"
+                class="text-ink-soft hover:text-action"
+                >{{
+                    $t('Paid expenses are in the movements of the Budget')
+                }}</Link
+            >
+            <template v-else>{{
+                $t('Paid expenses are in the movements of the Budget')
+            }}</template>
+        </p>
+
+        <template v-if="panelEntry">
+            <FmSidePanel
+                v-if="desktop && panelOpen"
+                :label="panelEntry.name"
+                @close="closePanel"
+            >
+                <div class="bg-card p-6">
+                    <FmAgendaPanel
+                        :entry="panelEntry"
+                        :done="doneView"
+                        :area-name="areaNames.get(panelEntry.area)"
+                        :person-avatar="avatarOf(panelEntry)"
+                        @postpone="postpone(panelEntry)"
+                        @update-date="changeDate(panelEntry, false)"
+                        @renewed="changeDate(panelEntry, true)"
+                        @pay="pay(panelEntry)"
+                        @close="closePanel"
+                    />
+                </div>
+            </FmSidePanel>
+            <FmBottomSheet
+                v-else-if="!desktop"
+                v-model:open="panelOpen"
+                :title="panelEntry.name"
+                hide-title
+            >
+                <FmAgendaPanel
+                    :entry="panelEntry"
+                    :done="doneView"
+                    :area-name="areaNames.get(panelEntry.area)"
+                    :person-avatar="avatarOf(panelEntry)"
+                    @postpone="postpone(panelEntry)"
+                    @update-date="changeDate(panelEntry, false)"
+                    @renewed="changeDate(panelEntry, true)"
+                    @pay="pay(panelEntry)"
+                    @close="closePanel"
+                />
+            </FmBottomSheet>
+        </template>
+
         <FmDeadlineDateSheet
             v-if="changing"
             v-model:open="changingOpen"
             :entry="changing.entry"
             :renewed="changing.renewed"
+        />
+        <FmPostponeSheet
+            v-if="postponing"
+            v-model:open="postponeOpen"
+            :reminder="postponing"
+        />
+        <FmPaySheet
+            v-if="payment"
+            v-model:open="payOpen"
+            :deadline="payment"
+            :accounts="accounts"
+            :action="payAction"
         />
     </div>
 </template>

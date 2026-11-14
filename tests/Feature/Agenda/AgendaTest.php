@@ -27,6 +27,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
@@ -458,3 +459,57 @@ test('a payment of one time says it is once', function (): void {
 
     expect(collect(agendaFor($marco)['entries'])->firstWhere('title', 'Tassa rifiuti')['planned'])->toBe('Tassa rifiuti, once, on 02/11/2026');
 });
+
+/**
+ * A partial reload of the Agenda with only the props of *I paid it*, as the panel asks for them.
+ *
+ * @param  User  $user  the account
+ * @param  string  $key  the key of the entry, for example `payment:12:2026-10-25`
+ */
+function agendaPaymentReload(User $user, string $key): TestResponse
+{
+    $version = test()->actingAs($user)->get('/agenda')->viewData('page')['version'];
+
+    return test()->actingAs($user)->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'Agenda',
+        'X-Inertia-Partial-Data' => 'payment,accounts',
+    ])->get('/agenda?payment='.urlencode($key));
+}
+
+it('sends a payment on request', function (): void {
+    $marco = registerFamily();
+    $planned = insideFamilyOf($marco, function (): PlannedExpense {
+        FinancialAccount::query()->create(['name' => 'Conto BPER', 'type' => FinancialAccountType::CheckingAccount, 'is_default' => true]);
+
+        return agendaPlanned(null, 'Bolletta luce', 50, '2026-10-25', ['is_recurring' => false]);
+    });
+    $key = "payment:{$planned->id}:2026-10-25";
+
+    $this->actingAs($marco)->get('/agenda?payment='.urlencode($key))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('Agenda')
+            ->missing('payment')
+            ->missing('accounts')
+            ->reloadOnly(['payment', 'accounts'], fn (AssertableInertia $reload): AssertableInertia => $reload
+                ->where('payment.planned_id', $planned->id)
+                ->where('payment.original_date', '2026-10-25')
+                ->where('payment.kind', 'expense')
+                ->where('payment.amount', 50)
+                ->where('accounts.0.label', 'Conto BPER')
+                ->missing('agenda')));
+});
+
+it('answers 404 to a payment of another family or a wrong key', function (string $key): void {
+    $marco = registerFamily();
+    insideFamilyOf($marco, fn (): PlannedExpense => agendaPlanned(null, 'Bolletta luce', 50, '2026-10-25', ['is_recurring' => false]));
+    $rossi = registerFamily('Rossi', 'mario@example.com');
+    $theirs = insideFamilyOf($rossi, fn (): PlannedExpense => agendaPlanned(null, 'Affitto', 700, '2026-10-25', ['is_recurring' => false]));
+
+    agendaPaymentReload($marco, str_replace('{rossi}', (string) $theirs->id, $key))->assertNotFound();
+})->with([
+    'another family' => ['payment:{rossi}:2026-10-25'],
+    'not a payment' => ['deadline:documents.expiry_date:1:2026-10-25'],
+    'a wrong day' => ['payment:{rossi}:2026-13-45'],
+]);

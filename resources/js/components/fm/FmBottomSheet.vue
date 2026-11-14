@@ -26,10 +26,16 @@ const {
     title,
     beforeClose,
     above,
+    hideTitle = false,
     size = 'md',
 } = defineProps<{
     /** The title of the panel. */
     title: string;
+    /**
+     * The content shows its own title and close button (the panel of a row of
+     * the *Agenda*): the title stays only for screen readers, the × goes.
+     */
+    hideTitle?: boolean;
     /** The width on the computer: `md` is 560 px, `lg` 640 px for a panel with a picture beside its text. */
     size?: SheetSize;
     /**
@@ -150,7 +156,10 @@ function keepOpenForMenu(event: KeyboardEvent): void {
                 >
                     <span class="h-[5px] w-10 rounded-full bg-edge" />
                 </DialogClose>
-                <div class="flex items-center justify-between gap-3">
+                <DialogTitle v-if="hideTitle" class="sr-only">{{
+                    title
+                }}</DialogTitle>
+                <div v-else class="flex items-center justify-between gap-3">
                     <DialogTitle class="m-0 text-sheet-title lg:text-stat-lg">{{
                         title
                     }}</DialogTitle>

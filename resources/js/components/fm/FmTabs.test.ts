@@ -87,4 +87,33 @@ describe('FmTabs', () => {
         );
         expect(screen.getByRole('link', { name: 'All 5' })).toBeInTheDocument();
     });
+
+    it('shows a number of late things as a red badge, with its words for screen readers', () => {
+        render(FmTabs, {
+            props: {
+                label: 'Agenda views',
+                variant: 'pill',
+                tabs: [
+                    {
+                        label: 'To do',
+                        href: '/agenda',
+                        count: 3,
+                        countLabel: 'To do, 3 late',
+                        current: true,
+                    },
+                    {
+                        label: 'Done',
+                        href: '/agenda?view=done',
+                        current: false,
+                    },
+                ],
+            },
+        });
+
+        const tab = screen.getByRole('link', { name: 'To do, 3 late' });
+        const badge = screen.getByText('3');
+        expect(tab).toContainElement(badge);
+        expect(badge).toHaveAttribute('aria-hidden', 'true');
+        expect(badge).toHaveClass('bg-overdue');
+    });
 });

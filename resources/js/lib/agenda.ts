@@ -34,7 +34,7 @@ function isPassed(entry: App.Data.AgendaEntryData, today: string): boolean {
 
 /**
  * Groups the entries as the list shows them: first the entries already
- * passed (*To sort out*), then *This week* (today to Sunday) and *Next week*;
+ * passed (*Late*), then *This week* (today to Sunday) and *Next week*;
  * then, for one month, the rest of the period in one block («Later, until
  * 26/11»), for a longer period one block for each month.
  *
@@ -79,7 +79,7 @@ export function groupByWeek(
 
     for (const entry of entries) {
         const group = isPassed(entry, today)
-            ? groupFor('overdue', () => trans('To sort out'))
+            ? groupFor('overdue', () => trans('Late'))
             : entry.date <= sunday
               ? groupFor('this-week', () => trans('This week'))
               : entry.date <= nextSunday

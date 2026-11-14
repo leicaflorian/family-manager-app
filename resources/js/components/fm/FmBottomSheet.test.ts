@@ -220,6 +220,21 @@ describe('FmBottomSheet', () => {
         // Same layer: the one later in the page wins. Above: it wins anyway
         expect(layer(question)).toBeGreaterThan(layer(panel));
     });
+
+    it('leaves the title to its content with hide-title, still naming the panel', async () => {
+        render(FmBottomSheet, {
+            props: { open: true, title: 'Gas - Hera', hideTitle: true },
+            slots: { default: '<h2>Gas - Hera</h2>' },
+        });
+
+        const panel = await screen.findByRole('dialog', { name: 'Gas - Hera' });
+        expect(screen.getAllByText('Gas - Hera')).toHaveLength(2);
+        expect(screen.getAllByText('Gas - Hera')[0]).toHaveClass('sr-only');
+        expect(panel.querySelector('[aria-label="Close"]')).toBeNull();
+        expect(
+            screen.getByRole('button', { name: 'Close the panel' }),
+        ).toBeInTheDocument();
+    });
 });
 
 /**

@@ -37,7 +37,7 @@ describe('groupByWeek', () => {
         const groups = groupByWeek(agendaEntries, today, '2026-11-26', 1);
 
         expect(groups.map((group) => group.title)).toEqual([
-            'To sort out',
+            'Late',
             'This week',
             'Next week',
             'Later, until 26/11',
@@ -91,7 +91,7 @@ describe('groupByWeek', () => {
         );
 
         expect(groups.map((group) => group.title)).toEqual([
-            'To sort out',
+            'Late',
             'This week',
             'Next week',
             'November 2026',
@@ -150,7 +150,7 @@ describe('groupByWeek', () => {
                 (group) => group.title,
             ),
         ).toEqual([
-            'Da sistemare',
+            'In ritardo',
             'Questa settimana',
             'Prossima settimana',
             'Più avanti, fino al 26/11',

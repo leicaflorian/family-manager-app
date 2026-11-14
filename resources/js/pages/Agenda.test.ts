@@ -10,7 +10,14 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { agendaEntries, peopleList } from '@/test/fixtures';
+import {
+    accountOptions,
+    agendaEntries,
+    agendaEntry,
+    agendaReminder,
+    lateDeadline,
+    peopleList,
+} from '@/test/fixtures';
 import { renderPage, screenWidth } from '@/test/page';
 import Agenda from './Agenda.vue';
 
@@ -19,7 +26,7 @@ const areas = [
     ['home', 'Home'],
     ['vehicles', 'Vehicles'],
     ['insurance', 'Insurance'],
-    ['banking', 'Banks and loans'],
+    ['banks', 'Banks and loans'],
     ['health', 'Health'],
     ['school', 'School and activities'],
     ['work', 'Work'],
@@ -27,13 +34,85 @@ const areas = [
     ['paperwork', 'Paperwork'],
 ].map(([value, label]) => ({ value: value!, label: label! }));
 
+/** The gas bill of 23/10, not paid yet: a late payment. */
+const lateGas = agendaEntry({
+    key: 'payment:7:2026-10-23',
+    date: '2026-10-23',
+    title: 'Bolletta luce di settembre',
+    name: 'Luce - Edison',
+    detail: 'Bill',
+    amount: 71.3,
+    href: '/budget/planned/expense/7/occurrences/2026-10-23?pay=1',
+});
+
+/** A task of Laura, written by hand. */
+const plumber = agendaEntry({
+    kind: 'task',
+    key: 'task:9',
+    date: '2026-10-29',
+    title: "Chiamare l'idraulico",
+    name: "Chiamare l'idraulico",
+    detail: 'Task',
+    person_id: 2,
+    person: 'Laura',
+    href: '/reminders/9/edit',
+    reminder: agendaReminder({ id: 9 }),
+});
+
+/** The things to do as the controller sends them on 26/10/2026: no incomes, a late payment and a task. */
+const entries: App.Data.AgendaEntryData[] = [
+    ...agendaEntries.filter((entry) => entry.kind !== 'income'),
+    lateGas,
+    plumber,
+].sort((a, b) => a.date.localeCompare(b.date));
+
+/**
+ * A done entry of the Done list.
+ *
+ * @param id - the id of its reminder
+ * @param title - what it was
+ * @param doneOn - the day it was closed
+ * @param doneBy - who closed it
+ * @returns the entry as the server sends it
+ */
+function doneEntry(
+    id: number,
+    title: string,
+    doneOn: string,
+    doneBy: string,
+): App.Data.AgendaEntryData {
+    return agendaEntry({
+        kind: 'task',
+        key: `task:${id}`,
+        date: doneOn,
+        title,
+        name: title,
+        detail: 'Task',
+        reminder_done: true,
+        reminder: agendaReminder({
+            id,
+            state: 'done' as App.Enums.AgendaReminderState,
+            done_on: doneOn,
+            done_by: doneBy,
+        }),
+    });
+}
+
+/** The done things of the Bianchi: two in November, one in October. */
+const doneEntries = [
+    doneEntry(21, 'Revisione Panda', '2026-11-01', 'Marco'),
+    doneEntry(22, 'Rinnovare la palestra', '2026-11-01', 'Laura'),
+    doneEntry(23, 'Ritirare gli occhiali', '2026-10-22', 'Laura'),
+];
+
 /** The props of the page on 26/10/2026, with one month, the whole family and every area. */
 function agenda(
     change: Partial<App.Data.AgendaData> = {},
+    page: Record<string, unknown> = {},
 ): Record<string, unknown> {
     return {
         agenda: {
-            entries: agendaEntries,
+            entries,
             months: 1,
             from: '2026-10-26',
             to: '2026-11-26',
@@ -41,32 +120,43 @@ function agenda(
             filters: { months: 1, person_id: null, hidden_areas: [] },
             areas,
             periods: [1, 3, 6, 12],
-            open_reminders: 10,
+            overdue: 2,
+            view: 'todo',
             family_hidden: [],
             ...change,
         },
+        done: [],
+        done_next_page: null,
+        ...page,
     };
 }
 
-/** The rows of the list: the links to an entry. */
-function rows(): HTMLElement[] {
-    return screen
-        .queryAllByRole('link')
-        .filter(
-            (link) =>
-                link.getAttribute('href') === '/agenda' &&
-                link.closest('nav') === null,
-        );
+/** The props of the Done view, with the first page of the done things. */
+function doneView(page: Record<string, unknown> = {}): Record<string, unknown> {
+    return agenda({ view: 'done' }, { done: doneEntries, ...page });
+}
+
+/**
+ * The row of an entry: a button that opens its panel.
+ *
+ * @param name - a part of what it says
+ */
+function row(name: string | RegExp): HTMLElement {
+    return screen.getByRole('button', { name });
 }
 
 let put: MockInstance<typeof router.put>;
 let get: MockInstance<typeof router.get>;
+let post: MockInstance<typeof router.post>;
+let reload: MockInstance<typeof router.reload>;
 
 beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
     put = vi.spyOn(router, 'put').mockImplementation(() => undefined);
     get = vi.spyOn(router, 'get').mockImplementation(() => undefined);
+    post = vi.spyOn(router, 'post').mockImplementation(() => undefined);
+    reload = vi.spyOn(router, 'reload').mockImplementation(() => undefined);
     screenWidth(false);
 });
 
@@ -77,158 +167,214 @@ afterEach(() => {
 });
 
 describe('Agenda', () => {
-    it('has the tabs Deadlines and Reminders with the number still to do, and the way to a new reminder', () => {
+    it('has no tiles nor outgoing sums, and says how many things are late', () => {
         renderPage(Agenda, agenda());
 
-        expect(screen.getByRole('link', { name: 'Deadlines' })).toHaveAttribute(
-            'aria-current',
-            'page',
-        );
         expect(
-            screen.getByRole('link', { name: 'Reminders 10' }),
-        ).toHaveAttribute('href', '/reminders');
-        expect(
-            screen.getByRole('link', { name: 'New reminder' }),
-        ).toHaveAttribute('href', '/reminders/create');
-    });
-
-    it('sums up on the computer what is to sort out, this week and the whole period', () => {
-        screenWidth(true);
-        renderPage(Agenda, agenda());
-
-        const tiles = screen.getByRole('list', { name: 'In short' });
-        const [overdue, week, period] = within(tiles).getAllByRole('listitem');
-        expect(overdue).toHaveTextContent('To sort out1passed deadline');
-        expect(week).toHaveTextContent(
-            'This week122,10 €2 entries, from 26/10 to 01/11',
-        );
-        expect(period).toHaveTextContent(
-            'Until 26/111.417,49 €10 outgoing entries in the next month',
-        );
-    });
-
-    it('on a wide but short window, sums up only this week and the whole period, as on the phone', () => {
-        screenWidth(1280, 400);
-        renderPage(Agenda, agenda());
-
-        const tiles = screen.getByRole('list', { name: 'In short' });
-        expect(within(tiles).getAllByRole('listitem')).toHaveLength(2);
-        expect(
-            within(tiles).queryByText('To sort out'),
+            screen.queryByRole('list', { name: 'In short' }),
         ).not.toBeInTheDocument();
+        expect(screen.queryByText(/outgoing/)).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('2 things late');
     });
 
-    it('sums up on the phone this week and the whole period', () => {
+    it('says nothing is late when nothing is', () => {
+        renderPage(
+            Agenda,
+            agenda({
+                entries: entries.filter((entry) => entry.date >= '2026-10-26'),
+                overdue: 0,
+            }),
+        );
+
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'To do' })).toBeInTheDocument();
+    });
+
+    it('switches between To do, with the late ones, and Done, and leads to a new task', () => {
         renderPage(Agenda, agenda());
 
-        const tiles = screen.getByRole('list', { name: 'In short' });
-        const items = within(tiles).getAllByRole('listitem');
-        expect(items.map((item) => item.textContent)).toEqual([
-            'This week122,10 €2 entries',
-            'Until 26/111.417,49 €10 outgoing entries',
-        ]);
+        const views = screen.getByRole('navigation', { name: 'Agenda views' });
+        expect(
+            within(views).getByRole('link', { name: 'To do, 2 late' }),
+        ).toHaveAttribute('aria-current', 'page');
+        expect(
+            within(views).getByRole('link', { name: 'Completed' }),
+        ).toHaveAttribute('href', '/agenda?view=done');
+        expect(screen.getByRole('link', { name: 'New task' })).toHaveAttribute(
+            'href',
+            '/reminders/create',
+        );
     });
 
-    it('puts To sort out on top, then this week, next week and the rest of the month', () => {
+    it('puts the late things on top, then this week, next week and the rest of the month', () => {
         renderPage(Agenda, agenda());
 
         expect(
             screen
                 .getAllByRole('heading', { level: 2 })
                 .map((heading) => heading.textContent?.trim()),
-        ).toEqual([
-            'To sort out',
-            'This week',
-            'Next week',
-            'Later, until 26/11',
-        ]);
-        expect(
-            screen.getByText(
-                'A passed deadline stays here for three months, until you renew it or fix the date.',
-            ),
-        ).toBeInTheDocument();
-        expect(rows()).toHaveLength(12);
+        ).toEqual(['Late', 'This week', 'Next week', 'Later, until 26/11']);
+        const late = screen.getByRole('region', { name: 'Late' });
+        expect(within(late).getAllByRole('button')).toHaveLength(2);
     });
 
-    it('groups by month after next week when the period is longer', () => {
-        renderPage(
-            Agenda,
-            agenda({
-                months: 3,
-                to: '2027-01-26',
-                filters: { months: 3, person_id: null, hidden_areas: [] },
-            }),
-        );
-
-        expect(
-            screen.getByRole('heading', { level: 2, name: 'November 2026' }),
-        ).toBeInTheDocument();
-    });
-
-    it('sums up the outgoing payments of each group', () => {
+    it('opens the panel of a row from below on the phone', async () => {
         renderPage(Agenda, agenda());
 
-        expect(screen.getByText('122,10 € outgoing')).toBeInTheDocument();
-        expect(screen.getByText('76,39 € outgoing')).toBeInTheDocument();
-        expect(screen.getByText('1.219,00 € outgoing')).toBeInTheDocument();
-    });
-
-    it('offers to update the date or renew only the passed deadlines', () => {
-        renderPage(Agenda, agenda());
-
-        const overdue = screen.getByRole('region', { name: 'To sort out' });
-        expect(
-            within(overdue).getByRole('button', { name: 'Update the date' }),
-        ).toBeInTheDocument();
-        expect(
-            within(overdue).getByRole('button', { name: 'Renewed' }),
-        ).toBeInTheDocument();
-        expect(screen.getAllByRole('button', { name: 'Renewed' })).toHaveLength(
-            1,
-        );
-    });
-
-    it('opens the panel to update the date of a passed deadline', async () => {
-        renderPage(Agenda, agenda());
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Update the date' }),
-        );
+        await userEvent.click(row(/Chiamare l'idraulico/));
 
         const panel = await screen.findByRole('dialog', {
+            name: "Chiamare l'idraulico",
+        });
+        expect(
+            within(panel).getByRole('button', { name: 'Postpone' }),
+        ).toBeInTheDocument();
+    });
+
+    it('opens the panel of a row beside the list on the computer', async () => {
+        screenWidth(true);
+        renderPage(Agenda, agenda());
+
+        await userEvent.click(row(/Tessera sanitaria di Giulia/));
+
+        const panel = screen.getByRole('dialog', {
+            name: 'Tessera sanitaria di Giulia',
+        });
+        expect(panel).toHaveAttribute('aria-modal', 'false');
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Close' }),
+        );
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('asks for the new day with Postpone from the panel', async () => {
+        renderPage(Agenda, agenda());
+        await userEvent.click(row(/Chiamare l'idraulico/));
+        const panel = await screen.findByRole('dialog', {
+            name: "Chiamare l'idraulico",
+        });
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Postpone' }),
+        );
+
+        expect(
+            await screen.findByRole('dialog', { name: 'Postpone' }),
+        ).toBeInTheDocument();
+    });
+
+    it('asks for the new date with Update the date from the panel', async () => {
+        renderPage(Agenda, agenda());
+        await userEvent.click(row(/Tessera sanitaria di Giulia/));
+        const panel = await screen.findByRole('dialog', {
+            name: 'Tessera sanitaria di Giulia',
+        });
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Update the date' }),
+        );
+
+        const sheet = await screen.findByRole('dialog', {
             name: 'Update the date',
         });
-        expect(within(panel).getByLabelText('Correct date')).toHaveValue(
+        expect(within(sheet).getByLabelText('Correct date')).toHaveValue(
             '30/09/2026',
         );
     });
 
-    it('opens the panel of the renewal with the date a year later', async () => {
+    it('proposes the date a year later with Renewed from the panel', async () => {
         renderPage(Agenda, agenda());
+        await userEvent.click(row(/Tessera sanitaria di Giulia/));
+        const panel = await screen.findByRole('dialog', {
+            name: 'Tessera sanitaria di Giulia',
+        });
 
-        await userEvent.click(screen.getByRole('button', { name: 'Renewed' }));
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Renewed' }),
+        );
 
-        const panel = await screen.findByRole('dialog', { name: 'Renewed' });
-        expect(within(panel).getByLabelText('New expiry date')).toHaveValue(
+        const sheet = await screen.findByRole('dialog', { name: 'Renewed' });
+        expect(within(sheet).getByLabelText('New expiry date')).toHaveValue(
             '30/09/2027',
         );
     });
 
-    it('starts the panel again from the right date when opened the other way', async () => {
+    it('asks the server for the due date with I paid it, then opens the payment', async () => {
+        const view = renderPage(Agenda, agenda());
+        await userEvent.click(row(/Luce - Edison/));
+        const panel = await screen.findByRole('dialog', {
+            name: 'Luce - Edison',
+        });
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'I paid it' }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['payment', 'accounts'],
+                data: { payment: 'payment:7:2026-10-23' },
+                preserveUrl: true,
+            }),
+        );
+
+        await view.rerender(
+            agenda({}, { payment: lateDeadline, accounts: accountOptions }),
+        );
+
+        const pay = await screen.findByRole('dialog', { name: 'I paid it' });
+        await userEvent.click(
+            within(pay).getByRole('button', { name: 'Confirm' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/planned/expense/7/occurrences/2026-10-23/payment?from_agenda=1',
+            expect.anything(),
+            expect.anything(),
+        );
+    });
+
+    it('closes the panel once Done is saved', async () => {
+        post.mockImplementation((_url, _data, options) => {
+            options?.onSuccess?.({} as never);
+        });
         renderPage(Agenda, agenda());
+        await userEvent.click(row(/Chiamare l'idraulico/));
+        const panel = await screen.findByRole('dialog', {
+            name: "Chiamare l'idraulico",
+        });
+
         await userEvent.click(
-            screen.getByRole('button', { name: 'Update the date' }),
-        );
-        const first = await screen.findByRole('dialog');
-        await userEvent.click(
-            within(first).getByRole('button', { name: 'Cancel' }),
+            within(panel).getByRole('button', { name: 'Done' }),
         );
 
-        await userEvent.click(screen.getByRole('button', { name: 'Renewed' }));
+        expect(post).toHaveBeenCalledWith(
+            '/reminders/9/done',
+            expect.anything(),
+            expect.anything(),
+        );
+        await vi.waitFor(() =>
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+        );
+    });
 
-        const panel = await screen.findByRole('dialog', { name: 'Renewed' });
-        expect(within(panel).getByLabelText('New expiry date')).toHaveValue(
-            '30/09/2027',
+    it('hides the task of another person with the person filter', async () => {
+        screenWidth(true);
+        renderPage(Agenda, agenda());
+
+        expect(row(/Chiamare l'idraulico/)).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('radio', { name: /Marco/ }));
+
+        expect(
+            screen.queryByRole('button', { name: /Chiamare l'idraulico/ }),
+        ).not.toBeInTheDocument();
+        expect(put).toHaveBeenCalledWith(
+            '/agenda/filters',
+            expect.objectContaining({ person_id: 1 }),
+            expect.anything(),
         );
     });
 
@@ -240,47 +386,30 @@ describe('Agenda', () => {
             screen.getByRole('button', { name: 'All areas' }),
         );
         await userEvent.click(
-            await screen.findByRole('button', { name: /Work/ }),
+            await screen.findByRole('button', { name: /Subscriptions/ }),
         );
 
-        expect(rows()).toHaveLength(10);
+        expect(
+            screen.queryByRole('button', { name: /Primo pagamento/ }),
+        ).not.toBeInTheDocument();
         expect(put).toHaveBeenCalled();
-    });
-
-    it('leaves out of the menu of the areas an area the family hid, when it has no entries', async () => {
-        screenWidth(true);
-        renderPage(Agenda, agenda({ family_hidden: ['school'] }));
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'All areas' }),
-        );
-
-        expect(
-            await screen.findByRole('button', { name: /Work/ }),
-        ).toBeInTheDocument();
-        expect(
-            screen.queryByRole('button', { name: /School and activities/ }),
-        ).toBeNull();
     });
 
     it('opens the filters from the buttons of the phone', async () => {
         renderPage(Agenda, agenda());
 
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
         await userEvent.click(screen.getByRole('button', { name: '1 month' }));
 
-        const sheet = screen.getByRole('dialog', { name: 'Filter the agenda' });
         expect(
-            within(sheet).getByRole('button', { name: 'Show 12 entries' }),
+            screen.getByRole('dialog', { name: 'Filter the agenda' }),
         ).toBeInTheDocument();
     });
 
-    it('asks for the next 3 months when nothing expires', async () => {
-        renderPage(Agenda, agenda({ entries: [] }));
+    it('asks for the next 3 months when there is nothing to do', async () => {
+        renderPage(Agenda, agenda({ entries: [], overdue: 0 }));
 
         expect(
-            screen.getByText('Nothing expiring in the next month'),
+            screen.getByText('Nothing to do in the next month'),
         ).toBeInTheDocument();
 
         await userEvent.click(
@@ -301,7 +430,7 @@ describe('Agenda', () => {
                 filters: {
                     months: 1,
                     person_id: null,
-                    hidden_areas: agendaEntries.map((entry) => entry.area),
+                    hidden_areas: areas.map((area) => area.value),
                 },
             }),
         );
@@ -309,13 +438,12 @@ describe('Agenda', () => {
         expect(
             screen.getByText('No entries with these filters'),
         ).toBeInTheDocument();
-        expect(rows()).toHaveLength(0);
 
         await userEvent.click(
             screen.getByRole('button', { name: 'Clear filters' }),
         );
 
-        expect(rows()).toHaveLength(12);
+        expect(row(/Chiamare l'idraulico/)).toBeInTheDocument();
     });
 
     it('loads the period with a visit and saves nothing else', async () => {
@@ -331,17 +459,124 @@ describe('Agenda', () => {
         );
         expect(put).not.toHaveBeenCalled();
     });
+});
 
-    it('saves the person chosen', async () => {
+describe('Agenda, the Done view', () => {
+    beforeEach(() => {
+        // The end of the list is watched to load the next page; jsdom has no observer
+        vi.stubGlobal(
+            'IntersectionObserver',
+            class {
+                observe(): void {}
+
+                disconnect(): void {}
+            },
+        );
+    });
+
+    it('groups the done things by month, saying who closed them and when', () => {
+        renderPage(Agenda, doneView());
+
+        expect(
+            screen
+                .getAllByRole('heading', { level: 2 })
+                .map((heading) => heading.textContent?.trim()),
+        ).toEqual(['November 2026', 'October 2026']);
+        const november = screen.getByRole('region', { name: 'November 2026' });
+        expect(within(november).getAllByRole('button')).toHaveLength(2);
+        expect(
+            within(november).getByText('Done on 01/11 · Marco'),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Done on 22/10 · Laura')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Completed' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
+    it('has no late line nor period, and says where the paid expenses are', () => {
         screenWidth(true);
-        renderPage(Agenda, agenda());
+        renderPage(Agenda, doneView());
+
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('radio', { name: '3 months' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'Paid expenses are in the movements of the Budget',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('opens the panel of a done thing, with Reopen', async () => {
+        renderPage(Agenda, doneView());
+
+        await userEvent.click(row(/Revisione Panda/));
+
+        const panel = await screen.findByRole('dialog', {
+            name: 'Revisione Panda',
+        });
+        expect(
+            within(panel).getByRole('button', { name: 'Reopen' }),
+        ).toBeInTheDocument();
+        expect(
+            within(panel).queryByRole('button', { name: 'Done' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('loads the next page of the done things at the end of the list, without changing the address', () => {
+        const observed: IntersectionObserverCallback[] = [];
+        vi.stubGlobal(
+            'IntersectionObserver',
+            class {
+                constructor(callback: IntersectionObserverCallback) {
+                    observed.push(callback);
+                }
+
+                observe(): void {}
+
+                disconnect(): void {}
+            },
+        );
+        renderPage(Agenda, doneView({ done_next_page: 2 }));
+
+        return vi.waitFor(() => {
+            expect(observed.length).toBeGreaterThan(0);
+            observed[0]!(
+                [{ isIntersecting: true } as IntersectionObserverEntry],
+                {} as IntersectionObserver,
+            );
+            expect(reload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: { done_page: 2 },
+                    only: ['done', 'done_next_page'],
+                    preserveUrl: true,
+                }),
+            );
+        });
+    });
+
+    it('shows only the done things the server sends after a filter changed them', async () => {
+        const view = renderPage(Agenda, doneView());
+
+        await view.rerender(doneView({ done: [doneEntries[2]] }));
+
+        expect(
+            screen.queryByRole('button', { name: /Revisione Panda/ }),
+        ).not.toBeInTheDocument();
+        expect(row(/Ritirare gli occhiali/)).toBeInTheDocument();
+    });
+
+    it('reloads the whole list when the person changes, so the pages start again', async () => {
+        screenWidth(true);
+        renderPage(Agenda, doneView({ done_next_page: 2 }));
 
         await userEvent.click(screen.getByRole('radio', { name: /Laura/ }));
 
-        expect(put).toHaveBeenCalledWith(
-            '/agenda/filters',
-            expect.objectContaining({ person_id: 2 }),
-            expect.anything(),
-        );
+        const options = put.mock.calls[0]?.[2];
+        expect(options).toBeDefined();
+        expect(options).not.toHaveProperty('only');
+        expect(options).not.toHaveProperty('reset');
     });
 });

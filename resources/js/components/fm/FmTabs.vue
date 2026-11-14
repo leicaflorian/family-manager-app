@@ -4,7 +4,8 @@
  * and *Reminders* of the Agenda). The page lists its tabs; the one of the open
  * page is marked, and a tab can show a number after its name, and one with nothing behind it can be shown soft and without a link (`disabled`). They are lines
  * under the names (`underline`) or, as in the Agenda, a grey pill with the open
- * tab in white (`pill`).
+ * tab in white (`pill`). A number of things late (`countLabel`) is a red badge,
+ * as the *Agenda* shows the late ones beside *To do*.
  *
  * @group navigation
  */
@@ -19,6 +20,11 @@ export type Tab = {
     href: string;
     /** A number shown after the name, for example the reminders to do. */
     count?: number;
+    /**
+     * The number is of things late: it shows as a red badge, and these words
+     * name the tab with it for screen readers («To do, 3 late»).
+     */
+    countLabel?: string;
     /** The tab is the one of the open page. */
     current: boolean;
     /** The tab cannot be chosen (no files for it): its name is shown without a link. */
@@ -93,12 +99,21 @@ function tabClasses(marked: boolean, disabled = false): string {
                 v-else
                 :href="tab.href"
                 :aria-current="tab.current ? 'page' : undefined"
+                :aria-label="tab.countLabel"
                 :class="tabClasses(tab.current)"
             >
                 {{ tab.label }}
-                <span v-if="tab.count !== undefined" class="font-semibold">{{
-                    tab.count
-                }}</span>
+                <span
+                    v-if="tab.count !== undefined && tab.countLabel"
+                    aria-hidden="true"
+                    class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-overdue px-1.5 text-badge text-on-hero"
+                    >{{ tab.count }}</span
+                >
+                <span
+                    v-else-if="tab.count !== undefined"
+                    class="font-semibold"
+                    >{{ tab.count }}</span
+                >
             </Link>
         </template>
     </nav>

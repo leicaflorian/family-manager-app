@@ -1371,7 +1371,7 @@ export const documentFormOptions = {
  * @param reminder - the fields that differ from an open reminder with no notice left
  * @returns the reminder, with the id and the permissions of an admin
  */
-function agendaReminder(
+export function agendaReminder(
     reminder: Partial<App.Data.AgendaReminderData> = {},
 ): App.Data.AgendaReminderData {
     return {
@@ -1394,7 +1394,7 @@ function agendaReminder(
  * @param entry - the fields that differ from a payment of Marco in the home area
  * @returns the entry, with the key and the address made from its kind and title
  */
-function agendaEntry(
+export function agendaEntry(
     entry: Partial<App.Data.AgendaEntryData> &
         Pick<App.Data.AgendaEntryData, 'date' | 'title'>,
 ): App.Data.AgendaEntryData {
