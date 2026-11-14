@@ -80,7 +80,6 @@ final readonly class AgendaPage
                     people: PersonData::ofFamily($user),
                     filters: $shown,
                     areas: AgendaData::areas($this->familyAreas),
-                    overdue: count(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->date < $today->toDateString())),
                     view: $view,
                     family_hidden: $this->familyAreas->hiddenValues(),
                 );

@@ -120,7 +120,6 @@ function agenda(
             filters: { months: 1, person_id: null, hidden_areas: [] },
             areas,
             periods: [1, 3, 6, 12],
-            overdue: 2,
             view: 'todo',
             family_hidden: [],
             ...change,
@@ -177,12 +176,41 @@ describe('Agenda', () => {
         expect(screen.getByRole('status')).toHaveTextContent('2 things late');
     });
 
+    it('counts only the late things the filters show', () => {
+        renderPage(
+            Agenda,
+            agenda({
+                filters: { months: 1, person_id: 1, hidden_areas: [] },
+            }),
+        );
+
+        expect(screen.getByRole('status')).toHaveTextContent('1 thing late');
+        expect(
+            screen.getByRole('link', { name: 'To do, 1 late' }),
+        ).toBeInTheDocument();
+    });
+
+    it('counts no late thing in the areas turned off', () => {
+        renderPage(
+            Agenda,
+            agenda({
+                filters: {
+                    months: 1,
+                    person_id: null,
+                    hidden_areas: ['home', 'general'],
+                },
+            }),
+        );
+
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'To do' })).toBeInTheDocument();
+    });
+
     it('says nothing is late when nothing is', () => {
         renderPage(
             Agenda,
             agenda({
                 entries: entries.filter((entry) => entry.date >= '2026-10-26'),
-                overdue: 0,
             }),
         );
 
@@ -406,7 +434,7 @@ describe('Agenda', () => {
     });
 
     it('asks for the next 3 months when there is nothing to do', async () => {
-        renderPage(Agenda, agenda({ entries: [], overdue: 0 }));
+        renderPage(Agenda, agenda({ entries: [] }));
 
         expect(
             screen.getByText('Nothing to do in the next month'),

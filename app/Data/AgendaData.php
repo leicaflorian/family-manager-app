@@ -30,7 +30,6 @@ final class AgendaData extends Data
      * @param  list<PersonData>  $people  the people of the family
      * @param  AgendaFiltersData  $filters  the filters
      * @param  list<OptionData>  $areas  the areas in the order of the family, with the names the Agenda gives them
-     * @param  int  $overdue  how many rows of *To do* have a day already past, for the switch
      * @param  string  $view  `todo` or `done`
      * @param  list<int>  $periods  the periods the person can choose, in months
      * @param  list<string>  $family_hidden  the values of the areas the family hid, to tell them apart in the filter
@@ -46,7 +45,6 @@ final class AgendaData extends Data
         public readonly AgendaFiltersData $filters,
         #[DataCollectionOf(OptionData::class)]
         public readonly array $areas,
-        public readonly int $overdue,
         public readonly string $view,
         public readonly array $periods = self::PERIODS,
         public readonly array $family_hidden = [],

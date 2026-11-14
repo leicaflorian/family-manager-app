@@ -64,6 +64,16 @@ function agendaUpcoming(array $agenda): array
 }
 
 /**
+ * How many things to do are late, as the page counts them: the entries before `from`.
+ *
+ * @param  array<string, mixed>  $agenda  the props of the Agenda
+ */
+function agendaLate(array $agenda): int
+{
+    return count(array_filter($agenda['entries'], static fn (array $entry): bool => $entry['date'] < $agenda['from']));
+}
+
+/**
  * Only some keys of the entries, to compare them.
  *
  * @param  list<array<string, mixed>>  $entries  the entries
@@ -190,7 +200,7 @@ test('a deadline whose reminder is done leaves the things to do for the done vie
     expect(array_column($before['entries'], 'name'))->toContain('Tessera sanitaria di Giulia')
         ->and(array_column($after['entries'], 'name'))->not->toContain('Tessera sanitaria di Giulia')
         ->and(array_column($after['entries'], 'name'))->not->toContain("Scade la carta d'identità")
-        ->and($after['overdue'])->toBe($before['overdue'] - 1)
+        ->and(agendaLate($after))->toBe(agendaLate($before) - 1)
         ->and(array_column($done, 'key'))->toContain('reminder:'.$reminder->id);
 });
 
@@ -425,12 +435,11 @@ test('the agenda keeps an unpaid payment for 90 days', function (): void {
     expect($titles)->toContain('Tre settimane fa')->not->toContain('Tre mesi fa');
 });
 
-test('the agenda counts what is late', function (): void {
+test('the agenda counts what is late on the page, from the entries', function (): void {
     $agenda = agendaFor(boardFamily());
-    $late = array_filter($agenda['entries'], static fn (array $entry): bool => $entry['date'] < $agenda['from']);
 
-    expect($agenda['overdue'])->toBeGreaterThan(0)
-        ->and($agenda['overdue'])->toBe(count($late))
+    expect(agendaLate($agenda))->toBeGreaterThan(0)
+        ->and($agenda)->not->toHaveKey('overdue')
         ->and($agenda['view'])->toBe('todo')
         ->and($agenda)->not->toHaveKeys(['done', 'done_next_page']);
 });

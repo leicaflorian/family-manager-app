@@ -7,6 +7,7 @@ import {
     areaCounts,
     doneByMonth,
     groupByWeek,
+    lateCount,
     markReminderDone,
     reopenReminder,
     visibleEntries,
@@ -218,6 +219,15 @@ describe('doneByMonth', () => {
             ['Gennaio', 'Dicembre 2025'],
         );
         await speak('en');
+    });
+});
+
+describe('lateCount', () => {
+    it('counts the entries whose day is before today', () => {
+        expect(lateCount(agendaEntries, today)).toBe(
+            agendaEntries.filter((entry) => entry.date < today).length,
+        );
+        expect(lateCount(agendaEntries, '2026-01-01')).toBe(0);
     });
 });
 

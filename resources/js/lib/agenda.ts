@@ -37,6 +37,21 @@ function isPassed(entry: App.Data.AgendaEntryData, today: string): boolean {
 }
 
 /**
+ * How many entries are already passed: the late things beside *To do* and in
+ * the red line, counted on the entries the filters show.
+ *
+ * @param entries - the entries, already filtered
+ * @param today - today, `yyyy-mm-dd`
+ * @returns the number of late entries
+ */
+export function lateCount(
+    entries: App.Data.AgendaEntryData[],
+    today: string,
+): number {
+    return entries.filter((entry) => isPassed(entry, today)).length;
+}
+
+/**
  * Groups the entries as the list shows them: first the entries already
  * passed (*Late*), then *This week* (today to Sunday) and *Next week*;
  * then, for one month, the rest of the period in one block («Later, until

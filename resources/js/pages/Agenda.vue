@@ -47,6 +47,7 @@ import {
     areaCounts,
     doneByMonth,
     groupByWeek,
+    lateCount,
     visibleEntries,
 } from '@/lib/agenda';
 import type { ReminderItem } from '@/lib/reminders';
@@ -88,17 +89,22 @@ const { filters, toggleArea, choosePerson, chooseMonths, reset } =
 /** The phone panel of the filters is open. */
 const sheetOpen = ref(false);
 
+/** The late things to do that the person and the areas chosen show. */
+const late = computed((): number =>
+    lateCount(visibleEntries(agenda.entries, filters.value), agenda.from),
+);
+
 /** The two views, with the late things beside *To do*. */
 const tabs = computed((): Tab[] => [
     {
         label: trans('To do'),
         href: agendaRoute().url,
         current: !doneView.value,
-        ...(agenda.overdue > 0
+        ...(late.value > 0
             ? {
-                  count: agenda.overdue,
+                  count: late.value,
                   countLabel: trans('To do, :count late', {
-                      count: String(agenda.overdue),
+                      count: String(late.value),
                   }),
               }
             : {}),
@@ -355,7 +361,7 @@ const payAction = computed((): string =>
         />
 
         <div
-            v-if="!doneView && agenda.overdue > 0"
+            v-if="!doneView && late > 0"
             role="status"
             class="flex items-center gap-2.5 rounded-lg bg-overdue-soft px-3.5 py-2.5 text-label text-overdue lg:px-4 lg:py-3"
         >
@@ -363,8 +369,8 @@ const payAction = computed((): string =>
             {{
                 $tChoice(
                     '{1} :count thing late|[2,*] :count things late',
-                    agenda.overdue,
-                    { count: String(agenda.overdue) },
+                    late,
+                    { count: String(late) },
                 )
             }}
         </div>
