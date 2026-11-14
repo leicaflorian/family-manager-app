@@ -2,9 +2,11 @@
 /**
  * The sidebar of the computer (from 1024 px), and the content of the menu that
  * the Menu button of the tablet opens from the left: the logo and the family,
- * Upload (which only uploads), the sections with *To sort* and *Received mail* right under Home (the files
- * waiting in a blue pill, nothing at zero) and the areas under *Areas*, and at
- * the bottom *My account*, which opens Settings and Log out.
+ * Upload (which only uploads), Home and the sections in three groups: *Incoming* (*To sort*, with the files
+ * waiting in a blue pill, nothing at zero, and *Received mail*), *Every day* (Agenda, Budget) and
+ * *Archive* (Areas, with the areas under it, Documents, Family), and at
+ * the bottom *My account*, which opens Settings and Log out. When the sections do not fit
+ * the window, only they scroll: the logo, Upload and *My account* stay in place.
  *
  * @group navigation
  */
@@ -84,12 +86,46 @@ function otherAttrs(): Record<string, unknown> {
     return rest;
 }
 
-/** The sections, with *To sort* and *Received mail* right under Home. */
-const sections = computed((): NavigationItem[] => [
-    ...items.sections.slice(0, 1),
-    items.toSort,
-    items.mail,
-    ...items.sections.slice(1),
+/** A group of sections in the sidebar. */
+type SectionGroup = {
+    /** The key of the group, for the id of its name. */
+    key: string;
+    /** The name of the group, already translated; null for Home, which has none. */
+    label: string | null;
+    /** The sections of the group, in order. */
+    items: NavigationItem[];
+};
+
+/**
+ * The items of the given sections, in that order.
+ *
+ * @param names - the sections to take
+ * @returns their items, without the ones the navigation does not have
+ */
+function pick(...names: Section[]): NavigationItem[] {
+    const all = [...items.sections, items.toSort, items.mail];
+
+    return names.flatMap((name) => all.filter((item) => item.section === name));
+}
+
+/** Home alone, then what arrives, what is used every day and what is kept. */
+const groups = computed((): SectionGroup[] => [
+    { key: 'home', label: null, items: pick('home') },
+    {
+        key: 'incoming',
+        label: trans('Incoming'),
+        items: pick('toSort', 'mail'),
+    },
+    {
+        key: 'every-day',
+        label: trans('Every day'),
+        items: pick('agenda', 'budget'),
+    },
+    {
+        key: 'archive',
+        label: trans('Archive'),
+        items: pick('areas', 'documents', 'family'),
+    },
 ]);
 
 /** A link of the list under *Areas*. */
@@ -151,7 +187,7 @@ function isPage(section: Section): boolean {
 
 <template>
     <aside v-bind="otherAttrs()" :class="rootClass()">
-        <div class="flex items-center gap-2.5 px-2 pt-1 pb-4">
+        <div class="flex shrink-0 items-center gap-2.5 px-2 pt-1 pb-4">
             <FmLogo :size="36" />
             <span class="flex flex-col">
                 <span class="text-amount">Family Manager</span>
@@ -169,103 +205,128 @@ function isPage(section: Section): boolean {
             {{ $t('Upload') }}
         </Link>
 
-        <nav :aria-label="$t('Sections')" class="flex flex-col gap-0.5">
-            <template v-for="item in sections" :key="item.section">
-                <div class="relative flex items-center">
-                    <Link
-                        :href="item.href"
-                        :aria-current="
-                            isPage(item.section) ? 'page' : undefined
-                        "
-                        class="flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
-                        :class="[
-                            isPage(item.section)
-                                ? 'bg-action-soft text-label text-action-dark'
-                                : item.section === active
-                                  ? 'text-label text-action-dark hover:bg-canvas'
-                                  : 'text-ink hover:bg-canvas',
-                            item.section === 'areas' && 'pr-12',
-                        ]"
-                    >
-                        <FmIcon
-                            :icon="item.icon"
-                            :size="22"
-                            :class="
-                                item.section === active ? '' : 'text-ink-soft'
+        <!-- Only the sections scroll, when the open areas make them taller than the window -->
+        <nav
+            :aria-label="$t('Sections')"
+            class="flex min-h-0 flex-col gap-0.5 overflow-y-auto"
+        >
+            <div
+                v-for="(group, index) in groups"
+                :key="group.key"
+                :role="group.label ? 'group' : undefined"
+                :aria-labelledby="
+                    group.label ? `sidebar-group-${group.key}` : undefined
+                "
+                class="flex flex-col gap-0.5"
+            >
+                <span
+                    v-if="group.label"
+                    :id="`sidebar-group-${group.key}`"
+                    class="block px-3 pb-1 text-meta-strong text-ink-soft"
+                    :class="index === 1 ? 'pt-2.5' : 'pt-4.5'"
+                    >{{ group.label }}</span
+                >
+                <template v-for="item in group.items" :key="item.section">
+                    <div class="relative flex items-center">
+                        <Link
+                            :href="item.href"
+                            :aria-current="
+                                isPage(item.section) ? 'page' : undefined
                             "
-                        />
-                        <span class="grow">{{ item.label }}</span>
-                        <template
-                            v-if="item.section === 'toSort' && uploadCount > 0"
+                            class="flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
+                            :class="[
+                                isPage(item.section)
+                                    ? 'bg-action-soft text-label text-action-dark'
+                                    : item.section === active
+                                      ? 'text-label text-action-dark hover:bg-canvas'
+                                      : 'text-ink hover:bg-canvas',
+                                item.section === 'areas' && 'pr-12',
+                            ]"
                         >
-                            <!-- A space, so the link reads «To sort 4» -->
-                            {{ ' ' }}
-                            <span
-                                class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
-                                >{{ countBadge(uploadCount) }}</span
-                            >
-                        </template>
-                    </Link>
-                    <button
-                        v-if="item.section === 'areas'"
-                        type="button"
-                        :aria-label="$t('Show the areas')"
-                        :aria-expanded="open"
-                        aria-controls="sidebar-areas"
-                        class="absolute right-1 flex size-9 items-center justify-center rounded-tag text-ink-soft hover:bg-card/70 hover:text-ink"
-                        @click="open = !open"
-                    >
-                        <FmIcon
-                            :icon="open ? ChevronUp : ChevronDown"
-                            :size="18"
-                        />
-                    </button>
-                </div>
-                <div v-if="item.section === 'areas'" v-auto-animate>
-                    <ul
-                        v-if="open"
-                        id="sidebar-areas"
-                        :aria-label="item.label"
-                        class="my-0.5 ml-[21px] flex flex-col gap-0.5 border-l border-divider pl-1.5"
-                    >
-                        <li v-for="link in areaLinks" :key="link.href">
-                            <Link
-                                :href="link.href"
-                                :aria-current="
-                                    link.href === path ? 'page' : undefined
-                                "
-                                class="flex h-9 items-center gap-2 rounded-tag px-2.5 text-meta no-underline"
+                            <FmIcon
+                                :icon="item.icon"
+                                :size="22"
                                 :class="
-                                    link.href === path
-                                        ? 'bg-action-soft text-meta-strong text-action-dark'
-                                        : 'text-ink hover:bg-canvas'
+                                    item.section === active
+                                        ? ''
+                                        : 'text-ink-soft'
+                                "
+                            />
+                            <span class="grow">{{ item.label }}</span>
+                            <template
+                                v-if="
+                                    item.section === 'toSort' && uploadCount > 0
                                 "
                             >
-                                <span
-                                    v-if="link.dot"
-                                    class="size-2.5 shrink-0 rounded-full"
-                                    :class="link.dot"
-                                />
-                                <span class="grow truncate">{{
-                                    link.label
-                                }}</span>
-                                <!-- A space, so the link reads «Home 3» -->
+                                <!-- A space, so the link reads «To sort 4» -->
                                 {{ ' ' }}
                                 <span
-                                    v-if="link.count"
-                                    class="text-caption text-ink-soft"
-                                    >{{ link.count }}</span
+                                    class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
+                                    >{{ countBadge(uploadCount) }}</span
                                 >
-                            </Link>
-                        </li>
-                    </ul>
-                </div>
-            </template>
+                            </template>
+                        </Link>
+                        <button
+                            v-if="item.section === 'areas'"
+                            type="button"
+                            :aria-label="$t('Show the areas')"
+                            :aria-expanded="open"
+                            aria-controls="sidebar-areas"
+                            class="absolute right-1 flex size-9 items-center justify-center rounded-tag text-ink-soft hover:bg-card/70 hover:text-ink"
+                            @click="open = !open"
+                        >
+                            <FmIcon
+                                :icon="open ? ChevronUp : ChevronDown"
+                                :size="18"
+                            />
+                        </button>
+                    </div>
+                    <div v-if="item.section === 'areas'" v-auto-animate>
+                        <ul
+                            v-if="open"
+                            id="sidebar-areas"
+                            :aria-label="item.label"
+                            class="my-0.5 ml-[21px] flex flex-col gap-0.5 border-l border-divider pl-1.5"
+                        >
+                            <li v-for="link in areaLinks" :key="link.href">
+                                <Link
+                                    :href="link.href"
+                                    :aria-current="
+                                        link.href === path ? 'page' : undefined
+                                    "
+                                    class="flex h-9 items-center gap-2 rounded-tag px-2.5 text-meta no-underline"
+                                    :class="
+                                        link.href === path
+                                            ? 'bg-action-soft text-meta-strong text-action-dark'
+                                            : 'text-ink hover:bg-canvas'
+                                    "
+                                >
+                                    <span
+                                        v-if="link.dot"
+                                        class="size-2.5 shrink-0 rounded-full"
+                                        :class="link.dot"
+                                    />
+                                    <span class="grow truncate">{{
+                                        link.label
+                                    }}</span>
+                                    <!-- A space, so the link reads «Home 3» -->
+                                    {{ ' ' }}
+                                    <span
+                                        v-if="link.count"
+                                        class="text-caption text-ink-soft"
+                                        >{{ link.count }}</span
+                                    >
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
+                </template>
+            </div>
         </nav>
 
         <span class="min-h-6 grow" />
 
-        <div class="border-t border-divider pt-2">
+        <div class="shrink-0 border-t border-divider pt-2">
             <DropdownMenuRoot>
                 <DropdownMenuTrigger
                     class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"

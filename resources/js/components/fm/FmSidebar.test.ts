@@ -63,7 +63,32 @@ describe('FmSidebar', () => {
         );
     });
 
-    it('has Budget between Documents and Family, marked on its pages', () => {
+    it('groups the sections under Home: Incoming, Every day and Archive', () => {
+        bar('home', '/', 0);
+
+        const nav = screen.getByRole('navigation', { name: 'Sections' });
+        const groups = within(nav)
+            .getAllByRole('group')
+            .map((group) => [
+                document.getElementById(
+                    group.getAttribute('aria-labelledby') ?? '',
+                )?.textContent,
+                within(group)
+                    .getAllByRole('link')
+                    .filter((link) => !link.closest('ul'))
+                    .map((link) => link.textContent?.trim()),
+            ]);
+        expect(groups).toEqual([
+            ['Incoming', ['To sort', 'Received mail']],
+            ['Every day', ['Agenda', 'Budget']],
+            ['Archive', ['Areas', 'Documents', 'Family']],
+        ]);
+        expect(
+            screen.getByRole('group', { name: 'Every day' }),
+        ).toBeInTheDocument();
+    });
+
+    it('has Budget right after Agenda, marked on its pages', () => {
         bar('budget', '/budget/comparison');
 
         const nav = screen.getByRole('navigation', { name: 'Sections' });
@@ -71,9 +96,9 @@ describe('FmSidebar', () => {
             .getAllByRole('link')
             .map((link) => link.textContent?.trim())
             .filter((name) =>
-                ['Documents', 'Budget', 'Family'].includes(name ?? ''),
+                ['Agenda', 'Budget', 'Areas'].includes(name ?? ''),
             );
-        expect(names).toEqual(['Documents', 'Budget', 'Family']);
+        expect(names).toEqual(['Agenda', 'Budget', 'Areas']);
         expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute(
             'href',
             '/budget',
