@@ -75,7 +75,7 @@ function agendaColumns(array $entries, array $keys): array
     return array_map(static fn (array $entry): array => array_intersect_key($entry, array_flip($keys)), $entries);
 }
 
-test('the agenda of one month has the twelve entries of the board in its order', function (): void {
+test('the agenda of one month has the entries of the board in its order, without the deadline already done', function (): void {
     $agenda = agendaFor(boardFamily());
 
     expect($agenda['months'])->toBe(1)
@@ -89,7 +89,6 @@ test('the agenda of one month has the twelve entries of the board in its order',
             ['kind' => 'payment', 'date' => '2026-11-04', 'title' => 'Primo pagamento', 'subtitle' => 'Netflix', 'person' => 'Laura', 'amount' => 13.99],
             ['kind' => 'payment', 'date' => '2026-11-06', 'title' => 'Bolletta luce di ottobre', 'subtitle' => 'Electricity - Edison', 'person' => 'Marco', 'amount' => 62.4],
             ['kind' => 'payment', 'date' => '2026-11-10', 'title' => 'Rata 33 di 48', 'subtitle' => 'Finanziamento Panda', 'person' => 'Marco', 'amount' => 189.0],
-            ['kind' => 'deadline', 'date' => '2026-11-14', 'title' => "Scade la carta d'identità", 'subtitle' => 'Document of Marco', 'person' => 'Marco', 'amount' => null],
             ['kind' => 'payment', 'date' => '2026-11-15', 'title' => 'Rata mutuo', 'subtitle' => 'Mutuo casa', 'person' => 'Marco', 'amount' => 612.0],
             ['kind' => 'payment', 'date' => '2026-11-21', 'title' => 'Policy renewal', 'subtitle' => 'RC auto Panda - UnipolSai', 'person' => 'Marco', 'amount' => 418.0],
         ]);
@@ -100,8 +99,9 @@ test('the agenda of one month has the twelve entries of the board in its order',
 
     expect(count($payments))->toBe(7)
         ->and(round(array_sum(array_column($payments, 'amount')), 2))->toBe(1417.49)
-        ->and($byArea)->toBe(['banks' => 2, 'general' => 2, 'home' => 3, 'insurance' => 1, 'subscriptions' => 2])
-        ->and(collect($agenda['entries'])->firstWhere('title', "Scade la carta d'identità")['reminder_done'])->toBeTrue()
+        ->and($byArea)->toBe(['banks' => 2, 'general' => 1, 'home' => 3, 'insurance' => 1, 'subscriptions' => 2])
+        // The identity card of Marco has its reminder done: it is in the done view
+        ->and(array_column($agenda['entries'], 'title'))->not->toContain("Scade la carta d'identità")
         ->and(collect($agenda['entries'])->firstWhere('title', 'Tessera sanitaria di Giulia')['reminder_done'])->toBeFalse()
         ->and(array_column($agenda['people'], 'first_name'))->toBe(['Marco', 'Laura', 'Giulia'])
         ->and($agenda['filters'])->toBe(['months' => 1, 'person_id' => null, 'hidden_areas' => []]);
@@ -118,7 +118,6 @@ test('each entry names the thing first and, below, what happens to it', function
         ['name' => 'Netflix', 'detail' => 'Primo pagamento'],
         ['name' => 'Electricity - Edison', 'detail' => 'Bolletta luce di ottobre'],
         ['name' => 'Finanziamento Panda', 'detail' => 'Rata 33 di 48'],
-        ['name' => "Scade la carta d'identità", 'detail' => 'Document expiry'],
         ['name' => 'Mutuo casa', 'detail' => 'Rata mutuo'],
         ['name' => 'RC auto Panda - UnipolSai', 'detail' => 'Policy renewal'],
     ]);
@@ -164,25 +163,50 @@ test('a deadline carries the state of its automatic reminder and its next notice
     $by = static fn (string $name, string $detail): array => $entries->first(static fn (array $entry): bool => $entry['name'] === $name && $entry['detail'] === $detail);
 
     expect(Arr::only($by('Tessera sanitaria di Giulia', 'Document expiry')['reminder'], ['state', 'next_notice']))->toBe(['state' => 'late', 'next_notice' => null])
-        ->and(Arr::only($by("Scade la carta d'identità", 'Document expiry')['reminder'], ['state', 'next_notice']))->toBe(['state' => 'done', 'next_notice' => null])
+        // A deadline whose reminder is done is not among the things to do
+        ->and($entries->pluck('name'))->not->toContain("Scade la carta d'identità")
         ->and($by('Netflix', 'End of the free trial')['reminder']['state'])->toBe('open')
         ->and($by('Netflix', 'End of the free trial')['reminder']['next_notice'])->toBeString()
         ->and($by('Gas - Enel', 'Bolletta gas')['reminder'])->toBeNull();
 });
 
+test('a deadline whose reminder is done leaves the things to do for the done view', function (): void {
+    $marco = boardFamily();
+    // The reminder of the late health card, born before its day passed
+    $reminder = insideFamilyOf($marco, function (): Reminder {
+        $card = Document::query()->where('title', 'Tessera sanitaria di Giulia')->sole();
+        $reminder = Reminder::factory()->create(['family_id' => CurrentFamily::id(), 'is_automatic' => true, 'source_field' => 'documents.expiry_date', 'due_date' => '2026-09-30', 'status' => ReminderStatus::Open]);
+        DB::table('remindables')->insert(['reminder_id' => $reminder->id, 'remindable_type' => $card->getMorphClass(), 'remindable_id' => $card->id]);
+
+        return $reminder;
+    });
+    $before = agendaFor($marco);
+
+    $this->actingAs($marco)->post(route('reminders.done', $reminder))->assertRedirect();
+
+    $after = agendaFor($marco);
+    $done = $this->actingAs($marco)->get('/agenda?view=done')->viewData('page')['props']['done'];
+
+    expect(array_column($before['entries'], 'name'))->toContain('Tessera sanitaria di Giulia')
+        ->and(array_column($after['entries'], 'name'))->not->toContain('Tessera sanitaria di Giulia')
+        ->and(array_column($after['entries'], 'name'))->not->toContain("Scade la carta d'identità")
+        ->and($after['overdue'])->toBe($before['overdue'] - 1)
+        ->and(array_column($done, 'key'))->toContain('reminder:'.$reminder->id);
+});
+
 test('the keys and the addresses of the entries', function (): void {
     $marco = boardFamily();
     $entries = collect(agendaFor($marco)['entries'])->keyBy('title');
-    [$gas, $identity, $netflix] = insideFamilyOf($marco, fn (): array => [
+    [$gas, $healthCard, $netflix] = insideFamilyOf($marco, fn (): array => [
         PlannedExpense::query()->where('title', 'Bolletta gas')->sole(),
-        Document::query()->where('expiry_date', '2026-11-14')->sole(),
+        Document::query()->where('expiry_date', '2026-09-30')->sole(),
         Subscription::query()->where('name', 'Netflix')->sole(),
     ]);
 
     expect($entries['Bolletta gas']['key'])->toBe("payment:{$gas->id}:2026-10-30")
         ->and($entries['Bolletta gas']['href'])->toBe(route('budget.deadlines.show', ['kind' => 'expense', 'id' => $gas->id, 'date' => '2026-10-30']).'?pay=1')
-        ->and($entries["Scade la carta d'identità"]['key'])->toBe("deadline:documents.expiry_date:{$identity->id}:2026-11-14")
-        ->and($entries["Scade la carta d'identità"]['href'])->toBe(route('documents.show', $identity))
+        ->and($entries['Tessera sanitaria di Giulia']['key'])->toBe("deadline:documents.expiry_date:{$healthCard->id}:2026-09-30")
+        ->and($entries['Tessera sanitaria di Giulia']['href'])->toBe(route('documents.show', $healthCard))
         ->and($entries['End of the free trial']['key'])->toBe("deadline:subscriptions.trial_end_date:{$netflix->id}:2026-11-04")
         ->and($entries['End of the free trial']['href'])->toBe(route('cards.show', ['type' => 'subscription', 'id' => $netflix->id]))
         ->and($entries['End of the free trial']['person_id'])->toBe($netflix->person_id);
@@ -340,7 +364,7 @@ test('an unknown months value counts as one month', function (string $query): vo
 
     expect($agenda['months'])->toBe(1)
         ->and($agenda['to'])->toBe('2026-11-26')
-        ->and(agendaUpcoming($agenda))->toHaveCount(10);
+        ->and(agendaUpcoming($agenda))->toHaveCount(9);
 })->with(['?months=2', '?months=abc', '?months=', '?months[]=3']);
 
 test('a member sees the agenda', function (): void {
@@ -503,13 +527,14 @@ it('sends a payment on request', function (): void {
 
 it('answers 404 to a payment of another family or a wrong key', function (string $key): void {
     $marco = registerFamily();
-    insideFamilyOf($marco, fn (): PlannedExpense => agendaPlanned(null, 'Bolletta luce', 50, '2026-10-25', ['is_recurring' => false]));
+    $ours = insideFamilyOf($marco, fn (): PlannedExpense => agendaPlanned(null, 'Bolletta luce', 50, '2026-10-25', ['is_recurring' => false]));
     $rossi = registerFamily('Rossi', 'mario@example.com');
     $theirs = insideFamilyOf($rossi, fn (): PlannedExpense => agendaPlanned(null, 'Affitto', 700, '2026-10-25', ['is_recurring' => false]));
 
-    agendaPaymentReload($marco, str_replace('{rossi}', (string) $theirs->id, $key))->assertNotFound();
+    agendaPaymentReload($marco, str_replace(['{rossi}', '{marco}'], [(string) $theirs->id, (string) $ours->id], $key))->assertNotFound();
 })->with([
     'another family' => ['payment:{rossi}:2026-10-25'],
     'not a payment' => ['deadline:documents.expiry_date:1:2026-10-25'],
-    'a wrong day' => ['payment:{rossi}:2026-13-45'],
+    // A payment of the family on a day that cannot exist
+    'a wrong day' => ['payment:{marco}:2026-13-45'],
 ]);

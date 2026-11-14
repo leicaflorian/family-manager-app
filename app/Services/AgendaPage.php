@@ -9,6 +9,7 @@ use App\Data\AgendaData;
 use App\Data\AgendaEntryData;
 use App\Data\AgendaFiltersData;
 use App\Data\PersonData;
+use App\Enums\AgendaReminderState;
 use App\Http\Middleware\LimitVisit;
 use App\Http\Requests\AgendaRequest;
 use App\Models\User;
@@ -92,7 +93,9 @@ final readonly class AgendaPage
 
     /**
      * The things to do from the late ones to the end of the period, in order of day and title. Incomes are not things
-     * to do; late deadlines and unpaid payments stay for 90 days, tasks without limit.
+     * to do, and a deadline whose automatic reminder is done belongs to the done view; late deadlines and unpaid
+     * payments stay for 90 days, tasks without limit. The Home and the calendar keep the done deadlines, so the filter
+     * stays here and not in `Agenda`.
      *
      * @param  CarbonImmutable  $today  today, in Rome
      * @param  CarbonImmutable  $until  the last day of the period
@@ -101,7 +104,8 @@ final readonly class AgendaPage
     private function entries(CarbonImmutable $today, CarbonImmutable $until): array
     {
         $entries = [
-            ...array_filter($this->agenda->entries($today, $until, 90, 90), static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'),
+            ...array_filter($this->agenda->entries($today, $until, 90, 90), static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'
+                && ! ($entry->kind === 'deadline' && $entry->reminder?->state === AgendaReminderState::Done)),
             ...$this->tasks->open($today, $until),
         ];
         usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
