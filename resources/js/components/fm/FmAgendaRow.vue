@@ -7,7 +7,7 @@
  * to it, then the person, how far it is («tomorrow» highlighted) and the amount
  * (only a payment has one). The whole row is a button that emits `open`, to
  * show the panel of the entry. With `done` (the Done list) the day on the left
- * is the one it was closed on, the line below says «Done on 05/11/2026 · Laura»
+ * is the one it was closed on, the line below says «Done on 05/11 · Laura»
  * with a green tick, and there is no amount nor how far it is. In the Home
  * (`home`): the dot of the area, the title, below the card with how far it is
  * («Gas - Enel · in 4 days»), or «Late by 3 days · 23/10/2026» in red, and the
@@ -22,7 +22,7 @@ import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
-import { shortMonth, weekdayShort } from '@/lib/budget';
+import { shortDate, shortMonth, weekdayShort } from '@/lib/budget';
 import { daysFromToday, relativeDays, toDate } from '@/lib/format';
 import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
@@ -99,7 +99,7 @@ const hasNotice = computed(
 /** The line of the Done list: when it was closed and by whom. */
 const doneLine = computed((): string =>
     trans('Done on :date · :name', {
-        date: date(entry.reminder?.done_on ?? entry.date),
+        date: shortDate(shownDate.value),
         name: entry.reminder?.done_by ?? '',
     }),
 );

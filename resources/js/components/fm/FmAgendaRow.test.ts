@@ -68,6 +68,18 @@ describe('FmAgendaRow', () => {
             expect(screen.getByText('~71,30 €')).toBeInTheDocument();
         });
 
+        it('stays a link to the entry, not a button that opens the panel', () => {
+            render(FmAgendaRow, {
+                props: { entry: entry(), layout: 'home' },
+            });
+
+            expect(screen.getByRole('link')).toHaveAttribute(
+                'href',
+                '/budget/planned/expense/3/occurrences/2026-10-30',
+            );
+            expect(screen.queryByRole('button')).toBeNull();
+        });
+
         it('shows the dot of the area', () => {
             const { container } = render(FmAgendaRow, {
                 props: { entry: entry({ area: 'insurance' }), layout: 'home' },
@@ -191,7 +203,7 @@ describe('FmAgendaRow', () => {
             });
 
             const row = screen.getByRole('button');
-            expect(row).toHaveTextContent('Done on 05/11/2026 · Laura');
+            expect(row).toHaveTextContent('Done on 05/11 · Laura');
             expect(row).not.toHaveTextContent('days');
             expect(row).not.toHaveTextContent('—');
         });
