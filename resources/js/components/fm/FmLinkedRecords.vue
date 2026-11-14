@@ -2,8 +2,8 @@
 /**
  * *Links* of *A person* and *An organization*: the records that name them, one
  * type at a time, with a tab for each type and how many records it has. With
- * `reminders` a last entry, *Reminders* with their number, leads to the list of
- * reminders of that person.
+ * `reminders` a last entry, *To do* with the number of open tasks, leads to the
+ * Agenda filtered on that person.
  *
  * @group sections
  */
@@ -15,7 +15,7 @@ import FmRow from './FmRow.vue';
 const { groups, reminders } = defineProps<{
     /** The records, grouped by type. */
     groups: App.Data.LinkGroupData[];
-    /** The open reminders of the person: how many, and the list they are in; no entry when missing. */
+    /** The open tasks of the person: how many, and the address of the Agenda filtered on them; no entry when missing. */
     reminders?: { count: number; href: string };
 }>();
 
@@ -58,7 +58,7 @@ const open = computed(
                         :href="reminders.href"
                         class="flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent px-0.5 text-body-sm whitespace-nowrap text-ink-soft no-underline"
                     >
-                        {{ $t('Reminders') }}
+                        {{ $t('To do') }}
                         <span class="font-semibold text-ink-soft">{{
                             reminders.count
                         }}</span>

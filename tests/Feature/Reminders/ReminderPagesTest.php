@@ -307,6 +307,24 @@ test('it sends the reminders page to the agenda', function (): void {
     $this->actingAs($this->marco)->get('/reminders?status=done&person=3')->assertRedirect('/agenda?view=done');
 });
 
+test('the reminders of a person open the agenda filtered on that person', function (): void {
+    $giulia = insideBianchi(fn (): Person => Person::query()->where('first_name', 'Giulia')->sole());
+    $this->marco->forceFill(['agenda_filters' => ['months' => 3, 'person_id' => null, 'hidden_areas' => ['home']]])->save();
+
+    $this->actingAs($this->marco)->get('/reminders?person='.$giulia->id)->assertRedirect('/agenda');
+
+    expect($this->marco->fresh()->agenda_filters)->toBe(['months' => 3, 'person_id' => $giulia->id, 'hidden_areas' => ['home']]);
+});
+
+test('a person of another family or a wrong one leaves the agenda filters as they are', function (string $person): void {
+    $rossi = registerFamily('Rossi', 'mario@example.com');
+    $theirs = insideFamilyOf($rossi, fn (): Person => Person::factory()->create(['family_id' => CurrentFamily::id()]));
+
+    $this->actingAs($this->marco)->get('/reminders?person='.str_replace('{rossi}', (string) $theirs->id, $person))->assertRedirect('/agenda');
+
+    expect($this->marco->fresh()->agenda_filters)->toBeNull();
+})->with(['{rossi}', 'abc', '']);
+
 test('it goes back to the agenda after saving or deleting a task', function (): void {
     $reminder = handWrittenReminder();
     $this->actingAs($this->marco);

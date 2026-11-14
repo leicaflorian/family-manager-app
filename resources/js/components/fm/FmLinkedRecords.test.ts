@@ -65,7 +65,7 @@ describe('FmLinkedRecords', () => {
         ).toHaveAttribute('href', '/cards/vehicle/1');
     });
 
-    it('adds the Reminders entry with their number, leading to the list of that person', () => {
+    it('adds the To do entry with the number of tasks, leading to the Agenda of that person', () => {
         render(FmLinkedRecords, {
             props: {
                 groups,
@@ -73,11 +73,11 @@ describe('FmLinkedRecords', () => {
             },
         });
 
-        const entry = screen.getByRole('link', { name: 'Reminders 2' });
+        const entry = screen.getByRole('link', { name: 'To do 2' });
         expect(entry).toHaveAttribute('href', '/reminders?person=3');
     });
 
-    it('shows the Reminders entry even when no record names them', () => {
+    it('shows the To do entry even when no record names them', () => {
         render(FmLinkedRecords, {
             props: {
                 groups: [],
@@ -86,15 +86,15 @@ describe('FmLinkedRecords', () => {
         });
 
         expect(
-            screen.getByRole('link', { name: 'Reminders 1' }),
+            screen.getByRole('link', { name: 'To do 1' }),
         ).toBeInTheDocument();
     });
 
-    it('has no Reminders entry without the prop', () => {
+    it('has no To do entry without the prop', () => {
         render(FmLinkedRecords, { props: { groups } });
 
         expect(
-            screen.queryByRole('link', { name: /Reminders/ }),
+            screen.queryByRole('link', { name: /To do/ }),
         ).not.toBeInTheDocument();
     });
 });

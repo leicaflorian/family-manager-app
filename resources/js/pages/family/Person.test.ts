@@ -164,18 +164,18 @@ describe('A person', () => {
         ).toHaveAttribute('src', '/files/40');
     });
 
-    it('shows no reminder box and no Reminders entry without open reminders', () => {
+    it('shows no reminder box and no To do entry without open reminders', () => {
         renderGiulia();
 
         expect(
-            screen.queryByRole('link', { name: /Reminders/ }),
+            screen.queryByRole('link', { name: /To do/ }),
         ).not.toBeInTheDocument();
         expect(
-            screen.queryByRole('link', { name: 'Reminders' }),
+            screen.queryByRole('link', { name: 'Agenda' }),
         ).not.toBeInTheDocument();
     });
 
-    it('shows the open reminders at the top, the late one in red, with the link to Reminders', () => {
+    it('shows the open reminders at the top, the late one in red, with the link to the Agenda of the person', () => {
         renderGiulia(personDetail, [
             healthCardReminder,
             { ...plumberReminder, due_date: '2026-10-31' },
@@ -194,10 +194,10 @@ describe('A person', () => {
             within(late).getByText(/Overdue by 26 days/),
         ).toBeInTheDocument();
         expect(
-            within(late).getByRole('link', { name: 'Reminders' }),
+            within(late).getByRole('link', { name: 'Agenda' }),
         ).toHaveAttribute('href', '/reminders?person=3');
         expect(
-            screen.getByRole('link', { name: 'Reminders 2' }),
+            screen.getByRole('link', { name: 'To do 2' }),
         ).toHaveAttribute('href', '/reminders?person=3');
         expect(coming).not.toHaveClass('text-overdue');
         expect(within(coming).getByText(/in 5 days/)).toBeInTheDocument();

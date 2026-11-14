@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Agenda\SaveAgendaFilters;
 use App\Actions\Reminders\SaveReminder;
+use App\Data\AgendaFiltersData;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
 use App\Data\ReminderGroupChoiceData;
+use App\Http\Middleware\LimitVisit;
 use App\Http\Requests\AgendaRequest;
 use App\Http\Requests\Reminders\SaveReminderRequest;
 use App\Models\Document;
+use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\User;
@@ -22,6 +26,7 @@ use App\Services\Reminders\ReminderList;
 use App\Support\ModelId;
 use App\Support\Reminders\SubjectLink;
 use Carbon\CarbonImmutable;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +35,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The form of a task (a reminder written by hand), shown over the Agenda,: everyone sees them and a `member` writes them too, only an
+ * The form of a task (a reminder written by hand), shown over the Agenda: everyone sees them and a `member` writes them too, only an
  * `admin` deletes. A reminder made from a date of a card or a document is not edited or deleted.
  */
 final class ReminderController extends Controller
@@ -39,9 +44,27 @@ final class ReminderController extends Controller
 
     /**
      * The old *Reminders* page: the list lives in the Agenda now, and the done filter keeps its place as `?view=done`.
+     * `?person=` (the link of the page of a person) remembers that person in the filters of the Agenda, as the filter
+     * of the page does, so the Agenda opens on them with a clean address; during a visit of the owner nothing is
+     * written, and a person who is not of the family is ignored.
+     *
+     * @param  Request  $request  the address
+     * @param  User  $user  who opens it, whose filters are remembered
+     * @param  SaveAgendaFilters  $save  saves the filters
      */
-    public function index(Request $request): RedirectResponse
+    public function index(Request $request, #[CurrentUser] User $user, SaveAgendaFilters $save): RedirectResponse
     {
+        $person = $request->query('person');
+
+        if (is_string($person) && ctype_digit($person) && ! LimitVisit::isOpen($request)) {
+            $found = Person::query()->find((int) $person);
+
+            if ($found instanceof Person) {
+                $filters = AgendaFiltersData::fromUser($user);
+                $save->handle($user, new AgendaFiltersData($filters->months, $found->id, $filters->hidden_areas));
+            }
+        }
+
         return $request->query('status') === 'done'
             ? to_route('agenda', ['view' => 'done'])
             : to_route('agenda');

@@ -12,8 +12,10 @@ use App\Models\Family;
 use App\Models\Invitation;
 use App\Models\Owner;
 use App\Models\OwnerAction;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\PhoneLinks;
+use App\Support\CurrentFamily;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
@@ -303,6 +305,15 @@ test('the agenda does not remember its period in the account during a visit', fu
 
     $this->get(route('agenda', ['months' => 6]))->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('agenda.months', 6));
+
+    expect($this->laura->fresh()->agenda_filters)->toBeNull();
+});
+
+test('the reminders of a person do not remember the person in the account during a visit', function (): void {
+    $person = CurrentFamily::using($this->family->id, fn (): Person => Person::factory()->create(['family_id' => $this->family->id]));
+    startVisit();
+
+    $this->get('/reminders?person='.$person->id)->assertRedirect('/agenda');
 
     expect($this->laura->fresh()->agenda_filters)->toBeNull();
 });

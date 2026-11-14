@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * *A person*: at the top their open reminders (the late ones in red, with the
- * link to *Reminders*) and the documents expiring, then the personal documents
+ * link to the *Agenda*: `/reminders?person=` remembers the person in the
+ * filters of the Agenda and opens it) and the documents expiring, then the personal documents
  * (linked to no record) and the records that name them; on the side their
  * data and the other documents. An `admin` edits them and deletes a person
  * without an account.
@@ -168,7 +169,7 @@ usePageTrail(() => [
                                     .url
                             "
                             class="no-underline"
-                            >{{ $t('Reminders') }}</Link
+                            >{{ $t('Agenda') }}</Link
                         >
                     </template>
                 </FmNotice>
