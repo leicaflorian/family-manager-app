@@ -114,6 +114,7 @@
         "FmLinkDocumentSheet": "pages",
         "FmLinkPhoneSheet": "pages",
         "FmMovementPanel": "pages",
+        "FmPayForm": "pages",
         "FmPaySheet": "pages",
         "FmQrCode": "pages",
         "FmUnlinkPhone": "pages",
