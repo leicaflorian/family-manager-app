@@ -45,6 +45,8 @@ readonly reminder: App.Data.AgendaReminderData | null,
 readonly href: string,
 readonly update_url: string | null,
 readonly notes: string | null,
+readonly account: string | null,
+readonly planned: string | null,
 };
 export type AgendaFiltersData = {
 readonly months: number,

@@ -33,6 +33,8 @@ final class AgendaEntryData extends Data
      * @param  string  $href  the card or the document of a deadline; *A due date* with *I paid it* open for a payment or an income
      * @param  string|null  $update_url  where *Update the date* and *Renewed* send the new date of a deadline; null for a payment, an income, or when whoever looks cannot edit the card
      * @param  string|null  $notes  the notes of a task; null for the other kinds and for a task without notes
+     * @param  string|null  $account  the name of the account a payment or an income goes through (the one of the planned item, else the default one); null for a deadline or a task
+     * @param  string|null  $planned  the planned expense or income of a payment, with how it repeats, for example «Gas - Hera, every 2 months»; null for a deadline or a task
      */
     public function __construct(
         public readonly string $key,
@@ -52,5 +54,7 @@ final class AgendaEntryData extends Data
         public readonly string $href,
         public readonly ?string $update_url = null,
         public readonly ?string $notes = null,
+        public readonly ?string $account = null,
+        public readonly ?string $planned = null,
     ) {}
 }

@@ -111,3 +111,13 @@ it('hides a task of another family', function (): void {
     expect(collect(openTasks($this->marco))->pluck('key'))->not->toContain('task:'.$task->id)
         ->and(collect(openTasks($other))->pluck('key'))->toContain('task:'.$task->id);
 });
+
+it('names the card a task is linked to in its subtitle', function (): void {
+    $linked = taskOf($this->marco, ['title' => 'Con veicolo', 'due_date' => '2026-11-20']);
+    CurrentFamily::using($this->marco->family_id, function () use ($linked): void {
+        $vehicle = Vehicle::query()->firstOrFail();
+        $linked->link()->create(['remindable_type' => $vehicle->getMorphClass(), 'remindable_id' => $vehicle->id]);
+    });
+
+    expect(collect(openTasks($this->marco))->firstWhere('key', 'task:'.$linked->id)->subtitle)->not->toBe('');
+});

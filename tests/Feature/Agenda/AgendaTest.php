@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Data\AgendaEntryData;
 use App\Enums\DocumentStatus;
 use App\Enums\ExceptionType;
+use App\Enums\FinancialAccountType;
 use App\Enums\ReminderStatus;
 use App\Enums\VehicleStatus;
 use App\Models\Document;
 use App\Models\Expense;
+use App\Models\FinancialAccount;
 use App\Models\InsurancePolicy;
 use App\Models\Organization;
 use App\Models\PlannedExpense;
@@ -419,4 +421,40 @@ test('the agenda sends the notices of a deadline reminder', function (): void {
         ->and($entry['reminder']['id'])->toBeInt()
         ->and($entry['reminder']['notice_days'])->not->toBeEmpty()
         ->and($entry['reminder']['recipients'])->toContain('Marco Bianchi', 'Laura Bianchi');
+});
+
+test('a payment says its account and how its planned expense repeats', function (): void {
+    $marco = boardFamily();
+    insideFamilyOf($marco, function (): void {
+        FinancialAccount::query()->create(['name' => 'Conto BPER', 'type' => FinancialAccountType::CheckingAccount, 'is_default' => true]);
+        $card = FinancialAccount::query()->create(['name' => 'Carta Laura', 'type' => FinancialAccountType::Card]);
+        PlannedExpense::query()->create([
+            'title' => 'Gas - Hera',
+            'amount' => 84.2,
+            'is_recurring' => true,
+            'interval' => 2,
+            'interval_unit' => 'month',
+            'start_date' => '2026-11-02',
+        ]);
+        PlannedExpense::query()->create(['title' => 'Palestra', 'amount' => 30, 'is_recurring' => false, 'start_date' => '2026-11-03', 'financial_account_id' => $card->id]);
+    });
+    $entries = collect(agendaFor($marco)['entries']);
+
+    expect($entries->firstWhere('title', 'Gas - Hera'))
+        ->toMatchArray(['account' => 'Conto BPER', 'planned' => 'Gas - Hera, every 2 months'])
+        ->and($entries->firstWhere('title', 'Palestra')['account'])->toBe('Carta Laura')
+        ->and($entries->firstWhere('kind', 'deadline')['account'])->toBeNull()
+        ->and($entries->firstWhere('kind', 'deadline')['planned'])->toBeNull();
+});
+
+test('a payment of one time says it is once', function (): void {
+    $marco = boardFamily();
+    insideFamilyOf($marco, fn (): PlannedExpense => PlannedExpense::query()->create([
+        'title' => 'Tassa rifiuti',
+        'amount' => 120,
+        'is_recurring' => false,
+        'start_date' => '2026-11-02',
+    ]));
+
+    expect(collect(agendaFor($marco)['entries'])->firstWhere('title', 'Tassa rifiuti')['planned'])->toBe('Tassa rifiuti, once, on 02/11/2026');
 });

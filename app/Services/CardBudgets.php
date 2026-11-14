@@ -556,7 +556,7 @@ final readonly class CardBudgets
      * @param  PlannedExpense|PlannedIncome  $planned  the planned item
      * @param  bool  $withDay  whether to say the day
      */
-    private function every(PlannedExpense|PlannedIncome $planned, bool $withDay): string
+    public function every(PlannedExpense|PlannedIncome $planned, bool $withDay): string
     {
         if (! $planned->is_recurring) {
             return $this->once($planned);

@@ -44,6 +44,7 @@ final readonly class Agenda
         private CardDeadlines $cardDeadlines,
         private Deadlines $deadlines,
         private CardSummaries $cards,
+        private CardBudgets $budgets,
     ) {}
 
     /**
@@ -258,6 +259,8 @@ final readonly class Agenda
             reminder_done: $deadline?->reminderDone() ?? false,
             reminder: $reminder,
             href: route('budget.deadlines.show', ['kind' => $payment->kind(), 'id' => $planned->id, 'date' => $originalDate]).'?pay=1',
+            account: $payment->account?->name,
+            planned: __(':title, :repeats', ['title' => $planned->displayTitle(), 'repeats' => $this->budgets->every($planned, false)]),
         );
     }
 
