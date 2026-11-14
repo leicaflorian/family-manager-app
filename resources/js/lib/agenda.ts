@@ -6,7 +6,8 @@
  */
 import { router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { reopen } from '@/routes/reminders';
+import { toast } from 'vue-sonner';
+import { done, reopen } from '@/routes/reminders';
 import { capitalized, longMonth, monthName, shortDate } from './budget';
 import { addDays, endOfWeek } from './days';
 import { isoDate } from './format';
@@ -232,4 +233,37 @@ export function reopenReminder(id: number, onSuccess?: () => void): void {
         preserveUrl: true,
         onSuccess: () => onSuccess?.(),
     });
+}
+
+/**
+ * Marks a reminder done, leaving the page where it is, and says so for a
+ * moment with *Undo*, which puts it back with `reopenReminder`: *Done* of the
+ * panel of the Agenda.
+ *
+ * @param id - the id of the reminder
+ * @param title - what was done, for the message, for example «Polizza auto»
+ * @param onSuccess - what to do once it is done, for example close the panel
+ */
+export function markReminderDone(
+    id: number,
+    title: string,
+    onSuccess?: () => void,
+): void {
+    router.post(
+        done.url(id),
+        {},
+        {
+            preserveScroll: true,
+            preserveUrl: true,
+            onSuccess: () => {
+                onSuccess?.();
+                toast.success(trans('Done: :title', { title }), {
+                    action: {
+                        label: trans('Undo'),
+                        onClick: () => reopenReminder(id),
+                    },
+                });
+            },
+        },
+    );
 }

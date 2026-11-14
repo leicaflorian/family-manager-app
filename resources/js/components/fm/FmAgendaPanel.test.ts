@@ -9,6 +9,8 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import { render } from '@testing-library/vue';
+import { Toaster } from 'vue-sonner';
 import { renderPage } from '@/test/page';
 import FmAgendaPanel from './FmAgendaPanel.vue';
 
@@ -161,6 +163,33 @@ describe('FmAgendaPanel', () => {
             );
             expect(view.emitted().close).toHaveLength(1);
         });
+
+        it('once done, says so for a moment with Undo, which reopens it', async () => {
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, options) => {
+                    options?.onSuccess?.({} as never);
+                },
+            );
+            const reopen = vi
+                .spyOn(router, 'delete')
+                .mockImplementation(() => {});
+            render(Toaster);
+            renderPage(FmAgendaPanel, { entry: entry() });
+
+            await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+            expect(
+                await screen.findByText('Done: Polizza auto - Allianz'),
+            ).toBeInTheDocument();
+            await userEvent.click(
+                await screen.findByRole('button', { name: 'Undo' }),
+            );
+
+            expect(reopen).toHaveBeenCalledWith(
+                '/reminders/7/done',
+                expect.anything(),
+            );
+        });
     });
 
     describe('a payment', () => {
@@ -188,7 +217,7 @@ describe('FmAgendaPanel', () => {
                 'href',
                 'http://localhost/budget/planned/expense/3/occurrences/2026-10-28',
             );
-            expect(screen.getByText('Account')).toBeInTheDocument();
+            expect(screen.getByText('Bank account')).toBeInTheDocument();
             expect(screen.getByText('Conto BPER')).toBeInTheDocument();
             expect(screen.getByText('Planned expense')).toBeInTheDocument();
             expect(
@@ -202,6 +231,22 @@ describe('FmAgendaPanel', () => {
             );
 
             expect(view.emitted().pay).toHaveLength(1);
+        });
+
+        it('that also pays a deadline has no Done nor Postpone', () => {
+            renderPage(FmAgendaPanel, {
+                entry: { ...payment, reminder: reminder() },
+            });
+
+            expect(
+                screen.getByRole('button', { name: 'I paid it' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Done' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Postpone' }),
+            ).not.toBeInTheDocument();
         });
 
         it('shows an estimated amount with the tilde', () => {
@@ -308,6 +353,7 @@ describe('FmAgendaPanel', () => {
             expect(
                 screen.getByText('Done on 01/11 · Laura'),
             ).toBeInTheDocument();
+            expect(screen.getByText('deadline done')).toBeInTheDocument();
             expect(
                 screen.queryByRole('button', { name: 'Done' }),
             ).not.toBeInTheDocument();
@@ -322,6 +368,15 @@ describe('FmAgendaPanel', () => {
                 '/reminders/7/done',
                 expect.anything(),
             );
+        });
+
+        it('says that a task is done with its own words', () => {
+            renderPage(FmAgendaPanel, {
+                entry: { ...closed, kind: 'task', key: 'task:7' },
+                done: true,
+            });
+
+            expect(screen.getByText('task done')).toBeInTheDocument();
         });
 
         it('closes once reopened', async () => {

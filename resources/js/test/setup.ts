@@ -63,6 +63,20 @@ if (typeof document !== 'undefined' && !('elementFromPoint' in document)) {
     });
 }
 
+// jsdom has no pointer capture, which the toasts of `vue-sonner` ask for when a button of a toast is pressed.
+if (typeof Element !== 'undefined' && !('setPointerCapture' in Element.prototype)) {
+    Object.defineProperty(Element.prototype, 'setPointerCapture', {
+        value: (): void => {},
+        writable: true,
+        configurable: true,
+    });
+    Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+        value: (): void => {},
+        writable: true,
+        configurable: true,
+    });
+}
+
 // The tests read the texts in English, the language they are written in.
 config.global.plugins.push([i18nVue, i18nOptions('en')]);
 

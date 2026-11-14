@@ -7,6 +7,7 @@ import {
     areaCounts,
     doneByMonth,
     groupByWeek,
+    markReminderDone,
     reopenReminder,
     visibleEntries,
     withoutPayQuery,
@@ -217,6 +218,33 @@ describe('doneByMonth', () => {
             ['Gennaio', 'Dicembre 2025'],
         );
         await speak('en');
+    });
+});
+
+describe('markReminderDone', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('marks a reminder done, leaving the page where it is', () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        const done = vi.fn();
+
+        markReminderDone(7, 'Polizza auto', done);
+
+        expect(post).toHaveBeenCalledWith(
+            '/reminders/7/done',
+            {},
+            expect.objectContaining({
+                preserveScroll: true,
+                preserveUrl: true,
+            }),
+        );
+        expect(done).toHaveBeenCalledOnce();
     });
 });
 

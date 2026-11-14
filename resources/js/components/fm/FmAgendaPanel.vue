@@ -10,7 +10,9 @@
  * and *Open the due date*, never *Done*; a task has *Done*, *Postpone* and the
  * ⋯ menu with *Edit* and *Delete*. In the Done list (`done`) it says who closed
  * it and when, and only *Reopen* is left. *Done*, *Reopen* and *Delete* are
- * done here; the others are emitted, for the page. The container (a panel from
+ * done here (*Done* says so for a moment with *Undo*); the others are emitted,
+ * for the page. A payment that also pays a deadline carries its reminder, but
+ * still has no *Done* nor *Postpone*. The container (a panel from
  * below on the phone, a side panel on the computer) is chosen by the page.
  *
  * @group panels
@@ -29,16 +31,19 @@ import {
     Wallet,
     X,
 } from '@lucide/vue';
-import { router } from '@inertiajs/vue3';
 import { trans, getActiveLanguage } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { shortDate } from '@/lib/budget';
-import { reopenReminder, withoutPayQuery } from '@/lib/agenda';
+import {
+    markReminderDone,
+    reopenReminder,
+    withoutPayQuery,
+} from '@/lib/agenda';
 import { daysFromToday, relativeDays } from '@/lib/format';
-import { destroy, done as markDone } from '@/routes/reminders';
+import { destroy } from '@/routes/reminders';
 import FmAmount from './FmAmount.vue';
 import FmAvatar from './FmAvatar.vue';
 import FmButton from './FmButton.vue';
@@ -93,10 +98,17 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
 /** Whether the day is already passed and the entry still open. */
 const late = computed((): boolean => !done && daysFromToday(entry.date) < 0);
 
-/** The line of the date: the day and how far it is, or that it is done. */
-const distance = computed((): string =>
-    done ? trans('done') : relativeDays(entry.date),
-);
+/**
+ * The line of the date: the day and how far it is, or that it is done, with
+ * the words of its kind (in Italian a task is «fatto», a deadline «fatta»).
+ */
+const distance = computed((): string => {
+    if (!done) {
+        return relativeDays(entry.date);
+    }
+
+    return entry.kind === 'task' ? trans('task done') : trans('deadline done');
+});
 
 /** The first letter of the first name, for the circle of the person. */
 const initial = computed((): string =>
@@ -148,7 +160,7 @@ const lines = computed((): ValueLine[] => {
     };
 
     if (entry.account) {
-        add(trans('Account'), entry.account);
+        add(trans('Bank account'), entry.account);
     }
 
     if (entry.planned) {
@@ -182,21 +194,11 @@ const canDelete = computed(
     (): boolean => entry.kind === 'task' && reminder.value?.can_delete === true,
 );
 
-/** Marks the reminder as done and closes the panel. */
+/** Marks the reminder as done, closes the panel and offers *Undo* for a moment. */
 function markAsDone(): void {
-    if (reminder.value === null) {
-        return;
+    if (reminder.value !== null) {
+        markReminderDone(reminder.value.id, entry.name, () => emit('close'));
     }
-
-    router.post(
-        markDone.url(reminder.value.id),
-        {},
-        {
-            preserveScroll: true,
-            preserveUrl: true,
-            onSuccess: () => emit('close'),
-        },
-    );
 }
 
 /** Puts the reminder back among the things to do and closes the panel. */
@@ -318,7 +320,10 @@ function reopenTask(): void {
                         >{{ $t('Open the due date') }}</FmSectionLink
                     >
                 </div>
-                <div v-if="reminder" class="flex gap-2.5">
+                <div
+                    v-if="reminder && entry.kind !== 'payment'"
+                    class="flex gap-2.5"
+                >
                     <FmButton
                         class="flex-2"
                         :icon="Check"

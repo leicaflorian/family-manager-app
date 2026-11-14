@@ -992,7 +992,6 @@
     "No other notice": "Nessun altro avviso",
     "Notice on :date": "Avviso il :date",
     "Notice set": "Avviso impostato",
-    "done": "fatta",
     "on :date": "il :date",
     "Notice :dates": "Avviso :dates",
     "Notice :dates · to :names": "Avviso :dates · a :names",
@@ -1857,5 +1856,7 @@
     "{1} Nothing to do in the next month|[2,*] Nothing to do in the next :count months": "{1} Niente da fare nel prossimo mese|[2,*] Niente da fare nei prossimi :count mesi",
     "Paid expenses are in the movements of the Budget": "Le spese pagate sono nei movimenti del Bilancio",
     "Show earlier months": "Mostra i mesi prima",
-    "Reopen: :name": "Riapri: :name"
+    "Reopen: :name": "Riapri: :name",
+    "task done": "fatto",
+    "deadline done": "fatta"
 }
