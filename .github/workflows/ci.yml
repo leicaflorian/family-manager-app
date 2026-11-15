@@ -1,20 +1,18 @@
 name: ci
 
-# Every check of the project. Also called by the release workflow (`workflow_call`, `secrets: inherit`).
+# Every check of the project. It runs only for a release: release.yml calls it on the `v*` tag (`workflow_call`,
+# `secrets: inherit`), before the GitHub Release and the deploy. No run on pushes or pull requests (decision of the
+# owner, 15/11/2026); `workflow_dispatch` lets it run by hand from the Actions page.
 on:
-  push:
-    branches:
-      - dev
-      - main
-  pull_request:
   workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   ci:
