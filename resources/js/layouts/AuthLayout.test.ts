@@ -36,6 +36,16 @@ describe('AuthLayout', () => {
         ).toBeInTheDocument();
     });
 
+    it('draws the soft shapes behind the card, hidden from screen readers', () => {
+        const { container } = render(AuthLayout, {
+            props: { title: 'Log in' },
+        });
+
+        const backdrop = container.querySelector('main > svg');
+        expect(backdrop).toHaveAttribute('aria-hidden', 'true');
+        expect(backdrop?.querySelectorAll('ellipse')).toHaveLength(3);
+    });
+
     it('lists the points of the panel', () => {
         render(AuthLayout, {
             props: {

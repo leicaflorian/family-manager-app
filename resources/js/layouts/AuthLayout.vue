@@ -3,11 +3,13 @@
  * The layout of the sign-in pages (Log in, Sign up, Forgot password…).
  * On the phone the page is white, with the logo at the top and the button at the
  * bottom. On the computer the blue panel is on the left and the form on the right
- * in a card, as in the *Log in* board.
+ * in a card, as in the *Log in* board, over three soft blurred shapes of the
+ * colours of the app (the action blue, the panel blue and the warm orange of Home).
  */
 import { Link } from '@inertiajs/vue3';
 import { CircleCheck } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
+import { useId } from 'vue';
 import FmHeader from '@/components/fm/FmHeader.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
@@ -51,6 +53,9 @@ const {
     otherWay?: OtherWay;
 }>();
 
+/** The id of the blur, unique in the page. */
+const blur = `auth-blur-${useId()}`;
+
 defineSlots<{
     /** The form of the page, with its button. */
     default: () => unknown;
@@ -91,10 +96,52 @@ defineSlots<{
         </aside>
 
         <main
-            class="flex grow items-stretch justify-center lg:items-center lg:p-12"
+            class="relative flex grow items-stretch justify-center overflow-hidden lg:items-center lg:p-12"
         >
+            <!-- Only decoration, on the computer: the empty space around the card -->
+            <svg
+                aria-hidden="true"
+                viewBox="0 0 1060 900"
+                preserveAspectRatio="xMidYMid slice"
+                class="pointer-events-none absolute inset-0 hidden size-full lg:block"
+            >
+                <defs>
+                    <filter
+                        :id="blur"
+                        x="-50%"
+                        y="-50%"
+                        width="200%"
+                        height="200%"
+                    >
+                        <feGaussianBlur stdDeviation="90" />
+                    </filter>
+                </defs>
+                <g :filter="`url(#${blur})`">
+                    <ellipse
+                        cx="880"
+                        cy="140"
+                        rx="300"
+                        ry="220"
+                        class="fill-action/18"
+                    />
+                    <ellipse
+                        cx="160"
+                        cy="780"
+                        rx="320"
+                        ry="200"
+                        class="fill-hero-end/14"
+                    />
+                    <ellipse
+                        cx="900"
+                        cy="700"
+                        rx="200"
+                        ry="160"
+                        class="fill-home/10"
+                    />
+                </g>
+            </svg>
             <div
-                class="flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-sheet lg:bg-card lg:p-9"
+                class="relative flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-sheet lg:bg-card lg:p-9"
             >
                 <div class="flex items-center gap-2.5 lg:hidden">
                     <FmLogo :size="36" />
