@@ -80,7 +80,8 @@
             <ul class="space-y-2">
                 @foreach ($report->server_errors as $error)
                     <li>
-                        {{ $moment($error['at'] ?? null) }} · {{ ($error['method'] ?? '') . ' ' . ($error['path'] ?? '') }}@if (! empty($error['request_id'])) · {{ $error['request_id'] }}@endif<br>
+                        {{-- A queued job has no method and no path: only the parts that are there --}}
+                        {{ collect([$moment($error['at'] ?? null), trim(($error['method'] ?? '') . ' ' . ($error['path'] ?? '')), $error['request_id'] ?? ''])->filter(fn ($part): bool => $part !== '')->implode(' · ') }}<br>
                         <strong>{{ $error['class'] ?? '' }}</strong>: {{ $error['message'] ?? '' }}<br>
                         <span class="text-gray-500">{{ ($error['file'] ?? '') . ':' . ($error['line'] ?? '') }}</span>
                     </li>

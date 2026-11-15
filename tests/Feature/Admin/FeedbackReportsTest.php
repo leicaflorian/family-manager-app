@@ -105,6 +105,19 @@ it('shows the screenshot, device, path, page errors, failed requests and server 
         ->assertSee('Different from the server');
 });
 
+it('shows a server error of a queued job without an empty method and path', function (): void {
+    $report = FeedbackReport::factory()->withDiagnostics()->for($this->rossi)->createQuietly([
+        'server_errors' => [[
+            'at' => '2026-11-15T14:45:32+01:00', 'request_id' => 'req-job-1', 'method' => null, 'path' => null,
+            'class' => 'RuntimeException', 'message' => 'late', 'file' => 'app/Jobs/ReadFile.php', 'line' => 4,
+        ]],
+    ]);
+
+    Livewire::test(ViewFeedbackReport::class, ['record' => $report->getKey()])
+        ->assertSee('14:45:32 · req-job-1')
+        ->assertDontSee('·  ·');
+});
+
 it('shows a browser tab as Browser and no warning when the builds match', function (): void {
     $report = FeedbackReport::factory()->withDiagnostics()->for($this->rossi)->createQuietly();
     $details = $report->diagnostics;
