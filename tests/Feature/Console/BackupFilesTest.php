@@ -6,6 +6,7 @@ use App\Services\FileBackup;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Config;
 use League\Flysystem\Filesystem;
@@ -33,8 +34,12 @@ it('exits 1 and says why when the backup looks suspicious, unless forced', funct
     resolve(FileBackup::class)->run(CarbonImmutable::now());
     Storage::disk('local')->deleteDirectory('families');
 
+    Log::spy();
+
     $this->artisan('files:backup')->expectsOutputToContain('Nothing was moved')->assertExitCode(1);
     expect(Storage::disk('backup')->exists('families/1/a.pdf'))->toBeTrue();
+    // The scheduled output goes nowhere: the reason must reach the log
+    Log::shouldHaveReceived('error')->withArgs(fn (string $message): bool => str_contains($message, 'Nothing was moved'))->once();
 
     $this->artisan('files:backup --force')->expectsOutputToContain('Moved to deleted: 1')->assertExitCode(0);
 });
@@ -52,7 +57,10 @@ it('exits 1 when a file failed', function (): void {
     Storage::set('backup', new FilesystemAdapter(new Filesystem($broken), $broken, ['root' => $root]));
     Storage::disk('local')->put('families/1/a.pdf', 'aaa');
 
+    Log::spy();
+
     $this->artisan('files:backup')->expectsOutputToContain('families/1/a.pdf: Space unreachable')->assertExitCode(1);
+    Log::shouldHaveReceived('error')->withArgs(fn (string $message): bool => str_contains($message, 'families/1/a.pdf: Space unreachable'))->once();
 });
 
 it('warns and does nothing without a bucket', function (): void {

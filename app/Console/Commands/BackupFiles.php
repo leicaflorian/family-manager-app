@@ -10,9 +10,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Copies the family files to the Space (disk `backup`). Without a configured bucket it only warns.
+ * Copies the family files to the Space (disk `backup`). Without a configured bucket it only warns. The reasons of a
+ * failed run also go to the log: the output of the scheduled run is thrown away, the log is what Coolify shows.
  */
 #[Description('Copy the family files to the Space')]
 #[Signature('files:backup {--force : Move the files that are gone locally even when they are many}')]
@@ -34,7 +36,9 @@ final class BackupFiles extends Command
         try {
             $result = $backup->run(CarbonImmutable::now('Europe/Rome'), (bool) $this->option('force'));
         } catch (SuspiciousBackup $e) {
-            $this->error($e->getMessage().' Use --force if the files really are gone.');
+            $message = $e->getMessage().' Use --force if the files really are gone.';
+            $this->error($message);
+            Log::error('files:backup stopped: '.$message);
 
             return self::FAILURE;
         }
@@ -46,6 +50,10 @@ final class BackupFiles extends Command
 
         foreach ($result['failed'] as $line) {
             $this->error("Failed: {$line}");
+        }
+
+        if ($result['failed'] !== []) {
+            Log::error('files:backup failed for '.count($result['failed']).' files: '.implode('; ', $result['failed']));
         }
 
         return $result['failed'] === [] ? self::SUCCESS : self::FAILURE;
