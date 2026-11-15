@@ -1966,5 +1966,7 @@
     "Your version": "La tua versione",
     "No news yet.": "Ancora nessuna novità.",
     "The app": "L'app",
-    "What changes in the app, version by version": "Cosa cambia nell'app, versione per versione"
+    "What changes in the app, version by version": "Cosa cambia nell'app, versione per versione",
+    ":card — :status": ":card — :status",
+    ":card — :status on :date": ":card — :status il :date"
 }
