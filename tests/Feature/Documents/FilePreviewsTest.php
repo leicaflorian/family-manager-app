@@ -206,10 +206,10 @@ test('a file deleted while its preview is made leaves no JPEG', function (): voi
 });
 
 test('a big HEIC photo that does not fit in memory is marked and leaves nothing', function (): void {
-    $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
-    // PHP keeps freed memory reserved, and after a long run (the suite, in a parallel process) the reserved memory is
-    // far above the used one: the limit below, which cannot go under the reserved memory, would leave room for the
-    // photo. Giving the cached memory back keeps the room left at a few MB.
+    // 8000 × 6000 pixels (26 KB, one flat colour): GD would need about 250 MB to decode it. PHP keeps freed memory
+    // reserved and the limit below cannot go under it, so after a long run (the suite, in a parallel process) the room
+    // left can be tens of MB: with the 2400-pixel photo the test failed now and then on the GitHub runner.
+    $file = storeFixture('big-photo.heic', 'photo.heic', 'image/heic');
     gc_collect_cycles();
     gc_mem_caches();
     $limit = ini_get('memory_limit');
