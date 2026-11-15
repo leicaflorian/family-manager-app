@@ -71,7 +71,9 @@ describe('Settings, Calendar', () => {
         expect(screen.getByLabelText('Calendar address')).toHaveValue(
             'http://localhost/calendar/abc.ics',
         );
-        await fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Copy the address' }),
+        );
 
         expect(copy).toHaveBeenCalledWith('http://localhost/calendar/abc.ics');
         expect(await screen.findByText('Address copied')).toBeInTheDocument();
@@ -80,7 +82,9 @@ describe('Settings, Calendar', () => {
     it('explains how to add it to Google Calendar', () => {
         renderPage(Calendar, { calendar: on });
 
-        expect(screen.getAllByRole('listitem')).toHaveLength(3);
+        expect(
+            screen.getByText(/Paste the address and tap/),
+        ).toBeInTheDocument();
         expect(screen.getByText(/Don't download the file/)).toBeInTheDocument();
     });
 
@@ -142,7 +146,7 @@ describe('Settings, Calendar', () => {
 
         expect(screen.getByLabelText('Calendar address')).toBeInTheDocument();
         expect(
-            screen.getByRole('button', { name: 'Copy' }),
+            screen.getByRole('button', { name: 'Copy the address' }),
         ).toBeInTheDocument();
         expect(screen.queryByLabelText('Calendar on')).not.toBeInTheDocument();
         expect(
@@ -156,7 +160,9 @@ describe('Settings, Calendar', () => {
         });
         const view = renderPage(Calendar, { calendar: on });
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Copy the address' }),
+        );
         expect(await screen.findByText('Address copied')).toBeInTheDocument();
 
         await view.rerender({
@@ -174,7 +180,9 @@ describe('Settings, Calendar', () => {
         });
         renderPage(Calendar, { calendar: on });
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Copy the address' }),
+        );
 
         expect(
             await screen.findByText(/Could not copy: select the address/),

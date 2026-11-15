@@ -5,14 +5,12 @@
  * address; everyone sees the address and copies it.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { Check, Copy } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref, watch } from 'vue';
-import { useCopy } from '@/composables/useCopy';
 import FmButton from '@/components/fm/FmButton.vue';
+import FmCalendarLink from '@/components/fm/FmCalendarLink.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
-import FmNotice from '@/components/fm/FmNotice.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { settings } from '@/routes';
@@ -26,13 +24,6 @@ const { calendar } = defineProps<{
 
 /** The switch: follows the server, and asks it when the person moves it. */
 const enabled = ref(calendar.on);
-/** `failed`: the browser refused to copy, so the address is selected for the person to copy by hand. */
-const {
-    copied,
-    failed: copyFailed,
-    copy: copyText,
-    reset: forgetCopy,
-} = useCopy();
 const confirmingReset = ref(false);
 
 watch(
@@ -41,8 +32,6 @@ watch(
         enabled.value = on;
     },
 );
-
-watch(() => calendar.url, forgetCopy);
 
 /** Puts the switch back to what the server says, when it refused the change. */
 function restoreSwitch(): void {
@@ -67,21 +56,6 @@ watch(enabled, (value) => {
         });
     }
 });
-
-/**
- * Copies the address to the clipboard.
- */
-async function copy(): Promise<void> {
-    if (calendar.url === null) {
-        return;
-    }
-
-    if (!(await copyText(calendar.url))) {
-        document
-            .querySelector<HTMLInputElement>('input[name="address"]')
-            ?.select();
-    }
-}
 
 /**
  * Changes the address, after the confirmation.
@@ -123,48 +97,7 @@ usePageTrail(() => [
                     "
                 />
                 <template v-if="calendar.on">
-                    <template v-if="calendar.url !== null">
-                        <FormKit
-                            type="text"
-                            name="address"
-                            :label="$t('Calendar address')"
-                            :value="calendar.url"
-                            readonly
-                        />
-                        <div class="flex flex-wrap items-center gap-2.5">
-                            <FmButton
-                                :icon="copied ? Check : Copy"
-                                @click="copy"
-                                >{{ $t('Copy') }}</FmButton
-                            >
-                            <span
-                                v-if="copied"
-                                role="status"
-                                class="text-body-sm"
-                                >{{ $t('Address copied') }}</span
-                            >
-                            <span
-                                v-if="copyFailed"
-                                role="status"
-                                class="text-body-sm"
-                                >{{
-                                    $t(
-                                        'Could not copy: select the address and copy it.',
-                                    )
-                                }}</span
-                            >
-                        </div>
-                    </template>
-                    <FmNotice v-else-if="calendar.hidden">
-                        {{ $t('The address is hidden during a visit.') }}
-                    </FmNotice>
-                    <FmNotice v-else tone="warning">
-                        {{
-                            $t(
-                                "The address can't be shown any more. Change it to get a new one.",
-                            )
-                        }}
-                    </FmNotice>
+                    <FmCalendarLink :calendar="calendar" />
                     <div v-if="calendar.can_change">
                         <FmButton
                             variant="outline"
@@ -178,30 +111,6 @@ usePageTrail(() => [
                     </div>
                 </template>
             </div>
-        </FmCard>
-        <FmCard v-if="calendar.on" :title="$t('Add it to Google Calendar')">
-            <ol class="flex list-decimal flex-col gap-2 pl-5">
-                <li>
-                    {{
-                        $t(
-                            'In Google Calendar, next to «Other calendars», tap +, then «From URL».',
-                        )
-                    }}
-                </li>
-                <li>{{ $t('Paste the address and tap «Add calendar».') }}</li>
-                <li>
-                    {{
-                        $t('Google updates it by itself, even every few hours.')
-                    }}
-                </li>
-            </ol>
-            <p class="mt-3 text-body-sm">
-                {{
-                    $t(
-                        "Don't download the file and import it: it would not update. Subscribe with the address.",
-                    )
-                }}
-            </p>
         </FmCard>
         <FmConfirm
             v-model:open="confirmingReset"

@@ -1932,5 +1932,20 @@
     "Path": "Percorso",
     "Request id": "Id della richiesta",
     "Request": "Richiesta",
-    "Error": "Errore"
+    "Error": "Errore",
+    "Copy the address": "Copia l'indirizzo",
+    "Where do you add it?": "Dove lo aggiungi?",
+    "Google": "Google",
+    "iPhone and Mac": "iPhone e Mac",
+    "Outlook": "Outlook",
+    "On iPhone open Settings › Apps › Calendar › Calendar Accounts › Add Account › Other › Add Subscribed Calendar.": "Su iPhone apri Impostazioni › App › Calendario › Account del calendario › Aggiungi account › Altro › Aggiungi calendario iscritto.",
+    "On the Mac, in Calendar choose File › New Calendar Subscription.": "Sul Mac, in Calendario scegli File › Nuova iscrizione a un calendario.",
+    "Paste the address and confirm: the calendar updates by itself.": "Incolla l'indirizzo e conferma: il calendario si aggiorna da solo.",
+    "In Outlook on the web open the calendar and choose «Add calendar» › «Subscribe from web».": "In Outlook sul web apri il calendario e scegli «Aggiungi calendario» › «Iscriviti dal web».",
+    "Paste the address, give it a name and choose «Import».": "Incolla l'indirizzo, dagli un nome e scegli «Importa».",
+    "Outlook updates it by itself, even every few hours.": "Outlook lo aggiorna da solo, anche ogni poche ore.",
+    "The calendar is off.": "Il calendario è spento.",
+    "Turn on the calendar": "Accendi il calendario",
+    "Whoever manages the family can turn it on in Settings.": "Chi gestisce la famiglia lo può accendere nelle Impostazioni.",
+    "Change the address or turn off the calendar in Settings": "Cambia l'indirizzo o spegni il calendario nelle Impostazioni"
 }
