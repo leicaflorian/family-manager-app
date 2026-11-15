@@ -11,7 +11,7 @@ use Carbon\CarbonImmutable;
  */
 final readonly class ReleaseFiles
 {
-    private const string HEADER = "# Changelog\n\nAll notable changes to Family Manager.\n";
+    private const string HEADER = "# Changelog\n\nAll notable changes to Fameja.app.\n";
 
     private string $root;
 

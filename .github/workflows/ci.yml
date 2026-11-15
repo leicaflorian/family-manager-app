@@ -63,6 +63,9 @@ jobs:
         with:
           php-version: '8.5'
           extensions: gd, exif, intl, bcmath, redis, pdo_mysql
+          # The limits of docker/production/php.ini and Sail: with PHP's 8M a Mailgun call over 40 MB gets PHP's 413
+          # instead of the app's 406
+          ini-values: post_max_size=100M, upload_max_filesize=26M, max_file_uploads=100
           tools: composer:v2
           coverage: none
 
@@ -98,9 +101,12 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Only the key: phpunit.xml and the job env give the rest. A copy of .env.example would put BACKUP_S3_BUCKET,
+      # REGISTRATION_OPEN and ADMIN_DOMAIN in $_SERVER, and the tests that change them with putenv and restart the
+      # app would keep reading the empty values.
       - name: Prepare the environment
         run: |
-          cp .env.example .env
+          echo "APP_KEY=" > .env
           php artisan key:generate
 
       - name: Install JavaScript dependencies
@@ -120,6 +126,13 @@ jobs:
 
       - name: Rector
         run: vendor/bin/rector --dry-run --no-progress-bar
+
+      # The tests that restart the app (refreshApplication) lose the database of their parallel process and go back
+      # to `testing`, which needs the tables, as it has them in Sail.
+      - name: Migrate the database of the tests
+        run: php artisan migrate --force --no-interaction
+        env:
+          APP_ENV: testing
 
       - name: Pest
         run: php artisan test --parallel --processes=4

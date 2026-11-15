@@ -1,6 +1,6 @@
 # Release answer
 
-You prepare the release of Family Manager. The commits since the last release arrive on stdin, one per line. Read them; look at the diff with git only when a subject is not enough to understand a change.
+You prepare the release of Fameja.app. The commits since the last release arrive on stdin, one per line. Read them; look at the diff with git only when a subject is not enough to understand a change.
 
 Answer with one JSON object and nothing else (no code fence, no text around it):
 
