@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Release;
 
-use App\Support\AppVersion;
 use Carbon\CarbonImmutable;
 
 /**
@@ -20,13 +19,29 @@ final readonly class ReleaseFiles
     public function __construct(private string $root) {}
 
     /**
-     * The version in the VERSION file, or null when there is none yet.
+     * The version in the VERSION file, or null when there is no file yet (a first release).
+     *
+     * @throws \InvalidArgumentException When the file exists but does not hold an `X.Y.Z` version.
      */
     public function current(): ?Version
     {
-        $version = AppVersion::read($this->root.'/VERSION');
+        $path = $this->root.'/VERSION';
 
-        return $version === 'dev' ? null : Version::parse($version);
+        if (! is_file($path)) {
+            return null;
+        }
+
+        return Version::parse(trim((string) file_get_contents($path)));
+    }
+
+    /**
+     * Absolute path of a file handed to the script that commits and tags: `storage/app/release/<name>`.
+     *
+     * @param  string  $name  File name, without a directory.
+     */
+    public function handoffPath(string $name): string
+    {
+        return $this->root.'/storage/app/release/'.$name;
     }
 
     /**

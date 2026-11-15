@@ -81,3 +81,13 @@ test('a later write goes above the older one and keeps it', function (): void {
         ->and(substr_count($changelog, '# Changelog'))->toBe(1)
         ->and(array_column($notes, 'version'))->toBe(['2.1.0', '2.0.0']);
 });
+
+test('a corrupt VERSION file is an error, not a first release', function (): void {
+    file_put_contents($this->root.'/VERSION', "banana\n");
+
+    expect(fn (): ?Version => new ReleaseFiles($this->root)->current())->toThrow(InvalidArgumentException::class);
+});
+
+test('the handoff files live under storage/app/release', function (): void {
+    expect(new ReleaseFiles($this->root)->handoffPath('version'))->toBe($this->root.'/storage/app/release/version');
+});
