@@ -78,7 +78,7 @@ final class DefaultCategories
     }
 
     /**
-     * The expense categories, those of Family Manager on Directus.
+     * The expense categories, those of the Directus app.
      *
      * @return array<string, list<string>>
      */

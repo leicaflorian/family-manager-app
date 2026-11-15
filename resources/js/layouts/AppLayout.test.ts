@@ -37,6 +37,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
             return page.component;
         },
         props: {
+            name: 'Fameja.app',
             auth: { user: { name: 'Marco Bianchi' } },
             family: { name: 'Bianchi' },
             areas: areaCounts,
@@ -254,7 +255,7 @@ describe('AppLayout', () => {
         const event = press({ key: 'k', metaKey: true });
 
         expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toHaveFocus();
         expect(event.defaultPrevented).toBe(true);
         expect(visit).not.toHaveBeenCalled();
@@ -268,7 +269,7 @@ describe('AppLayout', () => {
         press({ key: 'k', metaKey: true });
 
         expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toHaveFocus();
     });
 
@@ -311,7 +312,7 @@ describe('AppLayout', () => {
         render(AppLayout, { slots: { default: '<h1>Search</h1>' } });
 
         expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toHaveValue('Panda');
     });
 

@@ -21,6 +21,7 @@ import {
     Wallet,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
+import { useAppName } from '@/composables/useAppName';
 import {
     agenda,
     areas,
@@ -205,7 +206,9 @@ export function navigationItems(release = 'dev'): NavigationItems {
         logout: logout().url,
         feedback: {
             label: trans('Report a problem or an idea'),
-            hint: trans('It reaches who makes Family Manager'),
+            hint: trans('It reaches who makes :app', {
+                app: useAppName().value,
+            }),
             icon: MessageSquareWarning,
         },
         release: {

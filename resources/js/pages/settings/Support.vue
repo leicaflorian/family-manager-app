@@ -14,10 +14,14 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import { useAppName } from '@/composables/useAppName';
 import { formatDateTime } from '@/lib/format';
 import { settings } from '@/routes';
 import { destroy, store } from '@/routes/settings/support';
 import { usePageTrail } from '@/composables/usePageTrail';
+
+/** The name of the app, for the texts that say it. */
+const appName = useAppName();
 
 const props = defineProps<{
     /** Until when support can come in (ISO with offset), or `null` without the permission. */
@@ -97,7 +101,8 @@ usePageTrail(() => [
                     <p class="text-body">
                         {{
                             $t(
-                                'If you ask us for help, we can look at Family Manager as one of your accounts. We only look, we change nothing, and only while you allow it.',
+                                'If you ask us for help, we can look at :app as one of your accounts. We only look, we change nothing, and only while you allow it.',
+                                { app: appName },
                             )
                         }}
                     </p>

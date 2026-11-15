@@ -20,6 +20,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     usePage: () => ({
         url: page.url,
         props: {
+            name: 'Fameja.app',
             auth: { user: { name: 'Laura Bianchi' } },
             family: { name: 'Bianchi' },
             linked_phone: page.linked,
@@ -220,7 +221,7 @@ describe('Scan, the files of Share', () => {
     });
 });
 
-describe('Scan, the sheet Install Family Manager', () => {
+describe('Scan, the sheet Install Fameja.app', () => {
     afterEach(() => localStorage.clear());
 
     it('shows the steps on an iPhone in the browser, and Not now closes it', async () => {
@@ -228,7 +229,7 @@ describe('Scan, the sheet Install Family Manager', () => {
         renderPage(Scan);
 
         const sheet = await screen.findByRole('dialog', {
-            name: 'Install Family Manager',
+            name: 'Install Fameja.app',
         });
         expect(
             within(sheet).getByText(/Add to Home Screen/),
@@ -250,7 +251,7 @@ describe('Scan, the sheet Install Family Manager', () => {
         renderPage(Scan);
 
         const sheet = await screen.findByRole('dialog', {
-            name: 'Install Family Manager',
+            name: 'Install Fameja.app',
         });
         expect(
             within(sheet).queryByText(/Install app/),

@@ -15,11 +15,10 @@ import { i18nOptions } from '@/lib/i18n';
 import { pageLayout } from '@/lib/pageLayout';
 import { forgetShared } from '@/lib/pwa/sharedFiles';
 import { login, logout } from '@/routes';
+import { pageTitle } from '@/lib/pageTitle';
 import { pageVisitOptions } from '@/lib/transitions';
 import { reportVueError, startDiagnostics } from '@/lib/diagnostics';
 import { startVisitHistory } from '@/lib/visitHistory';
-
-const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
 
 // The server picks the language and writes it in <html lang>. The pages translate
 // the texts of their layout as soon as they are loaded, before the app exists:
@@ -36,7 +35,13 @@ startVisitHistory((name) => pageLayout(name) === AppLayout);
 startDiagnostics();
 
 void createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    // The name of the app comes from the server, like every other text that says it
+    // (Inertia types the props of this callback as unknown)
+    title: (title, page) =>
+        pageTitle(
+            title,
+            typeof page.props.name === 'string' ? page.props.name : '',
+        ),
     layout: pageLayout,
     withApp: (app) => {
         app.config.errorHandler = reportVueError;
@@ -69,7 +74,7 @@ useTheme();
 initializeFlashToast();
 
 // The app on the Home screen: the manifest (not on iPhone and iPad), the service worker, and the invitation of
-// Android kept for the sheet *Install Family Manager*
+// Android kept for the sheet *Install Fameja.app*
 addManifestLink();
 startInstallWatch();
 void registerServiceWorker();

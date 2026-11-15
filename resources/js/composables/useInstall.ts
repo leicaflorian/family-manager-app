@@ -1,5 +1,5 @@
 /**
- * The sheet *Install Family Manager*: when it comes up on a phone and what its buttons do. It comes up when a phone
+ * The sheet *Install Fameja.app*: when it comes up on a phone and what its buttons do. It comes up when a phone
  * opens the page in the browser over https and the app is not on the Home screen yet; on an iPhone it shows the
  * steps, on Android the *Install* button that calls the invitation of the phone. *Not now* closes it until the next
  * opening: nothing is remembered. Never on `http`, where the phone cannot install.
@@ -49,7 +49,7 @@ function rememberInstalled(): void {
 }
 
 /**
- * The sheet *Install Family Manager* of a page.
+ * The sheet *Install Fameja.app* of a page.
  *
  * @returns the state of the sheet and its two actions
  */

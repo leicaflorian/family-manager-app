@@ -148,7 +148,7 @@ describe('FmBottomBar', () => {
         await userEvent.click(screen.getByRole('button', { name: 'More' }));
         const sheet = screen.getByRole('dialog', { name: 'More' });
         expect(sheet.textContent).toMatch(
-            /Settings.*Report a problem or an idea.*It reaches who makes Family Manager.*Log out/,
+            /Settings.*Report a problem or an idea.*It reaches who makes Fameja.app.*Log out/,
         );
 
         await userEvent.click(

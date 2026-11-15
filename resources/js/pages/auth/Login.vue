@@ -8,10 +8,14 @@ import { trans } from 'laravel-vue-i18n';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmPasswordField from '@/components/fm/FmPasswordField.vue';
+import { useAppName } from '@/composables/useAppName';
 import { errors } from '@/lib/errors';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
+
+/** The name of the app, for the texts that say it. */
+const appName = useAppName();
 
 defineOptions({
     layout: {
@@ -38,7 +42,7 @@ const { canResetPassword, canRegister, status } = defineProps<{
 if (canRegister) {
     setLayoutProps({
         otherWay: {
-            text: trans('No Family Manager yet?'),
+            text: trans('No :app yet?', { app: appName.value }),
             link: trans('Sign up your family'),
             href: register().url,
         },

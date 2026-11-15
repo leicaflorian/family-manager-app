@@ -7,6 +7,7 @@ use App\Models\LinkedDevice;
 use App\Models\User;
 use App\Support\PageMeta;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
@@ -51,4 +52,34 @@ test('the preview image is there', function (): void {
     expect($size)->not->toBeFalse()
         ->and([$size[0] ?? null, $size[1] ?? null])->toBe([PageMeta::IMAGE_WIDTH, PageMeta::IMAGE_HEIGHT])
         ->and(file_exists(public_path('family-manager-og-1200x630.png')))->toBeFalse();
+});
+
+test('nothing says Family Manager, except the scanner agent', function (): void {
+    $paths = [
+        ...File::allFiles(app_path()),
+        ...File::allFiles(config_path()),
+        ...File::allFiles(lang_path()),
+        ...array_filter(
+            File::allFiles(resource_path()),
+            // generated types, the tests (they check the old name is gone) and the copy of the design system, which keeps its own name
+            fn (SplFileInfo $file): bool => ! str_starts_with($file->getPathname(), resource_path('js/generated'))
+                && ! str_ends_with($file->getFilename(), '.test.ts')
+                && $file->getPathname() !== resource_path('design/tokens.json'),
+        ),
+    ];
+    $files = [
+        ...array_map(fn (SplFileInfo $file): string => $file->getPathname(), $paths),
+        public_path('manifest.webmanifest'),
+        public_path('offline.html'),
+        base_path('Dockerfile'),
+        base_path('composer.json'),
+    ];
+
+    // The agent of the scanner keeps its name for now (decision of the owner, 15/11/2026)
+    $left = array_values(array_filter(
+        $files,
+        fn (string $file): bool => preg_match('/Family Manager(?! Agent)/', (string) file_get_contents($file)) === 1,
+    ));
+
+    expect(array_map(fn (string $file): string => str_replace(base_path().'/', '', $file), $left))->toBe([]);
 });

@@ -5,7 +5,7 @@
 
 # {{ __('Hello!') }}
 
-{{ __(':inviter invited you to Family Manager, where the family keeps everyone\'s due dates, bills and documents.', ['inviter' => $inviter]) }}
+{{ __(':inviter invited you to :app, where the family keeps everyone\'s due dates, bills and documents.', ['inviter' => $inviter, 'app' => config('app.name')]) }}
 
 - {{ __('See the family\'s due dates and documents') }}
 - {{ __('Upload bills and receipts from your phone') }}

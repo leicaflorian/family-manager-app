@@ -12,10 +12,24 @@ import { i18nOptions } from '@/lib/i18n';
 
 // The Inertia <Head> writes the page title with the manager that
 // createInertiaApp creates: in the tests there is no app, and no title is needed.
-vi.mock('@inertiajs/vue3', async (original) => ({
-    ...(await original<typeof import('@inertiajs/vue3')>()),
-    Head: { render: () => null },
-}));
+// Without an app usePage() has no props: the name of the app, which the
+// wordmark and the texts with :app read, comes from the shared props of the tests.
+vi.mock('@inertiajs/vue3', async (original) => {
+    const inertia = await original<typeof import('@inertiajs/vue3')>();
+    const { sharedPageProps } = await import('@/test/fixtures');
+
+    return {
+        ...inertia,
+        Head: { render: () => null },
+        usePage: () =>
+            new Proxy(inertia.usePage(), {
+                get: (page, key) =>
+                    key === 'props' && page.props === undefined
+                        ? { name: sharedPageProps.name }
+                        : Reflect.get(page, key),
+            }),
+    };
+});
 
 // jsdom does not measure the page: the FormKit Pro dropdown watches its size
 // with a ResizeObserver, which here has nothing to report.

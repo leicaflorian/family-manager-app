@@ -46,6 +46,8 @@ describe('FmSidebar', () => {
             'aria-current',
         );
         expect(screen.getByText('Bianchi family')).toBeInTheDocument();
+        expect(screen.getByText('Fameja.app')).toBeInTheDocument();
+        expect(screen.queryByText('Family Manager')).toBeNull();
     });
 
     it('has Agenda between Home and Areas, marked on its page', () => {

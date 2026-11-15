@@ -11,7 +11,7 @@ namespace App\Support;
 final readonly class PageHead
 {
     /**
-     * @param  string  $title  the whole title, with the name of the app («Accedi - Family Manager»)
+     * @param  string  $title  the whole title, with the name of the app («Accedi - Fameja.app»)
      * @param  string  $description  the sentence that search engines and link previews show
      * @param  bool  $indexable  whether search engines may list the page
      * @param  string|null  $canonical  the address of the page without the query, only for a page that can be indexed

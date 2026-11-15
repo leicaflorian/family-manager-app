@@ -270,7 +270,7 @@ describe('buildTokensCss', () => {
     it('ends with a newline and starts with the generated notice', () => {
         const css = buildTokensCss(fixture());
 
-        expect(css.startsWith('/* Family Manager')).toBe(true);
+        expect(css.startsWith('/* Fameja.app')).toBe(true);
         expect(css.endsWith('\n')).toBe(true);
         expect(css.endsWith('\n\n')).toBe(false);
     });

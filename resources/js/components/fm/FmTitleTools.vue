@@ -9,10 +9,14 @@
  */
 import { Link } from '@inertiajs/vue3';
 import { Search } from '@lucide/vue';
+import { useAppName } from '@/composables/useAppName';
 import { useBellNotices } from '@/composables/useBellNotices';
 import { search } from '@/routes';
 import FmBell from './FmBell.vue';
 import FmIcon from './FmIcon.vue';
+
+/** The name of the app, for the texts that say it. */
+const appName = useAppName();
 
 const { unread, notices, loadNotices } = useBellNotices();
 </script>
@@ -21,7 +25,7 @@ const { unread, notices, loadNotices } = useBellNotices();
     <div class="flex shrink-0 items-center gap-2">
         <Link
             :href="search.url()"
-            :aria-label="$t('Search in Family Manager')"
+            :aria-label="$t('Search in :app', { app: appName })"
             class="flex size-11 items-center justify-center rounded-full bg-card text-ink"
         >
             <FmIcon :icon="Search" :size="22" />
