@@ -118,3 +118,16 @@ test('the order copies first the tables the others point to, and the links at th
         }
     }
 });
+
+test('the copy moves the bills address to the configured inbox domain', function (?string $domain, mixed $address, bool $taken, ?string $expected): void {
+    expect(DirectusMap::billsAddress($address, $domain, fn (string $candidate): bool => $taken))->toBe($expected);
+})->with([
+    'the local part moves to the new domain, in lower case' => ['mg.fameja.app', 'Bollette.Leica@mg.leicaflorianrobert.dev', false, 'bollette.leica@mg.fameja.app'],
+    'surrounding spaces do not matter' => ['mg.fameja.app', ' bollette@old.dev ', false, 'bollette@mg.fameja.app'],
+    'no inbox domain gives null, mail-inbox:addresses gives one later' => [null, 'bollette.leica@mg.leicaflorianrobert.dev', false, null],
+    'an empty inbox domain gives null' => ['  ', 'bollette.leica@mg.leicaflorianrobert.dev', false, null],
+    'an address already taken gives null' => ['mg.fameja.app', 'bollette.leica@mg.leicaflorianrobert.dev', true, null],
+    'no address gives null' => ['mg.fameja.app', null, false, null],
+    'an empty address gives null' => ['mg.fameja.app', '  ', false, null],
+    'a text that is not an address gives null' => ['mg.fameja.app', 'not-an-address', false, null],
+]);
