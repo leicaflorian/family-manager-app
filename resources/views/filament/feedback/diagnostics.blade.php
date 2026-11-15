@@ -16,8 +16,8 @@
     };
     $yesNo = static fn (mixed $value): string => $value === null ? '—' : ($value ? __('Yes') : __('No'));
     $build = $details['client_build'] ?? null;
-    // The build the owner runs now, not the one stored at sending: a page that was left open can be older
-    $server = config('app.version');
+    // The version the server wrote at sending time: a different client build means a stale app
+    $server = $details['server_version'] ?? null;
 @endphp
 <div class="space-y-6 text-sm">
     @if ($details !== [])
