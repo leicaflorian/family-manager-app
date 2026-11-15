@@ -5,7 +5,7 @@
  * uploaded, it asks before the page changes or the tab closes.
  */
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
-import { Toaster } from '@/components/ui/sonner';
+import FmToaster from '@/components/fm/FmToaster.vue';
 
 defineSlots<{
     /** The page. */
@@ -16,7 +16,7 @@ defineSlots<{
 <template>
     <div class="flex min-h-dvh flex-col bg-canvas text-ink">
         <slot />
-        <Toaster />
+        <FmToaster />
         <LeaveGuard />
     </div>
 </template>

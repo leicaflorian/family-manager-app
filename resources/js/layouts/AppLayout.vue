@@ -35,7 +35,7 @@ import FmTopBar from '@/components/fm/FmTopBar.vue';
 import type { Section } from '@/components/fm/navigation';
 import { navigationItems, sectionOf } from '@/components/fm/navigation';
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
-import { Toaster } from '@/components/ui/sonner';
+import FmToaster from '@/components/fm/FmToaster.vue';
 import { useBellNotices } from '@/composables/useBellNotices';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useLeavePage } from '@/composables/useLeavePage';
@@ -262,7 +262,7 @@ useSearchShortcut(focusSearch);
             </DialogPortal>
         </DialogRoot>
         <FmFeedbackSheet v-model:open="feedbackOpen" />
-        <Toaster />
+        <FmToaster :above-bottom-bar="mode === 'phone'" />
         <LeaveGuard />
     </div>
 </template>
