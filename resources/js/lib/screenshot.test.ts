@@ -128,6 +128,25 @@ describe('captureScreenshot', () => {
         expect(options.filter(document.getElementById('b'))).toBe(false);
     });
 
+    it('draws the page as scrolled even while an open panel locks the scroll of the body', async () => {
+        library.domToCanvas.mockResolvedValue(canvas());
+        // The scroll lock of a dialog: in the clone the body would clip the
+        // translated page and the photo would come out empty
+        document.body.style.overflow = 'hidden';
+        window.scrollY = 900;
+
+        await captureScreenshot();
+
+        const options = library.domToCanvas.mock.calls[0][1];
+        expect(options.style).toEqual({
+            margin: '0',
+            overflow: 'visible',
+            transform: 'translate(0px, -900px)',
+        });
+        document.body.style.overflow = '';
+        window.scrollY = 0;
+    });
+
     it('resolves null when the library throws', async () => {
         library.domToCanvas.mockRejectedValue(new Error('boom'));
 
@@ -195,6 +214,38 @@ describe('markShift and applyShift', () => {
 
         expect(clone.style.transform).toBe('translate(0px, 200px)');
         expect(clone.hasAttribute('data-shot-shift')).toBe(false);
+    });
+
+    it('lays the clone of a sticky element out in the flow, where the shift was measured', () => {
+        document.body.innerHTML =
+            '<div id="b" style="position: sticky; bottom: 0"></div>';
+        const bar = document.getElementById('b') as HTMLElement;
+        // Stuck at the bottom of the screen; in the flow it is 600 lower
+        bar.getBoundingClientRect = () =>
+            ({
+                left: 0,
+                top: bar.style.position === 'relative' ? 1360 : 760,
+            }) as DOMRect;
+
+        markShift(bar);
+        const clone = bar.cloneNode() as HTMLElement;
+        applyShift(clone);
+
+        expect(clone.style.position).toBe('relative');
+        expect(clone.style.transform).toBe('translate(0px, -600px)');
+        expect(bar.style.position).toBe('sticky');
+    });
+
+    it('keeps the clone of a fixed element fixed', () => {
+        document.body.innerHTML = '<div id="f" style="position: fixed"></div>';
+        const bar = document.getElementById('f') as HTMLElement;
+        bar.getBoundingClientRect = () => ({ left: 0, top: 0 }) as DOMRect;
+
+        markShift(bar);
+        const clone = bar.cloneNode() as HTMLElement;
+        applyShift(clone);
+
+        expect(clone.style.position).toBe('fixed');
     });
 
     it('leaves an ordinary element alone', () => {

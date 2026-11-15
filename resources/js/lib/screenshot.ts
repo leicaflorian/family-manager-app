@@ -87,11 +87,13 @@ export function markShift(element: Element): void {
 
     const { x, y } = shiftOffset(seen, natural);
 
-    element.setAttribute(SHIFT_ATTRIBUTE, `${x},${y}`);
+    element.setAttribute(SHIFT_ATTRIBUTE, `${x},${y},${position}`);
 }
 
 /**
  * Applies the shift written by {@link markShift} to a clone and removes the mark.
+ * The clone of a sticky element becomes `relative`: the shift was measured from
+ * its place in the flow, and in the clone it could stick somewhere else.
  *
  * @param cloned The clone the library just made.
  */
@@ -103,9 +105,16 @@ export function applyShift(cloned: Node): void {
         return;
     }
 
-    const [x, y] = (cloned.getAttribute(SHIFT_ATTRIBUTE) ?? '0,0').split(',');
+    const [x, y, position] = (
+        cloned.getAttribute(SHIFT_ATTRIBUTE) ?? '0,0'
+    ).split(',');
 
     cloned.removeAttribute(SHIFT_ATTRIBUTE);
+
+    if (position === 'sticky') {
+        cloned.style.position = 'relative';
+    }
+
     cloned.style.transform =
         `translate(${x}px, ${y}px) ${cloned.style.transform}`.trim();
 }
@@ -174,6 +183,12 @@ export async function captureScreenshot(options?: {
             },
             onCloneEachNode: applyShift,
             style: {
+                // The clone of the body is not the root of a page: the browser's
+                // 8 px margin would come back, and the `overflow: hidden` that an
+                // open panel puts on the body would clip the translated page
+                // away and leave the photo empty
+                margin: '0',
+                overflow: 'visible',
                 // Show the page as scrolled, not from its top
                 transform: `translate(${-window.scrollX}px, ${-window.scrollY}px)`,
             },
