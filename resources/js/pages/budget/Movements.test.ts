@@ -181,6 +181,30 @@ describe('Movements', () => {
         );
     });
 
+    it('on the computer opens a row beside the list without scrolling the list back to the top', async () => {
+        screenWidth(true);
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Movements, props);
+
+        await fireEvent.click(screen.getByRole('link', { name: /Parcheggio/ }));
+
+        expect(visit).toHaveBeenCalledWith(
+            expect.stringContaining('movement=expense%3A40'),
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('keeps the panel of the movement in view while the list scrolls', () => {
+        screenWidth(true);
+        renderPage(Movements, { ...props, selected: danceMovement });
+
+        // sticky under the top bar of the layout, not under the top of the window
+        expect(screen.getByLabelText('Title').closest('section')).toHaveClass(
+            'sticky',
+            'top-(--app-header)',
+        );
+    });
+
     it('shows the panel of the movement chosen', () => {
         screenWidth(true);
         renderPage(Movements, { ...props, selected: danceMovement });

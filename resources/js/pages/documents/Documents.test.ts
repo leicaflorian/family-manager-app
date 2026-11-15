@@ -215,6 +215,32 @@ describe('Documents', () => {
         ).toHaveClass('sticky', 'top-(--app-header)');
     });
 
+    it('on the computer opens a document beside the list without scrolling the list back to the top', async () => {
+        screenWidth(1440);
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Documents, props);
+
+        await fireEvent.click(
+            screen.getByRole('link', { name: /Busta paga di ottobre/ }),
+        );
+
+        expect(visit).toHaveBeenCalledWith(
+            expect.stringContaining('document=5'),
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('keeps the filters beside the list in view while the list scrolls', () => {
+        screenWidth(1440);
+        renderPage(Documents, props);
+
+        // sticky under the top bar of the layout, and as high as its filters
+        expect(screen.getByRole('complementary')).toHaveClass(
+            'sticky',
+            'top-(--app-header)',
+        );
+    });
+
     it('on a wide but short window, shows it in a floating panel and a row leads to its page', () => {
         screenWidth(1500, 400);
         renderPage(Documents, { ...props, selected: documentDetail });

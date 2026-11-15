@@ -311,6 +311,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         :title="movement.title"
                         :subtitle="subtitle(movement)"
                         :href="rowHref(movement)"
+                        :preserve-scroll="desktop"
                         :current="
                             selected?.kind === movement.kind &&
                             selected?.id === movement.id
@@ -364,7 +365,10 @@ function subtitle(movement: App.Data.MovementData): string {
                 />
             </div>
 
-            <section v-if="panelOpen" class="hidden min-w-0 lg:block">
+            <section
+                v-if="panelOpen"
+                class="sticky top-(--app-header) hidden min-w-0 lg:block"
+            >
                 <FmMovementPanel
                     :key="selected ? `${selected.kind}:${selected.id}` : 'new'"
                     :movement="selected"

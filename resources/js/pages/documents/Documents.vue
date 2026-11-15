@@ -238,7 +238,9 @@ function rowHref(document: App.Data.DocumentData): string {
                     : 'xl:grid-cols-[16rem_minmax(0,1fr)]',
             ]"
         >
-            <aside class="hidden rounded-card-lg bg-card p-5 xl:block">
+            <aside
+                class="sticky top-(--app-header) hidden rounded-card-lg bg-card p-5 xl:block"
+            >
                 <FmDocumentFilters
                     :filters="filters"
                     :options="options"
@@ -287,6 +289,7 @@ function rowHref(document: App.Data.DocumentData): string {
                             :key="document.id"
                             :document="document"
                             :href="rowHref(document)"
+                            :preserve-scroll="desktop"
                             :current="selected?.id === document.id"
                         />
                     </FmCard>
