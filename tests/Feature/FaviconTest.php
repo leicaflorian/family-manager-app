@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-test('the svg favicon is the Family Manager icon', function (): void {
+test('the svg favicon is the Fameja.app icon', function (): void {
     $svg = (string) file_get_contents(public_path('favicon.svg'));
 
     expect($svg)->toContain('#3399FF')
