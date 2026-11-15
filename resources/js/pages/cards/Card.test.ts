@@ -41,6 +41,9 @@ describe('A card', () => {
             screen.getByText('Car · policyholder Marco Bianchi'),
         ).toBeInTheDocument();
         expect(screen.getByText('20/11/2026')).toBeInTheDocument();
+        // The status is a green figure beside the dates
+        expect(screen.getByText('Status')).toBeInTheDocument();
+        expect(screen.getByText('Active')).toHaveClass('text-paid');
         expect(
             screen.getByRole('heading', { name: 'Data' }),
         ).toBeInTheDocument();

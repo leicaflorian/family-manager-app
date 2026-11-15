@@ -4,7 +4,8 @@
  * in the box at the top the oldest open due date (the renewal of a policy, the
  * next instalment of a loan, the salary coming in), which opens *A due date*
  * (with *It arrived* open on a salary);
- * the figures, beside the dates of the card (`tiles`); how far a loan is paid;
+ * one box with the tiles of the card (`tiles`: dates, status) and then the
+ * figures of the payments; how far a loan is paid;
  * the open due dates; then the data of the card (the default slot). The
  * planned expenses and their payments (`FmCardPayments`) the page shows under
  * the documents; without a budget only the tiles and the data remain.
@@ -31,7 +32,7 @@ const { budget, card } = defineProps<{
 }>();
 
 defineSlots<{
-    /** The tiles of the dates of the card, in the grid of the figures. */
+    /** The tiles of the card (dates, status), first in the box of the figures; drawn `inset`. */
     tiles?: () => unknown;
     /** The data of the card, after the open due dates. */
     default?: () => unknown;
@@ -144,14 +145,15 @@ const nextLineClass = computed((): string =>
 
     <div
         v-if="(budget && budget.numbers.length > 0) || $slots.tiles"
-        class="grid grid-cols-2 gap-3"
+        class="grid grid-cols-2 gap-x-3 gap-y-4 rounded-card bg-card p-4 shadow-card"
     >
+        <slot name="tiles" />
         <FmNumberTile
             v-for="number in budget?.numbers ?? []"
             :key="number.label"
             :number="number"
+            inset
         />
-        <slot name="tiles" />
     </div>
 
     <div

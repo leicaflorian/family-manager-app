@@ -53,4 +53,15 @@ describe('FmDateTile', () => {
 
         expect(screen.getByText('in 26 days')).toBeInTheDocument();
     });
+    it('inset drops the card around it, for a figure inside a box', () => {
+        const { container } = render(FmDateTile, {
+            props: {
+                inset: true,
+                date: { label: 'Start', date: '2025-11-21', expires: false },
+            },
+        });
+
+        expect(container.querySelector('.shadow-card')).toBeNull();
+        expect(screen.getByText('21/11/2025')).toBeInTheDocument();
+    });
 });

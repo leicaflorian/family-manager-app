@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data;
 
 use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -30,6 +31,7 @@ final class CardNumberData extends Data
         public readonly ?string $hint = null,
         public readonly ?float $hint_amount = null,
         public readonly ?string $text = null,
+        #[LiteralTypeScriptType("'open' | 'overdue' | 'closed' | null")]
         public readonly ?string $tone = null,
     ) {}
 }

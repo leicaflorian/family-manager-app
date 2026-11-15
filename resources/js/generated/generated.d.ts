@@ -203,7 +203,7 @@ readonly count: number | null,
 readonly hint: string | null,
 readonly hint_amount: number | null,
 readonly text: string | null,
-readonly tone: unknown | null,
+readonly tone: 'open' | 'overdue' | 'closed' | null,
 };
 export type CardTypeData = {
 readonly type: string,

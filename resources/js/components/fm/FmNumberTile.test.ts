@@ -12,6 +12,8 @@ describe('FmNumberTile', () => {
                 count: null,
                 hint: 'per month, estimated',
                 hint_amount: null,
+                text: null,
+                tone: null,
             },
         });
 
@@ -28,10 +30,52 @@ describe('FmNumberTile', () => {
                 count: 4,
                 hint: 'of :amount financed',
                 hint_amount: 8000,
+                text: null,
+                tone: null,
             },
         });
 
         expect(screen.getByText('4')).toBeInTheDocument();
         expect(screen.getByText('of 8.000,00 € financed')).toBeInTheDocument();
+    });
+    it.each([
+        ['open', 'Active', 'text-paid'],
+        ['overdue', 'Expired', 'text-overdue'],
+        ['closed', 'Cancelled', 'text-ink-soft'],
+    ] as const)(
+        'writes a word figure in the colour of its tone (%s)',
+        (tone, text, colour) => {
+            renderPage(FmNumberTile, {
+                number: {
+                    label: 'Status',
+                    amount: null,
+                    count: null,
+                    hint: null,
+                    hint_amount: null,
+                    text,
+                    tone,
+                },
+            });
+
+            expect(screen.getByText(text)).toHaveClass(colour);
+        },
+    );
+
+    it('inset drops the card around it, for a figure inside a box', () => {
+        const { container } = renderPage(FmNumberTile, {
+            inset: true,
+            number: {
+                label: 'Premium',
+                amount: 418,
+                count: null,
+                hint: null,
+                hint_amount: null,
+                text: null,
+                tone: null,
+            },
+        });
+
+        expect(container.querySelector('.shadow-card')).toBeNull();
+        expect(screen.getByText('418,00 €')).toBeInTheDocument();
     });
 });

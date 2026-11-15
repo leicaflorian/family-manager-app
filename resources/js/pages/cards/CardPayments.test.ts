@@ -15,6 +15,8 @@ const props = {
             count: null,
             hint: '9 bills',
             hint_amount: null,
+            text: null,
+            tone: null,
         },
         {
             label: 'On average',
@@ -22,6 +24,8 @@ const props = {
             count: null,
             hint: 'per bill, :amount planned',
             hint_amount: 72,
+            text: null,
+            tone: null,
         },
     ],
     counts: { 2026: '3 bills', 2025: '1 bill' },

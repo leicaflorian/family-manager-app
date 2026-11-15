@@ -512,6 +512,15 @@ export const policyDetail: App.Data.CardDetailData = {
     can_delete: true,
     can_delete_documents: true,
     budget: null,
+    status: {
+        label: 'Status',
+        amount: null,
+        count: null,
+        hint: null,
+        hint_amount: null,
+        text: 'Active',
+        tone: 'open',
+    },
 };
 
 /** The nine areas with their active cards, as the sidebar receives them. */
@@ -1235,6 +1244,8 @@ export const luceBudget: App.Data.CardBudgetData = {
             count: null,
             hint: 'per month, estimated',
             hint_amount: null,
+            text: null,
+            tone: null,
         },
         {
             label: 'Paid in 2026',
@@ -1242,6 +1253,8 @@ export const luceBudget: App.Data.CardBudgetData = {
             count: null,
             hint: '9 bills',
             hint_amount: null,
+            text: null,
+            tone: null,
         },
     ],
     due_label: 'To pay',
@@ -1283,6 +1296,8 @@ export const policyBudget: App.Data.CardBudgetData = {
             count: null,
             hint: 'every year',
             hint_amount: null,
+            text: null,
+            tone: null,
         },
     ],
     due_label: null,
