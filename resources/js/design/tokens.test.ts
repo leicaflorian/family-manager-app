@@ -215,6 +215,31 @@ describe('buildTokensCss', () => {
         expect(() => buildTokensCss(bad)).toThrow(/link/);
     });
 
+    it('throws a TokenError for a text style named like a colour', () => {
+        // Tailwind reads `text-<name>` as the colour and drops the text style.
+        const bad = fixture({
+            type: {
+                families: fixture().type.families,
+                groups: [
+                    {
+                        name: 'Text',
+                        styles: [
+                            {
+                                name: 'ink',
+                                fontSize: '34px',
+                                lineHeight: 1.15,
+                                fontWeight: 800,
+                            },
+                        ],
+                    },
+                ],
+            },
+        });
+
+        expect(() => buildTokensCss(bad)).toThrow(TokenError);
+        expect(() => buildTokensCss(bad)).toThrow(/ink/);
+    });
+
     it('checks that every spacing is a Tailwind step', () => {
         const bad = fixture({
             spacing: {

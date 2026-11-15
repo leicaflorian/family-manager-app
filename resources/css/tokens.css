@@ -275,9 +275,9 @@
     --text-display: 40px;
     --text-display--line-height: 1.1;
     --text-display--font-weight: 800;
-    --text-hero: 34px;
-    --text-hero--line-height: 1.15;
-    --text-hero--font-weight: 800;
+    --text-hero-title: 34px;
+    --text-hero-title--line-height: 1.15;
+    --text-hero-title--font-weight: 800;
     --text-title: 32px;
     --text-title--line-height: 1.15;
     --text-title--font-weight: 800;

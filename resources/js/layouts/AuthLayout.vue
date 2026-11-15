@@ -67,7 +67,7 @@ defineSlots<{
                 <span class="text-stat-lg">Family Manager</span>
             </div>
             <div class="flex max-w-[420px] flex-col gap-3.5">
-                <p class="m-0 text-hero">
+                <p class="m-0 text-hero-title">
                     {{ panel.title }}
                 </p>
                 <p v-if="panel.text" class="m-0 text-body">
