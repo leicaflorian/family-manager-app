@@ -2,6 +2,15 @@
 
 All notable changes to Fameja.app.
 
+## [2.1.3] - 2026-11-15
+
+### Public assets
+- Mail icons moved from `public/mail/icons` to `public/mail-icons`: nginx served the `public/mail` folder directly, so the owner panel's Posta page (`/mail`) answered 403.
+- `PublicFoldersTest` fails when a folder of `public/` has the path of a GET page, with panel pages checked at the root of their host.
+
+### Docs
+- AGENTS: zero-downtime deploys need migrations that the previous code can live with.
+
 ## [2.1.2] - 2026-11-15
 
 ### Build
