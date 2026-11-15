@@ -2,6 +2,17 @@
 
 All notable changes to Fameja.app.
 
+## [2.1.2] - 2026-11-15
+
+### Build
+- Dockerfile now uses syntax 1.10, which is needed for the `env=` secret mounts Coolify adds to every `RUN` (the build stopped with "unexpected key 'env'" on 1.7).
+
+### Release
+- The Coolify deploy call in the release workflow is now a `POST` (Coolify 4.7 answers 405 to a `GET`).
+
+### Docs
+- Updated AGENTS.md and learnings with the two points above.
+
 ## [2.1.1] - 2026-11-15
 
 ### Tests

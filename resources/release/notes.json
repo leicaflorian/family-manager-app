@@ -1,5 +1,17 @@
 [
     {
+        "version": "2.1.2",
+        "date": "2026-11-15",
+        "notes": {
+            "it": [
+                "Abbiamo sistemato alcune cose dietro le quinte per rendere più sicuri e affidabili i prossimi aggiornamenti di Fameja.app. Per te non cambia niente."
+            ],
+            "en": [
+                "We fixed a few things behind the scenes to make future Fameja.app updates safer and more reliable. Nothing changes for you."
+            ]
+        }
+    },
+    {
         "version": "2.1.1",
         "date": "2026-11-15",
         "notes": {
