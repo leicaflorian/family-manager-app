@@ -5,26 +5,38 @@
  * is about (something that does not work, chosen at the opening, or an idea),
  * the message and an optional screenshot or PDF, and sends with them the page
  * the person is on and the layout of the app (the server adds the device and
- * the time). Once sent it closes, and the toast of the server thanks; opened
+ * the time). For a problem it also shows the photo of the page taken when it
+ * opened (which can be removed) and *What we send*, the technical details that
+ * go with the report; an idea sends neither. Once sent it closes, and the toast of the server thanks; opened
  * again it starts empty.
  *
  * @group forms
  */
 import { router } from '@inertiajs/vue3';
-import { Bug, ImagePlus, Lightbulb, Send, X } from '@lucide/vue';
+import { Bug, ChevronDown, ImagePlus, Lightbulb, Send, X } from '@lucide/vue';
 import type { LucideIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, reactive, ref, useTemplateRef, watch } from 'vue';
+import {
+    computed,
+    onBeforeUnmount,
+    reactive,
+    ref,
+    useTemplateRef,
+    watch,
+} from 'vue';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { collectDiagnostics } from '@/lib/diagnostics';
+import type { FeedbackDiagnostics } from '@/lib/diagnostics';
 import { errors } from '@/lib/errors';
+import { cn } from '@/lib/utils';
 import { store } from '@/routes/feedback';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 import FmNotice from './FmNotice.vue';
 
-defineProps<{
+const props = defineProps<{
     /** The photo of the page taken when the panel opened; `null` while it is being taken or if it failed. */
     screenshot?: File | null;
 }>();
@@ -57,6 +69,126 @@ const values = reactive({
     file: null as File | null,
 });
 
+/** The photo of the page was removed by the person, for this opening. */
+const screenshotRemoved = ref(false);
+
+/** The photo that is shown and sent: a problem only, and not once removed. */
+const photo = computed((): File | null =>
+    values.kind === 'problem' && !screenshotRemoved.value
+        ? (props.screenshot ?? null)
+        : null,
+);
+
+/** The address of the thumbnail of the photo. */
+const photoUrl = ref<string | null>(null);
+
+/** Frees the address of the thumbnail, if there is one. */
+function revokePhotoUrl(): void {
+    if (photoUrl.value) {
+        URL.revokeObjectURL(photoUrl.value);
+        photoUrl.value = null;
+    }
+}
+
+// A thumbnail per file: the address is freed when the file changes or goes away
+watch(
+    photo,
+    (file) => {
+        revokePhotoUrl();
+        photoUrl.value = file ? URL.createObjectURL(file) : null;
+    },
+    { immediate: true },
+);
+
+onBeforeUnmount(revokePhotoUrl);
+
+/** The path of the page the panel was opened on, shown under the photo. */
+const pagePath = window.location.pathname;
+
+/** *What we send* is open. */
+const detailsOpen = ref(false);
+
+/** What the browser would send now, read when *What we send* opens. */
+const details = ref<FeedbackDiagnostics | null>(null);
+
+/** Opens or closes *What we send*, reading the details afresh when it opens. */
+function toggleDetails(): void {
+    detailsOpen.value = !detailsOpen.value;
+    details.value = detailsOpen.value ? readDiagnostics() : null;
+}
+
+/**
+ * Reads the diagnostics of the browser; a failure means none, never a report lost.
+ *
+ * @returns the diagnostics, or `null` if they could not be read
+ */
+function readDiagnostics(): FeedbackDiagnostics | null {
+    try {
+        return collectDiagnostics();
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * The `diagnostics` field of a report of a problem.
+ *
+ * @returns the field, or nothing if the details could not be read
+ */
+function diagnosticsField(): { diagnostics?: string } {
+    const read = readDiagnostics();
+
+    return read ? { diagnostics: JSON.stringify(read) } : {};
+}
+
+/** A line of *What we send*. */
+type DetailRow = {
+    /** The name of the line, already translated. */
+    label: string;
+    /** The lines of its value. */
+    lines: string[];
+};
+
+/** The lines of *What we send*, from the details read when it opened. */
+const detailRows = computed((): DetailRow[] => {
+    const d = details.value;
+
+    if (!d) {
+        return [];
+    }
+
+    const failed = d.requests.map(
+        (r) => `${r.method} ${r.path} · ${r.status ?? '—'}`,
+    );
+    const theme =
+        d.theme === 'dark' ? trans('dark theme') : trans('light theme');
+
+    return [
+        { label: trans('Page'), lines: [window.location.pathname] },
+        {
+            label: trans('Last pages'),
+            lines: [d.pages.map((p) => p.path).join(' → ')],
+        },
+        {
+            label: trans('Page errors (:count)', {
+                count: String(d.console.length),
+            }),
+            lines: d.console.map((c) => c.message),
+        },
+        {
+            label: trans('Failed requests (:count)', {
+                count: String(failed.length),
+            }),
+            lines: failed,
+        },
+        {
+            label: trans('Device'),
+            lines: [`${d.viewport.width} × ${d.viewport.height}, ${theme}`],
+        },
+        { label: trans('Version'), lines: [d.client_build ?? '—'] },
+    ];
+});
+
 /** The messages of the server (or of the empty message), by field. */
 const problems = ref<Record<string, string>>({});
 
@@ -79,6 +211,9 @@ function reset(): void {
     values.kind = 'problem';
     values.message = '';
     values.file = null;
+    screenshotRemoved.value = false;
+    detailsOpen.value = false;
+    details.value = null;
     problems.value = {};
     changes.reset();
 }
@@ -122,6 +257,12 @@ function send(): void {
             page: window.location.pathname + window.location.search,
             layout: layout.value,
             ...(values.file ? { file: values.file } : {}),
+            ...(values.kind === 'problem'
+                ? {
+                      ...(photo.value ? { screenshot: photo.value } : {}),
+                      ...diagnosticsField(),
+                  }
+                : {}),
         },
         {
             forceFormData: true,
@@ -191,6 +332,31 @@ function send(): void {
 
             <div class="flex flex-col gap-1.5">
                 <div
+                    v-if="photoUrl"
+                    class="flex items-center gap-3 rounded-lg border border-edge-soft bg-card py-1.5 pr-1 pl-1.5"
+                >
+                    <img
+                        :src="photoUrl"
+                        :alt="$t('Photo of this page')"
+                        class="h-14 w-10 shrink-0 rounded-tag border border-edge-soft bg-canvas object-cover object-top"
+                    />
+                    <span class="flex min-w-0 grow flex-col">
+                        <span class="text-row text-ink">{{
+                            $t('Photo of this page')
+                        }}</span>
+                        <span class="truncate text-meta text-ink-soft">{{
+                            pagePath
+                        }}</span>
+                    </span>
+                    <FmButton
+                        :icon="X"
+                        variant="text"
+                        small
+                        :label="$t('Remove the photo of this page')"
+                        @click="screenshotRemoved = true"
+                    />
+                </div>
+                <div
                     v-if="values.file"
                     class="flex h-control-lg items-center gap-2 rounded-lg border-[1.5px] border-edge bg-card pr-1 pl-3.5"
                 >
@@ -237,11 +403,63 @@ function send(): void {
                 </p>
             </div>
 
+            <div
+                v-if="values.kind === 'problem'"
+                class="rounded-lg border border-edge-soft bg-card"
+            >
+                <button
+                    type="button"
+                    class="flex min-h-control w-full cursor-pointer items-center gap-2 px-3.5 text-left text-row text-ink"
+                    :aria-expanded="detailsOpen"
+                    @click="toggleDetails"
+                >
+                    <FmIcon
+                        :icon="ChevronDown"
+                        :size="18"
+                        :class="
+                            cn(
+                                'shrink-0 text-ink-soft',
+                                !detailsOpen && '-rotate-90',
+                            )
+                        "
+                    />
+                    <span class="grow">{{
+                        $t('What we send (technical details)')
+                    }}</span>
+                </button>
+                <dl
+                    v-if="detailsOpen"
+                    class="m-0 grid grid-cols-1 gap-x-4 gap-y-2 pr-3.5 pb-3 pl-10 sm:grid-cols-2"
+                >
+                    <div
+                        v-for="row in detailRows"
+                        :key="row.label"
+                        class="flex min-w-0 flex-col"
+                    >
+                        <dt class="text-meta-strong text-ink-soft">
+                            {{ row.label }}
+                        </dt>
+                        <dd class="m-0 text-meta wrap-anywhere text-ink">
+                            <span
+                                v-for="(line, index) in row.lines"
+                                :key="index"
+                                class="block"
+                                >{{ line }}</span
+                            >
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
             <FmNotice>
                 {{
-                    $t(
-                        'Along with the message we send the page you were on, the device you use and the time. We answer you by email.',
-                    )
+                    values.kind === 'problem'
+                        ? $t(
+                              'Along with the message we send a photo of this page and some technical details, which you can read above. We answer you by email.',
+                          )
+                        : $t(
+                              'Along with the message we send the page you were on, the device you use and the time. We answer you by email.',
+                          )
                 }}
             </FmNotice>
 

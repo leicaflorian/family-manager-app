@@ -1891,5 +1891,14 @@
     "{1} :count page error|[2,*] :count page errors": "{1} :count errore della pagina|[2,*] :count errori della pagina",
     "{1} :count failed request|[2,*] :count failed requests": "{1} :count richiesta fallita|[2,*] :count richieste fallite",
     "{1} :count server error|[2,*] :count server errors": "{1} :count errore del server|[2,*] :count errori del server",
-    ":counts — details in the panel": ":counts — dettagli nel pannello"
+    ":counts — details in the panel": ":counts — dettagli nel pannello",
+    "Photo of this page": "Foto di questa pagina",
+    "Remove the photo of this page": "Togli la foto di questa pagina",
+    "What we send (technical details)": "Cosa mandiamo (dettagli tecnici)",
+    "Page errors (:count)": "Errori della pagina (:count)",
+    "Failed requests (:count)": "Richieste non riuscite (:count)",
+    "Version": "Versione",
+    "light theme": "tema chiaro",
+    "dark theme": "tema scuro",
+    "Along with the message we send a photo of this page and some technical details, which you can read above. We answer you by email.": "Insieme al messaggio mandiamo una foto di questa pagina e qualche dettaglio tecnico, che puoi leggere qui sopra. Ti rispondiamo per email."
 }
