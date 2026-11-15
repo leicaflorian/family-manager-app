@@ -730,6 +730,15 @@ readonly label: string,
 readonly href: string | null,
 readonly area: string,
 };
+export type ReplaceablePolicyData = {
+readonly id: number,
+readonly label: string,
+readonly expiry_date: string | null,
+readonly type: string,
+readonly vehicle_id: number | null,
+readonly home_id: number | null,
+readonly employment_id: number | null,
+};
 export type SentInvitationData = {
 readonly email: string,
 readonly link: string | null,
