@@ -90,11 +90,6 @@ usePageTrail(() => [
                     type="toggle"
                     name="enabled"
                     :label="$t('Calendar on')"
-                    :help="
-                        $t(
-                            'Anyone with the address can read the dates, so keep it for the family.',
-                        )
-                    "
                 />
                 <template v-if="calendar.on">
                     <FmCalendarLink :calendar="calendar" />

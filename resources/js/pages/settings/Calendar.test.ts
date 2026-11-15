@@ -88,6 +88,16 @@ describe('Settings, Calendar', () => {
         expect(screen.getByText(/Don't download the file/)).toBeInTheDocument();
     });
 
+    it('says that anyone with the address can read the dates only once', () => {
+        renderPage(Calendar, { calendar: on });
+
+        expect(
+            screen.getAllByText(
+                'Anyone with the address can read the dates, so keep it for the family.',
+            ),
+        ).toHaveLength(1);
+    });
+
     it('asks before changing the address', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Calendar, { calendar: on });

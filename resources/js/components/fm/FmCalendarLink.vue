@@ -12,7 +12,7 @@
  */
 import { Check, Copy } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import { useCopy } from '@/composables/useCopy';
 import FmButton from './FmButton.vue';
 import FmNotice from './FmNotice.vue';
@@ -29,6 +29,8 @@ const { calendar, settingsHref } = defineProps<{
 
 /** The choice of the place: Google first, as the steps most people need. */
 const place = ref<Place>('google');
+/** The id of the address field: this block's own, so the selection never reaches another field. */
+const addressId = useId();
 /** `failed`: the browser refused to copy, so the address is selected for the person to copy by hand. */
 const {
     copied,
@@ -77,7 +79,7 @@ async function copy(): Promise<void> {
 
     if (!(await copyText(calendar.url))) {
         document
-            .querySelector<HTMLInputElement>('input[name="address"]')
+            .querySelector<HTMLInputElement>(`input[id="${addressId}"]`)
             ?.select();
     }
 }
@@ -90,6 +92,7 @@ async function copy(): Promise<void> {
                 <FormKit
                     type="text"
                     name="address"
+                    :id="addressId"
                     :label="$t('Calendar address')"
                     :help="
                         $t(
