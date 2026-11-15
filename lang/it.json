@@ -1946,5 +1946,7 @@
     "The calendar is off.": "Il calendario è spento.",
     "Turn on the calendar": "Accendi il calendario",
     "Whoever manages the family can turn it on in Settings.": "Chi gestisce la famiglia lo può accendere nelle Impostazioni.",
-    "Change the address or turn off the calendar in Settings": "Cambia l'indirizzo o spegni il calendario nelle Impostazioni"
+    "Change the address or turn off the calendar in Settings": "Cambia l'indirizzo o spegni il calendario nelle Impostazioni",
+    "{0} :date|{1} :date, 1 thing|[2,*] :date, :count things": "{0} :date|{1} :date, 1 cosa|[2,*] :date, :count cose",
+    "{1} +:count more|[2,*] +:count more": "{1} +:count altra|[2,*] +:count altre"
 }
