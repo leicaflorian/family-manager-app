@@ -14,6 +14,14 @@ readonly photo: string | null,
 readonly is_last_admin: boolean,
 readonly family: string,
 };
+export type AgendaCalendarData = {
+readonly month: string,
+readonly from: string,
+readonly to: string,
+readonly today: string,
+readonly entries: App.Data.AgendaEntryData[],
+readonly done: App.Data.AgendaEntryData[],
+};
 export type AgendaData = {
 readonly entries: App.Data.AgendaEntryData[],
 readonly months: number,
@@ -51,6 +59,7 @@ export type AgendaFiltersData = {
 readonly months: number,
 readonly person_id: number | null,
 readonly hidden_areas: string[],
+readonly calendar: boolean,
 };
 export type AgendaReminderData = {
 readonly state: App.Enums.AgendaReminderState,

@@ -30,7 +30,7 @@ use Illuminate\Support\Str;
  * @property int $family_id
  * @property Role $role
  * @property string|null $locale The language of the account, saved from the browser; null until the first request
- * @property array{months: int, person_id: int|null, hidden_areas: list<string>}|null $agenda_filters The filters of the Agenda: months, person_id and hidden_areas; null until the person changes them
+ * @property array{months: int, person_id: int|null, hidden_areas: list<string>, calendar?: bool}|null $agenda_filters The filters of the Agenda: months, person_id, hidden_areas and calendar (the view chosen); null until the person changes them
  * @property string $name
  * @property string $email
  * @property CarbonImmutable|null $email_verified_at

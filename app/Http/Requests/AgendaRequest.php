@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Data\AgendaData;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The address of the Agenda: `?months=1|3|6|12`. Any other value is the default period, never an error.
+ * The address of the Agenda: `?months=1|3|6|12`, `?view=` and `?month=`. Any other value is the default period, never an error.
  */
 final class AgendaRequest extends FormRequest
 {
@@ -49,11 +50,44 @@ final class AgendaRequest extends FormRequest
     }
 
     /**
-     * The view of the Agenda: `done` only when the address asks for `?view=done`, else `todo`.
+     * The view the address asks for, `todo`, `done` or `calendar`; null when it asks for none or for another.
+     *
+     * @return 'todo'|'done'|'calendar'|null
+     */
+    public function askedView(): ?string
+    {
+        return match ($this->query('view')) {
+            'todo' => 'todo',
+            'done' => 'done',
+            'calendar' => 'calendar',
+            default => null,
+        };
+    }
+
+    /**
+     * The view of the Agenda: the one the address asks for, `todo` when it asks for none.
+     *
+     * @return 'todo'|'done'|'calendar'
      */
     public function view(): string
     {
-        return $this->query('view') === 'done' ? 'done' : 'todo';
+        return $this->askedView() ?? 'todo';
+    }
+
+    /**
+     * The month of the calendar: the first day of `?month=yyyy-mm`, the month of today when it is missing or wrong.
+     *
+     * @param  CarbonImmutable  $today  today in Rome
+     */
+    public function month(CarbonImmutable $today): CarbonImmutable
+    {
+        $month = $this->query('month');
+
+        if (is_string($month) && preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/', $month) === 1) {
+            return CarbonImmutable::parse($month.'-01', 'Europe/Rome')->startOfDay();
+        }
+
+        return $today->startOfMonth();
     }
 
     /**

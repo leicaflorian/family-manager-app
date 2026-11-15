@@ -14,6 +14,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Services\Reminders\ReminderList;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * The tasks of the Agenda: the reminders written by hand that are still to do, as rows next to the deadlines and
@@ -79,19 +80,57 @@ final readonly class AgendaTasks
         $next = $reminders->count() > $perPage ? $page + 1 : null;
         $reminders = $reminders->take($perPage)->values();
 
+        return [
+            'entries' => $this->doneEntries($reminders, $today),
+            'next' => $next,
+        ];
+    }
+
+    /**
+     * The reminders done whose day falls between two days, by day and then by title, with the entries of `done()`.
+     * The day that counts is the one a reminder was postponed to, else its due day.
+     *
+     * @param  CarbonImmutable  $from  the first day, included
+     * @param  CarbonImmutable  $to  the last day, included
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return list<AgendaEntryData>
+     */
+    public function doneBetween(CarbonImmutable $from, CarbonImmutable $to, CarbonImmutable $today): array
+    {
+        $reminders = Reminder::query()
+            ->where('status', ReminderStatus::Done)
+            ->whereRaw('coalesce(postponed_to, due_date) between ? and ?', [$from->toDateString(), $to->toDateString()])
+            ->with(['link', 'person'])
+            ->orderByRaw('coalesce(postponed_to, due_date)')
+            ->orderBy('id')
+            ->get();
+
+        $entries = $this->doneEntries($reminders, $today);
+        usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
+
+        return $entries;
+    }
+
+    /**
+     * The entries of some done reminders, in the order they come: a task stays a `task`, an automatic reminder
+     * becomes the `deadline` it came from.
+     *
+     * @param  Collection<int, Reminder>  $reminders  the done reminders, with `link` and `person` loaded
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return list<AgendaEntryData>
+     */
+    private function doneEntries(Collection $reminders, CarbonImmutable $today): array
+    {
         $this->list->loadSubjects($reminders);
         $groups = ReminderGroup::query()->get();
         $accounts = $this->agenda->accounts();
 
-        return [
-            'entries' => array_values($reminders->map(function (Reminder $reminder) use ($today, $groups, $accounts): AgendaEntryData {
-                $subject = $this->list->subject($reminder->link);
-                $data = $this->agenda->reminderOf($reminder, $today, $groups, $accounts);
+        return array_values($reminders->map(function (Reminder $reminder) use ($today, $groups, $accounts): AgendaEntryData {
+            $subject = $this->list->subject($reminder->link);
+            $data = $this->agenda->reminderOf($reminder, $today, $groups, $accounts);
 
-                return $reminder->is_automatic ? $this->deadlineEntry($reminder, $subject, $data) : $this->entry($reminder, $subject, $data, true);
-            })->all()),
-            'next' => $next,
-        ];
+            return $reminder->is_automatic ? $this->deadlineEntry($reminder, $subject, $data) : $this->entry($reminder, $subject, $data, true);
+        })->all());
     }
 
     /**

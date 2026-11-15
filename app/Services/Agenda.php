@@ -155,6 +155,26 @@ final readonly class Agenda
     }
 
     /**
+     * The payments already made of the planned expenses between two days, by date and then by title, as the entries
+     * of the list shows them. Incomes are not things to do, so the ones that arrived are not here.
+     *
+     * @param  CarbonImmutable  $from  the first day
+     * @param  CarbonImmutable  $to  the last day
+     * @return list<AgendaEntryData>
+     */
+    public function paidBetween(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $paid = array_values(array_filter(
+            $this->deadlines->between(PlannedExpense::query()->with('organization')->get()->all(), $from->startOfDay(), $to),
+            static fn (Deadline $deadline): bool => $deadline->isPaid(),
+        ));
+        $entries = array_map($this->paymentEntry(...), $paid);
+        usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
+
+        return $entries;
+    }
+
+    /**
      * The due dates of the planned expenses and incomes of the family between two days that nothing settles.
      *
      * @param  CarbonImmutable  $from  the first day

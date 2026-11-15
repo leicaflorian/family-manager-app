@@ -61,7 +61,7 @@ final class ReminderController extends Controller
 
             if ($found instanceof Person) {
                 $filters = AgendaFiltersData::fromUser($user);
-                $save->handle($user, new AgendaFiltersData($filters->months, $found->id, $filters->hidden_areas));
+                $save->handle($user, new AgendaFiltersData($filters->months, $found->id, $filters->hidden_areas, $filters->calendar));
             }
         }
 

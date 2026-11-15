@@ -394,6 +394,15 @@ test('the agenda does not remember its period in the account during a visit', fu
     expect($this->laura->fresh()->agenda_filters)->toBeNull();
 });
 
+test('the agenda does not remember the calendar view in the account during a visit', function (): void {
+    startVisit();
+
+    $this->get(route('agenda', ['view' => 'calendar']))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('agenda.view', 'calendar'));
+
+    expect($this->laura->fresh()->agenda_filters)->toBeNull();
+});
+
 test('the reminders of a person do not remember the person in the account during a visit', function (): void {
     $person = CurrentFamily::using($this->family->id, fn (): Person => Person::factory()->create(['family_id' => $this->family->id]));
     startVisit();
