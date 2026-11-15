@@ -85,7 +85,21 @@ FROM base AS production
 ENV AUTORUN_ENABLED=true \
     AUTORUN_LARAVEL_MIGRATION_TIMEOUT=60 \
     PHP_OPCACHE_ENABLE=1 \
+    PHP_MEMORY_LIMIT=256M \
+    PHP_FPM_PM_CONTROL=ondemand \
+    PHP_FPM_PM_MAX_CHILDREN=6 \
+    PHP_FPM_PM_START_SERVERS=2 \
+    PHP_FPM_PM_MIN_SPARE_SERVERS=1 \
+    PHP_FPM_PM_MAX_SPARE_SERVERS=3 \
+    S6_SERVICES_GRACETIME=30000 \
+    S6_KILL_GRACETIME=5000 \
+    LOG_CHANNEL=stderr \
     TRUSTED_PROXY=off
+
+# A small droplet shared with Directus: at most 6 PHP-FPM children of 256 MB (the image's default is 20), and the
+# queue worker restarts past 256 MB (--memory). On SIGTERM S6 gives the services 30 s to end (an AI reading takes
+# about 20 s) before killing them, so the stop timeout of Coolify must be at least 35 s. Logs go to the output of
+# the container (Coolify shows them), not to files inside it; an environment variable can still override it.
 
 # TRUSTED_PROXY=off: nginx leaves the address of Coolify's proxy to PHP, and Laravel trusts it from
 # TRUSTED_PROXIES (config/app.php), so the client address and https come from X-Forwarded-* as before.

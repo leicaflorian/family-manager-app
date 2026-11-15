@@ -28,12 +28,26 @@ it('builds on serversideup/php with nginx and PHP-FPM', function (): void {
         ->toContain('fpm-nginx');
 });
 
-it('installs the tools of the previews and the PHP extensions of the app', function (string $needed): void {
-    expect(repositoryFile('Dockerfile'))->toContain($needed);
-})->with(['poppler-utils', 'libheif-examples', 'gd', 'exif', 'redis', 'intl', 'bcmath']);
+it('installs the tools of the previews', function (string $package): void {
+    expect(repositoryFile('Dockerfile'))->toMatch('/^\s*(&& )?apt-get install .*\b'.preg_quote($package, '/').'\b/m');
+})->with(['poppler-utils', 'libheif-examples', 'libheif-plugin-libde265']);
+
+it('installs the PHP extensions of the app', function (string $extension): void {
+    expect(repositoryFile('Dockerfile'))->toMatch('/^RUN install-php-extensions [^\n]*(?<=\s)'.$extension.'(?=\s|$)/m');
+})->with(['gd', 'exif', 'redis', 'intl', 'bcmath', 'pdo_mysql']);
+
+it('fits a small server and logs to the output of the container', function (string $setting): void {
+    expect(repositoryFile('Dockerfile'))->toMatch('/^\s*(ENV )?'.preg_quote($setting, '/').'( \\\\)?$/m');
+})->with([
+    'PHP_FPM_PM_MAX_CHILDREN=6',
+    'PHP_MEMORY_LIMIT=256M',
+    'S6_SERVICES_GRACETIME=30000',
+    'LOG_CHANNEL=stderr',
+]);
 
 it('runs the queue worker and the scheduler in the same container', function (): void {
     expect(repositoryFile('docker/production/s6/laravel-queue/run'))->toContain('queue:work --tries=3')
+        ->and(repositoryFile('docker/production/s6/laravel-queue/run'))->toContain('--memory=256')
         ->and(repositoryFile('docker/production/s6/laravel-scheduler/run'))->toContain('schedule:work');
 });
 
@@ -56,7 +70,7 @@ it('leaves out of the build context the secrets, the dependencies and the files 
     $ignored = array_map(trim(...), explode("\n", repositoryFile('.dockerignore')));
 
     expect($ignored)->toContain($path);
-})->with(['.env', 'node_modules', 'vendor', 'storage/app/private', 'tests', '.git']);
+})->with(['.env', 'node_modules', 'vendor', 'storage/app/*', 'tests', '.git']);
 
 it('no longer builds with Nixpacks', function (): void {
     expect(base_path('nixpacks.toml'))->not->toBeFile();

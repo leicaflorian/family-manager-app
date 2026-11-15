@@ -20,8 +20,9 @@ bootstrap/cache/*.php
 bootstrap/ssr
 
 # The files of the families, the caches and the logs: never in the image
-storage/app/private
-storage/app/public
+# Everything under storage/app (the Dockerfile recreates private and public empty): the main checkout keeps
+# database dumps of the real family in storage/app/backups
+storage/app/*
 storage/framework/*
 storage/logs/*
 storage/pail
