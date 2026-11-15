@@ -1,0 +1,134 @@
+name: ci
+
+# Every check of the project. Also called by the release workflow (`workflow_call`, `secrets: inherit`).
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        image: mysql:9.7.2
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # The FormKit Pro key. Pull requests from forks get no secrets, so a placeholder is used: the build still
+      # succeeds (checked locally) and gives the Vite manifest that some Pest tests need. This build is never deployed.
+      VITE_FORMKIT_PRO_KEY: ${{ secrets.VITE_FORMKIT_PRO_KEY || 'ci-placeholder-key' }}
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: testing
+      DB_USERNAME: root
+      DB_PASSWORD: password
+      # The fake Directus of the Copy tests lives on the same server (`testing_directus`, created by the test itself)
+      DIRECTUS_DB_HOST: 127.0.0.1
+      DIRECTUS_DB_PORT: 3306
+      DIRECTUS_DB_DATABASE: testing_directus
+      DIRECTUS_DB_USERNAME: root
+      DIRECTUS_DB_PASSWORD: password
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.5'
+          extensions: gd, exif, intl, bcmath, redis, pdo_mysql
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      # PDF and HEIC previews (`FilePreviews`) use these tools, like Sail and the production image
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils libheif-examples libheif-plugin-libde265
+
+      - name: Get the Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Cache npm packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      # Needs PHP and vendor (Wayfinder generates the routes during the build) and gives public/build/manifest.json,
+      # which DewarpCheckTest, AdminHostTest and RegistrationClosedTest need. Runs before Vitest and the types,
+      # which import the generated Wayfinder routes.
+      - name: Build the front end
+        run: npm run build
+
+      - name: Pint
+        run: vendor/bin/pint --test
+
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --no-progress
+
+      - name: Rector
+        run: vendor/bin/rector --dry-run --no-progress-bar
+
+      - name: Pest
+        run: php artisan test --parallel --processes=4
+
+      - name: Vitest
+        run: npm run test -- run
+
+      - name: Types
+        run: npm run types
+
+      - name: Lint
+        run: npm run lint
