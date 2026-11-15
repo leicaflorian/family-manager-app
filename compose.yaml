@@ -24,6 +24,7 @@ services:
             - sail
         depends_on:
             - mysql
+            - redis
             - mailpit
     # Runs the queued jobs (emails, AI readings) while developing. queue:listen boots the app for every job,
     # so code changes apply without a restart; --timeout=0 leaves the limit to each job (AI readings can be slow).
@@ -40,10 +41,12 @@ services:
         depends_on:
             - laravel.test
             - mysql
+            - redis
             - mailpit
         restart: unless-stopped
     mysql:
-        image: 'mysql:8.4'
+        # The same version as production (Coolify's MySQL of Directus, shared with the app)
+        image: 'mysql:9.7.2'
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
         environment:
@@ -67,6 +70,21 @@ services:
                 - '-p${DB_PASSWORD}'
             retries: 3
             timeout: 5s
+    # Cache and sessions, as in production (the Redis of Directus, with the app's own indexes and prefix)
+    redis:
+        image: 'redis:8.2.1'
+        command: ['redis-server', '--appendonly', 'yes']
+        volumes:
+            - 'sail-redis:/data'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - redis-cli
+                - ping
+            retries: 3
+            timeout: 5s
     mailpit:
         image: 'axllent/mailpit:latest'
         ports:
@@ -79,4 +97,6 @@ networks:
         driver: bridge
 volumes:
     sail-mysql:
+        driver: local
+    sail-redis:
         driver: local
