@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Enums\ReminderStatus;
 use App\Models\Expense;
 use App\Models\Income;
+use App\Models\Owner;
 use App\Models\PlannedIncome;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Support\CurrentFamily;
+use App\Support\VisitHandoff;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Date;
@@ -136,4 +138,42 @@ test('saving the other filters keeps the remembered view', function (): void {
     $this->actingAs($marco->fresh())->put('/agenda/filters', ['months' => 3, 'person_id' => null, 'hidden_areas' => []])->assertRedirect();
 
     expect($marco->fresh()->agenda_filters['calendar'])->toBeTrue();
+});
+
+/**
+ * A partial reload of the Agenda that asks only for `calendar_link`, as the panel of the calendar does.
+ *
+ * @param  User  $user  the account
+ * @return array<string, mixed>
+ */
+function calendarLinkReload(User $user): array
+{
+    $version = test()->actingAs($user)->get('/agenda')->viewData('page')['version'];
+
+    return test()->actingAs($user)->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'Agenda',
+        'X-Inertia-Partial-Data' => 'calendar_link',
+    ])->get('/agenda')->assertOk()->json('props');
+}
+
+test('calendar link is only sent when asked', function (): void {
+    $marco = registerFamily();
+    $this->actingAs($marco)->post(route('calendar.store'));
+    $url = route('calendar.feed', ['token' => $marco->family->fresh()->calendar_token]);
+
+    expect(calendarProps($marco))->not->toHaveKey('calendar_link')
+        ->and(calendarLinkReload($marco)['calendar_link'])->toBe(['on' => true, 'url' => $url, 'can_change' => true, 'hidden' => false]);
+});
+
+test('calendar link is hidden during a visit', function (): void {
+    $owner = Owner::factory()->withAuthenticator()->create();
+    $marco = registerFamily();
+    $this->actingAs($marco)->post(route('calendar.store'));
+    $marco->family->forceFill(['support_until' => now()->addHours(24)])->save();
+
+    $this->get(VisitHandoff::link($owner, $marco))->assertRedirect(route('dashboard'));
+
+    expect(calendarLinkReload($marco->fresh())['calendar_link'])->toMatchArray(['on' => true, 'url' => null, 'hidden' => true]);
 });

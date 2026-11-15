@@ -6,7 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Actions\Agenda\SaveAgendaFilters;
 use App\Actions\Agenda\UpdateDeadline;
+use App\Data\CalendarSettingsData;
 use App\Data\DeadlineData;
+use App\Http\Middleware\LimitVisit;
 use App\Http\Requests\Agenda\UpdateDeadlineRequest;
 use App\Http\Requests\AgendaFiltersRequest;
 use App\Http\Requests\AgendaRequest;
@@ -34,7 +36,7 @@ final class AgendaController extends Controller
      * The Agenda of `?months=1|3|6|12`: the period asked is used and remembered, the remembered one is used when
      * the address asks for none, and one month when it asks for another period. The panel of a payment or income
      * asks, with a partial reload, for `payment` (the due date of `?payment=<key of the entry>`) and the `accounts`
-     * to pay with, for the form it holds.
+     * to pay with, for the form it holds. The calendar asks for `calendar_link`, the address to subscribe to.
      *
      * @throws NotFoundHttpException if `payment` is asked for a key that is not a payment or income of the family
      */
@@ -46,6 +48,7 @@ final class AgendaController extends Controller
             ...$page->props($request, $user),
             'payment' => Inertia::optional(fn (): DeadlineData => DeadlineData::fromDeadline($this->payment($request->string('payment')->toString()), $today)),
             'accounts' => Inertia::optional(BudgetFormOptions::accounts(...)),
+            'calendar_link' => Inertia::optional(fn (): CalendarSettingsData => CalendarSettingsData::fromFamily($user->family, $user, LimitVisit::isOpen($request))),
         ]);
     }
 
