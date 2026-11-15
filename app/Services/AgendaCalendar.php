@@ -32,7 +32,7 @@ final readonly class AgendaCalendar
      */
     public function open(CarbonImmutable $today, CarbonImmutable $until, int $back = self::DAYS_BACK): array
     {
-        return self::sorted([
+        return $this->sorted([
             ...array_filter($this->agenda->entries($today, $until, $back, $back), static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'
                 && ($entry->kind !== 'deadline' || $entry->reminder?->state !== AgendaReminderState::Done)),
             ...$this->tasks->open($today, $until),
@@ -61,7 +61,7 @@ final readonly class AgendaCalendar
             to: $to->toDateString(),
             today: $today->toDateString(),
             entries: array_values(array_filter($this->open($today, $to, $back), $inside)),
-            done: self::sorted([...$this->agenda->paidBetween($from, $to), ...$this->tasks->doneBetween($from, $to, $today)]),
+            done: $this->sorted([...$this->agenda->paidBetween($from, $to), ...$this->tasks->doneBetween($from, $to, $today)]),
         );
     }
 
@@ -71,7 +71,7 @@ final readonly class AgendaCalendar
      * @param  array<int, AgendaEntryData>  $entries  the entries
      * @return list<AgendaEntryData>
      */
-    private static function sorted(array $entries): array
+    private function sorted(array $entries): array
     {
         $entries = array_values($entries);
         usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
