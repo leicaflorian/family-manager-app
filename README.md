@@ -1,8 +1,8 @@
-# Family Manager - app for families
+# Fameja.app - app for families
 
 ![fameja-app-og-1200x630.png](public/fameja-app-og-1200x630.png)
 
-The new Family Manager app, made for parents who are not technical. It will replace the Directus interface of the `family-manager-cms` repository, and it can be sold to other families: each family sees only its own data.
+Fameja.app, the new app of Family Manager, made for parents who are not technical. It will replace the Directus interface of the `family-manager-cms` repository, and it can be sold to other families: each family sees only its own data.
 
 It is built with Laravel 13 from the Vue starter kit (Inertia, Vue 3, TypeScript, Tailwind 4, Fortify for sign-in, Wayfinder for the routes), and runs in Docker with Laravel Sail. The stage 1 prototype is gone: it can be recovered from the git history, commit `54a6702` (`git show 54a6702:prototype/…`).
 
