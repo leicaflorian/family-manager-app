@@ -21,3 +21,8 @@ Schedule::command('loans:refresh')->dailyAt(resolve(InstallationSettings::class)
 // Cards that expire, reminders in line with them, and the notices and the email of the morning
 Schedule::command('reminders:run')->dailyAt(resolve(InstallationSettings::class)->remindersTime())->timezone('Europe/Rome')->withoutOverlapping()->onOneServer();
 Schedule::command('model:prune', ['--model' => [ReminderNotice::class, MailInboxCall::class, LinkedDevice::class, Family::class]])->daily();
+
+// The nightly copy of the family files to the Space, only where a bucket is configured
+if (filled(config('filesystems.disks.backup.bucket'))) {
+    Schedule::command('files:backup')->dailyAt('02:30')->timezone('Europe/Rome')->withoutOverlapping()->onOneServer();
+}
