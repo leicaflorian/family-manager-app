@@ -102,3 +102,17 @@ test('it lets only an admin edit and delete', function (): void {
     expect($asMarco->can_edit)->toBeTrue()->and($asMarco->can_delete)->toBeTrue()
         ->and($asRosa->can_edit)->toBeFalse()->and($asRosa->can_delete)->toBeFalse();
 });
+
+test('a past expiry of a closed card is no longer a deadline in its tiles, unless the card expired by itself', function (string $status, bool $expires): void {
+    insideBianchi(fn () => $this->policy->update(['expiry_date' => now()->subDays(36)->toDateString(), 'status' => $status]));
+
+    $expiry = collect(insideBianchi(fn () => $this->details->of($this->policy->refresh(), $this->marco))->dates)
+        ->firstWhere('label', 'Expiry');
+
+    expect($expiry->expires)->toBe($expires);
+})->with([
+    'cancelled' => ['cancelled', false],
+    // An active policy past its date turns expired when saved: the renewal is still to do
+    'active' => ['active', true],
+    'expired' => ['expired', true],
+]);

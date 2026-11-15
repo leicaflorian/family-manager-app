@@ -26,6 +26,7 @@ use App\Queries\DocumentRows;
 use App\Services\Reminders\CardNotices;
 use App\Support\Linkables;
 use App\Support\ModelId;
+use App\Support\Reminders\Expiries;
 use App\Support\Translated;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -164,18 +165,23 @@ final readonly class CardDetails
     }
 
     /**
-     * The dates of the tiles that are filled in.
+     * The dates of the tiles that are filled in. A closed card (cancelled,
+     * sold…) has no deadlines left, so its past dates do not turn red; a card
+     * that expired by itself (a policy past its date) still has its renewal to
+     * do, so its expiry stays red.
      *
      * @return list<CardDateData>
      */
     private function dates(CardType $type, Model $card): array
     {
         $dates = [];
+        $expiry = Expiries::for($card::class);
+        $closed = $type->isClosed($card) && ($expiry === null || $card->getAttribute('status') !== $expiry['to']);
 
         foreach ($type->dates() as $date) {
             $day = $this->day($card->getAttribute($date->column));
             if ($day instanceof CarbonImmutable) {
-                $dates[] = new CardDateData($date->label, $day->format('Y-m-d'), $date->expires);
+                $dates[] = new CardDateData($date->label, $day->format('Y-m-d'), $date->expires && ! $closed);
             }
         }
 
