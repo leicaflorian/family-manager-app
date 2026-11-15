@@ -117,4 +117,23 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | The mails are drawn by the views in resources/views/vendor/mail with the
+    | colours of the design system (themes/family-manager.css), as the boards
+    | "Le email" of the canvas show them.
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'family-manager',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];

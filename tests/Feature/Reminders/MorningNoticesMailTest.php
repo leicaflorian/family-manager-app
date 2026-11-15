@@ -77,3 +77,15 @@ test('a deleted account does not break the queue', function (): void {
     expect(DB::table('failed_jobs')->count())->toBe(0)
         ->and(DB::table('jobs')->count())->toBe(0);
 });
+
+test('the mail says good morning, colours a late notice and opens the Agenda', function (): void {
+    $user = User::factory()->for(Family::factory())->create(['name' => 'Marco Bianchi']);
+    $mail = new MorningNoticesMail($user, [item('Renew the policy', '2026-11-20'), item('Pay the road tax', '2026-12-01')], '2026-11-25');
+
+    $mail->assertSeeInHtml('Good morning Marco')
+        ->assertSeeInHtml('Here is what is due in the next few days.')
+        ->assertSeeInHtml('Open the Agenda')
+        ->assertSeeInHtml(route('agenda'))
+        ->assertSeeInHtml('You get this email because email reminders are on.');
+    expect(substr_count($mail->render(), 'class="due due-late"'))->toBe(1);
+});

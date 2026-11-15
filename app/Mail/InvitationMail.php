@@ -29,7 +29,10 @@ final class InvitationMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        return new Envelope(subject: __('Your family is waiting for you on Family Manager'));
+        return new Envelope(subject: __(':inviter invites you to the :family family', [
+            'inviter' => $this->inviter(),
+            'family' => $this->invitation->family->name,
+        ]));
     }
 
     /**
@@ -38,9 +41,17 @@ final class InvitationMail extends Mailable
     public function content(): Content
     {
         return new Content(markdown: 'mail.invitation', with: [
-            'inviter' => $this->invitation->creator->name ?? __('Your family'),
+            'inviter' => $this->inviter(),
             'link' => route('invitation.show', $this->invitation->token),
             'expiresOn' => $this->invitation->expires_at->translatedFormat(__('d/m/Y')),
         ]);
+    }
+
+    /**
+     * The name of who sent the invitation, or the family when that account is gone.
+     */
+    private function inviter(): string
+    {
+        return $this->invitation->creator->name ?? __('Your family');
     }
 }
