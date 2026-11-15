@@ -1,0 +1,71 @@
+name: Setup
+description: PHP 8.5, Node 24 and the dependencies of the app (with their caches), and a .env with only the key.
+
+inputs:
+  system-packages:
+    description: Install poppler-utils and libheif for the PDF and HEIC previews (only Pest needs them)
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+      with:
+        php-version: '8.5'
+        extensions: gd, exif, intl, bcmath, redis, pdo_mysql
+        # The limits of docker/production/php.ini and Sail: with PHP's 8M a Mailgun call over 40 MB gets PHP's 413
+        # instead of the app's 406
+        ini-values: post_max_size=100M, upload_max_filesize=26M, max_file_uploads=100
+        tools: composer:v2
+        coverage: none
+
+    # The Node of Sail, where the tests are written (on 22 the Blob of jsdom has no stream() for Response)
+    - name: Setup Node
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: '24'
+
+    # PDF and HEIC previews (`FilePreviews`) use these tools, like Sail and the production image
+    - name: Install system packages
+      if: inputs.system-packages == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y poppler-utils libheif-examples libheif-plugin-libde265
+
+    - name: Get the Composer cache directory
+      id: composer-cache
+      shell: bash
+      run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Composer packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+        restore-keys: composer-${{ runner.os }}-
+
+    - name: Cache npm packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.npm
+        key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: npm-${{ runner.os }}-
+
+    - name: Install PHP dependencies
+      shell: bash
+      run: composer install --no-interaction --prefer-dist --no-progress
+
+    # Only the key: phpunit.xml and the job env give the rest. A copy of .env.example would put BACKUP_S3_BUCKET,
+    # REGISTRATION_OPEN and ADMIN_DOMAIN in $_SERVER, and the tests that change them with putenv and restart the
+    # app would keep reading the empty values.
+    - name: Prepare the environment
+      shell: bash
+      run: |
+        echo "APP_KEY=" > .env
+        php artisan key:generate
+
+    - name: Install JavaScript dependencies
+      shell: bash
+      run: npm ci
