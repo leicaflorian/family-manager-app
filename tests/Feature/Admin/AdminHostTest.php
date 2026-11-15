@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Http\Middleware\SeparateHosts;
+use App\Models\Family;
 use App\Models\Owner;
+use App\Models\User;
+use App\Support\VisitHandoff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Env;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -128,6 +133,27 @@ final class AdminHostTest extends TestCase
         $response = $this->actingAs($owner, 'owner')->get(self::ADMIN.'/');
         $response->assertOk();
         $this->assertNull($this->sessionCookie($response)->getDomain());
+    }
+
+    public function test_enter_as_opens_on_the_app_host_without_the_panel_session(): void
+    {
+        $this->bootWithAdminDomain();
+        $owner = Owner::factory()->withAuthenticator()->create();
+        $family = Family::factory()->create(['support_until' => now()->addDay()]);
+        $user = User::factory()->create(['family_id' => $family->id]);
+
+        // Made by the panel on its host, opened by the browser on the host of the app, with no session there
+        URL::setRequest(Request::create(self::ADMIN.'/families/'.$family->id));
+        $link = VisitHandoff::link($owner, $user);
+
+        $this->assertStringStartsWith(self::APP.'/support/visit/', $link);
+        $this->get(self::ADMIN.parse_url($link, PHP_URL_PATH).'?'.parse_url($link, PHP_URL_QUERY))->assertNotFound();
+        $this->get($link)->assertRedirect(self::APP.'/dashboard');
+        $this->assertSame($user->id, Auth::guard('web')->id());
+        $this->assertSame($owner->id, Auth::guard('owner')->id());
+
+        $this->post(self::APP.'/visit/leave')->assertRedirect(self::ADMIN);
+        $this->assertFalse(Auth::guard('owner')->check());
     }
 
     public function test_the_admin_host_is_recognised(): void

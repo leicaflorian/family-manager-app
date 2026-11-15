@@ -102,10 +102,10 @@ Route::post('scan/share', ScanShareController::class)
     ->withoutMiddleware('web')
     ->name('scan.share');
 
-// *Enter as…* of the admin panel: outside `/admin`, which belongs to the panel, and signed by the button of
-// the panel, so a link from another site cannot start a visit. A guest is sent to the sign-in of the
-// panel (`redirectGuestsTo` in bootstrap/app.php). Leaving is the only change a visit may send (`LimitVisit::ALLOWED`).
-Route::get('support/visit/{user}', [VisitController::class, 'start'])->middleware(['auth:owner', 'signed'])->name('support.visit.start');
+// *Enter as…* of the admin panel: on the host of the app, which does not share the session of the panel, so the
+// link is signed and carries a one-time token that signs the owner into this session (`VisitHandoff`, valid
+// `LimitVisit::LINK_SECONDS` seconds). Leaving is the only change a visit may send (`LimitVisit::ALLOWED`).
+Route::get('support/visit/{user}', [VisitController::class, 'start'])->middleware('signed')->name('support.visit.start');
 Route::post('visit/leave', [VisitController::class, 'leave'])->name('visit.leave');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {

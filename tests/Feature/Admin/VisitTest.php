@@ -16,6 +16,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Services\PhoneLinks;
 use App\Support\CurrentFamily;
+use App\Support\VisitHandoff;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
@@ -33,40 +34,97 @@ beforeEach(function (): void {
 });
 
 /**
- * The address of *Enter as* for an account, signed as the button of the panel writes it.
+ * The one-time link of *Enter as* for an account, as the button of the panel makes it on the click.
  */
-function visitUrl(User $user): string
+function visitUrl(User $user, ?Owner $owner = null): string
 {
-    return visitUrlAt($user, now()->addMinutes(LimitVisit::LINK_MINUTES));
+    return VisitHandoff::link($owner ?? test()->owner, $user);
 }
 
 /**
- * The address of *Enter as* for an account, signed until a moment.
+ * Forgets the session and who is signed in, as a new browser would start.
  */
-function visitUrlAt(User $user, DateTimeInterface $until): string
+function freshBrowser(): void
 {
-    return URL::temporarySignedRoute('support.visit.start', $until, $user);
+    test()->flushSession();
+    Auth::forgetGuards();
+    Auth::shouldUse('web');
 }
 
 /**
- * Signs the owner into the panel and starts a visit as Laura.
+ * Starts a visit as Laura with the link of the panel, opened in a browser with no session of the panel.
  */
 function startVisit(): void
 {
-    actingAs(test()->owner, 'owner');
     test()->get(visitUrl(test()->laura))->assertRedirect(route('dashboard'));
-
-    // `actingAs(…, 'owner')` and `auth:owner` make `owner` the default guard of the application, which a test keeps
-    // for the next requests; a real request starts again from `web`
-    Auth::shouldUse('web');
 }
+
+test('a handoff link starts the visit without a panel session', function (): void {
+    $this->get(visitUrl($this->laura))->assertRedirect(route('dashboard'));
+
+    expect(Auth::guard('web')->id())->toBe($this->laura->id)
+        ->and(Auth::guard('owner')->id())->toBe($this->owner->id)
+        ->and(OwnerAction::query()->sole()->action)->toBe(OwnerActionType::VisitStarted);
+});
+
+test('a handoff link works once', function (): void {
+    $link = visitUrl($this->laura);
+    $this->get($link)->assertRedirect(route('dashboard'));
+
+    freshBrowser();
+    $this->get($link)->assertForbidden();
+
+    expect(Auth::guard('web')->check())->toBeFalse()
+        ->and(Auth::guard('owner')->check())->toBeFalse()
+        ->and(OwnerAction::query()->count())->toBe(1);
+});
+
+test('an expired handoff link is refused', function (): void {
+    $link = visitUrl($this->laura);
+
+    $this->travel(LimitVisit::LINK_SECONDS + 1)->seconds();
+
+    $this->get($link)->assertForbidden();
+
+    expect(LimitVisit::LINK_SECONDS)->toBe(60)
+        ->and(Auth::guard('web')->check())->toBeFalse()
+        ->and(OwnerAction::query()->count())->toBe(0);
+});
+
+test('a changed user id is refused', function (): void {
+    $marco = User::factory()->create(['family_id' => $this->family->id]);
+    $link = str_replace('/support/visit/'.$this->laura->id.'?', '/support/visit/'.$marco->id.'?', visitUrl($this->laura));
+
+    $this->get($link)->assertForbidden();
+
+    expect(Auth::guard('web')->check())->toBeFalse()
+        ->and(OwnerAction::query()->count())->toBe(0);
+});
+
+test('the enter as action makes the link when clicked', function (): void {
+    actingAs($this->owner, 'owner');
+    $table = Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class]);
+
+    // Long after the page was drawn: a link written then would have expired
+    $this->travel(10)->minutes();
+    $table->callTableAction('enterAs', $this->laura);
+
+    $expression = collect($table->effects['xjs'] ?? [])->pluck('expression')->sole();
+    expect($expression)->toMatch('/^window\.open\(".+", "_blank", "noopener"\)$/');
+    preg_match('/^window\.open\((".+?"),/', $expression, $match);
+    $link = json_decode($match[1], true, flags: JSON_THROW_ON_ERROR);
+
+    freshBrowser();
+    $this->get($link)->assertRedirect(route('dashboard'));
+
+    expect(Auth::guard('web')->id())->toBe($this->laura->id);
+});
 
 test('enter as is offered only with the permission', function (): void {
     actingAs($this->owner, 'owner');
 
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class])
-        ->assertTableActionVisible('enterAs', $this->laura)
-        ->assertTableActionHasUrl('enterAs', visitUrl($this->laura), $this->laura);
+        ->assertTableActionVisible('enterAs', $this->laura);
 
     $this->family->forceFill(['support_until' => now()->subMinute()])->save();
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family->refresh(), 'pageClass' => ViewFamily::class])
@@ -124,13 +182,14 @@ test('the language of the browser is not written in the account during a visit',
     expect($this->laura->fresh()->locale)->toBe('en');
 });
 
-test('leave ends the visit and goes back to the panel', function (): void {
+test('leave ends the visit once and goes to the panel', function (): void {
     startVisit();
 
-    $this->post(route('visit.leave'))->assertRedirect('/admin');
+    $this->post(route('visit.leave'))->assertRedirect(route('filament.admin.pages.dashboard'));
 
+    // The owner was signed into this session by the link only: the panel keeps its own session
     expect(Auth::guard('web')->check())->toBeFalse()
-        ->and(Auth::guard('owner')->id())->toBe($this->owner->id)
+        ->and(Auth::guard('owner')->check())->toBeFalse()
         ->and(session()->has('visit'))->toBeFalse()
         ->and(OwnerAction::query()->orderBy('id')->pluck('action')->all())
         ->toBe([OwnerActionType::VisitStarted, OwnerActionType::VisitEnded])
@@ -216,9 +275,10 @@ test('signing the owner out of the panel in any way ends the visit at once', fun
 test('an owner without the authenticator app cannot start a visit', function (): void {
     $owner = Owner::factory()->create();
 
-    actingAs($owner, 'owner')->get(visitUrl($this->laura))->assertForbidden();
+    $this->get(visitUrl($this->laura, $owner))->assertForbidden();
 
     expect(Auth::guard('web')->check())->toBeFalse()
+        ->and(Auth::guard('owner')->check())->toBeFalse()
         ->and(OwnerAction::query()->count())->toBe(0);
 });
 
@@ -226,7 +286,7 @@ test('in the local environment an owner without the authenticator app can start 
     app()->detectEnvironment(fn (): string => 'local');
     $owner = Owner::factory()->create();
 
-    actingAs($owner, 'owner')->get(visitUrl($this->laura))->assertRedirect(route('dashboard'));
+    $this->get(visitUrl($this->laura, $owner))->assertRedirect(route('dashboard'));
 });
 
 test('linking a phone makes no code during a visit', function (): void {
@@ -265,22 +325,28 @@ test('the address of the calendar is hidden during a visit', function (): void {
             ->where('calendar.url', null));
 });
 
-test('a family user cannot start a visit', function (): void {
-    actingAs($this->laura)->get(visitUrl($this->laura))
-        ->assertRedirect(route('filament.admin.auth.login'));
+test('a signed link without a token of the panel does not start a visit', function (): void {
+    $signed = URL::temporarySignedRoute('support.visit.start', now()->addMinute(), ['user' => $this->laura->id]);
+
+    actingAs($this->laura)->get($signed)->assertForbidden();
+    expect(Auth::guard('owner')->check())->toBeFalse();
+
+    freshBrowser();
+    actingAs($this->owner, 'owner')->get($signed)->assertForbidden();
+    $this->get(URL::temporarySignedRoute('support.visit.start', now()->addMinute(), ['user' => $this->laura->id, 'token' => str_repeat('a', 40)]))
+        ->assertForbidden();
 
     expect(OwnerAction::query()->count())->toBe(0);
 });
 
 test('a link without the signature of the panel does not start a visit', function (): void {
-    actingAs($this->owner, 'owner');
+    $link = visitUrl($this->laura);
+    parse_str((string) parse_url($link, PHP_URL_QUERY), $query);
 
-    $this->get(route('support.visit.start', $this->laura))->assertForbidden();
-
-    Date::setTestNow(now()->addMinutes(2));
-    $this->get(visitUrlAt($this->laura, now()->subMinute()))->assertForbidden();
+    $this->get(route('support.visit.start', ['user' => $this->laura->id, 'token' => $query['token']]))->assertForbidden();
 
     expect(Auth::guard('web')->check())->toBeFalse()
+        ->and(Auth::guard('owner')->check())->toBeFalse()
         ->and(OwnerAction::query()->count())->toBe(0);
 });
 

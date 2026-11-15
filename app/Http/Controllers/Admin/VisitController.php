@@ -11,9 +11,10 @@ use App\Http\Middleware\LimitVisit;
 use App\Models\Owner;
 use App\Models\User;
 use App\Providers\Filament\AdminPanelProvider;
-use Illuminate\Container\Attributes\CurrentUser;
+use App\Support\VisitHandoff;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,26 +24,29 @@ use Symfony\Component\HttpFoundation\Response;
 final class VisitController extends Controller
 {
     /**
-     * Starts the visit and opens the home of the app as the account. An owner who has not set up the authenticator
-     * app yet is refused where the panel requires it (everywhere but in the local environment): the panel asks for it
-     * on every page, and this route is outside the panel.
+     * Starts the visit from the one-time link of the panel and opens the home of the app as the account. The token of
+     * the link gives the owner who made it, who is signed into this session too ({@see LimitVisit} checks it on every
+     * request). An owner who has not set up the authenticator app yet is refused where the panel requires it
+     * (everywhere but in the local environment): the panel asks for it on every page, and this route is outside it.
      *
      * @param  Request  $request  the request
      * @param  User  $user  the account to look as
-     * @param  Owner  $owner  the owner of the panel
      * @param  StartVisit  $start  starts the visit
      */
-    public function start(Request $request, User $user, #[CurrentUser('owner')] Owner $owner, StartVisit $start): RedirectResponse
+    public function start(Request $request, User $user, StartVisit $start): RedirectResponse
     {
-        abort_if(AdminPanelProvider::requiresAuthenticator() && $owner->app_authentication_secret === null, 403);
+        $owner = VisitHandoff::consume($request->string('token')->toString(), $user->id);
+
+        abort_if(! $owner instanceof Owner || (AdminPanelProvider::requiresAuthenticator() && $owner->app_authentication_secret === null), 403);
 
         $start->handle($owner, $user, $request->session());
+        Auth::guard('owner')->login($owner);
 
         return to_route('dashboard');
     }
 
     /**
-     * Ends the visit and goes back to the panel.
+     * Ends the visit, signs the owner out of this session (the panel keeps its own) and goes back to the panel.
      *
      * @param  Request  $request  the request
      * @param  EndVisit  $end  ends the visit
@@ -52,6 +56,8 @@ final class VisitController extends Controller
         abort_unless(LimitVisit::isOpen($request), 404);
 
         $end->handle($request->session());
+        // Only this device, and without the event `Logout`: the visit is already over and logged
+        Auth::guard('owner')->logoutCurrentDevice();
 
         // The panel is not a page of Inertia: the browser has to load it whole
         return Inertia::location(route('filament.admin.pages.dashboard'));

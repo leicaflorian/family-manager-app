@@ -6,16 +6,17 @@ namespace App\Filament\Resources\Families\RelationManagers;
 
 use App\Admin\FamilyFigures;
 use App\Filament\Resources\Families\FamilyResource;
-use App\Http\Middleware\LimitVisit;
 use App\Models\Family;
+use App\Models\Owner;
 use App\Models\User;
+use App\Support\VisitHandoff;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\URL;
 
 /**
  * The accounts of a family: name, email, level, confirmed email and last access, and *Enter as…* while the family
@@ -57,8 +58,14 @@ final class UsersRelationManager extends RelationManager
                 // Only while the family lets support in; the visit checks it again when it starts
                 Action::make('enterAs')->label(__('Enter as'))->icon('heroicon-o-eye')
                     ->visible(fn (): bool => $this->family()->allowsSupport())
-                    ->url(static fn (User $record): string => URL::temporarySignedRoute('support.visit.start', now()->addMinutes(LimitVisit::LINK_MINUTES), ['user' => $record->id]))
-                    ->openUrlInNewTab(),
+                    // The link lasts one minute and works once, so it is made on the click, not when the table is drawn
+                    ->action(static function (User $record, RelationManager $livewire): void {
+                        $owner = Filament::auth()->user();
+                        assert($owner instanceof Owner);
+
+                        $link = json_encode(VisitHandoff::link($owner, $record), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
+                        $livewire->js('window.open('.$link.', "_blank", "noopener")');
+                    }),
             ])
             ->paginated(false);
     }
