@@ -11,8 +11,10 @@ import {
     MAX_CONSOLE,
     MAX_MESSAGE,
     MAX_PAGES,
+    MAX_SERIALIZED_BYTES,
     recordRequest,
     reportVueError,
+    serializeDiagnostics,
     startDiagnostics,
 } from './diagnostics';
 
@@ -266,5 +268,135 @@ describe('diagnostics', () => {
 
         fake.error('still here');
         expect(collectDiagnostics().console[0].message).toBe('still here');
+    });
+
+    it('never keeps the part of an address after #, where the phone link has its secret', async () => {
+        const fake = vi.fn(() =>
+            Promise.resolve(new Response('', { status: 500 })),
+        );
+        stop = startDiagnostics({
+            console: fakeConsole(),
+            window,
+            fetch: fake as unknown as typeof fetch,
+        });
+
+        navigate('Scan', '/scan#d=secret');
+        navigate('Scan', '/scan?x=1#d=secret');
+        await window.fetch('/scan/corners#d=secret', { method: 'POST' });
+        recordRequest({
+            method: 'GET',
+            path: '/connect#d=secret',
+            status: 500,
+            requestId: null,
+        });
+
+        const { pages, requests } = collectDiagnostics();
+        expect(pages.map((p) => p.path)).toEqual(['/scan', '/scan?x=1']);
+        expect(requests.map((r) => r.path)).toEqual([
+            '/scan/corners',
+            '/connect',
+        ]);
+    });
+
+    it('does not keep a fetch the page stopped on purpose', async () => {
+        const fake = vi.fn(() =>
+            Promise.reject(new DOMException('aborted', 'AbortError')),
+        );
+        stop = startDiagnostics({
+            console: fakeConsole(),
+            window,
+            fetch: fake as unknown as typeof fetch,
+        });
+        const controller = new AbortController();
+        controller.abort();
+
+        await expect(
+            window.fetch('/search/suggest?q=typed', {
+                signal: controller.signal,
+            }),
+        ).rejects.toThrow('aborted');
+        await expect(window.fetch('/search/suggest?q=more')).rejects.toThrow(
+            'aborted',
+        );
+
+        expect(collectDiagnostics().requests).toEqual([]);
+    });
+
+    it('keeps only the requests to the app, never those to other addresses', async () => {
+        const fake = vi.fn(() =>
+            Promise.resolve(new Response('', { status: 404 })),
+        );
+        stop = startDiagnostics({
+            console: fakeConsole(),
+            window,
+            fetch: fake as unknown as typeof fetch,
+        });
+
+        await window.fetch('http://127.0.0.1:47115/scanners');
+        await window.fetch('https://fonts.example.com/font.woff2');
+        await window.fetch(`${window.location.origin}/mine`);
+
+        expect(collectDiagnostics().requests.map((r) => r.path)).toEqual([
+            '/mine',
+        ]);
+    });
+
+    it('adds the first lines of the stack to an error', () => {
+        const fake = fakeConsole();
+        stop = startDiagnostics({ console: fake, window });
+        const error = new TypeError('x is undefined');
+        error.stack = [
+            'TypeError: x is undefined',
+            '    at pay (Pay.vue:12:3)',
+            '    at click (Button.vue:4:1)',
+            '    at a (a.js:1:1)',
+            '    at b (b.js:1:1)',
+            '    at c (c.js:1:1)',
+            '    at d (d.js:1:1)',
+        ].join('\n');
+
+        fake.error(error);
+
+        const message = collectDiagnostics().console[0].message;
+        expect(message).toContain('TypeError: x is undefined');
+        expect(message).toContain('at pay (Pay.vue:12:3)');
+        expect(message).toContain('at click (Button.vue:4:1)');
+        expect(message).not.toContain('at d (d.js:1:1)');
+        expect(message.match(/TypeError: x is undefined/g)).toHaveLength(1);
+    });
+
+    it('serialises within the budget, dropping the oldest entries first', () => {
+        const fake = fakeConsole();
+        stop = startDiagnostics({ console: fake, window });
+        for (let i = 0; i < 50; i++) {
+            fake.error(`e${i} ${'é'.repeat(600)}`);
+        }
+        for (let i = 0; i < 20; i++) {
+            recordRequest({
+                method: 'GET',
+                path: `/r${i}?${'q'.repeat(3000)}`,
+                status: 500,
+                requestId: null,
+            });
+        }
+
+        const json = serializeDiagnostics(collectDiagnostics());
+
+        expect(new TextEncoder().encode(json).length).toBeLessThanOrEqual(
+            MAX_SERIALIZED_BYTES,
+        );
+        const parsed = JSON.parse(json) as ReturnType<
+            typeof collectDiagnostics
+        >;
+        expect(parsed.console.at(-1)?.message.startsWith('e49 ')).toBe(true);
+        expect(parsed.console.length).toBeLessThan(50);
+        expect(parsed.locale).toBe('it');
+    });
+
+    it('serialises small diagnostics as they are', () => {
+        stop = startDiagnostics({ console: fakeConsole(), window });
+        const facts = collectDiagnostics();
+
+        expect(JSON.parse(serializeDiagnostics(facts))).toEqual(facts);
     });
 });

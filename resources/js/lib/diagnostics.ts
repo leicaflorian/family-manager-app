@@ -17,6 +17,13 @@ export const MAX_PAGES = 10;
 export const MAX_MESSAGE = 500;
 /** The longest path kept, in characters. */
 const MAX_PATH = 2048;
+/** The stack lines added to an error. */
+const STACK_LINES = 4;
+/**
+ * The largest serialised diagnostics, in bytes: well under what the server reads (256 KB), so the details never
+ * make a report fail.
+ */
+export const MAX_SERIALIZED_BYTES = 65536;
 
 /** One error or warning of the console. */
 export interface ConsoleEntry {
@@ -126,9 +133,7 @@ function toText(value: unknown): string {
             return value;
         }
         if (value instanceof Error) {
-            return value.stack
-                ? `${value.name}: ${value.message}`
-                : String(value);
+            return errorText(value);
         }
         if (typeof value === 'object' && value !== null) {
             // Only the shape: the values may be response bodies, form models or page props
@@ -142,6 +147,37 @@ function toText(value: unknown): string {
     } catch {
         return '[unreadable]';
     }
+}
+
+/**
+ * An error as its name and message, followed by the first lines of its stack (where it was thrown).
+ *
+ * @param error - the error
+ * @returns the text
+ */
+function errorText(error: Error): string {
+    const head = `${error.name}: ${error.message}`;
+    // Chrome starts the stack with the name and message again, Firefox and Safari do not
+    const frames = (error.stack ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line !== '' && line !== head)
+        .slice(0, STACK_LINES);
+
+    return [head, ...frames].join('\n');
+}
+
+/**
+ * A path without the part after `#`: the link of a phone carries its secret there, and it never leaves the
+ * browser.
+ *
+ * @param path - the path, maybe with a fragment
+ * @returns the path without it
+ */
+function withoutFragment(path: string): string {
+    const at = path.indexOf('#');
+
+    return at === -1 ? path : path.slice(0, at);
 }
 
 /**
@@ -217,7 +253,7 @@ export function recordRequest(entry: {
             {
                 at: new Date().toISOString(),
                 method: cut(entry.method.toUpperCase(), 10),
-                path: cut(entry.path, MAX_PATH),
+                path: cut(withoutFragment(entry.path), MAX_PATH),
                 status: entry.status,
                 request_id: entry.requestId && cut(entry.requestId, 100),
             },
@@ -277,7 +313,7 @@ function wrapFetch(target: Window, base: typeof fetch): () => void {
         try {
             const response = await base(input, init);
 
-            if (response.status >= 400) {
+            if (path !== null && response.status >= 400) {
                 recordRequest({
                     method,
                     path,
@@ -288,7 +324,10 @@ function wrapFetch(target: Window, base: typeof fetch): () => void {
 
             return response;
         } catch (error) {
-            recordRequest({ method, path, status: null, requestId: null });
+            // A request the page stopped on purpose (a search typed further) is not a failure
+            if (path !== null && !isAbort(error, input, init)) {
+                recordRequest({ method, path, status: null, requestId: null });
+            }
 
             throw error;
         }
@@ -300,20 +339,51 @@ function wrapFetch(target: Window, base: typeof fetch): () => void {
 }
 
 /**
- * The path and query of a request, without the host.
+ * Whether a fetch failed because the page stopped it.
+ *
+ * @param error - what the fetch threw
+ * @param input - what `fetch` received
+ * @param init - its options
+ * @returns true for an aborted request
+ */
+function isAbort(
+    error: unknown,
+    input: RequestInfo | URL,
+    init?: RequestInit,
+): boolean {
+    if (
+        init?.signal?.aborted ||
+        (input instanceof Request && input.signal.aborted)
+    ) {
+        return true;
+    }
+
+    // A DOMException is not always an Error (jsdom, older Safari), so the name is read on any object
+    return (
+        typeof error === 'object' &&
+        error !== null &&
+        (error as { name?: unknown }).name === 'AbortError'
+    );
+}
+
+/**
+ * The path and query of a request to the app, without the host. Requests to other addresses (the home scanner
+ * agent, fonts) are not the app's and are not kept.
  *
  * @param input - what `fetch` received
  * @param target - the window, for its address
- * @returns the path with its query
+ * @returns the path with its query, or null for another address
  */
-function pathOf(input: RequestInfo | URL, target: Window): string {
+function pathOf(input: RequestInfo | URL, target: Window): string | null {
     try {
         const raw = input instanceof Request ? input.url : String(input);
         const url = new URL(raw, target.location.href);
 
-        return url.pathname + url.search;
+        return url.origin === target.location.origin
+            ? url.pathname + url.search
+            : null;
     } catch {
-        return '';
+        return null;
     }
 }
 
@@ -395,7 +465,8 @@ function install(target: DiagnosticsTarget): () => void {
             pageEntries,
             {
                 at: new Date().toISOString(),
-                path: cut(url, MAX_PATH),
+                // Inertia adds the fragment of the address to the page url
+                path: cut(withoutFragment(url), MAX_PATH),
                 component: component || null,
             },
             MAX_PAGES,
@@ -452,4 +523,34 @@ export function collectDiagnostics(): FeedbackDiagnostics {
         console: [...consoleEntries],
         requests: [...requestEntries],
     };
+}
+
+/**
+ * The diagnostics as JSON within `MAX_SERIALIZED_BYTES`: while they are too large the oldest entry of the longest
+ * list goes (console, then requests, then pages on a tie), so the newest, most useful ones stay.
+ *
+ * @param diagnostics - what `collectDiagnostics()` returned
+ * @returns the JSON to send
+ */
+export function serializeDiagnostics(diagnostics: FeedbackDiagnostics): string {
+    const trimmed: FeedbackDiagnostics = {
+        ...diagnostics,
+        console: [...diagnostics.console],
+        requests: [...diagnostics.requests],
+        pages: [...diagnostics.pages],
+    };
+    const encoder = new TextEncoder();
+    let json = JSON.stringify(trimmed);
+
+    while (encoder.encode(json).length > MAX_SERIALIZED_BYTES) {
+        const lists = [trimmed.console, trimmed.requests, trimmed.pages];
+        const longest = lists.reduce((a, b) => (b.length > a.length ? b : a));
+        if (longest.length === 0) {
+            break;
+        }
+        longest.shift();
+        json = JSON.stringify(trimmed);
+    }
+
+    return json;
 }
