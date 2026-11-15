@@ -355,4 +355,17 @@ check "remote main untouched" equal origin/main "$(git ls-remote "$T/remote.git"
 check "no local tag" sh -c "[ -z \"\$(git tag -l 'v*')\" ]"
 finish "11. main cannot be checked out, dev never reset"
 
+# 12. Run from a worktree of the clone: refused before anything is touched.
+new_fixture
+before=$(git rev-parse origin/main)
+git worktree add -q --detach "$T/wt" dev
+cd "$T/wt" || exit 1
+run_release
+check "exit code not 0" test "$CODE" -ne 0
+check "claude not called" not_called claude
+check "says it needs the main checkout" contains "main checkout"
+cd "$T/work" || exit 1
+check "main untouched" equal main "$before"
+finish "12. worktree, refused"
+
 exit $FAILED

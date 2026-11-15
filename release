@@ -106,6 +106,7 @@ EOF
 # 1. Checks.
 step "Checking the repository"
 rm -f "$HANDOFF/response.json" "$HANDOFF/version" "$HANDOFF/tag-message.md"
+[ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] || fail "run it from the main checkout, not from a worktree."
 [ "$(git symbolic-ref --short -q HEAD || true)" = dev ] || fail "run it from the dev branch."
 [ -z "$(git status --porcelain)" ] || fail "there are uncommitted changes."
 git fetch -q --tags "$REMOTE" || fail "git fetch $REMOTE failed."
@@ -164,6 +165,7 @@ step "Asking Claude for the changelog and the notes"
 if ! "$CLAUDE_CMD" -p "$(cat resources/release/prompt.md)" --model sonnet --output-format json \
     --json-schema "$(cat resources/release/response.schema.json)" \
     --allowedTools "Read" "Grep" "Glob" "Bash(git log:*)" "Bash(git show:*)" "Bash(git diff:*)" \
+    --disallowedTools "Read(./.env*)" \
     < "$WORK/context" > "$WORK/claude.json"; then
     fail "the claude CLI failed."
 fi
