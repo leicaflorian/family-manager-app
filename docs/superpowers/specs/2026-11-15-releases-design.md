@@ -52,7 +52,7 @@ Decisioni del proprietario (15/11/2026): lo script parte da `dev` e fa lui l'uni
    {
      "bump": "minor" | "patch",
      "reason": "una frase sul perché del bump",
-     "changelog": "markdown in italiano, sezioni per area",
+     "changelog": "markdown in English, sections by area",
      "notes": { "it": ["frase semplice", "…"], "en": ["simple sentence", "…"] }
    }
    ```
@@ -66,7 +66,7 @@ Decisioni del proprietario (15/11/2026): lo script parte da `dev` e fa lui l'uni
 ### Il comando `app:release`
 
 - Legge e valida il JSON (forma esatta, `bump` solo `minor` o `patch`, almeno una nota per lingua, changelog non vuoto). Una risposta non valida esce con 1 e un messaggio chiaro.
-- Versione attuale da `VERSION` (se non c'è il file: prima release, chiede la versione con `1.0.0` come proposta).
+- Versione attuale da `VERSION`. Se il file non c'è è la prima release, e la versione è `2.0.0` (decisione del proprietario: la riscrittura in Laravel è la versione 2), senza bump da scegliere.
 - Mostra changelog, note e versione suggerita con il motivo; il proprietario sceglie tra la suggerita, l'altra (patch/minor), *major* o annulla. Annullare esce con 1 senza scrivere niente.
 - Scrive, solo dopo la conferma:
   - `VERSION`: `X.Y.Z` e a capo;
@@ -76,7 +76,7 @@ Decisioni del proprietario (15/11/2026): lo script parte da `dev` e fa lui l'uni
 
 ### La versione nell'app
 
-`config('app.release')` legge `VERSION` (`dev` se manca). `config('app.version')` resta il commit (`SOURCE_COMMIT`), perché lo usano le segnalazioni per confrontare pagina e server. La release compare nel pannello del proprietario accanto alla versione (dove già si mostra) e nei dettagli delle segnalazioni.
+Una sola versione (decisione del proprietario, 15/11/2026): `config('app.version')` legge `VERSION` (`dev` se manca) al posto di `SOURCE_COMMIT`, e `vite.config.ts` scrive lo stesso file nei JS come `__APP_BUILD__`. Le segnalazioni confrontano ancora la versione della pagina con quella del server, ora per release: il deploy parte solo da una release, quindi una pagina vecchia ha una versione diversa. `SOURCE_COMMIT` non serve più: si toglie l'`ARG` dal `Dockerfile`, l'opzione *Include Source Commit in Build* di Coolify non serve, e `AGENTS.md` (*Pubblicazione*, voce *Segnala un problema*) si aggiorna. `VERSION` entra nell'immagine (non è in `.dockerignore`).
 
 ### GitHub Actions
 
@@ -102,7 +102,5 @@ Decisioni del proprietario (15/11/2026): lo script parte da `dev` e fa lui l'uni
 - A Claude si passano titoli e corpi dei commit; i diff li legge lui quando servono. Nessun taglio del contesto, salvo per la prima release, dove passano solo i titoli.
 - La prop condivisa con la versione e la lettura di `notes.json` per l'app le fa la sessione che costruisce la voce del menu e il pannello delle novità; questo lavoro scrive solo i file.
 
-- Changelog in italiano (lo legge il proprietario, come `AGENTS.md`); le note per l'app in tutte e due le lingue.
-- `config('app.release')` separato da `app.version`, per non rompere il confronto delle segnalazioni.
+- Changelog in inglese (decisione del proprietario); le note per l'app in tutte e due le lingue.
 - Il deploy parte da `main` e non dal tag, con il controllo che coincidano.
-- Prima release: la versione la sceglie il proprietario (proposta 1.0.0).
