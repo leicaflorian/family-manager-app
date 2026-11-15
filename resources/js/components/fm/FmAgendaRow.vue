@@ -13,7 +13,9 @@
  * (`home`): the dot of the area, the title, below the card with how far it is
  * («Gas - Enel · in 4 days»), or «Late by 3 days · 23/10/2026» in red, and the
  * amount, with «~» if it is an estimate. There the whole row is a link to the
- * entry.
+ * entry. With `checked` (the day list of the calendar) the row is the normal
+ * one, with the title struck through and «✓ Done» in green instead of how far
+ * it is.
  *
  * @group rows
  */
@@ -43,6 +45,7 @@ const {
     personAvatar,
     done = false,
     reopen = false,
+    checked = false,
 } = defineProps<{
     /** The entry, as the server sends it. */
     entry: App.Data.AgendaEntryData;
@@ -54,6 +57,8 @@ const {
     done?: boolean;
     /** With `done`, on the computer: a *Reopen* button beside the row, for an entry with a reminder. */
     reopen?: boolean;
+    /** Only in the Agenda: the calendar's list of a day, for an entry already done: the title struck through and «✓ Done» where how far it is would be. */
+    checked?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -192,9 +197,15 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             <span
                 class="flex min-w-0 grow flex-wrap items-center gap-x-1.5 gap-y-[3px] lg:gap-y-1"
             >
-                <span class="min-w-0 truncate text-row lg:text-body-strong">{{
-                    entry.name
-                }}</span>
+                <span
+                    :class="
+                        cn(
+                            'min-w-0 truncate text-row lg:text-body-strong',
+                            checked && 'text-ink-soft line-through',
+                        )
+                    "
+                    >{{ entry.name }}</span
+                >
                 <span
                     v-if="hasNotice"
                     role="img"
@@ -247,9 +258,17 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                     v-if="!done"
                     class="order-2 flex lg:order-none lg:w-[104px]"
                 >
-                    <span class="whitespace-nowrap" :class="distanceClass">{{
-                        relativeDays(entry.date)
-                    }}</span>
+                    <span
+                        v-if="checked"
+                        class="text-caption whitespace-nowrap text-paid lg:text-body-sm"
+                        >✓ {{ $t('Done') }}</span
+                    >
+                    <span
+                        v-else
+                        class="whitespace-nowrap"
+                        :class="distanceClass"
+                        >{{ relativeDays(entry.date) }}</span
+                    >
                 </span>
                 <span
                     v-if="!done"

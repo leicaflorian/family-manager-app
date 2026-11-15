@@ -5,12 +5,17 @@
  * page is marked, and a tab can show a number after its name, and one with nothing behind it can be shown soft and without a link (`disabled`). They are lines
  * under the names (`underline`) or, as in the Agenda, a grey pill with the open
  * tab in white (`pill`). A number of things late (`countLabel`) is a red badge,
- * as the *Agenda* shows the late ones beside *To do*.
+ * as the *Agenda* shows the late ones beside *To do*. A tab with an `icon`
+ * shows only the icon, in a square, and its name is for screen readers and the
+ * tooltip: the toggle «List / Calendar» of the Agenda.
  *
  * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
+import type { LucideIcon } from '@lucide/vue';
+import { computed } from 'vue';
 import { cn } from '@/lib/utils';
+import FmIcon from './FmIcon.vue';
 
 /** One tab. */
 export type Tab = {
@@ -27,6 +32,8 @@ export type Tab = {
     countLabel?: string;
     /** The tab is the one of the open page. */
     current: boolean;
+    /** An icon: the tab shows only it (18 px, in a square), and `label` becomes its name and tooltip. */
+    icon?: LucideIcon;
     /** The tab cannot be chosen (no files for it): its name is shown without a link. */
     disabled?: boolean;
 };
@@ -44,16 +51,23 @@ const {
     variant?: 'underline' | 'pill';
 }>();
 
+/** Every tab is an icon: the set does not grow to the width of its container. */
+const iconsOnly = computed(
+    (): boolean => tabs.length > 0 && tabs.every((tab) => tab.icon),
+);
+
 /**
  * The classes of a tab, dark with a line under it if it is the open one.
  *
  * @param marked - the tab is the one of the open page
  * @param disabled - the tab cannot be chosen: soft, with no hover
+ * @param icon - the tab shows only an icon, in a fixed square
  */
-function tabClasses(marked: boolean, disabled = false): string {
+function tabClasses(marked: boolean, disabled = false, icon = false): string {
     if (variant === 'pill') {
         return cn(
-            'flex h-10 flex-1 items-center justify-center gap-1 rounded-tag text-body-sm no-underline',
+            icon ? 'size-9 shrink-0 lg:size-10' : 'h-10 flex-1',
+            'flex items-center justify-center gap-1 rounded-tag text-body-sm no-underline',
             marked
                 ? 'bg-card text-label text-ink shadow-raised'
                 : cn(
@@ -80,7 +94,10 @@ function tabClasses(marked: boolean, disabled = false): string {
         :aria-label="label"
         :class="
             variant === 'pill'
-                ? 'flex gap-1.5 rounded-lg bg-segment p-1'
+                ? cn(
+                      'flex gap-1.5 rounded-lg bg-segment p-1',
+                      iconsOnly && 'flex-none',
+                  )
                 : '-mx-1 flex gap-1 overflow-x-auto border-b border-divider'
         "
     >
@@ -99,10 +116,12 @@ function tabClasses(marked: boolean, disabled = false): string {
                 v-else
                 :href="tab.href"
                 :aria-current="tab.current ? 'page' : undefined"
-                :aria-label="tab.countLabel"
-                :class="tabClasses(tab.current)"
+                :aria-label="tab.icon ? tab.label : tab.countLabel"
+                :title="tab.icon ? tab.label : undefined"
+                :class="tabClasses(tab.current, false, !!tab.icon)"
             >
-                {{ tab.label }}
+                <FmIcon v-if="tab.icon" :icon="tab.icon" :size="18" />
+                {{ tab.icon ? '' : tab.label }}
                 <span
                     v-if="tab.count !== undefined && tab.countLabel"
                     aria-hidden="true"

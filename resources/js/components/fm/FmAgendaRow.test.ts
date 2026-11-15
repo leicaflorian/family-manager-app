@@ -109,6 +109,18 @@ describe('FmAgendaRow', () => {
             expect(screen.getByText('Marco')).toBeInTheDocument();
         });
 
+        it('strikes the title and says Done instead of how far it is, with checked', () => {
+            render(FmAgendaRow, { props: { entry: entry(), checked: true } });
+
+            const link = screen.getByRole('button');
+            expect(within(link).getByText('Gas - Enel')).toHaveClass(
+                'line-through',
+                'text-ink-soft',
+            );
+            expect(link).toHaveTextContent('Done');
+            expect(link).not.toHaveTextContent('in 4 days');
+        });
+
         it('shows the initials of the person when the page gives them', () => {
             render(FmAgendaRow, {
                 props: {

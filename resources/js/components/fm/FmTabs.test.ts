@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/vue';
+import { CalendarDays, List } from '@lucide/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import FmTabs from './FmTabs.vue';
 
@@ -115,5 +116,37 @@ describe('FmTabs', () => {
         expect(tab).toContainElement(badge);
         expect(badge).toHaveAttribute('aria-hidden', 'true');
         expect(badge).toHaveClass('bg-overdue');
+    });
+
+    it('shows only the icon of a tab with one, named for screen readers', () => {
+        render(FmTabs, {
+            props: {
+                label: 'How to see the Agenda',
+                variant: 'pill',
+                tabs: [
+                    {
+                        label: 'List',
+                        href: '/agenda',
+                        icon: List,
+                        current: true,
+                    },
+                    {
+                        label: 'Calendar',
+                        href: '/agenda?calendar=1',
+                        icon: CalendarDays,
+                        current: false,
+                    },
+                ],
+            },
+        });
+
+        const list = screen.getByRole('link', { name: 'List' });
+        expect(list).toHaveAttribute('title', 'List');
+        expect(list).toHaveTextContent('');
+        expect(list.querySelector('svg')).not.toBeNull();
+        expect(list).toHaveAttribute('aria-current', 'page');
+        expect(
+            screen.getByRole('navigation', { name: 'How to see the Agenda' }),
+        ).toHaveClass('flex-none');
     });
 });
