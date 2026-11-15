@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Laravel\Fortify\Features;
 
+$registrationOpen = (bool) env('REGISTRATION_OPEN', true);
+
 return [
 
     /*
@@ -145,7 +147,7 @@ return [
     */
 
     'features' => array_values(array_filter([
-        env('REGISTRATION_OPEN', true) ? Features::registration() : null,
+        $registrationOpen ? Features::registration() : null,
         Features::resetPasswords(),
         Features::emailVerification(),
     ])),
@@ -160,6 +162,6 @@ return [
     |
     */
 
-    'registration_open' => (bool) env('REGISTRATION_OPEN', true),
+    'registration_open' => $registrationOpen,
 
 ];

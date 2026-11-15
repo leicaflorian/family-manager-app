@@ -10,6 +10,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Support\PageMeta;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /**
@@ -86,11 +87,22 @@ final class RegistrationClosedTest extends TestCase
         $this->get('/login')->assertOk()->assertHeaderMissing('X-Robots-Tag');
     }
 
+    public function test_closed_sign_up_takes_the_sign_up_link_off_the_login_page(): void
+    {
+        $this->bootWithRegistration(false);
+
+        $this->get('/login')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('auth/Login')
+            ->where('canRegister', false));
+    }
+
     public function test_open_sign_up_is_unchanged(): void
     {
         $this->bootWithRegistration(true);
 
         $this->get('/register')->assertOk();
+        $this->get('/login')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('canRegister', true));
         $this->assertSame(['login', 'register'], PageMeta::indexable());
     }
 }
