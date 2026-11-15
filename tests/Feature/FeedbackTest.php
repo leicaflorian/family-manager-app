@@ -69,7 +69,7 @@ test('a member sends a problem with a screenshot: saved, emailed to the owner an
         ->and($report->file_path)->toStartWith("feedback/{$this->admin->family_id}/");
     Storage::disk('local')->assertExists((string) $report->file_path);
 
-    Mail::assertQueued(FeedbackReportMail::class, fn(FeedbackReportMail $mail): bool => $mail->report->is($report)
+    Mail::assertQueued(FeedbackReportMail::class, fn (FeedbackReportMail $mail): bool => $mail->report->is($report)
         && $mail->hasTo($this->owners[0]->email)
         && $mail->hasTo($this->owners[1]->email)
         && $mail->hasReplyTo('giulia@example.com')
