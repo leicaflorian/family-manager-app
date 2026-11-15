@@ -27,15 +27,23 @@ final readonly class SeparateHosts
     public const string OUTSIDE_WEB = self::class.':outside-web';
 
     /**
+     * Whether the panel has its own host (`ADMIN_DOMAIN` set): then the panel and the app have two sessions.
+     */
+    public static function active(): bool
+    {
+        $domain = config('app.admin_domain');
+
+        return is_string($domain) && $domain !== '';
+    }
+
+    /**
      * Whether the request arrived on the host of the owner panel. Always false without `ADMIN_DOMAIN`.
      *
      * @param  Request  $request  the request
      */
     public static function onAdminHost(Request $request): bool
     {
-        $domain = config('app.admin_domain');
-
-        return is_string($domain) && $domain !== '' && $request->getHost() === strtolower($domain);
+        return self::active() && $request->getHost() === strtolower(config()->string('app.admin_domain'));
     }
 
     /**
@@ -48,7 +56,7 @@ final readonly class SeparateHosts
     {
         if (self::onAdminHost($request)) {
             abort_unless($request->routeIs(...self::ADMIN_ROUTES), 404);
-        } elseif (config('app.admin_domain') !== null) {
+        } elseif (self::active()) {
             abort_if($request->routeIs('filament.*'), 404);
         }
 

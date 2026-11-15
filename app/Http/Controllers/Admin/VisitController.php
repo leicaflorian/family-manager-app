@@ -12,11 +12,13 @@ use App\Models\Owner;
 use App\Models\User;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Support\VisitHandoff;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * *Enter as…*: the owner opens the app as an account of a family that gave the support permission, and leaves it.
@@ -46,7 +48,24 @@ final class VisitController extends Controller
     }
 
     /**
-     * Ends the visit, signs the owner out of this session (the panel keeps its own) and goes back to the panel.
+     * *Enter as* in the panel, on the host of the panel: makes the one-time link on the click and sends the browser to
+     * it, on the host of the app. A plain link of the table, so the browser opens the new tab as for any link.
+     *
+     * @param  User  $user  the account to look as
+     * @param  Owner  $owner  the owner signed into the panel
+     *
+     * @throws HttpException 403 when the family does not let support in (any more)
+     */
+    public function handoff(User $user, #[CurrentUser('owner')] Owner $owner): RedirectResponse
+    {
+        abort_unless($user->family->allowsSupport(), 403);
+
+        return redirect()->away(VisitHandoff::link($owner, $user));
+    }
+
+    /**
+     * Ends the visit and goes back to the panel ({@see EndVisit} signs the owner out of this session where the panel
+     * has its own host).
      *
      * @param  Request  $request  the request
      * @param  EndVisit  $end  ends the visit
@@ -56,8 +75,6 @@ final class VisitController extends Controller
         abort_unless(LimitVisit::isOpen($request), 404);
 
         $end->handle($request->session());
-        // Only this device, and without the event `Logout`: the visit is already over and logged
-        Auth::guard('owner')->logoutCurrentDevice();
 
         // The panel is not a page of Inertia: the browser has to load it whole
         return Inertia::location(route('filament.admin.pages.dashboard'));

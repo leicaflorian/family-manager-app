@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Admin;
 
 use App\Enums\OwnerActionType;
+use App\Http\Middleware\SeparateHosts;
 use App\Models\Owner;
 use App\Models\User;
 use Illuminate\Contracts\Session\Session;
@@ -12,7 +13,9 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Ends the visit of the owner as an account of a family: the `web` guard signs out, the session key `visit` goes and
- * the log gets its line. The session stays, so the owner is still signed into the panel.
+ * the log gets its line. Where the panel has its own host the session is the app's, and the owner was signed into it
+ * only for the visit: the `owner` guard signs out too, so an owner is never signed in on the app outside a visit.
+ * Without `ADMIN_DOMAIN` the session is also the panel's, and the owner stays signed into it.
  */
 final readonly class EndVisit
 {
@@ -36,6 +39,9 @@ final readonly class EndVisit
 
         // Only the current device: `logout()` would also cycle the remember token of the account, a write on it
         Auth::guard('web')->logoutCurrentDevice();
+        if (SeparateHosts::active()) {
+            Auth::guard('owner')->logoutCurrentDevice();
+        }
         $session->forget('visit');
         // A new id, as after any change of who is signed in; the data (the owner of the panel) stays
         $session->migrate(true);

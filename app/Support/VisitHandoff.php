@@ -7,9 +7,10 @@ namespace App\Support;
 use App\Http\Middleware\LimitVisit;
 use App\Models\Owner;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 /**
@@ -44,7 +45,8 @@ final class VisitHandoff
     }
 
     /**
-     * Trades a token for the owner who made the link, once: the token is gone after the first call, whatever the answer.
+     * Trades a token for the owner who made the link, once: the token is gone after the first call, whatever the
+     * answer, and a call while another holds the token gets null.
      *
      * @param  string  $token  the token of the link
      * @param  int  $userId  the account in the link
@@ -52,7 +54,8 @@ final class VisitHandoff
      */
     public static function consume(string $token, int $userId): ?Owner
     {
-        $entry = Cache::pull(self::KEY.$token);
+        // `pull` reads and then deletes: under the lock two openings at the same moment cannot both read the entry
+        $entry = Cache::lock(self::KEY.'lock:'.$token, 5)->get(static fn (): mixed => Cache::pull(self::KEY.$token));
 
         if (! is_array($entry) || ($entry['user_id'] ?? null) !== $userId || ! is_int($entry['owner_id'] ?? null)) {
             return null;
@@ -62,18 +65,20 @@ final class VisitHandoff
     }
 
     /**
-     * A copy of the URL generator with the root and the scheme of the app, so the generator of the request (the
-     * panel's host) is left as it was.
+     * A new URL generator on the host of the app, so the generator of the request (the panel's host) is left as it
+     * was. Not a clone of it: a clone shares the route generator, which keeps writing with the original root.
      */
     private static function onAppHost(): UrlGenerator
     {
-        $root = config()->string('app.url');
-        $current = URL::getFacadeRoot();
-        assert($current instanceof UrlGenerator);
-        $generator = clone $current;
+        $root = rtrim(config()->string('app.url'), '/');
+        if (! str_contains($root, '://')) {
+            $root = 'https://'.$root;
+        }
 
+        $generator = new UrlGenerator(Route::getRoutes(), Request::create($root));
         $generator->forceRootUrl($root);
-        $generator->forceScheme((string) parse_url($root, PHP_URL_SCHEME));
+        // The key that `signed` checks against, as the generator of the application has it
+        $generator->setKeyResolver(static fn (): string => config()->string('app.key'));
 
         return $generator;
     }

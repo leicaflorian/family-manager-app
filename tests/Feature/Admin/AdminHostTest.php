@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Http\Middleware\LimitVisit;
 use App\Http\Middleware\SeparateHosts;
 use App\Models\Family;
 use App\Models\Owner;
@@ -135,24 +136,76 @@ final class AdminHostTest extends TestCase
         $this->assertNull($this->sessionCookie($response)->getDomain());
     }
 
-    public function test_enter_as_opens_on_the_app_host_without_the_panel_session(): void
+    /**
+     * A family that lets support in, with one account.
+     */
+    private function familyUser(): User
+    {
+        $family = Family::factory()->create(['support_until' => now()->addDay()]);
+
+        return User::factory()->create(['family_id' => $family->id]);
+    }
+
+    /**
+     * Forgets the session and who is signed in, as the browser does going to the other host (cookies are host-only).
+     */
+    private function otherHost(): void
+    {
+        $this->flushSession();
+        Auth::forgetGuards();
+        Auth::shouldUse('web');
+    }
+
+    public function test_enter_as_goes_from_the_panel_host_to_the_app_host(): void
     {
         $this->bootWithAdminDomain();
         $owner = Owner::factory()->withAuthenticator()->create();
-        $family = Family::factory()->create(['support_until' => now()->addDay()]);
-        $user = User::factory()->create(['family_id' => $family->id]);
+        $user = $this->familyUser();
+        $enterAs = URL::signedRoute('filament.admin.enter-as', ['user' => $user->id]);
 
-        // Made by the panel on its host, opened by the browser on the host of the app, with no session there
-        URL::setRequest(Request::create(self::ADMIN.'/families/'.$family->id));
-        $link = VisitHandoff::link($owner, $user);
+        $this->assertStringStartsWith(self::ADMIN.'/enter-as/', $enterAs);
+        // The page of the family drawn first, then the click: the link points to the app all the same
+        $this->actingAs($owner, 'owner')->get(self::ADMIN.'/')->assertOk();
+        $link = $this->get($enterAs)->assertRedirect()->headers->get('Location');
+        $this->assertIsString($link);
+        $this->assertStringStartsWith(self::APP.'/support/visit/'.$user->id.'?', $link);
 
-        $this->assertStringStartsWith(self::APP.'/support/visit/', $link);
+        // Opened on the host of the panel it is 404, and on the host of the app it starts the visit, with no session
         $this->get(self::ADMIN.parse_url($link, PHP_URL_PATH).'?'.parse_url($link, PHP_URL_QUERY))->assertNotFound();
+        $this->otherHost();
         $this->get($link)->assertRedirect(self::APP.'/dashboard');
         $this->assertSame($user->id, Auth::guard('web')->id());
         $this->assertSame($owner->id, Auth::guard('owner')->id());
 
+        // Leaving signs the owner out of the session of the app: the panel keeps its own
         $this->post(self::APP.'/visit/leave')->assertRedirect(self::ADMIN);
+        $this->assertFalse(Auth::guard('owner')->check());
+    }
+
+    public function test_the_redirect_of_enter_as_is_not_on_the_app_host(): void
+    {
+        $this->bootWithAdminDomain();
+        $owner = Owner::factory()->withAuthenticator()->create();
+        $user = $this->familyUser();
+        $path = parse_url(URL::signedRoute('filament.admin.enter-as', ['user' => $user->id]));
+
+        $this->actingAs($owner, 'owner')->get(self::APP.'/enter-as/'.$user->id.'?'.$path['query'])->assertNotFound();
+    }
+
+    public function test_a_visit_that_ends_by_itself_signs_the_owner_out_of_the_app(): void
+    {
+        $this->bootWithAdminDomain();
+        $owner = Owner::factory()->withAuthenticator()->create();
+        $user = $this->familyUser();
+
+        URL::setRequest(Request::create(self::ADMIN.'/'));
+        $this->get(VisitHandoff::link($owner, $user))->assertRedirect(self::APP.'/dashboard');
+        $this->assertSame($owner->id, Auth::guard('owner')->id());
+
+        $this->travel(LimitVisit::MINUTES)->minutes();
+        $this->get(self::APP.'/dashboard')->assertRedirect(self::ADMIN);
+
+        $this->assertFalse(Auth::guard('web')->check());
         $this->assertFalse(Auth::guard('owner')->check());
     }
 

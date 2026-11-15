@@ -42,6 +42,14 @@ function visitUrl(User $user, ?Owner $owner = null): string
 }
 
 /**
+ * The address of *Enter as* in the table of the panel.
+ */
+function panelEnterAs(User $user): string
+{
+    return URL::signedRoute('filament.admin.enter-as', ['user' => $user->id]);
+}
+
+/**
  * Forgets the session and who is signed in, as a new browser would start.
  */
 function freshBrowser(): void
@@ -101,18 +109,16 @@ test('a changed user id is refused', function (): void {
         ->and(OwnerAction::query()->count())->toBe(0);
 });
 
-test('the enter as action makes the link when clicked', function (): void {
+test('enter as in the panel makes the link on the click', function (): void {
     actingAs($this->owner, 'owner');
-    $table = Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class]);
+    Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class])
+        ->assertTableActionHasUrl('enterAs', panelEnterAs($this->laura), $this->laura);
 
-    // Long after the page was drawn: a link written then would have expired
+    // Long after the table was drawn: the link of the app is made only now
     $this->travel(10)->minutes();
-    $table->callTableAction('enterAs', $this->laura);
+    $link = $this->get(panelEnterAs($this->laura))->assertRedirect()->headers->get('Location');
 
-    $expression = collect($table->effects['xjs'] ?? [])->pluck('expression')->sole();
-    expect($expression)->toMatch('/^window\.open\(".+", "_blank", "noopener"\)$/');
-    preg_match('/^window\.open\((".+?"),/', $expression, $match);
-    $link = json_decode($match[1], true, flags: JSON_THROW_ON_ERROR);
+    expect($link)->toStartWith(url('/support/visit/'.$this->laura->id).'?');
 
     freshBrowser();
     $this->get($link)->assertRedirect(route('dashboard'));
@@ -120,11 +126,24 @@ test('the enter as action makes the link when clicked', function (): void {
     expect(Auth::guard('web')->id())->toBe($this->laura->id);
 });
 
+test('enter as in the panel wants a signed-in owner, its signature and the permission', function (): void {
+    $this->get(panelEnterAs($this->laura))->assertRedirect(route('filament.admin.auth.login'));
+
+    actingAs($this->owner, 'owner');
+    $this->get(route('filament.admin.enter-as', ['user' => $this->laura->id]))->assertForbidden();
+
+    $this->family->forceFill(['support_until' => now()->subMinute()])->save();
+    $this->get(panelEnterAs($this->laura))->assertForbidden();
+
+    expect(OwnerAction::query()->count())->toBe(0);
+});
+
 test('enter as is offered only with the permission', function (): void {
     actingAs($this->owner, 'owner');
 
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family, 'pageClass' => ViewFamily::class])
-        ->assertTableActionVisible('enterAs', $this->laura);
+        ->assertTableActionVisible('enterAs', $this->laura)
+        ->assertTableActionHasUrl('enterAs', panelEnterAs($this->laura), $this->laura);
 
     $this->family->forceFill(['support_until' => now()->subMinute()])->save();
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $this->family->refresh(), 'pageClass' => ViewFamily::class])
@@ -187,9 +206,9 @@ test('leave ends the visit once and goes to the panel', function (): void {
 
     $this->post(route('visit.leave'))->assertRedirect(route('filament.admin.pages.dashboard'));
 
-    // The owner was signed into this session by the link only: the panel keeps its own session
+    // Without `ADMIN_DOMAIN` this session is the panel's too, and the owner stays signed into it
     expect(Auth::guard('web')->check())->toBeFalse()
-        ->and(Auth::guard('owner')->check())->toBeFalse()
+        ->and(Auth::guard('owner')->id())->toBe($this->owner->id)
         ->and(session()->has('visit'))->toBeFalse()
         ->and(OwnerAction::query()->orderBy('id')->pluck('action')->all())
         ->toBe([OwnerActionType::VisitStarted, OwnerActionType::VisitEnded])
