@@ -1,9 +1,11 @@
 <script setup lang="ts">
 /**
  * The index of the *Settings*: my account, mine only, and the settings that apply
- * to the whole family, and *The app* with the version and what is new in it. The other items of the board (bills, subscription) come with their stages.
+ * to the whole family, and *The app* with the version and what is new in it. In the
+ * wide layout the sections stand beside every page of the settings, so the index
+ * opens *My account* in its place. The other items of the board (bills, subscription) come with their stages.
  */
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     Bell,
     CalendarDays,
@@ -19,7 +21,9 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { edit } from '@/routes/account';
 import { edit as calendar } from '@/routes/calendar';
 import { index } from '@/routes/categories';
@@ -56,12 +60,26 @@ const {
 }>();
 
 const { date } = useFormat();
+
+const wide = useWideLayout();
+
+// In the wide layout the index would only repeat the sections beside the pages:
+// it gives its place in the history to My account, so Back does not come here.
+watch(
+    wide,
+    (isWide) => {
+        if (isWide) {
+            router.visit(edit().url, { replace: true });
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
     <Head :title="$t('Settings')" />
 
-    <div class="flex max-w-[720px] flex-col gap-5">
+    <div v-if="!wide" class="flex max-w-[720px] flex-col gap-5">
         <FmTitle
             :title="$t('Settings')"
             :subtitle="

@@ -1,8 +1,13 @@
+import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { account } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Settings from './Settings.vue';
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 describe('Settings', () => {
     it('leads to my account and to the categories', () => {
@@ -172,5 +177,28 @@ describe('Settings', () => {
         });
 
         expect(screen.getByText('Development version')).toBeInTheDocument();
+    });
+
+    it('opens My account in the wide layout, where the sections stand beside it', () => {
+        screenWidth(1280);
+        const visit = vi
+            .spyOn(router, 'visit')
+            .mockImplementation(() => undefined);
+
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
+        });
+
+        expect(visit).toHaveBeenCalledWith(
+            '/settings/account',
+            expect.objectContaining({ replace: true }),
+        );
+        visit.mockRestore();
     });
 });
