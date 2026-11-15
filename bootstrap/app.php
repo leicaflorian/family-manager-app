@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\AddRobotsHeader;
 use App\Http\Middleware\ApplyInstallationSettings;
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\BlockSuspendedFamily;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitLinkedDevice;
@@ -27,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['sidebar_state']);
 
+        // First, so that every log line of the request, even one of an early middleware, carries the id
+        $middleware->prepend(AssignRequestId::class);
         $middleware->append(AddRobotsHeader::class);
 
         $middleware->web(append: [
