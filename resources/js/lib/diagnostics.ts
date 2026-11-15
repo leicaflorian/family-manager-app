@@ -24,6 +24,13 @@ const STACK_LINES = 4;
  * make a report fail.
  */
 export const MAX_SERIALIZED_BYTES = 65536;
+/**
+ * Messages that say nothing about a problem, left out of the details:
+ * - the browser's ResizeObserver loop, which menus and panels cause and which breaks nothing;
+ * - FormKit Pro's warning for a datepicker that starts empty (`""`): it treats the field as without a date, which is
+ *   what the forms want. A date that really does not match keeps its warning.
+ */
+const HARMLESS = [/^ResizeObserver loop /, /^Date \(\) does not match format /];
 
 /** One error or warning of the console. */
 export interface ConsoleEntry {
@@ -194,12 +201,16 @@ function currentComponent(): string | null {
 }
 
 /**
- * Records a line of the console.
+ * Records a line of the console, unless it is one of the harmless messages.
  *
  * @param level - error or warn
  * @param message - the text
  */
 function recordConsole(level: ConsoleEntry['level'], message: string): void {
+    if (HARMLESS.some((pattern) => pattern.test(message))) {
+        return;
+    }
+
     try {
         push(
             consoleEntries,
