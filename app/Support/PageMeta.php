@@ -47,7 +47,7 @@ final class PageMeta
             description: __('The deadlines, the bills and the documents of the whole family, in one place.'),
             indexable: $indexable,
             canonical: $indexable ? $request->url() : null,
-            image: url('/family-manager-og-1200x630.png'),
+            image: url('/fameja-app-og-1200x630.png'),
             locale: app()->getLocale() === 'it' ? 'it_IT' : 'en_US',
         );
     }

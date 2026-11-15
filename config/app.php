@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Fameja.app'),
 
     /*
     | The version of the code that runs: the commit Coolify builds from.

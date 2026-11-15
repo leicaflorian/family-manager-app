@@ -37,7 +37,7 @@ final class CalendarFeedController
 
         $ics = $this->withLocale($family->calendar_locale ?? config()->string('app.locale'), fn (): string => CurrentFamily::using(
             $family->id,
-            fn (): string => Calendar::render("Family Manager · {$family->name}", $feed->events(CarbonImmutable::today('Europe/Rome'))),
+            fn (): string => Calendar::render(config()->string('app.name')." · {$family->name}", $feed->events(CarbonImmutable::today('Europe/Rome'))),
         ));
 
         return response($ics, 200, [

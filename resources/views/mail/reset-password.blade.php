@@ -3,7 +3,7 @@
 
 # {{ $name !== '' ? __('Hi :name', ['name' => $name]) : __('Hello!') }}
 
-{{ __('You asked to change your Family Manager password. Tap the button to choose a new one.') }}
+{{ __('You asked to change your :app password. Tap the button to choose a new one.', ['app' => config('app.name')]) }}
 
 <x-mail::button :url="$url">
 {{ __('Choose a new password') }}
