@@ -15,9 +15,6 @@ use Illuminate\Support\Facades\Http;
  */
 final class MailgunRoutes
 {
-    /** The description of the route we create. */
-    public const string DESCRIPTION = 'Family Manager - posta in arrivo';
-
     /** The path of the door of Mailgun, after the public address of the app. */
     private const string PATH = '/mail/mailgun';
 
@@ -50,6 +47,16 @@ final class MailgunRoutes
     }
 
     /**
+     * The description of the route we create, with the name of the app.
+     *
+     * @return string the description, for example «Fameja.app - posta in arrivo»
+     */
+    public static function description(): string
+    {
+        return config()->string('app.name').' - posta in arrivo';
+    }
+
+    /**
      * Makes the routes that forward to our door match the whole domain: with none, one is created; the others get
      * the new filter and nothing else of them changes. No route is deleted, and those that forward elsewhere are
      * never touched.
@@ -72,7 +79,7 @@ final class MailgunRoutes
         if ($ours === []) {
             $this->call('post', '/v3/routes', 'create the route', [
                 'priority' => '0',
-                'description' => self::DESCRIPTION,
+                'description' => self::description(),
                 'expression' => $wanted,
                 'action' => 'forward("'.$target.'")',
             ]);

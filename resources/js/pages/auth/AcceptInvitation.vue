@@ -10,10 +10,14 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmFaces from '@/components/fm/FmFaces.vue';
 import FmHeader from '@/components/fm/FmHeader.vue';
 import FmPasswordField from '@/components/fm/FmPasswordField.vue';
+import { useAppName } from '@/composables/useAppName';
 import { useFormat } from '@/composables/useFormat';
 import { errors } from '@/lib/errors';
 import { listNames } from '@/lib/names';
 import { store } from '@/routes/invitation';
+
+/** The name of the app, for the texts that say it. */
+const appName = useAppName();
 
 const { token, invitation } = defineProps<{
     /** The code of the link. */
@@ -28,9 +32,12 @@ setLayoutProps({
             family: invitation.family,
         }),
         text: transChoice(
-            '{1} :names already uses Family Manager for the deadlines, the bills and the documents of the home.|[2,*] :names already use Family Manager for the deadlines, the bills and the documents of the home.',
+            '{1} :names already uses :app for the deadlines, the bills and the documents of the home.|[2,*] :names already use :app for the deadlines, the bills and the documents of the home.',
             invitation.people.length,
-            { names: listNames(invitation.people.map((p) => p.first_name)) },
+            {
+                names: listNames(invitation.people.map((p) => p.first_name)),
+                app: appName.value,
+            },
         ),
     },
 });

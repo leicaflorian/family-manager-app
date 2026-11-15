@@ -99,7 +99,7 @@ describe('navigationItems', () => {
     it('has the item that opens Report a problem or an idea, without an address', () => {
         expect(navigationItems().feedback).toEqual({
             label: 'Report a problem or an idea',
-            hint: 'It reaches who makes Family Manager',
+            hint: 'It reaches who makes Fameja.app',
             icon: MessageSquareWarning,
         });
     });

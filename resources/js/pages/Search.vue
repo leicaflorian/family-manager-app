@@ -24,6 +24,7 @@ import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useAppName } from '@/composables/useAppName';
 import {
     SEARCH_MENU_ID,
     SEARCH_PAGE_FIELD,
@@ -33,6 +34,9 @@ import { usePageTrail } from '@/composables/usePageTrail';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { canGoBack } from '@/lib/visitHistory';
 import { dashboard, search } from '@/routes';
+
+/** The name of the app, for the texts that say it. */
+const appName = useAppName();
 
 const { results } = defineProps<{
     /** What was searched and what was found, in groups. */
@@ -185,7 +189,7 @@ function goBack(): void {
                 <FmSearchField
                     v-model="text"
                     :input-id="SEARCH_PAGE_FIELD"
-                    :label="$t('Search in Family Manager')"
+                    :label="$t('Search in :app', { app: appName })"
                     clearable
                     autofocus
                     :controls="SEARCH_MENU_ID"

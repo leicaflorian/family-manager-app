@@ -207,6 +207,11 @@ test('a file deleted while its preview is made leaves no JPEG', function (): voi
 
 test('a big HEIC photo that does not fit in memory is marked and leaves nothing', function (): void {
     $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
+    // PHP keeps freed memory reserved, and after a long run (the suite, in a parallel process) the reserved memory is
+    // far above the used one: the limit below, which cannot go under the reserved memory, would leave room for the
+    // photo. Giving the cached memory back keeps the room left at a few MB.
+    gc_collect_cycles();
+    gc_mem_caches();
     $limit = ini_get('memory_limit');
     ini_set('memory_limit', (string) max(memory_get_usage() + 6 * 1024 * 1024, memory_get_usage(true) + 2 * 1024 * 1024));
 

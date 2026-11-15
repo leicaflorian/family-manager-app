@@ -10,7 +10,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 
 /**
  * The mails about the account that Laravel sends (a new password, the confirmation of the email),
- * worded and drawn like the other mails of Family Manager (boards "Le email" of the canvas).
+ * worded and drawn like the other mails of Fameja.app (boards "Le email" of the canvas).
  */
 final class AccountMails
 {

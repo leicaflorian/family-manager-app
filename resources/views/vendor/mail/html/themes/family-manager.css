@@ -1,5 +1,5 @@
 /*
- * Family Manager mails: the colours are the light colours of the design system
+ * Fameja.app mails: the colours are the light colours of the design system
  * (resources/design/tokens.json), written out because mail programs do not read
  * CSS variables. Only properties that mail programs read well: no position,
  * box-sizing, rgba, vw, box-shadow or !important (Mailpit's HTML check).

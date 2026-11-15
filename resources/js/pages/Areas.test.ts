@@ -9,7 +9,7 @@ import Areas from './Areas.vue';
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     Head: { render: () => null },
-    usePage: () => ({ url: '/', props: { unread_notices: 2 } }),
+    usePage: () => ({ url: '/', props: { name: 'Fameja.app', unread_notices: 2 } }),
 }));
 
 afterEach(() => {
@@ -23,7 +23,7 @@ describe('Areas', () => {
         const phone = renderPage(Areas, props);
 
         expect(
-            screen.getByRole('link', { name: 'Search in Family Manager' }),
+            screen.getByRole('link', { name: 'Search in Fameja.app' }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: /Notices/ }),
@@ -34,7 +34,7 @@ describe('Areas', () => {
         renderPage(Areas, props);
 
         expect(
-            screen.queryByRole('link', { name: 'Search in Family Manager' }),
+            screen.queryByRole('link', { name: 'Search in Fameja.app' }),
         ).not.toBeInTheDocument();
         expect(
             screen.queryByRole('button', { name: /Notices/ }),

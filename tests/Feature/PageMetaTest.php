@@ -36,23 +36,24 @@ test('the pages of a family are not indexed', function (): void {
 
 test('the head is written in the language of the browser', function (): void {
     $this->withHeader('Accept-Language', 'it')->get('/login')
-        ->assertSee('<title>Accedi - Family Manager</title>', false)
-        ->assertSee('<meta property="og:title" content="Accedi - Family Manager">', false)
+        ->assertSee('<title>Accedi - Fameja.app</title>', false)
+        ->assertSee('<meta property="og:title" content="Accedi - Fameja.app">', false)
         ->assertSee('<meta name="description" content="Le scadenze, le bollette e i documenti di tutta la famiglia, in un posto solo.">', false)
         ->assertSee('<meta property="og:locale" content="it_IT">', false);
 
     $this->withHeader('Accept-Language', 'en')->get('/login')
-        ->assertSee('<title>Log in - Family Manager</title>', false)
+        ->assertSee('<title>Log in - Fameja.app</title>', false)
         ->assertSee('<meta property="og:locale" content="en_US">', false);
 });
 
 test('a shared link shows the preview image', function (): void {
     $this->get('/login')
-        ->assertSee('<meta property="og:image" content="'.url('/family-manager-og-1200x630.png').'">', false)
+        ->assertSee('<meta property="og:image" content="'.url('/fameja-app-og-1200x630.png').'">', false)
         ->assertSee('<meta property="og:image:width" content="1200">', false)
         ->assertSee('<meta property="og:image:height" content="630">', false)
-        ->assertSee('<meta property="og:site_name" content="Family Manager">', false)
-        ->assertSee('<meta name="twitter:card" content="summary_large_image">', false);
+        ->assertSee('<meta property="og:site_name" content="Fameja.app">', false)
+        ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
+        ->assertSee('<meta name="apple-mobile-web-app-title" content="Fameja.app">', false);
 });
 
 test('a page without a route has the default head, not indexed', function (): void {

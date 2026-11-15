@@ -66,18 +66,6 @@ it('keeps the FormKit Pro key out of the image as a build secret', function (): 
         ->not->toMatch('/^\s+VITE_FORMKIT_PRO_KEY=/m');
 });
 
-it('passes the source commit of Coolify to the build of the pages, never baked into the final image', function (): void {
-    $dockerfile = repositoryFile('Dockerfile');
-    [$beforeProduction, $production] = explode('AS production', $dockerfile, 2);
-    $build = explode('AS build', $beforeProduction, 2)[1];
-
-    // vite.config.ts writes SOURCE_COMMIT as the version of the client: the ARG must come before npm run build
-    expect($build)->toMatch('/^ARG SOURCE_COMMIT$/m')
-        ->and(strpos($build, 'ARG SOURCE_COMMIT'))->toBeLessThan(strpos($build, 'npm run build'))
-        // At runtime Coolify provides it, a value of the build left in the image would be stale
-        ->and($production)->not->toContain('SOURCE_COMMIT');
-});
-
 it('leaves out of the build context the secrets, the dependencies and the files of the families', function (string $path): void {
     $ignored = array_map(trim(...), explode("\n", repositoryFile('.dockerignore')));
 
@@ -97,4 +85,14 @@ it('gives production the limits of the uploads and of the mail, without the line
         ->toMatch('/^max_file_uploads = 100$/m')
         ->not->toContain('pcov')
         ->not->toContain('variables_order');
+});
+
+it('does not take the commit as the version', function (): void {
+    expect(repositoryFile('Dockerfile'))->not->toContain('SOURCE_COMMIT');
+});
+
+it('vite writes the version of the VERSION file', function (): void {
+    expect(repositoryFile('vite.config.ts'))
+        ->toContain('VERSION')
+        ->not->toContain('SOURCE_COMMIT');
 });

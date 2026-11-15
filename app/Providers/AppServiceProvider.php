@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Observers\LoanPlanObserver;
 use App\Policies\FamilyPolicy;
 use App\Services\Reading\AiDocumentReader;
+use App\Services\ReleaseNotes;
 use App\Support\CurrentFamily;
 use App\Support\InstallationSettings;
 use App\Support\Linkables;
@@ -51,6 +52,9 @@ class AppServiceProvider extends ServiceProvider
 
         // The documents are read through the Laravel AI SDK; the tests of the queue bind FakeDocumentReader instead
         $this->app->bind(DocumentReader::class, AiDocumentReader::class);
+
+        // The notes of the panel *What's new*, written at each release
+        $this->app->bind(ReleaseNotes::class, static fn (): ReleaseNotes => new ReleaseNotes(resource_path('release/notes.json')));
     }
 
     /**

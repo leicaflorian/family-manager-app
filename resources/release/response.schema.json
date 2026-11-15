@@ -1,0 +1,30 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["bump", "reason", "changelog", "notes"],
+    "properties": {
+        "bump": { "type": "string", "enum": ["minor", "patch"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "changelog": { "type": "string", "minLength": 1 },
+        "notes": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["it", "en"],
+            "properties": {
+                "it": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": { "type": "string", "minLength": 1 }
+                },
+                "en": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": { "type": "string", "minLength": 1 }
+                }
+            }
+        }
+    }
+}

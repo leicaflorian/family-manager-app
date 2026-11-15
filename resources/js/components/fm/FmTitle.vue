@@ -4,10 +4,14 @@
  * the sentence below and, on the right and centred on them, the actions of the
  * page. Above it, the link back to the page it comes from, with that page's
  * name, always 20 px above the title like on the pages of a person and an
- * organization.
+ * organization. Inside a frame with its own title on top (`SECTION_TITLE`, the
+ * settings in the wide layout) it is the title of a section: an `h2`, smaller,
+ * without the link back.
  *
  * @group basics
  */
+import { inject, ref } from 'vue';
+import { SECTION_TITLE } from '@/lib/titles';
 import FmBackLink from './FmBackLink.vue';
 
 const { title, subtitle, back, backLabel } = defineProps<{
@@ -27,6 +31,9 @@ defineSlots<{
     /** Something right of the title, on the same line: the tabs of the Agenda. */
     beside?: () => unknown;
 }>();
+
+/** Whether the title is the one of a section, under the title of the frame. */
+const section = inject(SECTION_TITLE, ref(false));
 </script>
 
 <template>
@@ -35,7 +42,11 @@ defineSlots<{
          the title measures: on a page with a panel beside it the column is
          narrower than the screen. -->
     <div class="@container/title flex flex-col gap-5">
-        <FmBackLink v-if="back && backLabel" :href="back" :label="backLabel" />
+        <FmBackLink
+            v-if="back && backLabel && !section"
+            :href="back"
+            :label="backLabel"
+        />
         <!-- The actions never go below the title: they take the room the title
              leaves, at least 40 % of the row, and put in the ⋯ what does not fit.
              With something beside, title and actions stay on the first line and
@@ -59,7 +70,10 @@ defineSlots<{
                 "
             >
                 <div class="flex min-w-0 flex-col gap-1">
-                    <h1 class="m-0 text-title-mobile lg:text-title">
+                    <h2 v-if="section" class="m-0 text-sheet-title">
+                        {{ title }}
+                    </h2>
+                    <h1 v-else class="m-0 text-title-mobile lg:text-title">
                         {{ title }}
                     </h1>
                     <span

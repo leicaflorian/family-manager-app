@@ -21,6 +21,7 @@ import { router } from '@inertiajs/vue3';
 import { ArrowLeft, Menu } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+import { useAppName } from '@/composables/useAppName';
 import { useLeavePage } from '@/composables/useLeavePage';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
 import { countBadge } from '@/lib/badge';
@@ -35,6 +36,9 @@ import FmLogo from './FmLogo.vue';
 import FmSearchField from './FmSearchField.vue';
 import FmSearchMenu from './FmSearchMenu.vue';
 import FmTrail from './FmTrail.vue';
+
+/** The name of the app, for the wordmark. */
+const appName = useAppName();
 
 const {
     mode,
@@ -241,7 +245,7 @@ defineExpose({ focusSearch });
                 <span class="flex items-center gap-2.5">
                     <FmLogo :size="36" />
                     <span class="flex flex-col">
-                        <span class="text-amount text-ink">Family Manager</span>
+                        <span class="text-amount text-ink">{{ appName }}</span>
                         <span class="text-meta text-ink-soft">{{
                             $t(':family family', { family })
                         }}</span>
@@ -258,7 +262,7 @@ defineExpose({ focusSearch });
                 <FmSearchField
                     ref="field"
                     v-model="text"
-                    :label="$t('Search in Family Manager')"
+                    :label="$t('Search in :app', { app: appName })"
                     shortcut
                     clearable
                     :controls="SEARCH_MENU_ID"

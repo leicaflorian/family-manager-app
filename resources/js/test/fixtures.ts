@@ -22,7 +22,7 @@ export const account: App.Data.AccountData = {
  * Bianchi.
  */
 export const sharedPageProps: InertiaConfig['sharedPageProps'] = {
-    name: 'Family Manager',
+    name: 'Fameja.app',
     auth: {
         user: {
             id: 1,

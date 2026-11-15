@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import inertia from '@inertiajs/vite';
 import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
@@ -6,10 +7,14 @@ import laravel from 'laravel-vite-plugin';
 import { google } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
+const version = existsSync('VERSION')
+    ? readFileSync('VERSION', 'utf8').trim() || 'dev'
+    : 'dev';
+
 export default defineConfig({
-    // The build the browser reports with a problem: the commit Coolify builds (`dev` when there is none)
+    // The build the browser reports with a problem: the version of the VERSION file (`dev` when there is none)
     define: {
-        __APP_BUILD__: JSON.stringify(process.env.SOURCE_COMMIT ?? 'dev'),
+        __APP_BUILD__: JSON.stringify(version),
     },
     plugins: lazyPlugins(() => [
         laravel({

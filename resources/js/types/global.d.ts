@@ -5,7 +5,6 @@ import type { BellNotices } from '@/lib/notices';
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
     interface ImportMetaEnv {
-        readonly VITE_APP_NAME: string;
         /** The project key of FormKit Pro (`fk-…`). */
         readonly VITE_FORMKIT_PRO_KEY: string;
         [key: string]: string | boolean | undefined;
@@ -54,7 +53,7 @@ declare module 'vue' {
     }
 }
 
-/** The build of the app (`SOURCE_COMMIT`, or `dev`), written by Vite (`define`). */
+/** The version of the app (the content of the `VERSION` file), written by Vite (`define`). */
 declare global {
     const __APP_BUILD__: string;
 }

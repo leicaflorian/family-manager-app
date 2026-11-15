@@ -1,7 +1,9 @@
 import { render, screen, within } from '@testing-library/vue';
+import { h } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { screenWidth } from '@/test/page';
 import FmSettingsPage from './FmSettingsPage.vue';
+import FmTitle from './FmTitle.vue';
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -41,7 +43,7 @@ describe('FmSettingsPage', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('lists the sections of the settings beside the page in the wide layout', () => {
+    it('lists the sections of the settings beside the page in the wide layout, in the groups of the settings', () => {
         screenWidth(1280);
         renderSettings();
 
@@ -55,17 +57,81 @@ describe('FmSettingsPage', () => {
                 .map((link) => link.textContent?.trim()),
         ).toEqual([
             'My account',
+            'Calendar',
             'Notices',
             'Address for the bills',
-            'Calendar',
+            'Document categories',
+            'Expense categories',
+            'Areas',
+            'Support',
+            "What's new",
+        ]);
+        expect(
+            within(within(nav).getByRole('group', { name: 'The family' }))
+                .getAllByRole('link')
+                .map((link) => link.textContent?.trim()),
+        ).toEqual([
+            'Notices',
+            'Address for the bills',
             'Document categories',
             'Expense categories',
             'Areas',
             'Support',
         ]);
         expect(
+            within(within(nav).getByRole('group', { name: 'The app' }))
+                .getAllByRole('link')
+                .map((link) => link.textContent?.trim()),
+        ).toEqual(["What's new"]);
+        expect(
             within(nav).getByRole('link', { name: 'Calendar' }),
         ).toHaveAttribute('href', '/settings/calendar');
+    });
+
+    it('puts Settings on top in the wide layout, and the title of the page above its content as a section', () => {
+        screenWidth(1280);
+        render(FmSettingsPage, {
+            props: { current: 'notices' },
+            slots: {
+                title: () =>
+                    h(FmTitle, {
+                        title: 'Notices',
+                        subtitle: 'How many days before',
+                        back: '/settings',
+                        backLabel: 'Settings',
+                    }),
+                default: () => h('p', 'The rules'),
+            },
+        });
+
+        expect(
+            screen.getByRole('heading', { level: 1, name: 'Settings' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { level: 2, name: 'Notices' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('How many days before')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'Settings' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('keeps the title of the page as the title on the phone', () => {
+        screenWidth(390);
+        render(FmSettingsPage, {
+            props: { current: 'notices' },
+            slots: {
+                title: () => h(FmTitle, { title: 'Notices' }),
+                default: () => h('p', 'The rules'),
+            },
+        });
+
+        expect(
+            screen.getByRole('heading', { level: 1, name: 'Notices' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('heading', { name: 'Settings' }),
+        ).not.toBeInTheDocument();
     });
 
     it('marks the section of the page as the current one', () => {

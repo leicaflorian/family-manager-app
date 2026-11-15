@@ -216,6 +216,14 @@ test('it answers text/calendar with no-store and noindex', function (): void {
         ->and($response->getContent())->toStartWith("BEGIN:VCALENDAR\r\n");
 });
 
+test('the calendar carries the name of the app and of the family', function (): void {
+    $user = registerFamily();
+    $content = (string) readCalendar(turnOnCalendar($user))->assertOk()->getContent();
+
+    expect($content)->toContain("PRODID:-//Fameja.app//Promemoria//IT\r\n")
+        ->and($content)->toContain('X-WR-CALNAME:Fameja.app · '.$user->family->name);
+});
+
 test('a calendar poll leaves no session and no cookie', function (): void {
     $token = turnOnCalendar(registerFamily());
 

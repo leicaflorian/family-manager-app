@@ -23,6 +23,7 @@ import {
 } from 'reka-ui';
 import type { ClassValue } from 'clsx';
 import { computed, ref, useAttrs, watch } from 'vue';
+import { useAppName } from '@/composables/useAppName';
 import { getInitials } from '@/composables/useInitials';
 import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
@@ -32,6 +33,9 @@ import { countBadge } from '@/lib/badge';
 import { cn } from '@/lib/utils';
 import FmLogo from './FmLogo.vue';
 import type { NavigationItem, NavigationItems, Section } from './navigation';
+
+/** The name of the app, for the wordmark. */
+const appName = useAppName();
 
 const {
     active,
@@ -196,7 +200,7 @@ function isPage(section: Section): boolean {
         <div class="flex shrink-0 items-center gap-2.5 px-2 pt-1 pb-4">
             <FmLogo :size="36" />
             <span class="flex flex-col">
-                <span class="text-amount">Family Manager</span>
+                <span class="text-amount">{{ appName }}</span>
                 <span class="text-meta text-ink-soft">{{
                     $t(':family family', { family })
                 }}</span>

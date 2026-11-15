@@ -667,6 +667,11 @@ readonly received_at: string,
 readonly outcome_label: string,
 readonly tone: 'success' | 'info' | 'neutral' | 'warning' | 'danger',
 };
+export type ReleaseNoteData = {
+readonly version: string,
+readonly date: string,
+readonly notes: string[],
+};
 export type ReminderData = {
 readonly id: number,
 readonly title: string,
@@ -1003,6 +1008,7 @@ export type PersonRole = 'parent' | 'child' | 'other';
 export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance' | 'card';
+export type ReleaseBump = 'major' | 'minor' | 'patch';
 export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
 export type SearchGroup = 'cards' | 'documents' | 'movements' | 'dues' | 'contacts';

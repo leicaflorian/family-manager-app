@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "leicaflorian/family-manager-app",
     "type": "project",
-    "description": "Family Manager, l'app per le famiglie.",
+    "description": "Fameja.app, l'app per le famiglie.",
     "keywords": [
         "laravel",
         "framework"

@@ -1,6 +1,6 @@
 {
-    "name": "Family Manager",
-    "short_name": "Family Manager",
+    "name": "Fameja.app",
+    "short_name": "Fameja.app",
     "description": "I documenti, le scadenze e le spese della famiglia, in un posto solo",
     "id": "/",
     "start_url": "/dashboard",

@@ -13,7 +13,7 @@ describe('AuthLayout', () => {
                     text: 'Everyone’s deadlines.',
                 },
                 otherWay: {
-                    text: 'No Family Manager yet?',
+                    text: 'No Fameja.app yet?',
                     link: 'Sign up your family',
                     href: '/register',
                 },
@@ -34,6 +34,9 @@ describe('AuthLayout', () => {
         expect(
             screen.getByRole('form', { name: 'Log in' }),
         ).toBeInTheDocument();
+        // The name of the app, on the blue panel and above the card on a phone
+        expect(screen.getAllByText('Fameja.app')).toHaveLength(2);
+        expect(screen.queryByText('Family Manager')).toBeNull();
     });
 
     it('draws the soft shapes behind the card, hidden from screen readers', () => {

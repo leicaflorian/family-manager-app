@@ -1,8 +1,8 @@
-# Family Manager - app for families
+# Fameja.app - app for families
 
-![family-manager-og-1200x630.png](public/family-manager-og-1200x630.png)
+![fameja-app-og-1200x630.png](public/fameja-app-og-1200x630.png)
 
-The new Family Manager app, made for parents who are not technical. It will replace the Directus interface of the `family-manager-cms` repository, and it can be sold to other families: each family sees only its own data.
+Fameja.app, the new app of Family Manager, made for parents who are not technical. It will replace the Directus interface of the `family-manager-cms` repository, and it can be sold to other families: each family sees only its own data.
 
 It is built with Laravel 13 from the Vue starter kit (Inertia, Vue 3, TypeScript, Tailwind 4, Fortify for sign-in, Wayfinder for the routes), and runs in Docker with Laravel Sail. The stage 1 prototype is gone: it can be recovered from the git history, commit `54a6702` (`git show 54a6702:prototype/…`).
 
@@ -117,6 +117,12 @@ The full list of commands, with the code rules, is in `AGENTS.md`. The most used
 | `./vendor/bin/sail npm run tokens` | Rewrites `resources/css/tokens.css` from `resources/design/tokens.json` |
 
 Colours, text styles, radii, shadows and sizes come from the "Family Manager" design system on Claude Design: `resources/design/tokens.json` is an exact copy of its `project/tokens.json` and is never edited by hand. To change the look, copy the new `tokens.json` there and run `npm run tokens`; components use the token classes (`bg-card`, `text-ink-soft`, `rounded-card`…), never a colour written by hand.
+
+## Releases
+
+The version is the one in the `VERSION` file. To release, run `./release` from the main checkout, on a clean `dev` equal to `origin/dev`, on the Mac (it needs `claude`, `jq`, Sail running and `ssh family-manager-prod`). It merges `dev` into `main`, asks Claude for the `CHANGELOG.md` entry and the simple notes of `resources/release/notes.json`, lets you confirm the version number, dumps the production database on the droplet if there are new migrations, then commits, tags and pushes `main` with the tag. GitHub Actions runs the checks on the tag, creates the GitHub Release and deploys on Coolify. If the checks fail nothing is released: fix and release a patch.
+
+Before the first release, check that `ssh family-manager-prod` works (it logs in as root, the dump goes to `/root/backups/…`) and that `family_manager_app` exists on the droplet: on the first release every migration counts as new, so the dump runs. If `dev` added Composer packages, run `composer install` in Sail first, otherwise artisan fails at step 5 (the rollback is safe). `./release` refuses to run from a worktree.
 
 ## Cards
 

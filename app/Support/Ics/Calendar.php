@@ -30,7 +30,7 @@ final class Calendar
         $lines = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//Family Manager//Promemoria//IT',
+            'PRODID:-//'.config()->string('app.name').'//Promemoria//IT',
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
             'X-WR-CALNAME:'.self::escapeText($name),

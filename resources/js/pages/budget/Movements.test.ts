@@ -15,7 +15,7 @@ import Movements from './Movements.vue';
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     Head: { render: () => null },
-    usePage: () => ({ url: '/', props: { unread_notices: 2 } }),
+    usePage: () => ({ url: '/', props: { name: 'Fameja.app', unread_notices: 2 } }),
 }));
 
 const parking: App.Data.MovementData = {
@@ -52,7 +52,7 @@ describe('Movements', () => {
         const phone = renderPage(Movements, props);
 
         expect(
-            screen.getByRole('link', { name: 'Search in Family Manager' }),
+            screen.getByRole('link', { name: 'Search in Fameja.app' }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: /Notices/ }),
@@ -63,7 +63,7 @@ describe('Movements', () => {
         renderPage(Movements, props);
 
         expect(
-            screen.queryByRole('link', { name: 'Search in Family Manager' }),
+            screen.queryByRole('link', { name: 'Search in Fameja.app' }),
         ).not.toBeInTheDocument();
         expect(
             screen.queryByRole('button', { name: /Notices/ }),

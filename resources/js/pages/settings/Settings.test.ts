@@ -1,8 +1,13 @@
+import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { account } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import Settings from './Settings.vue';
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 describe('Settings', () => {
     it('leads to my account and to the categories', () => {
@@ -12,6 +17,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(
@@ -57,6 +64,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByText('1 main category')).toBeInTheDocument();
@@ -69,6 +78,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByRole('link', { name: /Areas/ })).toHaveAttribute(
@@ -84,6 +95,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 2,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByText('9 areas, 2 hidden')).toBeInTheDocument();
@@ -96,6 +109,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByRole('link', { name: /Support/ })).toHaveAttribute(
@@ -111,6 +126,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         const family = screen.getByRole('region', { name: 'The family' });
@@ -126,5 +143,62 @@ describe('Settings', () => {
             '/settings/areas',
             '/settings/support',
         ]);
+    });
+
+    it("has What's new with the version under The app", () => {
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
+        });
+
+        const app = screen.getByRole('region', { name: 'The app' });
+        expect(
+            within(app).getByRole('link', { name: /What's new/ }),
+        ).toHaveAttribute('href', '/settings/news');
+        expect(
+            within(app).getByText('Version 1.2.0 · 15/11/2026'),
+        ).toBeInTheDocument();
+    });
+
+    it('writes the development version without a day', () => {
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            release: 'dev',
+            releasedOn: null,
+        });
+
+        expect(screen.getByText('Development version')).toBeInTheDocument();
+    });
+
+    it('opens My account in the wide layout, where the sections stand beside it', () => {
+        screenWidth(1280);
+        const visit = vi
+            .spyOn(router, 'visit')
+            .mockImplementation(() => undefined);
+
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
+        });
+
+        expect(visit).toHaveBeenCalledWith(
+            '/settings/account',
+            expect.objectContaining({ replace: true }),
+        );
+        visit.mockRestore();
     });
 });

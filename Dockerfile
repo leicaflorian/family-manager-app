@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 #
-# The production image of Family Manager, on serversideup/php (nginx + PHP-FPM, supervised by S6 overlay):
+# The production image of Fameja.app, on serversideup/php (nginx + PHP-FPM, supervised by S6 overlay):
 # the web, the queue worker and the scheduler in one container. Built by Coolify from this file; locally:
 #
 #   export VITE_FORMKIT_PRO_KEY="$(grep ^VITE_FORMKIT_PRO_KEY= .env | cut -d= -f2-)"
@@ -69,10 +69,6 @@ RUN mkdir -p storage/app/private storage/app/public storage/framework/cache/data
 
 # Runs package:discover and filament:upgrade (the assets of Filament in public/js|css|fonts/filament)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
-
-# The commit Coolify builds ("Include Source Commit in Build"): vite.config.ts writes it in the JS as the version
-# of the client. Only an ARG of this stage: at runtime Coolify gives the container SOURCE_COMMIT itself.
-ARG SOURCE_COMMIT
 
 # The FormKit Pro key ends up only in the built JS: a build secret, never an ARG or ENV left in the history.
 # npm run build builds the app and then the service worker (vite.sw.config.ts → public/build/sw.js).

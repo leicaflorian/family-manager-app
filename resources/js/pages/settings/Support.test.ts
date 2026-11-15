@@ -49,7 +49,7 @@ describe('Settings, Support', () => {
         ).toBeInTheDocument();
         expect(
             screen.getByText(
-                /we can look at Family Manager as one of your accounts/,
+                /we can look at Fameja.app as one of your accounts/,
             ),
         ).toBeInTheDocument();
         expect(

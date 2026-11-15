@@ -13,6 +13,10 @@ import { useId } from 'vue';
 import FmHeader from '@/components/fm/FmHeader.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
+import { useAppName } from '@/composables/useAppName';
+
+/** The name of the app, for the wordmark. */
+const appName = useAppName();
 
 /** What the blue panel of the computer says, already translated. */
 export type AuthPanel = {
@@ -69,7 +73,7 @@ defineSlots<{
         >
             <div class="flex items-center gap-3">
                 <FmLogo white :size="44" />
-                <span class="text-stat-lg">Family Manager</span>
+                <span class="text-stat-lg">{{ appName }}</span>
             </div>
             <div class="flex max-w-[420px] flex-col gap-3.5">
                 <p class="m-0 text-hero-title">
@@ -145,7 +149,7 @@ defineSlots<{
             >
                 <div class="flex items-center gap-2.5 lg:hidden">
                     <FmLogo :size="36" />
-                    <span class="text-body">Family Manager</span>
+                    <span class="text-body">{{ appName }}</span>
                 </div>
                 <FmHeader v-if="title" :title="title" :subtitle="subtitle" />
                 <div class="flex grow flex-col">

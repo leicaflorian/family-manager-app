@@ -51,7 +51,7 @@ export class TokenError extends Error {
 }
 
 const NOTICE =
-    '/* Family Manager — generated from resources/design/tokens.json by npm run tokens: do not edit */';
+    '/* Fameja.app — generated from resources/design/tokens.json by npm run tokens: do not edit */';
 
 const COLOR_PATTERN = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([^)]*\))$/i;
 const ALIAS_PATTERN = /^\{([^}]+)\}$/;
