@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 #
-# The production image of Family Manager, on serversideup/php (nginx + PHP-FPM, supervised by S6 overlay):
+# The production image of Fameja.app, on serversideup/php (nginx + PHP-FPM, supervised by S6 overlay):
 # the web, the queue worker and the scheduler in one container. Built by Coolify from this file; locally:
 #
 #   export VITE_FORMKIT_PRO_KEY="$(grep ^VITE_FORMKIT_PRO_KEY= .env | cut -d= -f2-)"

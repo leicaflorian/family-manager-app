@@ -8,7 +8,7 @@
  * document; a session that has ended is entered again with the linked phone without losing the pages. Pages not
  * uploaded yet are changes not saved: the app asks before leaving them. A linked phone, which sees only this page,
  * can sign out to *Sign in with the password*. Opened with `?shared=1` (*Share* on Android) the files the service worker
- * kept come in as pages. On a phone in the browser the sheet *Install Family Manager* comes up.
+ * kept come in as pages. On a phone in the browser the sheet *Install Fameja.app* comes up.
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
 import {
@@ -33,6 +33,7 @@ import type { CropResult } from '@/components/scan/ScanCrop.vue';
 import ScanCrop from '@/components/scan/ScanCrop.vue';
 import ScanStatus from '@/components/scan/ScanStatus.vue';
 import ScanWebcam from '@/components/scan/ScanWebcam.vue';
+import { useAppName } from '@/composables/useAppName';
 import { useInstall } from '@/composables/useInstall';
 import { useScanUpload } from '@/composables/useScanUpload';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
@@ -59,6 +60,9 @@ import { ScanRequestError, findCorners } from '@/lib/scan/server';
 import { straightener } from '@/lib/scan/straighten';
 import { cn } from '@/lib/utils';
 import { logout, toSort } from '@/routes';
+
+/** The name of the app, for the texts that say it. */
+const appName = useAppName();
 
 /** The quality of the photo the page keeps (2000 px): the one of the old *Family Scan*. */
 const PHOTO_QUALITY = 0.85;
@@ -1091,7 +1095,7 @@ onBeforeUnmount(() => {
 
     <FmBottomSheet
         :open="installOpen"
-        :title="$t('Install Family Manager')"
+        :title="$t('Install :app', { app: appName })"
         @update:open="(open) => !open && installLater()"
     >
         <div class="flex flex-col items-center gap-3 text-center">

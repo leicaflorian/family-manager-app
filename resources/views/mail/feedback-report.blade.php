@@ -1,4 +1,4 @@
-<x-mail::message :why="__('You get this email because you look after Family Manager. You also find it in the panel, under Reports.')">
+<x-mail::message :why="__('You get this email because you look after :app. You also find it in the panel, under Reports.', ['app' => config('app.name')])">
 <x-mail.icon name="alert" />
 
 # {{ $report->kind->label() }}

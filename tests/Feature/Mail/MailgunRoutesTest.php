@@ -112,7 +112,7 @@ test('with no route, one is created for the whole domain', function (): void {
     $post = firstMailgunWrite();
     expect($post->header('Content-Type'))->toBe(['application/x-www-form-urlencoded'])
         ->and($post->data()['priority'])->toBe('0')
-        ->and($post->data()['description'])->toBe('Family Manager - posta in arrivo')
+        ->and($post->data()['description'])->toBe('Fameja.app - posta in arrivo')
         ->and($post->data()['expression'])->toBe(MG_WANTED)
         ->and($post->data()['action'])->toBe(MG_OURS);
 });

@@ -5,7 +5,6 @@ import type { BellNotices } from '@/lib/notices';
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
     interface ImportMetaEnv {
-        readonly VITE_APP_NAME: string;
         /** The project key of FormKit Pro (`fk-…`). */
         readonly VITE_FORMKIT_PRO_KEY: string;
         [key: string]: string | boolean | undefined;

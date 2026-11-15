@@ -44,11 +44,11 @@ test('the password mail says hello, gives the link and how long it lasts', funct
 
     expect($message->subject)->toBe('Choose a new password')
         ->and($html)->toContain('Hi Marco')
-        ->toContain('You asked to change your Family Manager password.')
+        ->toContain('You asked to change your Fameja.app password.')
         ->toContain(route('password.reset', ['token' => 'the-token', 'email' => 'marco@example.com']))
         ->toContain('The link is valid for one hour.')
         ->toContain('If you did not ask for it, ignore this email: your password stays the same.')
-        ->toContain('We are writing to you because you have an account on Family Manager.');
+        ->toContain('We are writing to you because you have an account on Fameja.app.');
 });
 
 test('the password mail in Italian', function (): void {
@@ -113,7 +113,7 @@ test('the layout has the name of the app and no Laravel words', function (): voi
     $user = User::factory()->for(Family::factory())->create(['name' => 'Marco Bianchi']);
     $html = notificationHtml(new ResetPassword('the-token')->toMail($user));
 
-    expect($html)->toContain('Family Manager')
+    expect($html)->toContain('Fameja.app')
         ->toContain('apple-touch-icon.png')
         ->not->toContain('All rights reserved')
         ->not->toContain('Regards');

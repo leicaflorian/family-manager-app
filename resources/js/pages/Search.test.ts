@@ -223,7 +223,7 @@ afterEach(() => {
 
 /** The search box of the page. */
 const box = (): HTMLElement =>
-    screen.getByRole('combobox', { name: 'Search in Family Manager' });
+    screen.getByRole('combobox', { name: 'Search in Fameja.app' });
 
 describe('Search', () => {
     it('writes the trail Home > Search into the top bar', () => {
@@ -491,7 +491,7 @@ describe('Search', () => {
 
         expect(
             screen.queryByRole('combobox', {
-                name: 'Search in Family Manager',
+                name: 'Search in Fameja.app',
             }),
         ).not.toBeInTheDocument();
         expect(

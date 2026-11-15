@@ -12,7 +12,8 @@
         "types": "vue-tsc --noEmit",
         "lint": "vp lint",
         "tokens": "vp test run resources/js/design/tokens.test.ts -u",
-        "mail-icons": "node scripts/mail-icons.ts"
+        "mail-icons": "node scripts/mail-icons.ts",
+        "og-image": "node scripts/og-image.ts"
     },
     "dependencies": {
         "@formkit/auto-animate": "^0.10.0",

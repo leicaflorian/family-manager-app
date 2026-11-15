@@ -14,6 +14,7 @@ import { renderPage, screenWidth } from '@/test/page';
 import Home from './Home.vue';
 
 const shared = vi.hoisted(() => ({
+    name: 'Fameja.app',
     unread_notices: 0,
     bell_notices: undefined as
         | { unread: unknown[]; seen: unknown[] }
@@ -69,7 +70,7 @@ describe('Home tools', () => {
         renderPage(Home, { home });
 
         expect(
-            screen.getByRole('link', { name: 'Search in Family Manager' }),
+            screen.getByRole('link', { name: 'Search in Fameja.app' }),
         ).toHaveAttribute('href', '/search');
         expect(screen.getByRole('button', { name: /Notices/ })).toHaveClass(
             'rounded-full',
@@ -81,11 +82,11 @@ describe('Home tools', () => {
         renderPage(Home, { home });
 
         expect(
-            screen.queryByRole('link', { name: 'Search in Family Manager' }),
+            screen.queryByRole('link', { name: 'Search in Fameja.app' }),
         ).not.toBeInTheDocument();
         expect(
             screen.queryByRole('combobox', {
-                name: 'Search in Family Manager',
+                name: 'Search in Fameja.app',
             }),
         ).not.toBeInTheDocument();
         expect(

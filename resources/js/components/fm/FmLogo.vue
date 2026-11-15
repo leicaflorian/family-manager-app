@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The Family Manager logo: the roof and the family, white (`on-hero`, white in
+ * The Fameja.app logo: the roof and the family, white (`on-hero`, white in
  * both themes) on the light blue square (`brand`).
  * The white version, without the square, goes on the blue panel of the sign-in pages.
  *

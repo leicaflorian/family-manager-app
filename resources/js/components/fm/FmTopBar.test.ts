@@ -145,7 +145,7 @@ describe('FmTopBar', () => {
             'page',
         );
         expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Notices' }),
@@ -250,7 +250,8 @@ describe('FmTopBar', () => {
         });
         expect(menu).toHaveAttribute('aria-expanded', 'false');
         expect(menu).toHaveAttribute('aria-controls', 'app-menu');
-        expect(screen.getByText('Family Manager')).toBeInTheDocument();
+        expect(screen.getByText('Fameja.app')).toBeInTheDocument();
+        expect(screen.queryByText('Family Manager')).toBeNull();
         expect(screen.getByText('Bianchi family')).toBeInTheDocument();
         expect(screen.queryByRole('navigation')).toBeNull();
         expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
@@ -277,7 +278,7 @@ describe('FmTopBar', () => {
         renderBar(computer);
 
         await userEvent.type(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
             'Pan{Enter}',
         );
 
@@ -289,7 +290,7 @@ describe('FmTopBar', () => {
         vi.spyOn(router, 'visit').mockImplementation(() => undefined);
         renderBar(computer);
         const box = screen.getByRole('combobox', {
-            name: 'Search in Family Manager',
+            name: 'Search in Fameja.app',
         });
         await userEvent.type(box, 'Pan');
         await screen.findByRole('listbox');
@@ -308,7 +309,7 @@ describe('FmTopBar', () => {
         stubResults();
         renderBar(computer);
         const box = screen.getByRole('combobox', {
-            name: 'Search in Family Manager',
+            name: 'Search in Fameja.app',
         });
         await userEvent.type(box, 'Pan');
         await screen.findByRole('listbox');
@@ -326,7 +327,7 @@ describe('FmTopBar', () => {
         renderBar({ ...computer, query: 'Panda' });
 
         expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toHaveValue('Panda');
     });
 
@@ -385,7 +386,7 @@ describe('FmTopBar', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Focus' }));
 
         expect(
-            screen.getByRole('combobox', { name: 'Search in Family Manager' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toHaveFocus();
     });
 });

@@ -13,6 +13,7 @@
  */
 import { Smartphone, Clock } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { useAppName } from '@/composables/useAppName';
 import { usePhoneLink } from '@/composables/usePhoneLink';
 import { useFormat } from '@/composables/useFormat';
 import { deviceSummary } from '@/lib/linkedPhones';
@@ -23,6 +24,9 @@ import FmIcon from './FmIcon.vue';
 import FmNotice from './FmNotice.vue';
 import FmQrCode from './FmQrCode.vue';
 import FmUnlinkPhone from './FmUnlinkPhone.vue';
+
+/** The name of the app, for the texts that say it. */
+const appName = useAppName();
 
 /** Open or closed. */
 const open = defineModel<boolean>('open', { default: false });
@@ -64,7 +68,8 @@ const hint = computed(() =>
         <p class="m-0 text-body-sm text-ink-soft">
             {{
                 $t(
-                    'Frame the code with the phone camera: Family Manager opens already with your account, without typing the password.',
+                    'Frame the code with the phone camera: :app opens already with your account, without typing the password.',
+                    { app: appName },
                 )
             }}
         </p>

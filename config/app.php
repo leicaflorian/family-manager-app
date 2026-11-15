@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Fameja.app'),
 
     /*
     | The version of the code that runs: the content of the VERSION file (`dev` when it is missing).

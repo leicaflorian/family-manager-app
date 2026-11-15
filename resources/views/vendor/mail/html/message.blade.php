@@ -1,7 +1,7 @@
 @props([
-    'why' => __('We are writing to you because you have an account on Family Manager.'),
+    'why' => __('We are writing to you because you have an account on :app.', ['app' => config('app.name')]),
 ])
-{{-- A mail of Family Manager; `why` is the line of the footer that says why the mail arrives. --}}
+{{-- A mail of Fameja.app; `why` is the line of the footer that says why the mail arrives. --}}
 <x-mail::layout>
 <x-slot:header>
 <x-mail::header :url="config('app.url')">

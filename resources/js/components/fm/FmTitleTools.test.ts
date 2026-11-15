@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import FmTitleTools from './FmTitleTools.vue';
 
-const shared = vi.hoisted(() => ({ unread_notices: 2 }));
+const shared = vi.hoisted(() => ({ name: 'Fameja.app', unread_notices: 2 }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
@@ -20,7 +20,7 @@ describe('FmTitleTools', () => {
         render(FmTitleTools);
 
         const link = screen.getByRole('link', {
-            name: 'Search in Family Manager',
+            name: 'Search in Fameja.app',
         });
         expect(link).toHaveAttribute('href', '/search');
         expect(link).toHaveClass('size-11', 'rounded-full', 'bg-card');
