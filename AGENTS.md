@@ -99,7 +99,7 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 | `./vendor/bin/sail artisan mail-inbox:addresses` | Dà l'indirizzo per le bollette alle famiglie che non lo hanno |
 | `./vendor/bin/sail artisan mail-inbox:route` | Crea o aggiorna la regola di Mailgun del dominio verso l'app (solo alla tappa 4) |
 
-Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori, Rector senza modifiche proposte, build, tipi e lint senza errori e Pint pulito.
+Dopo ogni task, prima del commit, solo su quello che si è toccato: i test PHP e Vitest dei file toccati e di quelli che li usano, PHPStan, Rector, Pint, tipi e lint senza errori. Le suite intere e la build le fa la CI (regola del proprietario, 15/11/2026).
 
 - Lo starter kit usa Vite+ (`vp`): build, lint (Oxlint), formattazione (Oxfmt) e test (Vitest) sono suoi, configurati in `vite.config.ts`.
 - npm: nel container di Sail c'è npm 11. npm 10.8 si fermava installando FormKit (`Cannot read properties of null (reading 'edgesOut')`): se serve npm fuori da Sail si usa `npx npm@11 install`.
