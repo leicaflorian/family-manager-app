@@ -223,7 +223,7 @@ describe('diagnostics', () => {
         const facts = collectDiagnostics();
 
         expect(facts).toMatchObject({
-            client_build: 'dev',
+            client_build: __APP_BUILD__,
             locale: 'it',
             theme: 'dark',
             online: true,
