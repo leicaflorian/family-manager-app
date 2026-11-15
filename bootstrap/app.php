@@ -43,7 +43,9 @@ return Application::configure(basePath: dirname(__DIR__))
             RecordLastSeen::class,
             ApplyInstallationSettings::class,
             HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+            // At most 20 files in the Link header: with all of them a big page went over the room nginx keeps for
+            // the headers and answered 502. The HTML still preloads every file.
+            AddLinkHeadersForPreloadedAssets::using(20),
         ], prepend: [
             // First of the group: a page of the app on the host of the panel answers 404 before a session or a sign-in
             SeparateHosts::class,

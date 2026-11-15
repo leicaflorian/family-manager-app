@@ -83,6 +83,32 @@ describe('diagnostics', () => {
         expect(messages[1]).toContain('nope');
     });
 
+    it('leaves out the harmless messages of the browser and of FormKit Pro', () => {
+        const fake = fakeConsole();
+        const printed = fake.warn;
+        stop = startDiagnostics({ console: fake, window });
+
+        window.dispatchEvent(
+            new ErrorEvent('error', {
+                message:
+                    'ResizeObserver loop completed with undelivered notifications.',
+            }),
+        );
+        window.dispatchEvent(
+            new ErrorEvent('error', {
+                message: 'ResizeObserver loop limit exceeded',
+            }),
+        );
+        fake.warn('Date () does not match format (YYYY-MM-DD)');
+        fake.warn('Date (31/02) does not match format (YYYY-MM-DD)');
+
+        // Still printed: only the details leave them out
+        expect(printed).toHaveBeenCalledTimes(2);
+        expect(collectDiagnostics().console.map((e) => e.message)).toEqual([
+            'Date (31/02) does not match format (YYYY-MM-DD)',
+        ]);
+    });
+
     it('keeps only the last 50 entries, each cut to 500 characters', () => {
         const fake = fakeConsole();
         stop = startDiagnostics({ console: fake, window });

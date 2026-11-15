@@ -96,3 +96,8 @@ it('vite writes the version of the VERSION file', function (): void {
         ->toContain('VERSION')
         ->not->toContain('SOURCE_COMMIT');
 });
+
+it('gives nginx room for the headers of a page with many preloaded files', function (): void {
+    // With the image's 8k a page with many files (a card) got "upstream sent too big header" and answered 502
+    expect(repositoryFile('Dockerfile'))->toMatch('/^\s*NGINX_FASTCGI_BUFFER_SIZE=16k( \\\\)?$/m');
+});
