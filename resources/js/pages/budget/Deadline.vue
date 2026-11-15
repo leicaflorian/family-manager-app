@@ -9,10 +9,10 @@
  * date*, to bring it back. With `pay` the panel of
  * the payment is already open, as *Record payment* opens it.
  */
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Check, Pencil } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -67,6 +67,26 @@ const paying = ref(pay && canPay && payable.value);
 
 /** The panel that changes the due date is open. */
 const changing = ref(false);
+
+// `?pay=1` asks once: kept in the address, the payment redirects to the page
+// without it as a new entry of the history, and Back shows the page as it was
+// (not paid, panel open). Taken out at once, the redirect replaces the entry
+// and Back goes to the page the person came from.
+onMounted((): void => {
+    if (!pay) {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('pay');
+
+    router.replace({
+        url: `${url.pathname}${url.search}${url.hash}`,
+        props: (current) => ({ ...current, pay: false }),
+        preserveState: true,
+        preserveScroll: true,
+    });
+});
 
 /** Where the page goes back to: the area of the card of the due date, else the home. */
 const back = computed(() =>

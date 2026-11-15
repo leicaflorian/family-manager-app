@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
+import { router } from '@inertiajs/vue3';
 import {
     afterEach,
     beforeEach,
@@ -8,6 +9,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import type { MockInstance } from 'vite-plus/test';
 import {
     accountOptions,
     danceDeadline,
@@ -49,13 +51,18 @@ const props = {
     pay: false,
 };
 
+/** The client-side visit that takes `pay` out of the address. */
+let replace: MockInstance<typeof router.replace>;
+
 beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
+    replace = vi.spyOn(router, 'replace').mockImplementation(() => {});
 });
 
 afterEach(() => {
     vi.useRealTimers();
+    replace.mockRestore();
 });
 
 describe('A due date', () => {
@@ -126,6 +133,35 @@ describe('A due date', () => {
         expect(
             await screen.findByRole('dialog', { name: 'I paid it' }),
         ).toBeInTheDocument();
+    });
+
+    it('leaves pay out of the address once the panel is open, so Back does not open it again', async () => {
+        window.history.replaceState(
+            {},
+            '',
+            '/budget/planned/expense/6/occurrences/2026-11-21?from=home&pay=1',
+        );
+        renderPage(Deadline, { ...props, pay: true });
+
+        await screen.findByRole('dialog', { name: 'I paid it' });
+        expect(replace).toHaveBeenCalledOnce();
+        const [visit] = replace.mock.calls[0];
+        expect(visit.url).toBe(
+            '/budget/planned/expense/6/occurrences/2026-11-21?from=home',
+        );
+        expect(visit.preserveState).toBe(true);
+        expect(
+            typeof visit.props === 'function' &&
+                visit.props({ ...props, pay: true }, { shared: {} } as never),
+        ).toMatchObject({ pay: false });
+
+        window.history.replaceState({}, '', '/');
+    });
+
+    it('leaves the address alone without pay', () => {
+        renderPage(Deadline, props);
+
+        expect(replace).not.toHaveBeenCalled();
     });
 
     it('says It arrived for an income', async () => {
