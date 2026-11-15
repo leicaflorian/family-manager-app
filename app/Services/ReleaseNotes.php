@@ -9,7 +9,7 @@ use JsonException;
 
 /**
  * Reads the simple notes of the versions of the app (`resources/release/notes.json`, written at each
- * release, newest first) for the panel *What's new*.
+ * release, newest first) for the page *What's new* of the settings.
  */
 final readonly class ReleaseNotes
 {
@@ -23,7 +23,7 @@ final readonly class ReleaseNotes
 
     /**
      * The versions with their notes, newest first. A missing or broken file gives none, and an entry
-     * without version, date or notes is left out, so the panel never breaks on a bad release.
+     * without version, date or notes is left out, so the page never breaks on a bad release.
      *
      * @param  string  $locale  the language of the person (`it`, `en`)
      * @return list<ReleaseNoteData>
@@ -41,6 +41,23 @@ final readonly class ReleaseNotes
         }
 
         return $notes;
+    }
+
+    /**
+     * One version with its notes, or null when the file has no entry for it.
+     *
+     * @param  string  $version  the version, for example `1.2.0`
+     * @param  string  $locale  the language of the person
+     */
+    public function released(string $version, string $locale): ?ReleaseNoteData
+    {
+        foreach ($this->latest($locale) as $note) {
+            if ($note->version === $version) {
+                return $note;
+            }
+        }
+
+        return null;
     }
 
     /**

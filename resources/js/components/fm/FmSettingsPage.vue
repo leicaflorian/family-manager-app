@@ -16,6 +16,7 @@ import {
     LayoutGrid,
     LifeBuoy,
     Mail,
+    Sparkles,
     Tags,
     User,
 } from '@lucide/vue';
@@ -28,6 +29,7 @@ import { index as categories } from '@/routes/categories';
 import { index as expenseCategories } from '@/routes/expense-categories';
 import { edit as mail } from '@/routes/mail-settings';
 import { edit as areas } from '@/routes/settings/areas';
+import { news } from '@/routes/settings';
 import { edit as notices } from '@/routes/settings/notices';
 import { edit as support } from '@/routes/settings/support';
 import FmIcon from './FmIcon.vue';
@@ -41,7 +43,8 @@ type SettingsSection =
     | 'categories'
     | 'expense-categories'
     | 'areas'
-    | 'support';
+    | 'support'
+    | 'news';
 
 const { current } = defineProps<{
     /** The section the page is, marked in the list. */
@@ -57,7 +60,7 @@ defineSlots<{
 
 const wide = useWideLayout();
 
-/** The sections of the settings, in the order of the boards; *Support* after a line. */
+/** The sections of the settings, in the order of the boards; *Support* and *What's new* after a line. */
 const sections = computed(
     (): {
         key: SettingsSection;
@@ -114,6 +117,12 @@ const sections = computed(
             icon: LifeBuoy,
             href: support().url,
             apart: true,
+        },
+        {
+            key: 'news',
+            label: trans("What's new"),
+            icon: Sparkles,
+            href: news().url,
         },
     ],
 );

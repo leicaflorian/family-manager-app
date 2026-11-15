@@ -62,6 +62,7 @@ describe('FmSettingsPage', () => {
             'Expense categories',
             'Areas',
             'Support',
+            "What's new",
         ]);
         expect(
             within(nav).getByRole('link', { name: 'Calendar' }),

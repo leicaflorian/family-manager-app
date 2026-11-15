@@ -5,8 +5,7 @@
  * files wait, with their number), then Upload a file, Scan a sheet, New expense
  * and New task. More opens a panel with Agenda, Documents, Family,
  * Settings, *Report a problem or an idea* (it closes More and emits `report`:
- * the layout opens the panel), the version (it closes More and emits `news`:
- * the layout opens *What's new*) and Log out, and stays marked when one of those pages is open.
+ * the layout opens the panel) and Log out, and stays marked when one of those pages is open.
  *
  * The + (60 px, `fab` shadow) is the only round button of the app and
  * lives only here: it is not a `FmButton`, which is rectangular and goes in the page.
@@ -42,8 +41,6 @@ const uploadBadge = computed(() => countBadge(uploadCount));
 const emit = defineEmits<{
     /** *Report a problem or an idea* was chosen in More: the layout opens its panel. */
     report: [];
-    /** The version was chosen in More: the layout opens *What's new*. */
-    news: [];
 }>();
 
 const moreOpen = ref(false);
@@ -52,12 +49,6 @@ const moreOpen = ref(false);
 function report(): void {
     moreOpen.value = false;
     emit('report');
-}
-
-/** Closes More and asks for the panel *What's new*, so two panels never stack. */
-function news(): void {
-    moreOpen.value = false;
-    emit('news');
 }
 
 /** The panel *Add* of the +. */
@@ -233,20 +224,6 @@ function itemClasses(marked: boolean): string {
                 <template #before>
                     <FmIcon
                         :icon="items.feedback.icon"
-                        :size="22"
-                        class="text-ink-soft"
-                    />
-                </template>
-            </FmRow>
-            <FmRow
-                :title="items.release.label"
-                :subtitle="items.release.hint"
-                button
-                @click="news"
-            >
-                <template #before>
-                    <FmIcon
-                        :icon="items.release.icon"
                         :size="22"
                         class="text-ink-soft"
                     />

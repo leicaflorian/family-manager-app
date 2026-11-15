@@ -35,6 +35,7 @@ use App\Http\Controllers\NoticeSettingsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ReceivedMailController;
+use App\Http\Controllers\ReleaseNotesController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\ReminderDoneController;
 use App\Http\Controllers\ReminderPostponeController;
@@ -210,6 +211,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
         Route::get('settings/support', [SupportSettingsController::class, 'edit'])->name('settings.support.edit');
+        Route::get('settings/news', ReleaseNotesController::class)->name('settings.news');
         Route::post('settings/support', [SupportSettingsController::class, 'store'])->name('settings.support.store');
         Route::delete('settings/support', [SupportSettingsController::class, 'destroy'])->name('settings.support.destroy');
         Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');

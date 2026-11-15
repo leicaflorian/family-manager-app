@@ -14,7 +14,7 @@ function bar(active: Section, path = '/dashboard', uploadCount?: number) {
         props: {
             active,
             path,
-            items: navigationItems('1.2.0'),
+            items: navigationItems(),
             areas: areaCounts,
             family: 'Bianchi',
             user: 'Marco Bianchi',
@@ -136,12 +136,7 @@ describe('FmSidebar', () => {
             screen
                 .getAllByRole('menuitem')
                 .map((item) => item.textContent?.trim()),
-        ).toEqual([
-            'Settings',
-            'Report a problem or an idea',
-            'Version 1.2.0',
-            'Log out',
-        ]);
+        ).toEqual(['Settings', 'Report a problem or an idea', 'Log out']);
 
         await userEvent.click(
             screen.getByRole('menuitem', {
@@ -150,20 +145,6 @@ describe('FmSidebar', () => {
         );
 
         expect(view.emitted('report')).toHaveLength(1);
-    });
-
-    it("has the version after Report a problem or an idea, and asks to open What's new", async () => {
-        const view = bar('home');
-
-        await userEvent.click(
-            screen.getByRole('button', { name: /Marco Bianchi/ }),
-        );
-        await userEvent.click(
-            screen.getByRole('menuitem', { name: 'Version 1.2.0' }),
-        );
-
-        expect(view.emitted('news')).toHaveLength(1);
-        expect(view.emitted('report')).toBeUndefined();
     });
 
     it('lists every area with its active cards under Areas', () => {

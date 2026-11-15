@@ -31,7 +31,6 @@ import FmBottomBar from '@/components/fm/FmBottomBar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import { captureScreenshot } from '@/lib/screenshot';
 import FmFeedbackSheet from '@/components/fm/FmFeedbackSheet.vue';
-import FmReleaseNotesSheet from '@/components/fm/FmReleaseNotesSheet.vue';
 import FmSidebar from '@/components/fm/FmSidebar.vue';
 import FmTopBar from '@/components/fm/FmTopBar.vue';
 import type { Section } from '@/components/fm/navigation';
@@ -41,7 +40,6 @@ import FmToaster from '@/components/fm/FmToaster.vue';
 import { useBellNotices } from '@/composables/useBellNotices';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useLeavePage } from '@/composables/useLeavePage';
-import { useReleaseNotes } from '@/composables/useReleaseNotes';
 import { SEARCH_PAGE_FIELD } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import type { TrailPiece } from '@/lib/pageTrail';
@@ -55,13 +53,7 @@ defineSlots<{
 }>();
 
 const page = usePage();
-const { release, notes: releaseNotes, loadNotes } = useReleaseNotes();
-
-/** The panel *What's new*, opened by the version in the account menu or in More. */
-const newsOpen = ref(false);
-
-// The version does not change while the page is open: a deploy changes the assets and Inertia reloads the page
-const items = navigationItems(release.value);
+const items = navigationItems();
 const mode = useLayoutMode();
 
 const path = computed((): string => page.url.split('?')[0] ?? '/');
@@ -211,7 +203,6 @@ useSearchShortcut(focusSearch);
             :user="user"
             :upload-count="toSort"
             @report="openFeedback"
-            @news="newsOpen = true"
         />
         <div class="flex min-w-0 grow flex-col">
             <div ref="header" class="sticky top-0 z-30">
@@ -258,7 +249,6 @@ useSearchShortcut(focusSearch);
                     :items="items"
                     :upload-count="toSort"
                     @report="openFeedback"
-                    @news="newsOpen = true"
                 />
             </div>
         </div>
@@ -289,7 +279,6 @@ useSearchShortcut(focusSearch);
                         :user="user"
                         :upload-count="toSort"
                         @report="openFeedback"
-                        @news="newsOpen = true"
                     />
                 </DialogContent>
             </DialogPortal>
@@ -297,12 +286,6 @@ useSearchShortcut(focusSearch);
         <FmFeedbackSheet
             v-model:open="feedbackOpen"
             :screenshot="feedbackScreenshot"
-        />
-        <FmReleaseNotesSheet
-            v-model:open="newsOpen"
-            :release="release"
-            :notes="releaseNotes"
-            @load="loadNotes"
         />
         <div data-no-screenshot>
             <FmToaster :above-bottom-bar="mode === 'phone'" />

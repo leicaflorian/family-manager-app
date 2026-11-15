@@ -1934,9 +1934,10 @@
     "Request": "Richiesta",
     "Error": "Errore",
     "What's new": "Novità",
-    "What's new in the app": "Le novità dell'app",
     "Version :version": "Versione :version",
     "Development version": "Versione di sviluppo",
     "Your version": "La tua versione",
-    "No news yet.": "Ancora nessuna novità."
+    "No news yet.": "Ancora nessuna novità.",
+    "The app": "L'app",
+    "What changes in the app, version by version": "Cosa cambia nell'app, versione per versione"
 }

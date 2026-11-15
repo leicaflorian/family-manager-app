@@ -15,7 +15,6 @@ import {
     ScanLine,
     Settings,
     Shapes,
-    Sparkles,
     Upload,
     Users,
     Wallet,
@@ -105,17 +104,14 @@ export type NavigationItems = {
     logout: string;
     /** *Report a problem or an idea*, in the account menu and in More, before Log out: it opens a panel. */
     feedback: PanelItem;
-    /** The version of the app, after *Report a problem or an idea*: it opens the panel *What's new*. */
-    release: PanelItem;
 };
 
 /**
  * The navigation items with their addresses.
  *
- * @param release - the version of the app, `dev` when the code has none
  * @returns the items of the bottom bar and of the sidebar
  */
-export function navigationItems(release = 'dev'): NavigationItems {
+export function navigationItems(): NavigationItems {
     return {
         sections: [
             {
@@ -210,14 +206,6 @@ export function navigationItems(release = 'dev'): NavigationItems {
                 app: useAppName().value,
             }),
             icon: MessageSquareWarning,
-        },
-        release: {
-            label:
-                release === 'dev'
-                    ? trans('Development version')
-                    : trans('Version :version', { version: release }),
-            hint: trans("What's new in the app"),
-            icon: Sparkles,
         },
     };
 }

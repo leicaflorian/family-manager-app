@@ -34,10 +34,6 @@ declare module '@inertiajs/core' {
             locale: string;
             /** The name of the account the owner looks as during a visit (*Enter as…*); null otherwise. */
             impersonating?: string | null;
-            /** The version of the app, `dev` when the code has none; missing on a phone linked with a code. */
-            release?: string;
-            /** The notes of the panel *What's new*: sent only when it asks for them (`only: ['release_notes']`). */
-            release_notes?: App.Data.ReleaseNoteData[];
             /** The theme of the account; `system` for a guest. */
             theme: App.Enums.Theme;
             [key: string]: unknown;

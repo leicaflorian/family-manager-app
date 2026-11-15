@@ -12,6 +12,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(
@@ -57,6 +59,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByText('1 main category')).toBeInTheDocument();
@@ -69,6 +73,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByRole('link', { name: /Areas/ })).toHaveAttribute(
@@ -84,6 +90,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 2,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByText('9 areas, 2 hidden')).toBeInTheDocument();
@@ -96,6 +104,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         expect(screen.getByRole('link', { name: /Support/ })).toHaveAttribute(
@@ -111,6 +121,8 @@ describe('Settings', () => {
             mainExpenseCategories: 13,
             areaCount: 9,
             hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
         });
 
         const family = screen.getByRole('region', { name: 'The family' });
@@ -126,5 +138,39 @@ describe('Settings', () => {
             '/settings/areas',
             '/settings/support',
         ]);
+    });
+
+    it("has What's new with the version under The app", () => {
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
+        });
+
+        const app = screen.getByRole('region', { name: 'The app' });
+        expect(
+            within(app).getByRole('link', { name: /What's new/ }),
+        ).toHaveAttribute('href', '/settings/news');
+        expect(
+            within(app).getByText('Version 1.2.0 · 15/11/2026'),
+        ).toBeInTheDocument();
+    });
+
+    it('writes the development version without a day', () => {
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            release: 'dev',
+            releasedOn: null,
+        });
+
+        expect(screen.getByText('Development version')).toBeInTheDocument();
     });
 });

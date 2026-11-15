@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The index of the *Settings*: my account, mine only, and the settings that apply
- * to the whole family. The other items of the board (bills, subscription) come with their stages.
+ * to the whole family, and *The app* with the version and what is new in it. The other items of the board (bills, subscription) come with their stages.
  */
 import { Head } from '@inertiajs/vue3';
 import {
@@ -11,6 +11,7 @@ import {
     Inbox,
     LayoutGrid,
     LifeBuoy,
+    Sparkles,
     Tags,
 } from '@lucide/vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
@@ -18,11 +19,13 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useFormat } from '@/composables/useFormat';
 import { edit } from '@/routes/account';
 import { edit as calendar } from '@/routes/calendar';
 import { index } from '@/routes/categories';
 import { index as expenseCategories } from '@/routes/expense-categories';
 import { edit as mailSettings } from '@/routes/mail-settings';
+import { news } from '@/routes/settings';
 import { edit as areasSettings } from '@/routes/settings/areas';
 import { edit as notices } from '@/routes/settings/notices';
 import { edit as support } from '@/routes/settings/support';
@@ -33,6 +36,8 @@ const {
     mainExpenseCategories,
     areaCount,
     hiddenAreas,
+    release,
+    releasedOn,
 } = defineProps<{
     /** My account. */
     account: App.Data.AccountData;
@@ -44,7 +49,13 @@ const {
     areaCount: number;
     /** How many areas the family hid. */
     hiddenAreas: number;
+    /** The version that runs (`dev` in development). */
+    release: string;
+    /** The day the version came out (`yyyy-mm-dd`), or `null` without notes for it. */
+    releasedOn: string | null;
 }>();
+
+const { date } = useFormat();
 </script>
 
 <template>
@@ -182,6 +193,27 @@ const {
                         class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="LifeBuoy" :size="22" />
+                    </span>
+                </template>
+            </FmRow>
+        </FmCard>
+        <FmCard :title="$t('The app')" list>
+            <FmRow
+                :title="$t('What\'s new')"
+                :subtitle="
+                    releasedOn === null
+                        ? release === 'dev'
+                            ? $t('Development version')
+                            : $t('Version :version', { version: release })
+                        : `${$t('Version :version', { version: release })} · ${date(releasedOn)}`
+                "
+                :href="news().url"
+            >
+                <template #before>
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="Sparkles" :size="22" />
                     </span>
                 </template>
             </FmRow>
