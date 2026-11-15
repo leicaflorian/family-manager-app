@@ -30,4 +30,17 @@ final class FeedbackReportFactory extends Factory
             'layout' => 'phone',
         ];
     }
+
+    /**
+     * A problem with a screenshot, device details and a server error.
+     */
+    public function withDiagnostics(): self
+    {
+        return $this->state(fn (): array => [
+            'screenshot_path' => 'feedback/1/screenshot.webp',
+            'screenshot_size' => 1024,
+            'diagnostics' => ['server_version' => 'dev', 'console' => [], 'requests' => [], 'pages' => []],
+            'server_errors' => [],
+        ]);
+    }
 }

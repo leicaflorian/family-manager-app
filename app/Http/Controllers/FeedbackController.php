@@ -25,6 +25,10 @@ final class FeedbackController extends Controller
     {
         $layout = $request->input('layout');
         $file = $request->file('file');
+        // Left out of the validated data for an idea, so only a problem passes them on.
+        $screenshot = $request->validated('screenshot');
+        $details = $request->validated('diagnostics');
+        $diagnostics = is_string($details) ? json_decode($details, true) : null;
 
         $submit->handle($user, [
             'kind' => $request->enum('kind', FeedbackKind::class) ?? FeedbackKind::Problem,
@@ -32,7 +36,10 @@ final class FeedbackController extends Controller
             'page' => $request->string('page')->toString(),
             'layout' => is_string($layout) ? $layout : null,
             'user_agent' => $request->userAgent(),
-        ], $file instanceof UploadedFile ? $file : null);
+        ], $file instanceof UploadedFile ? $file : null,
+            $screenshot instanceof UploadedFile ? $screenshot : null,
+            is_array($diagnostics) ? $diagnostics : null,
+        );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Thanks, we will answer you by email.')]);
 

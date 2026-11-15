@@ -43,6 +43,9 @@ final class StoreFeedbackRequest extends FormRequest
             'page' => ['required', 'string', 'max:2048'],
             'layout' => ['nullable', Rule::in(self::LAYOUTS)],
             'file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif,heic,heif,pdf', 'max:'.self::MAX_FILE_KB],
+            // Only a problem carries the technical part; for an idea the fields are left out of the validated data.
+            'screenshot' => ['exclude_unless:kind,problem', 'nullable', 'image', 'mimes:webp,jpeg,png', 'max:'.self::MAX_FILE_KB],
+            'diagnostics' => ['exclude_unless:kind,problem', 'nullable', 'string', 'max:65536', 'json'],
         ];
     }
 }

@@ -27,6 +27,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $file_name
  * @property string|null $file_mime
  * @property int|null $file_size Bytes
+ * @property string|null $screenshot_path On the local disk, under feedback/
+ * @property int|null $screenshot_size Bytes
+ * @property array<string, mixed>|null $diagnostics Device, console errors, failed requests, last pages
+ * @property list<array<string, mixed>>|null $server_errors The account's server errors around the sending
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -41,7 +45,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['kind', 'message', 'page', 'user_agent', 'layout', 'file_path', 'file_name', 'file_mime', 'file_size'])]
+#[Fillable(['kind', 'message', 'page', 'user_agent', 'layout', 'file_path', 'file_name', 'file_mime', 'file_size', 'screenshot_path', 'screenshot_size', 'diagnostics', 'server_errors'])]
 final class FeedbackReport extends FamilyModel
 {
     /** @use HasFactory<FeedbackReportFactory> */
@@ -67,6 +71,9 @@ final class FeedbackReport extends FamilyModel
         return [
             'kind' => FeedbackKind::class,
             'file_size' => 'integer',
+            'screenshot_size' => 'integer',
+            'diagnostics' => 'array',
+            'server_errors' => 'array',
         ];
     }
 }

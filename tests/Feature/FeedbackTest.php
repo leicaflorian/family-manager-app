@@ -6,6 +6,7 @@ use App\Enums\FeedbackKind;
 use App\Mail\FeedbackReportMail;
 use App\Models\FeedbackReport;
 use App\Models\Owner;
+use App\Models\ServerError;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -146,5 +147,71 @@ test('the eleventh report in an hour is refused', function (): void {
 
 test('a guest is sent to sign in', function (): void {
     $this->post(route('feedback.store'), reportFields())->assertRedirect(route('login'));
+    expect(allReports())->toBe([]);
+});
+
+test('a problem saves the screenshot, the details and the server errors of the account', function (): void {
+    $old = ServerError::factory()->create(['user_id' => $this->member->id, 'family_id' => $this->member->family_id, 'created_at' => now()->subMinutes(40), 'request_id' => 'req-old']);
+    $recent = ServerError::factory()->create(['user_id' => $this->member->id, 'family_id' => $this->member->family_id, 'created_at' => now()->subMinutes(5)]);
+    $other = User::factory()->create();
+    ServerError::factory()->create(['user_id' => $other->id, 'family_id' => $other->family_id, 'created_at' => now()->subMinutes(5), 'request_id' => 'req-old']);
+
+    $details = json_encode([
+        'console' => [['at' => '2026-11-15T10:00:00+01:00', 'level' => 'error', 'message' => 'Boom', 'component' => 'Pay']],
+        'requests' => [['at' => '2026-11-15T10:00:01+01:00', 'method' => 'POST', 'path' => '/pay', 'status' => 500, 'request_id' => 'req-old']],
+    ], JSON_THROW_ON_ERROR);
+
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'screenshot' => UploadedFile::fake()->image('page.webp'),
+        'diagnostics' => $details,
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toStartWith('feedback/'.$this->admin->family_id.'/')
+        ->and($report->screenshot_size)->toBeGreaterThan(0)
+        ->and($report->diagnostics['console'][0]['message'])->toBe('Boom')
+        ->and($report->diagnostics['server_version'])->toBe(config('app.version'))
+        ->and(array_column($report->server_errors, 'request_id'))->toBe(['req-old', $recent->request_id]);
+    Storage::disk('local')->assertExists($report->screenshot_path);
+});
+
+test('an idea keeps nothing technical', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'kind' => 'idea',
+        'screenshot' => UploadedFile::fake()->image('page.webp'),
+        'diagnostics' => json_encode(['console' => []], JSON_THROW_ON_ERROR),
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toBeNull()
+        ->and($report->screenshot_size)->toBeNull()
+        ->and($report->diagnostics)->toBeNull()
+        ->and($report->server_errors)->toBeNull()
+        ->and(Storage::disk('local')->allFiles('feedback'))->toBe([]);
+});
+
+test('a problem without screenshot or details is still saved', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields())->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toBeNull()
+        ->and($report->diagnostics)->toBeNull();
+});
+
+test('details that are not JSON, or over 64 KB, are refused with a message, nothing saved', function (string $details): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields(['diagnostics' => $details]))
+        ->assertSessionHasErrors('diagnostics');
+
+    expect(allReports())->toBe([]);
+})->with([
+    'not JSON' => ['{nope'],
+    'over 64 KB' => [fn () => '{"x":"'.str_repeat('a', 65536).'"}'],
+]);
+
+test('a screenshot that is not an image is refused', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'screenshot' => UploadedFile::fake()->create('page.pdf', 20, 'application/pdf'),
+    ]))->assertSessionHasErrors('screenshot');
+
     expect(allReports())->toBe([]);
 });
