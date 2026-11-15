@@ -255,7 +255,7 @@ test('the email of a problem attaches the screenshot and counts the errors', fun
     $mail = new FeedbackReportMail($report);
 
     expect($mail->attachments())->toHaveCount(2);
-    $mail->assertSeeInHtml('2 page errors, 1 failed request, 1 server error — details in the panel', false);
+    $mail->assertSeeInHtml('1 page error, 1 failed request, 1 server error — details in the panel', false);
     expect($mail->render())->not->toContain('<b>bad</b>');
 });
 

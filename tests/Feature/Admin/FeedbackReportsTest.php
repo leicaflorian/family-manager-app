@@ -86,7 +86,7 @@ it('is not open to an account of a family', function (): void {
 it('shows the screenshot, device, path, page errors, failed requests and server errors of a problem', function (): void {
     $report = FeedbackReport::factory()->withDiagnostics()->for($this->rossi)->createQuietly(['page' => '/documents/12', 'screenshot_path' => 'feedback/1/shot.webp']);
     Storage::disk('local')->put('feedback/1/shot.webp', 'img');
-    config()->set('app.version', 'new-build');
+    config()->set('app.version', 'deployed-later');
 
     Livewire::test(ViewFeedbackReport::class, ['record' => $report->getKey()])
         ->assertSee(route('owner.feedback.file', [$report, 'screenshot']), false)
@@ -94,6 +94,8 @@ it('shows the screenshot, device, path, page errors, failed requests and server 
         ->assertSee('Installed app')
         ->assertSee('/documents')
         ->assertSee('Boom')
+        ->assertSee('Careful')
+        ->assertSee('Page errors (1)')
         ->assertDontSee('<b>bad</b>', false)
         ->assertSee('POST /documents/42 · 500')
         ->assertSee('req-abc-123')
@@ -108,8 +110,10 @@ it('shows a browser tab as Browser and no warning when the builds match', functi
     $details = $report->diagnostics;
     $details['standalone'] = false;
     $details['client_build'] = 'same';
+    $details['server_version'] = 'same';
     $report->updateQuietly(['diagnostics' => $details]);
-    config()->set('app.version', 'same');
+    // The live deploy differs, but the report was sent when the server ran the same build
+    config()->set('app.version', 'newer');
 
     Livewire::test(ViewFeedbackReport::class, ['record' => $report->getKey()])
         ->assertSee('Browser')

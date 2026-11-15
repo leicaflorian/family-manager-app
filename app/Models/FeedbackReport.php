@@ -62,13 +62,13 @@ final class FeedbackReport extends FamilyModel
     }
 
     /**
-     * How many console errors and warnings the page recorded.
+     * How many console errors the page recorded (warnings are listed in the panel but not counted).
      */
     public function pageErrorCount(): int
     {
         $console = $this->diagnostics['console'] ?? [];
 
-        return is_array($console) ? count($console) : 0;
+        return is_array($console) ? count(array_filter($console, static fn (mixed $line): bool => is_array($line) && ($line['level'] ?? null) === 'error')) : 0;
     }
 
     /**
