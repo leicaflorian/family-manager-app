@@ -6,7 +6,7 @@ namespace App\Support;
 
 /**
  * The icons and colours the mails draw: the icons of `resources/design/mail-icons.json`
- * (drawn as PNG in `public/mail/icons/` by `npm run mail-icons`) and the light colours of
+ * (drawn as PNG in `public/mail-icons/` by `npm run mail-icons`) and the light colours of
  * the design system, made solid because mail programs read neither CSS variables nor
  * colours with transparency.
  */
@@ -54,7 +54,7 @@ final class MailIcons
      */
     public static function src(string $name): string
     {
-        return asset('mail/icons/'.self::name($name).'.png');
+        return asset('mail-icons/'.self::name($name).'.png');
     }
 
     /**

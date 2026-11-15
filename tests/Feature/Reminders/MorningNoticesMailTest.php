@@ -95,7 +95,7 @@ test('each notice has the icon of its area on the colour of the area', function 
     $car = new MorningItem('Get the inspection done', false, false, 'Panda', '2026-11-25', 'https://app.test/cards/vehicle/1', 'vehicles');
     $html = new MorningNoticesMail($user, [$car, item('Renew the policy')], '2026-11-25')->render();
 
-    expect($html)->toContain(asset('mail/icons/vehicles.png'))
-        ->toContain(asset('mail/icons/general.png'))
+    expect($html)->toContain(asset('mail-icons/vehicles.png'))
+        ->toContain(asset('mail-icons/general.png'))
         ->toContain('bgcolor="#e1f2f6"');
 });

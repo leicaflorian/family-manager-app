@@ -130,8 +130,8 @@ test('the mail says hello with the first name of the person tied to the account'
 test('the mails about the account and the report have their icon', function (): void {
     $user = User::factory()->for(Family::factory())->create(['name' => 'Marco Bianchi']);
 
-    expect(notificationHtml(new ResetPassword('the-token')->toMail($user)))->toContain(asset('mail/icons/key.png'))
-        ->and(notificationHtml(new VerifyEmail()->toMail($user)))->toContain(asset('mail/icons/mail.png'));
+    expect(notificationHtml(new ResetPassword('the-token')->toMail($user)))->toContain(asset('mail-icons/key.png'))
+        ->and(notificationHtml(new VerifyEmail()->toMail($user)))->toContain(asset('mail-icons/mail.png'));
 });
 
 test('every icon of the mails has its picture, drawn at twice its size', function (): void {
@@ -139,7 +139,7 @@ test('every icon of the mails has its picture, drawn at twice its size', functio
 
     expect($icons)->not->toBeEmpty();
     foreach (array_keys($icons) as $name) {
-        $size = getimagesize(public_path('mail/icons/'.$name.'.png'));
+        $size = getimagesize(public_path('mail-icons/'.$name.'.png'));
         expect($size)->not->toBeFalse()
             ->and([$size[0] ?? 0, $size[1] ?? 0])->toBe([48, 48]);
     }
