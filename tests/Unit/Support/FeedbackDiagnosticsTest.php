@@ -47,3 +47,13 @@ test('a pixel ratio that is infinite or out of range becomes null', function (fl
     'text' => ['2', null],
     'normal' => [2.5, 2.5],
 ]);
+
+test('the part of an address after # never stays, in pages or in requests', function (): void {
+    $result = FeedbackDiagnostics::normalize([
+        'pages' => [['at' => 'x', 'path' => '/scan#d=secret', 'component' => 'Scan']],
+        'requests' => [['at' => 'x', 'method' => 'GET', 'path' => '/scan?x=1#d=secret', 'status' => 500, 'request_id' => null]],
+    ], 'v1');
+
+    expect($result['pages'][0]['path'])->toBe('/scan')
+        ->and($result['requests'][0]['path'])->toBe('/scan?x=1');
+});

@@ -200,22 +200,40 @@ test('a problem without screenshot or details is still saved', function (): void
         ->and($report->diagnostics)->toBeNull();
 });
 
-test('details that are not JSON, or over 64 KB, are refused with a message, nothing saved', function (string $details): void {
+test('details that are not JSON, or too large, are left out and the report is still saved', function (string $details): void {
     $this->actingAs($this->member)->post(route('feedback.store'), reportFields(['diagnostics' => $details]))
-        ->assertSessionHasErrors('diagnostics');
+        ->assertSessionHasNoErrors();
 
-    expect(allReports())->toBe([]);
+    $report = allReports()[0];
+    expect($report->message)->toBe("L'importo letto è sbagliato.")
+        ->and($report->diagnostics)->toBeNull();
+    Mail::assertQueued(FeedbackReportMail::class);
 })->with([
     'not JSON' => ['{nope'],
-    'over 64 KB' => [fn (): string => '{"x":"'.str_repeat('a', 65536).'"}'],
+    'not an object' => ['"text"'],
+    'over 256 KB' => [fn (): string => '{"x":"'.str_repeat('a', 262144).'"}'],
 ]);
 
-test('a screenshot that is not an image is refused', function (): void {
+test('details between 64 and 256 KB are saved cleaned', function (): void {
+    $console = array_map(fn (int $i): array => ['at' => 'x', 'level' => 'error', 'message' => str_repeat('m', 2000), 'component' => null], range(1, 50));
+
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'diagnostics' => json_encode(['console' => $console], JSON_THROW_ON_ERROR),
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->diagnostics['console'])->toHaveCount(50)
+        ->and(mb_strlen($report->diagnostics['console'][0]['message']))->toBe(500);
+});
+
+test('a screenshot that is not an image is left out and the report is still saved', function (): void {
     $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
         'screenshot' => UploadedFile::fake()->create('page.pdf', 20, 'application/pdf'),
-    ]))->assertSessionHasErrors('screenshot');
+    ]))->assertSessionHasNoErrors();
 
-    expect(allReports())->toBe([]);
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toBeNull()
+        ->and(Storage::disk('local')->allFiles('feedback'))->toBe([]);
 });
 
 test('a pixel ratio that overflows is dropped and the report is still saved', function (): void {

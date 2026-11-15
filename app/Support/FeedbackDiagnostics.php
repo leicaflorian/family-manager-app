@@ -74,7 +74,7 @@ final class FeedbackDiagnostics
         foreach (self::last($list, self::MAX_PAGES) as $entry) {
             $pages[] = [
                 'at' => self::text($entry['at'] ?? null, 40) ?? '',
-                'path' => self::text($entry['path'] ?? null, 2048) ?? '',
+                'path' => self::path($entry['path'] ?? null),
                 'component' => self::text($entry['component'] ?? null, 200),
             ];
         }
@@ -118,7 +118,7 @@ final class FeedbackDiagnostics
             $requests[] = [
                 'at' => self::text($entry['at'] ?? null, 40) ?? '',
                 'method' => self::text($entry['method'] ?? null, 10) ?? '',
-                'path' => self::text($entry['path'] ?? null, 2048) ?? '',
+                'path' => self::path($entry['path'] ?? null),
                 'status' => self::int($entry['status'] ?? null),
                 'request_id' => self::text($entry['request_id'] ?? null, 100),
             ];
@@ -149,6 +149,15 @@ final class FeedbackDiagnostics
     private static function text(mixed $value, int $max): ?string
     {
         return is_string($value) ? mb_substr($value, 0, $max) : null;
+    }
+
+    /**
+     * A path with its query, without the part after `#`: the link of a phone carries its secret there, and that
+     * secret never reaches the server.
+     */
+    private static function path(mixed $value): string
+    {
+        return is_string($value) ? mb_substr(Str::before($value, '#'), 0, 2048) : '';
     }
 
     /**
