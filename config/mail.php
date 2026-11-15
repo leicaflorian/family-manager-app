@@ -39,6 +39,15 @@ return [
 
     'mailers' => [
 
+        'mailgun' => [
+            'transport' => 'mailgun',
+            'domain' => env('MAILGUN_DOMAIN'),
+            'secret' => env('MAILGUN_SECRET'),
+            // Laravel's transport wants a bare host, while `services.mailgun.endpoint` keeps the scheme for `MailgunRoutes`
+            'endpoint' => parse_url((string) env('MAILGUN_ENDPOINT', 'https://api.eu.mailgun.net'), PHP_URL_HOST) ?: 'api.eu.mailgun.net',
+            'scheme' => 'https',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
