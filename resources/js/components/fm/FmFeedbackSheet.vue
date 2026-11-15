@@ -26,7 +26,7 @@ import {
 } from 'vue';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { collectDiagnostics } from '@/lib/diagnostics';
+import { collectDiagnostics, serializeDiagnostics } from '@/lib/diagnostics';
 import type { FeedbackDiagnostics } from '@/lib/diagnostics';
 import { errors } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -78,6 +78,23 @@ const photo = computed((): File | null =>
         ? (props.screenshot ?? null)
         : null,
 );
+
+/** The note under the form: it names the photo only when one goes with the report. */
+const note = computed((): string => {
+    if (values.kind === 'idea') {
+        return trans(
+            'Along with the message we send the page you were on, the device you use and the time. We answer you by email.',
+        );
+    }
+
+    return photo.value
+        ? trans(
+              'Along with the message we send a photo of this page and some technical details, which you can read above. We answer you by email.',
+          )
+        : trans(
+              'Along with the message we send some technical details, which you can read above. We answer you by email.',
+          );
+});
 
 /** The address of the thumbnail of the photo. */
 const photoUrl = ref<string | null>(null);
@@ -140,14 +157,14 @@ function readDiagnostics(): FeedbackDiagnostics | null {
 }
 
 /**
- * The `diagnostics` field of a report of a problem.
+ * The `diagnostics` field of a report of a problem, within the size the server reads.
  *
  * @returns the field, or nothing if the details could not be read
  */
 function diagnosticsField(): { diagnostics?: string } {
     const read = readDiagnostics();
 
-    return read ? { diagnostics: JSON.stringify(read) } : {};
+    return read ? { diagnostics: serializeDiagnostics(read) } : {};
 }
 
 /** A line of *What we send*. */
@@ -171,6 +188,8 @@ const detailRows = computed((): DetailRow[] => {
     );
     const theme =
         d.theme === 'dark' ? trans('dark theme') : trans('light theme');
+    // Counted like the panel of the owner and the email, which count errors only; the list also shows the warnings
+    const errorCount = d.console.filter((c) => c.level === 'error').length;
 
     return [
         { label: trans('Page'), lines: [pagePath.value] },
@@ -180,7 +199,7 @@ const detailRows = computed((): DetailRow[] => {
         },
         {
             label: trans('Page errors (:count)', {
-                count: String(d.console.length),
+                count: String(errorCount),
             }),
             lines: d.console.map((c) => c.message),
         },
@@ -461,17 +480,7 @@ function send(): void {
                 </dl>
             </div>
 
-            <FmNotice>
-                {{
-                    values.kind === 'problem'
-                        ? $t(
-                              'Along with the message we send a photo of this page and some technical details, which you can read above. We answer you by email.',
-                          )
-                        : $t(
-                              'Along with the message we send the page you were on, the device you use and the time. We answer you by email.',
-                          )
-                }}
-            </FmNotice>
+            <FmNotice>{{ note }}</FmNotice>
 
             <div
                 class="flex flex-col gap-1 lg:flex-row-reverse lg:justify-start lg:gap-2.5"

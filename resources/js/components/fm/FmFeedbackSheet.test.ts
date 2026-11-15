@@ -42,7 +42,7 @@ async function openSheet(
 
 describe('FmFeedbackSheet', () => {
     it('asks what it is about, starting from something that does not work', async () => {
-        await openSheet();
+        await openSheet(new File(['png'], 'page.png', { type: 'image/png' }));
 
         expect(
             screen.getByRole('radio', { name: 'Something does not work' }),
@@ -433,6 +433,102 @@ describe('FmFeedbackSheet', () => {
             const data = post.mock.calls[0]?.[1] as Record<string, unknown>;
             expect(data).not.toHaveProperty('diagnostics');
             expect(data.screenshot).toBe(photo);
+        });
+
+        it('without the photo the note does not promise it', async () => {
+            const withPhoto =
+                'Along with the message we send a photo of this page and some technical details, which you can read above. We answer you by email.';
+            const withoutPhoto =
+                'Along with the message we send some technical details, which you can read above. We answer you by email.';
+            await openSheet(photo);
+            expect(screen.getByText(withPhoto)).toBeInTheDocument();
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'Remove the photo of this page',
+                }),
+            );
+
+            expect(screen.getByText(withoutPhoto)).toBeInTheDocument();
+            expect(screen.queryByText(withPhoto)).not.toBeInTheDocument();
+        });
+
+        it('without a screenshot taken the note does not promise it', async () => {
+            await openSheet();
+
+            expect(
+                screen.getByText(
+                    'Along with the message we send some technical details, which you can read above. We answer you by email.',
+                ),
+            ).toBeInTheDocument();
+        });
+
+        it('counts only the errors, like the email, while the list also shows the warnings', async () => {
+            const real = diagnostics.collectDiagnostics();
+            vi.spyOn(diagnostics, 'collectDiagnostics').mockReturnValue({
+                ...real,
+                console: [
+                    {
+                        at: 'x',
+                        level: 'error',
+                        message: 'boom',
+                        component: null,
+                    },
+                    {
+                        at: 'x',
+                        level: 'warn',
+                        message: 'careful',
+                        component: null,
+                    },
+                    {
+                        at: 'x',
+                        level: 'warn',
+                        message: 'again',
+                        component: null,
+                    },
+                ],
+            });
+            await openSheet(photo);
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'What we send (technical details)',
+                }),
+            );
+
+            expect(screen.getByText('Page errors (1)')).toBeInTheDocument();
+            expect(screen.getByText('careful')).toBeInTheDocument();
+        });
+
+        it('sends the details within the size the server reads', async () => {
+            const real = diagnostics.collectDiagnostics();
+            vi.spyOn(diagnostics, 'collectDiagnostics').mockReturnValue({
+                ...real,
+                requests: Array.from({ length: 20 }, (_, i) => ({
+                    at: 'x',
+                    method: 'GET',
+                    path: `/r${i}?${'q'.repeat(2040)}`,
+                    status: 500,
+                    request_id: null,
+                })),
+                console: Array.from({ length: 50 }, (_, i) => ({
+                    at: 'x',
+                    level: 'error' as const,
+                    message: `${i} ${'é'.repeat(495)}`,
+                    component: null,
+                })),
+            });
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            await openSheet(photo);
+
+            await write();
+            await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+            await settle();
+
+            const data = post.mock.calls[0]?.[1] as Record<string, unknown>;
+            expect(
+                new TextEncoder().encode(data.diagnostics as string).length,
+            ).toBeLessThanOrEqual(diagnostics.MAX_SERIALIZED_BYTES);
         });
     });
 });
