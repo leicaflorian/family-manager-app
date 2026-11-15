@@ -1,6 +1,6 @@
 /**
  * Draws the icons of the mails (`resources/design/mail-icons.json`) as 48 px PNG files
- * in `public/mail/icons/`: mail programs do not draw the SVG of Lucide, so the icons
+ * in `public/mail-icons/`: mail programs do not draw the SVG of Lucide, so the icons
  * travel as pictures, in the colour of the design system (`resources/design/tokens.json`).
  * Runs in the Sail container, which has `rsvg-convert`: `npm run mail-icons`.
  */
@@ -93,7 +93,7 @@ try {
             '-h',
             String(SIZE),
             '-o',
-            `public/mail/icons/${name}.png`,
+            `public/mail-icons/${name}.png`,
             file,
         ]);
     }
@@ -101,4 +101,4 @@ try {
     rmSync(work, { recursive: true, force: true });
 }
 
-console.log(`${Object.keys(icons).length} icons in public/mail/icons`);
+console.log(`${Object.keys(icons).length} icons in public/mail-icons`);

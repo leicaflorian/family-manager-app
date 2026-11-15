@@ -161,7 +161,7 @@ test('the email has a button to answer who wrote and names the attached file', f
         ->assertSeeInHtml('mailto:giulia@example.com')
         ->assertSeeInHtml('Reply to Giulia')
         ->assertSeeInHtml('Attached: schermata.png')
-        ->assertSeeInHtml(asset('mail/icons/alert.png'))
+        ->assertSeeInHtml(asset('mail-icons/alert.png'))
         ->assertSeeInHtml('You get this email because you look after Fameja.app.');
 });
 
