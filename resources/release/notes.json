@@ -1,5 +1,19 @@
 [
     {
+        "version": "2.1.4",
+        "date": "2026-11-15",
+        "notes": {
+            "it": [
+                "Risolto un errore che poteva far non aprire alcune pagine con tanti file, come la scheda di una polizza.",
+                "Le segnalazioni di un problema ora contengono meno messaggi inutili, così sono più facili da leggere."
+            ],
+            "en": [
+                "Fixed an error that could stop some pages with many files from opening, such as a policy card.",
+                "Problem reports now include fewer useless messages, so they are easier to read."
+            ]
+        }
+    },
+    {
         "version": "2.1.3",
         "date": "2026-11-15",
         "notes": {

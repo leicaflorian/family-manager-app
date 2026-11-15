@@ -2,6 +2,14 @@
 
 All notable changes to Fameja.app.
 
+## [2.1.4] - 2026-11-15
+
+### Production
+- Fixed 502 on pages with many files (for example a card page): the `Link` preload header now lists at most 20 files, and nginx's FastCGI buffer is raised to 16k, so headers plus cookies no longer exceed the limit ("upstream sent too big header").
+
+### Feedback reports
+- Browser diagnostics now leave out the harmless ResizeObserver loop message and FormKit Pro's warning for an empty datepicker, so reports show only real problems.
+
 ## [2.1.3] - 2026-11-15
 
 ### Public assets
