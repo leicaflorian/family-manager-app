@@ -1,5 +1,29 @@
 [
     {
+        "version": "2.1.0",
+        "date": "2026-11-15",
+        "notes": {
+            "it": [
+                "Nell'Agenda c'è una nuova vista calendario: vedi il mese intero e, toccando un giorno, l'elenco di quello che c'è da fare.",
+                "La vista che scegli nell'Agenda viene ricordata la volta dopo.",
+                "Puoi collegare l'Agenda al calendario di Google, Apple o Outlook, con i passaggi spiegati uno per uno.",
+                "Quando paghi una quota di un abbonamento, il promemoria del rinnovo collegato risulta fatto e compare una riga sola, non due.",
+                "Le settimane del calendario vanno dal lunedì alla domenica, e i mesi sono scritti in italiano.",
+                "Nella somma del mese non vengono più contate le entrate.",
+                "Un pagamento già fatto dice «Pagato» e ti porta alla sua scadenza."
+            ],
+            "en": [
+                "The Agenda has a new calendar view: you see the whole month and, by tapping a day, the list of what's on that day.",
+                "The view you pick in the Agenda is remembered next time.",
+                "You can connect the Agenda to Google, Apple or Outlook calendar, with the steps explained one by one.",
+                "When you pay a subscription fee, its renewal reminder is marked done and shows as a single row instead of two.",
+                "Calendar weeks run from Monday to Sunday.",
+                "The monthly sum no longer counts incomes.",
+                "A payment that is already made says \"Paid\" and takes you to its due date."
+            ]
+        }
+    },
+    {
         "version": "2.0.0",
         "date": "2026-11-15",
         "notes": {

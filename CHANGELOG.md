@@ -2,6 +2,19 @@
 
 All notable changes to Fameja.app.
 
+## [2.1.0] - 2026-11-15
+
+### Agenda
+- New calendar view: a month grid (bounded to 24 months from today) with a day list that follows the chosen day; the chosen view is remembered.
+- Month data carries open and done entries; a paid subscription fee and the done renewal reminder it carries now show as one done row; incomes are left out of the month sum; weeks run Monday to Sunday.
+- `FmMonthGrid` draws the weeks the server sends (4 to 6) as a labelled group, each day named with its weekday; short months in Italian.
+- New *Connect a calendar* panel (`FmCalendarLink`) with the address and the steps for Google, Apple and Outlook; the address is sent only on a partial reload that asks for it and never during an owner visit. The Settings calendar page reuses the same component.
+- `FmAgendaRow` gets a compact variant for the day list and a checked state; `FmTabs` supports icon tabs; `FmAgendaPanel` shows *Paid* for a paid payment and links to its due date.
+
+### CI
+- `ci.yml` runs only for a release (called by `release.yml` on the tag) or by hand, as parallel jobs (static checks, Pest, two Vitest shards) sharing a setup action.
+- Tests: the build version is `__APP_BUILD__`, async queries wait 3 s, FormKit Pro's late key check is ignored in Vitest.
+
 ## [2.0.0] - 2026-11-15
 
 ### App
