@@ -71,7 +71,8 @@ return [
             'region' => env('BACKUP_S3_REGION'),
             'bucket' => env('BACKUP_S3_BUCKET'),
             'endpoint' => env('BACKUP_S3_ENDPOINT'),
-            'root' => env('BACKUP_S3_ROOT', 'family-manager-app/files'),
+            // `?:`: an empty variable must never write at the root of the Space
+            'root' => env('BACKUP_S3_ROOT') ?: 'family-manager-app/files',
             'use_path_style_endpoint' => false,
             'visibility' => 'private',
             'throw' => true,

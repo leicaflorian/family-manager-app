@@ -93,3 +93,15 @@ it('schedules the backup only when the bucket is set', function (): void {
         unset($_ENV['BACKUP_S3_BUCKET']);
     }
 });
+
+it('never writes at the root of the Space, even with an empty BACKUP_S3_ROOT', function (): void {
+    putenv('BACKUP_S3_ROOT=');
+    $_ENV['BACKUP_S3_ROOT'] = '';
+    $this->refreshApplication();
+    try {
+        expect(config('filesystems.disks.backup.root'))->toBe('family-manager-app/files');
+    } finally {
+        putenv('BACKUP_S3_ROOT');
+        unset($_ENV['BACKUP_S3_ROOT']);
+    }
+});
