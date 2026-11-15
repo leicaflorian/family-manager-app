@@ -61,3 +61,10 @@ test('the schema and the parser agree', function (): void {
         ->and($schema['properties']['notes']['properties']['it']['maxItems'])->toBe(8)
         ->and($schema['properties']['notes']['properties']['en']['maxItems'])->toBe(8);
 });
+
+test('the schema names no meta-schema, which the claude CLI may not know', function (): void {
+    // `claude --json-schema` stops with "no schema with key or ref" on the draft 2020-12 URI.
+    $schema = json_decode((string) file_get_contents(base_path('resources/release/response.schema.json')), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($schema)->not->toHaveKey('$schema');
+});
