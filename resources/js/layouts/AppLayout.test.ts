@@ -431,7 +431,7 @@ describe('AppLayout', () => {
         await userEvent.click(
             within(screen.getByRole('dialog', { name: 'More' })).getByRole(
                 'button',
-                { name: 'Report a problem or an idea' },
+                { name: /^Report a problem or an idea/ },
             ),
         );
 

@@ -215,7 +215,12 @@ function itemClasses(marked: boolean): string {
                     />
                 </template>
             </FmRow>
-            <FmRow :title="items.feedback.label" button @click="report">
+            <FmRow
+                :title="items.feedback.label"
+                :subtitle="items.feedback.hint"
+                button
+                @click="report"
+            >
                 <template #before>
                     <FmIcon
                         :icon="items.feedback.icon"

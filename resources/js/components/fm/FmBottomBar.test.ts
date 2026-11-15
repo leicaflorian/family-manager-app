@@ -125,12 +125,12 @@ describe('FmBottomBar', () => {
         await userEvent.click(screen.getByRole('button', { name: 'More' }));
         const sheet = screen.getByRole('dialog', { name: 'More' });
         expect(sheet.textContent).toMatch(
-            /Settings.*Report a problem or an idea.*Log out/,
+            /Settings.*Report a problem or an idea.*It reaches who makes Family Manager.*Log out/,
         );
 
         await userEvent.click(
             within(sheet).getByRole('button', {
-                name: 'Report a problem or an idea',
+                name: /^Report a problem or an idea/,
             }),
         );
 

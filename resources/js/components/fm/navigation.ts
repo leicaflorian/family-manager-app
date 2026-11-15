@@ -79,6 +79,8 @@ export type AddItem = {
 export type PanelItem = {
     /** The text of the item, already translated. */
     label: string;
+    /** The line below the label in More on the phone. */
+    hint: string;
     /** The Lucide icon. */
     icon: LucideIcon;
 };
@@ -199,6 +201,7 @@ export function navigationItems(): NavigationItems {
         logout: logout().url,
         feedback: {
             label: trans('Report a problem or an idea'),
+            hint: trans('It reaches who makes Family Manager'),
             icon: MessageSquareWarning,
         },
     };
