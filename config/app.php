@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use App\Support\AppVersion;
 
 return [
 
@@ -18,9 +19,9 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
-    | The version of the code that runs: the commit Coolify builds from.
+    | The version of the code that runs: the content of the VERSION file (`dev` when it is missing).
     */
-    'version' => env('SOURCE_COMMIT', 'dev'),
+    'version' => AppVersion::read(base_path('VERSION')),
 
     /*
     |--------------------------------------------------------------------------
