@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Actions\Diagnostics\RecordServerError;
 use App\Http\Middleware\AddRobotsHeader;
 use App\Http\Middleware\ApplyInstallationSettings;
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\BlockSuspendedFamily;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitLinkedDevice;
@@ -28,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['sidebar_state']);
 
+        // First, so that every log line of the request, even one of an early middleware, carries the id
+        $middleware->prepend(AssignRequestId::class);
         $middleware->append(AddRobotsHeader::class);
 
         $middleware->web(append: [
@@ -49,6 +53,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: SignInLinkedDevice::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // No `stop()`: the error still goes to the log
+        $exceptions->report(fn (Throwable $e) => resolve(RecordServerError::class)->handle($e));
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request): bool => $request->is('api/*') || $request->expectsJson(),
         );

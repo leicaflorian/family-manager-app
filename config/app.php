@@ -18,6 +18,11 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+    | The version of the code that runs: the commit Coolify builds from.
+    */
+    'version' => env('SOURCE_COMMIT', 'dev'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

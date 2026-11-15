@@ -137,12 +137,14 @@ function keepOpenForMenu(event: KeyboardEvent): void {
     <DialogRoot :open="open" @update:open="change">
         <DialogPortal>
             <DialogOverlay
+                data-no-screenshot
                 :class="above ? 'z-[60]' : 'z-40'"
                 class="fixed inset-0 bg-overlay duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             />
             <DialogContent
                 :aria-describedby="undefined"
                 data-sheet
+                data-no-screenshot
                 @keydown.capture="noteEscape"
                 @escape-key-down="keepOpenForMenu"
                 @open-auto-focus="focusMarked"
