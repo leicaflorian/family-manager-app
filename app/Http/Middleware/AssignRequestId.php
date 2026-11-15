@@ -28,6 +28,8 @@ final class AssignRequestId
     {
         $id = (string) Str::uuid();
         Context::add('request_id', $id);
+        // A queued job inherits the context but not this attribute: it tells a real request from a job
+        $request->attributes->set('request_id', $id);
 
         $response = $next($request);
         $response->headers->set(self::HEADER, $id);

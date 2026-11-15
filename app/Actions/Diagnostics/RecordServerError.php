@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Actions\Diagnostics;
 
 use App\Models\ServerError;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Str;
 use Throwable;
@@ -22,17 +21,21 @@ final class RecordServerError
     public function handle(Throwable $exception): void
     {
         try {
-            // The request id is set by the middleware, so it tells a web request from a command or a job
-            $request = Context::has('request_id') ? request() : null;
+            // A job inherits the context (request id, account) but its `request()` is a console fake: only a request
+            // that went through AssignRequestId carries the same id as an attribute. An error thrown before that
+            // middleware runs has no request id, and so no method and path either.
+            $requestId = Context::get('request_id');
+            $request = request();
+            $isWebRequest = is_string($requestId) && $request->attributes->get('request_id') === $requestId;
             $userId = Context::get('user_id');
             $familyId = Context::get('family_id');
 
             ServerError::create([
-                'request_id' => Context::get('request_id'),
+                'request_id' => $requestId,
                 'user_id' => is_int($userId) ? $userId : null,
                 'family_id' => is_int($familyId) ? $familyId : null,
-                'method' => $request?->method(),
-                'path' => $request instanceof Request ? Str::limit($request->getRequestUri(), 2048, '') : null,
+                'method' => $isWebRequest ? $request->method() : null,
+                'path' => $isWebRequest ? Str::limit('/'.ltrim($request->path(), '/'), 2048, '') : null,
                 'class' => $exception::class,
                 'message' => Str::limit($exception->getMessage(), 500, ''),
                 'file' => Str::limit($exception->getFile(), 500, ''),

@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Actions\Diagnostics\RecordServerError;
 use App\Models\Family;
 use App\Models\ServerError;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
@@ -18,7 +20,7 @@ beforeEach(function (): void {
 test('a reported error leaves a row', function (): void {
     $member = User::factory()->for(registerFamily()->family)->create();
 
-    $response = $this->actingAs($member)->get('/_boom');
+    $response = $this->actingAs($member)->get('/_boom?q=secret');
 
     $response->assertStatus(500);
     $row = ServerError::sole();
@@ -89,4 +91,17 @@ test('forReport takes only the account\'s rows of the 30 minutes before, and its
             'request_id' => $inWindow->request_id, 'class' => $inWindow->class, 'message' => $inWindow->message,
         ])
         ->and($inWindow->toReportArray()['at'])->toBe($inWindow->created_at?->toIso8601String());
+});
+
+test('an error in a job keeps the account and request id but no method or path', function (): void {
+    // A job inherits the context of the request that queued it, while its request() is the console fake
+    Context::add(['request_id' => 'req-queued', 'user_id' => 7, 'family_id' => 3]);
+
+    app(RecordServerError::class)->handle(new RuntimeException('late'));
+
+    $row = ServerError::sole();
+    expect($row->request_id)->toBe('req-queued')
+        ->and($row->user_id)->toBe(7)
+        ->and($row->method)->toBeNull()
+        ->and($row->path)->toBeNull();
 });
