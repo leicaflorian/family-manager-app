@@ -84,6 +84,8 @@ RUN rm -rf node_modules
 ############################################
 FROM base AS production
 
+# NGINX_FASTCGI_BUFFER_SIZE: the room nginx keeps for the headers from PHP. With the image's 8k a page with many
+# preloaded files (the Link header) and the cookies went over it: "upstream sent too big header", 502.
 ENV AUTORUN_ENABLED=true \
     AUTORUN_LARAVEL_MIGRATION_TIMEOUT=60 \
     PHP_OPCACHE_ENABLE=1 \
@@ -96,7 +98,8 @@ ENV AUTORUN_ENABLED=true \
     S6_SERVICES_GRACETIME=30000 \
     S6_KILL_GRACETIME=5000 \
     LOG_CHANNEL=stderr \
-    TRUSTED_PROXY=off
+    TRUSTED_PROXY=off \
+    NGINX_FASTCGI_BUFFER_SIZE=16k
 
 # A small droplet shared with Directus: at most 6 PHP-FPM children of 256 MB (the image's default is 20), and the
 # queue worker restarts past 256 MB (--memory). On SIGTERM S6 gives the services 30 s to end (an AI reading takes
