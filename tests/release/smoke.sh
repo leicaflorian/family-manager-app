@@ -53,6 +53,11 @@ EOF
 host=$1; shift
 echo "ssh $host" >> "$STUB_ROOT/calls.log"
 [ "${STUB_SSH:-ok}" = fail ] && { echo "ssh: connect to host $host: Connection refused" >&2; exit 255; }
+# steal: leave the clone on dev with main checked out elsewhere, so the cleanup cannot check out main.
+if [ "${STUB_SSH:-ok}" = steal ]; then
+    git checkout -q dev && git worktree add -q "$STUB_ROOT/elsewhere" main 2> /dev/null
+    exit 255
+fi
 cmd="$*"
 cmd=${cmd//\/root\/backups/$STUB_ROOT/backups}
 # The path printed back is the one on the droplet, as the script expects.
@@ -121,7 +126,9 @@ new_fixture() {
 run_release() {
     env RELEASE_CLAUDE="$T/bin/claude" RELEASE_ARTISAN="$T/bin/sail artisan" \
         RELEASE_SSH="$T/bin/ssh family-manager-prod" RELEASE_REMOTE=origin \
-        "$@" bash ./release > "$T/out" 2>&1 < /dev/null
+        "$@" bash ./release > "$T/out" 2>&1 < /dev/null &
+    echo $! > "$T/release.pid"
+    wait $!
     CODE=$?
 }
 
@@ -304,5 +311,48 @@ restored "$before"
 check "claude not called" not_called claude
 check "says the merge conflicts" contains "conflict"
 finish "8. conflicting main, merge aborted"
+
+# 9. The remote accepts main but rejects the tag: the atomic push lands nothing, so restoring is right.
+new_fixture
+before=$(git rev-parse origin/main)
+cat > "$T/remote.git/hooks/update" <<'HOOK'
+#!/usr/bin/env bash
+case "$1" in refs/tags/*) echo "tags are not allowed" >&2; exit 1 ;; esac
+HOOK
+chmod +x "$T/remote.git/hooks/update"
+run_release
+restored "$before"
+check "no remote tag" sh -c "! git ls-remote --exit-code '$T/remote.git' 'refs/tags/*'"
+check "no local tag" sh -c "[ -z \"\$(git tag -l 'v*')\" ]"
+finish "9. remote rejects the tag, atomic push, everything restored"
+
+# 10. Ctrl-C after the remote accepted the push: nothing is undone.
+new_fixture
+cat > "$T/remote.git/hooks/post-receive" <<HOOK
+#!/usr/bin/env bash
+# TERM: a background job of a non-interactive shell ignores INT; the script traps both alike.
+kill -TERM "\$(cat '$T/release.pid')"
+HOOK
+chmod +x "$T/remote.git/hooks/post-receive"
+run_release
+git fetch -q origin
+check "exit code not 0" test "$CODE" -ne 0
+check "release pushed" test "$(git log -1 --format=%s origin/main)" = "Release v2.0.0"
+check "says it is pushed" contains "are pushed"
+check "does not say Restoring" sh -c "! grep -q Restoring '$T/out'"
+check "local main kept the release" equal main origin/main
+check "local tag kept" git rev-parse -q --verify refs/tags/v2.0.0
+finish "10. interrupted after the push, nothing undone"
+
+# 11. main cannot be checked out during the cleanup: dev is never reset.
+new_fixture
+dev_before=$(git rev-parse dev)
+run_release STUB_SSH=steal
+check "exit code not 0" test "$CODE" -ne 0
+check "dev untouched" test "$(git rev-parse dev)" = "$dev_before"
+check "says main could not be checked out" contains "Could not check out main"
+check "remote main untouched" equal origin/main "$(git ls-remote "$T/remote.git" refs/heads/main | cut -f1)"
+check "no local tag" sh -c "[ -z \"\$(git tag -l 'v*')\" ]"
+finish "11. main cannot be checked out, dev never reset"
 
 exit $FAILED

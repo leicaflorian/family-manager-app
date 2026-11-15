@@ -25,6 +25,8 @@ MYSQL_CONTAINER=xwdxjjleppacin2ses4d93xe
 STAGE=none
 TAG=""
 TAG_CREATED=0
+PUSH_TRIED=0
+REMOTE_MAIN_START=""
 WORK=""
 
 step() { printf '==> %s\n' "$*"; }
@@ -39,22 +41,44 @@ cleanup() {
     local status=$?
     [ -n "$WORK" ] && rm -rf "$WORK"
     [ "$status" -eq 0 ] && return 0
+    if [ "$STAGE" = main ] && [ "$PUSH_TRIED" -eq 1 ]; then
+        # The push may have been accepted (a Ctrl-C after the remote took it): never undo a pushed release.
+        local remote_main
+        remote_main=$(git ls-remote "$REMOTE" refs/heads/main 2> /dev/null | cut -f1 || true)
+        if [ -z "$remote_main" ]; then
+            printf 'Could not read %s/main after the push: check it by hand, nothing restored.\n' "$REMOTE" >&2
+            STAGE=unknown
+        elif [ "$remote_main" != "$REMOTE_MAIN_START" ]; then
+            STAGE=pushed
+        fi
+    fi
     case "$STAGE" in
         main)
             printf 'Restoring: main back to %s/main, back on dev.\n' "$REMOTE" >&2
-            git rev-parse -q --verify MERGE_HEAD > /dev/null && git merge --abort || true
-            git checkout -q -f main || true
-            git reset -q --hard "$REMOTE/main" || true
-            # The release files are new on a first release: reset leaves them untracked.
-            local file
-            for file in "${RELEASE_FILES[@]}"; do
-                git ls-files --error-unmatch "$file" > /dev/null 2>&1 || rm -f "$file"
-            done
-            [ "$TAG_CREATED" -eq 1 ] && git tag -d "$TAG" > /dev/null || true
-            git checkout -q dev || true
+            if git rev-parse -q --verify MERGE_HEAD > /dev/null; then
+                git merge --abort || true
+            fi
+            # Every reset is guarded: a reset on another branch (dev) would lose work.
+            if git checkout -q -f main && [ "$(git symbolic-ref --short -q HEAD)" = main ]; then
+                if git reset -q --hard "$REMOTE/main"; then
+                    # The release files are new on a first release: reset leaves them untracked.
+                    local file
+                    for file in "${RELEASE_FILES[@]}"; do
+                        git ls-files --error-unmatch "$file" > /dev/null 2>&1 || rm -f "$file"
+                    done
+                else
+                    printf 'Could not reset main to %s/main: fix it by hand.\n' "$REMOTE" >&2
+                fi
+            else
+                printf 'Could not check out main: fix it by hand (git checkout main && git reset --hard %s/main).\n' "$REMOTE" >&2
+            fi
+            if [ "$TAG_CREATED" -eq 1 ]; then
+                git tag -d "$TAG" > /dev/null || printf 'Could not delete the local tag %s: git tag -d %s\n' "$TAG" "$TAG" >&2
+            fi
+            git checkout -q dev || printf 'Could not go back to dev: git checkout dev\n' >&2
             ;;
         pushed)
-            printf 'main and %s are pushed. Finish by hand:\n  git checkout dev && git merge --ff-only main && git push %s dev\n' \
+            printf 'main and %s are pushed (production deploys). Finish by hand:\n  git checkout dev && git merge --ff-only main && git push %s dev\n' \
                 "$TAG" "$REMOTE" >&2
             ;;
     esac
@@ -87,6 +111,7 @@ rm -f "$HANDOFF/response.json" "$HANDOFF/version" "$HANDOFF/tag-message.md"
 git fetch -q --tags "$REMOTE" || fail "git fetch $REMOTE failed."
 [ "$(git rev-parse dev)" = "$(git rev-parse "$REMOTE/dev")" ] || fail "dev is not equal to $REMOTE/dev (pull or push first)."
 [ "$(git rev-parse main)" = "$(git rev-parse "$REMOTE/main")" ] || fail "main is not equal to $REMOTE/main."
+REMOTE_MAIN_START=$(git rev-parse "$REMOTE/main")
 command -v "$CLAUDE_CMD" > /dev/null || fail "$CLAUDE_CMD is not in the PATH."
 command -v jq > /dev/null || fail "jq is not installed."
 if [ "$ARTISAN_CMD" = "$DEFAULT_ARTISAN" ]; then
@@ -183,7 +208,9 @@ fi
 
 # 8. Push main with the tag, then bring dev up to date.
 step "Pushing main and $TAG"
-git push -q "$REMOTE" main --follow-tags
+# Atomic: main and the tag land together or not at all.
+PUSH_TRIED=1
+git push --atomic -q "$REMOTE" main --follow-tags
 STAGE=pushed
 step "Bringing dev up to date"
 git checkout -q dev
