@@ -1922,5 +1922,15 @@
     "light theme": "tema chiaro",
     "dark theme": "tema scuro",
     "Along with the message we send a photo of this page and some technical details, which you can read above. We answer you by email.": "Insieme al messaggio mandiamo una foto di questa pagina e qualche dettaglio tecnico, che puoi leggere qui sopra. Ti rispondiamo per email.",
-    "Along with the message we send some technical details, which you can read above. We answer you by email.": "Insieme al messaggio mandiamo qualche dettaglio tecnico, che puoi leggere qui sopra. Ti rispondiamo per email."
+    "Along with the message we send some technical details, which you can read above. We answer you by email.": "Insieme al messaggio mandiamo qualche dettaglio tecnico, che puoi leggere qui sopra. Ti rispondiamo per email.",
+    "Portrait": "Verticale",
+    "Landscape": "Orizzontale",
+    "Light theme": "Tema chiaro",
+    "Dark theme": "Tema scuro",
+    "On a phone": "Da telefono",
+    "Method": "Metodo",
+    "Path": "Percorso",
+    "Request id": "Id della richiesta",
+    "Request": "Richiesta",
+    "Error": "Errore"
 }

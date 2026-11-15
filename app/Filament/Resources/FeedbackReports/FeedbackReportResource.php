@@ -8,6 +8,7 @@ use App\Admin\FeedbackReports;
 use App\Filament\Resources\Families\FamilyResource;
 use App\Filament\Resources\FeedbackReports\Pages\ListFeedbackReports;
 use App\Filament\Resources\FeedbackReports\Pages\ViewFeedbackReport;
+use App\Filament\Resources\FeedbackReports\Schemas\FeedbackDiagnosticsSchema;
 use App\Models\FeedbackReport;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
@@ -132,9 +133,7 @@ final class FeedbackReportResource extends Resource
             Section::make(__('Screenshot'))
                 ->visible(static fn (FeedbackReport $record): bool => $record->screenshot_path !== null)
                 ->schema([ViewEntry::make('screenshot')->hiddenLabel()->view('filament.feedback.screenshot')]),
-            Section::make(__('Technical details'))
-                ->visible(static fn (FeedbackReport $record): bool => $record->diagnostics !== null || $record->server_errors !== null)
-                ->schema([ViewEntry::make('diagnostics')->hiddenLabel()->view('filament.feedback.diagnostics')]),
+            ...FeedbackDiagnosticsSchema::sections(),
         ]);
     }
 

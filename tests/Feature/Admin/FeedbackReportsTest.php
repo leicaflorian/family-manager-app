@@ -97,12 +97,30 @@ it('shows the screenshot, device, path, page errors, failed requests and server 
         ->assertSee('Careful')
         ->assertSee('Page errors (1)')
         ->assertDontSee('<b>bad</b>', false)
-        ->assertSee('POST /documents/42 · 500')
         ->assertSee('req-abc-123')
         ->assertSee('RuntimeException')
         ->assertDontSee('<i>x</i>', false)
         ->assertSee('build-old')
         ->assertSee('Different from the server');
+});
+
+it('lays the technical details out as fields and tables, with readable values', function (): void {
+    $report = FeedbackReport::factory()->withDiagnostics()->for($this->rossi)->createQuietly();
+
+    Livewire::test(ViewFeedbackReport::class, ['record' => $report->getKey()])
+        // Lists as Filament tables, one row per entry, a column per part
+        ->assertSee('fi-in-table-repeatable', false)
+        ->assertSeeInOrder(['When', 'Path', 'Component'])
+        ->assertSeeInOrder(['When', 'Level', 'Message', 'Component'])
+        ->assertSeeInOrder(['When', 'Method', 'Path', 'Status', 'Request id'])
+        ->assertSeeInOrder(['When', 'Request', 'Error', 'Where'])
+        ->assertSeeInOrder(['POST', '/documents/42', '500', 'req-abc-123'])
+        ->assertSee('app/Foo.php:12')
+        // Values in words, not the browser's codes
+        ->assertSee('Portrait')
+        ->assertDontSee('portrait')
+        ->assertSee('Dark')
+        ->assertSee('On a phone');
 });
 
 it('shows a server error of a queued job without an empty method and path', function (): void {
@@ -114,7 +132,8 @@ it('shows a server error of a queued job without an empty method and path', func
     ]);
 
     Livewire::test(ViewFeedbackReport::class, ['record' => $report->getKey()])
-        ->assertSee('14:45:32 · req-job-1')
+        ->assertSee('15/11/2026 14:45:32')
+        ->assertSee('req-job-1')
         ->assertDontSee('·  ·');
 });
 
