@@ -148,7 +148,7 @@ describe('A card', () => {
         const panda = screen.getByRole('link', { name: 'Fiat Panda' });
         expect(panda).toHaveAttribute('href', '/cards/vehicle/1');
         expect(panda).toHaveAttribute('target', '_blank');
-        expect(panda).toHaveClass('hover:text-action');
+        expect(panda).toHaveClass('text-action');
     });
 
     it('shows a notice with its title, its text and its action', () => {

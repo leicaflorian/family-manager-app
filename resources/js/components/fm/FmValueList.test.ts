@@ -34,6 +34,20 @@ describe('FmValueList', () => {
         ).toHaveAttribute('target', '_blank');
     });
 
+    it.each([false, true])(
+        'writes a link in the primary colour (new tab: %s)',
+        (newTab) => {
+            render(FmValueList, { props: { values, newTab } });
+
+            expect(
+                screen.getByRole('link', { name: /Scuola Passo a Due/ }),
+            ).toHaveClass('text-action');
+            expect(screen.getByText('Carta Laura')).not.toHaveClass(
+                'text-action',
+            );
+        },
+    );
+
     it('shows the icon of a value before its text', () => {
         const { container } = render(FmValueList, {
             props: {
