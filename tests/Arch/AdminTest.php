@@ -9,13 +9,14 @@ declare(strict_types=1);
 
 /**
  * The models the panel may use: it shows accounts, linked phones, costs and its own log, never family content.
- * `Owner` and `OwnerAction` are the panel's own tables (`OwnerAction` arrives with the owner log).
+ * `Owner` and `OwnerAction` are the panel's own tables (`OwnerAction` arrives with the owner log). `FeedbackReport` is
+ * the one exception decided by the owner (15/11/2026): a report the person sends to the owner on purpose.
  *
  * @return list<class-string>
  */
 function modelsOfFamilyContent(): array
 {
-    $allowed = ['Family', 'User', 'LinkedDevice', 'AiReading', 'MailInboxCall', 'OwnerAction', 'Owner', 'AppSetting', 'FamilyModel'];
+    $allowed = ['Family', 'User', 'LinkedDevice', 'AiReading', 'MailInboxCall', 'OwnerAction', 'Owner', 'AppSetting', 'FamilyModel', 'FeedbackReport'];
     $models = [];
 
     foreach (glob(dirname(__DIR__, 2).'/app/Models/*.php') ?: [] as $file) {
