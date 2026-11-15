@@ -32,9 +32,30 @@
 
         @fonts
 
+        {{-- What search engines and link previews read without running the pages: see App\\Support\\PageMeta. --}}
+        <meta name="description" content="{{ $head->description }}">
+        @if ($head->indexable)
+            <link rel="canonical" href="{{ $head->canonical }}">
+        @else
+            <meta name="robots" content="noindex, nofollow">
+        @endif
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="{{ config('app.name') }}">
+        <meta property="og:title" content="{{ $head->title }}">
+        <meta property="og:description" content="{{ $head->description }}">
+        @if ($head->canonical)
+            <meta property="og:url" content="{{ $head->canonical }}">
+        @endif
+        <meta property="og:image" content="{{ $head->image }}">
+        <meta property="og:image:width" content="{{ App\Support\PageMeta::IMAGE_WIDTH }}">
+        <meta property="og:image:height" content="{{ App\Support\PageMeta::IMAGE_HEIGHT }}">
+        <meta property="og:image:alt" content="{{ config('app.name') }}">
+        <meta property="og:locale" content="{{ $head->locale }}">
+        <meta name="twitter:card" content="summary_large_image">
+
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>{{ $head->title }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">
