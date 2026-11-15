@@ -128,7 +128,8 @@ final class AdminHostTest extends TestCase
         $this->bootWithAdminDomain();
         $owner = Owner::factory()->withAuthenticator()->create();
 
-        // The session cookie is host-only: it is never sent to the host of the app
+        // The session cookie is host-only: no `SESSION_DOMAIN`, so it is never sent to the host of the app
+        $this->assertNull(config('session.domain'));
         $this->assertNull($this->sessionCookie($this->get(self::ADMIN.'/login'))->getDomain());
 
         $response = $this->actingAs($owner, 'owner')->get(self::ADMIN.'/');

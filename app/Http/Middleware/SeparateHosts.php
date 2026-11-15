@@ -51,6 +51,7 @@ final readonly class SeparateHosts
      *
      * @param  Request  $request  the request
      * @param  Closure(Request): Response  $next  the next middleware
+     * @return Response the response of the next middleware
      */
     public function handle(Request $request, Closure $next): Response
     {
