@@ -164,7 +164,7 @@ async function copy(): Promise<void> {
                 v-if="calendar.can_change && settingsHref"
                 variant="text"
                 :href="settingsHref"
-                class="self-start"
+                class="h-auto! min-h-control self-start py-2 text-left whitespace-normal!"
                 >{{
                     $t(
                         'Change the address or turn off the calendar in Settings',
