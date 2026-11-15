@@ -20,6 +20,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConnectController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileReadingController;
 use App\Http\Controllers\HomeController;
@@ -136,6 +137,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('notices', [NoticeController::class, 'index'])->name('notices');
         Route::post('notices/read', [NoticeController::class, 'readAll'])->name('notices.read-all');
         Route::post('notices/{notice}/read', [NoticeController::class, 'read'])->name('notices.read')->whereNumber('notice');
+        Route::post('feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,60')->name('feedback.store');
         Route::get('areas', [AreaController::class, 'index'])->name('areas');
         Route::get('areas/{area}', [AreaController::class, 'show'])->name('areas.show');
 

@@ -170,3 +170,7 @@ test('a linked phone cannot open the global search', function (): void {
     linkedPhone()->get(route('search', ['q' => 'Panda']))->assertRedirect(route('scan'));
     linkedPhone()->get(route('search.suggest', ['q' => 'Panda']))->assertRedirect(route('scan'));
 });
+
+test('a linked phone cannot send a report', function (): void {
+    linkedPhone()->post(route('feedback.store'), ['kind' => 'idea', 'message' => 'Ciao', 'page' => '/scan'])->assertForbidden();
+});

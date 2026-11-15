@@ -1842,5 +1842,13 @@
     "Show earlier months": "Mostra i mesi prima",
     "Reopen: :name": "Riapri: :name",
     "task done": "fatto",
-    "deadline done": "fatta"
+    "deadline done": "fatta",
+    "Thanks, we will answer you by email.": "Grazie, ti rispondiamo per email.",
+    "New report: :kind": "Nuova segnalazione: :kind",
+    "An account no longer there": "Un account che non c'è più",
+    ":name (:email), :family family, wrote on :date:": ":name (:email), famiglia :family, ha scritto il :date:",
+    "Page": "Pagina",
+    "Layout": "Disposizione",
+    "Device": "Dispositivo",
+    "Answer this email to write to them.": "Rispondi a questa email per scrivergli."
 }

@@ -298,4 +298,8 @@ return [
         'suspended' => 'Suspended',
         'to_delete' => 'To delete',
     ],
+    'feedback_kind' => [
+        'problem' => 'Something does not work',
+        'idea' => 'An idea',
+    ],
 ];
