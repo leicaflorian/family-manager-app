@@ -17,6 +17,11 @@ test('the default name is Fameja.app', function (): void {
     expect(file_get_contents(config_path('app.php')))->toContain("'name' => env('APP_NAME', 'Fameja.app')");
 });
 
+test('mails go out with the name of the app when the sender name is not set', function (): void {
+    // Without MAIL_FROM_NAME and APP_NAME the sender is not «Laravel»
+    expect(file_get_contents(config_path('mail.php')))->toContain("env('MAIL_FROM_NAME', env('APP_NAME', 'Fameja.app'))");
+});
+
 test('the app is called Fameja.app', function (): void {
     expect(config('app.name'))->toBe('Fameja.app');
 });
