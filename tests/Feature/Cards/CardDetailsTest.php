@@ -11,6 +11,7 @@ use App\Models\Family;
 use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
+use App\Models\Loan;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
@@ -159,4 +160,14 @@ test('the tiles of a policy start with the start', function (): void {
 
     expect($dates[0]->label)->toBe('Start')
         ->and($dates[1]->label)->toBe('Expiry');
+});
+
+test('a paid off loan is closed for good, not red, though it reaches that status by itself', function (): void {
+    $loan = insideBianchi(fn (): Loan => Loan::query()->firstOrFail());
+    insideBianchi(fn () => $loan->update(['status' => 'paid_off']));
+
+    $figure = insideBianchi(fn () => $this->details->of($loan->refresh(), $this->marco))->status;
+
+    expect($figure->tone)->toBe('closed')
+        ->and($figure->label)->toBe('Status');
 });

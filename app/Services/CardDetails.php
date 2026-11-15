@@ -192,14 +192,14 @@ final readonly class CardDetails
 
     /**
      * Whether the card is closed for good: closed (`CardType::CLOSED`) and not
-     * by the status it takes by itself past its date (a policy *Expired*),
-     * which still leaves the renewal to do.
+     * by a status it takes by itself past its date that still leaves the
+     * renewal to do (a policy *Expired*; a loan *Paid off* is closed for good).
      */
     private function closedForGood(CardType $type, Model $card): bool
     {
         $expiry = Expiries::for($card::class);
 
-        return $type->isClosed($card) && ($expiry === null || $card->getAttribute('status') !== $expiry['to']);
+        return $type->isClosed($card) && ($expiry === null || ! $expiry['renews'] || $card->getAttribute('status') !== $expiry['to']);
     }
 
     /**
@@ -222,7 +222,7 @@ final readonly class CardDetails
             default => 'open',
         };
 
-        return new CardNumberData(__('Status'), null, text: $text, tone: $tone);
+        return new CardNumberData($field->labelFor($card), null, text: $text, tone: $tone);
     }
 
     /**
