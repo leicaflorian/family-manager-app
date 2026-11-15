@@ -102,8 +102,17 @@ watch(
 
 onBeforeUnmount(revokePhotoUrl);
 
-/** The path of the page the panel was opened on, shown under the photo. */
-const pagePath = window.location.pathname;
+/** The page the panel was opened on (path and query), read at each opening: the layout outlives the pages. */
+const pagePath = ref(currentPage());
+
+/**
+ * The page the person is on now.
+ *
+ * @returns the path and the query
+ */
+function currentPage(): string {
+    return window.location.pathname + window.location.search;
+}
 
 /** *What we send* is open. */
 const detailsOpen = ref(false);
@@ -164,7 +173,7 @@ const detailRows = computed((): DetailRow[] => {
         d.theme === 'dark' ? trans('dark theme') : trans('light theme');
 
     return [
-        { label: trans('Page'), lines: [window.location.pathname] },
+        { label: trans('Page'), lines: [pagePath.value] },
         {
             label: trans('Last pages'),
             lines: [d.pages.map((p) => p.path).join(' → ')],
@@ -212,6 +221,7 @@ function reset(): void {
     values.message = '';
     values.file = null;
     screenshotRemoved.value = false;
+    pagePath.value = currentPage();
     detailsOpen.value = false;
     details.value = null;
     problems.value = {};
@@ -254,7 +264,7 @@ function send(): void {
         {
             kind: values.kind,
             message: values.message,
-            page: window.location.pathname + window.location.search,
+            page: pagePath.value,
             layout: layout.value,
             ...(values.file ? { file: values.file } : {}),
             ...(values.kind === 'problem'

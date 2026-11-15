@@ -10,6 +10,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import * as diagnostics from '@/lib/diagnostics';
 import { reportVueError } from '@/lib/diagnostics';
 import { renderPage, settle } from '@/test/page';
 import FmFeedbackSheet from './FmFeedbackSheet.vue';
@@ -394,6 +395,44 @@ describe('FmFeedbackSheet', () => {
             expect(screen.getByLabelText('Tell us what happened')).toHaveValue(
                 'Ciao',
             );
+        });
+
+        it('names the page the panel was opened on, not the one of the first mount', async () => {
+            window.history.replaceState({}, '', '/first');
+            const view = renderPage(FmFeedbackSheet, {
+                open: false,
+                screenshot: photo,
+            });
+            window.history.pushState({}, '', '/second');
+            await view.rerender({ open: true });
+            await screen.findByRole('dialog');
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'What we send (technical details)',
+                }),
+            );
+
+            expect(screen.getAllByText('/second')).toHaveLength(2);
+            expect(screen.queryByText('/first')).not.toBeInTheDocument();
+        });
+
+        it('sends the report without the details when they cannot be read', async () => {
+            vi.spyOn(diagnostics, 'collectDiagnostics').mockImplementation(
+                () => {
+                    throw new Error('broken');
+                },
+            );
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            await openSheet(photo);
+
+            await write();
+            await userEvent.click(screen.getByRole('button', { name: 'Send' }));
+            await settle();
+
+            const data = post.mock.calls[0]?.[1] as Record<string, unknown>;
+            expect(data).not.toHaveProperty('diagnostics');
+            expect(data.screenshot).toBe(photo);
         });
     });
 });

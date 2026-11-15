@@ -214,3 +214,4 @@ requests: list<{at: string, method: string, path: string, status: ?int, request_
 ## Decisions taken
 
 - (Task 6) modern-screenshot 4.7.0: maintained fork of html-to-image with a node filter and WebP/JPEG via the canvas; loaded only on the click. To be confirmed on real pages in Task 8.
+- (Task 7) The panel shows paths, not page titles, under the thumbnail and in *Last pages*, and the Device line has no browser name (size and theme only), because the diagnostics keep only paths and no user agent (the server stores the user agent separately). The remove button is icon-only, as on the board.
