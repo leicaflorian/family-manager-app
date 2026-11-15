@@ -83,6 +83,11 @@ let lastVisit: { method: string; path: string } = { method: 'GET', path: '' };
 /** The stop function of the running installation, so a second start does nothing. */
 let running: (() => void) | null = null;
 
+/** The console's own `error`, so recording an error never records it a second time through the wrapper. */
+let printError: (...args: unknown[]) => void = (...args) => {
+    console.error(...args);
+};
+
 /**
  * Adds an entry and keeps only the last ones.
  *
@@ -109,7 +114,8 @@ function cut(text: string, max: number): string {
 }
 
 /**
- * Turns anything into a short text; circular objects and symbols never throw.
+ * Turns anything into a short text; circular objects and symbols never throw. A plain object is described by
+ * its constructor and keys only, never its values.
  *
  * @param value - what was given to the console
  * @returns the text
@@ -124,27 +130,12 @@ function toText(value: unknown): string {
                 ? `${value.name}: ${value.message}`
                 : String(value);
         }
-        if (typeof value === 'symbol') {
-            return value.toString();
-        }
         if (typeof value === 'object' && value !== null) {
-            const seen = new WeakSet<object>();
+            // Only the shape: the values may be response bodies, form models or page props
+            const name = value.constructor?.name ?? 'Object';
+            const keys = Object.keys(value).slice(0, 10).join(',');
 
-            return (
-                JSON.stringify(value, (_key, item: unknown) => {
-                    if (typeof item === 'symbol') {
-                        return item.toString();
-                    }
-                    if (typeof item === 'object' && item !== null) {
-                        if (seen.has(item)) {
-                            return '[Circular]';
-                        }
-                        seen.add(item);
-                    }
-
-                    return item;
-                }) ?? '[object]'
-            );
+            return `${name}{${keys}}`;
         }
 
         return String(value);
@@ -203,7 +194,7 @@ export function reportVueError(
 ): void {
     recordConsole('error', `${toText(error)} (${info})`);
     try {
-        console.error(error);
+        printError(error);
     } catch {
         // Nothing to do.
     }
@@ -245,6 +236,9 @@ export function recordRequest(entry: {
  */
 function wrapConsole(target: Console): () => void {
     const originals = { error: target.error, warn: target.warn };
+    printError = (...args: unknown[]): void => {
+        originals.error.apply(target, args);
+    };
 
     for (const level of ['error', 'warn'] as const) {
         target[level] = (...args: unknown[]): void => {
@@ -256,6 +250,9 @@ function wrapConsole(target: Console): () => void {
     return (): void => {
         target.error = originals.error;
         target.warn = originals.warn;
+        printError = (...args: unknown[]): void => {
+            console.error(...args);
+        };
     };
 }
 
@@ -330,6 +327,21 @@ function pathOf(input: RequestInfo | URL, target: Window): string {
 export function startDiagnostics(
     target: DiagnosticsTarget = { console, window },
 ): () => void {
+    try {
+        return install(target);
+    } catch {
+        // Collecting never stops the app from starting
+        return (): void => {};
+    }
+}
+
+/**
+ * Installs the listeners, each one on its own so one that cannot be installed leaves the others working.
+ *
+ * @param target - where to install them
+ * @returns the function that removes them
+ */
+function install(target: DiagnosticsTarget): () => void {
     if (running) {
         return running;
     }
@@ -348,10 +360,15 @@ export function startDiagnostics(
     target.window.addEventListener('unhandledrejection', onRejection);
 
     const offConsole = wrapConsole(target.console);
-    const offFetch = wrapFetch(
-        target.window,
-        target.fetch ?? target.window.fetch.bind(target.window),
-    );
+    let offFetch = (): void => {};
+    try {
+        offFetch = wrapFetch(
+            target.window,
+            target.fetch ?? target.window.fetch.bind(target.window),
+        );
+    } catch {
+        // No usable fetch: the rest still works
+    }
 
     const offStart = router.on('start', (event): void => {
         lastVisit = {

@@ -232,4 +232,39 @@ describe('diagnostics', () => {
         expect(facts.viewport.width).toBe(window.innerWidth);
         expect(typeof facts.page_age_seconds).toBe('number');
     });
+
+    it('records a Vue error once', () => {
+        const fake = fakeConsole();
+        stop = startDiagnostics({ console: fake, window });
+
+        reportVueError(new Error('render failed'), null, 'render');
+
+        expect(collectDiagnostics().console).toHaveLength(1);
+        expect(fake.error).toBeDefined();
+    });
+
+    it('describes an object by its keys, never its values', () => {
+        const fake = fakeConsole();
+        stop = startDiagnostics({ console: fake, window });
+
+        fake.error({ password: 'secret' });
+
+        const message = collectDiagnostics().console[0].message;
+        expect(message).toContain('password');
+        expect(message).not.toContain('secret');
+    });
+
+    it('does not throw when the window has no fetch, and still records the console', () => {
+        const fake = fakeConsole();
+        const bare = Object.create(window, {
+            fetch: { value: undefined },
+        }) as Window;
+
+        expect(() => {
+            stop = startDiagnostics({ console: fake, window: bare });
+        }).not.toThrow();
+
+        fake.error('still here');
+        expect(collectDiagnostics().console[0].message).toBe('still here');
+    });
 });
