@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Laravel\Fortify\Features;
 
+$registrationOpen = (bool) env('REGISTRATION_OPEN', true);
+
 return [
 
     /*
@@ -144,10 +146,22 @@ return [
     |
     */
 
-    'features' => [
-        Features::registration(),
+    'features' => array_values(array_filter([
+        $registrationOpen ? Features::registration() : null,
         Features::resetPasswords(),
         Features::emailVerification(),
-    ],
+    ])),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Open sign-up
+    |--------------------------------------------------------------------------
+    |
+    | Whether a new family can sign up on its own. When closed, `/register` does
+    | not exist and families come in only by invitation or from the owner.
+    |
+    */
+
+    'registration_open' => $registrationOpen,
 
 ];

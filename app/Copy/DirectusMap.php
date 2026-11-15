@@ -6,6 +6,7 @@ namespace App\Copy;
 
 use App\Support\Linkables;
 use App\Support\Reminders\NotificationRule;
+use Closure;
 use InvalidArgumentException;
 
 /**
@@ -162,6 +163,35 @@ final class DirectusMap
         }
 
         return isset(self::SYSTEM[$table]) ? self::system($table, $row) : self::record($table, $row, $newId);
+    }
+
+    /**
+     * The address for the bills on the new inbox domain: the part before the `@` is kept (in lower case), the domain is
+     * the configured one. It is `null` when there is no address, when the inbox domain is empty (`mail-inbox:addresses`
+     * gives a new one later) or when the address is already someone's.
+     *
+     * @param  mixed  $address  `mail_inbox_recipient` as Directus has it
+     * @param  string|null  $domain  `services.mailgun.inbox_domain`
+     * @param  Closure(string): bool  $taken  says whether an address already belongs to some family
+     * @return string|null the address on the new domain
+     */
+    public static function billsAddress(mixed $address, ?string $domain, Closure $taken): ?string
+    {
+        $domain = strtolower(trim((string) $domain));
+
+        if ($domain === '' || ! is_string($address)) {
+            return null;
+        }
+
+        $local = strstr(strtolower(trim($address)), '@', true);
+
+        if ($local === false || $local === '') {
+            return null;
+        }
+
+        $moved = $local.'@'.$domain;
+
+        return $taken($moved) ? null : $moved;
     }
 
     /**

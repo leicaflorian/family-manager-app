@@ -1,0 +1,6 @@
+#!/command/with-contenv sh
+# The queue worker (morning mails, AI readings, file previews), supervised by S6 next to nginx and PHP-FPM.
+# It starts after the Laravel automations (migrations and caches) and stops on its own after an hour, so S6
+# starts it again with fresh memory; a deploy starts a new container, so it never keeps old code.
+cd /var/www/html || exit 1
+exec php artisan queue:work --tries=3 --sleep=3 --max-time=3600 --memory=256

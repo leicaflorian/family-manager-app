@@ -63,6 +63,22 @@ return [
             'report' => false,
         ],
 
+        // The Space that holds the nightly copy of the family files (`files:backup`).
+        'backup' => [
+            'driver' => 's3',
+            'key' => env('BACKUP_S3_KEY'),
+            'secret' => env('BACKUP_S3_SECRET'),
+            'region' => env('BACKUP_S3_REGION'),
+            'bucket' => env('BACKUP_S3_BUCKET'),
+            'endpoint' => env('BACKUP_S3_ENDPOINT'),
+            // `?:`: an empty variable must never write at the root of the Space
+            'root' => env('BACKUP_S3_ROOT') ?: 'family-manager-app/files',
+            'use_path_style_endpoint' => false,
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
  * *Log in* page: email, password and *Stay signed in* (the `remember` of
- * Fortify), with the links to *Forgot password* and to *Sign up*.
+ * Fortify), with the links to *Forgot password* and, while sign-up is open, to *Sign up*.
  */
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, setLayoutProps, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
@@ -23,20 +23,27 @@ defineOptions({
                 "Everyone's deadlines, bills and documents, with the people you live with.",
             ),
         },
+    },
+});
+
+const { canResetPassword, canRegister, status } = defineProps<{
+    /** Message of the server, for example after the password was changed. */
+    status?: string;
+    /** The link for a new password can be asked for. */
+    canResetPassword: boolean;
+    /** Sign-up is open: the line with the link to *Sign up* is shown. */
+    canRegister: boolean;
+}>();
+
+if (canRegister) {
+    setLayoutProps({
         otherWay: {
             text: trans('No Family Manager yet?'),
             link: trans('Sign up your family'),
             href: register().url,
         },
-    },
-});
-
-const { canResetPassword, status } = defineProps<{
-    /** Message of the server, for example after the password was changed. */
-    status?: string;
-    /** The link for a new password can be asked for. */
-    canResetPassword: boolean;
-}>();
+    });
+}
 
 const form = useForm({ email: '', password: '', remember: true });
 

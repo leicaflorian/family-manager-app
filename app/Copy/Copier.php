@@ -8,6 +8,7 @@ use App\Actions\Budget\FillOccurrenceDates;
 use App\Actions\Reminders\SyncReminders;
 use App\Enums\FileSource;
 use App\Enums\Role;
+use App\Models\FamilySetting;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
@@ -312,10 +313,12 @@ final class Copier
 
         return [
             ...$copy,
-            // `findByMailRecipient()` compares in lower case: an address written with capitals would find nobody
-            'mail_inbox_recipient' => is_string($copy['mail_inbox_recipient'] ?? null) && trim($copy['mail_inbox_recipient']) !== ''
-                ? mb_strtolower(trim($copy['mail_inbox_recipient']))
-                : null,
+            // The address moves to the new inbox domain, in lower case because `findByMailRecipient()` compares so
+            'mail_inbox_recipient' => DirectusMap::billsAddress(
+                $copy['mail_inbox_recipient'] ?? null,
+                is_string(config('services.mailgun.inbox_domain')) ? config('services.mailgun.inbox_domain') : null,
+                FamilySetting::addressTaken(...),
+            ),
             'mail_inbox_notify' => $ids === null ? null : json_encode($ids),
             'mail_inbox_notify_attachments_only' => ($copy['mail_inbox_notify_attachments_only'] ?? null) === null ? true : (bool) $copy['mail_inbox_notify_attachments_only'],
         ];

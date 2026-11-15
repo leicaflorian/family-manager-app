@@ -84,6 +84,8 @@ test('the Directus connection is read only', function (): void {
 });
 
 test('the copy brings the family with its records, links, categories and accounts, without a document that has no file or an account without email', function (): void {
+    config(['services.mailgun.inbox_domain' => 'example.com']);
+
     $this->artisan('directus:copy', ['--family' => 'Verdi'])
         ->expectsOutputToContain('contratto-luce.pdf')
         ->expectsOutputToContain('Left out')
@@ -115,7 +117,7 @@ test('the copy brings the family with its records, links, categories and account
 
     $utility = DB::table('utilities')->sole();
     expect(DB::table('remindables')->where('remindable_type', 'utility')->sole())->remindable_type->toBe('utility')->remindable_id->toBe($utility->id)
-        // written in Directus with capitals and spaces: the app finds the address in lower case
+        // written in Directus with capitals and spaces, on another domain: the app has it in lower case on the inbox domain
         ->and(DB::table('family_settings')->sole()->mail_inbox_recipient)->toBe('documenti@example.com');
 });
 

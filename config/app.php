@@ -63,6 +63,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Owner Panel Host
+    |--------------------------------------------------------------------------
+    |
+    | The host of the owner panel (Filament), for example `admin.fameja.app`.
+    | When set, the panel answers only there at the root and the pages of the
+    | app do not answer there; when empty the panel stays at `/admin` on the
+    | host of the app (local, tests).
+    |
+    */
+
+    'admin_domain' => env('ADMIN_DOMAIN') ?: null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

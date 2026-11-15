@@ -28,7 +28,7 @@ final class AddRobotsHeader
         $response = $next($request);
 
         // An answer that already says what robots may do (the calendar) keeps its own rule
-        if (! PageMeta::indexable($request) && ! $response->headers->has('X-Robots-Tag')) {
+        if (! PageMeta::isIndexable($request) && ! $response->headers->has('X-Robots-Tag')) {
             $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
         }
 

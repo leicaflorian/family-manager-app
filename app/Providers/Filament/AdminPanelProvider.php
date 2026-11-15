@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Http\Controllers\Admin\FeedbackFileController;
+use App\Http\Controllers\Admin\VisitController;
+use App\Http\Middleware\SeparateHosts;
 use App\Http\Middleware\SetLocale;
 use App\Models\Owner;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
@@ -22,10 +25,12 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
- * The admin panel of the owners: `/admin`, the `owner` guard, password and authenticator app (required, with
+ * The admin panel of the owners: at the root of its own host when `ADMIN_DOMAIN` is set (`admin.fameja.app`), at
+ * `/admin` of the host of the app otherwise (local, tests); the `owner` guard, password and authenticator app (required, with
  * recovery codes, everywhere but in the local environment). Resources and pages are discovered in `app/Filament/`.
  */
 final class AdminPanelProvider extends PanelProvider
@@ -59,10 +64,17 @@ final class AdminPanelProvider extends PanelProvider
             $panel->multiFactorAuthentication(AppAuthentication::make()->recoverable(), isRequired: true);
         }
 
+        // Read here, when the panel is configured: Filament registers the routes of the panel at boot
+        $domain = config('app.admin_domain');
+        if (is_string($domain) && $domain !== '') {
+            $panel->domain($domain)->path('');
+        } else {
+            $panel->path('admin');
+        }
+
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
             ->authGuard('owner')
             ->login()
             ->colors([
@@ -74,6 +86,7 @@ final class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->middleware([
+                SeparateHosts::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
@@ -87,6 +100,15 @@ final class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->authenticatedRoutes(static function (): void {
+                // *Enter as…*: the link of the table, signed when it is drawn, makes the one-time link of the app on the click
+                Route::get('enter-as/{user}', [VisitController::class, 'handoff'])->middleware('signed')->name('enter-as');
+                // The screenshot and the file of a report, opened from its page: on the host of the panel, behind its
+                // sign-in, so an account of a family never reads them (`filament.admin.feedback-file`)
+                Route::get('feedback-files/{report}/{part}', FeedbackFileController::class)
+                    ->whereNumber('report')->whereIn('part', ['screenshot', 'file'])
+                    ->name('feedback-file');
+            });
     }
 }

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
-use App\Http\Controllers\Admin\FeedbackFileController;
 use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AreaController;
@@ -51,6 +50,7 @@ use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\RedirectToWelcome;
+use App\Http\Middleware\SeparateHosts;
 use App\Services\AgentRelease;
 use Illuminate\Support\Facades\Route;
 
@@ -74,7 +74,7 @@ Route::post('connect/{code}', [ConnectController::class, 'use'])->name('connect.
 // no session and sets no cookie, and without SetLocale a 404 here reads like one of an address that does not exist
 // (the calendar has the language saved with its secret, not the browser's).
 Route::get('calendar/{token}.ics', CalendarFeedController::class)
-    ->middleware('throttle:60,1')
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:60,1'])
     ->withoutMiddleware('web')
     ->name('calendar.feed');
 
@@ -82,13 +82,14 @@ Route::get('calendar/{token}.ics', CalendarFeedController::class)
 // the web group like the calendar: no session, no cookie, no CSRF token (Mailgun has none), and the language of the
 // texts is the one of the installation. The throttle is high: every mail of every family comes from Mailgun.
 Route::post('mail/mailgun', MailgunWebhookController::class)
-    ->middleware('throttle:300,1')
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:300,1'])
     ->withoutMiddleware('web')
     ->name('mail.mailgun');
 
 // The service worker, at the root so its scope is the whole site. Outside the web group: a script asked by the
 // browser, with no session and no cookie.
 Route::get('sw.js', ServiceWorkerController::class)
+    ->middleware(SeparateHosts::OUTSIDE_WEB)
     ->withoutMiddleware('web')
     ->name('service-worker');
 
@@ -97,19 +98,15 @@ Route::get('sw.js', ServiceWorkerController::class)
 // the system menu sends the POST without a CSRF token (and no session is needed: it reads and keeps nothing); a
 // guest sent on to `scan` signs in as usual.
 Route::post('scan/share', ScanShareController::class)
+    ->middleware(SeparateHosts::OUTSIDE_WEB)
     ->withoutMiddleware('web')
     ->name('scan.share');
 
-// *Enter as…* of the admin panel: outside `/admin`, which belongs to the panel, and signed by the button of
-// the panel, so a link from another site cannot start a visit. A guest is sent to the sign-in of the
-// panel (`redirectGuestsTo` in bootstrap/app.php). Leaving is the only change a visit may send (`LimitVisit::ALLOWED`).
-Route::get('support/visit/{user}', [VisitController::class, 'start'])->middleware(['auth:owner', 'signed'])->name('support.visit.start');
+// *Enter as…* of the admin panel: on the host of the app, which does not share the session of the panel, so the
+// link is signed and carries a one-time token that signs the owner into this session (`VisitHandoff`, valid
+// `LimitVisit::LINK_SECONDS` seconds). Leaving is the only change a visit may send (`LimitVisit::ALLOWED`).
+Route::get('support/visit/{user}', [VisitController::class, 'start'])->middleware('signed')->name('support.visit.start');
 
-// The screenshot and the file of a report, opened from its page in the admin panel: outside `/admin`, with the
-// guard of the owner, so an account of a family never reads them.
-Route::get('admin-files/feedback/{report}/{part}', FeedbackFileController::class)
-    ->whereNumber('report')->whereIn('part', ['screenshot', 'file'])
-    ->middleware('auth:owner')->name('owner.feedback.file');
 Route::post('visit/leave', [VisitController::class, 'leave'])->name('visit.leave');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {

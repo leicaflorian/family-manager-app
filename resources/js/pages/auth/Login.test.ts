@@ -27,6 +27,7 @@ describe('Log in', () => {
     it('shows the message that comes from the server', () => {
         renderPage(Login, {
             canResetPassword: true,
+            canRegister: true,
             status: 'Your password has been reset.',
         });
 

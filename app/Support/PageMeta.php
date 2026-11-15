@@ -12,9 +12,6 @@ use Illuminate\Http\Request;
  */
 final class PageMeta
 {
-    /** The routes that search engines may list. */
-    public const array INDEXABLE = ['login', 'register'];
-
     /** The title of the public pages, as the pages write it with `<Head>`. */
     private const array TITLES = [
         'login' => 'Log in',
@@ -43,7 +40,7 @@ final class PageMeta
         $name = $request->route()?->getName();
         $app = config()->string('app.name');
         $title = is_string($name) && isset(self::TITLES[$name]) ? __(self::TITLES[$name]).' - '.$app : $app;
-        $indexable = self::indexable($request);
+        $indexable = self::isIndexable($request);
 
         return new PageHead(
             title: $title,
@@ -59,10 +56,20 @@ final class PageMeta
      * Whether search engines may list the page of the request.
      *
      * @param  Request  $request  the request, with or without a route
-     * @return bool true only for *Log in* and *Sign up*
+     * @return bool true only for the pages of {@see self::indexable()}
      */
-    public static function indexable(Request $request): bool
+    public static function isIndexable(Request $request): bool
     {
-        return in_array($request->route()?->getName(), self::INDEXABLE, true);
+        return in_array($request->route()?->getName(), self::indexable(), true);
+    }
+
+    /**
+     * The routes that search engines may list: *Sign up* only while it is open.
+     *
+     * @return list<string> the route names
+     */
+    public static function indexable(): array
+    {
+        return config()->boolean('fortify.registration_open') ? ['login', 'register'] : ['login'];
     }
 }
