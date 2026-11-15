@@ -1958,5 +1958,6 @@
     "Nothing on this day.": "Niente in questo giorno.",
     "{1} :count to do|[2,*] :count to do": "{1} :count da fare|[2,*] :count da fare",
     "{1} :count done|[2,*] :count done": "{1} :count fatta|[2,*] :count fatte",
-    "Reminders and deadlines in the calendar of your phone or computer. They update by themselves.": "Promemoria e scadenze nel calendario del telefono o del computer. Si aggiornano da soli."
+    "Reminders and deadlines in the calendar of your phone or computer. They update by themselves.": "Promemoria e scadenze nel calendario del telefono o del computer. Si aggiornano da soli.",
+    "Paid": "Pagato"
 }
