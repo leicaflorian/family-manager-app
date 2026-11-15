@@ -93,12 +93,14 @@ final readonly class AgendaTasks
      * @param  CarbonImmutable  $from  the first day, included
      * @param  CarbonImmutable  $to  the last day, included
      * @param  CarbonImmutable  $today  today in Rome
+     * @param  list<int>  $without  the ids of the reminders to leave out: the ones a paid payment already carries
      * @return list<AgendaEntryData>
      */
-    public function doneBetween(CarbonImmutable $from, CarbonImmutable $to, CarbonImmutable $today): array
+    public function doneBetween(CarbonImmutable $from, CarbonImmutable $to, CarbonImmutable $today, array $without = []): array
     {
         $reminders = Reminder::query()
             ->where('status', ReminderStatus::Done)
+            ->whereKeyNot($without)
             ->whereRaw('coalesce(postponed_to, due_date) between ? and ?', [$from->toDateString(), $to->toDateString()])
             ->with(['link', 'person'])
             ->orderByRaw('coalesce(postponed_to, due_date)')

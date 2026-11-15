@@ -2,13 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Actions\Budget\RecordPayment;
+use App\Enums\IntervalUnit;
 use App\Enums\ReminderStatus;
+use App\Enums\SubscriptionStatus;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Owner;
 use App\Models\PlannedIncome;
 use App\Models\Reminder;
+use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Deadlines;
 use App\Support\CurrentFamily;
 use App\Support\VisitHandoff;
 use Carbon\CarbonImmutable;
@@ -89,6 +94,24 @@ test('done entries are paid payments and done reminders', function (): void {
     expect($calendar['entries'])->toBe([])
         ->and(array_column($calendar['done'], 'title'))->toBe(['Telefonata fatta', 'Bolletta gas', 'Fatta e rimandata'])
         ->and(array_column($calendar['done'], 'date'))->toBe(['2026-11-03', '2026-11-05', '2026-11-09']);
+});
+
+test('a paid subscription fee and the renewal it confirmed are one done row', function (): void {
+    $marco = registerFamily();
+    insideFamilyOf($marco, function (): void {
+        $subscription = Subscription::factory()->create(['family_id' => CurrentFamily::id(), 'name' => 'Fatture in Cloud', 'status' => SubscriptionStatus::Active, 'renewal_date' => '2026-11-20', 'trial_end_date' => null]);
+        $fee = agendaPlanned($subscription, 'Fatture in Cloud', 120.0, '2025-11-20', ['interval_unit' => IntervalUnit::Year]);
+        resolve(RecordPayment::class)->handle(resolve(Deadlines::class)->find($fee, CarbonImmutable::parse('2026-11-20')), CarbonImmutable::parse('2026-11-11'), 120.0, null, null);
+
+        expect(Reminder::query()->where('source_field', 'subscriptions.renewal_date')->where('status', ReminderStatus::Done)->count())->toBe(1);
+    });
+
+    $done = calendarProps($marco)['calendar']['done'];
+
+    expect($done)->toHaveCount(1)
+        ->and($done[0]['kind'])->toBe('payment')
+        ->and($done[0]['date'])->toBe('2026-11-20')
+        ->and($done[0]['reminder_done'])->toBeTrue();
 });
 
 test('a past month only shows what is still late', function (): void {

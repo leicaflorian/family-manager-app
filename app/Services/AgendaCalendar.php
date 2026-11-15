@@ -8,6 +8,7 @@ use App\Data\AgendaCalendarData;
 use App\Data\AgendaEntryData;
 use App\Enums\AgendaReminderState;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 
 /**
  * The data of the Agenda calendar: the entries of the list and the done ones that fall in the weeks of a month.
@@ -43,15 +44,17 @@ final readonly class AgendaCalendar
      * The month of the calendar: its weeks, from the Monday before the first day to the Sunday after the last. What is
      * still to do is what the list shows, kept when it falls in the weeks; a past month asks the list for the days
      * back to its first week, so what is late and still open shows where it was due. What is done is the payments made
-     * and the reminders done of those weeks.
+     * and the reminders done of those weeks, a done reminder that a payment of its card carries on the same day once.
      *
      * @param  CarbonImmutable  $today  today, in Rome
      * @param  CarbonImmutable  $month  the first day of the month
      */
     public function month(CarbonImmutable $today, CarbonImmutable $month): AgendaCalendarData
     {
-        $from = $month->startOfMonth()->startOfWeek();
-        $to = $month->endOfMonth()->endOfWeek()->startOfDay();
+        // Monday and Sunday by name: the locale must not move the weeks against the grid of the page
+        $from = $month->startOfMonth()->startOfWeek(CarbonInterface::MONDAY);
+        $to = $month->endOfMonth()->endOfWeek(CarbonInterface::SUNDAY)->startOfDay();
+        $paid = $this->agenda->paidBetween($from, $to);
         $back = max(self::DAYS_BACK, (int) $from->diffInDays($today->startOfDay(), false));
         $inside = static fn (AgendaEntryData $entry): bool => $entry->date >= $from->toDateString() && $entry->date <= $to->toDateString();
 
@@ -61,7 +64,7 @@ final readonly class AgendaCalendar
             to: $to->toDateString(),
             today: $today->toDateString(),
             entries: array_values(array_filter($this->open($today, $to, $back), $inside)),
-            done: $this->sorted([...$this->agenda->paidBetween($from, $to), ...$this->tasks->doneBetween($from, $to, $today)]),
+            done: $this->sorted([...$paid['entries'], ...$this->tasks->doneBetween($from, $to, $today, $paid['reminders'])]),
         );
     }
 
