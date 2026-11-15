@@ -1,6 +1,11 @@
+import { router } from '@inertiajs/vue3';
 import { fireEvent, render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import FmRow from './FmRow.vue';
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
 describe('FmRow', () => {
     it('keeps the title on one line, with the ellipsis in the middle so its end shows', () => {
@@ -66,6 +71,25 @@ describe('FmRow', () => {
         expect(link).toHaveTextContent('Electricity bill');
         expect(link).toHaveTextContent('Electricity - Edison · in 3 days');
         expect(link).toHaveTextContent('71,30 €');
+    });
+
+    it('passes the options of the visit, as preserveScroll, to the link of the row', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(FmRow, {
+            props: {
+                title: 'Electricity bill',
+                href: '/documents?document=1',
+            },
+            // Not a prop of the row: it falls through to the link of Inertia
+            attrs: { preserveScroll: true },
+        });
+
+        await fireEvent.click(screen.getByRole('link'));
+
+        expect(visit).toHaveBeenCalledWith(
+            '/documents?document=1',
+            expect.objectContaining({ preserveScroll: true }),
+        );
     });
 
     it('with external opens the address in a new tab', () => {

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { isoDate } from '@/lib/format';
 import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
-import { pickFile, renderPage, settle } from '@/test/page';
+import { renderPage, settle } from '@/test/page';
 import { accountOptions, danceDeadline, salaryDeadline } from '@/test/fixtures';
 import FmPaySheet from './FmPaySheet.vue';
 
@@ -43,39 +43,6 @@ describe('FmPaySheet', () => {
         expect(options).toMatchObject({ forceFormData: true });
     });
 
-    it('sends another account when it is chosen', async () => {
-        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
-        renderPage(FmPaySheet, props);
-        await screen.findByRole('dialog');
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Conto BPER' }),
-        );
-        await settle();
-        await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-        await settle();
-
-        expect(post.mock.calls[0]![1]).toMatchObject({
-            financial_account_id: '1',
-        });
-    });
-
-    it('sends the receipt that is chosen', async () => {
-        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
-        renderPage(FmPaySheet, props);
-        await screen.findByRole('dialog');
-        const receipt = new File(['x'], 'receipt.pdf', {
-            type: 'application/pdf',
-        });
-
-        await pickFile('Add the receipt (optional)', receipt);
-        expect(screen.getByText('receipt.pdf')).toBeInTheDocument();
-        await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-        await settle();
-
-        expect(post.mock.calls[0]![1]).toMatchObject({ receipt });
-    });
-
     it('says what an income becomes', async () => {
         renderPage(FmPaySheet, {
             ...props,
@@ -96,21 +63,6 @@ describe('FmPaySheet', () => {
         ).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Conto BPER' }),
-        ).toBeInTheDocument();
-    });
-
-    it('names the month of the original due date when the day was moved', async () => {
-        renderPage(FmPaySheet, {
-            ...props,
-            deadline: {
-                ...salaryDeadline,
-                date: '2026-11-02',
-                original_date: '2026-10-31',
-            },
-        });
-
-        expect(
-            await screen.findByText(/Stipendio di Marco October 2026/),
         ).toBeInTheDocument();
     });
 

@@ -25,7 +25,7 @@ import {
     Plus,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
 import FmAgendaPanel from '@/components/fm/FmAgendaPanel.vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
@@ -35,7 +35,6 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmDeadlineDateSheet from '@/components/fm/FmDeadlineDateSheet.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
-import FmPaySheet from '@/components/fm/FmPaySheet.vue';
 import FmPostponeSheet from '@/components/fm/FmPostponeSheet.vue';
 import FmSidePanel from '@/components/fm/FmSidePanel.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
@@ -205,11 +204,29 @@ const panelEntry = computed(
 function openPanel(entry: App.Data.AgendaEntryData): void {
     opened.value = entry;
     panelOpen.value = true;
+
+    if (isOpenPayment(entry)) {
+        askPayment(entry);
+    }
 }
 
-/** Closes the panel of the entry. */
-function closePanel(): void {
-    panelOpen.value = false;
+/** The content of the panel, to ask before it closes with a payment changed. */
+const panel = ref<InstanceType<typeof FmAgendaPanel> | null>(null);
+
+/**
+ * Whether the panel may close: a payment changed in its form asks first.
+ *
+ * @returns true when it may close
+ */
+function confirmClosePanel(): Promise<boolean> {
+    return panel.value?.confirmClose() ?? Promise.resolve(true);
+}
+
+/** Closes the panel of the entry, once a payment changed in it is given up. */
+async function closePanel(): Promise<void> {
+    if (await confirmClosePanel()) {
+        panelOpen.value = false;
+    }
 }
 
 /** The passed deadline whose date is being changed, and whether it was renewed. */
@@ -265,18 +282,26 @@ function postpone(entry: App.Data.AgendaEntryData): void {
     postponeOpen.value = true;
 }
 
-/** The key of the payment asked to the server for *I paid it*, until its panel closes. */
-const paying = ref<string | null>(null);
+/**
+ * Whether an entry is a payment or an income still to settle: its panel holds
+ * the form of the payment.
+ *
+ * @param entry - the entry
+ * @returns true for an open payment or income
+ */
+function isOpenPayment(entry: App.Data.AgendaEntryData): boolean {
+    return (
+        !doneView.value && (entry.kind === 'payment' || entry.kind === 'income')
+    );
+}
 
 /**
- * *I paid it*: asks the server for the due date and the accounts, without
- * changing the address; the panel of the payment opens when they arrive.
+ * Asks the server for the due date of a payment and the accounts, without
+ * changing the address: the form in its panel fills in when they arrive.
  *
  * @param entry - the payment
  */
-function pay(entry: App.Data.AgendaEntryData): void {
-    closePanel();
-    paying.value = entry.key;
+function askPayment(entry: App.Data.AgendaEntryData): void {
     router.reload({
         only: ['payment', 'accounts'],
         data: { payment: entry.key },
@@ -284,28 +309,56 @@ function pay(entry: App.Data.AgendaEntryData): void {
     });
 }
 
-/** The panel of the payment: open once the due date asked has arrived. */
-const payOpen = computed({
-    get: (): boolean =>
-        payment !== null &&
-        paying.value ===
-            `payment:${payment.planned_id}:${payment.original_date}`,
-    set: (open: boolean): void => {
-        if (!open) {
-            paying.value = null;
+/**
+ * The due date and the accounts that arrived for the panel. They are kept
+ * here because the props go away with the next full visit of the Agenda (the
+ * payment goes back to the Agenda without them): the form must stay through
+ * that answer, to close the panel or to show the messages of the server.
+ */
+const arrived = shallowRef<{
+    key: string;
+    payment: App.Data.DeadlineData;
+    accounts: App.Data.OptionData[];
+} | null>(null);
+
+watch(
+    () => payment,
+    (due) => {
+        if (due !== null) {
+            arrived.value = {
+                key: `${due.kind === 'income' ? 'income' : 'payment'}:${due.planned_id}:${due.original_date}`,
+                payment: due,
+                accounts,
+            };
         }
     },
-});
+    { immediate: true },
+);
+
+/** The due date for the form of the panel: only the one of the entry open, not one asked before. */
+const panelPayment = computed((): App.Data.DeadlineData | null =>
+    arrived.value !== null &&
+    panelEntry.value !== null &&
+    isOpenPayment(panelEntry.value) &&
+    panelEntry.value.key === arrived.value.key
+        ? arrived.value.payment
+        : null,
+);
+
+/** The accounts for the form of the panel, arrived with its due date. */
+const panelAccounts = computed(
+    (): App.Data.OptionData[] => arrived.value?.accounts ?? [],
+);
 
 /** Where the payment is sent: back to the Agenda once recorded. */
 const payAction = computed((): string =>
-    payment === null
+    panelPayment.value === null
         ? ''
         : paymentRoute.url(
               {
-                  kind: payment.kind,
-                  id: payment.planned_id,
-                  date: payment.original_date,
+                  kind: panelPayment.value.kind,
+                  id: panelPayment.value.planned_id,
+                  date: panelPayment.value.original_date,
               },
               { query: { from_agenda: 1 } },
           ),
@@ -494,7 +547,11 @@ const payAction = computed((): string =>
                         @postpone="postpone(panelEntry)"
                         @update-date="changeDate(panelEntry, false)"
                         @renewed="changeDate(panelEntry, true)"
-                        @pay="pay(panelEntry)"
+                        ref="panel"
+                        :payment="panelPayment"
+                        :accounts="panelAccounts"
+                        :pay-action="payAction"
+                        @paid="panelOpen = false"
                         @close="closePanel"
                     />
                 </div>
@@ -502,6 +559,7 @@ const payAction = computed((): string =>
             <FmBottomSheet
                 v-else-if="!desktop"
                 v-model:open="panelOpen"
+                :before-close="confirmClosePanel"
                 :title="panelEntry.name"
                 hide-title
             >
@@ -513,7 +571,11 @@ const payAction = computed((): string =>
                     @postpone="postpone(panelEntry)"
                     @update-date="changeDate(panelEntry, false)"
                     @renewed="changeDate(panelEntry, true)"
-                    @pay="pay(panelEntry)"
+                    ref="panel"
+                    :payment="panelPayment"
+                    :accounts="panelAccounts"
+                    :pay-action="payAction"
+                    @paid="panelOpen = false"
                     @close="closePanel"
                 />
             </FmBottomSheet>
@@ -529,13 +591,6 @@ const payAction = computed((): string =>
             v-if="postponing"
             v-model:open="postponeOpen"
             :reminder="postponing"
-        />
-        <FmPaySheet
-            v-if="payment"
-            v-model:open="payOpen"
-            :deadline="payment"
-            :accounts="accounts"
-            :action="payAction"
         />
     </div>
 </template>

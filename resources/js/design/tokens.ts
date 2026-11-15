@@ -132,6 +132,28 @@ function checkSpacing(tokens: Token[]): void {
 }
 
 /**
+ * Checks that no text style has the name of a colour: Tailwind would read
+ * `text-<name>` as the colour and drop the size, line height and weight.
+ *
+ * @param tokens The content of `tokens.json`.
+ * @throws TokenError For a text style named like a colour.
+ */
+function checkTextStyleNames(tokens: DesignTokens): void {
+    const colors = new Set(tokens.color.tokens.map((token) => token.name));
+
+    for (const style of tokens.type.groups.flatMap((group) => group.styles)) {
+        if (colors.has(style.name)) {
+            throw new TokenError(
+                style.name,
+                'is the name of a colour too, so `text-' +
+                    style.name +
+                    '` would only set the colour',
+            );
+        }
+    }
+}
+
+/**
  * Builds `tokens.css`: raw colours and shadow values for the light theme in `:root`
  * and for the dark one in `.dark`, Tailwind's names for them in `@theme inline`,
  * and text styles, font, radii and sizes in `@theme`. The output follows the
@@ -139,10 +161,11 @@ function checkSpacing(tokens: Token[]): void {
  *
  * @param tokens The content of `tokens.json`.
  * @returns The CSS text.
- * @throws TokenError For a colour that cannot be read or a spacing that is not a Tailwind step.
+ * @throws TokenError For a colour that cannot be read, a spacing that is not a Tailwind step or a text style named like a colour.
  */
 export function buildTokensCss(tokens: DesignTokens): string {
     checkSpacing(tokens.spacing.tokens);
+    checkTextStyleNames(tokens);
 
     const names = new Set(tokens.color.tokens.map((token) => token.name));
     const colors = (theme: string): string[] =>

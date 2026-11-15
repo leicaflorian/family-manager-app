@@ -18,7 +18,8 @@ import {
     lateDeadline,
     peopleList,
 } from '@/test/fixtures';
-import { renderPage, screenWidth } from '@/test/page';
+import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
+import { renderPage, screenWidth, settle } from '@/test/page';
 import Agenda from './Agenda.vue';
 
 const areas = [
@@ -329,16 +330,9 @@ describe('Agenda', () => {
         );
     });
 
-    it('asks the server for the due date with I paid it, then opens the payment', async () => {
+    it('opening a payment asks for its due date and records it in one tap', async () => {
         const view = renderPage(Agenda, agenda());
         await userEvent.click(row(/Luce - Edison/));
-        const panel = await screen.findByRole('dialog', {
-            name: 'Luce - Edison',
-        });
-
-        await userEvent.click(
-            within(panel).getByRole('button', { name: 'I paid it' }),
-        );
 
         expect(reload).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -351,10 +345,11 @@ describe('Agenda', () => {
         await view.rerender(
             agenda({}, { payment: lateDeadline, accounts: accountOptions }),
         );
-
-        const pay = await screen.findByRole('dialog', { name: 'I paid it' });
+        const panel = await screen.findByRole('dialog', {
+            name: 'Luce - Edison',
+        });
         await userEvent.click(
-            within(pay).getByRole('button', { name: 'Confirm' }),
+            within(panel).getByRole('button', { name: 'I paid it' }),
         );
 
         expect(post).toHaveBeenCalledWith(
@@ -362,6 +357,110 @@ describe('Agenda', () => {
             expect.anything(),
             expect.anything(),
         );
+        // No second panel: the payment is recorded from the panel of the row
+        expect(
+            screen.queryByRole('dialog', { name: 'I paid it' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('closes the panel of a payment once it is recorded, though the answer no longer has the due date', async () => {
+        const view = renderPage(Agenda, agenda());
+        // As the server: the payment goes back to the Agenda with a visit
+        // that does not send the due date of the panel again
+        post.mockImplementation(async (_url, _data, options) => {
+            await view.rerender(agenda({}, { payment: null, accounts: [] }));
+            options?.onSuccess?.({} as never);
+        });
+        await userEvent.click(row(/Luce - Edison/));
+        await view.rerender(
+            agenda({}, { payment: lateDeadline, accounts: accountOptions }),
+        );
+        const panel = await screen.findByRole('dialog', {
+            name: 'Luce - Edison',
+        });
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'I paid it' }),
+        );
+
+        await vi.waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Luce - Edison' }),
+            ).not.toBeInTheDocument(),
+        );
+    });
+
+    it('keeps the form and shows the messages when the server refuses the payment', async () => {
+        const view = renderPage(Agenda, agenda());
+        post.mockImplementation(async (_url, _data, options) => {
+            await view.rerender(agenda({}, { payment: null, accounts: [] }));
+            options?.onError?.({ amount: 'The amount is required.' });
+            options?.onFinish?.({} as never);
+        });
+        await userEvent.click(row(/Luce - Edison/));
+        await view.rerender(
+            agenda({}, { payment: lateDeadline, accounts: accountOptions }),
+        );
+        const panel = await screen.findByRole('dialog', {
+            name: 'Luce - Edison',
+        });
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'I paid it' }),
+        );
+
+        expect(
+            await within(panel).findByText('The amount is required.'),
+        ).toBeInTheDocument();
+        expect(within(panel).getByLabelText('How much')).toBeInTheDocument();
+    });
+
+    it('asks before closing the panel of a payment with changes', async () => {
+        const view = renderPage(Agenda, agenda());
+        await userEvent.click(row(/Luce - Edison/));
+        await view.rerender(
+            agenda({}, { payment: lateDeadline, accounts: accountOptions }),
+        );
+        const panel = await screen.findByRole('dialog', {
+            name: 'Luce - Edison',
+        });
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Carta Laura' }),
+        );
+        await settle();
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Close' }),
+        );
+
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(false);
+        await settle();
+        expect(
+            screen.getByRole('dialog', { name: 'Luce - Edison' }),
+        ).toBeInTheDocument();
+    });
+
+    it('does not show the due date of another payment', async () => {
+        const view = renderPage(
+            Agenda,
+            agenda({}, { payment: lateDeadline, accounts: accountOptions }),
+        );
+        await view.rerender(
+            agenda({}, { payment: lateDeadline, accounts: accountOptions }),
+        );
+
+        await userEvent.click(row(/Bolletta gas/));
+        const panel = await screen.findByRole('dialog', {
+            name: 'Gas - Enel',
+        });
+
+        expect(
+            within(panel).getByRole('button', { name: 'I paid it' }),
+        ).toBeDisabled();
+        expect(
+            within(panel).queryByLabelText('How much'),
+        ).not.toBeInTheDocument();
     });
 
     it('closes the panel once Done is saved', async () => {

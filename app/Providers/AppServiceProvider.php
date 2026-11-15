@@ -15,6 +15,7 @@ use App\Services\Reading\AiDocumentReader;
 use App\Support\CurrentFamily;
 use App\Support\InstallationSettings;
 use App\Support\Linkables;
+use App\Support\PageMeta;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -24,8 +25,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View as ViewContract;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configurePolicies();
+
+        // The head of every page written by the server, for search engines and link previews that run no JavaScript
+        View::composer('app', fn (ViewContract $view) => $view->with('head', resolve(PageMeta::class)->for(request())));
 
         // A password login lifts the limit of a linked phone
         Event::listen(Login::class, LiftLinkedDeviceLimit::class);

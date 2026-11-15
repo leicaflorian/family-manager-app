@@ -32,10 +32,11 @@ final class AgendaController extends Controller
 
     /**
      * The Agenda of `?months=1|3|6|12`: the period asked is used and remembered, the remembered one is used when
-     * the address asks for none, and one month when it asks for another period. *I paid it* of a panel asks, with a
-     * partial reload, for `payment` (the due date of `?payment=<key of the entry>`) and the `accounts` to pay with.
+     * the address asks for none, and one month when it asks for another period. The panel of a payment or income
+     * asks, with a partial reload, for `payment` (the due date of `?payment=<key of the entry>`) and the `accounts`
+     * to pay with, for the form it holds.
      *
-     * @throws NotFoundHttpException if `payment` is asked for a key that is not a payment of the family
+     * @throws NotFoundHttpException if `payment` is asked for a key that is not a payment or income of the family
      */
     public function __invoke(AgendaRequest $request, #[CurrentUser] User $user, AgendaPage $page): Response
     {
@@ -49,19 +50,20 @@ final class AgendaController extends Controller
     }
 
     /**
-     * The due date of a payment entry of the Agenda, from its key `payment:<planned expense id>:<original date>`.
+     * The due date of a payment or income entry of the Agenda, from its key
+     * `payment:<planned expense id>:<original date>` or `income:<planned income id>:<original date>`.
      *
      * @param  string  $key  the key of the entry
      *
-     * @throws NotFoundHttpException if the key is not one of a payment, or its due date is not of the family
+     * @throws NotFoundHttpException if the key is not one of a payment or income, or its due date is not of the family
      */
     private function payment(string $key): Deadline
     {
-        if (preg_match('/^payment:(\d+):([0-9-]+)$/', $key, $parts) !== 1) {
+        if (preg_match('/^(payment|income):(\d+):([0-9-]+)$/', $key, $parts) !== 1) {
             throw new NotFoundHttpException;
         }
 
-        return $this->deadlines->findByAddress('expense', $parts[1], $parts[2]);
+        return $this->deadlines->findByAddress($parts[1] === 'income' ? 'income' : 'expense', $parts[2], $parts[3]);
     }
 
     /**

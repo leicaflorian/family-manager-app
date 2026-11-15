@@ -11,7 +11,8 @@ import {
 } from 'vite-plus/test';
 import { render } from '@testing-library/vue';
 import { Toaster } from 'vue-sonner';
-import { renderPage } from '@/test/page';
+import { accountOptions, danceDeadline } from '@/test/fixtures';
+import { renderPage, settle } from '@/test/page';
 import FmAgendaPanel from './FmAgendaPanel.vue';
 
 /** The reminder of an entry, as the server sends it. */
@@ -226,11 +227,95 @@ describe('FmAgendaPanel', () => {
             expect(
                 screen.queryByRole('button', { name: 'Done' }),
             ).not.toBeInTheDocument();
+            // Until its due date arrives, I paid it waits
+            expect(
+                screen.getByRole('button', { name: 'I paid it' }),
+            ).toBeDisabled();
+            expect(view.emitted().pay).toBeUndefined();
+        });
+
+        /** The due date of the gas bill, as the server sends it for the panel. */
+        const gasDeadline: App.Data.DeadlineData = {
+            ...danceDeadline,
+            planned_id: 3,
+            title: 'Gas - Hera',
+            date: '2026-10-28',
+            original_date: '2026-10-28',
+            amount: 84.2,
+            base_amount: null,
+            account_id: 1,
+            account: 'Conto BPER',
+        };
+
+        const paying = {
+            entry: payment,
+            payment: gasDeadline,
+            accounts: accountOptions,
+            payAction:
+                '/budget/planned/expense/3/occurrences/2026-10-28/payment?from_agenda=1',
+        };
+
+        it('holds the form of the payment, filled, and I paid it records it in one tap', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(FmAgendaPanel, paying);
+
+            expect(await screen.findByLabelText('How much')).toHaveValue(
+                '84,20\u00a0€',
+            );
             await userEvent.click(
                 screen.getByRole('button', { name: 'I paid it' }),
             );
+            await settle();
 
-            expect(view.emitted().pay).toHaveLength(1);
+            expect(post).toHaveBeenCalledWith(
+                paying.payAction,
+                expect.objectContaining({
+                    amount: 84.2,
+                    financial_account_id: '1',
+                }),
+                expect.anything(),
+            );
+            expect(
+                screen.getByRole('link', { name: 'Open the due date' }),
+            ).toBeInTheDocument();
+            // A light line divides the form from the details, as the boards draw it
+            expect(
+                screen.getByLabelText('How much').closest('form'),
+            ).toHaveClass('border-t', 'border-divider');
+        });
+
+        it('tells the page once the payment is recorded', async () => {
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, options) => {
+                    options?.onSuccess?.({} as never);
+                },
+            );
+            const view = renderPage(FmAgendaPanel, paying);
+
+            await userEvent.click(
+                await screen.findByRole('button', { name: 'I paid it' }),
+            );
+            await settle();
+
+            expect(view.emitted().paid).toHaveLength(1);
+        });
+
+        it('names the button of an income It arrived', async () => {
+            renderPage(FmAgendaPanel, {
+                ...paying,
+                entry: { ...payment, kind: 'income' },
+                payment: { ...gasDeadline, kind: 'income' },
+            });
+
+            expect(
+                await screen.findByRole('button', { name: 'It arrived' }),
+            ).toBeInTheDocument();
+        });
+
+        it('has no form in the Done list', () => {
+            renderPage(FmAgendaPanel, { ...paying, done: true });
+
+            expect(screen.queryByLabelText('How much')).not.toBeInTheDocument();
         });
 
         it('that also pays a deadline has no Done nor Postpone', () => {

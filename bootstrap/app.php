@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\AddRobotsHeader;
 use App\Http\Middleware\ApplyInstallationSettings;
 use App\Http\Middleware\BlockSuspendedFamily;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -25,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['sidebar_state']);
+
+        $middleware->append(AddRobotsHeader::class);
 
         $middleware->web(append: [
             SignInLinkedDevice::class,

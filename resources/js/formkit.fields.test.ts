@@ -58,6 +58,42 @@ describe('the FormKit Pro fields of the app', () => {
         );
     });
 
+    it('draws each choice as a box with the circle beside its title and its explanation inside', async () => {
+        render(
+            {
+                render: () =>
+                    h(FormKit, {
+                        type: 'radio',
+                        label: 'What they can do',
+                        options: [
+                            {
+                                value: 'admin',
+                                label: 'Everything, like you',
+                                help: 'Also the settings',
+                            },
+                            { value: 'member', label: 'Sees everything' },
+                        ],
+                    }),
+            },
+            { global: { plugins: [[formkit, formkitConfig]] } },
+        );
+
+        const admin = await screen.findByRole('radio', {
+            name: 'Everything, like you',
+        });
+        const box = admin.closest('li');
+        const title = screen.getByText('Everything, like you');
+
+        // The title of a choice is not the label of a field: no margin under it
+        expect(title).not.toHaveClass('mb-1.5', 'block', 'text-row');
+        expect(title).toHaveClass('text-body-strong');
+        // The box is the whole choice, so the explanation stays inside it
+        expect(box).toHaveClass('border-[1.5px]', 'rounded-control');
+        expect(within(box!).getByText('Also the settings')).toHaveClass(
+            'text-meta',
+        );
+    });
+
     it('draws the tags as grey chips inside a box that grows, without the arrow of a menu', async () => {
         render(
             {
