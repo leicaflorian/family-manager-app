@@ -215,7 +215,7 @@ usePageTrail(() => [
             </div>
 
             <div class="flex min-w-0 flex-col gap-5">
-                <div class="rounded-card-lg bg-card p-5">
+                <div class="rounded-card-lg bg-card p-5 shadow-card">
                     <dl
                         class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-body-sm"
                     >

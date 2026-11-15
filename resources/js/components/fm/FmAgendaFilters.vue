@@ -343,7 +343,7 @@ const chip = cn(
 
     <div
         v-if="variant === 'toolbar'"
-        class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-card px-3 py-2.5"
+        class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-card px-3 py-2.5 shadow-card"
     >
         <ReusePeriod v-if="hasPeriod" />
         <span

@@ -144,7 +144,7 @@ function tile(area: string): string {
         <div v-if="query.trim() !== ''" v-auto-animate class="flex flex-col">
             <div
                 v-if="found.length > 0"
-                class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
+                class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
             >
                 <FmCardRow
                     v-for="card in found"
@@ -165,7 +165,7 @@ function tile(area: string): string {
             <section
                 v-for="area in shown"
                 :key="area.area"
-                class="flex flex-col overflow-hidden rounded-card-lg bg-card"
+                class="flex flex-col overflow-hidden rounded-card-lg bg-card shadow-card"
             >
                 <div class="flex items-center gap-2 pr-4">
                     <Link

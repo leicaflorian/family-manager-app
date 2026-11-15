@@ -118,12 +118,12 @@ usePageTrail(() => [
                         :logo="image"
                         :name="form.name"
                         :icon-size="64"
-                        class="size-40 rounded-sheet bg-card"
+                        class="size-40 rounded-sheet bg-card shadow-card"
                     />
                 </template>
             </FmImagePanel>
             <form
-                class="flex flex-col gap-3.5 rounded-sheet bg-card p-5 lg:p-7"
+                class="flex flex-col gap-3.5 rounded-sheet bg-card p-5 shadow-card lg:p-7"
                 novalidate
                 @submit.prevent="save"
             >

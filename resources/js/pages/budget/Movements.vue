@@ -232,7 +232,7 @@ function subtitle(movement: App.Data.MovementData): string {
 
                 <div class="grid grid-cols-3 gap-2.5">
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card lg:p-4"
                     >
                         <span class="text-meta text-ink-soft">{{
                             $t('Money in')
@@ -245,7 +245,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         }}</span>
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card lg:p-4"
                     >
                         <span class="text-meta text-ink-soft">{{
                             $t('Money out')
@@ -258,7 +258,7 @@ function subtitle(movement: App.Data.MovementData): string {
                         }}</span>
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card lg:p-4"
                     >
                         <span class="text-meta text-ink-soft">{{
                             $t('So far')

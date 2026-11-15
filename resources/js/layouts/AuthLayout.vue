@@ -141,7 +141,7 @@ defineSlots<{
                 </g>
             </svg>
             <div
-                class="relative flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-sheet lg:bg-card lg:p-9"
+                class="relative flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-sheet lg:bg-card lg:p-9 lg:shadow-card"
             >
                 <div class="flex items-center gap-2.5 lg:hidden">
                     <FmLogo :size="36" />

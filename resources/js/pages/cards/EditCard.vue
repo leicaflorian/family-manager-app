@@ -198,7 +198,7 @@ const layout = useLayoutMode();
                     />
                 </div>
             </div>
-            <div class="rounded-sheet bg-card p-5 lg:p-7">
+            <div class="rounded-sheet bg-card p-5 shadow-card lg:p-7">
                 <FmCardForm
                     :fields="fields"
                     :values="values"

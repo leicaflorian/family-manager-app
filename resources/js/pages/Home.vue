@@ -162,7 +162,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
         <section
             v-if="home.pending_count > 0"
             :aria-label="$t('Documents to complete')"
-            class="flex gap-4 rounded-card bg-card"
+            class="flex gap-4 rounded-card bg-card shadow-card"
             :class="wide ? 'items-center px-5 py-4.5' : 'flex-col gap-3.5 p-4'"
         >
             <div

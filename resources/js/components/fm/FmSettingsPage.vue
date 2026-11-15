@@ -125,7 +125,7 @@ const sections = computed(
         <div class="flex flex-wrap items-start gap-6">
             <nav
                 :aria-label="$t('Settings sections')"
-                class="flex min-w-60 flex-[0_1_270px] flex-col gap-0.5 rounded-card bg-card p-2.5"
+                class="flex min-w-60 flex-[0_1_270px] flex-col gap-0.5 rounded-card bg-card p-2.5 shadow-card"
             >
                 <template v-for="section in sections" :key="section.key">
                     <span

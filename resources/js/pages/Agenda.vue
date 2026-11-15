@@ -470,7 +470,7 @@ const payAction = computed((): string =>
         <template v-else>
             <div
                 v-if="shown.length === 0"
-                class="flex flex-wrap items-center gap-3 rounded-card bg-card p-5"
+                class="flex flex-wrap items-center gap-3 rounded-card bg-card p-5 shadow-card"
             >
                 <span class="text-body-sm">{{
                     $t('No entries with these filters')

@@ -267,7 +267,7 @@ usePageTrail(() => [
                 <div
                     v-else
                     v-auto-animate
-                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
+                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
                 >
                     <Link
                         v-for="row in rows"

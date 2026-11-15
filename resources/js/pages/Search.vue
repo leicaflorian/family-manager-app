@@ -230,7 +230,7 @@ function goBack(): void {
 
         <div
             v-if="inlineMenu && menuResults"
-            class="overflow-hidden rounded-card bg-card"
+            class="overflow-hidden rounded-card bg-card shadow-card"
         >
             <FmSearchMenu
                 :id="SEARCH_MENU_ID"
@@ -293,7 +293,7 @@ function goBack(): void {
                     }}</span>
                 </h2>
                 <div
-                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
+                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
                 >
                     <FmSearchResult
                         v-for="result in group.results"

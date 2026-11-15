@@ -148,7 +148,7 @@ const closed = computed(() => area.cards.filter((card) => card.closed));
                 </h2>
                 <div
                     v-auto-animate
-                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
+                    class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
                 >
                     <FmCardRow
                         v-for="card in group.cards"

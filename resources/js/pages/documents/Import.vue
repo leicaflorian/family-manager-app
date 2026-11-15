@@ -672,7 +672,7 @@ usePageTrail(() => [
                         "
                         :class="
                             cn(
-                                'flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge-soft bg-card px-3.5 py-2.5 text-left',
+                                'flex w-full cursor-pointer items-center gap-3 rounded-card border border-edge-soft bg-card px-3.5 py-2.5 text-left shadow-card',
                                 stateOf(file) === 'looking' && 'border-action',
                                 stateOf(file) === 'left-out' && 'opacity-60',
                             )
@@ -778,7 +778,7 @@ usePageTrail(() => [
                 <!-- On the phone the wait comes before the file, as the board Importa-lettura -->
                 <section
                     :aria-label="$t('The document')"
-                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-card p-5 lg:p-7"
+                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-card p-5 shadow-card lg:p-7"
                     :class="{ 'order-first': waiting && !desktop }"
                 >
                     <FmNotice v-if="problemOf(current)" tone="warning">

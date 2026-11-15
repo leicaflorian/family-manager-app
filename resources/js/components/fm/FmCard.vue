@@ -61,7 +61,7 @@ defineSlots<{
             v-auto-animate
             data-card
             :data-tone="tone"
-            class="flex flex-col overflow-hidden bg-card"
+            class="flex flex-col overflow-hidden bg-card shadow-card"
             :class="[
                 list
                     ? 'divide-y divide-divider rounded-card'

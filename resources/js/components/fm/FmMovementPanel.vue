@@ -344,7 +344,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
     <form
         :class="
             cn(
-                'flex flex-col gap-4 bg-card p-5',
+                'flex flex-col gap-4 bg-card p-5 shadow-card',
                 compact ? 'rounded-card-lg' : 'rounded-sheet lg:p-7',
             )
         "

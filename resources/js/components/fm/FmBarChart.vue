@@ -125,7 +125,9 @@ const description = computed(() =>
 </script>
 
 <template>
-    <figure class="m-0 flex flex-col gap-2.5 rounded-card bg-card p-4">
+    <figure
+        class="m-0 flex flex-col gap-2.5 rounded-card bg-card p-4 shadow-card"
+    >
         <figcaption
             class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
         >

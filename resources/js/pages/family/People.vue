@@ -84,7 +84,7 @@ const { people, family, canEdit } = defineProps<{
                 v-for="person in people"
                 :key="person.id"
                 :href="show.url(person.id)"
-                class="flex flex-col gap-3.5 rounded-card-lg bg-card p-[22px] text-inherit no-underline"
+                class="flex flex-col gap-3.5 rounded-card-lg bg-card p-[22px] text-inherit no-underline shadow-card"
             >
                 <span class="flex items-center gap-3.5">
                     <FmAvatar

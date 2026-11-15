@@ -98,7 +98,7 @@ const note = computed((): string => {
 
         <div
             data-testid="payments"
-            class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card"
+            class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
         >
             <FmPaymentYears
                 v-if="budget.payments.length > 0"

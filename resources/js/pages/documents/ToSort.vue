@@ -294,7 +294,10 @@ function confirmDelete(): void {
                     "
                 />
 
-                <div v-else class="overflow-hidden rounded-card bg-card">
+                <div
+                    v-else
+                    class="overflow-hidden rounded-card bg-card shadow-card"
+                >
                     <!-- On the phone the rows are touched to choose them, and the bar is at the bottom -->
                     <div
                         v-if="!phone"

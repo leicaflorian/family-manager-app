@@ -119,7 +119,7 @@ usePageTrail(() => [
                     :logo="organization.logo"
                     :name="organization.name"
                     :icon-size="28"
-                    class="size-14 rounded-card bg-card lg:size-16"
+                    class="size-14 rounded-card bg-card shadow-card lg:size-16"
                 />
                 <div class="flex flex-col gap-1">
                     <h1 class="m-0 text-title-mobile lg:text-title">

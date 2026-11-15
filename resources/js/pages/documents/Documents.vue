@@ -239,7 +239,7 @@ function rowHref(document: App.Data.DocumentData): string {
             ]"
         >
             <aside
-                class="sticky top-(--app-header) hidden rounded-card-lg bg-card p-5 xl:block"
+                class="sticky top-(--app-header) hidden rounded-card-lg bg-card p-5 shadow-card xl:block"
             >
                 <FmDocumentFilters
                     :filters="filters"

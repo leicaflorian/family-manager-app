@@ -83,7 +83,7 @@ const shownGroup = computed(
         :class="
             cn(
                 'flex flex-col gap-4',
-                compact && 'rounded-card-lg bg-card p-5.5',
+                compact && 'rounded-card-lg bg-card p-5.5 shadow-card',
             )
         "
     >
@@ -122,7 +122,11 @@ const shownGroup = computed(
 
             <div class="flex min-w-0 flex-col gap-4">
                 <div
-                    :class="compact ? 'pt-1' : 'rounded-card-lg bg-card p-5.5'"
+                    :class="
+                        compact
+                            ? 'pt-1'
+                            : 'rounded-card-lg bg-card p-5.5 shadow-card'
+                    "
                 >
                     <dl
                         class="m-0 grid grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2.5 text-body-sm"
@@ -207,7 +211,9 @@ const shownGroup = computed(
                     class="flex flex-col gap-2"
                 >
                     <h2 class="m-0 text-section">{{ $t('Links') }}</h2>
-                    <div class="flex flex-col rounded-card bg-card px-4 pt-1">
+                    <div
+                        class="flex flex-col rounded-card bg-card px-4 pt-1 shadow-card"
+                    >
                         <div
                             class="flex items-center gap-4.5 border-b border-edge-soft"
                         >
@@ -269,7 +275,7 @@ const shownGroup = computed(
                 >
                     <h2 class="m-0 text-section">{{ $t('Notes') }}</h2>
                     <p
-                        class="m-0 rounded-card bg-card px-4 py-3.5 text-body-sm whitespace-pre-line text-ink-soft"
+                        class="m-0 rounded-card bg-card px-4 py-3.5 text-body-sm whitespace-pre-line text-ink-soft shadow-card"
                     >
                         {{ document.notes }}
                     </p>

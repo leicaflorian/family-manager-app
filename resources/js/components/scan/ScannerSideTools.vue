@@ -66,7 +66,7 @@ const skewText = computed((): string => {
 
 <template>
     <fieldset
-        class="m-0 flex w-full max-w-[420px] flex-col gap-3 rounded-card border border-edge-soft bg-card p-4"
+        class="m-0 flex w-full max-w-[420px] flex-col gap-3 rounded-card border border-edge-soft bg-card p-4 shadow-card"
     >
         <legend class="px-1 text-label">
             {{ $t('Improve') }}

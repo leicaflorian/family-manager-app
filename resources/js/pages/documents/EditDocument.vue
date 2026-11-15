@@ -97,7 +97,7 @@ usePageTrail(() => [
                 :change-url="file.url(document.id)"
             />
             <section
-                class="flex flex-col gap-4 rounded-sheet bg-card p-5 lg:p-7"
+                class="flex flex-col gap-4 rounded-sheet bg-card p-5 shadow-card lg:p-7"
             >
                 <div
                     v-if="reading.can_read && !running"

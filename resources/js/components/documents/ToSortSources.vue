@@ -69,7 +69,7 @@ const sources = computed((): Source[] =>
     <div class="flex flex-col gap-4">
         <nav
             :aria-label="$t('Where they come from')"
-            class="flex flex-col gap-0.5 rounded-card bg-card p-3.5"
+            class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card"
         >
             <span class="px-3 pt-1 pb-2 text-meta-strong text-ink-soft">{{
                 $t('Where they come from')
