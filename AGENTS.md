@@ -78,7 +78,7 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 
 | Comando | Cosa fa |
 | --- | --- |
-| `./vendor/bin/sail up -d` | Avvia app, MySQL e Mailpit |
+| `./vendor/bin/sail up -d` | Avvia app, MySQL, Mailpit e la coda (servizio `queue`, `queue:listen`: email e letture AI partono da sole, e con `DOCUMENT_READER_PROVIDER` pieno nel `.env` ogni file caricato in locale si legge davvero, a pagamento) |
 | `./vendor/bin/sail artisan …` | Artisan |
 | `./vendor/bin/sail test` | Test PHP (Pest) |
 | `./vendor/bin/sail npm run test` | Test del frontend (Vitest) |

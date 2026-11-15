@@ -25,6 +25,23 @@ services:
         depends_on:
             - mysql
             - mailpit
+    # Runs the queued jobs (emails, AI readings) while developing. queue:listen boots the app for every job,
+    # so code changes apply without a restart; --timeout=0 leaves the limit to each job (AI readings can be slow).
+    queue:
+        image: 'sail-8.5/family-manager-app'
+        command: ['php', 'artisan', 'queue:listen', '--tries=3', '--timeout=0']
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - laravel.test
+            - mysql
+            - mailpit
+        restart: unless-stopped
     mysql:
         image: 'mysql:8.4'
         ports:
