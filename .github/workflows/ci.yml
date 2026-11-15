@@ -137,8 +137,11 @@ jobs:
       - name: Pest
         run: php artisan test --parallel --processes=4
 
+      # Vitest loads vite.config.ts in serve mode, which laravel-vite-plugin refuses when CI is set
       - name: Vitest
         run: npm run test -- run
+        env:
+          LARAVEL_BYPASS_ENV_CHECK: 1
 
       - name: Types
         run: npm run types
