@@ -9,6 +9,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitLinkedDevice;
 use App\Http\Middleware\LimitVisit;
 use App\Http\Middleware\RecordLastSeen;
+use App\Http\Middleware\SeparateHosts;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\SignInLinkedDevice;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
@@ -39,6 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ApplyInstallationSettings::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ], prepend: [
+            // First of the group: a page of the app on the host of the panel answers 404 before a session or a sign-in
+            SeparateHosts::class,
         ]);
 
         // *Enter as…* is opened from the admin panel: an owner who is not signed in goes to the sign-in of the panel

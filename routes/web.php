@@ -50,6 +50,7 @@ use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\RedirectToWelcome;
+use App\Http\Middleware\SeparateHosts;
 use App\Services\AgentRelease;
 use Illuminate\Support\Facades\Route;
 
@@ -73,7 +74,7 @@ Route::post('connect/{code}', [ConnectController::class, 'use'])->name('connect.
 // no session and sets no cookie, and without SetLocale a 404 here reads like one of an address that does not exist
 // (the calendar has the language saved with its secret, not the browser's).
 Route::get('calendar/{token}.ics', CalendarFeedController::class)
-    ->middleware('throttle:60,1')
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:60,1'])
     ->withoutMiddleware('web')
     ->name('calendar.feed');
 
@@ -81,13 +82,14 @@ Route::get('calendar/{token}.ics', CalendarFeedController::class)
 // the web group like the calendar: no session, no cookie, no CSRF token (Mailgun has none), and the language of the
 // texts is the one of the installation. The throttle is high: every mail of every family comes from Mailgun.
 Route::post('mail/mailgun', MailgunWebhookController::class)
-    ->middleware('throttle:300,1')
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:300,1'])
     ->withoutMiddleware('web')
     ->name('mail.mailgun');
 
 // The service worker, at the root so its scope is the whole site. Outside the web group: a script asked by the
 // browser, with no session and no cookie.
 Route::get('sw.js', ServiceWorkerController::class)
+    ->middleware(SeparateHosts::OUTSIDE_WEB)
     ->withoutMiddleware('web')
     ->name('service-worker');
 
@@ -96,6 +98,7 @@ Route::get('sw.js', ServiceWorkerController::class)
 // the system menu sends the POST without a CSRF token (and no session is needed: it reads and keeps nothing); a
 // guest sent on to `scan` signs in as usual.
 Route::post('scan/share', ScanShareController::class)
+    ->middleware(SeparateHosts::OUTSIDE_WEB)
     ->withoutMiddleware('web')
     ->name('scan.share');
 

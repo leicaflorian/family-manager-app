@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\SeparateHosts;
 use App\Http\Middleware\SetLocale;
 use App\Models\Owner;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
@@ -25,7 +26,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
- * The admin panel of the owners: `/admin`, the `owner` guard, password and authenticator app (required, with
+ * The admin panel of the owners: at the root of its own host when `ADMIN_DOMAIN` is set (`admin.fameja.app`), at
+ * `/admin` of the host of the app otherwise (local, tests); the `owner` guard, password and authenticator app (required, with
  * recovery codes, everywhere but in the local environment). Resources and pages are discovered in `app/Filament/`.
  */
 final class AdminPanelProvider extends PanelProvider
@@ -59,10 +61,17 @@ final class AdminPanelProvider extends PanelProvider
             $panel->multiFactorAuthentication(AppAuthentication::make()->recoverable(), isRequired: true);
         }
 
+        // Read here, when the panel is configured: Filament registers the routes of the panel at boot
+        $domain = config('app.admin_domain');
+        if (is_string($domain) && $domain !== '') {
+            $panel->domain($domain)->path('');
+        } else {
+            $panel->path('admin');
+        }
+
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
             ->authGuard('owner')
             ->login()
             ->colors([
@@ -74,6 +83,7 @@ final class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->middleware([
+                SeparateHosts::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
