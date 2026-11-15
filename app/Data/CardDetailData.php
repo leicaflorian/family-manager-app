@@ -30,6 +30,7 @@ final class CardDetailData extends Data
      * @param  bool  $can_delete  whether whoever looks can delete the card
      * @param  bool  $can_delete_documents  whether whoever looks can delete the documents of the card
      * @param  CardBudgetData|null  $budget  the payments of the card, null for the types without any
+     * @param  CardNumberData|null  $status  the status of the card as a figure beside its dates, null when it has none
      */
     public function __construct(
         public readonly CardData $card,
@@ -52,5 +53,6 @@ final class CardDetailData extends Data
         public readonly bool $can_delete,
         public readonly bool $can_delete_documents,
         public readonly ?CardBudgetData $budget = null,
+        public readonly ?CardNumberData $status = null,
     ) {}
 }

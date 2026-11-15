@@ -177,6 +177,7 @@ readonly can_edit: boolean,
 readonly can_delete: boolean,
 readonly can_delete_documents: boolean,
 readonly budget: App.Data.CardBudgetData | null,
+readonly status: App.Data.CardNumberData | null,
 };
 export type CardFieldData = {
 readonly column: string,
@@ -201,6 +202,8 @@ readonly amount: number | null,
 readonly count: number | null,
 readonly hint: string | null,
 readonly hint_amount: number | null,
+readonly text: string | null,
+readonly tone: unknown | null,
 };
 export type CardTypeData = {
 readonly type: string,

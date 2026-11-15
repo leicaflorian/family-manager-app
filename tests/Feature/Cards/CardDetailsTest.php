@@ -8,6 +8,7 @@ use App\Data\CardValueData;
 use App\Data\DocumentData;
 use App\Enums\Role;
 use App\Models\Family;
+use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\User;
@@ -35,7 +36,8 @@ test('it shows the data of a policy with labels and links', function (): void {
     expect($values['Type']->text)->toBe('Car')
         ->and($values['Policyholder']->text)->toBe('Marco Bianchi')
         ->and($values['Policyholder']->href)->toBe(route('people.show', $this->policy->person_id))
-        ->and($values['Start']->text)->toBe('21/11/2025')
+        // The start is a tile above the data, so it is not written twice
+        ->and($values->has('Start'))->toBeFalse()
         ->and($values->has('Policy number'))->toBeFalse();
 });
 
@@ -116,3 +118,45 @@ test('a past expiry of a closed card is no longer a deadline in its tiles, unles
     'active' => ['active', true],
     'expired' => ['expired', true],
 ]);
+
+test('it shows the status as a figure, coloured by where it stands', function (string $status, string $expiry, string $text, string $tone): void {
+    insideBianchi(fn () => $this->policy->update(['expiry_date' => $expiry, 'status' => $status]));
+
+    $figure = insideBianchi(fn () => $this->details->of($this->policy->refresh(), $this->marco))->status;
+
+    expect($figure->label)->toBe('Status')
+        ->and($figure->text)->toBe($text)
+        ->and($figure->tone)->toBe($tone)
+        ->and($figure->amount)->toBeNull();
+})->with([
+    'active' => ['active', now()->addMonth()->toDateString(), 'Active', 'open'],
+    'cancelled' => ['cancelled', now()->addMonth()->toDateString(), 'Cancelled', 'closed'],
+    // An active policy past its date turns expired when saved: the renewal is still to do
+    'expired by itself' => ['active', now()->subMonth()->toDateString(), 'Expired', 'overdue'],
+]);
+
+test('the dates of the tiles and the status leave the data', function (): void {
+    insideBianchi(fn () => $this->policy->update(['start_date' => '2025-11-21', 'expiry_date' => now()->addMonth()->toDateString(), 'status' => 'active']));
+
+    $labels = collect(insideBianchi(fn () => $this->details->of($this->policy->refresh(), $this->marco))->values)->pluck('label');
+
+    expect($labels)->not->toContain('Start')
+        ->and($labels)->not->toContain('Expiry')
+        ->and($labels)->not->toContain('Status')
+        ->and($labels)->toContain('Title');
+});
+
+test('a card without a status has no status figure', function (): void {
+    $checkup = insideBianchi(fn (): HealthEvent => HealthEvent::query()->firstOrFail());
+
+    expect(insideBianchi(fn () => $this->details->of($checkup, $this->marco))->status)->toBeNull();
+});
+
+test('the tiles of a policy start with the start', function (): void {
+    insideBianchi(fn () => $this->policy->update(['start_date' => '2025-11-21', 'expiry_date' => now()->addMonth()->toDateString()]));
+
+    $dates = insideBianchi(fn () => $this->details->of($this->policy->refresh(), $this->marco))->dates;
+
+    expect($dates[0]->label)->toBe('Start')
+        ->and($dates[1]->label)->toBe('Expiry');
+});

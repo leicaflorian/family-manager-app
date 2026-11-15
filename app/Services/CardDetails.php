@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cards\CardDate;
 use App\Cards\CardField;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
@@ -14,6 +15,7 @@ use App\Data\CardData;
 use App\Data\CardDateData;
 use App\Data\CardDetailData;
 use App\Data\CardFieldData;
+use App\Data\CardNumberData;
 use App\Data\CardTypeData;
 use App\Data\CardValueData;
 use App\Data\DocumentData;
@@ -77,13 +79,15 @@ final readonly class CardDetails
         ]);
         $documents = $this->documentsPage($type, $row, $documentsPage, static fn (int $number): string => $address($number, $paymentsPage));
         $budget = $this->budgets->of($card, $user, $today);
+        $dates = $this->dates($type, $card);
+        $status = $this->status($type, $card);
 
         return new CardDetailData(
             card: $row,
             heading: $this->heading($type, $card, $row),
-            dates: $this->dates($type, $card),
+            dates: $dates,
             notices: [...$type->notices($card), ...$this->notices->for($card, $today, $user)],
-            values: $this->values($type, $card),
+            values: $this->values($type, $card, $this->shown($type, $card, $status)),
             related: $this->related($type, $card),
             addable: CardTypes::canCreate($user) ? $this->addable($type, $card) : [],
             documents: $documents['documents'],
@@ -93,6 +97,7 @@ final readonly class CardDetails
             can_delete: Gate::forUser($user)->allows('delete', $card),
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
             budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, static fn (int $number): string => $address($documentsPage, $number)) : null,
+            status: $status,
         );
     }
 
@@ -165,18 +170,15 @@ final readonly class CardDetails
     }
 
     /**
-     * The dates of the tiles that are filled in. A closed card (cancelled,
-     * sold…) has no deadlines left, so its past dates do not turn red; a card
-     * that expired by itself (a policy past its date) still has its renewal to
-     * do, so its expiry stays red.
+     * The dates of the tiles that are filled in. A card closed for good
+     * (cancelled, sold…) has no deadlines left, so its past dates do not turn red.
      *
      * @return list<CardDateData>
      */
     private function dates(CardType $type, Model $card): array
     {
         $dates = [];
-        $expiry = Expiries::for($card::class);
-        $closed = $type->isClosed($card) && ($expiry === null || $card->getAttribute('status') !== $expiry['to']);
+        $closed = $this->closedForGood($type, $card);
 
         foreach ($type->dates() as $date) {
             $day = $this->day($card->getAttribute($date->column));
@@ -189,16 +191,69 @@ final readonly class CardDetails
     }
 
     /**
-     * The lines of data, without the empty fields and the virtual ones.
+     * Whether the card is closed for good: closed (`CardType::CLOSED`) and not
+     * by the status it takes by itself past its date (a policy *Expired*),
+     * which still leaves the renewal to do.
+     */
+    private function closedForGood(CardType $type, Model $card): bool
+    {
+        $expiry = Expiries::for($card::class);
+
+        return $type->isClosed($card) && ($expiry === null || $card->getAttribute('status') !== $expiry['to']);
+    }
+
+    /**
+     * The status of the card as a figure: green while open, red when it
+     * expired by itself and the renewal is still to do, grey once closed for
+     * good. Null for a type without a status or an empty one.
+     */
+    private function status(CardType $type, Model $card): ?CardNumberData
+    {
+        $field = array_find($type->fields(), static fn (CardField $field): bool => $field->column === 'status');
+        $text = $field instanceof CardField ? $this->text($field, $card->getAttribute('status')) : null;
+
+        if ($text === null) {
+            return null;
+        }
+
+        $tone = match (true) {
+            $this->closedForGood($type, $card) => 'closed',
+            $type->isClosed($card) => 'overdue',
+            default => 'open',
+        };
+
+        return new CardNumberData(__('Status'), null, text: $text, tone: $tone);
+    }
+
+    /**
+     * The columns the figures above the data already show: the filled dates of
+     * the tiles and the status, so the data do not write them twice.
      *
+     * @return list<string>
+     */
+    private function shown(CardType $type, Model $card, ?CardNumberData $status): array
+    {
+        $columns = array_map(
+            static fn (CardDate $date): string => $date->column,
+            array_values(array_filter($type->dates(), fn (CardDate $date): bool => $this->day($card->getAttribute($date->column)) instanceof CarbonImmutable)),
+        );
+
+        return $status instanceof CardNumberData ? [...$columns, 'status'] : $columns;
+    }
+
+    /**
+     * The lines of data, without the empty fields, the virtual ones and those
+     * the figures above already show.
+     *
+     * @param  list<string>  $shown  the columns the figures show
      * @return list<CardValueData>
      */
-    private function values(CardType $type, Model $card): array
+    private function values(CardType $type, Model $card, array $shown): array
     {
         $values = [];
 
         foreach ($type->fields() as $field) {
-            if ($field->virtual) {
+            if ($field->virtual || in_array($field->column, $shown, true)) {
                 continue;
             }
             $value = $card->getAttribute($field->column);
