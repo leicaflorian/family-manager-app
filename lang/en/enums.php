@@ -302,4 +302,9 @@ return [
         'problem' => 'Something does not work',
         'idea' => 'An idea',
     ],
+    'release_bump' => [
+        'major' => 'Major',
+        'minor' => 'Minor',
+        'patch' => 'Patch',
+    ],
 ];

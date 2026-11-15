@@ -1,0 +1,117 @@
+name: release
+
+# A pushed `v*` tag: check it is on main, run every check, create the GitHub Release from the message of the
+# annotated tag, then deploy on Coolify.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+# The group is per tag ref: different tags run in parallel; only a re-push of the same tag waits for the first run, never cancelling it halfway
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the tag is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tag is not on main"
+            exit 1
+          fi
+
+  ci:
+    needs: guard
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  release:
+    needs: ci
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The checkout does not keep the annotated tag object, so its message is fetched on purpose
+      - name: Read the message of the tag
+        run: |
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          if [ "$(git cat-file -t "refs/tags/$GITHUB_REF_NAME")" != "tag" ]; then
+            echo "::error::The tag is not annotated: create it with git tag -a"
+            exit 1
+          fi
+          git for-each-ref "refs/tags/$GITHUB_REF_NAME" --format='%(contents)' > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"
+
+  deploy:
+    needs: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # Secrets cannot be tested in `if:`, so they go through the environment first
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
+      COOLIFY_URL: https://coolify.leicaflorianrobert.dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check Coolify is set up
+        id: coolify
+        run: |
+          if [ -z "$COOLIFY_TOKEN" ] || [ -z "$COOLIFY_APP_UUID" ]; then
+            echo "::notice::Coolify not set up yet, no deploy"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Coolify builds the branch, not the tag: a main that moved on would deploy code the checks did not see
+      - name: Check main did not move
+        if: steps.coolify.outputs.ready == 'true'
+        run: |
+          main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "$main_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::main moved after the tag: deploy by hand"
+            exit 1
+          fi
+
+      # The token goes in a header file, so it never shows in the command line or the log
+      - name: Deploy on Coolify
+        if: steps.coolify.outputs.ready == 'true'
+        run: |
+          umask 077
+          headers="$RUNNER_TEMP/coolify-headers"
+          trap 'rm -f "$headers"' EXIT
+          printf 'Authorization: Bearer %s\n' "$COOLIFY_TOKEN" > "$headers"
+          curl -fsS -H "@$headers" "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_APP_UUID"
+          echo

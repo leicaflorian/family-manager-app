@@ -70,10 +70,6 @@ RUN mkdir -p storage/app/private storage/app/public storage/framework/cache/data
 # Runs package:discover and filament:upgrade (the assets of Filament in public/js|css|fonts/filament)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
-# The commit Coolify builds ("Include Source Commit in Build"): vite.config.ts writes it in the JS as the version
-# of the client. Only an ARG of this stage: at runtime Coolify gives the container SOURCE_COMMIT itself.
-ARG SOURCE_COMMIT
-
 # The FormKit Pro key ends up only in the built JS: a build secret, never an ARG or ENV left in the history.
 # npm run build builds the app and then the service worker (vite.sw.config.ts → public/build/sw.js).
 RUN --mount=type=secret,id=VITE_FORMKIT_PRO_KEY,required=true,uid=33 \
