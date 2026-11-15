@@ -44,6 +44,8 @@ test('a wrong answer is refused and the message names the field', function (stri
     'no italian notes' => [fn (): string => releaseAnswer(['notes' => ['it' => [], 'en' => ['A']]]), 'notes.it'],
     'no english notes' => [fn (): string => releaseAnswer(['notes' => ['it' => ['A']]]), 'notes.en'],
     'note not a string' => [fn (): string => releaseAnswer(['notes' => ['it' => [3], 'en' => ['A']]]), 'notes.it'],
+    'nine italian notes' => [fn (): string => releaseAnswer(['notes' => ['it' => array_fill(0, 9, 'A'), 'en' => ['A']]]), 'notes.it'],
+    'nine english notes' => [fn (): string => releaseAnswer(['notes' => ['it' => ['A'], 'en' => array_fill(0, 9, 'A')]]), 'notes.en'],
     'empty note' => [fn (): string => releaseAnswer(['notes' => ['it' => ['A'], 'en' => ['']]]), 'notes.en'],
 ]);
 
@@ -55,5 +57,7 @@ test('the schema and the parser agree', function (): void {
         ->and($schema['properties']['notes']['required'])->toBe(['it', 'en'])
         ->and($schema['additionalProperties'])->toBeFalse()
         ->and($schema['properties']['notes']['properties']['it']['minItems'])->toBe(1)
-        ->and($schema['properties']['notes']['properties']['en']['minItems'])->toBe(1);
+        ->and($schema['properties']['notes']['properties']['en']['minItems'])->toBe(1)
+        ->and($schema['properties']['notes']['properties']['it']['maxItems'])->toBe(8)
+        ->and($schema['properties']['notes']['properties']['en']['maxItems'])->toBe(8);
 });

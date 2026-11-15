@@ -12,6 +12,8 @@ use JsonException;
  */
 final readonly class ReleaseResponse
 {
+    private const int MAX_NOTES = 8;
+
     /**
      * @param  ReleaseBump  $bump  Minor or patch.
      * @param  string  $reason  Why Claude chose that bump.
@@ -97,6 +99,10 @@ final readonly class ReleaseResponse
 
         if (! is_array($list) || $list === [] || ! array_is_list($list)) {
             throw new InvalidReleaseResponse(sprintf('The field "notes.%s" must be a list with at least one text.', $language));
+        }
+
+        if (count($list) > self::MAX_NOTES) {
+            throw new InvalidReleaseResponse(sprintf('The field "notes.%s" must have at most %d texts.', $language, self::MAX_NOTES));
         }
 
         $lines = [];
