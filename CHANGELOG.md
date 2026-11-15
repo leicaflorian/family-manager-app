@@ -2,6 +2,11 @@
 
 All notable changes to Fameja.app.
 
+## [2.1.1] - 2026-11-15
+
+### Tests
+- FilePreviewsTest: the HEIC memory test now uses a dedicated 8000 × 6000 photo fixture (`tests/Fixtures/big-photo.heic`), so the memory PHP keeps reserved can never fit it and the test is reliable.
+
 ## [2.1.0] - 2026-11-15
 
 ### Agenda
