@@ -1,8 +1,25 @@
 import { render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { i18nVue, loadLanguageAsync } from 'laravel-vue-i18n';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
+import { createApp } from 'vue';
+import { i18nOptions } from '@/lib/i18n';
 import type { MonthDay, MonthItem } from '@/lib/monthGrid';
 import FmMonthGrid from './FmMonthGrid.vue';
+
+/**
+ * Sets the language of the texts, as the app does at start.
+ *
+ * @param lang - `en` or `it`
+ */
+async function speak(lang: string): Promise<void> {
+    createApp({}).use(i18nVue, i18nOptions(lang));
+    await loadLanguageAsync(lang);
+}
+
+afterEach(async () => {
+    await speak('en');
+});
 
 /** An item of a day with the fields the tests change. */
 function item(key: string, change: Partial<MonthItem> = {}): MonthItem {
@@ -196,6 +213,49 @@ describe('FmMonthGrid', () => {
             expect(
                 screen.getByRole('button', { name: '2 Nov' }),
             ).not.toHaveTextContent('Nov');
+        });
+
+        it('writes the short month in lower case in Italian, as Italian does', async () => {
+            const view = render(FmMonthGrid, { props: props({}, true) });
+            // Every render installs the English of the tests: Italian comes
+            // after it, and another day chosen draws the grid again
+            await speak('it');
+            await view.rerender({ selected: '2026-11-05' });
+
+            expect(
+                screen.getByRole('button', { name: '1 dic' }),
+            ).toHaveTextContent('1 dic');
+            expect(
+                screen.getByRole('button', { name: '26 ott' }),
+            ).toBeInTheDocument();
+        });
+
+        it('draws the month in a card, with a line under the weekdays', () => {
+            const { container } = render(FmMonthGrid, {
+                props: props({}, true),
+            });
+
+            expect(container.firstElementChild).toHaveClass(
+                'bg-card',
+                'rounded-card',
+                'shadow-card',
+                'overflow-hidden',
+            );
+            expect(
+                screen.getAllByTestId('weekday')[0]?.parentElement,
+            ).toHaveClass('border-b', 'border-divider');
+        });
+    });
+
+    describe('on the phone', () => {
+        it('draws the month in a card', () => {
+            const { container } = render(FmMonthGrid, { props: props() });
+
+            expect(container.firstElementChild).toHaveClass(
+                'bg-card',
+                'rounded-card',
+                'shadow-card',
+            );
         });
     });
 });

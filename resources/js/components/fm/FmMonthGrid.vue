@@ -7,16 +7,21 @@
  * to three labels in the colour of the area (red if late, grey, struck through
  * and ticked if done) and «+3 more» for the rest, with a blue border on the
  * chosen day and the month written on the first day of it. A day is always a
- * button that emits `select`; the days of the other months are faint.
+ * button that emits `select`; the days of the other months are faint. The
+ * month sits in a white card; on the computer a line divides the weekdays from
+ * the days, and the month is written as the language writes it («1 dic»,
+ * «1 Dec»).
  *
  * @group navigation
  */
+import { format } from '@formkit/tempo';
 import { Check } from '@lucide/vue';
-import { transChoice } from 'laravel-vue-i18n';
+import { getActiveLanguage, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { areaFill, areaOf, areaTile } from '@/lib/areas';
-import { monthName, shortMonth, weekdayShort } from '@/lib/budget';
+import { monthName, weekdayShort } from '@/lib/budget';
 import { addDays } from '@/lib/days';
+import { toDate } from '@/lib/format';
 import type { MonthDay, MonthItem } from '@/lib/monthGrid';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
@@ -92,13 +97,14 @@ function dayNumber(date: string): number {
 }
 
 /**
- * The day as it is read aloud and as the first of a month is written: «4 Nov».
+ * The day as it is read aloud and as the first of a month is written, with the
+ * short month as the language writes it: «4 nov» in Italian, «4 Nov» in English.
  *
  * @param date - `yyyy-mm-dd`
  * @returns the day and the short month
  */
 function dayAndMonth(date: string): string {
-    return `${dayNumber(date)} ${shortMonth(date.slice(0, 7))}`;
+    return format(toDate(date), 'D MMM', getActiveLanguage());
 }
 
 /**
@@ -202,9 +208,16 @@ function cellNumberClass(date: string): string {
 </script>
 
 <template>
-    <div>
+    <div
+        :class="
+            wide
+                ? 'flex flex-col overflow-hidden rounded-card bg-card shadow-card'
+                : 'flex flex-col gap-1 rounded-card bg-card px-2 pt-2.5 pb-1.5 shadow-card'
+        "
+    >
         <div
-            class="grid grid-cols-7 pb-0.5 text-meta text-ink-soft"
+            class="grid grid-cols-7 text-meta text-ink-soft"
+            :class="wide ? 'border-b border-divider py-2.5' : 'pb-0.5'"
             aria-hidden="true"
         >
             <span

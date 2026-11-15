@@ -892,6 +892,51 @@ describe('Agenda, the calendar view', () => {
         );
     });
 
+    it('replaces the rows of the day at once when another month arrives', async () => {
+        const view = renderPage(Agenda, calendarView(october));
+        const before = screen.getByRole('region', {
+            name: 'Monday 26 October',
+        });
+        const list = within(before).getByRole('button', {
+            name: /Portare la bici/,
+        }).parentElement;
+
+        await view.rerender(calendarView());
+
+        const after = screen.getByRole('region', { name: 'Sunday 1 November' });
+        expect(day('1 Nov')).toHaveAttribute('aria-pressed', 'true');
+        expect(
+            screen.queryByRole('button', { name: /Portare la bici/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(after).getByText('Nothing on this day.'),
+        ).toBeInTheDocument();
+        expect(list?.isConnected).toBe(false);
+
+        await userEvent.click(day('4 Nov'));
+        expect(row(/Primo pagamento/)).toBeInTheDocument();
+    });
+
+    it('replaces the list, not only its rows, when another day is chosen', async () => {
+        renderPage(Agenda, calendarView());
+        await userEvent.click(day('4 Nov'));
+        const list = row(/Primo pagamento/).parentElement;
+
+        await userEvent.click(day('6 Nov'));
+
+        expect(list?.isConnected).toBe(false);
+        expect(row(/Bolletta luce di ottobre/)).toBeInTheDocument();
+    });
+
+    it('sums only what is paid out, not the incomes of the day', async () => {
+        renderPage(Agenda, calendarView());
+
+        await userEvent.click(day('23 Nov'));
+
+        expect(row(/Stipendio di Laura/)).toBeInTheDocument();
+        expect(screen.getByText('1 to do')).toBeInTheDocument();
+    });
+
     it('chooses today again when the month that arrives holds it', async () => {
         const view = renderPage(Agenda, calendarView());
 

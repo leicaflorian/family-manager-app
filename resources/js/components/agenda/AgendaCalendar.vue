@@ -104,12 +104,11 @@ const dayTitle = computed(() =>
     formatDayTitle(selected.value, getActiveLanguage()),
 );
 
-/** «3 to do · 1 done · 13,99 €»: what is not there is left out. */
+/** «3 to do · 1 done · 13,99 €»: what is not there is left out; the sum is what is paid out, so the incomes stay out of it. */
 const summary = computed((): string => {
-    const toPay = dayOpen.value.reduce(
-        (sum, entry) => sum + (entry.amount ?? 0),
-        0,
-    );
+    const toPay = dayOpen.value
+        .filter((entry) => entry.kind !== 'income')
+        .reduce((sum, entry) => sum + (entry.amount ?? 0), 0);
 
     return [
         dayOpen.value.length > 0
@@ -240,7 +239,13 @@ function goToday(): void {
                     summary
                 }}</span>
             </div>
-            <FmCard v-if="dayOpen.length + dayDone.length > 0" list>
+            <!-- A new list for each day: the animation of the card would keep
+                 the rows of the day before while the new ones fade in -->
+            <FmCard
+                v-if="dayOpen.length + dayDone.length > 0"
+                :key="selected"
+                list
+            >
                 <FmAgendaRow
                     v-for="entry in dayOpen"
                     :key="entry.key"
