@@ -141,13 +141,21 @@ export default defaultConfig({
             },
             'family:box': {
                 inner: '$reset flex',
-                wrapper:
-                    'flex items-center gap-3 min-h-control rounded-control border-[1.5px] border-edge bg-card px-3.5 has-[:checked]:border-2 has-[:checked]:border-action has-[:checked]:bg-action-soft',
-                input: '$reset size-[22px] shrink-0 accent-action',
-                label: 'mb-0 text-body text-ink',
                 options: 'flex flex-col gap-2 list-none p-0 m-0',
                 legend: 'mb-1.5 text-row text-ink',
                 fieldset: 'border-0 p-0 m-0',
+            },
+            // A choice (radio) is a box: the circle on the left, centred on the title
+            // and on its explanation, which stays inside the box under the title.
+            // The box is the option, because FormKit writes the explanation after
+            // the label element; the label lets its children into the grid.
+            radio: {
+                option: 'grid grid-cols-[22px_minmax(0,1fr)] items-center gap-x-3 min-h-control rounded-control border-[1.5px] border-edge bg-card px-3.5 py-3 has-[:checked]:border-2 has-[:checked]:border-action has-[:checked]:bg-action-soft',
+                wrapper: '$reset contents',
+                inner: '$reset row-span-2 flex',
+                input: '$reset m-0 size-[22px] shrink-0 accent-action',
+                label: '$reset text-body-strong text-ink',
+                optionHelp: '$reset col-start-2 mt-0.5 text-meta text-ink-soft',
             },
             // The toggle: the switch and its label on one row, without the box of the
             // fields. The checkbox stays (hidden) for the keyboard and the screen
