@@ -6,8 +6,11 @@ use App\Enums\FeedbackKind;
 use App\Mail\FeedbackReportMail;
 use App\Models\FeedbackReport;
 use App\Models\Owner;
+use App\Models\ServerError;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -160,4 +163,135 @@ test('the email has a button to answer who wrote and names the attached file', f
         ->assertSeeInHtml('Attached: schermata.png')
         ->assertSeeInHtml(asset('mail/icons/alert.png'))
         ->assertSeeInHtml('You get this email because you look after Family Manager.');
+});
+
+test('a problem saves the screenshot, the details and the server errors of the account', function (): void {
+    $old = ServerError::factory()->create(['user_id' => $this->member->id, 'family_id' => $this->member->family_id, 'created_at' => now()->subMinutes(40), 'request_id' => 'req-old']);
+    $recent = ServerError::factory()->create(['user_id' => $this->member->id, 'family_id' => $this->member->family_id, 'created_at' => now()->subMinutes(5)]);
+    $other = User::factory()->create();
+    ServerError::factory()->create(['user_id' => $other->id, 'family_id' => $other->family_id, 'created_at' => now()->subMinutes(5), 'request_id' => 'req-old']);
+
+    $details = json_encode([
+        'console' => [['at' => '2026-11-15T10:00:00+01:00', 'level' => 'error', 'message' => 'Boom', 'component' => 'Pay']],
+        'requests' => [['at' => '2026-11-15T10:00:01+01:00', 'method' => 'POST', 'path' => '/pay', 'status' => 500, 'request_id' => 'req-old']],
+    ], JSON_THROW_ON_ERROR);
+
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'screenshot' => UploadedFile::fake()->image('page.webp'),
+        'diagnostics' => $details,
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toStartWith('feedback/'.$this->admin->family_id.'/')
+        ->and($report->screenshot_size)->toBeGreaterThan(0)
+        ->and($report->diagnostics['console'][0]['message'])->toBe('Boom')
+        ->and($report->diagnostics['server_version'])->toBe(config('app.version'))
+        ->and(array_column($report->server_errors, 'request_id'))->toBe(['req-old', $recent->request_id]);
+    Storage::disk('local')->assertExists($report->screenshot_path);
+});
+
+test('an idea keeps nothing technical', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'kind' => 'idea',
+        'screenshot' => UploadedFile::fake()->image('page.webp'),
+        'diagnostics' => json_encode(['console' => []], JSON_THROW_ON_ERROR),
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toBeNull()
+        ->and($report->screenshot_size)->toBeNull()
+        ->and($report->diagnostics)->toBeNull()
+        ->and($report->server_errors)->toBeNull()
+        ->and(Storage::disk('local')->allFiles('feedback'))->toBe([]);
+});
+
+test('a problem without screenshot or details is still saved', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields())->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toBeNull()
+        ->and($report->diagnostics)->toBeNull();
+});
+
+test('details that are not JSON, or too large, are left out and the report is still saved', function (string $details): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields(['diagnostics' => $details]))
+        ->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->message)->toBe("L'importo letto è sbagliato.")
+        ->and($report->diagnostics)->toBeNull();
+    Mail::assertQueued(FeedbackReportMail::class);
+})->with([
+    'not JSON' => ['{nope'],
+    'not an object' => ['"text"'],
+    'over 256 KB' => [fn (): string => '{"x":"'.str_repeat('a', 262144).'"}'],
+]);
+
+test('details between 64 and 256 KB are saved cleaned', function (): void {
+    $console = array_map(fn (int $i): array => ['at' => 'x', 'level' => 'error', 'message' => str_repeat('m', 2000), 'component' => null], range(1, 50));
+
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'diagnostics' => json_encode(['console' => $console], JSON_THROW_ON_ERROR),
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->diagnostics['console'])->toHaveCount(50)
+        ->and(mb_strlen($report->diagnostics['console'][0]['message']))->toBe(500);
+});
+
+test('a screenshot that is not an image is left out and the report is still saved', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'screenshot' => UploadedFile::fake()->create('page.pdf', 20, 'application/pdf'),
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->screenshot_path)->toBeNull()
+        ->and(Storage::disk('local')->allFiles('feedback'))->toBe([]);
+});
+
+test('a pixel ratio that overflows is dropped and the report is still saved', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'diagnostics' => '{"viewport":{"dpr":1e400,"width":390}}',
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->diagnostics['viewport']['dpr'])->toBeNull()
+        ->and($report->diagnostics['viewport']['width'])->toBe(390);
+});
+
+test('a failure while copying the server errors does not lose the report', function (): void {
+    DB::listen(function (QueryExecuted $query): void {
+        // Only the read of the error rows: the insert of the report also names the column.
+        if (str_starts_with($query->sql, 'select') && str_contains($query->sql, 'from `server_errors`')) {
+            throw new RuntimeException('server errors are down');
+        }
+    });
+
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields())->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->message)->toBe("L'importo letto è sbagliato.")
+        ->and($report->server_errors)->toBeNull();
+    Mail::assertQueued(FeedbackReportMail::class);
+});
+
+test('the email of a problem attaches the screenshot and counts the errors', function (): void {
+    $report = FeedbackReport::factory()->withDiagnostics()->for($this->admin->family)->create([
+        'file_path' => 'feedback/1/abc.png', 'file_name' => 'schermata.png', 'file_mime' => 'image/png',
+        'screenshot_path' => 'feedback/1/shot.webp',
+    ]);
+    Storage::disk('local')->put('feedback/1/abc.png', 'png');
+    Storage::disk('local')->put('feedback/1/shot.webp', 'img');
+
+    $mail = new FeedbackReportMail($report);
+
+    expect($mail->attachments())->toHaveCount(2);
+    $mail->assertSeeInHtml('1 page error, 1 failed request, 1 server error — details in the panel', false);
+    expect($mail->render())->not->toContain('<b>bad</b>');
+});
+
+test('the email of an idea has no count line', function (): void {
+    $report = FeedbackReport::factory()->for($this->admin->family)->create(['kind' => FeedbackKind::Idea]);
+
+    new FeedbackReportMail($report)->assertDontSeeInHtml('details in the panel');
 });

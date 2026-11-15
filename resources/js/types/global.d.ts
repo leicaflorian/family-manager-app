@@ -53,3 +53,10 @@ declare module 'vue' {
         $headManager: ReturnType<typeof createHeadManager>;
     }
 }
+
+/** The build of the app (`SOURCE_COMMIT`, or `dev`), written by Vite (`define`). */
+declare global {
+    const __APP_BUILD__: string;
+}
+
+export {};

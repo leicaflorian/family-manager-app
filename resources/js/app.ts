@@ -16,6 +16,7 @@ import { pageLayout } from '@/lib/pageLayout';
 import { forgetShared } from '@/lib/pwa/sharedFiles';
 import { login, logout } from '@/routes';
 import { pageVisitOptions } from '@/lib/transitions';
+import { reportVueError, startDiagnostics } from '@/lib/diagnostics';
 import { startVisitHistory } from '@/lib/visitHistory';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Family Manager';
@@ -31,10 +32,14 @@ I18n.getSharedInstance(i18nOptions(lang));
 // Back never leads to a page outside the layout of the app (sign-in, welcome, scan).
 startVisitHistory((name) => pageLayout(name) === AppLayout);
 
+// What a report of a problem carries about the browser, kept from the very start
+startDiagnostics();
+
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: pageLayout,
     withApp: (app) => {
+        app.config.errorHandler = reportVueError;
         app.use(formkit, formkitConfig)
             .use(autoAnimatePlugin)
             .use(i18nVue, i18nOptions(lang));

@@ -24,5 +24,9 @@
 </x-mail::button>
 @endif
 
+@if ($errorCounts !== null)
+{{ $errorCounts }}
+
+@endif
 {{ __('Answer this email to write to them.') }}
 </x-mail::message>

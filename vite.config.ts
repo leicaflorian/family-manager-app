@@ -7,6 +7,10 @@ import { google } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
+    // The build the browser reports with a problem: the commit Coolify builds (`dev` when there is none)
+    define: {
+        __APP_BUILD__: JSON.stringify(process.env.SOURCE_COMMIT ?? 'dev'),
+    },
     plugins: lazyPlugins(() => [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],

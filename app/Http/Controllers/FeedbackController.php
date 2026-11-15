@@ -32,7 +32,10 @@ final class FeedbackController extends Controller
             'page' => $request->string('page')->toString(),
             'layout' => is_string($layout) ? $layout : null,
             'user_agent' => $request->userAgent(),
-        ], $file instanceof UploadedFile ? $file : null);
+        ], $file instanceof UploadedFile ? $file : null,
+            $request->screenshot(),
+            $request->diagnostics(),
+        );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Thanks, we will answer you by email.')]);
 
