@@ -89,7 +89,7 @@ it('shows the screenshot, device, path, page errors, failed requests and server 
     config()->set('app.version', 'deployed-later');
 
     Livewire::test(ViewFeedbackReport::class, ['record' => $report->getKey()])
-        ->assertSee(route('owner.feedback.file', [$report, 'screenshot']), false)
+        ->assertSee(route('filament.admin.feedback-file', [$report, 'screenshot']), false)
         ->assertSee('390 × 844')
         ->assertSee('Installed app')
         ->assertSee('/documents')
@@ -146,16 +146,16 @@ it('lets the owner open the screenshot inline and the file, and a missing part i
     $report = FeedbackReport::factory()->withDiagnostics()->for($this->rossi)->createQuietly(['file_path' => 'feedback/1/abc.png', 'file_name' => 'schermata.png', 'file_mime' => 'image/png', 'screenshot_path' => 'feedback/1/shot.webp']);
     Storage::disk('local')->put('feedback/1/shot.webp', 'img');
 
-    $screenshot = $this->get(route('owner.feedback.file', [$report, 'screenshot']))->assertOk();
+    $screenshot = $this->get(route('filament.admin.feedback-file', [$report, 'screenshot']))->assertOk();
     expect($screenshot->headers->get('Content-Disposition'))->toStartWith('inline');
 
-    $file = $this->get(route('owner.feedback.file', [$report, 'file']))->assertOk();
+    $file = $this->get(route('filament.admin.feedback-file', [$report, 'file']))->assertOk();
     expect($file->headers->get('Content-Disposition'))->toContain('schermata.png');
 
-    $this->get(route('owner.feedback.file', [$this->old, 'screenshot']))->assertNotFound();
-    $this->get(route('owner.feedback.file', [$this->old, 'file']))->assertNotFound();
-    $this->get(route('owner.feedback.file', [999999, 'file']))->assertNotFound();
-    $this->get(route('owner.feedback.file', [$report, 'other']))->assertNotFound();
+    $this->get(route('filament.admin.feedback-file', [$this->old, 'screenshot']))->assertNotFound();
+    $this->get(route('filament.admin.feedback-file', [$this->old, 'file']))->assertNotFound();
+    $this->get(route('filament.admin.feedback-file', [999999, 'file']))->assertNotFound();
+    $this->get(route('filament.admin.feedback-file', [$report, 'other']))->assertNotFound();
 });
 
 it('keeps the screenshot and the file from a family account and a guest', function (): void {
@@ -163,7 +163,7 @@ it('keeps the screenshot and the file from a family account and a guest', functi
     Storage::disk('local')->put('feedback/1/screenshot.webp', 'img');
     auth('owner')->logout();
 
-    $this->get(route('owner.feedback.file', [$report, 'screenshot']))->assertRedirect(route('filament.admin.auth.login'));
+    $this->get(route('filament.admin.feedback-file', [$report, 'screenshot']))->assertRedirect(route('filament.admin.auth.login'));
 
-    expect($this->actingAs($this->anna, 'web')->get(route('owner.feedback.file', [$report, 'screenshot']))->getStatusCode())->toBeIn([302, 403]);
+    expect($this->actingAs($this->anna, 'web')->get(route('filament.admin.feedback-file', [$report, 'screenshot']))->getStatusCode())->toBeIn([302, 403]);
 });

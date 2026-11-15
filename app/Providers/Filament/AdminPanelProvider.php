@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Http\Controllers\Admin\FeedbackFileController;
 use App\Http\Controllers\Admin\VisitController;
 use App\Http\Middleware\SeparateHosts;
 use App\Http\Middleware\SetLocale;
@@ -100,9 +101,14 @@ final class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            // *Enter as…*: the link of the table, signed when it is drawn, makes the one-time link of the app on the click
             ->authenticatedRoutes(static function (): void {
+                // *Enter as…*: the link of the table, signed when it is drawn, makes the one-time link of the app on the click
                 Route::get('enter-as/{user}', [VisitController::class, 'handoff'])->middleware('signed')->name('enter-as');
+                // The screenshot and the file of a report, opened from its page: on the host of the panel, behind its
+                // sign-in, so an account of a family never reads them (`filament.admin.feedback-file`)
+                Route::get('feedback-files/{report}/{part}', FeedbackFileController::class)
+                    ->whereNumber('report')->whereIn('part', ['screenshot', 'file'])
+                    ->name('feedback-file');
             });
     }
 }

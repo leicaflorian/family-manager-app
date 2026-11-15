@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Http\Middleware\LimitVisit;
 use App\Http\Middleware\SeparateHosts;
 use App\Models\Family;
+use App\Models\FeedbackReport;
 use App\Models\Owner;
 use App\Models\User;
 use App\Support\VisitHandoff;
@@ -14,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
@@ -210,6 +212,36 @@ final class AdminHostTest extends TestCase
         $this->assertFalse(Auth::guard('owner')->check());
     }
 
+    /**
+     * A problem report of a family with its screenshot on the private disk.
+     */
+    private function reportWithScreenshot(): FeedbackReport
+    {
+        $report = FeedbackReport::factory()->withDiagnostics()->createQuietly(['screenshot_path' => 'feedback/1/shot.webp']);
+        Storage::disk('local')->put('feedback/1/shot.webp', 'img');
+
+        return $report;
+    }
+
+    public function test_the_owner_opens_the_screenshot_of_a_report_on_the_admin_host(): void
+    {
+        $this->bootWithAdminDomain();
+        Storage::fake('local');
+        $report = $this->reportWithScreenshot();
+        $url = route('filament.admin.feedback-file', [$report, 'screenshot']);
+
+        $this->assertSame(self::ADMIN.'/feedback-files/'.$report->id.'/screenshot', $url);
+        // A guest goes to the login of the panel
+        $this->get($url)->assertRedirect(self::ADMIN.'/login');
+
+        $owner = Owner::factory()->withAuthenticator()->create();
+        $this->actingAs($owner, 'owner')->get($url)->assertOk();
+
+        // Not on the host of the app, even for a signed-in owner
+        $this->get(self::APP.'/feedback-files/'.$report->id.'/screenshot')->assertNotFound();
+        $this->get(self::APP.'/admin/feedback-files/'.$report->id.'/screenshot')->assertNotFound();
+    }
+
     public function test_the_admin_host_is_recognised(): void
     {
         $this->bootWithAdminDomain();
@@ -225,5 +257,11 @@ final class AdminHostTest extends TestCase
 
         $this->get('/admin')->assertRedirect('/admin/login');
         $this->get('/login')->assertOk();
+
+        Storage::fake('local');
+        $report = $this->reportWithScreenshot();
+        $this->assertSame(url('/admin/feedback-files/'.$report->id.'/screenshot'), route('filament.admin.feedback-file', [$report, 'screenshot']));
+        $this->actingAs(Owner::factory()->withAuthenticator()->create(), 'owner')
+            ->get('/admin/feedback-files/'.$report->id.'/screenshot')->assertOk();
     }
 }
