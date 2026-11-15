@@ -22,7 +22,9 @@ it('keeps every scheduled command safe during a rolling deploy', function (): vo
 
             expect($event)->not->toBeNull("{$command} is scheduled")
                 ->and($event->withoutOverlapping)->toBeTrue("{$command} without overlapping")
-                ->and($event->onOneServer)->toBeTrue("{$command} on one server");
+                ->and($event->onOneServer)->toBeTrue("{$command} on one server")
+                // A container killed in the middle of a run must not block the next night (the default is 24 hours)
+                ->and($event->expiresAt)->toBe(120, "{$command} lock expires after 2 hours");
         }
     } finally {
         putenv('BACKUP_S3_BUCKET');
