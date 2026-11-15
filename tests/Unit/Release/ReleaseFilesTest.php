@@ -91,3 +91,7 @@ test('a corrupt VERSION file is an error, not a first release', function (): voi
 test('the handoff files live under storage/app/release', function (): void {
     expect(new ReleaseFiles($this->root)->handoffPath('version'))->toBe($this->root.'/storage/app/release/version');
 });
+
+test('the container builds it with the application root', function (): void {
+    expect(app(ReleaseFiles::class)->handoffPath('version'))->toBe(base_path('storage/app/release/version'));
+});

@@ -142,3 +142,11 @@ test('a corrupt VERSION file stops the release and writes nothing', function ():
     expect(file_get_contents($this->root.'/VERSION'))->toBe("banana\n")
         ->and(file_exists($this->root.'/CHANGELOG.md'))->toBeFalse();
 });
+
+test('a real run, with the default root, fails on a missing file', function (): void {
+    app()->forgetInstance(ReleaseFiles::class);
+
+    $this->artisan('app:release', ['response' => 'storage/app/release/does-not-exist.json'])
+        ->expectsOutputToContain('does not exist')
+        ->assertExitCode(1);
+});

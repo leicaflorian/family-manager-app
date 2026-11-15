@@ -13,10 +13,15 @@ final readonly class ReleaseFiles
 {
     private const string HEADER = "# Changelog\n\nAll notable changes to Family Manager.\n";
 
+    private string $root;
+
     /**
-     * @param  string  $root  Absolute path of the repository root.
+     * @param  string|null  $root  Absolute path of the repository root; the application base path when null.
      */
-    public function __construct(private string $root) {}
+    public function __construct(?string $root = null)
+    {
+        $this->root = $root ?? base_path();
+    }
 
     /**
      * The version in the VERSION file, or null when there is no file yet (a first release).
