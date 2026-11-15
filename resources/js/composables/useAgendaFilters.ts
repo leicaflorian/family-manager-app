@@ -24,6 +24,7 @@ const defaults: App.Data.AgendaFiltersData = {
     months: 1,
     person_id: null,
     hidden_areas: [],
+    calendar: false,
 };
 
 /** Visits that leave the page where it is. */

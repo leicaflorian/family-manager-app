@@ -181,7 +181,12 @@ describe('Agenda', () => {
         renderPage(
             Agenda,
             agenda({
-                filters: { months: 1, person_id: 1, hidden_areas: [] },
+                filters: {
+                    months: 1,
+                    person_id: 1,
+                    hidden_areas: [],
+                    calendar: false,
+                },
             }),
         );
 
@@ -199,6 +204,7 @@ describe('Agenda', () => {
                     months: 1,
                     person_id: null,
                     hidden_areas: ['home', 'general'],
+                    calendar: false,
                 },
             }),
         );
@@ -558,6 +564,7 @@ describe('Agenda', () => {
                     months: 1,
                     person_id: null,
                     hidden_areas: areas.map((area) => area.value),
+                    calendar: false,
                 },
             }),
         );
