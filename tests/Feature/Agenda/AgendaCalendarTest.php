@@ -46,7 +46,13 @@ test('a wrong month shows the current one', function (string $month): void {
     $props = calendarProps(registerFamily(), '?view=calendar&month='.$month);
 
     expect($props['calendar']['month'])->toBe('2026-11');
-})->with(['2026-13', 'abc', '2026-1']);
+})->with(['2026-13', 'abc', '2026-1', '0001-01', '9999-12', '2028-12', '2024-10']);
+
+test('a month 24 months away is still accepted', function (string $month): void {
+    $props = calendarProps(registerFamily(), '?view=calendar&month='.$month);
+
+    expect($props['calendar']['month'])->toBe($month);
+})->with(['2028-11', '2024-11']);
 
 test('open entries of the month are the list ones inside the grid', function (): void {
     $marco = registerFamily();

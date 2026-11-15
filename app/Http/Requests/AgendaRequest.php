@@ -17,6 +17,9 @@ final class AgendaRequest extends FormRequest
     /** The period when the address asks for none, or for one the Agenda does not offer. */
     public const int DEFAULT_MONTHS = 1;
 
+    /** How many months before or after the current one the calendar accepts. */
+    public const int MAX_MONTHS_AWAY = 24;
+
     /**
      * The rules of the address: none, since a wrong period falls back to the default.
      *
@@ -75,7 +78,9 @@ final class AgendaRequest extends FormRequest
     }
 
     /**
-     * The month of the calendar: the first day of `?month=yyyy-mm`, the month of today when it is missing or wrong.
+     * The month of the calendar: the first day of `?month=yyyy-mm`, the month of today when it is missing, wrong
+     * or more than `MAX_MONTHS_AWAY` months before or after the month of today (a far month would make the calendar
+     * look through years of due dates).
      *
      * @param  CarbonImmutable  $today  today in Rome
      */
@@ -84,7 +89,11 @@ final class AgendaRequest extends FormRequest
         $month = $this->query('month');
 
         if (is_string($month) && preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/', $month) === 1) {
-            return CarbonImmutable::parse($month.'-01', 'Europe/Rome')->startOfDay();
+            $asked = CarbonImmutable::parse($month.'-01', 'Europe/Rome')->startOfDay();
+
+            if (abs(($asked->year - $today->year) * 12 + $asked->month - $today->month) <= self::MAX_MONTHS_AWAY) {
+                return $asked;
+            }
         }
 
         return $today->startOfMonth();

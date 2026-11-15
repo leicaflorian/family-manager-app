@@ -49,6 +49,6 @@ final class AgendaFiltersRequest extends FormRequest
         /** @var array{months: int, person_id: int|null, hidden_areas: list<string>} $data */
         $data = $this->validated();
 
-        return new AgendaFiltersData((int) $data['months'], $data['person_id'] === null ? null : (int) $data['person_id'], $data['hidden_areas'], $this->user() instanceof User && AgendaFiltersData::fromUser($this->user())->calendar);
+        return new AgendaFiltersData((int) $data['months'], $data['person_id'] === null ? null : (int) $data['person_id'], $data['hidden_areas'], $this->user() instanceof User && ($this->user()->agenda_filters['calendar'] ?? false));
     }
 }
