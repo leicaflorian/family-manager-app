@@ -22,6 +22,8 @@ class ResetUserPassword implements ResetsUserPasswords
     {
         Validator::make($input, [
             'password' => $this->passwordRules(),
+        ], [
+            'password.confirmed' => __('The two passwords are different.'),
         ])->validate();
 
         $user->forceFill([

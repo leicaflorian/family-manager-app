@@ -40,15 +40,11 @@ const form = useForm({
 });
 
 /**
- * Saves the new password. The form asks for it only once: the confirmation
- * Fortify wants is the same.
+ * Saves the new password, typed twice: the server checks that the two are the same.
  */
 function save(): void {
-    form.transform((data) => ({
-        ...data,
-        password_confirmation: data.password,
-    })).submit(update(), {
-        onFinish: () => form.reset('password'),
+    form.submit(update(), {
+        onFinish: () => form.reset('password', 'password_confirmation'),
     });
 }
 </script>
@@ -72,6 +68,13 @@ function save(): void {
             :help="$t('At least 10 characters')"
             autocomplete="new-password"
             :errors="errors(form.errors.password)"
+        />
+        <FmPasswordField
+            v-model="form.password_confirmation"
+            :label="$t('Write the new password again')"
+            name="password_confirmation"
+            autocomplete="new-password"
+            :errors="errors(form.errors.password_confirmation)"
         />
         <span class="min-h-6 grow lg:hidden" />
         <FmButton type="submit" wide :disabled="form.processing">{{

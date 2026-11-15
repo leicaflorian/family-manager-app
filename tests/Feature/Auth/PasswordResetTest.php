@@ -81,6 +81,29 @@ class PasswordResetTest extends TestCase
         });
     }
 
+    public function test_password_is_not_reset_when_the_confirmation_is_different(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+        $old = $user->password;
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user): true {
+            $this->post(route('password.update'), [
+                'token' => $notification->token,
+                'email' => $user->email,
+                'password' => 'una-password-nuova',
+                'password_confirmation' => 'una-password-diversa',
+            ])->assertSessionHasErrors(['password' => 'The two passwords are different.']);
+
+            return true;
+        });
+
+        expect($user->fresh()?->password)->toBe($old);
+    }
+
     public function test_password_cannot_be_reset_with_invalid_token(): void
     {
         $user = User::factory()->create();
