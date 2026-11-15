@@ -1,0 +1,205 @@
+/*
+ * Family Manager mails: the colours are the light colours of the design system
+ * (resources/design/tokens.json), written out because mail programs do not read
+ * CSS variables. Only properties that mail programs read well: no position,
+ * box-sizing, rgba, vw, box-shadow or !important (Mailpit's HTML check).
+ */
+
+body,
+.wrapper {
+    background-color: #f4f6fa;
+    color: #18212f;
+    font-family: Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.header {
+    padding: 32px 24px 20px;
+    text-align: center;
+}
+
+.header a {
+    color: #18212f;
+    font-size: 17px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.logo {
+    border: 0;
+    height: 32px;
+    vertical-align: middle;
+    width: 32px;
+}
+
+.card {
+    background-color: #ffffff;
+    border: 1px solid #e3e8ef;
+    border-radius: 16px;
+}
+
+.content-cell {
+    padding: 32px;
+}
+
+h1 {
+    color: #18212f;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0 0 8px;
+}
+
+p,
+ul,
+li {
+    color: #5a6575;
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 0 0 16px;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+li {
+    color: #18212f;
+    margin: 0 0 8px;
+}
+
+strong {
+    color: #18212f;
+}
+
+a {
+    color: #0070e0;
+}
+
+.action {
+    margin: 8px 0 24px;
+}
+
+.button-cell {
+    background-color: #0070e0;
+    border-radius: 14px;
+}
+
+.button {
+    color: #ffffff;
+    display: inline-block;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.25;
+    padding: 16px 28px;
+    text-decoration: none;
+}
+
+.panel {
+    margin: 0 0 20px;
+}
+
+.panel-content {
+    background-color: #f8fafc;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.panel-content p {
+    color: #5a6575;
+    font-size: 14px;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.quote p {
+    color: #18212f;
+    font-size: 16px;
+}
+
+.notices {
+    margin: 0 0 20px;
+}
+
+.notice {
+    border-bottom: 1px solid #eef1f5;
+    padding: 14px 0;
+}
+
+.notice-title {
+    color: #18212f;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.notice-subject {
+    color: #5a6575;
+    font-weight: 400;
+}
+
+.due {
+    color: #5a6575;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.due-late {
+    color: #c4283f;
+}
+
+.notice-open {
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.details {
+    margin: 0 0 20px;
+}
+
+.details td {
+    border-bottom: 1px solid #eef1f5;
+    color: #18212f;
+    font-size: 14px;
+    line-height: 1.45;
+    padding: 10px 0;
+}
+
+.details .detail-name {
+    color: #5a6575;
+    font-weight: 600;
+    padding-right: 12px;
+    width: 120px;
+}
+
+.subcopy {
+    border-top: 1px solid #eef1f5;
+    margin-top: 4px;
+}
+
+.subcopy td {
+    padding-top: 16px;
+}
+
+.subcopy p {
+    color: #5a6575;
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.footer td {
+    padding: 20px 40px 32px;
+    text-align: center;
+}
+
+.footer p {
+    color: #5a6575;
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 0 0 4px;
+}

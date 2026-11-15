@@ -148,3 +148,15 @@ test('a guest is sent to sign in', function (): void {
     $this->post(route('feedback.store'), reportFields())->assertRedirect(route('login'));
     expect(allReports())->toBe([]);
 });
+
+test('the email has a button to answer who wrote and names the attached file', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'file' => UploadedFile::fake()->image('schermata.png'),
+    ]));
+
+    new FeedbackReportMail(allReports()[0])
+        ->assertSeeInHtml('mailto:giulia@example.com')
+        ->assertSeeInHtml('Reply to Giulia')
+        ->assertSeeInHtml('Attached: schermata.png')
+        ->assertSeeInHtml('You get this email because you look after Family Manager.');
+});

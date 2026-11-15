@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Actions\Devices\ForgetLinkedDevices;
 use App\Enums\Role;
 use App\Enums\Theme;
+use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -22,6 +23,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -91,6 +93,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function person(): HasOne
     {
         return $this->hasOne(Person::class);
+    }
+
+    /**
+     * The first name to greet the account with: the person tied to it, or the first word of its name.
+     */
+    public function firstName(): string
+    {
+        $person = CurrentFamily::using($this->family_id, fn () => $this->person()->first());
+
+        return $person instanceof Person ? $person->first_name : Str::before($this->name, ' ');
     }
 
     /**

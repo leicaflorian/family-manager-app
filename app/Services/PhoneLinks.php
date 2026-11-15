@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\LinkedDevice;
-use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentFamily;
 use App\Support\DeviceName;
@@ -213,9 +212,7 @@ final class PhoneLinks
      */
     public function firstName(User $user): string
     {
-        $person = CurrentFamily::using($user->family_id, fn () => $user->person()->first());
-
-        return $person instanceof Person ? $person->first_name : Str::before($user->name, ' ');
+        return $user->firstName();
     }
 
     /**

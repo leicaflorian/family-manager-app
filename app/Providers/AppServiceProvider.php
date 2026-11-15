@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Contracts\DocumentReader;
 use App\Listeners\LiftLinkedDeviceLimit;
+use App\Mail\AccountMails;
 use App\Models\Family;
 use App\Models\FamilyModel;
 use App\Models\User;
@@ -18,6 +19,8 @@ use App\Support\Linkables;
 use App\Support\PageMeta;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
@@ -60,6 +63,10 @@ class AppServiceProvider extends ServiceProvider
 
         // The head of every page written by the server, for search engines and link previews that run no JavaScript
         View::composer('app', fn (ViewContract $view) => $view->with('head', resolve(PageMeta::class)->for(request())));
+
+        // The mails about the account are worded and drawn like the other mails of the app
+        ResetPassword::toMailUsing(AccountMails::resetPassword(...));
+        VerifyEmail::toMailUsing(AccountMails::verifyEmail(...));
 
         // A password login lifts the limit of a linked phone
         Event::listen(Login::class, LiftLinkedDeviceLimit::class);

@@ -66,10 +66,14 @@ final class MorningNoticesMail extends Mailable
         $today = $this->day($this->today);
 
         return new Content(markdown: 'mail.morning-notices', with: [
+            'name' => $this->user->firstName(),
+            'agenda' => route('agenda'),
             'lines' => array_map(fn (MorningItem $item): array => [
                 'title' => $this->title($item),
                 'subject' => $item->subject,
                 'when' => DueText::when($today, $this->day($item->dueOn), $item->manual),
+                // Due today or already late: written in red, as on the board
+                'late' => $this->day($item->dueOn)->lessThanOrEqualTo($today),
                 'url' => $item->url,
             ], $this->items),
         ]);

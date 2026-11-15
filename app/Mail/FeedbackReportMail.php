@@ -52,6 +52,8 @@ final class FeedbackReportMail extends Mailable
             'device' => $this->plainText($this->report->user_agent ?? '-'),
             'sender' => $this->report->creator->name ?? __('An account no longer there'),
             'senderEmail' => $this->report->creator->email ?? '',
+            'senderFirstName' => $this->report->creator?->firstName() ?? '',
+            'fileName' => $this->report->file_path !== null ? $this->plainText($this->report->file_name ?? basename($this->report->file_path)) : null,
             'family' => $this->report->family->name,
             'sentAt' => $this->report->created_at?->timezone('Europe/Rome')->format('d/m/Y H:i') ?? '',
         ]);
