@@ -23,7 +23,7 @@ docker run --rm -v "$PWD":/app -w /app composer:2 composer install
 
 The form fields come from FormKit Pro: its key goes in `VITE_FORMKIT_PRO_KEY` in `.env` before `npm run dev` or `npm run build`.
 
-For the document previews the app uses `pdftoppm` (`poppler-utils`), `heif-convert` (`libheif-examples`) and PHP's `ext-gd` extension. The Sail image (`docker/8.5/`, Ubuntu 24.04, which adds `libheif-plugin-libde265` to read HEIC files) and `nixpacks.toml` (Ubuntu 22.04, where that decoder is already in `libheif1`) install them, so there is nothing to add. If a preview does not show up locally after an update, rebuild the image with `./vendor/bin/sail build --no-cache`.
+For the document previews the app uses `pdftoppm` (`poppler-utils`), `heif-convert` (`libheif-examples`) and PHP's `ext-gd` extension. The Sail image (`docker/8.5/`, Ubuntu 24.04) and the production `Dockerfile` (serversideup/php on Debian 13) install them, both with `libheif-plugin-libde265` to read HEIC files, so there is nothing to add. If a preview does not show up locally after an update, rebuild the image with `./vendor/bin/sail build --no-cache`.
 
 Then, every time:
 

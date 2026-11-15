@@ -1,0 +1,52 @@
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+auth.json
+
+# Rebuilt inside the image (composer install, npm ci, npm run build, filament:upgrade, Wayfinder)
+node_modules
+vendor
+public/build
+public/hot
+public/storage
+public/js/filament
+public/css/filament
+public/fonts/filament
+resources/js/actions
+resources/js/routes
+resources/js/wayfinder
+bootstrap/cache/*.php
+bootstrap/ssr
+
+# The files of the families, the caches and the logs: never in the image
+storage/app/private
+storage/app/public
+storage/framework/*
+storage/logs/*
+storage/pail
+storage/*.key
+
+# Not needed to run the app
+.git
+.github
+tests
+docs
+.claude
+.superpowers
+.agents
+.idea
+.vscode
+.phpunit.cache
+.phpunit.result.cache
+compose.yaml
+docker/8.0
+docker/8.1
+docker/8.2
+docker/8.3
+docker/8.4
+docker/8.5
+docker/mariadb
+docker/mysql
+docker/pgsql
+.DS_Store

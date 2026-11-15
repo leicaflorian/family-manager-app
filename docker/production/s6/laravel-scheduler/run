@@ -1,0 +1,5 @@
+#!/command/with-contenv sh
+# The scheduler (reminders:run at 6:00, loans:refresh at 00:05, model:prune, files:backup), supervised by S6.
+# It replaces a schedule:run task of Coolify: never run both, or every task runs twice.
+cd /var/www/html || exit 1
+exec php artisan schedule:work
