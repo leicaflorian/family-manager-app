@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { captureScreenshot, skipNode } from './screenshot';
+import {
+    applyShift,
+    captureScreenshot,
+    markShift,
+    shiftOffset,
+    skipNode,
+} from './screenshot';
 
 const library = vi.hoisted(() => ({
     domToCanvas: vi.fn(),
@@ -136,5 +142,67 @@ describe('captureScreenshot', () => {
         await vi.advanceTimersByTimeAsync(4000);
 
         expect(await result).toBeNull();
+    });
+});
+
+describe('shiftOffset', () => {
+    it('is zero for an element that scrolls with the page', () => {
+        expect(shiftOffset({ x: 0, y: 300 }, { x: 0, y: 300 })).toEqual({
+            x: 0,
+            y: 0,
+        });
+    });
+
+    it('moves a stuck top bar back to the top of the screen', () => {
+        // Seen at 0, but its natural place is 200 above after a scroll of 200
+        expect(shiftOffset({ x: 0, y: 0 }, { x: 0, y: -200 })).toEqual({
+            x: 0,
+            y: 200,
+        });
+    });
+
+    it('moves a stuck bottom bar up to the bottom of the screen', () => {
+        expect(shiftOffset({ x: 0, y: 700 }, { x: 0, y: 1500 })).toEqual({
+            x: 0,
+            y: -800,
+        });
+    });
+});
+
+describe('markShift and applyShift', () => {
+    afterEach(() => {
+        document.body.innerHTML = '';
+        vi.restoreAllMocks();
+    });
+
+    it('marks a sticky element and the clone gets the compensating transform', () => {
+        document.body.innerHTML =
+            '<header id="h" style="position: sticky"></header>';
+        const header = document.getElementById('h') as HTMLElement;
+        // Stuck at the top while the page is scrolled by 200; once made
+        // relative it is 200 above the screen
+        header.getBoundingClientRect = () =>
+            ({
+                left: 0,
+                top: header.style.position === 'relative' ? -200 : 0,
+            }) as DOMRect;
+        window.scrollX = 0;
+        window.scrollY = 200;
+
+        markShift(header);
+        const clone = header.cloneNode() as HTMLElement;
+        applyShift(clone);
+
+        expect(clone.style.transform).toBe('translate(0px, 200px)');
+        expect(clone.hasAttribute('data-shot-shift')).toBe(false);
+    });
+
+    it('leaves an ordinary element alone', () => {
+        document.body.innerHTML = '<main id="m"></main>';
+        const main = document.getElementById('m') as HTMLElement;
+
+        markShift(main);
+
+        expect(main.hasAttribute('data-shot-shift')).toBe(false);
     });
 });
