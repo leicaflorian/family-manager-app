@@ -16,7 +16,7 @@ Artisan::command('inspire', function (): void {
 })->purpose('Display an inspiring quote');
 
 // A rolling deploy briefly runs two schedulers (old and new container): every command is withoutOverlapping()->onOneServer(),
-// which needs a shared cache (redis in production)
+// which needs a shared cache (redis in production).
 
 // The instalments that the calendar makes paid at midnight, in the families' time zone
 Schedule::command('loans:refresh')->dailyAt(resolve(InstallationSettings::class)->loansTime())->timezone('Europe/Rome')->withoutOverlapping()->onOneServer();
