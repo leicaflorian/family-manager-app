@@ -93,5 +93,5 @@ test('the handoff files live under storage/app/release', function (): void {
 });
 
 test('the container builds it with the application root', function (): void {
-    expect(app(ReleaseFiles::class)->handoffPath('version'))->toBe(base_path('storage/app/release/version'));
+    expect(resolve(ReleaseFiles::class)->handoffPath('version'))->toBe(base_path('storage/app/release/version'));
 });
