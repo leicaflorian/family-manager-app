@@ -44,7 +44,7 @@ test('an error before sign-in has no account', function (): void {
 
 test('404, 403 and 422 leave no row', function (): void {
     Route::middleware('web')->get('/_forbidden', fn () => abort(403));
-    Route::middleware('web')->post('/_invalid', fn () => request()->validate(['a' => 'required']));
+    Route::middleware('web')->post('/_invalid', fn () => request()->validate(['a' => ['required']]));
 
     $this->get('/_missing')->assertNotFound();
     $this->get('/_forbidden')->assertForbidden();
@@ -97,7 +97,7 @@ test('an error in a job keeps the account and request id but no method or path',
     // A job inherits the context of the request that queued it, while its request() is the console fake
     Context::add(['request_id' => 'req-queued', 'user_id' => 7, 'family_id' => 3]);
 
-    app(RecordServerError::class)->handle(new RuntimeException('late'));
+    resolve(RecordServerError::class)->handle(new RuntimeException('late'));
 
     $row = ServerError::sole();
     expect($row->request_id)->toBe('req-queued')

@@ -67,8 +67,7 @@ final class ServerError extends Model
             ->where(function (Builder $query) use ($sentAt, $requestIds): void {
                 $query->whereBetween('created_at', [$sentAt->copy()->subMinutes(self::REPORT_WINDOW_MINUTES), $sentAt])
                     ->orWhereIn('request_id', $requestIds);
-            })
-            ->orderBy('created_at')
+            })->oldest()
             ->orderBy('id')
             ->get();
     }

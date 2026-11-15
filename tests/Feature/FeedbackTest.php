@@ -207,7 +207,7 @@ test('details that are not JSON, or over 64 KB, are refused with a message, noth
     expect(allReports())->toBe([]);
 })->with([
     'not JSON' => ['{nope'],
-    'over 64 KB' => [fn () => '{"x":"'.str_repeat('a', 65536).'"}'],
+    'over 64 KB' => [fn (): string => '{"x":"'.str_repeat('a', 65536).'"}'],
 ]);
 
 test('a screenshot that is not an image is refused', function (): void {

@@ -31,7 +31,7 @@ test('the request id is in the context of the request', function (): void {
 });
 
 test('a signed-in account is in the context and a guest has neither id', function (): void {
-    Route::middleware('web')->get('/_ctx', fn () => json_encode([
+    Route::middleware('web')->get('/_ctx', fn (): string|false => json_encode([
         'user' => Context::get('user_id'),
         'family' => Context::get('family_id'),
         'has_user' => Context::has('user_id'),
