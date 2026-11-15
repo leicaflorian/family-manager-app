@@ -24,6 +24,11 @@ import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 import FmNotice from './FmNotice.vue';
 
+defineProps<{
+    /** The photo of the page taken when the panel opened; `null` while it is being taken or if it failed. */
+    screenshot?: File | null;
+}>();
+
 /** The panel is open. */
 const open = defineModel<boolean>('open', { default: false });
 

@@ -29,6 +29,7 @@ import {
 import { computed, provide, ref, useTemplateRef, watch } from 'vue';
 import FmBottomBar from '@/components/fm/FmBottomBar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
+import { captureScreenshot } from '@/lib/screenshot';
 import FmFeedbackSheet from '@/components/fm/FmFeedbackSheet.vue';
 import FmSidebar from '@/components/fm/FmSidebar.vue';
 import FmTopBar from '@/components/fm/FmTopBar.vue';
@@ -100,10 +101,29 @@ const menuOpen = ref(false);
 /** The panel *Report a problem or an idea* is open. */
 const feedbackOpen = ref(false);
 
-/** Opens the panel of the report, closing the menu of the tablet first, so two panels never stack. */
+/** The photo of the page taken when the panel opened, `null` until it is ready. */
+const feedbackScreenshot = ref<File | null>(null);
+
+/** Counts the openings, so a photo that arrives after the panel closed is ignored. */
+let feedbackOpening = 0;
+
+/**
+ * Opens the panel of the report at once, closing the menu of the tablet first
+ * (so two panels never stack), and takes the photo of the page meanwhile.
+ */
 function openFeedback(): void {
     menuOpen.value = false;
+    const opening = ++feedbackOpening;
+    feedbackScreenshot.value = null;
+    // The photo is taken before the panel is drawn over the page, which the
+    // library also skips: the panel is marked `data-no-screenshot`
+    const capture = captureScreenshot();
     feedbackOpen.value = true;
+    void capture.then((file) => {
+        if (opening === feedbackOpening && feedbackOpen.value) {
+            feedbackScreenshot.value = file;
+        }
+    });
 }
 
 // A visit closes the menu, so it never covers the new page (also a visit to the open page)
@@ -239,10 +259,12 @@ useSearchShortcut(focusSearch);
         >
             <DialogPortal>
                 <DialogOverlay
+                    data-no-screenshot
                     class="fixed inset-0 z-40 bg-overlay duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
                 />
                 <DialogContent
                     id="app-menu"
+                    data-no-screenshot
                     :aria-describedby="undefined"
                     class="fixed inset-y-0 left-0 z-50 flex w-[280px] bg-card shadow-dialog outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left motion-reduce:animate-none"
                 >
@@ -261,8 +283,11 @@ useSearchShortcut(focusSearch);
                 </DialogContent>
             </DialogPortal>
         </DialogRoot>
-        <FmFeedbackSheet v-model:open="feedbackOpen" />
-        <Toaster />
+        <FmFeedbackSheet
+            v-model:open="feedbackOpen"
+            :screenshot="feedbackScreenshot"
+        />
+        <div data-no-screenshot><Toaster /></div>
         <LeaveGuard />
     </div>
 </template>

@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { router } from '@inertiajs/vue3';
-import { config } from '@vue/test-utils';
+import { config, mount } from '@vue/test-utils';
 import {
     afterEach,
     beforeEach,
@@ -16,7 +16,11 @@ import { trackChanges } from '@/lib/unsavedChanges';
 import { formPlugins } from '@/lib/formPlugins';
 import { areaCounts } from '@/test/fixtures';
 import { press, screenWidth } from '@/test/page';
+import { captureScreenshot } from '@/lib/screenshot';
+import FmFeedbackSheet from '@/components/fm/FmFeedbackSheet.vue';
 import AppLayout from './AppLayout.vue';
+
+vi.mock('@/lib/screenshot', () => ({ captureScreenshot: vi.fn() }));
 
 const page = vi.hoisted(() => ({
     url: '/documents?person=3',
@@ -69,8 +73,22 @@ const PageWithTrail = defineComponent({
 // The layout keeps the panel *Report a problem or an idea*, a FormKit form
 config.global.plugins = [...config.global.plugins, ...formPlugins];
 
+/** Opens *Report a problem or an idea* from the menu of the account. */
+async function openReport(wrapper: ReturnType<typeof mount>): Promise<void> {
+    await wrapper.find('button[aria-haspopup="menu"]').trigger('click');
+    await userEvent.click(
+        await screen.findByRole('menuitem', {
+            name: 'Report a problem or an idea',
+        }),
+    );
+}
+
 describe('AppLayout', () => {
-    beforeEach(() => screenWidth(1280));
+    beforeEach(() => {
+        screenWidth(1280);
+        vi.mocked(captureScreenshot).mockReset();
+        vi.mocked(captureScreenshot).mockResolvedValue(null);
+    });
 
     afterEach(() => {
         vi.restoreAllMocks();
@@ -423,6 +441,73 @@ describe('AppLayout', () => {
                 name: 'Report a problem or an idea',
             }),
         ).toBeInTheDocument();
+    });
+
+    it('opens the report panel at once and hands it the photo of the page when ready', async () => {
+        const photo = new File(['x'], 'page.webp', { type: 'image/webp' });
+        let finish: (file: File | null) => void = () => {};
+        vi.mocked(captureScreenshot).mockReturnValue(
+            new Promise((resolve) => {
+                finish = resolve;
+            }),
+        );
+        const wrapper = mount(AppLayout, {
+            slots: { default: '<h1>Documents</h1>' },
+            attachTo: document.body,
+        });
+        await openReport(wrapper);
+
+        expect(
+            await screen.findByRole('dialog', {
+                name: 'Report a problem or an idea',
+            }),
+        ).toBeInTheDocument();
+        expect(captureScreenshot).toHaveBeenCalledTimes(1);
+        const sheet = wrapper.findComponent(FmFeedbackSheet);
+        expect(sheet.props('screenshot')).toBeNull();
+
+        finish(photo);
+        await waitFor(() => expect(sheet.props('screenshot')).toBe(photo));
+
+        wrapper.unmount();
+    });
+
+    it('starts every opening of the report panel without the previous photo, and ignores a late one', async () => {
+        const photo = new File(['x'], 'page.webp', { type: 'image/webp' });
+        let late: (file: File | null) => void = () => {};
+        vi.mocked(captureScreenshot)
+            .mockResolvedValueOnce(photo)
+            .mockReturnValueOnce(
+                new Promise((resolve) => {
+                    late = resolve;
+                }),
+            );
+        const wrapper = mount(AppLayout, {
+            slots: { default: '<h1>Documents</h1>' },
+            attachTo: document.body,
+        });
+        const sheet = wrapper.findComponent(FmFeedbackSheet);
+
+        await openReport(wrapper);
+        await waitFor(() => expect(sheet.props('screenshot')).toBe(photo));
+        await userEvent.keyboard('{Escape}');
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', {
+                    name: 'Report a problem or an idea',
+                }),
+            ).not.toBeInTheDocument(),
+        );
+
+        await openReport(wrapper);
+        expect(sheet.props('screenshot')).toBeNull();
+
+        await userEvent.keyboard('{Escape}');
+        late(photo);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(sheet.props('screenshot')).toBeNull();
+
+        wrapper.unmount();
     });
 
     it('opens Report a problem or an idea from More on the phone, in place of More', async () => {

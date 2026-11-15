@@ -213,4 +213,4 @@ requests: list<{at: string, method: string, path: string, status: ?int, request_
 
 ## Decisions taken
 
-- (Task 6) The screenshot library and why.
+- (Task 6) modern-screenshot 4.7.0: maintained fork of html-to-image with a node filter and WebP/JPEG via the canvas; loaded only on the click. To be confirmed on real pages in Task 8.
