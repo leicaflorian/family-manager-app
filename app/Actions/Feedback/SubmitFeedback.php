@@ -9,6 +9,7 @@ use App\Mail\FeedbackReportMail;
 use App\Models\FeedbackReport;
 use App\Models\Owner;
 use App\Models\User;
+use App\Services\FileStore;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -47,7 +48,7 @@ final readonly class SubmitFeedback
      *
      * @param  User  $sender  who sends it
      * @param  UploadedFile|null  $file  the file, if any
-     * @return array{file_path?: string, file_name?: string, file_mime?: string|null, file_size?: int|false}
+     * @return array{file_path?: string, file_name?: string, file_mime?: string|null, file_size?: int|null}
      */
     private function storeFile(User $sender, ?UploadedFile $file): array
     {
@@ -58,10 +59,10 @@ final readonly class SubmitFeedback
         $name = Str::uuid()->toString().'.'.($file->guessExtension() ?? $file->getClientOriginalExtension());
 
         return [
-            'file_path' => (string) Storage::disk('local')->putFileAs("feedback/{$sender->family_id}", $file, $name),
+            'file_path' => (string) Storage::disk('local')->putFileAs(FileStore::feedbackFolder($sender->family_id), $file, $name),
             'file_name' => Str::limit($file->getClientOriginalName(), 250),
             'file_mime' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
+            'file_size' => $file->getSize() ?: null,
         ];
     }
 }

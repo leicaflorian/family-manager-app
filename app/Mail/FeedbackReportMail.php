@@ -47,11 +47,33 @@ final class FeedbackReportMail extends Mailable
     {
         return new Content(markdown: 'mail.feedback-report', with: [
             'report' => $this->report,
+            'message' => $this->plainText($this->report->message),
+            'page' => $this->plainText($this->report->page),
+            'device' => $this->plainText($this->report->user_agent ?? '-'),
             'sender' => $this->report->creator->name ?? __('An account no longer there'),
             'senderEmail' => $this->report->creator->email ?? '',
             'family' => $this->report->family->name,
             'sentAt' => $this->report->created_at?->timezone('Europe/Rome')->format('d/m/Y H:i') ?? '',
         ]);
+    }
+
+    /**
+     * A text written by the person, shown as it is: the HTML escaped, and the Markdown characters too, so a link or
+     * an image in it is never run in the owner's email; its line breaks kept.
+     *
+     * @param  string  $text  the text as it was sent
+     * @return string HTML to print as it is
+     */
+    private function plainText(string $text): string
+    {
+        // One pass over the text as it was sent, so an entity written here is never escaped again
+        $escaped = strtr($text, [
+            '&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;', "'" => '&#039;',
+            '[' => '&#91;', ']' => '&#93;', '(' => '&#40;', ')' => '&#41;', '!' => '&#33;', '*' => '&#42;',
+            '_' => '&#95;', '`' => '&#96;', '#' => '&#35;', '~' => '&#126;', '|' => '&#124;', '\\' => '&#92;',
+        ]);
+
+        return nl2br($escaped, false);
     }
 
     /**

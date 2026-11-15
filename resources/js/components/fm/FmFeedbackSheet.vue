@@ -201,9 +201,7 @@ function send(): void {
                         :icon="X"
                         variant="text"
                         small
-                        :label="
-                            $t('Remove :name', { name: values.file.name })
-                        "
+                        :label="$t('Remove :name', { name: values.file.name })"
                         @click="values.file = null"
                     />
                 </div>

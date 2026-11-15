@@ -413,7 +413,9 @@ describe('AppLayout', () => {
             screen.getByRole('button', { name: /Marco Bianchi/ }),
         );
         await userEvent.click(
-            screen.getByRole('menuitem', { name: 'Report a problem or an idea' }),
+            screen.getByRole('menuitem', {
+                name: 'Report a problem or an idea',
+            }),
         );
 
         expect(

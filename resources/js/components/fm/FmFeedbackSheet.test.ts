@@ -67,13 +67,18 @@ describe('FmFeedbackSheet', () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         await openSheet();
 
-        await userEvent.click(screen.getByRole('radio', { name: 'I have an idea' }));
+        await userEvent.click(
+            screen.getByRole('radio', { name: 'I have an idea' }),
+        );
         await userEvent.type(
             screen.getByLabelText('Tell us what happened'),
             'Un tema verde',
         );
         const file = new File(['png'], 'schermata.png', { type: 'image/png' });
-        await userEvent.upload(screen.getByLabelText('Screenshot or file'), file);
+        await userEvent.upload(
+            screen.getByLabelText('Screenshot or file'),
+            file,
+        );
         expect(screen.getByText('schermata.png')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Send' }));
         await settle();
@@ -87,7 +92,10 @@ describe('FmFeedbackSheet', () => {
                 layout: expect.stringMatching(/^(phone|tablet|computer)$/),
                 file,
             },
-            expect.objectContaining({ forceFormData: true, preserveScroll: true }),
+            expect.objectContaining({
+                forceFormData: true,
+                preserveScroll: true,
+            }),
         );
     });
 
@@ -102,7 +110,10 @@ describe('FmFeedbackSheet', () => {
         await userEvent.click(
             screen.getByRole('button', { name: 'Remove schermata.png' }),
         );
-        await userEvent.type(screen.getByLabelText('Tell us what happened'), 'Ciao');
+        await userEvent.type(
+            screen.getByLabelText('Tell us what happened'),
+            'Ciao',
+        );
         await settle();
         await userEvent.click(screen.getByRole('button', { name: 'Send' }));
         await settle();
@@ -122,7 +133,10 @@ describe('FmFeedbackSheet', () => {
         });
         await openSheet();
 
-        await userEvent.type(screen.getByLabelText('Tell us what happened'), 'Ciao');
+        await userEvent.type(
+            screen.getByLabelText('Tell us what happened'),
+            'Ciao',
+        );
         await settle();
         await userEvent.click(screen.getByRole('button', { name: 'Send' }));
         await settle();
@@ -139,17 +153,22 @@ describe('FmFeedbackSheet', () => {
                 {} as Parameters<NonNullable<VisitOptions['onSuccess']>>[0],
             );
         });
-        const { rerender } = await openSheet();
+        const view = await openSheet();
 
-        await userEvent.click(screen.getByRole('radio', { name: 'I have an idea' }));
-        await userEvent.type(screen.getByLabelText('Tell us what happened'), 'Ciao');
+        await userEvent.click(
+            screen.getByRole('radio', { name: 'I have an idea' }),
+        );
+        await userEvent.type(
+            screen.getByLabelText('Tell us what happened'),
+            'Ciao',
+        );
         await settle();
         await userEvent.click(screen.getByRole('button', { name: 'Send' }));
         await settle();
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-        await rerender({ open: false });
-        await rerender({ open: true });
+        await view.rerender({ open: false });
+        await view.rerender({ open: true });
         await screen.findByRole('dialog');
         expect(screen.getByLabelText('Tell us what happened')).toHaveValue('');
         expect(

@@ -131,11 +131,15 @@ describe('FmSidebar', () => {
             screen.getByRole('button', { name: /Marco Bianchi/ }),
         );
         expect(
-            screen.getAllByRole('menuitem').map((item) => item.textContent?.trim()),
+            screen
+                .getAllByRole('menuitem')
+                .map((item) => item.textContent?.trim()),
         ).toEqual(['Settings', 'Report a problem or an idea', 'Log out']);
 
         await userEvent.click(
-            screen.getByRole('menuitem', { name: 'Report a problem or an idea' }),
+            screen.getByRole('menuitem', {
+                name: 'Report a problem or an idea',
+            }),
         );
 
         expect(view.emitted('report')).toHaveLength(1);

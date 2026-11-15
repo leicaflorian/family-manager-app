@@ -69,13 +69,11 @@ test('a member sends a problem with a screenshot: saved, emailed to the owner an
         ->and($report->file_path)->toStartWith("feedback/{$this->admin->family_id}/");
     Storage::disk('local')->assertExists((string) $report->file_path);
 
-    Mail::assertQueued(FeedbackReportMail::class, function (FeedbackReportMail $mail) use ($report): bool {
-        return $mail->report->is($report)
-            && $mail->hasTo($this->owners[0]->email)
-            && $mail->hasTo($this->owners[1]->email)
-            && $mail->hasReplyTo('giulia@example.com')
-            && count($mail->attachments()) === 1;
-    });
+    Mail::assertQueued(FeedbackReportMail::class, fn(FeedbackReportMail $mail): bool => $mail->report->is($report)
+        && $mail->hasTo($this->owners[0]->email)
+        && $mail->hasTo($this->owners[1]->email)
+        && $mail->hasReplyTo('giulia@example.com')
+        && count($mail->attachments()) === 1);
 });
 
 test('an idea without a file has no file and no attachment', function (): void {
@@ -97,6 +95,21 @@ test('the email tells the owner who wrote, from which family, the page and the m
         ->assertSeeInHtml('Bianchi')
         ->assertSeeInHtml('/documents/12?tab=files')
         ->assertSeeInHtml('importo letto è sbagliato', false);
+});
+
+test('the email shows the message as the person wrote it, without running links or images in it', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'message' => "Guarda ![x](https://tracker.example/p.png) e [qui](https://evil.example)\nseconda riga <b>grassetto</b>",
+    ]));
+
+    $html = new FeedbackReportMail(allReports()[0])->render();
+
+    expect($html)->not->toContain('<img src="https://tracker.example')
+        ->and($html)->not->toContain('href="https://evil.example')
+        ->and($html)->not->toContain('<b>grassetto</b>')
+        ->and($html)->toContain('tracker.example/p.png')
+        ->and($html)->toContain('<br')
+        ->and($html)->toContain('&lt;b&gt;grassetto&lt;/b&gt;');
 });
 
 test('a report is refused without a message, with a wrong kind or a wrong file, and nothing leaves', function (array $fields, string $error): void {
