@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { router } from '@inertiajs/vue3';
+import { config } from '@vue/test-utils';
 import {
     afterEach,
     beforeEach,
@@ -64,6 +65,9 @@ const PageWithTrail = defineComponent({
         return () => h('h1', 'Electricity bill');
     },
 });
+
+// The layout keeps the panel *Report a problem or an idea*, a FormKit form
+config.global.plugins = [...config.global.plugins, ...formPlugins];
 
 describe('AppLayout', () => {
     beforeEach(() => screenWidth(1280));
@@ -403,10 +407,7 @@ describe('AppLayout', () => {
     });
 
     it('opens Report a problem or an idea from My account on the computer', async () => {
-        render(AppLayout, {
-            slots: { default: '<h1>Documents</h1>' },
-            global: { plugins: formPlugins },
-        });
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
 
         await userEvent.click(
             screen.getByRole('button', { name: /Marco Bianchi/ }),
@@ -424,10 +425,7 @@ describe('AppLayout', () => {
 
     it('opens Report a problem or an idea from More on the phone, in place of More', async () => {
         screenWidth(390);
-        render(AppLayout, {
-            slots: { default: '<h1>Documents</h1>' },
-            global: { plugins: formPlugins },
-        });
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
 
         await userEvent.click(screen.getByRole('button', { name: 'More' }));
         await userEvent.click(
