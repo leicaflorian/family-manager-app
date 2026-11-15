@@ -54,6 +54,8 @@ function props(
     wide = false,
 ): {
     month: string;
+    from: string;
+    to: string;
     today: string;
     selected: string;
     days: MonthDay[];
@@ -61,6 +63,8 @@ function props(
 } {
     return {
         month: '2026-11',
+        from: '2026-10-26',
+        to: '2026-12-06',
         today: '2026-11-02',
         selected: '2026-11-04',
         days: november(items),
@@ -72,12 +76,66 @@ describe('FmMonthGrid', () => {
     it('shows the 42 days of the weeks of November 2026, named after the month', () => {
         render(FmMonthGrid, { props: props() });
 
-        const grid = screen.getByRole('grid', { name: 'November 2026' });
+        const grid = screen.getByRole('group', { name: 'November 2026' });
 
         expect(within(grid).getAllByRole('button')).toHaveLength(42);
         expect(within(grid).getAllByRole('button')[0]).toHaveAccessibleName(
-            '26 Oct',
+            'Monday 26 Oct',
         );
+    });
+
+    it('draws only the five weeks the server sends for October 2026', () => {
+        render(FmMonthGrid, {
+            props: {
+                ...props(),
+                month: '2026-10',
+                from: '2026-09-28',
+                to: '2026-11-01',
+                days: [],
+            },
+        });
+
+        const buttons = within(
+            screen.getByRole('group', { name: 'October 2026' }),
+        ).getAllByRole('button');
+
+        expect(buttons).toHaveLength(35);
+        expect(buttons[0]).toHaveAccessibleName('Monday 28 Sep');
+        expect(buttons.at(-1)).toHaveAccessibleName('Sunday 1 Nov');
+    });
+
+    it('draws only the four weeks of February 2027', () => {
+        render(FmMonthGrid, {
+            props: {
+                ...props(),
+                month: '2027-02',
+                from: '2027-02-01',
+                to: '2027-02-28',
+                days: [],
+            },
+        });
+
+        const buttons = within(
+            screen.getByRole('group', { name: 'February 2027' }),
+        ).getAllByRole('button');
+
+        expect(buttons).toHaveLength(28);
+        expect(buttons.at(-1)).toHaveAccessibleName('Sunday 28 Feb');
+        expect(
+            screen.getAllByTestId('weekday').map((day) => day.textContent),
+        ).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+    });
+
+    it('reads the weekday with the day in Italian', async () => {
+        const view = render(FmMonthGrid, {
+            props: props({ '2026-11-04': [item('a'), item('b'), item('c')] }),
+        });
+        await speak('it');
+        await view.rerender({ selected: '2026-11-05' });
+
+        expect(
+            screen.getByRole('button', { name: 'mercoledì 4 nov, 3 cose' }),
+        ).toBeInTheDocument();
     });
 
     it('writes the weekdays, from Monday', () => {
@@ -91,7 +149,9 @@ describe('FmMonthGrid', () => {
     it('emits the day that was tapped', async () => {
         const view = render(FmMonthGrid, { props: props() });
 
-        await userEvent.click(screen.getByRole('button', { name: '12 Nov' }));
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Thursday 12 Nov' }),
+        );
 
         expect(view.emitted('select')).toEqual([['2026-11-12']]);
     });
@@ -104,18 +164,19 @@ describe('FmMonthGrid', () => {
             }),
         });
 
-        const chosen = screen.getByRole('button', { name: '4 Nov, 3 things' });
+        const chosen = screen.getByRole('button', {
+            name: 'Wednesday 4 Nov, 3 things',
+        });
 
         expect(chosen).toHaveAttribute('aria-pressed', 'true');
         expect(
-            screen.getByRole('button', { name: '5 Nov, 1 thing' }),
+            screen.getByRole('button', { name: 'Thursday 5 Nov, 1 thing' }),
         ).toHaveAttribute('aria-pressed', 'false');
-        expect(screen.getByRole('button', { name: '2 Nov' })).toHaveAttribute(
-            'aria-current',
-            'date',
-        );
         expect(
-            screen.getByRole('button', { name: '3 Nov' }),
+            screen.getByRole('button', { name: 'Monday 2 Nov' }),
+        ).toHaveAttribute('aria-current', 'date');
+        expect(
+            screen.getByRole('button', { name: 'Tuesday 3 Nov' }),
         ).not.toHaveAttribute('aria-current');
     });
 
@@ -134,7 +195,9 @@ describe('FmMonthGrid', () => {
                 }),
             });
 
-            const day = screen.getByRole('button', { name: '4 Nov, 6 things' });
+            const day = screen.getByRole('button', {
+                name: 'Wednesday 4 Nov, 6 things',
+            });
 
             expect(day.querySelectorAll('[data-dot]')).toHaveLength(3);
             expect(screen.queryByText('Thing a')).not.toBeInTheDocument();
@@ -147,7 +210,7 @@ describe('FmMonthGrid', () => {
             });
 
             const dot = screen
-                .getByRole('button', { name: '1 Nov, 1 thing' })
+                .getByRole('button', { name: 'Sunday 1 Nov, 1 thing' })
                 .querySelector('[data-dot]');
 
             expect(dot).toHaveClass('bg-overdue');
@@ -162,7 +225,9 @@ describe('FmMonthGrid', () => {
                 props: props({ '2026-11-04': six }, true),
             });
 
-            const day = screen.getByRole('button', { name: '4 Nov, 6 things' });
+            const day = screen.getByRole('button', {
+                name: 'Wednesday 4 Nov, 6 things',
+            });
 
             expect(within(day).getByText('Thing a')).toBeInTheDocument();
             expect(within(day).getByText('Thing c')).toBeInTheDocument();
@@ -208,10 +273,10 @@ describe('FmMonthGrid', () => {
             render(FmMonthGrid, { props: props({}, true) });
 
             expect(
-                screen.getByRole('button', { name: '1 Nov' }),
+                screen.getByRole('button', { name: 'Sunday 1 Nov' }),
             ).toHaveTextContent('1 Nov');
             expect(
-                screen.getByRole('button', { name: '2 Nov' }),
+                screen.getByRole('button', { name: 'Monday 2 Nov' }),
             ).not.toHaveTextContent('Nov');
         });
 
@@ -223,10 +288,10 @@ describe('FmMonthGrid', () => {
             await view.rerender({ selected: '2026-11-05' });
 
             expect(
-                screen.getByRole('button', { name: '1 dic' }),
+                screen.getByRole('button', { name: 'martedì 1 dic' }),
             ).toHaveTextContent('1 dic');
             expect(
-                screen.getByRole('button', { name: '26 ott' }),
+                screen.getByRole('button', { name: 'lunedì 26 ott' }),
             ).toBeInTheDocument();
         });
 

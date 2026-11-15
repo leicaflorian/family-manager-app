@@ -1,13 +1,16 @@
 <script setup lang="ts">
 /**
  * The month of the Agenda as a grid of weeks, from Monday, with the weekdays
- * above. On the phone each day is a number with up to three dots (the colour
+ * above: the weeks the server sends (`from`..`to`, four to six), so the grid
+ * and its data share one range. On the phone each day is a number with up to three dots (the colour
  * of the area, red if late); the chosen day is a full blue circle and today
  * has a blue outline. On the computer (`wide`) each day is a tall cell with up
  * to three labels in the colour of the area (red if late, grey, struck through
  * and ticked if done) and «+3 more» for the rest, with a blue border on the
  * chosen day and the month written on the first day of it. A day is always a
- * button that emits `select`; the days of the other months are faint. The
+ * button that emits `select`, read aloud with its weekday («Wednesday 4 Nov,
+ * 3 things»), in a group named after the month; the days of the other months
+ * are faint. The
  * month sits in a white card; on the computer a line divides the weekdays from
  * the days, and the month is written as the language writes it («1 dic»,
  * «1 Dec»).
@@ -28,6 +31,8 @@ import FmIcon from './FmIcon.vue';
 
 const {
     month,
+    from,
+    to,
     today,
     selected,
     days,
@@ -35,6 +40,10 @@ const {
 } = defineProps<{
     /** The month shown, `yyyy-mm`. */
     month: string;
+    /** The first day of the grid, the Monday of the week of the 1st, `yyyy-mm-dd`. */
+    from: string;
+    /** The last day of the grid, the Sunday of the week of the last day, `yyyy-mm-dd`. */
+    to: string;
     /** Today, `yyyy-mm-dd`. */
     today: string;
     /** The chosen day, `yyyy-mm-dd`. */
@@ -59,13 +68,15 @@ const itemsByDate = computed(
         new Map(days.map((day) => [day.date, day.items])),
 );
 
-/** The six weeks of the grid: from the Monday of the week of the 1st, 42 days. */
+/** The days of the grid, from `from` to `to`: the weeks of the month. */
 const dates = computed((): string[] => {
-    const first = `${month}-01`;
-    const weekday = (new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7;
-    const start = addDays(first, -weekday);
+    const list: string[] = [];
 
-    return Array.from({ length: 42 }, (_, index) => addDays(start, index));
+    for (let date = from; date <= to; date = addDays(date, 1)) {
+        list.push(date);
+    }
+
+    return list;
 });
 
 /** The short weekday names, Monday to Sunday, in the language of the page. */
@@ -108,10 +119,11 @@ function dayAndMonth(date: string): string {
 }
 
 /**
- * The name of a day button: the day and how many things it has.
+ * The name of a day button: the weekday, the day and how many things it has.
+ * The weekday is there because the weekdays above the grid are not read aloud.
  *
  * @param date - `yyyy-mm-dd`
- * @returns for example «4 Nov, 3 things»
+ * @returns for example «Wednesday 4 Nov, 3 things», «mercoledì 4 nov, 3 cose»
  */
 function ariaLabel(date: string): string {
     const count = itemsOf(date).length;
@@ -119,7 +131,7 @@ function ariaLabel(date: string): string {
     return transChoice(
         '{0} :date|{1} :date, 1 thing|[2,*] :date, :count things',
         count,
-        { date: dayAndMonth(date) },
+        { date: format(toDate(date), 'dddd D MMM', getActiveLanguage()) },
     );
 }
 
@@ -228,7 +240,7 @@ function cellNumberClass(date: string): string {
                 >{{ name }}</span
             >
         </div>
-        <div role="grid" :aria-label="label" class="grid grid-cols-7">
+        <div role="group" :aria-label="label" class="grid grid-cols-7">
             <button
                 v-for="date in dates"
                 :key="date"

@@ -220,6 +220,8 @@ function goToday(): void {
             </div>
             <FmMonthGrid
                 :month="calendar.month"
+                :from="calendar.from"
+                :to="calendar.to"
                 :today="calendar.today"
                 :selected="selected"
                 :days="days"

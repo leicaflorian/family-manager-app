@@ -761,11 +761,13 @@ const october: Partial<App.Data.AgendaCalendarData> = {
 /**
  * The button of a day of the grid.
  *
- * @param name - the day and the short month, «4 Nov»
+ * @param name - the day and the short month, «4 Nov»; the weekday before it is any
  * @returns the button
  */
 function day(name: string): HTMLElement {
-    return screen.getByRole('button', { name: new RegExp(`^${name}(,|$)`) });
+    return screen.getByRole('button', {
+        name: new RegExp(`^\\p{L}+ ${name}(,|$)`, 'u'),
+    });
 }
 
 describe('Agenda, the calendar view', () => {
@@ -801,8 +803,11 @@ describe('Agenda, the calendar view', () => {
             screen.getByRole('heading', { name: 'October 2026', level: 2 }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('grid', { name: 'October 2026' }),
-        ).toBeInTheDocument();
+            within(
+                screen.getByRole('group', { name: 'October 2026' }),
+            ).getAllByRole('button'),
+        ).toHaveLength(35);
+        expect(day('1 Nov')).toHaveAccessibleName('Sunday 1 Nov');
         expect(day('26 Oct')).toHaveAttribute('aria-pressed', 'true');
         expect(
             screen.getByRole('heading', { name: 'Monday 26 October' }),
