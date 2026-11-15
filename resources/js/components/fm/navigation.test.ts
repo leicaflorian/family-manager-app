@@ -1,4 +1,4 @@
-import { MessageSquareWarning } from '@lucide/vue';
+import { MessageSquareWarning, Sparkles } from '@lucide/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { navigationItems, sectionOf } from './navigation';
 
@@ -102,5 +102,20 @@ describe('navigationItems', () => {
             hint: 'It reaches who makes Family Manager',
             icon: MessageSquareWarning,
         });
+    });
+
+    it("has the item with the version that opens What's new", () => {
+        expect(navigationItems('1.2.0').release).toEqual({
+            label: 'Version 1.2.0',
+            hint: "What's new in the app",
+            icon: Sparkles,
+        });
+    });
+
+    it('says development version when the code has none', () => {
+        expect(navigationItems().release.label).toBe('Development version');
+        expect(navigationItems('dev').release.label).toBe(
+            'Development version',
+        );
     });
 });

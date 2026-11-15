@@ -1932,5 +1932,11 @@
     "Path": "Percorso",
     "Request id": "Id della richiesta",
     "Request": "Richiesta",
-    "Error": "Errore"
+    "Error": "Errore",
+    "What's new": "Novità",
+    "What's new in the app": "Le novità dell'app",
+    "Version :version": "Versione :version",
+    "Development version": "Versione di sviluppo",
+    "Your version": "La tua versione",
+    "No news yet.": "Ancora nessuna novità."
 }

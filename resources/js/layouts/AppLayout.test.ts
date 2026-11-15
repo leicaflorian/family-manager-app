@@ -43,6 +43,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
             to_sort_count: page.toSort,
             impersonating: page.impersonating,
             unread_notices: 2,
+            release: '1.2.0',
         },
     }),
 }));
@@ -422,6 +423,28 @@ describe('AppLayout', () => {
 
         expect(post).toHaveBeenCalledWith('/visit/leave');
         post.mockRestore();
+    });
+
+    it("opens What's new from the version in My account and asks for the notes", async () => {
+        const reload = vi
+            .spyOn(router, 'reload')
+            .mockImplementation(() => undefined);
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Marco Bianchi/ }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'Version 1.2.0' }),
+        );
+
+        expect(
+            await screen.findByRole('dialog', { name: "What's new" }),
+        ).toBeInTheDocument();
+        expect(reload).toHaveBeenCalledWith({
+            only: ['release_notes'],
+            preserveUrl: true,
+        });
     });
 
     it('opens Report a problem or an idea from My account on the computer', async () => {

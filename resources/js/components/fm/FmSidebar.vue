@@ -6,7 +6,8 @@
  * waiting in a blue pill, nothing at zero, and *Received mail*), *Every day* (Agenda, Budget) and
  * *Archive* (Areas, with the areas under it, Documents, Family), and at
  * the bottom *My account*, which opens Settings, *Report a problem or an idea*
- * (it emits `report`: the layout opens the panel) and Log out. When the sections do not fit
+ * (it emits `report`: the layout opens the panel), the version (it emits `news`: the layout opens
+ * *What's new*) and Log out. When the sections do not fit
  * the window, only they scroll: the logo, Upload and *My account* stay in place.
  *
  * @group navigation
@@ -61,6 +62,8 @@ const {
 const emit = defineEmits<{
     /** *Report a problem or an idea* was chosen: the layout opens its panel. */
     report: [];
+    /** The version was chosen: the layout opens *What's new*. */
+    news: [];
 }>();
 
 // The classes of the page are merged with the sidebar's (the menu of the tablet makes it `w-full`)
@@ -382,6 +385,17 @@ function isPage(section: Section): boolean {
                                 class="text-ink-soft"
                             />
                             {{ items.feedback.label }}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            class="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 text-body-sm outline-none data-[highlighted]:bg-canvas"
+                            @select="emit('news')"
+                        >
+                            <FmIcon
+                                :icon="items.release.icon"
+                                :size="20"
+                                class="text-ink-soft"
+                            />
+                            {{ items.release.label }}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator
                             class="mx-1.5 my-1 h-px bg-divider"

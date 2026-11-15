@@ -9,7 +9,9 @@ import { navigationItems } from './navigation';
  * The bar with the real items of the app, on the given page.
  */
 function bar(active: Section) {
-    return render(FmBottomBar, { props: { active, items: navigationItems() } });
+    return render(FmBottomBar, {
+        props: { active, items: navigationItems('1.2.0') },
+    });
 }
 
 describe('FmBottomBar', () => {
@@ -117,6 +119,27 @@ describe('FmBottomBar', () => {
         expect(
             screen.getByRole('button', { name: 'Log out' }),
         ).toBeInTheDocument();
+    });
+
+    it("has the version after Report a problem or an idea in More: it closes More and asks to open What's new", async () => {
+        const view = bar('home');
+
+        await userEvent.click(screen.getByRole('button', { name: 'More' }));
+        const sheet = screen.getByRole('dialog', { name: 'More' });
+        expect(sheet.textContent).toMatch(
+            /Report a problem or an idea.*Version 1\.2\.0.*What's new in the app.*Log out/,
+        );
+
+        await userEvent.click(
+            within(sheet).getByRole('button', { name: /^Version 1\.2\.0/ }),
+        );
+
+        expect(view.emitted('news')).toHaveLength(1);
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'More' }),
+            ).not.toBeInTheDocument(),
+        );
     });
 
     it('has Report a problem or an idea after Settings in More: it closes More and asks to open the panel', async () => {

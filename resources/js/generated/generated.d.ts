@@ -658,6 +658,11 @@ readonly received_at: string,
 readonly outcome_label: string,
 readonly tone: 'success' | 'info' | 'neutral' | 'warning' | 'danger',
 };
+export type ReleaseNoteData = {
+readonly version: string,
+readonly date: string,
+readonly notes: string[],
+};
 export type ReminderData = {
 readonly id: number,
 readonly title: string,

@@ -10,6 +10,7 @@ use App\Models\File;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\CardSummaries;
+use App\Services\ReleaseNotes;
 use App\Services\Reminders\NoticeList;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -32,7 +33,7 @@ class HandleInertiaRequests extends Middleware
      * @param  CardSummaries  $summaries  the cards of the family, for the counts of the sidebar
      * @param  NoticeList  $notices  the notices of the bell
      */
-    public function __construct(private readonly CardSummaries $summaries, private readonly NoticeList $notices) {}
+    public function __construct(private readonly CardSummaries $summaries, private readonly NoticeList $notices, private readonly ReleaseNotes $releaseNotes) {}
 
     /**
      * Determines the current asset version.
@@ -79,7 +80,21 @@ class HandleInertiaRequests extends Middleware
             'impersonating' => LimitVisit::isOpen($request) && $request->user() instanceof User ? $request->user()->name : null,
             // The theme of the account (`system` for a guest): the layout puts it on <html>
             'theme' => $this->theme($request->user()),
+            // The version of the app, in the account menu (`dev` when the code has no VERSION file)
+            'release' => $this->release(),
+            // The panel *What's new*: sent only when it asks for it (`only: ['release_notes']`)
+            'release_notes' => Inertia::optional(fn (): array => $this->releaseNotes->latest(app()->getLocale())),
         ];
+    }
+
+    /**
+     * The version of the app, `dev` when the code has none.
+     */
+    private function release(): string
+    {
+        $release = config('app.version');
+
+        return is_string($release) && $release !== '' ? $release : 'dev';
     }
 
     /**
