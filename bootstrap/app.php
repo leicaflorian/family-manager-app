@@ -45,9 +45,9 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // *Enter as…* is opened from the admin panel: an owner who is not signed in goes to the sign-in of the panel
+        // *Enter as…* and the files of a report are opened from the admin panel: an owner who is not signed in goes to the sign-in of the panel
         $middleware->redirectGuestsTo(
-            fn (Request $request): string => $request->routeIs('support.visit.start') ? route('filament.admin.auth.login') : route('login'),
+            fn (Request $request): string => $request->routeIs('support.visit.start', 'owner.feedback.file') ? route('filament.admin.auth.login') : route('login'),
         );
 
         // Laravel sorts the middleware by priority and `auth` would run before this one: the phone must enter first

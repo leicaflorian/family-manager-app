@@ -11,6 +11,10 @@
 - {{ __('Layout') }}: {{ $report->layout ?? '-' }}
 - {{ __('Device') }}: {!! $device !!}
 
+@if ($errorCounts !== null)
+{{ $errorCounts }}
+
+@endif
 {{ __('Answer this email to write to them.') }}
 
 Family Manager

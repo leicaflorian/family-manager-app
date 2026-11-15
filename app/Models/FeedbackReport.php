@@ -62,6 +62,34 @@ final class FeedbackReport extends FamilyModel
     }
 
     /**
+     * How many console errors and warnings the page recorded.
+     */
+    public function pageErrorCount(): int
+    {
+        $console = $this->diagnostics['console'] ?? [];
+
+        return is_array($console) ? count($console) : 0;
+    }
+
+    /**
+     * How many failed requests the page recorded.
+     */
+    public function failedRequestCount(): int
+    {
+        $requests = $this->diagnostics['requests'] ?? [];
+
+        return is_array($requests) ? count($requests) : 0;
+    }
+
+    /**
+     * How many server errors of the account were saved with the report.
+     */
+    public function serverErrorCount(): int
+    {
+        return count($this->server_errors ?? []);
+    }
+
+    /**
      * The casts of the columns.
      *
      * @return array<string, string>

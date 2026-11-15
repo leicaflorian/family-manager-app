@@ -53,8 +53,29 @@ final class FeedbackReportMail extends Mailable
             'sender' => $this->report->creator->name ?? __('An account no longer there'),
             'senderEmail' => $this->report->creator->email ?? '',
             'family' => $this->report->family->name,
+            'errorCounts' => $this->errorCounts(),
             'sentAt' => $this->report->created_at?->timezone('Europe/Rome')->format('d/m/Y H:i') ?? '',
         ]);
+    }
+
+    /**
+     * The line that counts what the technical part holds, for a problem that has any; null when there is nothing to
+     * count (an idea, or a problem sent without details).
+     */
+    private function errorCounts(): ?string
+    {
+        $report = $this->report;
+        $counts = [
+            trans_choice('{1} :count page error|[2,*] :count page errors', $report->pageErrorCount()),
+            trans_choice('{1} :count failed request|[2,*] :count failed requests', $report->failedRequestCount()),
+            trans_choice('{1} :count server error|[2,*] :count server errors', $report->serverErrorCount()),
+        ];
+
+        if ($report->pageErrorCount() + $report->failedRequestCount() + $report->serverErrorCount() === 0) {
+            return null;
+        }
+
+        return __(':counts — details in the panel', ['counts' => implode(', ', $counts)]);
     }
 
     /**
@@ -77,20 +98,25 @@ final class FeedbackReportMail extends Mailable
     }
 
     /**
-     * The file of the report, from the private disk.
+     * The file and the screenshot of the report, from the private disk.
      *
      * @return list<Attachment>
      */
     public function attachments(): array
     {
-        if ($this->report->file_path === null) {
-            return [];
+        $attachments = [];
+
+        if ($this->report->file_path !== null) {
+            $attachments[] = Attachment::fromStorageDisk('local', $this->report->file_path)
+                ->as($this->report->file_name ?? basename($this->report->file_path))
+                ->withMime($this->report->file_mime ?? 'application/octet-stream');
         }
 
-        return [
-            Attachment::fromStorageDisk('local', $this->report->file_path)
-                ->as($this->report->file_name ?? basename($this->report->file_path))
-                ->withMime($this->report->file_mime ?? 'application/octet-stream'),
-        ];
+        if ($this->report->screenshot_path !== null) {
+            $attachments[] = Attachment::fromStorageDisk('local', $this->report->screenshot_path)
+                ->as(basename($this->report->screenshot_path));
+        }
+
+        return $attachments;
     }
 }

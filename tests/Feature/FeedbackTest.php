@@ -243,3 +243,24 @@ test('a failure while copying the server errors does not lose the report', funct
         ->and($report->server_errors)->toBeNull();
     Mail::assertQueued(FeedbackReportMail::class);
 });
+
+test('the email of a problem attaches the screenshot and counts the errors', function (): void {
+    $report = FeedbackReport::factory()->withDiagnostics()->for($this->admin->family)->create([
+        'file_path' => 'feedback/1/abc.png', 'file_name' => 'schermata.png', 'file_mime' => 'image/png',
+        'screenshot_path' => 'feedback/1/shot.webp',
+    ]);
+    Storage::disk('local')->put('feedback/1/abc.png', 'png');
+    Storage::disk('local')->put('feedback/1/shot.webp', 'img');
+
+    $mail = new FeedbackReportMail($report);
+
+    expect($mail->attachments())->toHaveCount(2);
+    $mail->assertSeeInHtml('2 page errors, 1 failed request, 1 server error — details in the panel', false);
+    expect($mail->render())->not->toContain('<b>bad</b>');
+});
+
+test('the email of an idea has no count line', function (): void {
+    $report = FeedbackReport::factory()->for($this->admin->family)->create(['kind' => FeedbackKind::Idea]);
+
+    new FeedbackReportMail($report)->assertDontSeeInHtml('details in the panel');
+});

@@ -39,8 +39,23 @@ final class FeedbackReportFactory extends Factory
         return $this->state(fn (): array => [
             'screenshot_path' => 'feedback/1/screenshot.webp',
             'screenshot_size' => 1024,
-            'diagnostics' => ['server_version' => 'dev', 'console' => [], 'requests' => [], 'pages' => []],
-            'server_errors' => [],
+            'diagnostics' => [
+                'client_build' => 'build-old',
+                'server_version' => 'dev',
+                'viewport' => ['width' => 390, 'height' => 844, 'dpr' => 3.0, 'orientation' => 'portrait'],
+                'phone' => true, 'ios' => true, 'standalone' => true, 'theme' => 'dark', 'locale' => 'it',
+                'online' => true, 'connection' => '4g', 'page_age_seconds' => 42, 'component' => 'documents/Show',
+                'pages' => [['at' => '2026-11-15T10:20:00+01:00', 'path' => '/documents', 'component' => 'documents/Index']],
+                'console' => [
+                    ['at' => '2026-11-15T10:21:00+01:00', 'level' => 'error', 'message' => 'Boom <b>bad</b>', 'component' => 'documents/Show'],
+                    ['at' => '2026-11-15T10:22:00+01:00', 'level' => 'warn', 'message' => 'Careful', 'component' => null],
+                ],
+                'requests' => [['at' => '2026-11-15T10:21:30+01:00', 'method' => 'POST', 'path' => '/documents/42', 'status' => 500, 'request_id' => 'req-abc-123']],
+            ],
+            'server_errors' => [[
+                'at' => '2026-11-15T10:21:30+01:00', 'request_id' => 'req-abc-123', 'method' => 'POST', 'path' => '/documents/42',
+                'class' => 'RuntimeException', 'message' => 'Kaput <i>x</i>', 'file' => 'app/Foo.php', 'line' => 12,
+            ]],
         ]);
     }
 }

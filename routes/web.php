@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Admin\FeedbackFileController;
 use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AreaController;
@@ -103,6 +104,12 @@ Route::post('scan/share', ScanShareController::class)
 // the panel, so a link from another site cannot start a visit. A guest is sent to the sign-in of the
 // panel (`redirectGuestsTo` in bootstrap/app.php). Leaving is the only change a visit may send (`LimitVisit::ALLOWED`).
 Route::get('support/visit/{user}', [VisitController::class, 'start'])->middleware(['auth:owner', 'signed'])->name('support.visit.start');
+
+// The screenshot and the file of a report, opened from its page in the admin panel: outside `/admin`, with the
+// guard of the owner, so an account of a family never reads them.
+Route::get('admin-files/feedback/{report}/{part}', FeedbackFileController::class)
+    ->whereNumber('report')->whereIn('part', ['screenshot', 'file'])
+    ->middleware('auth:owner')->name('owner.feedback.file');
 Route::post('visit/leave', [VisitController::class, 'leave'])->name('visit.leave');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
