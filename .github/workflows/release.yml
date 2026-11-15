@@ -113,5 +113,6 @@ jobs:
           headers="$RUNNER_TEMP/coolify-headers"
           trap 'rm -f "$headers"' EXIT
           printf 'Authorization: Bearer %s\n' "$COOLIFY_TOKEN" > "$headers"
-          curl -fsS -H "@$headers" "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_APP_UUID"
+          # Coolify 4.7 takes the deploy only as a POST (a GET answers 405)
+          curl -fsS -X POST -H "@$headers" "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_APP_UUID"
           echo

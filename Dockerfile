@@ -1,4 +1,6 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.10
+# 1.10 or newer: with Use Docker Build Secrets, Coolify adds `--mount=type=secret,id=…,env=…` to every RUN, and `env=`
+# is unknown before 1.10 ("unexpected key 'env'").
 #
 # The production image of Fameja.app, on serversideup/php (nginx + PHP-FPM, supervised by S6 overlay):
 # the web, the queue worker and the scheduler in one container. Built by Coolify from this file; locally:
