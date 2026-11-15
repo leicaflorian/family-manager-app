@@ -130,5 +130,6 @@ jobs:
       - name: Types
         run: npm run types
 
-      - name: Lint
-        run: npm run lint
+      # vp check: Oxfmt formatting and Oxlint
+      - name: Format and lint
+        run: npm run check
