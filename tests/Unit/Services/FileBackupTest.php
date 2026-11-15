@@ -6,6 +6,7 @@ use App\Exceptions\SuspiciousBackup;
 use App\Services\FileBackup;
 use Carbon\CarbonImmutable;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
@@ -108,7 +109,7 @@ it('refuses to move more than half of ten or more files', function (): void {
         Storage::disk('local')->delete("families/2/f{$n}.pdf");
     }
 
-    expect(fn () => $backup->run(CarbonImmutable::parse('2026-11-02')))->toThrow(SuspiciousBackup::class);
+    expect(fn (): array => $backup->run(CarbonImmutable::parse('2026-11-02')))->toThrow(SuspiciousBackup::class);
     expect(Storage::disk('backup')->exists('families/2/f1.pdf'))->toBeTrue();
 });
 
@@ -158,7 +159,7 @@ it('skips a file that vanished before it was read', function (): void {
         public function fileSize(string $path): FileAttributes
         {
             if ($path === 'families/1/b.pdf') {
-                unlink($this->prefixer()->prefixPath($path));
+                File::delete($this->prefixer()->prefixPath($path));
             }
 
             return parent::fileSize($path);
