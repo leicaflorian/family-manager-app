@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
  * The short messages that confirm what was just done («Saved», «Done», «Thanks»)
- * or say it did not work: dark with light text, so they stand out on any page
- * (in the dark theme the two colors swap), and gone by themselves after a few
- * seconds. The icon tells the kind of message in the color of the text, and an
- * action («Undo») sits on the right. The layout holds one, and the pages send
+ * or say it did not work: dark with light text in both themes (the colors of
+ * the dark theme, a `.dark` of their own), so they stand out on any page, and
+ * gone by themselves after a few seconds. The icon tells the kind of message
+ * with its color, and an action («Undo») is a small blue button on the right. The layout holds one, and the pages send
  * the messages with `toast()` of `vue-sonner`.
  *
  * @group panels
@@ -48,14 +48,14 @@ const toastOptions: ToasterProps['toastOptions'] = {
     unstyled: true,
     classes: {
         toast: cn(
-            'flex w-full items-center gap-3 rounded-lg bg-ink px-4 py-3.5 text-canvas shadow-menu',
+            'dark flex w-full items-center gap-3 rounded-lg border border-edge-soft bg-segment px-4 py-3.5 text-ink shadow-menu',
         ),
         content: cn('min-w-0 flex-1'),
         title: cn('text-body-sm'),
         description: cn('text-meta'),
         icon: cn('flex size-icon-row shrink-0 items-center justify-center'),
         actionButton: cn(
-            '-my-2 shrink-0 cursor-pointer rounded-tag px-2 py-2 text-label underline focus-visible:ring-2 focus-visible:ring-canvas focus-visible:outline-none',
+            '-my-1.5 shrink-0 cursor-pointer rounded-tag bg-action px-3 py-1.5 text-label text-on-action hover:bg-action-dark focus-visible:ring-2 focus-visible:ring-action-dark focus-visible:ring-offset-2 focus-visible:ring-offset-segment focus-visible:outline-none',
         ),
     },
 };
@@ -69,19 +69,22 @@ const toastOptions: ToasterProps['toastOptions'] = {
         :toast-options="toastOptions"
     >
         <template #success-icon>
-            <CircleCheckIcon class="size-5" aria-hidden="true" />
+            <CircleCheckIcon class="size-5 text-paid" aria-hidden="true" />
         </template>
         <template #info-icon>
-            <InfoIcon class="size-5" aria-hidden="true" />
+            <InfoIcon class="size-5 text-action" aria-hidden="true" />
         </template>
         <template #warning-icon>
-            <TriangleAlertIcon class="size-5" aria-hidden="true" />
+            <TriangleAlertIcon class="size-5 text-warning" aria-hidden="true" />
         </template>
         <template #error-icon>
-            <OctagonXIcon class="size-5" aria-hidden="true" />
+            <OctagonXIcon class="size-5 text-overdue" aria-hidden="true" />
         </template>
         <template #loading-icon>
-            <Loader2Icon class="size-5 animate-spin" aria-hidden="true" />
+            <Loader2Icon
+                class="size-5 animate-spin text-ink-soft"
+                aria-hidden="true"
+            />
         </template>
     </Toaster>
 </template>
