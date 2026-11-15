@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Diagnostics\RecordServerError;
 use App\Http\Middleware\AddRobotsHeader;
 use App\Http\Middleware\ApplyInstallationSettings;
 use App\Http\Middleware\AssignRequestId;
@@ -53,6 +54,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: SignInLinkedDevice::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // No `stop()`: the error still goes to the log
+        $exceptions->report(fn (Throwable $e) => app(RecordServerError::class)->handle($e));
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request): bool => $request->is('api/*') || $request->expectsJson(),
         );
