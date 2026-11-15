@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { router } from '@inertiajs/vue3';
+import { config } from '@vue/test-utils';
 import {
     afterEach,
     beforeEach,
@@ -12,6 +13,7 @@ import {
 import { defineComponent, h } from 'vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { trackChanges } from '@/lib/unsavedChanges';
+import { formPlugins } from '@/lib/formPlugins';
 import { areaCounts } from '@/test/fixtures';
 import { press, screenWidth } from '@/test/page';
 import AppLayout from './AppLayout.vue';
@@ -63,6 +65,9 @@ const PageWithTrail = defineComponent({
         return () => h('h1', 'Electricity bill');
     },
 });
+
+// The layout keeps the panel *Report a problem or an idea*, a FormKit form
+config.global.plugins = [...config.global.plugins, ...formPlugins];
 
 describe('AppLayout', () => {
     beforeEach(() => screenWidth(1280));
@@ -399,6 +404,49 @@ describe('AppLayout', () => {
 
         expect(post).toHaveBeenCalledWith('/visit/leave');
         post.mockRestore();
+    });
+
+    it('opens Report a problem or an idea from My account on the computer', async () => {
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Marco Bianchi/ }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', {
+                name: 'Report a problem or an idea',
+            }),
+        );
+
+        expect(
+            await screen.findByRole('dialog', {
+                name: 'Report a problem or an idea',
+            }),
+        ).toBeInTheDocument();
+    });
+
+    it('opens Report a problem or an idea from More on the phone, in place of More', async () => {
+        screenWidth(390);
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+
+        await userEvent.click(screen.getByRole('button', { name: 'More' }));
+        await userEvent.click(
+            within(screen.getByRole('dialog', { name: 'More' })).getByRole(
+                'button',
+                { name: /^Report a problem or an idea/ },
+            ),
+        );
+
+        expect(
+            await screen.findByRole('dialog', {
+                name: 'Report a problem or an idea',
+            }),
+        ).toBeInTheDocument();
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'More' }),
+            ).not.toBeInTheDocument(),
+        );
     });
 
     it('has no strip outside a visit', () => {

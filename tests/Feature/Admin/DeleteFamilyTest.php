@@ -129,3 +129,15 @@ test('the log keeps the name of a deleted family and the costs stay', function (
         ->and($row->family_id)->toBe($this->rossi->id)
         ->and(DB::table('ai_readings')->whereNull('family_id')->count())->toBe(1);
 });
+
+test('deleting a family also takes the files of its reports to the owner off the disk', function (): void {
+    Storage::disk('local')->put("feedback/{$this->rossi->id}/s.png", 'png');
+    Storage::disk('local')->put("feedback/{$this->verdi->id}/t.png", 'png');
+    resolve(ScheduleFamilyDeletion::class)->handle($this->rossi);
+
+    $this->travel(31)->days();
+    $this->artisan('model:prune', ['--model' => [Family::class]])->assertSuccessful();
+
+    expect(Storage::disk('local')->exists("feedback/{$this->rossi->id}/s.png"))->toBeFalse()
+        ->and(Storage::disk('local')->exists("feedback/{$this->verdi->id}/t.png"))->toBeTrue();
+});

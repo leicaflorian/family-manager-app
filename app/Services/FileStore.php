@@ -163,13 +163,24 @@ final class FileStore
     }
 
     /**
-     * Deletes the folder of a family, with all its files.
+     * Deletes the folder of a family, with all its files, and the files of its reports to the owner.
      *
      * @param  int  $family  the family whose files go
      */
     public function deleteFamily(int $family): void
     {
         Storage::disk(self::DISK)->deleteDirectory($this->folder($family));
+        Storage::disk(self::DISK)->deleteDirectory(self::feedbackFolder($family));
+    }
+
+    /**
+     * The folder of the files sent with the reports of a family to the owner, apart from the family's files.
+     *
+     * @param  int  $family  the family
+     */
+    public static function feedbackFolder(int $family): string
+    {
+        return "feedback/{$family}";
     }
 
     /**

@@ -10,6 +10,7 @@ import {
     Inbox,
     LayoutDashboard,
     Mail,
+    MessageSquareWarning,
     Receipt,
     ScanLine,
     Settings,
@@ -74,6 +75,16 @@ export type AddItem = {
     icon: LucideIcon;
 };
 
+/** An item that opens a panel instead of a page. */
+export type PanelItem = {
+    /** The text of the item, already translated. */
+    label: string;
+    /** The line below the label in More on the phone. */
+    hint: string;
+    /** The Lucide icon. */
+    icon: LucideIcon;
+};
+
 /** All the items, with the addresses of Upload and of Log out. */
 export type NavigationItems = {
     /** Home, Agenda, Areas, Documents, Budget and Family, in this order. */
@@ -90,6 +101,8 @@ export type NavigationItems = {
     add: AddItem[];
     /** The address to log out (called with POST). */
     logout: string;
+    /** *Report a problem or an idea*, in the account menu and in More, before Log out: it opens a panel. */
+    feedback: PanelItem;
 };
 
 /**
@@ -186,6 +199,11 @@ export function navigationItems(): NavigationItems {
             },
         ],
         logout: logout().url,
+        feedback: {
+            label: trans('Report a problem or an idea'),
+            hint: trans('It reaches who makes Family Manager'),
+            icon: MessageSquareWarning,
+        },
     };
 }
 

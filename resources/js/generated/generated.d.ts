@@ -970,6 +970,7 @@ export type EnrollmentStatus = 'active' | 'ended';
 export type EnrollmentType = 'school' | 'sport' | 'course' | 'other';
 export type ExceptionType = 'skip' | 'amount_override' | 'date_override';
 export type FamilyState = 'active' | 'suspended' | 'to_delete';
+export type FeedbackKind = 'problem' | 'idea';
 export type FileSource = 'upload' | 'mail' | 'phone' | 'scanner';
 export type FilingStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type FilingType = 'tax_return' | 'isee' | 'benefit' | 'parental_leave' | 'municipal' | 'other';
