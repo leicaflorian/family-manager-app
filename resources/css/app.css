@@ -77,10 +77,6 @@
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
-.dark {
-    color-scheme: dark;
-}
-
 :root {
     /* Native controls (file button, autofill, scrollbars, form chrome) follow the theme */
     color-scheme: light;
@@ -115,6 +111,11 @@
     --sidebar: var(--card);
 }
 
+/* After :root, which has the same weight: otherwise the dark theme keeps the light native controls */
+.dark {
+    color-scheme: dark;
+}
+
 @layer base {
     *,
     ::after,
@@ -133,6 +134,15 @@
         background: var(--canvas);
         color: var(--ink);
         -webkit-tap-highlight-color: transparent;
+    }
+
+    /* The browser paints a field it fills in its own blue: the field keeps the look of the others.
+       Its background can't be overridden, so the change is put off for good. */
+    input:-webkit-autofill,
+    input:autofill {
+        -webkit-text-fill-color: var(--ink);
+        caret-color: var(--ink);
+        transition: background-color 0s 600000s;
     }
 
     /* Tailwind 4 leaves the arrow on the buttons: what can be tapped shows the hand */

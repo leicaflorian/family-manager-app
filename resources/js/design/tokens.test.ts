@@ -78,6 +78,23 @@ describe('buildTokensCss', () => {
         expect(block(css, ':root')).not.toContain('#E8ECF2');
     });
 
+    it('writes the inverse scope: the dark colours on the light theme and the light ones on the dark theme', () => {
+        const css = buildTokensCss(fixture());
+
+        expect(block(css, '.theme-inverse')).toContain('--ink: #E8ECF2;');
+        expect(block(css, '.theme-inverse')).toContain(
+            '--shadow-menu-value: 0 12px 32px rgba(0,0,0,0.55);',
+        );
+        expect(block(css, '.dark .theme-inverse')).toContain('--ink: #18212F;');
+        expect(block(css, '.dark .theme-inverse')).toContain(
+            '--shadow-menu-value: 0 12px 32px rgba(1,2,3,0.16);',
+        );
+        // The dark theme's inverse comes later, so it wins inside .dark
+        expect(css.indexOf('.dark .theme-inverse {')).toBeGreaterThan(
+            css.indexOf('.theme-inverse {'),
+        );
+    });
+
     it('maps every colour into Tailwind', () => {
         expect(block(buildTokensCss(fixture()), '@theme inline')).toContain(
             '--color-ink: var(--ink);',
