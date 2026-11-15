@@ -175,7 +175,7 @@ function goToday(): void {
             <div class="flex items-center gap-2 px-1">
                 <h2
                     class="m-0 grow whitespace-nowrap"
-                    :class="wide ? 'text-stat-lg' : 'text-section'"
+                    :class="wide ? 'text-subtitle' : 'text-section'"
                 >
                     {{ monthName(calendar.month) }}
                 </h2>
@@ -245,6 +245,7 @@ function goToday(): void {
                     v-for="entry in dayOpen"
                     :key="entry.key"
                     :entry="entry"
+                    compact
                     :person-avatar="personAvatar(entry)"
                     @open="emit('open', entry)"
                 />
@@ -252,6 +253,7 @@ function goToday(): void {
                     v-for="entry in dayDone"
                     :key="entry.key"
                     :entry="entry"
+                    compact
                     checked
                     :person-avatar="personAvatar(entry)"
                     @open="emit('open', entry)"

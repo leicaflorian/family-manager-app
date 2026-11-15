@@ -121,6 +121,42 @@ describe('FmAgendaRow', () => {
             expect(link).not.toHaveTextContent('in 4 days');
         });
 
+        it('leaves out the day and the wide columns with compact, as the day list of the calendar', () => {
+            const { container } = render(FmAgendaRow, {
+                props: {
+                    entry: entry(),
+                    compact: true,
+                    personAvatar: { initials: 'MB', photo: null },
+                },
+            });
+
+            const link = screen.getByRole('button');
+            expect(link).not.toHaveTextContent('Fri');
+            expect(link).not.toHaveTextContent('30');
+            expect(within(link).getByText('Gas - Enel')).toHaveClass(
+                'text-row',
+            );
+            expect(link).toHaveTextContent('Bolletta gas');
+            expect(link).toHaveTextContent('84,20 €');
+            expect(link).toHaveTextContent('in 4 days');
+            expect(screen.getAllByText('MB')).toHaveLength(1);
+            expect(within(link).getByText('Marco')).toHaveClass('sr-only');
+            expect(container.querySelector('[class*="lg:"]')).toBeNull();
+        });
+
+        it('strikes the title and says Done with compact and checked', () => {
+            render(FmAgendaRow, {
+                props: { entry: entry(), compact: true, checked: true },
+            });
+
+            const link = screen.getByRole('button');
+            expect(within(link).getByText('Gas - Enel')).toHaveClass(
+                'line-through',
+            );
+            expect(link).toHaveTextContent('✓ Done');
+            expect(link).not.toHaveTextContent('in 4 days');
+        });
+
         it('shows the initials of the person when the page gives them', () => {
             render(FmAgendaRow, {
                 props: {
