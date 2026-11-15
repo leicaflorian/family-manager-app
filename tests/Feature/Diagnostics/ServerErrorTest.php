@@ -105,3 +105,23 @@ test('an error in a job keeps the account and request id but no method or path',
         ->and($row->method)->toBeNull()
         ->and($row->path)->toBeNull();
 });
+
+test('a message with broken characters still leaves a row, cleaned', function (): void {
+    resolve(RecordServerError::class)->handle(new RuntimeException("Bad \xC3\x28 bytes \xFF end"));
+
+    $row = ServerError::sole();
+    expect(mb_check_encoding($row->message, 'UTF-8'))->toBeTrue()
+        ->and($row->message)->toStartWith('Bad ')
+        ->and($row->message)->toEndWith(' end');
+});
+
+test('an exception class with a very long name still leaves a row, its name cut', function (): void {
+    $name = 'Exception'.str_repeat('A', 300);
+    eval('final class '.$name.' extends RuntimeException {}');
+
+    resolve(RecordServerError::class)->handle(new $name('boom'));
+
+    $row = ServerError::sole();
+    expect(mb_strlen($row->class))->toBe(255)
+        ->and($row->message)->toBe('boom');
+});

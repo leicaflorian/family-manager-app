@@ -6,7 +6,6 @@ namespace App\Actions\Diagnostics;
 
 use App\Models\ServerError;
 use Illuminate\Support\Facades\Context;
-use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -35,14 +34,27 @@ final class RecordServerError
                 'user_id' => is_int($userId) ? $userId : null,
                 'family_id' => is_int($familyId) ? $familyId : null,
                 'method' => $isWebRequest ? $request->method() : null,
-                'path' => $isWebRequest ? Str::limit('/'.ltrim($request->path(), '/'), 2048, '') : null,
-                'class' => $exception::class,
-                'message' => Str::limit($exception->getMessage(), 500, ''),
-                'file' => Str::limit($exception->getFile(), 500, ''),
+                'path' => $isWebRequest ? $this->clean('/'.ltrim($request->path(), '/'), 2048) : null,
+                'class' => $this->clean($exception::class, 255),
+                'message' => $this->clean($exception->getMessage(), 500),
+                'file' => $this->clean($exception->getFile(), 500),
                 'line' => $exception->getLine(),
             ]);
         } catch (Throwable) {
             // The original error is still reported to the log by the handler
         }
+    }
+
+    /**
+     * A text that fits its column: broken UTF-8 (a message built from raw bytes) would make the insert fail, so the
+     * invalid bytes are replaced before cutting.
+     *
+     * @param  string  $text  the text
+     * @param  int  $max  the length of the column
+     * @return string the valid text, at most `$max` characters
+     */
+    private function clean(string $text, int $max): string
+    {
+        return mb_substr(mb_scrub($text, 'UTF-8'), 0, $max);
     }
 }
