@@ -35,13 +35,16 @@ final class DeadlineController extends Controller
     /** How many of the following due dates the page lists. */
     private const int NEXT = 3;
 
+    /** How many due dates before the one on the page the list keeps: the first one still to pay and those just before it. */
+    private const int BEFORE = 3;
+
     /** How many years ahead the following due dates are looked for. */
     private const int NEXT_YEARS = 2;
 
     public function __construct(private readonly Deadlines $deadlines) {}
 
     /**
-     * *A due date*, with the next ones of the same planned item and the accounts to pay with.
+     * *A due date*, with the due dates of the same planned item around it and the accounts to pay with.
      * With `?pay=1` the panel *I paid it* opens at once. A skipped due date has its page too, to bring it back.
      *
      * @throws NotFoundHttpException if the address is not a due date of the family
@@ -53,10 +56,11 @@ final class DeadlineController extends Controller
         $today = CarbonImmutable::today('Europe/Rome');
         $after = $deadline->occurrence->date->addDay();
         $next = array_slice($this->deadlines->between([$planned], $after, $after->addYears(self::NEXT_YEARS)), 0, self::NEXT);
+        $dates = [...$this->before($deadline, $today), $deadline, ...$next];
 
         return Inertia::render('budget/Deadline', [
             'deadline' => DeadlineData::fromDeadline($deadline, $today),
-            'next' => array_map(fn (Deadline $following): DeadlineData => DeadlineData::fromDeadline($following, $today), $next),
+            'dates' => array_map(fn (Deadline $one): DeadlineData => DeadlineData::fromDeadline($one, $today), $dates),
             'accounts' => BudgetFormOptions::accounts(),
             'canPay' => $user->can('create', $planned instanceof PlannedExpense ? Expense::class : Income::class),
             'canChange' => $user->can('update', $planned),
@@ -108,5 +112,29 @@ final class DeadlineController extends Controller
     private function back(string $kind, string $id, string $date): RedirectResponse
     {
         return to_route('budget.deadlines.show', ['kind' => $kind, 'id' => $id, 'date' => $date]);
+    }
+
+    /**
+     * The due dates before the one on the page, from the first one still to pay (the current one), so a later due
+     * date leads back to it. When there are many, the current one and the two just before the page.
+     *
+     * @param  Deadline  $deadline  the due date on the page
+     * @param  CarbonImmutable  $today  today
+     * @return list<Deadline>
+     */
+    private function before(Deadline $deadline, CarbonImmutable $today): array
+    {
+        $day = $deadline->occurrence->date->subDay();
+        $current = $this->deadlines->unpaidUntil([$deadline->planned], $day, $today)[0] ?? null;
+
+        if (! $current instanceof Deadline) {
+            return [];
+        }
+
+        $before = $this->deadlines->between([$deadline->planned], $current->occurrence->date, $day);
+
+        return count($before) > self::BEFORE
+            ? [$before[0], ...array_slice($before, 1 - self::BEFORE)]
+            : $before;
     }
 }

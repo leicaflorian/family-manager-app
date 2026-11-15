@@ -37,7 +37,7 @@ function deadlineAddress(string $title, string $day, string $suffix = ''): strin
     return "/budget/planned/expense/{$planned->id}/occurrences/{$day}{$suffix}";
 }
 
-test('it shows a due date with its card and the next ones', function (): void {
+test('it shows a due date with its card, starting the list of due dates from it', function (): void {
     $this->actingAs($this->marco)
         ->get(deadlineAddress('Assicurazione auto', '2026-11-21'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
@@ -47,8 +47,9 @@ test('it shows a due date with its card and the next ones', function (): void {
             ->where('deadline.date', '2026-11-21')
             ->where('deadline.card.label', 'RC auto Panda')
             ->where('deadline.payment', null)
-            ->has('next', 2)
-            ->where('next.0.date', '2027-11-21')
+            ->has('dates', 3)
+            ->where('dates.0.date', '2026-11-21')
+            ->where('dates.1.date', '2027-11-21')
             ->has('accounts', 2)
             ->where('canPay', true)
             ->where('canChange', true)
@@ -62,8 +63,24 @@ test('it shows a paid due date with its payment', function (): void {
             ->where('deadline.payment.date', '2026-10-20')
             ->where('deadline.payment.amount', 45)
             ->where('deadline.payment.account', 'Carta Laura')
-            ->has('next', 3)
-            ->where('next.0.date', '2026-12-05'));
+            ->has('dates', 4)
+            ->where('dates.0.date', '2026-11-05')
+            ->where('dates.1.date', '2026-12-05'));
+});
+
+test('a later due date lists the due dates from the first one still to pay, so the current one is a click away', function (): void {
+    $this->actingAs($this->marco)
+        ->get(deadlineAddress('Assicurazione auto', '2028-11-21'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('deadline.date', '2028-11-21')
+            ->where('dates', fn ($dates): bool => collect($dates)->pluck('date')->all() === ['2026-11-21', '2027-11-21', '2028-11-21', '2029-11-21', '2030-11-21']));
+});
+
+test('far from the current due date, the list keeps it and the two just before the one on the page (the dance fee skips the summer)', function (): void {
+    $this->actingAs($this->marco)
+        ->get(deadlineAddress('Retta danza', '2027-06-05'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('dates', fn ($dates): bool => collect($dates)->pluck('date')->all() === ['2026-12-05', '2027-04-05', '2027-05-05', '2027-06-05', '2027-09-05', '2027-10-05', '2027-11-05']));
 });
 
 test('it opens with the panel of the payment when asked', function (): void {

@@ -1968,5 +1968,6 @@
     "The app": "L'app",
     "What changes in the app, version by version": "Cosa cambia nell'app, versione per versione",
     ":card — :status": ":card — :status",
-    ":card — :status on :date": ":card — :status il :date"
+    ":card — :status on :date": ":card — :status il :date",
+    "Due dates": "Le scadenze"
 }

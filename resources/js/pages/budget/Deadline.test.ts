@@ -44,7 +44,10 @@ const carDeadline: App.Data.DeadlineData = {
 
 const props = {
     deadline: carDeadline,
-    next: [{ ...carDeadline, date: '2027-11-21', original_date: '2027-11-21' }],
+    dates: [
+        carDeadline,
+        { ...carDeadline, date: '2027-11-21', original_date: '2027-11-21' },
+    ],
     accounts: accountOptions,
     canPay: true,
     canChange: true,
@@ -91,15 +94,29 @@ describe('A due date', () => {
             'href',
             '/areas/insurance',
         );
-        // The amount of the due date, then the one of the next due date
-        expect(screen.getAllByText('418,00 €')).toHaveLength(2);
+        // The amount of the due date, then those of the list: this one and the next
+        expect(screen.getAllByText('418,00 €')).toHaveLength(3);
         expect(
             screen.getByText('Due on 21/11/2026 · in 26 days · Conto BPER'),
         ).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /21\/11/ })).toHaveAttribute(
+        expect(
+            screen.getByRole('link', { name: /21\/11\/2027/ }),
+        ).toHaveAttribute(
             'href',
             '/budget/planned/expense/6/occurrences/2027-11-21',
         );
+    });
+
+    it('lists the due dates with the one on the page marked, so the others lead back and forth', () => {
+        renderPage(Deadline, props);
+
+        const list = screen.getByRole('region', { name: 'Due dates' });
+        expect(
+            within(list).getByRole('link', { name: /21\/11\/2026/ }),
+        ).toHaveAttribute('aria-current', 'page');
+        expect(
+            within(list).getByRole('link', { name: /21\/11\/2027/ }),
+        ).not.toHaveAttribute('aria-current');
     });
 
     it('opens the panel when I paid it is tapped', async () => {
@@ -168,7 +185,7 @@ describe('A due date', () => {
         renderPage(Deadline, {
             ...props,
             deadline: salaryDeadline,
-            next: [],
+            dates: [],
         });
 
         await userEvent.click(
@@ -181,7 +198,7 @@ describe('A due date', () => {
     });
 
     it('shows the payment of a paid due date and no button to pay', () => {
-        renderPage(Deadline, { ...props, deadline: paidDeadline, next: [] });
+        renderPage(Deadline, { ...props, deadline: paidDeadline, dates: [] });
 
         expect(
             screen.getByText('Paid on 20/10 · 45,00 € · Carta Laura'),
@@ -195,7 +212,7 @@ describe('A due date', () => {
     });
 
     it('links the paid line to the movement that paid it', () => {
-        renderPage(Deadline, { ...props, deadline: paidDeadline, next: [] });
+        renderPage(Deadline, { ...props, deadline: paidDeadline, dates: [] });
 
         expect(
             screen.getByRole('link', {
@@ -216,7 +233,7 @@ describe('A due date', () => {
         renderPage(Deadline, {
             ...props,
             deadline: paidDeadline,
-            next: [],
+            dates: [],
             pay: true,
         });
 
@@ -235,7 +252,7 @@ describe('A due date', () => {
     });
 
     it('shows the note of a changed due date', () => {
-        renderPage(Deadline, { ...props, deadline: danceDeadline, next: [] });
+        renderPage(Deadline, { ...props, deadline: danceDeadline, dates: [] });
 
         expect(
             screen.getByText('Comprende la quota del saggio di Natale'),

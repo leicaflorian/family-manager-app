@@ -3,8 +3,8 @@
  * *A due date*: the card it belongs to, the title, the amount and where it
  * stands (when it falls and with which account, or when and how it was paid),
  * with *I paid it* (*It arrived* for an income) and *Change this due date*,
- * which open their panels, and below the next due dates of the same planned
- * expense or income. A paid due date has no buttons, and its line leads to the
+ * which open their panels, and below the due dates of the same planned
+ * expense or income, from the first one still to pay, with this one marked. A paid due date has no buttons, and its line leads to the
  * movement that paid it. A skipped one says so and has only *Change this due
  * date*, to bring it back. With `pay` the panel of
  * the payment is already open, as *Record payment* opens it.
@@ -36,8 +36,8 @@ import { show as showCard } from '@/routes/cards';
 const { deadline, canPay, canChange, pay } = defineProps<{
     /** The due date. */
     deadline: App.Data.DeadlineData;
-    /** The next due dates of the same planned expense or income. */
-    next: App.Data.DeadlineData[];
+    /** The due dates of the same planned expense or income, from the first one still to pay: this one among them. */
+    dates: App.Data.DeadlineData[];
     /** The accounts of the family to pay with. */
     accounts: App.Data.OptionData[];
     /** The account may record payments. */
@@ -206,12 +206,13 @@ const status = computed(() => {
 
         <FmNotice v-if="deadline.notes">{{ deadline.notes }}</FmNotice>
 
-        <FmCard v-if="next.length > 0" :title="$t('Next due dates')" list>
+        <FmCard v-if="dates.length > 0" :title="$t('Due dates')" list>
             <FmDeadlineRow
-                v-for="following in next"
-                :key="following.original_date"
-                :deadline="following"
-                :href="deadlineUrls(following).show"
+                v-for="one in dates"
+                :key="one.original_date"
+                :deadline="one"
+                :href="deadlineUrls(one).show"
+                :current="one.original_date === deadline.original_date"
             />
         </FmCard>
 

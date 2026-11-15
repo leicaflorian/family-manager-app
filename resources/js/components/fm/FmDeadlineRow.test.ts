@@ -18,7 +18,7 @@ describe('FmDeadlineRow', () => {
             '/budget/planned/expense/4/2026-12-05',
         );
         expect(link).toHaveTextContent('Retta danza');
-        expect(link).toHaveTextContent('Danza Giulia · 05/12');
+        expect(link).toHaveTextContent('Danza Giulia · 05/12/2026');
         expect(link).toHaveTextContent('45,00 €');
         expect(link).toHaveTextContent('60,00 €');
     });
@@ -28,10 +28,21 @@ describe('FmDeadlineRow', () => {
             props: { deadline: lateDeadline, href: '/x' },
         });
 
-        expect(screen.getByText('Luce · 23/10, late')).toHaveClass(
+        expect(screen.getByText('Luce · 23/10/2026, late')).toHaveClass(
             'text-overdue',
         );
         expect(screen.getByText('~71,30 €')).toBeInTheDocument();
+    });
+
+    it('marks the due date on the page', () => {
+        render(FmDeadlineRow, {
+            props: { deadline: danceDeadline, href: '/x', current: true },
+        });
+
+        expect(screen.getByRole('link')).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
     });
 
     it('writes an income with a plus', () => {
