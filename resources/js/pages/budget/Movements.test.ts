@@ -15,7 +15,10 @@ import Movements from './Movements.vue';
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     Head: { render: () => null },
-    usePage: () => ({ url: '/', props: { name: 'Fameja.app', unread_notices: 2 } }),
+    usePage: () => ({
+        url: '/',
+        props: { name: 'Fameja.app', unread_notices: 2 },
+    }),
 }));
 
 const parking: App.Data.MovementData = {

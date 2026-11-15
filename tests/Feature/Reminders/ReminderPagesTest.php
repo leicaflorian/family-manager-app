@@ -313,7 +313,7 @@ test('the reminders of a person open the agenda filtered on that person', functi
 
     $this->actingAs($this->marco)->get('/reminders?person='.$giulia->id)->assertRedirect('/agenda');
 
-    expect($this->marco->fresh()->agenda_filters)->toBe(['months' => 3, 'person_id' => $giulia->id, 'hidden_areas' => ['home']]);
+    expect($this->marco->fresh()->agenda_filters)->toBe(['months' => 3, 'calendar' => false, 'person_id' => $giulia->id, 'hidden_areas' => ['home']]);
 });
 
 test('a person of another family or a wrong one leaves the agenda filters as they are', function (string $person): void {

@@ -115,7 +115,7 @@ test('the agenda of one month has the entries of the board in its order, without
         ->and(array_column($agenda['entries'], 'title'))->not->toContain("Scade la carta d'identità")
         ->and(collect($agenda['entries'])->firstWhere('title', 'Tessera sanitaria di Giulia')['reminder_done'])->toBeFalse()
         ->and(array_column($agenda['people'], 'first_name'))->toBe(['Marco', 'Laura', 'Giulia'])
-        ->and($agenda['filters'])->toBe(['months' => 1, 'person_id' => null, 'hidden_areas' => []]);
+        ->and($agenda['filters'])->toBe(['months' => 1, 'person_id' => null, 'hidden_areas' => [], 'calendar' => false]);
 });
 
 test('each entry names the thing first and, below, what happens to it', function (): void {

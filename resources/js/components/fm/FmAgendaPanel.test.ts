@@ -318,6 +318,26 @@ describe('FmAgendaPanel', () => {
             expect(screen.queryByLabelText('How much')).not.toBeInTheDocument();
         });
 
+        it('once paid, says so and leads to its due date, where it is changed', () => {
+            renderPage(FmAgendaPanel, { entry: payment, done: true });
+
+            expect(screen.getByText('Paid')).toBeInTheDocument();
+            expect(screen.queryByText(/Done on/)).not.toBeInTheDocument();
+            expect(screen.queryByText('deadline done')).not.toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: 'Open the due date' }),
+            ).toHaveAttribute(
+                'href',
+                'http://localhost/budget/planned/expense/3/occurrences/2026-10-28',
+            );
+            expect(
+                screen.queryByRole('button', { name: 'I paid it' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Reopen' }),
+            ).not.toBeInTheDocument();
+        });
+
         it('that also pays a deadline has no Done nor Postpone', () => {
             renderPage(FmAgendaPanel, {
                 entry: { ...payment, reminder: reminder() },

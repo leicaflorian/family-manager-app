@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Cards\CardTypes;
+use App\Cards\DeadlineSources;
 use App\Data\AgendaData;
 use App\Data\AgendaEntryData;
 use App\Data\AgendaReminderData;
@@ -26,6 +27,7 @@ use App\Support\PlannedKind;
 use App\Support\Reminders\Delivery;
 use App\Support\Reminders\Notices;
 use App\Support\Reminders\NotificationRule;
+use App\Support\Reminders\Renewals;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -155,6 +157,76 @@ final readonly class Agenda
     }
 
     /**
+     * The payments already made of the planned expenses between two days, by date and then by title, as the entries
+     * of the list shows them. Incomes are not things to do, so the ones that arrived are not here. A done automatic
+     * reminder of the same card on the same day, that a payment pays (`hasExpense`) or confirms (the renewal of a
+     * subscription, marked done by `ExpenseRenewalObserver`), is the same thing: the payment carries it as
+     * `reminder_done` and its id is returned, so the done reminders leave it out, as the list merges them.
+     *
+     * @param  CarbonImmutable  $from  the first day
+     * @param  CarbonImmutable  $to  the last day
+     * @return array{entries: list<AgendaEntryData>, reminders: list<int>} the payments, and the ids of the done reminders they carry
+     */
+    public function paidBetween(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $paid = array_values(array_filter(
+            $this->deadlines->between(PlannedExpense::query()->with('organization')->get()->all(), $from->startOfDay(), $to),
+            static fn (Deadline $deadline): bool => $deadline->isPaid(),
+        ));
+        $done = $this->doneByCard($from, $to);
+        $carried = [];
+        $entries = [];
+
+        foreach ($paid as $payment) {
+            $card = PlannedKind::card($payment->planned);
+            $reminder = $card instanceof Model ? ($done[$this->sameCard($card, $payment->occurrence->date)] ?? null) : null;
+
+            if ($reminder !== null && ! in_array($reminder, $carried, true)) {
+                $carried[] = $reminder;
+                $entries[] = $this->paymentEntry($payment, reminderDone: true);
+
+                continue;
+            }
+
+            $entries[] = $this->paymentEntry($payment);
+        }
+
+        usort($entries, static fn (AgendaEntryData $a, AgendaEntryData $b): int => [$a->date, mb_strtolower($a->title)] <=> [$b->date, mb_strtolower($b->title)]);
+
+        return ['entries' => $entries, 'reminders' => $carried];
+    }
+
+    /**
+     * The done automatic reminders between two days that a payment of their card pays or confirms, by card and day.
+     *
+     * @param  CarbonImmutable  $from  the first day
+     * @param  CarbonImmutable  $to  the last day
+     * @return array<string, int> the id of the reminder, by `sameCard` key
+     */
+    private function doneByCard(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $reminders = Reminder::query()
+            ->where('status', ReminderStatus::Done)
+            ->where('is_automatic', true)
+            ->whereBetween('due_date', [$from->toDateString(), $to->toDateString()])
+            ->with('link.subject')
+            ->orderBy('id')
+            ->get();
+        $byCard = [];
+
+        foreach ($reminders as $reminder) {
+            $source = $reminder->source_field === null ? null : DeadlineSources::find($reminder->source_field);
+            $card = $reminder->link?->subject;
+
+            if ($card instanceof Model && ($source?->hasExpense === true || $reminder->source_field === Renewals::FIELD)) {
+                $byCard[$this->sameCard($card, $reminder->due_date)] ??= $reminder->id;
+            }
+        }
+
+        return $byCard;
+    }
+
+    /**
      * The due dates of the planned expenses and incomes of the family between two days that nothing settles.
      *
      * @param  CarbonImmutable  $from  the first day
@@ -234,8 +306,9 @@ final readonly class Agenda
      * @param  Deadline  $payment  the open due date
      * @param  CardDeadline|null  $deadline  the deadline of the same card on the same day, if this payment pays it
      * @param  AgendaReminderData|null  $reminder  the automatic reminder of that deadline
+     * @param  bool  $reminderDone  whether a done automatic reminder of the same card and day goes with this paid payment
      */
-    private function paymentEntry(Deadline $payment, ?CardDeadline $deadline = null, ?AgendaReminderData $reminder = null): AgendaEntryData
+    private function paymentEntry(Deadline $payment, ?CardDeadline $deadline = null, ?AgendaReminderData $reminder = null, bool $reminderDone = false): AgendaEntryData
     {
         $planned = $payment->planned;
         $card = PlannedKind::card($planned);
@@ -256,7 +329,7 @@ final readonly class Agenda
             person: $person?->first_name,
             amount: $payment->occurrence->amount,
             estimated: $payment->occurrence->estimated,
-            reminder_done: $deadline?->reminderDone() ?? false,
+            reminder_done: $reminderDone || ($deadline?->reminderDone() ?? false),
             reminder: $reminder,
             href: route('budget.deadlines.show', ['kind' => $payment->kind(), 'id' => $planned->id, 'date' => $originalDate]).'?pay=1',
             account: $payment->account?->name,

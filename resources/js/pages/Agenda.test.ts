@@ -12,9 +12,11 @@ import {
 } from 'vite-plus/test';
 import {
     accountOptions,
+    agendaCalendar,
     agendaEntries,
     agendaEntry,
     agendaReminder,
+    calendarLink,
     lateDeadline,
     peopleList,
 } from '@/test/fixtures';
@@ -181,7 +183,12 @@ describe('Agenda', () => {
         renderPage(
             Agenda,
             agenda({
-                filters: { months: 1, person_id: 1, hidden_areas: [] },
+                filters: {
+                    months: 1,
+                    person_id: 1,
+                    hidden_areas: [],
+                    calendar: false,
+                },
             }),
         );
 
@@ -199,6 +206,7 @@ describe('Agenda', () => {
                     months: 1,
                     person_id: null,
                     hidden_areas: ['home', 'general'],
+                    calendar: false,
                 },
             }),
         );
@@ -558,6 +566,7 @@ describe('Agenda', () => {
                     months: 1,
                     person_id: null,
                     hidden_areas: areas.map((area) => area.value),
+                    calendar: false,
                 },
             }),
         );
@@ -701,5 +710,292 @@ describe('Agenda, the Done view', () => {
         expect(options).toBeDefined();
         expect(options).not.toHaveProperty('only');
         expect(options).not.toHaveProperty('reset');
+    });
+});
+
+/** The passport of Laura, renewed on 04/11: a done thing of the calendar. */
+const passport = agendaEntry({
+    ...doneEntry(31, 'Rinnovare il passaporto', '2026-11-04', 'Laura'),
+    person_id: 2,
+    person: 'Laura',
+});
+
+/** A task of Laura for today, 26/10. */
+const bike = agendaEntry({
+    kind: 'task',
+    key: 'task:32',
+    date: '2026-10-26',
+    title: 'Portare la bici a riparare',
+    name: 'Portare la bici a riparare',
+    detail: 'Task',
+    person_id: 2,
+    person: 'Laura',
+    reminder: agendaReminder({ id: 32 }),
+});
+
+/**
+ * The props of the calendar view: November 2026 with the passport done on 04/11.
+ *
+ * @param change - the fields of the month that differ
+ * @param page - other props of the page
+ * @returns the props
+ */
+function calendarView(
+    change: Partial<App.Data.AgendaCalendarData> = {},
+    page: Record<string, unknown> = {},
+): Record<string, unknown> {
+    return agenda(
+        { view: 'calendar' },
+        { calendar: agendaCalendar({ done: [passport], ...change }), ...page },
+    );
+}
+
+/** October 2026, with the task of today. */
+const october: Partial<App.Data.AgendaCalendarData> = {
+    month: '2026-10',
+    from: '2026-09-28',
+    to: '2026-11-01',
+    entries: [lateGas, bike, plumber],
+};
+
+/**
+ * The button of a day of the grid.
+ *
+ * @param name - the day and the short month, «4 Nov»; the weekday before it is any
+ * @returns the button
+ */
+function day(name: string): HTMLElement {
+    return screen.getByRole('button', {
+        name: new RegExp(`^\\p{L}+ ${name}(,|$)`, 'u'),
+    });
+}
+
+describe('Agenda, the calendar view', () => {
+    it('switches between the list and the calendar with two icons, the list marked', () => {
+        renderPage(Agenda, agenda());
+
+        const views = screen.getByRole('navigation', {
+            name: 'How to see the Agenda',
+        });
+        expect(
+            within(views).getByRole('link', { name: 'List' }),
+        ).toHaveAttribute('aria-current', 'page');
+        expect(
+            within(views).getByRole('link', { name: 'List' }),
+        ).toHaveAttribute('href', '/agenda?view=todo');
+        expect(
+            within(views).getByRole('link', { name: 'Calendar' }),
+        ).toHaveAttribute('href', '/agenda?view=calendar');
+    });
+
+    it('shows the month and the things of today, without To do and Done', () => {
+        renderPage(Agenda, calendarView(october));
+
+        expect(screen.getByRole('link', { name: 'Calendar' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+        expect(
+            screen.queryByRole('navigation', { name: 'Agenda views' }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('2 things late');
+        expect(
+            screen.getByRole('heading', { name: 'October 2026', level: 2 }),
+        ).toBeInTheDocument();
+        expect(
+            within(
+                screen.getByRole('group', { name: 'October 2026' }),
+            ).getAllByRole('button'),
+        ).toHaveLength(35);
+        expect(day('1 Nov')).toHaveAccessibleName('Sunday 1 Nov');
+        expect(day('26 Oct')).toHaveAttribute('aria-pressed', 'true');
+        expect(
+            screen.getByRole('heading', { name: 'Monday 26 October' }),
+        ).toBeInTheDocument();
+        expect(row(/Portare la bici a riparare/)).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: /Chiamare l'idraulico/ }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('starts from the first of a month that does not hold today', () => {
+        renderPage(Agenda, calendarView());
+
+        expect(day('1 Nov')).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByText('Nothing on this day.')).toBeInTheDocument();
+    });
+
+    it('shows the things of the day tapped, the done ones struck through', async () => {
+        renderPage(Agenda, calendarView());
+
+        await userEvent.click(day('4 Nov'));
+
+        expect(
+            screen.getByRole('heading', { name: 'Wednesday 4 November' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('2 to do · 1 done · 13,99 €'),
+        ).toBeInTheDocument();
+        expect(row(/End of the free trial/)).toBeInTheDocument();
+        expect(row(/Primo pagamento/)).toBeInTheDocument();
+        expect(row(/Rinnovare il passaporto/)).toHaveTextContent('✓ Done');
+    });
+
+    it('filters the month with the person, without the period', async () => {
+        screenWidth(true);
+        renderPage(Agenda, calendarView());
+        await userEvent.click(day('4 Nov'));
+
+        expect(
+            screen.queryByRole('radio', { name: '1 month' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('radio', { name: /Marco/ }));
+
+        expect(
+            screen.queryByRole('button', { name: /Primo pagamento/ }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('Nothing on this day.')).toBeInTheDocument();
+    });
+
+    it('opens the panel of a row of the day, as the list does', async () => {
+        renderPage(Agenda, calendarView());
+        await userEvent.click(day('4 Nov'));
+
+        await userEvent.click(row(/Rinnovare il passaporto/));
+
+        const panel = await screen.findByRole('dialog', {
+            name: 'Rinnovare il passaporto',
+        });
+        expect(
+            within(panel).getByRole('button', { name: 'Reopen' }),
+        ).toBeInTheDocument();
+    });
+
+    it('goes to the next month and back to today with a visit that loads only the month', async () => {
+        renderPage(Agenda, calendarView());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Month after' }),
+        );
+
+        expect(get).toHaveBeenCalledWith(
+            '/agenda?view=calendar&month=2026-12',
+            {},
+            expect.objectContaining({
+                preserveState: true,
+                only: ['calendar'],
+            }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: 'Today' }));
+
+        expect(get).toHaveBeenLastCalledWith(
+            '/agenda?view=calendar&month=2026-10',
+            {},
+            expect.objectContaining({ only: ['calendar'] }),
+        );
+    });
+
+    it('replaces the rows of the day at once when another month arrives', async () => {
+        const view = renderPage(Agenda, calendarView(october));
+        const before = screen.getByRole('region', {
+            name: 'Monday 26 October',
+        });
+        const list = within(before).getByRole('button', {
+            name: /Portare la bici/,
+        }).parentElement;
+
+        await view.rerender(calendarView());
+
+        const after = screen.getByRole('region', { name: 'Sunday 1 November' });
+        expect(day('1 Nov')).toHaveAttribute('aria-pressed', 'true');
+        expect(
+            screen.queryByRole('button', { name: /Portare la bici/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(after).getByText('Nothing on this day.'),
+        ).toBeInTheDocument();
+        expect(list?.isConnected).toBe(false);
+
+        await userEvent.click(day('4 Nov'));
+        expect(row(/Primo pagamento/)).toBeInTheDocument();
+    });
+
+    it('replaces the list, not only its rows, when another day is chosen', async () => {
+        renderPage(Agenda, calendarView());
+        await userEvent.click(day('4 Nov'));
+        const list = row(/Primo pagamento/).parentElement;
+
+        await userEvent.click(day('6 Nov'));
+
+        expect(list?.isConnected).toBe(false);
+        expect(row(/Bolletta luce di ottobre/)).toBeInTheDocument();
+    });
+
+    it('sums only what is paid out, not the incomes of the day', async () => {
+        renderPage(Agenda, calendarView());
+
+        await userEvent.click(day('23 Nov'));
+
+        expect(row(/Stipendio di Laura/)).toBeInTheDocument();
+        expect(screen.getByText('1 to do')).toBeInTheDocument();
+    });
+
+    it('chooses today again when the month that arrives holds it', async () => {
+        const view = renderPage(Agenda, calendarView());
+
+        await view.rerender(calendarView(october));
+
+        expect(day('26 Oct')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('opens Connect a calendar from below and asks for the address', async () => {
+        const view = renderPage(Agenda, calendarView());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Connect a calendar' }),
+        );
+
+        const panel = await screen.findByRole('dialog', {
+            name: 'Connect a calendar',
+        });
+        expect(
+            within(panel).getByText(
+                'Reminders and deadlines in the calendar of your phone or computer. They update by themselves.',
+            ),
+        ).toBeInTheDocument();
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['calendar_link'],
+                preserveUrl: true,
+            }),
+        );
+
+        await view.rerender(calendarView({}, { calendar_link: calendarLink }));
+
+        expect(
+            await screen.findByDisplayValue(calendarLink.url ?? ''),
+        ).toBeInTheDocument();
+    });
+
+    it('opens Connect a calendar beside the page on the computer', async () => {
+        screenWidth(true);
+        renderPage(Agenda, calendarView({}, { calendar_link: calendarLink }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Connect a calendar' }),
+        );
+
+        const panel = screen.getByRole('dialog', {
+            name: 'Connect a calendar',
+        });
+        expect(panel).toHaveAttribute('aria-modal', 'false');
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Close' }),
+        );
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 });

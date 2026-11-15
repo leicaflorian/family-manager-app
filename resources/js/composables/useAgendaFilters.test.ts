@@ -6,6 +6,7 @@ const initial: App.Data.AgendaFiltersData = {
     months: 1,
     person_id: null,
     hidden_areas: [],
+    calendar: false,
 };
 
 afterEach(() => {
@@ -43,7 +44,12 @@ describe('useAgendaFilters', () => {
         expect(filters.value.hidden_areas).toEqual(['work']);
         expect(put).toHaveBeenLastCalledWith(
             '/agenda/filters',
-            { months: 1, person_id: null, hidden_areas: ['work'] },
+            {
+                months: 1,
+                person_id: null,
+                hidden_areas: ['work'],
+                calendar: false,
+            },
             expect.objectContaining({
                 preserveState: true,
                 preserveScroll: true,
@@ -55,7 +61,7 @@ describe('useAgendaFilters', () => {
         expect(filters.value.hidden_areas).toEqual([]);
         expect(put).toHaveBeenLastCalledWith(
             '/agenda/filters',
-            { months: 1, person_id: null, hidden_areas: [] },
+            { months: 1, person_id: null, hidden_areas: [], calendar: false },
             expect.objectContaining({
                 preserveState: true,
                 preserveScroll: true,
@@ -100,6 +106,7 @@ describe('useAgendaFilters', () => {
             months: 6,
             person_id: 2,
             hidden_areas: ['work', 'home'],
+            calendar: false,
         });
 
         reset();
@@ -141,6 +148,7 @@ describe('useAgendaFilters', () => {
             months: 3,
             person_id: null,
             hidden_areas: ['work'],
+            calendar: false,
         });
         expect(get).not.toHaveBeenCalled();
 
@@ -171,6 +179,7 @@ describe('useAgendaFilters', () => {
             months: 3,
             person_id: null,
             hidden_areas: ['work'],
+            calendar: false,
         });
     });
 });

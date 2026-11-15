@@ -14,6 +14,14 @@ readonly photo: string | null,
 readonly is_last_admin: boolean,
 readonly family: string,
 };
+export type AgendaCalendarData = {
+readonly month: string,
+readonly from: string,
+readonly to: string,
+readonly today: string,
+readonly entries: App.Data.AgendaEntryData[],
+readonly done: App.Data.AgendaEntryData[],
+};
 export type AgendaData = {
 readonly entries: App.Data.AgendaEntryData[],
 readonly months: number,
@@ -51,6 +59,7 @@ export type AgendaFiltersData = {
 readonly months: number,
 readonly person_id: number | null,
 readonly hidden_areas: string[],
+readonly calendar: boolean,
 };
 export type AgendaReminderData = {
 readonly state: App.Enums.AgendaReminderState,
@@ -999,6 +1008,7 @@ export type PersonRole = 'parent' | 'child' | 'other';
 export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance' | 'card';
+export type ReleaseBump = 'major' | 'minor' | 'patch';
 export type ReminderStatus = 'open' | 'done';
 export type Role = 'admin' | 'member';
 export type SearchGroup = 'cards' | 'documents' | 'movements' | 'dues' | 'contacts';

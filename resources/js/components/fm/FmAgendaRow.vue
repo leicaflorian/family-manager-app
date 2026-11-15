@@ -13,7 +13,13 @@
  * (`home`): the dot of the area, the title, below the card with how far it is
  * («Gas - Enel · in 4 days»), or «Late by 3 days · 23/10/2026» in red, and the
  * amount, with «~» if it is an estimate. There the whole row is a link to the
- * entry.
+ * entry. With `checked` (the day list of the calendar) the row is the normal
+ * one, with the title struck through and «✓ Done» in green instead of how far
+ * it is. With `compact` (the day list of the calendar, the boards
+ * *Agenda-calendario* and *Agenda-calendario-pc*) the row is the same at every
+ * width: no day on the left, the icon of the area, the thing, below what
+ * happens with the small circle of the person, and on the right the amount
+ * over how far it is (or «✓ Done» with `checked`).
  *
  * @group rows
  */
@@ -43,6 +49,8 @@ const {
     personAvatar,
     done = false,
     reopen = false,
+    checked = false,
+    compact = false,
 } = defineProps<{
     /** The entry, as the server sends it. */
     entry: App.Data.AgendaEntryData;
@@ -54,6 +62,10 @@ const {
     done?: boolean;
     /** With `done`, on the computer: a *Reopen* button beside the row, for an entry with a reminder. */
     reopen?: boolean;
+    /** Only in the Agenda: the calendar's list of a day, for an entry already done: the title struck through and «✓ Done» where how far it is would be. */
+    checked?: boolean;
+    /** Only in the Agenda: the calendar's list of a day, narrow at every width: no day on the left nor columns for the person and how far it is. */
+    compact?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -119,15 +131,15 @@ const soon = computed((): boolean => {
     return days === 0 || days === 1;
 });
 
-/** The colour of how far it is: a blue label when soon, red once passed. */
+/** The colour of how far it is: a blue label when soon, red once passed; bigger on the computer, but not in a `compact` row. */
 const distanceClass = computed((): string =>
     soon.value
         ? cn(
               'inline-flex h-6 items-center rounded-lg bg-action-soft px-2 text-caption text-action-dark',
           )
         : late.value
-          ? cn('text-caption text-overdue lg:text-label')
-          : cn('text-caption text-ink-soft lg:text-body-sm'),
+          ? cn('text-caption text-overdue', !compact && 'lg:text-label')
+          : cn('text-caption text-ink-soft', !compact && 'lg:text-body-sm'),
 );
 
 /** The first letter of the first name, for the circle of the person. */
@@ -160,6 +172,69 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             />
         </template>
     </FmRow>
+    <button
+        v-else-if="compact"
+        type="button"
+        :class="
+            cn(
+                'flex w-full min-w-0 items-center gap-2.5 border-0 bg-transparent px-3.5 py-3 text-left text-inherit',
+                rowLink,
+            )
+        "
+        @click="emit('open')"
+    >
+        <span
+            class="flex size-8 shrink-0 items-center justify-center rounded-md"
+            :class="areaTile[area]"
+        >
+            <FmIcon :icon="areaIcon(area)" :size="20" />
+        </span>
+        <span class="flex min-w-0 grow flex-col gap-[3px]">
+            <span
+                :class="
+                    cn(
+                        'min-w-0 truncate text-row',
+                        checked && 'text-ink-soft line-through',
+                    )
+                "
+                >{{ entry.name }}</span
+            >
+            <span
+                class="flex min-w-0 items-center gap-1.5 text-meta text-ink-soft"
+            >
+                <span class="truncate">{{ entry.detail }}</span>
+                <template v-if="entry.person">
+                    <FmAvatar
+                        :initials="personAvatar?.initials ?? initial"
+                        :photo="personAvatar?.photo ?? null"
+                        :size="18"
+                        aria-hidden="true"
+                    />
+                    <span class="sr-only">{{ entry.person }}</span>
+                </template>
+            </span>
+        </span>
+        <span class="flex shrink-0 flex-col items-end gap-1">
+            <span
+                v-if="entry.amount !== null && !checked"
+                class="text-row-amount whitespace-nowrap tabular-nums"
+            >
+                <FmAmount
+                    :amount="entry.amount"
+                    :estimated="entry.estimated"
+                    :income="entry.kind === 'income'"
+                />
+            </span>
+            <span
+                v-if="checked"
+                class="text-caption whitespace-nowrap text-paid"
+                >✓ {{ $t('Done') }}</span
+            >
+            <span v-else class="whitespace-nowrap" :class="distanceClass">{{
+                relativeDays(entry.date)
+            }}</span>
+        </span>
+    </button>
     <div v-else class="flex min-w-0 items-center">
         <button
             type="button"
@@ -192,9 +267,15 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             <span
                 class="flex min-w-0 grow flex-wrap items-center gap-x-1.5 gap-y-[3px] lg:gap-y-1"
             >
-                <span class="min-w-0 truncate text-row lg:text-body-strong">{{
-                    entry.name
-                }}</span>
+                <span
+                    :class="
+                        cn(
+                            'min-w-0 truncate text-row lg:text-body-strong',
+                            checked && 'text-ink-soft line-through',
+                        )
+                    "
+                    >{{ entry.name }}</span
+                >
                 <span
                     v-if="hasNotice"
                     role="img"
@@ -247,9 +328,17 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                     v-if="!done"
                     class="order-2 flex lg:order-none lg:w-[104px]"
                 >
-                    <span class="whitespace-nowrap" :class="distanceClass">{{
-                        relativeDays(entry.date)
-                    }}</span>
+                    <span
+                        v-if="checked"
+                        class="text-caption whitespace-nowrap text-paid lg:text-body-sm"
+                        >✓ {{ $t('Done') }}</span
+                    >
+                    <span
+                        v-else
+                        class="whitespace-nowrap"
+                        :class="distanceClass"
+                        >{{ relativeDays(entry.date) }}</span
+                    >
                 </span>
                 <span
                     v-if="!done"

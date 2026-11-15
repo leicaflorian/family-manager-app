@@ -4,6 +4,7 @@ import {
     formatDateTime,
     formatShortDateTime,
     formatEuro,
+    formatDayTitle,
     formatLongDate,
     formatSize,
     isoDate,
@@ -37,6 +38,13 @@ describe('isoDate', () => {
     it('writes the day of a date as the server does, in local time', () => {
         expect(isoDate(new Date(2026, 9, 27, 23, 30))).toBe('2026-10-27');
         expect(isoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+    });
+});
+
+describe('formatDayTitle', () => {
+    it('writes the day with its name and month, without the year', () => {
+        expect(formatDayTitle('2026-11-04', 'it')).toBe('Mercoledì 4 novembre');
+        expect(formatDayTitle('2026-11-04', 'en')).toBe('Wednesday 4 November');
     });
 });
 

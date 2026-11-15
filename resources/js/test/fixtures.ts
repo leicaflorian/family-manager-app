@@ -1556,6 +1556,38 @@ export const agendaAreas: App.Data.OptionData[] = [
     ['general', 'People and documents'],
 ].map(([value, label]) => ({ value, label, help: null }));
 
+/**
+ * The month of the calendar of the Agenda as the server sends it on 26/10/2026
+ * (`AgendaCalendar::month`): November, from the Monday of its first week to the
+ * Sunday of its last one, with the open entries of those days.
+ *
+ * @param change - the fields that differ
+ * @returns the month
+ */
+export function agendaCalendar(
+    change: Partial<App.Data.AgendaCalendarData> = {},
+): App.Data.AgendaCalendarData {
+    return {
+        month: '2026-11',
+        from: '2026-10-26',
+        to: '2026-12-06',
+        today: '2026-10-26',
+        entries: agendaEntries.filter(
+            (entry) => entry.date >= '2026-10-26' && entry.date <= '2026-12-06',
+        ),
+        done: [],
+        ...change,
+    };
+}
+
+/** The calendar address of the Bianchi, on, as the Agenda asks for it (`calendar_link`). */
+export const calendarLink: App.Data.CalendarSettingsData = {
+    on: true,
+    url: 'http://localhost/calendar/k7Qm2xR9pL4vT8sN.ics',
+    can_change: true,
+    hidden: false,
+};
+
 /** The health card of Giulia: a reminder made by the app, late, with no notice left. */
 export const healthCardReminder: App.Data.ReminderData = {
     id: 1,

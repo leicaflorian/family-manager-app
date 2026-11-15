@@ -4,11 +4,15 @@
  * the DOM after each test.
  */
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/vue';
+import { cleanup, configure } from '@testing-library/vue';
 import { config } from '@vue/test-utils';
 import { i18nVue } from 'laravel-vue-i18n';
 import { afterEach, vi } from 'vite-plus/test';
 import { i18nOptions } from '@/lib/i18n';
+
+// findBy… and waitFor wait 3 s, not 1: on the GitHub runner a page that loads another with a dynamic import
+// (EditReminder over the Agenda) took just over a second
+configure({ asyncUtilTimeout: 3000 });
 
 // The Inertia <Head> writes the page title with the manager that
 // createInertiaApp creates: in the tests there is no app, and no title is needed.

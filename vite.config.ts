@@ -87,6 +87,15 @@ export default defineConfig({
         setupFiles: ['resources/js/test/setup.ts'],
         // Docker gets 16 GB but sees every core of the Mac: one worker per core would be too many alongside Pest
         maxWorkers: 8,
+        // FormKit Pro checks its key with a 500 ms timer after a field mounts. When a test file ends sooner, the timer
+        // fires after jsdom is gone and throws "window is not defined", after every test has passed (seen on the
+        // slower GitHub runner). Only that error is ignored.
+        onUnhandledError(error): boolean {
+            return !(
+                error.message === 'window is not defined' &&
+                String(error.stack ?? '').includes('@formkit/pro')
+            );
+        },
     },
     fmt: {
         printWidth: 80,

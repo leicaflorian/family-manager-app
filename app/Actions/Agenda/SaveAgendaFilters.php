@@ -24,6 +24,7 @@ final readonly class SaveAgendaFilters
             'months' => $filters->months,
             'person_id' => $filters->person_id,
             'hidden_areas' => array_values(array_unique($filters->hidden_areas)),
+            'calendar' => $filters->calendar,
         ]])->save();
     }
 }

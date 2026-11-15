@@ -11,7 +11,9 @@
  * *I paid it* (*It arrived*) records it in one tap, and *Open the due date*,
  * never *Done*; a task has *Done*, *Postpone* and the
  * ⋯ menu with *Edit* and *Delete*. In the Done list (`done`) it says who closed
- * it and when, and only *Reopen* is left. *Done*, *Reopen* and *Delete* are
+ * it and when, and only *Reopen* is left; a paid payment (the done things of
+ * the calendar) says *Paid* and keeps *Open the due date*, where the payment
+ * is changed or taken back. *Done*, *Reopen* and *Delete* are
  * done here (*Done* says so for a moment with *Undo*); the others are emitted,
  * for the page. A payment that also pays a deadline carries its reminder, but
  * still has no *Done* nor *Postpone*. The container (a panel from
@@ -128,6 +130,9 @@ const reminder = computed(() => entry.reminder);
 /** The area, `general` if the server sends one this app does not know. */
 const area = computed((): Area => areaOf(entry.area) ?? 'general');
 
+/** A payment already made: the done things of the calendar. */
+const paid = computed((): boolean => done && entry.kind === 'payment');
+
 /** Whether the day is already passed and the entry still open. */
 const late = computed((): boolean => !done && daysFromToday(entry.date) < 0);
 
@@ -173,12 +178,18 @@ const notices = computed((): string => {
         : trans('Notice :dates · to :names', { dates, names: list(names) });
 });
 
-/** The line of the Done list: when it was closed and by whom. */
+/**
+ * The line of the Done list: when it was closed and by whom; a paid payment
+ * says only that it is paid, since its day is the due date, not the day it was
+ * paid.
+ */
 const doneLine = computed((): string =>
-    doneLineOf(
-        reminder.value?.done_on ?? entry.date,
-        reminder.value?.done_by ?? null,
-    ),
+    paid.value
+        ? trans('Paid')
+        : doneLineOf(
+              reminder.value?.done_on ?? entry.date,
+              reminder.value?.done_by ?? null,
+          ),
 );
 
 /**
@@ -266,12 +277,17 @@ function reopenTask(): void {
             <span class="flex items-center gap-2">
                 <FmIcon class="text-ink-soft" :icon="CalendarDays" :size="18" />
                 <span
-                    ><span>{{ date(entry.date) }}</span> ·
-                    <span
-                        :class="
-                            late ? 'text-label text-overdue' : 'text-ink-soft'
-                        "
-                        >{{ distance }}</span
+                    ><span>{{ date(entry.date) }}</span
+                    ><template v-if="!paid">
+                        ·
+                        <span
+                            :class="
+                                late
+                                    ? 'text-label text-overdue'
+                                    : 'text-ink-soft'
+                            "
+                            >{{ distance }}</span
+                        ></template
                     ></span
                 >
             </span>
@@ -331,6 +347,12 @@ function reopenTask(): void {
 
         <div class="mt-1 flex flex-col gap-2.5">
             <template v-if="done">
+                <FmSectionLink
+                    v-if="paid"
+                    :href="withoutPayQuery(entry.href)"
+                    :icon="ArrowRight"
+                    >{{ $t('Open the due date') }}</FmSectionLink
+                >
                 <FmButton
                     v-if="reminder"
                     :icon="RotateCcw"

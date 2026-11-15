@@ -29,12 +29,13 @@ test('the filters are saved in the account', function (): void {
         ->put('/agenda/filters', ['months' => 6, 'person_id' => $laura->id, 'hidden_areas' => ['work', 'general', 'work']])
         ->assertRedirect('/agenda');
 
-    expect($marco->fresh()->agenda_filters)->toBe(['months' => 6, 'person_id' => $laura->id, 'hidden_areas' => ['work', 'general']])
-        ->and(savedFiltersOf($marco->fresh()))->toBe(['months' => 6, 'person_id' => $laura->id, 'hidden_areas' => ['work', 'general']]);
+    // MySQL keeps the keys of a JSON column in its own order
+    expect($marco->fresh()->agenda_filters)->toBe(['months' => 6, 'calendar' => false, 'person_id' => $laura->id, 'hidden_areas' => ['work', 'general']])
+        ->and(savedFiltersOf($marco->fresh()))->toBe(['months' => 6, 'person_id' => $laura->id, 'hidden_areas' => ['work', 'general'], 'calendar' => false]);
 });
 
 test('an account without saved filters gets the defaults', function (): void {
-    expect(savedFiltersOf(registerFamily()))->toBe(['months' => 1, 'person_id' => null, 'hidden_areas' => []]);
+    expect(savedFiltersOf(registerFamily()))->toBe(['months' => 1, 'person_id' => null, 'hidden_areas' => [], 'calendar' => false]);
 });
 
 test('they come back on another device', function (): void {
@@ -45,7 +46,7 @@ test('they come back on another device', function (): void {
     $otherDevice = User::query()->findOrFail($marco->id);
     $agenda = $this->actingAs($otherDevice)->get('/agenda')->assertOk()->viewData('page')['props']['agenda'];
 
-    expect($agenda['filters'])->toBe(['months' => 3, 'person_id' => null, 'hidden_areas' => ['school']])
+    expect($agenda['filters'])->toBe(['months' => 3, 'person_id' => null, 'hidden_areas' => ['school'], 'calendar' => false])
         ->and($agenda['months'])->toBe(3);
 });
 

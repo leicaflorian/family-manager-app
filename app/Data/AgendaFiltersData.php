@@ -19,11 +19,13 @@ final class AgendaFiltersData extends Data
      * @param  int  $months  the period, 1, 3, 6 or 12 months
      * @param  int|null  $person_id  the person whose entries are shown; null for the whole family
      * @param  list<string>  $hidden_areas  the areas turned off, for example `work`
+     * @param  bool  $calendar  whether the view the person chose is the calendar and not the list
      */
     public function __construct(
         public readonly int $months = 1,
         public readonly ?int $person_id = null,
         public readonly array $hidden_areas = [],
+        public readonly bool $calendar = false,
     ) {}
 
     /**
@@ -45,6 +47,7 @@ final class AgendaFiltersData extends Data
             $saved['months'],
             $personId !== null && Person::query()->whereKey($personId)->exists() ? $personId : null,
             $saved['hidden_areas'],
+            $saved['calendar'] ?? false,
         );
     }
 }

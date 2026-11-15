@@ -155,7 +155,35 @@ export function isoDate(date: Date = new Date()): string {
  * @returns for example «Lunedì 26 ottobre 2026»
  */
 export function formatLongDate(date: string | Date, locale: string): string {
-    const text = format(toDate(date), 'dddd D MMMM YYYY', locale);
+    return dayWithName(date, 'dddd D MMMM YYYY', locale);
+}
+
+/**
+ * Writes a day with its name and month but no year, as the title of a day of
+ * the calendar of the *Agenda*.
+ *
+ * @param date - a date of the server or a `Date`
+ * @param locale - the language of the page, `it` or `en`
+ * @returns for example «Mercoledì 4 novembre»
+ */
+export function formatDayTitle(date: string | Date, locale: string): string {
+    return dayWithName(date, 'dddd D MMMM', locale);
+}
+
+/**
+ * Writes a date with a pattern that starts with the name of the day, with a capital.
+ *
+ * @param date - a date of the server or a `Date`
+ * @param pattern - the pattern of `@formkit/tempo`
+ * @param locale - the language of the page
+ * @returns the date written, starting with a capital
+ */
+function dayWithName(
+    date: string | Date,
+    pattern: string,
+    locale: string,
+): string {
+    const text = format(toDate(date), pattern, locale);
 
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
