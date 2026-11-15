@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * The short messages that confirm what was just done («Saved», «Done», «Thanks»)
- * or say it did not work: dark with light text in both themes (the colors of
- * the dark theme, a `.dark` of their own), so they stand out on any page, and
+ * or say it did not work: in the colors of the other theme (`.theme-inverse`
+ * of `tokens.css`), dark on the light theme and light on the dark one, so they
+ * stand out on any page (on the dark theme the background is `card`, white), and
  * gone by themselves after a few seconds. The icon tells the kind of message
  * with its color, and an action («Undo») is a small blue button on the right. The layout holds one, and the pages send
  * the messages with `toast()` of `vue-sonner`.
@@ -48,7 +49,7 @@ const toastOptions: ToasterProps['toastOptions'] = {
     unstyled: true,
     classes: {
         toast: cn(
-            'dark flex w-full items-center gap-3 rounded-lg border border-edge-soft bg-segment px-4 py-3.5 text-ink shadow-menu',
+            'theme-inverse flex w-full items-center gap-3 rounded-lg border border-edge-soft bg-segment px-4 py-3.5 text-ink shadow-menu dark:bg-card',
         ),
         content: cn('min-w-0 flex-1'),
         title: cn('text-body-sm'),

@@ -155,7 +155,8 @@ function checkTextStyleNames(tokens: DesignTokens): void {
 
 /**
  * Builds `tokens.css`: raw colours and shadow values for the light theme in `:root`
- * and for the dark one in `.dark`, Tailwind's names for them in `@theme inline`,
+ * and for the dark one in `.dark`, the other theme's values in `.theme-inverse`
+ * (for what stands out on the page, like the toasts), Tailwind's names for them in `@theme inline`,
  * and text styles, font, radii and sizes in `@theme`. The output follows the
  * order of the tokens and ends with one newline.
  *
@@ -214,6 +215,12 @@ export function buildTokensCss(tokens: DesignTokens): string {
             NOTICE,
             block(':root', [...colors('light'), ...shadows('light')]),
             block('.dark', [...colors('dark'), ...shadows('dark')]),
+            // After .dark: an element of its own wins over the theme of the page
+            block('.theme-inverse', [...colors('dark'), ...shadows('dark')]),
+            block('.dark .theme-inverse', [
+                ...colors('light'),
+                ...shadows('light'),
+            ]),
             block('@theme inline', [...inline, ...inlineShadows]),
             block('@theme', [...fonts, ...texts, ...radii, ...sizes]),
         ].join('\n\n') + '\n'

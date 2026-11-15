@@ -20,18 +20,21 @@ describe('FmToaster', () => {
         toast.dismiss();
     });
 
-    it('shows a message dark with light text in both themes, so it stands out on the page', async () => {
+    it('shows a message in the colors of the other theme, so it stands out on the page', async () => {
         render(FmToaster);
 
         toast.success('Thanks, we will answer by email.');
 
         await screen.findByText('Thanks, we will answer by email.');
-        expect(toastOf('Thanks, we will answer by email.')).toHaveClass(
-            'dark',
+        const box = toastOf('Thanks, we will answer by email.');
+        expect(box).toHaveClass(
+            'theme-inverse',
             'bg-segment',
+            'dark:bg-card',
             'text-ink',
             'shadow-menu',
         );
+        expect(box).not.toHaveClass('dark');
     });
 
     it('colors the icon with the kind of message', async () => {
