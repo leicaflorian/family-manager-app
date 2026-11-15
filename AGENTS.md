@@ -104,7 +104,7 @@ Dopo ogni task, prima del commit: test PHP e Vitest verdi, PHPStan senza errori,
 - Lo starter kit usa Vite+ (`vp`): build, lint (Oxlint), formattazione (Oxfmt) e test (Vitest) sono suoi, configurati in `vite.config.ts`.
 - npm: nel container di Sail c'è npm 11. npm 10.8 si fermava installando FormKit (`Cannot read properties of null (reading 'edgesOut')`): se serve npm fuori da Sail si usa `npx npm@11 install`.
 - La copia da Directus legge il Directus locale con la connessione `directus`, che apre ogni sessione in sola lettura: i dati di Directus sono quelli veri della famiglia del proprietario, e non se ne stampano i valori. Il suo test usa un Directus finto, `tests/Fixtures/directus.sql`, caricato nel database `testing_directus` della MySQL di Sail (l'utente di Sail può creare solo database che cominciano con `testing`).
-- In locale l'app è su http://localhost:8090 e MySQL su `localhost:3308`, perché la 80 e la 3306 del Mac sono già occupate da altri progetti (`APP_PORT` e `FORWARD_DB_PORT` nel `.env`). Mailpit è su http://localhost:8025.
+- In locale l'app è su http://localhost:8090 e MySQL su `localhost:3308`, perché la 80 e la 3306 del Mac sono già occupate da altri progetti (`APP_PORT` e `FORWARD_DB_PORT` nel `.env`). Mailpit è su http://localhost:8026 (`FORWARD_MAILPIT_DASHBOARD_PORT`), perché la 8025 la tiene il mailserver di un altro progetto.
 
 ## Pubblicazione
 
