@@ -1,0 +1,28 @@
+[
+    {
+        "version": "2.0.0",
+        "date": "2026-11-15",
+        "notes": {
+            "it": [
+                "Ecco la nuova Fameja.app: documenti, schede, spese e scadenze della famiglia in un posto solo.",
+                "Carichi un documento e l'app lo legge da sola, poi ti propone cosa fare: spesa, pagamento, scheda.",
+                "L'Agenda mette insieme scadenze, pagamenti e cose da fare, con promemoria e avvisi nella campanella.",
+                "Cerchi qualsiasi cosa dalla barra di ricerca: documenti, schede, spese, persone ed enti.",
+                "Ogni famiglia ha un indirizzo email per le bollette: gli allegati arrivano in Da smistare.",
+                "Con il telefono scansioni un foglio, lo ritagli e lo raddrizzi, e lo mandi all'app.",
+                "Puoi scegliere il tema chiaro, scuro o automatico, e vedere il calendario della famiglia nel tuo telefono.",
+                "Dal menu puoi segnalare un problema o un'idea, e leggere le novità di ogni versione."
+            ],
+            "en": [
+                "Meet the new Fameja.app: your family's documents, cards, expenses and deadlines in one place.",
+                "Upload a document and the app reads it for you, then suggests what to do: an expense, a payment, a card.",
+                "The Agenda puts deadlines, payments and things to do together, with reminders and notices in the bell.",
+                "Search for anything from the search bar: documents, cards, expenses, people and organizations.",
+                "Each family has an email address for bills: attachments arrive in To sort.",
+                "With your phone you scan a sheet, crop and straighten it, and send it to the app.",
+                "Choose the light, dark or automatic theme, and see the family calendar on your phone.",
+                "From the menu you can report a problem or an idea, and read what's new in each version."
+            ]
+        }
+    }
+]
