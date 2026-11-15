@@ -73,6 +73,7 @@ return [
             'endpoint' => env('BACKUP_S3_ENDPOINT'),
             'root' => env('BACKUP_S3_ROOT', 'family-manager-app/files'),
             'use_path_style_endpoint' => false,
+            'visibility' => 'private',
             'throw' => true,
             'report' => false,
         ],
