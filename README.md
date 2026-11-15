@@ -122,6 +122,8 @@ Colours, text styles, radii, shadows and sizes come from the "Family Manager" de
 
 The version is the one in the `VERSION` file. To release, run `./release` from the main checkout, on a clean `dev` equal to `origin/dev`, on the Mac (it needs `claude`, `jq`, Sail running and `ssh family-manager-prod`). It merges `dev` into `main`, asks Claude for the `CHANGELOG.md` entry and the simple notes of `resources/release/notes.json`, lets you confirm the version number, dumps the production database on the droplet if there are new migrations, then commits, tags and pushes `main` with the tag. GitHub Actions runs the checks on the tag, creates the GitHub Release and deploys on Coolify. If the checks fail nothing is released: fix and release a patch.
 
+Before the first release, check that `ssh family-manager-prod` works (it logs in as root, the dump goes to `/root/backups/…`) and that `family_manager_app` exists on the droplet: on the first release every migration counts as new, so the dump runs. If `dev` added Composer packages, run `composer install` in Sail first, otherwise artisan fails at step 5 (the rollback is safe). `./release` refuses to run from a worktree.
+
 ## Cards
 
 The cards of a family (home, utilities, vehicles, insurance policies, loans and the others) are described in `app/Cards/`: one class per type in `app/Cards/Types/`, listed in `CardTypes`, with its area, fields, conditions and dates. Rules, saving, rows and the form of the pages all come from that description, so a new field of a card is added there (and in the migration, if the column is new), with its case in `tests/Unit/Cards/CardTypesTest.php`.

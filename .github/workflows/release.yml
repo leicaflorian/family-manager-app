@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# Two tags pushed together are handled one after the other, never cancelled halfway
+# The group is per tag ref: different tags run in parallel; only a re-push of the same tag waits for the first run, never cancelling it halfway
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false

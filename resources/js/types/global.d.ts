@@ -58,7 +58,7 @@ declare module 'vue' {
     }
 }
 
-/** The build of the app (`SOURCE_COMMIT`, or `dev`), written by Vite (`define`). */
+/** The version of the app (the content of the `VERSION` file), written by Vite (`define`). */
 declare global {
     const __APP_BUILD__: string;
 }
