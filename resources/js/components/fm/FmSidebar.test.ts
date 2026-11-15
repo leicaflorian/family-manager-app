@@ -124,6 +124,23 @@ describe('FmSidebar', () => {
         ).toBeInTheDocument();
     });
 
+    it('has Report a problem or an idea between Settings and Log out, and asks to open it', async () => {
+        const view = bar('home');
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Marco Bianchi/ }),
+        );
+        expect(
+            screen.getAllByRole('menuitem').map((item) => item.textContent?.trim()),
+        ).toEqual(['Settings', 'Report a problem or an idea', 'Log out']);
+
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'Report a problem or an idea' }),
+        );
+
+        expect(view.emitted('report')).toHaveLength(1);
+    });
+
     it('lists every area with its active cards under Areas', () => {
         bar('areas', '/areas');
 

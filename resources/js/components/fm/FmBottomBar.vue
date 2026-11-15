@@ -4,7 +4,8 @@
  * the middle, Areas and More. The + opens the panel *Add*: To sort (only when
  * files wait, with their number), then Upload a file, Scan a sheet, New expense
  * and New task. More opens a panel with Agenda, Documents, Family,
- * Settings and Log out, and stays marked when one of those pages is open.
+ * Settings, *Report a problem or an idea* (it closes More and emits `report`:
+ * the layout opens the panel) and Log out, and stays marked when one of those pages is open.
  *
  * The + (60 px, `fab` shadow) is the only round button of the app and
  * lives only here: it is not a `FmButton`, which is rectangular and goes in the page.
@@ -37,7 +38,18 @@ const {
 /** The number on the +: «99+» above 99. */
 const uploadBadge = computed(() => countBadge(uploadCount));
 
+const emit = defineEmits<{
+    /** *Report a problem or an idea* was chosen in More: the layout opens its panel. */
+    report: [];
+}>();
+
 const moreOpen = ref(false);
+
+/** Closes More and asks for the panel of the report, so two panels never stack. */
+function report(): void {
+    moreOpen.value = false;
+    emit('report');
+}
 
 /** The panel *Add* of the +. */
 const addOpen = ref(false);
@@ -198,6 +210,15 @@ function itemClasses(marked: boolean): string {
                 <template #before>
                     <FmIcon
                         :icon="item.icon"
+                        :size="22"
+                        class="text-ink-soft"
+                    />
+                </template>
+            </FmRow>
+            <FmRow :title="items.feedback.label" button @click="report">
+                <template #before>
+                    <FmIcon
+                        :icon="items.feedback.icon"
                         :size="22"
                         class="text-ink-soft"
                     />

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/vue';
+import { render, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import FmBottomBar from './FmBottomBar.vue';
@@ -117,6 +117,29 @@ describe('FmBottomBar', () => {
         expect(
             screen.getByRole('button', { name: 'Log out' }),
         ).toBeInTheDocument();
+    });
+
+    it('has Report a problem or an idea after Settings in More: it closes More and asks to open the panel', async () => {
+        const view = bar('home');
+
+        await userEvent.click(screen.getByRole('button', { name: 'More' }));
+        const sheet = screen.getByRole('dialog', { name: 'More' });
+        expect(sheet.textContent).toMatch(
+            /Settings.*Report a problem or an idea.*Log out/,
+        );
+
+        await userEvent.click(
+            within(sheet).getByRole('button', {
+                name: 'Report a problem or an idea',
+            }),
+        );
+
+        expect(view.emitted('report')).toHaveLength(1);
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'More' }),
+            ).not.toBeInTheDocument(),
+        );
     });
 
     it('has Received mail in More, after Documents and before Family, with its line', async () => {

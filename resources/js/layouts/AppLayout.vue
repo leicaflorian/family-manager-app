@@ -13,7 +13,9 @@
  * visit of the owner (*Enter as…*) a strip at the top says whose eyes the app
  * is seen with, and *Leave* ends the visit. The height of the sticky top (the
  * strip and the top bar) is in `--app-header`, for what the pages keep sticky
- * or fixed under it.
+ * or fixed under it. *Report a problem or an idea*, chosen in the account menu
+ * of the sidebar or in More of the phone, opens one panel kept here (the menu
+ * of the tablet closes first).
  */
 import { router, usePage } from '@inertiajs/vue3';
 import { useElementSize } from '@vueuse/core';
@@ -27,6 +29,7 @@ import {
 import { computed, provide, ref, useTemplateRef, watch } from 'vue';
 import FmBottomBar from '@/components/fm/FmBottomBar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
+import FmFeedbackSheet from '@/components/fm/FmFeedbackSheet.vue';
 import FmSidebar from '@/components/fm/FmSidebar.vue';
 import FmTopBar from '@/components/fm/FmTopBar.vue';
 import type { Section } from '@/components/fm/navigation';
@@ -93,6 +96,15 @@ const query = computed((): string =>
 
 /** The menu of the tablet is open. */
 const menuOpen = ref(false);
+
+/** The panel *Report a problem or an idea* is open. */
+const feedbackOpen = ref(false);
+
+/** Opens the panel of the report, closing the menu of the tablet first, so two panels never stack. */
+function openFeedback(): void {
+    menuOpen.value = false;
+    feedbackOpen.value = true;
+}
 
 // A visit closes the menu, so it never covers the new page (also a visit to the open page)
 useLeavePage(() => {
@@ -170,6 +182,7 @@ useSearchShortcut(focusSearch);
             :family="family"
             :user="user"
             :upload-count="toSort"
+            @report="openFeedback"
         />
         <div class="flex min-w-0 grow flex-col">
             <div ref="header" class="sticky top-0 z-30">
@@ -215,6 +228,7 @@ useSearchShortcut(focusSearch);
                     :active="active"
                     :items="items"
                     :upload-count="toSort"
+                    @report="openFeedback"
                 />
             </div>
         </div>
@@ -242,10 +256,12 @@ useSearchShortcut(focusSearch);
                         :family="family"
                         :user="user"
                         :upload-count="toSort"
+                        @report="openFeedback"
                     />
                 </DialogContent>
             </DialogPortal>
         </DialogRoot>
+        <FmFeedbackSheet v-model:open="feedbackOpen" />
         <Toaster />
         <LeaveGuard />
     </div>

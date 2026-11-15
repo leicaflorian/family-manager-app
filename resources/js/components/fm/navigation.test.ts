@@ -1,3 +1,4 @@
+import { MessageSquareWarning } from '@lucide/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { navigationItems, sectionOf } from './navigation';
 
@@ -90,6 +91,15 @@ describe('sectionOf', () => {
         expect(items.sections[4]).toMatchObject({
             label: 'Budget',
             href: '/budget',
+        });
+    });
+});
+
+describe('navigationItems', () => {
+    it('has the item that opens Report a problem or an idea, without an address', () => {
+        expect(navigationItems().feedback).toEqual({
+            label: 'Report a problem or an idea',
+            icon: MessageSquareWarning,
         });
     });
 });
