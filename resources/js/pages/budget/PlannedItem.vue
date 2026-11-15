@@ -26,13 +26,12 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
-import type { RowTone } from '@/components/fm/FmRow.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useFormat } from '@/composables/useFormat';
 import {
     capitalized,
-    deadlineStatus,
+    deadlineStanding,
     deadlineUrls,
     recurrenceText,
     skippedMonthsText,
@@ -144,38 +143,6 @@ function changeException(exception: App.Data.ExceptionData): void {
 }
 
 /**
- * Says where a due date stands in the list: paid, late, or changed by an exception.
- *
- * @param deadline - the due date
- * @returns the text, or null if nothing is worth saying, and the colour it takes
- */
-function standing(deadline: App.Data.DeadlineData): {
-    text: string | null;
-    tone: RowTone;
-} {
-    if (deadline.payment !== null || deadline.late) {
-        return {
-            text: deadlineStatus(deadline),
-            tone: deadline.late ? 'overdue' : 'paid',
-        };
-    }
-
-    const notes = deadline.notes;
-    const text =
-        deadline.base_amount !== null
-            ? notes
-                ? trans('Different amount: :notes', { notes })
-                : trans('Different amount')
-            : deadline.date !== deadline.original_date
-              ? notes
-                  ? trans('Different date: :notes', { notes })
-                  : trans('Different date')
-              : null;
-
-    return { text, tone: text === null ? 'normal' : 'warning' };
-}
-
-/**
  * Says what an exception changes.
  *
  * @param exception - the exception
@@ -256,8 +223,10 @@ const exceptionIcons = {
                     >
                         <FmRow
                             :title="date(deadline.date)"
-                            :subtitle="standing(deadline).text ?? undefined"
-                            :tone="standing(deadline).tone"
+                            :subtitle="
+                                deadlineStanding(deadline).text ?? undefined
+                            "
+                            :tone="deadlineStanding(deadline).tone"
                             :button="
                                 detail.can_edit && deadline.payment === null
                             "

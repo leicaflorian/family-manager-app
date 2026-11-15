@@ -69,7 +69,7 @@ afterEach(() => {
 });
 
 describe('A due date', () => {
-    it('writes the trail Budget > Planned expenses > planned expense > due date into the top bar', () => {
+    it('writes the trail Budget > Planned expenses > planned expense > date of the due date into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(Deadline, props, provide);
 
@@ -77,7 +77,7 @@ describe('A due date', () => {
             { label: 'Budget', href: '/budget' },
             { label: 'Planned expenses', href: '/budget/planned' },
             { label: 'Assicurazione auto', href: '/budget/planned/expense/6' },
-            { label: 'Rata RC auto' },
+            { label: '21/11/2026' },
         ]);
     });
 
@@ -85,7 +85,10 @@ describe('A due date', () => {
         renderPage(Deadline, props);
 
         expect(
-            screen.getByRole('heading', { name: 'Rata RC auto', level: 1 }),
+            screen.getByRole('heading', {
+                name: 'Rata RC auto · 21/11/2026',
+                level: 1,
+            }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('link', { name: 'RC auto Panda - UnipolSai' }),
@@ -105,6 +108,26 @@ describe('A due date', () => {
             'href',
             '/budget/planned/expense/6/occurrences/2027-11-21',
         );
+    });
+
+    it('leads to its planned expense, or planned income', () => {
+        renderPage(Deadline, props);
+        expect(
+            screen.getByRole('link', { name: 'Go to the planned expense' }),
+        ).toHaveAttribute('href', '/budget/planned/expense/6');
+        expect(
+            screen.getByRole('link', { name: 'Go to the planned expense' }),
+        ).toHaveClass('text-action');
+    });
+
+    it('writes the rows of the list as the planned expense does: the date as the title, no title repeated', () => {
+        renderPage(Deadline, props);
+
+        const list = screen.getByRole('region', { name: 'Due dates' });
+        expect(
+            within(list).queryByText('Rata RC auto'),
+        ).not.toBeInTheDocument();
+        expect(within(list).getByText('21/11/2027')).toBeInTheDocument();
     });
 
     it('lists the due dates with the one on the page marked, so the others lead back and forth', () => {

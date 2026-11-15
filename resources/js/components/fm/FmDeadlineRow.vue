@@ -2,12 +2,16 @@
 /**
  * A due date in a list: the dot of the area, the title, the card it belongs to
  * with its date, year included (red when late), and on the right the amount.
- * It leads to *A due date*; `current` marks the due date of the page.
+ * It leads to *A due date*; `current` marks the due date of the page. `dated`
+ * writes it as the lists of one planned item do (*A planned expense*, *A due
+ * date*): the date as the title, where it stands below, no area and no title,
+ * since every row has the same.
  *
  * @group rows
  */
 import { computed } from 'vue';
 import type { Area } from '@/lib/areas';
+import { deadlineStanding } from '@/lib/budget';
 import { formatDate } from '@/lib/format';
 import { trans } from 'laravel-vue-i18n';
 import FmAmount from './FmAmount.vue';
@@ -17,6 +21,7 @@ const {
     deadline,
     href,
     current = false,
+    dated = false,
 } = defineProps<{
     /** The due date. */
     deadline: App.Data.DeadlineData;
@@ -24,7 +29,12 @@ const {
     href: string;
     /** It is the due date of the page: the row is highlighted. */
     current?: boolean;
+    /** In the list of one planned item: the date as the title, where it stands below. */
+    dated?: boolean;
 }>();
+
+/** Where it stands, for a `dated` row: paid, late, changed, or nothing. */
+const standing = computed(() => deadlineStanding(deadline));
 
 /** The second line: whose it is, then the date with the year, with «late» if it is. */
 const subtitle = computed(() =>
@@ -44,11 +54,11 @@ const subtitle = computed(() =>
 
 <template>
     <FmRow
-        :title="deadline.title"
-        :subtitle="subtitle"
+        :title="dated ? formatDate(deadline.date) : deadline.title"
+        :subtitle="dated ? (standing.text ?? undefined) : subtitle"
         :href="href"
-        :area="deadline.card?.area as Area | undefined"
-        :tone="deadline.late ? 'overdue' : 'normal'"
+        :area="dated ? undefined : (deadline.card?.area as Area | undefined)"
+        :tone="dated ? standing.tone : deadline.late ? 'overdue' : 'normal'"
         :arrow="false"
         :current="current"
     >
