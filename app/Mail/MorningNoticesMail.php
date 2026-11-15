@@ -75,6 +75,7 @@ final class MorningNoticesMail extends Mailable
                 // Due today or already late: written in red, as on the board
                 'late' => $this->day($item->dueOn)->lessThanOrEqualTo($today),
                 'url' => $item->url,
+                'area' => $item->area,
             ], $this->items),
         ]);
     }

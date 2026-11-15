@@ -203,3 +203,47 @@ a {
     line-height: 1.45;
     margin: 0 0 4px;
 }
+
+.icon {
+    margin: 0 0 20px;
+}
+
+.icon-round {
+    border-radius: 24px;
+}
+
+.icon-square {
+    border-radius: 12px;
+}
+
+.icon img {
+    border: 0;
+    display: block;
+}
+
+.faces {
+    margin: 0 0 20px;
+}
+
+.face {
+    border: 3px solid #ffffff;
+    border-radius: 25px;
+    color: #ffffff;
+    display: inline-block;
+    font-size: 16px;
+    font-weight: 800;
+    height: 44px;
+    line-height: 44px;
+    text-align: center;
+    width: 44px;
+}
+
+.notice-icon {
+    border-bottom: 1px solid #eef1f5;
+    padding: 14px 14px 14px 0;
+    width: 40px;
+}
+
+.notice-icon .icon {
+    margin: 0;
+}

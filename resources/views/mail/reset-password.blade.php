@@ -1,4 +1,6 @@
 <x-mail::message>
+<x-mail.icon name="key" />
+
 # {{ $name !== '' ? __('Hi :name', ['name' => $name]) : __('Hello!') }}
 
 {{ __('You asked to change your Family Manager password. Tap the button to choose a new one.') }}

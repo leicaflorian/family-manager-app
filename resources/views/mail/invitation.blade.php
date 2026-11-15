@@ -1,4 +1,8 @@
 <x-mail::message :why="__('We are writing to you because :inviter added your email to their family.', ['inviter' => $inviter])">
+@if ($initials !== [])
+<x-mail.faces :initials="$initials" />
+@endif
+
 # {{ __('Hello!') }}
 
 {{ __(':inviter invited you to Family Manager, where the family keeps everyone\'s due dates, bills and documents.', ['inviter' => $inviter]) }}

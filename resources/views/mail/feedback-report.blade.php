@@ -1,4 +1,6 @@
 <x-mail::message :why="__('You get this email because you look after Family Manager. You also find it in the panel, under Reports.')">
+<x-mail.icon name="alert" />
+
 # {{ $report->kind->label() }}
 
 {{ __(':name (:email), :family family, wrote on :date:', ['name' => $sender, 'email' => $senderEmail, 'family' => $family, 'date' => $sentAt]) }}

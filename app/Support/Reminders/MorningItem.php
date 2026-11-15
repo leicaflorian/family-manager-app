@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Reminders;
 
+use App\Data\AgendaData;
+
 /**
  * One notice of the morning email, with raw values: the mail words it in the language of the account when it is
  * rendered, which may be later than when it was queued.
@@ -17,6 +19,7 @@ final readonly class MorningItem
      * @param  string|null  $subject  the name of the thing the reminder refers to
      * @param  string  $dueOn  the due date, `aaaa-mm-gg`
      * @param  string  $url  the page of the thing, or of the reminders
+     * @param  string  $area  the area of the thing, for its icon (`general` without one)
      */
     public function __construct(
         public string $title,
@@ -25,5 +28,6 @@ final readonly class MorningItem
         public ?string $subject,
         public string $dueOn,
         public string $url,
+        public string $area = AgendaData::GENERAL_AREA,
     ) {}
 }

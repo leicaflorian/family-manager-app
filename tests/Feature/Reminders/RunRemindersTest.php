@@ -51,7 +51,7 @@ test('the morning of 25/11/2026', function (): void {
         ->and(ReminderNotice::query()->first()->due_date->toDateString())->toBe('2027-01-09')
         ->and(ReminderNotice::query()->first()->offset)->toBe(-45);
     Mail::assertQueued(MorningNoticesMail::class, 2);
-    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com') && count($mail->items) === 1 && $mail->items[0]->subject === 'Panda');
+    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com') && count($mail->items) === 1 && $mail->items[0]->subject === 'Panda' && $mail->items[0]->area === 'vehicles');
     Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('laura@example.com'));
 });
 

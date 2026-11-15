@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Models\Invitation;
+use App\Models\Person;
+use App\Support\CurrentFamily;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -42,6 +44,8 @@ final class InvitationMail extends Mailable
     {
         return new Content(markdown: 'mail.invitation', with: [
             'inviter' => $this->inviter(),
+            // Nobody is signed in to the family when the queue sends it, so the people are read inside it
+            'initials' => CurrentFamily::using($this->invitation->family_id, fn (): array => Person::query()->orderBy('id')->limit(5)->pluck('initials')->all()),
             'link' => route('invitation.show', $this->invitation->token),
             'expiresOn' => $this->invitation->expires_at->translatedFormat(__('d/m/Y')),
         ]);

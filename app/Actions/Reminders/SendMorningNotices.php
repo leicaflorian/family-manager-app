@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Reminders;
 
+use App\Cards\CardTypes;
 use App\Cards\DeadlineSource;
 use App\Cards\DeadlineSources;
+use App\Data\AgendaData;
 use App\Mail\MorningNoticesMail;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
@@ -134,6 +136,7 @@ final class SendMorningNotices
             $subject instanceof Model ? SubjectLink::name($subject) : null,
             $reminder->due_date->toDateString(),
             $this->url($reminder, $subject),
+            CardTypes::find($reminder->link->remindable_type ?? '')?->area()->value ?? AgendaData::GENERAL_AREA,
         );
     }
 

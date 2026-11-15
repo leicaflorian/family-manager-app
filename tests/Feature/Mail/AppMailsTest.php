@@ -8,6 +8,7 @@ use App\Models\Invitation;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentFamily;
+use App\Support\MailIcons;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -124,4 +125,38 @@ test('the mail says hello with the first name of the person tied to the account'
 
     expect($user->firstName())->toBe('Lalla')
         ->and(notificationHtml(new ResetPassword('the-token')->toMail($user)))->toContain('Hi Lalla');
+});
+
+test('the mails about the account and the report have their icon', function (): void {
+    $user = User::factory()->for(Family::factory())->create(['name' => 'Marco Bianchi']);
+
+    expect(notificationHtml(new ResetPassword('the-token')->toMail($user)))->toContain(asset('mail/icons/key.png'))
+        ->and(notificationHtml(new VerifyEmail()->toMail($user)))->toContain(asset('mail/icons/mail.png'));
+});
+
+test('every icon of the mails has its picture, drawn at twice its size', function (): void {
+    $icons = MailIcons::all();
+
+    expect($icons)->not->toBeEmpty();
+    foreach (array_keys($icons) as $name) {
+        $size = getimagesize(public_path('mail/icons/'.$name.'.png'));
+        expect($size)->not->toBeFalse()
+            ->and([$size[0] ?? 0, $size[1] ?? 0])->toBe([48, 48]);
+    }
+});
+
+test('the invitation shows the circles of the people of the family, one slightly over the other', function (): void {
+    $family = Family::factory()->create(['name' => 'Bianchi']);
+    $marco = User::factory()->for($family)->admin()->create(['name' => 'Marco Bianchi']);
+    CurrentFamily::using($family->id, function () use ($family): void {
+        Person::factory()->for($family)->create(['first_name' => 'Marco', 'last_name' => 'Bianchi', 'initials' => 'MB']);
+        Person::factory()->for($family)->create(['first_name' => 'Laura', 'last_name' => 'Bianchi', 'initials' => 'LB']);
+    });
+    $invitation = Invitation::factory()->for($family)->create(['created_by' => $marco->id]);
+
+    new InvitationMail($invitation)
+        ->assertSeeInHtml('>MB<', false)
+        ->assertSeeInHtml('>LB<', false)
+        ->assertSeeInHtml('background-color: #0070e0', false)
+        ->assertSeeInHtml('background-color: #1b7f5f; margin-left: -10px', false);
 });

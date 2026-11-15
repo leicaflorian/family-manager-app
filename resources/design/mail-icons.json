@@ -1,0 +1,15 @@
+{
+    "key": { "lucide": "key-round", "color": "action", "tile": "action-soft" },
+    "mail": { "lucide": "mail", "color": "paid", "tile": "paid-soft" },
+    "alert": { "lucide": "triangle-alert", "color": "warning", "tile": "warning-soft" },
+    "home": { "lucide": "house", "color": "home-text", "tile": "home-soft" },
+    "vehicles": { "lucide": "car", "color": "vehicles-text", "tile": "vehicles-soft" },
+    "insurance": { "lucide": "shield", "color": "insurance-text", "tile": "insurance-soft" },
+    "banks": { "lucide": "landmark", "color": "banks-text", "tile": "banks-soft" },
+    "health": { "lucide": "heart-pulse", "color": "health-text", "tile": "health-soft" },
+    "school": { "lucide": "graduation-cap", "color": "school-text", "tile": "school-soft" },
+    "work": { "lucide": "briefcase", "color": "work-text", "tile": "work-soft" },
+    "subscriptions": { "lucide": "repeat", "color": "subscriptions-text", "tile": "subscriptions-soft" },
+    "paperwork": { "lucide": "clipboard-list", "color": "paperwork-text", "tile": "paperwork-soft" },
+    "general": { "lucide": "file-text", "color": "general-text", "tile": "general-soft" }
+}
