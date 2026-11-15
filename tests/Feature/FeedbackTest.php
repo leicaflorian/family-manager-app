@@ -8,7 +8,9 @@ use App\Models\FeedbackReport;
 use App\Models\Owner;
 use App\Models\ServerError;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -214,4 +216,30 @@ test('a screenshot that is not an image is refused', function (): void {
     ]))->assertSessionHasErrors('screenshot');
 
     expect(allReports())->toBe([]);
+});
+
+test('a pixel ratio that overflows is dropped and the report is still saved', function (): void {
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields([
+        'diagnostics' => '{"viewport":{"dpr":1e400,"width":390}}',
+    ]))->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->diagnostics['viewport']['dpr'])->toBeNull()
+        ->and($report->diagnostics['viewport']['width'])->toBe(390);
+});
+
+test('a failure while copying the server errors does not lose the report', function (): void {
+    DB::listen(function (QueryExecuted $query): void {
+        // Only the read of the error rows: the insert of the report also names the column.
+        if (str_starts_with($query->sql, 'select') && str_contains($query->sql, 'from `server_errors`')) {
+            throw new RuntimeException('server errors are down');
+        }
+    });
+
+    $this->actingAs($this->member)->post(route('feedback.store'), reportFields())->assertSessionHasNoErrors();
+
+    $report = allReports()[0];
+    expect($report->message)->toBe("L'importo letto è sbagliato.")
+        ->and($report->server_errors)->toBeNull();
+    Mail::assertQueued(FeedbackReportMail::class);
 });

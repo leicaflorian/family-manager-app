@@ -16,6 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Saves a report for the owner, keeps its file apart from the family's files and emails it to every owner account.
@@ -54,7 +55,7 @@ final readonly class SubmitFeedback
      * @param  User  $sender  who sends it
      * @param  UploadedFile|null  $screenshot  the picture of the page, if any
      * @param  array<mixed>|null  $diagnostics  the details of the browser, if any
-     * @return array{screenshot_path?: string, screenshot_size?: int|null, diagnostics: array<string, mixed>|null, server_errors: list<array<string, mixed>>}
+     * @return array{screenshot_path?: string, screenshot_size?: int|null, diagnostics: array<string, mixed>|null, server_errors: list<array<string, mixed>>|null}
      */
     private function technicalPart(User $sender, ?UploadedFile $screenshot, ?array $diagnostics): array
     {
@@ -63,11 +64,22 @@ final readonly class SubmitFeedback
         // The ids of the requests the page saw fail also bring older errors of the same account.
         $requestIds = $details === null ? [] : array_values(array_filter(array_column($details['requests'], 'request_id')));
 
-        return [
-            ...$this->storeScreenshot($sender, $screenshot),
-            'diagnostics' => $details,
-            'server_errors' => array_values(ServerError::forReport($sender->id, now(), $requestIds)->map(fn (ServerError $error): array => $error->toReportArray())->all()),
-        ];
+        // The technical part helps the owner but never costs the person their message: a failure is reported and skipped.
+        try {
+            $stored = $this->storeScreenshot($sender, $screenshot);
+        } catch (Throwable $e) {
+            report($e);
+            $stored = [];
+        }
+
+        try {
+            $serverErrors = array_values(ServerError::forReport($sender->id, now(), $requestIds)->map(fn (ServerError $error): array => $error->toReportArray())->all());
+        } catch (Throwable $e) {
+            report($e);
+            $serverErrors = null;
+        }
+
+        return [...$stored, 'diagnostics' => $details, 'server_errors' => $serverErrors];
     }
 
     /**

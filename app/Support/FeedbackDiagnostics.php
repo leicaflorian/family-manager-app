@@ -45,7 +45,7 @@ final class FeedbackDiagnostics
             'viewport' => [
                 'width' => self::int($viewport['width'] ?? null),
                 'height' => self::int($viewport['height'] ?? null),
-                'dpr' => is_int($viewport['dpr'] ?? null) || is_float($viewport['dpr'] ?? null) ? (float) $viewport['dpr'] : null,
+                'dpr' => self::ratio($viewport['dpr'] ?? null),
                 'orientation' => self::text($viewport['orientation'] ?? null, 30),
             ],
             'phone' => self::bool($input['phone'] ?? null),
@@ -157,6 +157,20 @@ final class FeedbackDiagnostics
     private static function int(mixed $value): ?int
     {
         return is_int($value) ? $value : null;
+    }
+
+    /**
+     * A pixel ratio: a finite number above 0 up to 10 (JSON such as 1e400 decodes to infinity, which cannot be saved).
+     */
+    private static function ratio(mixed $value): ?float
+    {
+        if (! is_int($value) && ! is_float($value)) {
+            return null;
+        }
+
+        $ratio = (float) $value;
+
+        return is_finite($ratio) && $ratio > 0 && $ratio <= 10 ? $ratio : null;
     }
 
     /**

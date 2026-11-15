@@ -37,3 +37,13 @@ test('unknown keys are dropped and wrong types become null', function (): void {
         ->and($result['console'][0]['level'])->toBe('warn')
         ->and($result['phone'])->toBeNull();
 });
+
+test('a pixel ratio that is infinite or out of range becomes null', function (float|int|string $dpr, ?float $expected): void {
+    expect(FeedbackDiagnostics::normalize(['viewport' => ['dpr' => $dpr]], 'v1')['viewport']['dpr'])->toBe($expected);
+})->with([
+    'infinite' => [INF, null],
+    'zero' => [0, null],
+    'too big' => [11, null],
+    'text' => ['2', null],
+    'normal' => [2.5, 2.5],
+]);
