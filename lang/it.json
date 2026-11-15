@@ -1948,5 +1948,15 @@
     "Whoever manages the family can turn it on in Settings.": "Chi gestisce la famiglia lo può accendere nelle Impostazioni.",
     "Change the address or turn off the calendar in Settings": "Cambia l'indirizzo o spegni il calendario nelle Impostazioni",
     "{0} :date|{1} :date, 1 thing|[2,*] :date, :count things": "{0} :date|{1} :date, 1 cosa|[2,*] :date, :count cose",
-    "{1} +:count more|[2,*] +:count more": "{1} +:count altra|[2,*] +:count altre"
+    "{1} +:count more|[2,*] +:count more": "{1} +:count altra|[2,*] +:count altre",
+    "List": "Lista",
+    "How to see the Agenda": "Come vedere l'agenda",
+    "Connect a calendar": "Collega a un calendario",
+    "Today": "Oggi",
+    "Month before": "Mese prima",
+    "Month after": "Mese dopo",
+    "Nothing on this day.": "Niente in questo giorno.",
+    "{1} :count to do|[2,*] :count to do": "{1} :count da fare|[2,*] :count da fare",
+    "{1} :count done|[2,*] :count done": "{1} :count fatta|[2,*] :count fatte",
+    "Reminders and deadlines in the calendar of your phone or computer. They update by themselves.": "Promemoria e scadenze nel calendario del telefono o del computer. Si aggiornano da soli."
 }

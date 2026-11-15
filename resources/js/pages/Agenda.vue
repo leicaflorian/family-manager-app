@@ -15,17 +15,27 @@
  * the date*, *Renewed* and *I paid it* open their own panels. The server sends
  * the entries of the period and the done ones of the person; the person and
  * the areas filter in the page.
+ * Two icons beside *New task* switch between the list and the calendar
+ * (`AgendaCalendar`, the boards *Agenda-calendario* and
+ * *Agenda-calendario-pc*): the month as a grid and the things of a day, with
+ * the late line and the filters of the person and the areas but no period nor
+ * *To do* and *Done*; its rows open the same panels, and *Connect a calendar*
+ * opens `AgendaCalendarLinkPanel`.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
+    CalendarDays,
     CalendarRange,
     ChevronDown,
     CircleAlert,
     CircleCheck,
+    List,
     Plus,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, shallowRef, watch } from 'vue';
+import AgendaCalendar from '@/components/agenda/AgendaCalendar.vue';
+import AgendaCalendarLinkPanel from '@/components/agenda/AgendaCalendarLinkPanel.vue';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
 import FmAgendaPanel from '@/components/fm/FmAgendaPanel.vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
@@ -62,6 +72,8 @@ const {
     payment = null,
     accounts = [],
     embedded = false,
+    calendar = null,
+    calendar_link = null,
 } = defineProps<{
     /** The entries of the period with the filters saved, the people and the areas. */
     agenda: App.Data.AgendaData;
@@ -75,12 +87,40 @@ const {
     accounts?: App.Data.OptionData[];
     /** The Agenda is shown behind the task form, which has the head of the page. */
     embedded?: boolean;
+    /** The month of the calendar view, with its entries (only in that view). */
+    calendar?: App.Data.AgendaCalendarData | null;
+    /** The calendar address, sent only when *Connect a calendar* asks for it. */
+    calendar_link?: App.Data.CalendarSettingsData | null;
 }>();
 
 const desktop = useComputerLayout();
 
 /** The Done view is open. */
 const doneView = computed(() => agenda.view === 'done');
+
+/** The month of the calendar view, or null in the list. */
+const month = computed((): App.Data.AgendaCalendarData | null =>
+    agenda.view === 'calendar' ? calendar : null,
+);
+
+/** The two ways to see the Agenda, as icons beside *New task*. */
+const ways = computed((): Tab[] => [
+    {
+        label: trans('List'),
+        icon: List,
+        href: agendaRoute({ query: { view: 'todo' } }).url,
+        current: month.value === null,
+    },
+    {
+        label: trans('Calendar'),
+        icon: CalendarDays,
+        href: agendaRoute({ query: { view: 'calendar' } }).url,
+        current: month.value !== null,
+    },
+]);
+
+/** The panel *Connect a calendar* is open. */
+const linkOpen = ref(false);
 
 const { filters, toggleArea, choosePerson, chooseMonths, reset } =
     useAgendaFilters(agenda.filters);
@@ -115,8 +155,27 @@ const tabs = computed((): Tab[] => [
     },
 ]);
 
-/** The entries of the view open, before the filters of the page. */
-const listed = computed(() => (doneView.value ? done : agenda.entries));
+/** The entries of the view open, before the filters of the page: in the calendar the open and done ones of the month. */
+const listed = computed((): App.Data.AgendaEntryData[] => {
+    if (month.value !== null) {
+        return [...month.value.entries, ...month.value.done];
+    }
+
+    return doneView.value ? done : agenda.entries;
+});
+
+/**
+ * Whether an entry is already done: every one of the Done view, the done ones of the month in the calendar.
+ *
+ * @param entry - the entry
+ * @returns true for a done entry
+ */
+function isDone(entry: App.Data.AgendaEntryData): boolean {
+    return (
+        doneView.value ||
+        (month.value?.done.some((closed) => closed.key === entry.key) ?? false)
+    );
+}
 
 /** The entries for the person and the areas chosen. */
 const shown = computed(() => visibleEntries(listed.value, filters.value));
@@ -291,7 +350,7 @@ function postpone(entry: App.Data.AgendaEntryData): void {
  */
 function isOpenPayment(entry: App.Data.AgendaEntryData): boolean {
     return (
-        !doneView.value && (entry.kind === 'payment' || entry.kind === 'income')
+        !isDone(entry) && (entry.kind === 'payment' || entry.kind === 'income')
     );
 }
 
@@ -369,7 +428,7 @@ const payAction = computed((): string =>
     <Head v-if="!embedded" :title="$t('Agenda')" />
 
     <FmTitle :title="$t('Agenda')">
-        <template #beside>
+        <template v-if="month === null" #beside>
             <FmTabs
                 variant="pill"
                 class="w-full sm:w-[260px]"
@@ -378,6 +437,11 @@ const payAction = computed((): string =>
             />
         </template>
         <template #actions>
+            <FmTabs
+                variant="pill"
+                :label="$t('How to see the Agenda')"
+                :tabs="ways"
+            />
             <FmButton
                 v-if="desktop"
                 variant="neutral"
@@ -404,7 +468,7 @@ const payAction = computed((): string =>
             :people="agenda.people"
             :areas="agenda.areas"
             :family-hidden="agenda.family_hidden"
-            :periods="doneView ? [] : agenda.periods"
+            :periods="doneView || month ? [] : agenda.periods"
             :counts="counts"
             :shown="shown.length"
             @months="chooseMonths"
@@ -435,7 +499,7 @@ const payAction = computed((): string =>
             :people="agenda.people"
             :areas="agenda.areas"
             :family-hidden="agenda.family_hidden"
-            :periods="doneView ? [] : agenda.periods"
+            :periods="doneView || month ? [] : agenda.periods"
             :counts="counts"
             :shown="shown.length"
             @months="chooseMonths"
@@ -444,7 +508,16 @@ const payAction = computed((): string =>
             @reset="reset"
         />
 
-        <template v-if="nothingListed">
+        <AgendaCalendar
+            v-if="month"
+            :calendar="month"
+            :filters="filters"
+            :person-avatar="avatarOf"
+            @open="openPanel"
+            @link="linkOpen = true"
+        />
+
+        <template v-else-if="nothingListed">
             <FmEmpty
                 v-if="doneView"
                 :icon="CircleCheck"
@@ -541,7 +614,7 @@ const payAction = computed((): string =>
                 <div class="bg-card p-6">
                     <FmAgendaPanel
                         :entry="panelEntry"
-                        :done="doneView"
+                        :done="isDone(panelEntry)"
                         :area-name="areaNames.get(panelEntry.area)"
                         :person-avatar="avatarOf(panelEntry)"
                         @postpone="postpone(panelEntry)"
@@ -565,7 +638,7 @@ const payAction = computed((): string =>
             >
                 <FmAgendaPanel
                     :entry="panelEntry"
-                    :done="doneView"
+                    :done="isDone(panelEntry)"
                     :area-name="areaNames.get(panelEntry.area)"
                     :person-avatar="avatarOf(panelEntry)"
                     @postpone="postpone(panelEntry)"
@@ -591,6 +664,11 @@ const payAction = computed((): string =>
             v-if="postponing"
             v-model:open="postponeOpen"
             :reminder="postponing"
+        />
+        <AgendaCalendarLinkPanel
+            v-if="month"
+            v-model:open="linkOpen"
+            :calendar="calendar_link"
         />
     </div>
 </template>
