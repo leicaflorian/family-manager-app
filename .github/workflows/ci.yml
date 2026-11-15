@@ -36,8 +36,9 @@ jobs:
           --health-retries=10
 
     env:
-      # The FormKit Pro key. Pull requests from forks get no secrets, so a placeholder is used: the build still
-      # succeeds (checked locally) and gives the Vite manifest that some Pest tests need. This build is never deployed.
+      # The FormKit Pro key (repository secret). Vitest needs the real one: FormKit Pro checks it when the tests load
+      # it (InvalidFormKitKey). Pull requests from forks get no secrets: with the placeholder the build and Pest still
+      # pass, Vitest does not. This build is never deployed.
       VITE_FORMKIT_PRO_KEY: ${{ secrets.VITE_FORMKIT_PRO_KEY || 'ci-placeholder-key' }}
       DB_CONNECTION: mysql
       DB_HOST: 127.0.0.1
@@ -69,10 +70,11 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      # The Node of Sail, where the tests are written (on 22 the Blob of jsdom has no stream() for Response)
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '22'
+          node-version: '24'
 
       # PDF and HEIC previews (`FilePreviews`) use these tools, like Sail and the production image
       - name: Install system packages
