@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+# Releases Family Manager from dev: merges dev into main, asks Claude for the changelog, the notes
+# and the bump, lets the owner confirm with `php artisan app:release`, dumps the production database
+# when there are new migrations, then commits, tags and pushes main and brings dev up to date.
+# Anything that fails before the push puts main, the tags and the branch back as they were.
+#
+# Usage: ./release   (from dev, clean tree, Sail running)
+# Overrides (for tests): RELEASE_CLAUDE, RELEASE_ARTISAN, RELEASE_SSH, RELEASE_REMOTE.
+# Runs on the bash 3.2 of macOS.
+set -euo pipefail
+
+DEFAULT_ARTISAN="./vendor/bin/sail artisan"
+CLAUDE_CMD=${RELEASE_CLAUDE:-claude}
+ARTISAN_CMD=${RELEASE_ARTISAN:-$DEFAULT_ARTISAN}
+SSH_CMD=${RELEASE_SSH:-ssh family-manager-prod}
+REMOTE=${RELEASE_REMOTE:-origin}
+read -r -a ARTISAN <<< "$ARTISAN_CMD"
+read -r -a SSH <<< "$SSH_CMD"
+
+HANDOFF=storage/app/release
+RELEASE_FILES=(VERSION CHANGELOG.md resources/release/notes.json)
+MYSQL_CONTAINER=xwdxjjleppacin2ses4d93xe
+
+# What the cleanup has to undo: nothing / main touched / pushed.
+STAGE=none
+TAG=""
+TAG_CREATED=0
+WORK=""
+
+step() { printf '==> %s\n' "$*"; }
+fail() {
+    printf 'Stopped: %s\n' "$*" >&2
+    exit 1
+}
+
+# On any failure before the push, puts main back to the remote, removes the tag and returns to dev.
+# After the push, only says what is left to do by hand.
+cleanup() {
+    local status=$?
+    [ -n "$WORK" ] && rm -rf "$WORK"
+    [ "$status" -eq 0 ] && return 0
+    case "$STAGE" in
+        main)
+            printf 'Restoring: main back to %s/main, back on dev.\n' "$REMOTE" >&2
+            git rev-parse -q --verify MERGE_HEAD > /dev/null && git merge --abort || true
+            git checkout -q -f main || true
+            git reset -q --hard "$REMOTE/main" || true
+            # The release files are new on a first release: reset leaves them untracked.
+            local file
+            for file in "${RELEASE_FILES[@]}"; do
+                git ls-files --error-unmatch "$file" > /dev/null 2>&1 || rm -f "$file"
+            done
+            [ "$TAG_CREATED" -eq 1 ] && git tag -d "$TAG" > /dev/null || true
+            git checkout -q dev || true
+            ;;
+        pushed)
+            printf 'main and %s are pushed. Finish by hand:\n  git checkout dev && git merge --ff-only main && git push %s dev\n' \
+                "$TAG" "$REMOTE" >&2
+            ;;
+    esac
+    return "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+# The command run on the droplet: dumps family_manager_app from the MySQL container, gzips it and
+# prints the file path, only when the dump is complete. @FILE@ is replaced with the backup name.
+# The password is expanded by the shell inside the container, never on the Mac or the droplet.
+remote_dump_command() {
+    cat <<'EOF'
+set -e
+file='@FILE@'
+mkdir -p "$(dirname "$file")"
+container=$(docker ps -q --filter name=@CONTAINER@ | head -n 1)
+[ -n "$container" ] || { echo "MySQL container not found" >&2; exit 1; }
+docker exec "$container" sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --no-tablespaces family_manager_app' | gzip > "$file"
+gunzip -c "$file" | tail -n 1 | grep -q '^-- Dump completed' || { echo "The dump is not complete: $file" >&2; exit 1; }
+echo "$file"
+EOF
+}
+
+# 1. Checks.
+step "Checking the repository"
+rm -f "$HANDOFF/response.json" "$HANDOFF/version" "$HANDOFF/tag-message.md"
+[ "$(git symbolic-ref --short -q HEAD || true)" = dev ] || fail "run it from the dev branch."
+[ -z "$(git status --porcelain)" ] || fail "there are uncommitted changes."
+git fetch -q --tags "$REMOTE" || fail "git fetch $REMOTE failed."
+[ "$(git rev-parse dev)" = "$(git rev-parse "$REMOTE/dev")" ] || fail "dev is not equal to $REMOTE/dev (pull or push first)."
+[ "$(git rev-parse main)" = "$(git rev-parse "$REMOTE/main")" ] || fail "main is not equal to $REMOTE/main."
+command -v "$CLAUDE_CMD" > /dev/null || fail "$CLAUDE_CMD is not in the PATH."
+command -v jq > /dev/null || fail "jq is not installed."
+if [ "$ARTISAN_CMD" = "$DEFAULT_ARTISAN" ]; then
+    ./vendor/bin/sail ps --status running --services 2> /dev/null | grep -qx laravel.test || fail "Sail is not running (./vendor/bin/sail up -d)."
+fi
+
+LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' main 2> /dev/null || true)
+if [ -n "$LAST_TAG" ] && [ -z "$(git rev-list --no-merges "$LAST_TAG..dev")" ]; then
+    echo "Nothing to release since $LAST_TAG."
+    exit 0
+fi
+
+# 2. Merge dev into main.
+step "Merging dev into main"
+STAGE=main
+git checkout -q main
+git merge -q --no-ff -m "Merge branch 'dev' for release" dev > /dev/null 2>&1 || fail "merging dev into main gives a conflict (resolve it on dev first)."
+
+# 3. Context for Claude.
+WORK=$(mktemp -d "${TMPDIR:-/tmp}/release.XXXXXX")
+if [ -n "$LAST_TAG" ]; then
+    step "Collecting the changes since $LAST_TAG"
+    MIGRATIONS=$(git diff --name-only --diff-filter=A "$LAST_TAG..HEAD" -- database/migrations)
+    {
+        echo "Last release: $LAST_TAG"
+        echo
+        echo "## Commits"
+        git log --no-merges --format='%h %s%n%b' "$LAST_TAG..HEAD"
+        echo "## Diff stat"
+        git diff --stat "$LAST_TAG..HEAD"
+    } > "$WORK/context"
+else
+    step "Collecting the changes (first release)"
+    MIGRATIONS=$(git ls-files -- database/migrations)
+    {
+        echo "First release: there is no previous tag."
+        echo
+        echo "## Commits"
+        git log --no-merges --format='%h %s' HEAD
+    } > "$WORK/context"
+fi
+{
+    echo
+    echo "## New migrations"
+    if [ -n "$MIGRATIONS" ]; then echo "$MIGRATIONS"; else echo "(none)"; fi
+} >> "$WORK/context"
+
+# 4. Claude's answer.
+step "Asking Claude for the changelog and the notes"
+if ! "$CLAUDE_CMD" -p "$(cat resources/release/prompt.md)" --model sonnet --output-format json \
+    --json-schema "$(cat resources/release/response.schema.json)" \
+    --allowedTools "Read" "Grep" "Glob" "Bash(git log:*)" "Bash(git show:*)" "Bash(git diff:*)" \
+    < "$WORK/context" > "$WORK/claude.json"; then
+    fail "the claude CLI failed."
+fi
+jq -e 'type == "object"' "$WORK/claude.json" > /dev/null 2>&1 || fail "Claude's output is not JSON."
+if [ "$(jq -r '.is_error' "$WORK/claude.json")" != false ]; then
+    fail "Claude answered with an error: $(jq -r '.result // .subtype // "unknown"' "$WORK/claude.json")"
+fi
+jq -e '.structured_output | type == "object"' "$WORK/claude.json" > /dev/null || fail "Claude's answer has no structured_output."
+mkdir -p "$HANDOFF"
+jq '.structured_output' "$WORK/claude.json" > "$HANDOFF/response.json"
+
+# 5. The owner confirms (interactive: stdin stays the terminal).
+step "Confirming the release"
+if ! "${ARTISAN[@]}" app:release "$HANDOFF/response.json"; then
+    fail "the release was cancelled or the answer is not valid."
+fi
+VERSION=$(cat "$HANDOFF/version" 2> /dev/null || true)
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "$HANDOFF/version does not hold a version."
+[ -s "$HANDOFF/tag-message.md" ] || fail "$HANDOFF/tag-message.md is missing."
+TAG="v$VERSION"
+! git rev-parse -q --verify "refs/tags/$TAG" > /dev/null || fail "the tag $TAG already exists."
+
+# 6. Commit and tag.
+step "Committing and tagging $TAG"
+git add "${RELEASE_FILES[@]}"
+git commit -q -m "Release $TAG"
+# verbatim: the changelog headings start with "#", which git strips as comments by default.
+git tag -a "$TAG" --cleanup=verbatim -F "$HANDOFF/tag-message.md"
+TAG_CREATED=1
+
+# 7. Dump of the production database before the push, which deploys and migrates.
+if [ -n "$MIGRATIONS" ]; then
+    step "New migrations: dumping the production database"
+    FILE="/root/backups/family-manager-app/before-$TAG-$(date +%Y-%m-%d-%H%M).sql.gz"
+    COMMAND=$(remote_dump_command)
+    COMMAND=${COMMAND//@FILE@/$FILE}
+    COMMAND=${COMMAND//@CONTAINER@/$MYSQL_CONTAINER}
+    DUMPED=$("${SSH[@]}" "$COMMAND") || fail "the database dump failed: nothing pushed."
+    [ "$(printf '%s' "$DUMPED" | tail -n 1)" = "$FILE" ] || fail "the database dump did not confirm the file: nothing pushed."
+    step "Dump saved on the droplet: $FILE"
+fi
+
+# 8. Push main with the tag, then bring dev up to date.
+step "Pushing main and $TAG"
+git push -q "$REMOTE" main --follow-tags
+STAGE=pushed
+step "Bringing dev up to date"
+git checkout -q dev
+git merge -q --ff-only main
+git push -q "$REMOTE" dev
+STAGE=finished
+step "Released $TAG"
