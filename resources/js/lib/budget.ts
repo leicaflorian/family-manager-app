@@ -118,6 +118,43 @@ export function comparisonComment(
     return parts.join(' · ');
 }
 
+/** The colour of a due date in a list, as `FmRow` takes it. */
+export type DeadlineTone = 'normal' | 'overdue' | 'warning' | 'paid';
+
+/**
+ * Says where a due date stands in a list of due dates: paid, late, or changed
+ * by an exception; nothing for an open one that falls as the rules say.
+ *
+ * @param deadline - the due date
+ * @param today - the moment taken as now, the clock if missing
+ * @returns the text, or null if nothing is worth saying, and the colour it takes
+ */
+export function deadlineStanding(
+    deadline: App.Data.DeadlineData,
+    today: Date = new Date(),
+): { text: string | null; tone: DeadlineTone } {
+    if (deadline.payment !== null || deadline.late) {
+        return {
+            text: deadlineStatus(deadline, today),
+            tone: deadline.late ? 'overdue' : 'paid',
+        };
+    }
+
+    const notes = deadline.notes;
+    const text =
+        deadline.base_amount !== null
+            ? notes
+                ? trans('Different amount: :notes', { notes })
+                : trans('Different amount')
+            : deadline.date !== deadline.original_date
+              ? notes
+                  ? trans('Different date: :notes', { notes })
+                  : trans('Different date')
+              : null;
+
+    return { text, tone: text === null ? 'normal' : 'warning' };
+}
+
 /**
  * Says where a due date stands: skipped, when it falls, how late it is, or when it was paid.
  *

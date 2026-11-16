@@ -4,10 +4,13 @@
  * planned expense. Three choices, more than one at a time: it is skipped
  * (which turns the other two off), it has another amount, it has another
  * date; and a note. It sends them to `action` as the server reads them.
+ * With `canPay` an open due date also offers *I paid it* (*It arrived* for an
+ * income): the panel closes and asks for the payment panel with `pay`.
  *
  * @group panels
  */
 import { router } from '@inertiajs/vue3';
+import { Check } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
@@ -17,22 +20,41 @@ import FmAmount from './FmAmount.vue';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
 
-const { deadline, action } = defineProps<{
+const {
+    deadline,
+    action,
+    canPay = false,
+} = defineProps<{
     /** The due date to change. */
     deadline: App.Data.DeadlineData;
     /** Where the changes are sent (PUT). */
     action: string;
+    /** Whoever looks can pay it here too: *I paid it* beside *Save*. */
+    canPay?: boolean;
 }>();
 
 const emit = defineEmits<{
     /** The panel was closed, by giving up or after the changes were saved. */
     close: [];
+    /** *I paid it* was tapped: the page opens the payment panel of the due date. */
+    pay: [];
 }>();
 
 /** The panel is open. */
 const open = defineModel<boolean>('open', { default: false });
 
 const { euro, date } = useFormat();
+
+/** *I paid it* is offered: allowed, and the due date is neither paid nor skipped. */
+const payable = computed(
+    () => canPay && deadline.payment === null && !deadline.skipped,
+);
+
+/** Closes the panel, dropping the changes as *Cancel* does, and asks for the payment. */
+function pay(): void {
+    open.value = false;
+    emit('pay');
+}
 
 /**
  * The choices a due date already has: skipped, an amount other than the planned
@@ -214,7 +236,19 @@ function save(): void {
                     )
                 }}
             </p>
-            <div class="flex justify-end gap-2.5">
+            <div class="flex flex-wrap items-center justify-end gap-2.5">
+                <FmButton
+                    v-if="payable"
+                    class="mr-auto"
+                    variant="outline"
+                    :icon="Check"
+                    @click="pay"
+                    >{{
+                        deadline.kind === 'income'
+                            ? $t('It arrived')
+                            : $t('I paid it')
+                    }}</FmButton
+                >
                 <FmButton variant="text" @click="open = false">{{
                     $t('Cancel')
                 }}</FmButton>

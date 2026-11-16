@@ -22,17 +22,17 @@ import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
+import FmPaySheet from '@/components/fm/FmPaySheet.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
-import type { RowTone } from '@/components/fm/FmRow.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useFormat } from '@/composables/useFormat';
 import {
     capitalized,
-    deadlineStatus,
+    deadlineStanding,
     deadlineUrls,
     recurrenceText,
     skippedMonthsText,
@@ -122,6 +122,22 @@ const changing = ref<App.Data.DeadlineData | null>(null);
 /** The panel is open. */
 const changingOpen = ref(false);
 
+/** The due date whose payment panel is open, if there is one. */
+const paying = ref<App.Data.DeadlineData | null>(null);
+
+/** The payment panel is open. */
+const payingOpen = ref(false);
+
+/**
+ * Opens the payment panel of a due date, asked from *Change this due date*.
+ *
+ * @param deadline - the due date to pay
+ */
+function pay(deadline: App.Data.DeadlineData): void {
+    paying.value = deadline;
+    payingOpen.value = true;
+}
+
 /**
  * Opens the panel *Change this due date* for a due date.
  *
@@ -141,38 +157,6 @@ function changeException(exception: App.Data.ExceptionData): void {
     if (exception.deadline !== null) {
         change(exception.deadline);
     }
-}
-
-/**
- * Says where a due date stands in the list: paid, late, or changed by an exception.
- *
- * @param deadline - the due date
- * @returns the text, or null if nothing is worth saying, and the colour it takes
- */
-function standing(deadline: App.Data.DeadlineData): {
-    text: string | null;
-    tone: RowTone;
-} {
-    if (deadline.payment !== null || deadline.late) {
-        return {
-            text: deadlineStatus(deadline),
-            tone: deadline.late ? 'overdue' : 'paid',
-        };
-    }
-
-    const notes = deadline.notes;
-    const text =
-        deadline.base_amount !== null
-            ? notes
-                ? trans('Different amount: :notes', { notes })
-                : trans('Different amount')
-            : deadline.date !== deadline.original_date
-              ? notes
-                  ? trans('Different date: :notes', { notes })
-                  : trans('Different date')
-              : null;
-
-    return { text, tone: text === null ? 'normal' : 'warning' };
 }
 
 /**
@@ -256,8 +240,10 @@ const exceptionIcons = {
                     >
                         <FmRow
                             :title="date(deadline.date)"
-                            :subtitle="standing(deadline).text ?? undefined"
-                            :tone="standing(deadline).tone"
+                            :subtitle="
+                                deadlineStanding(deadline).text ?? undefined
+                            "
+                            :tone="deadlineStanding(deadline).tone"
                             :button="
                                 detail.can_edit && deadline.payment === null
                             "
@@ -374,7 +360,18 @@ const exceptionIcons = {
             v-model:open="changingOpen"
             :deadline="changing"
             :action="deadlineUrls(changing).exceptions"
+            :can-pay="detail.can_pay"
+            @pay="pay(changing)"
             @close="changing = null"
+        />
+        <FmPaySheet
+            v-if="detail.can_pay && paying"
+            :key="`pay-${paying.original_date}`"
+            v-model:open="payingOpen"
+            :deadline="paying"
+            :accounts="accounts"
+            :action="deadlineUrls(paying).payment"
+            @close="paying = null"
         />
     </div>
 </template>

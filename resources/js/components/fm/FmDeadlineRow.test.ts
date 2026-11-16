@@ -45,6 +45,24 @@ describe('FmDeadlineRow', () => {
         );
     });
 
+    it('dated: the date is the title and where it stands below, without the title or the area', () => {
+        const { container } = render(FmDeadlineRow, {
+            props: {
+                deadline: { ...lateDeadline, card: danceDeadline.card },
+                href: '/x',
+                dated: true,
+            },
+        });
+
+        const link = screen.getByRole('link');
+        expect(link).toHaveTextContent('23/10/2026');
+        expect(screen.getByText(/^Overdue by \d+ days$/)).toHaveClass(
+            'text-overdue',
+        );
+        expect(link).not.toHaveTextContent(lateDeadline.title);
+        expect(container.querySelector('[data-dot]')).toBeNull();
+    });
+
     it('writes an income with a plus', () => {
         render(FmDeadlineRow, {
             props: { deadline: salaryDeadline, href: '/x' },

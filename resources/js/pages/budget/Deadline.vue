@@ -1,10 +1,12 @@
 <script setup lang="ts">
 /**
- * *A due date*: the card it belongs to, the title, the amount and where it
+ * *A due date*: the card it belongs to, the title with the date (so it is told
+ * apart from its planned item, linked below it), the amount and where it
  * stands (when it falls and with which account, or when and how it was paid),
  * with *I paid it* (*It arrived* for an income) and *Change this due date*,
  * which open their panels, and below the due dates of the same planned
- * expense or income, from the first one still to pay, with this one marked. A paid due date has no buttons, and its line leads to the
+ * expense or income, from the first one still to pay, with this one marked,
+ * written as the planned item writes them (date first). A paid due date has no buttons, and its line leads to the
  * movement that paid it. A skipped one says so and has only *Change this due
  * date*, to bring it back. With `pay` the panel of
  * the payment is already open, as *Record payment* opens it.
@@ -24,6 +26,7 @@ import FmPaySheet from '@/components/fm/FmPaySheet.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useFormat } from '@/composables/useFormat';
 import { deadlineStatus, deadlineUrls } from '@/lib/budget';
+import { formatDate } from '@/lib/format';
 import { budget, dashboard } from '@/routes';
 import {
     index as plannedIndex,
@@ -98,14 +101,24 @@ const back = computed(() =>
           },
 );
 
+/** The heading: the title and the date it falls on, so the page says which month it is. */
+const heading = computed(
+    () => `${deadline.title} · ${formatDate(deadline.date)}`,
+);
+
+/** The page of the planned expense or income the due date belongs to. */
+const plannedHref = computed(() =>
+    showPlanned.url({ kind: deadline.kind, id: deadline.planned_id }),
+);
+
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
     { label: trans('Planned expenses'), href: plannedIndex().url },
     {
         label: deadline.planned_title,
-        href: showPlanned.url({ kind: deadline.kind, id: deadline.planned_id }),
+        href: plannedHref.value,
     },
-    { label: deadline.title },
+    { label: formatDate(deadline.date) },
 ]);
 
 /** The address of the card of the due date, if it has one. */
@@ -141,7 +154,7 @@ const status = computed(() => {
 </script>
 
 <template>
-    <Head :title="deadline.title" />
+    <Head :title="heading" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmBackLink :href="back.href" :label="back.label" />
@@ -157,8 +170,17 @@ const status = computed(() => {
                     >{{ deadline.card.label }}</Link
                 >
                 <h1 class="m-0 text-title-mobile">
-                    {{ deadline.title }}
+                    {{ heading }}
                 </h1>
+                <Link
+                    :href="plannedHref"
+                    class="text-label text-action no-underline hover:text-action-dark"
+                    >{{
+                        income
+                            ? $t('Go to the planned income')
+                            : $t('Go to the planned expense')
+                    }}</Link
+                >
                 <span class="text-display whitespace-nowrap">
                     <FmAmount
                         :amount="deadline.amount"
@@ -213,6 +235,7 @@ const status = computed(() => {
                 :deadline="one"
                 :href="deadlineUrls(one).show"
                 :current="one.original_date === deadline.original_date"
+                dated
             />
         </FmCard>
 

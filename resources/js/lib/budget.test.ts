@@ -10,6 +10,7 @@ import {
 } from '@/test/fixtures';
 import {
     comparisonComment,
+    deadlineStanding,
     deadlineStatus,
     deadlineUrls,
     monthName,
@@ -163,6 +164,45 @@ describe('deadlineStatus', () => {
                 today,
             ),
         ).toBe('Scade il 21/11/2026 · tra 26 giorni');
+    });
+});
+
+describe('deadlineStanding', () => {
+    it('says where a due date stands in a list: late, paid, changed, or nothing', () => {
+        expect(deadlineStanding(lateDeadline, today)).toEqual({
+            text: 'Overdue by 3 days',
+            tone: 'overdue',
+        });
+        expect(deadlineStanding(paidDeadline, today)).toEqual({
+            text: 'Paid on 20/10',
+            tone: 'paid',
+        });
+        expect(
+            deadlineStanding(
+                { ...danceDeadline, base_amount: 60, notes: 'one lesson more' },
+                today,
+            ),
+        ).toEqual({
+            text: 'Different amount: one lesson more',
+            tone: 'warning',
+        });
+        expect(
+            deadlineStanding(
+                {
+                    ...danceDeadline,
+                    base_amount: null,
+                    notes: null,
+                    date: '2026-12-07',
+                },
+                today,
+            ),
+        ).toEqual({ text: 'Different date', tone: 'warning' });
+        expect(
+            deadlineStanding(
+                { ...danceDeadline, base_amount: null, notes: null },
+                today,
+            ),
+        ).toEqual({ text: null, tone: 'normal' });
     });
 });
 

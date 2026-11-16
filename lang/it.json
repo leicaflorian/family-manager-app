@@ -1982,5 +1982,7 @@
     "The policy stays active until this date, and the renewal reminder is marked done.": "La polizza resta attiva fino a questa data, e il promemoria del rinnovo si segna fatto.",
     "This policy cannot be renewed here.": "Questa polizza non si può rinnovare qui.",
     "Cancel the policy :name": "Disdici la polizza :name",
-    "Expires on :date. Its planned expense moves to the new one.": "Scade il :date. La sua spesa fissa passa alla nuova."
+    "Expires on :date. Its planned expense moves to the new one.": "Scade il :date. La sua spesa fissa passa alla nuova.",
+    "Go to the planned expense": "Vai alla spesa fissa",
+    "Go to the planned income": "Vai all'entrata fissa"
 }
