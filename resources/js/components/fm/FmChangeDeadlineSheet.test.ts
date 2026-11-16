@@ -18,6 +18,52 @@ afterEach(() => {
 });
 
 describe('FmChangeDeadlineSheet', () => {
+    it('offers I paid it when the due date can be paid, and closes asking for the payment', async () => {
+        const sheet = renderPage(FmChangeDeadlineSheet, {
+            ...props,
+            canPay: true,
+        });
+        await screen.findByRole('dialog');
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'I paid it' }),
+        );
+
+        expect(sheet.emitted()).toHaveProperty('pay');
+        expect(sheet.emitted()['update:open']).toEqual([[false]]);
+    });
+
+    it('says It arrived for an income', async () => {
+        renderPage(FmChangeDeadlineSheet, {
+            ...props,
+            deadline: { ...props.deadline, kind: 'income' },
+            canPay: true,
+        });
+
+        expect(
+            await screen.findByRole('button', { name: 'It arrived' }),
+        ).toBeInTheDocument();
+    });
+
+    it('has no I paid it without canPay, or for a skipped due date', async () => {
+        const first = renderPage(FmChangeDeadlineSheet, props);
+        await screen.findByRole('dialog');
+        expect(
+            screen.queryByRole('button', { name: 'I paid it' }),
+        ).not.toBeInTheDocument();
+        first.unmount();
+
+        renderPage(FmChangeDeadlineSheet, {
+            ...props,
+            deadline: { ...props.deadline, skipped: true },
+            canPay: true,
+        });
+        await screen.findByRole('dialog');
+        expect(
+            screen.queryByRole('button', { name: 'I paid it' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('shows the due date and the three choices', async () => {
         renderPage(FmChangeDeadlineSheet, props);
 

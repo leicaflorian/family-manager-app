@@ -105,6 +105,23 @@ describe('A planned expense', () => {
         ).toBeInTheDocument();
     });
 
+    it('pays an open due date from Change this due date', async () => {
+        renderPage(PlannedItem, props);
+        const next = screen.getByRole('region', { name: 'Next due dates' });
+
+        await userEvent.click(
+            within(next).getByRole('button', { name: /05\/01\/2027/ }),
+        );
+        await screen.findByRole('dialog', { name: 'Change this due date' });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'I paid it' }),
+        );
+
+        expect(
+            await screen.findByRole('dialog', { name: 'I paid it' }),
+        ).toBeInTheDocument();
+    });
+
     it('leads a paid due date to its page', () => {
         renderPage(PlannedItem, props);
         const next = screen.getByRole('region', { name: 'Next due dates' });

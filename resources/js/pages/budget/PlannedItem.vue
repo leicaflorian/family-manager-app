@@ -22,6 +22,7 @@ import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
+import FmPaySheet from '@/components/fm/FmPaySheet.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmRow from '@/components/fm/FmRow.vue';
@@ -120,6 +121,22 @@ const changing = ref<App.Data.DeadlineData | null>(null);
 
 /** The panel is open. */
 const changingOpen = ref(false);
+
+/** The due date whose payment panel is open, if there is one. */
+const paying = ref<App.Data.DeadlineData | null>(null);
+
+/** The payment panel is open. */
+const payingOpen = ref(false);
+
+/**
+ * Opens the payment panel of a due date, asked from *Change this due date*.
+ *
+ * @param deadline - the due date to pay
+ */
+function pay(deadline: App.Data.DeadlineData): void {
+    paying.value = deadline;
+    payingOpen.value = true;
+}
 
 /**
  * Opens the panel *Change this due date* for a due date.
@@ -343,7 +360,18 @@ const exceptionIcons = {
             v-model:open="changingOpen"
             :deadline="changing"
             :action="deadlineUrls(changing).exceptions"
+            :can-pay="detail.can_pay"
+            @pay="pay(changing)"
             @close="changing = null"
+        />
+        <FmPaySheet
+            v-if="detail.can_pay && paying"
+            :key="`pay-${paying.original_date}`"
+            v-model:open="payingOpen"
+            :deadline="paying"
+            :accounts="accounts"
+            :action="deadlineUrls(paying).payment"
+            @close="paying = null"
         />
     </div>
 </template>
