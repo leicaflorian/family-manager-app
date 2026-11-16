@@ -7,7 +7,7 @@
  * that invites to upload the first one.
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { FileText, ListFilter, Search, X } from '@lucide/vue';
+import { FileText, Search, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import {
@@ -20,9 +20,9 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentDetail from '@/components/fm/FmDocumentDetail.vue';
 import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
+import FmFilterButton from '@/components/fm/FmFilterButton.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSidePanel from '@/components/fm/FmSidePanel.vue';
@@ -260,14 +260,11 @@ function rowHref(document: App.Data.DocumentData): string {
                             :label="$t('Search a document')"
                         />
                     </form>
-                    <button
-                        type="button"
-                        :aria-label="$t('Filters')"
-                        class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-ink xl:hidden"
+                    <FmFilterButton
+                        :count="chips.length"
+                        class="xl:hidden"
                         @click="filtersOpen = true"
-                    >
-                        <FmIcon :icon="ListFilter" :size="22" />
-                    </button>
+                    />
                 </div>
 
                 <div v-if="chips.length > 0" class="flex flex-wrap gap-2">

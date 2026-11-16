@@ -17,6 +17,7 @@
         "FmAvatar": "Basi",
         "FmButton": "Basi",
         "FmCard": "Basi",
+        "FmFilterButton": "Basi",
         "FmChip": "Basi",
         "FmConfirm": "Basi",
         "FmConfirmDelete": "Basi",
@@ -76,6 +77,7 @@
         "FmAgendaPanel": "Pannelli",
         "FmCalendarLink": "Pannelli",
         "FmSidePanel": "Pannelli",
+        "FmFilterAside": "Pannelli",
         "FmToaster": "Pannelli",
 
         "FmAmount": "Cifre-e-file",
