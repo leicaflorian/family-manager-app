@@ -10,13 +10,13 @@
  * or income) opens in that column in their place; on the phone the filters
  * are in the panel from below and a row opens its page.
  */
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Plus, Receipt, Search, Wallet } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, useTemplateRef, watch } from 'vue';
-import { useComputerLayout, useLayoutMode } from '@/composables/useLayoutMode';
-import FilterPills from '@/components/filters/FilterPills.vue';
+import { useLayoutMode } from '@/composables/useLayoutMode';
+import { useListFilters } from '@/composables/useListFilters';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -24,6 +24,7 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFilterAside from '@/components/fm/FmFilterAside.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
+import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmMonthSwitch from '@/components/fm/FmMonthSwitch.vue';
 import FmMovementFilters from '@/components/fm/FmMovementFilters.vue';
@@ -38,10 +39,9 @@ import type { MovementFormOptions, MovementsQuery } from '@/lib/budget';
 import { monthName, movementsUrl, weekdayShort } from '@/lib/budget';
 import { budgetTabs } from '@/lib/budgetTabs';
 import type { FilterPill } from '@/lib/filters';
-import { rangePills, withoutFilters } from '@/lib/filters';
+import { rangePills } from '@/lib/filters';
 import { isoDate } from '@/lib/format';
 import { expenseIcon } from '@/lib/icons';
-import { cn } from '@/lib/utils';
 import { create, show } from '@/routes/budget/movements';
 
 const props = defineProps<{
@@ -72,9 +72,24 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 
 /** The layout: the magnifier and the bell beside the title are only on the phone. */
 const mode = useLayoutMode();
-const desktop = useComputerLayout();
 const { euro } = useFormat();
-const page = usePage();
+
+/** The search box, the visits with other filters and the column of the filters (or of the detail). */
+const {
+    desktop,
+    searchText,
+    submitSearch,
+    go,
+    removePill,
+    removeAll,
+    filterCount,
+    filterErrors,
+    layout,
+} = useListFilters<App.Data.MovementFiltersData, MovementsQuery>({
+    filters: () => props.filters,
+    pills: () => pills.value,
+    url: (query) => movementsUrl({ month: props.summary.month, ...query }),
+});
 
 /** The panel of a new expense or income is open (on the computer). */
 const creating = ref(false);
@@ -84,14 +99,6 @@ const filtersOpen = ref(false);
 
 /** The panel of the movement, closed from the column so it can ask about changes first. */
 const panel = useTemplateRef<InstanceType<typeof FmMovementPanel>>('panel');
-
-/** The text in the search box, sent with Enter. */
-const searchText = ref(props.filters.search ?? '');
-
-watch(
-    () => props.filters.search,
-    (value) => (searchText.value = value ?? ''),
-);
 
 /** The account chosen in the menu of the phone, as text; empty is all of them. */
 const accountChoice = ref(props.account === null ? '' : String(props.account));
@@ -120,28 +127,6 @@ const accounts = computed(() => [
     ...accountOptions.value,
 ]);
 
-/** What the server found wrong in the filters (an amount *to* under the *from*). */
-const filterErrors = computed(
-    (): Partial<Record<string, string>> => page.props.errors ?? {},
-);
-
-/**
- * Opens the page with other choices, keeping the filters not changed and the scroll.
- *
- * @param change - what changes from the page in use
- */
-function go(change: Partial<MovementsQuery>): void {
-    router.get(
-        movementsUrl({
-            month: props.summary.month,
-            ...props.filters,
-            ...change,
-        }),
-        {},
-        { preserveState: true, preserveScroll: true, replace: true },
-    );
-}
-
 watch(accountChoice, (choice) => {
     const account = choice === '' ? null : Number(choice);
 
@@ -149,16 +134,6 @@ watch(accountChoice, (choice) => {
         go({ account });
     }
 });
-
-/** Sends the search typed in the box; only spaces is no search. */
-function searchMovements(): void {
-    go({ search: searchText.value.trim() || null });
-}
-
-/** Takes every filter away, the search too. */
-function removeFilters(): void {
-    go(withoutFilters(props.filters));
-}
 
 /** The filters on, each with its pill and what removing it leaves. */
 const pills = computed(() => {
@@ -187,20 +162,6 @@ const pills = computed(() => {
 
     return [...list, ...rangePills(filters)];
 });
-
-/**
- * Takes away the filter of a pill, keeping the others.
- *
- * @param key - the filter of the pill
- */
-function removePill(key: string): void {
-    go(pills.value.find((pill) => pill.key === key)?.without ?? {});
-}
-
-/** How many filters the button of the phone counts: the search is in the box, not among them. */
-const filterCount = computed(
-    () => pills.value.filter((pill) => pill.key !== 'search').length,
-);
 
 /** The line of a search: how many were found and their total. */
 const found = computed(() =>
@@ -284,13 +245,6 @@ const start = computed(() =>
               date: props.selected.date,
           }
         : { kind: props.kind ?? 'expense', planned_id: null, date: isoDate() },
-);
-
-/** The two columns on the computer, the filters (or the detail) first; one column on the phone. */
-const layout = computed(() =>
-    desktop.value
-        ? cn('grid grid-cols-[16rem_minmax(0,1fr)] items-start gap-5')
-        : cn('flex flex-col gap-4'),
 );
 
 /** Adds an expense or an income: the column on the computer, its page on the phone. */
@@ -395,7 +349,7 @@ function subtitle(movement: App.Data.MovementData): string {
             <form
                 role="search"
                 class="min-w-0 grow"
-                @submit.prevent="searchMovements"
+                @submit.prevent="submitSearch"
             >
                 <FmSearchField
                     v-model="searchText"
@@ -505,12 +459,12 @@ function subtitle(movement: App.Data.MovementData): string {
                     </div>
                 </template>
 
-                <FilterPills
+                <FmFilterPills
                     v-if="pills.length > 0"
                     :pills="pills"
                     :found="search !== null && search.count > 0 ? found : ''"
                     @remove="removePill"
-                    @remove-all="removeFilters"
+                    @remove-all="removeAll"
                 />
 
                 <div

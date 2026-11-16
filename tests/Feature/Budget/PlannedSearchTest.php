@@ -96,7 +96,7 @@ it('shows everything without filters, and only spaces is no search', function ()
         ->where('filters', ['search' => null, 'min' => null, 'max' => null, 'from' => null, 'to' => null]));
 });
 
-it('rejects wrong filters with 422 on the field', function (string $query, string $field): void {
+it('rejects wrong filters with an error on the field', function (string $query, string $field): void {
     searchPlanned($query)->assertSessionHasErrors($field);
 })->with([
     'max under min' => ['min=50&max=10', 'max'],

@@ -3,6 +3,8 @@
  * The line above a filtered list: a pill for each filter on, each with its ×,
  * *Remove the filters*, and what was found (beside them on the computer,
  * under them on the phone). Shared by *Movements* and *Planned expenses*.
+ *
+ * @group fields
  */
 import FmActiveFilter from '@/components/fm/FmActiveFilter.vue';
 import { useComputerLayout } from '@/composables/useLayoutMode';

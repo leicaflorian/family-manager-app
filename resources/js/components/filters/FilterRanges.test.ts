@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/vue';
+import { fireEvent, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { renderPage, settle } from '@/test/page';
@@ -35,6 +35,24 @@ describe('FilterRanges', () => {
         await settle();
 
         expect(view.emitted('change')).toBeUndefined();
+    });
+
+    it('sends only the value that changed', async () => {
+        const view = renderPage(FilterRanges, {
+            filters: { min: 20, max: null, from: null, to: null },
+            dateLabel: 'Date',
+            help: '',
+        });
+        await settle();
+
+        const from = screen.getByLabelText('From');
+        await fireEvent.input(from, { target: { value: '05/11/2026' } });
+        await fireEvent.blur(from);
+        await settle();
+
+        expect(view.emitted('change')?.at(-1)).toEqual([
+            { from: '2026-11-05' },
+        ]);
     });
 
     it('offers to remove the filters only when told', async () => {

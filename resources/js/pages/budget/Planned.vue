@@ -9,11 +9,10 @@
  * computer the filters are a column on the left; on the phone they are in the
  * panel from below. A row always opens the page of its planned item.
  */
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { Plus, Repeat, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
-import FilterPills from '@/components/filters/FilterPills.vue';
+import { computed, ref } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -21,18 +20,18 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFilterAside from '@/components/fm/FmFilterAside.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
+import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmFold from '@/components/fm/FmFold.vue';
 import FmPlannedFilters from '@/components/fm/FmPlannedFilters.vue';
 import FmPlannedRow from '@/components/fm/FmPlannedRow.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useComputerLayout } from '@/composables/useLayoutMode';
 import { useFormat } from '@/composables/useFormat';
+import { useListFilters } from '@/composables/useListFilters';
 import { plannedUrl } from '@/lib/budget';
 import { budgetTabs } from '@/lib/budgetTabs';
-import { anyFilterOn, rangePills, withoutFilters } from '@/lib/filters';
-import { cn } from '@/lib/utils';
+import { anyFilterOn, rangePills } from '@/lib/filters';
 import { create, show } from '@/routes/budget/planned';
 
 const props = defineProps<{
@@ -53,19 +52,9 @@ const props = defineProps<{
 }>();
 
 const { euro } = useFormat();
-const desktop = useComputerLayout();
-const page = usePage();
 
 /** The panel of the filters, on the phone. */
 const filtersOpen = ref(false);
-
-/** The text in the search box, sent with Enter. */
-const searchText = ref(props.filters.search ?? '');
-
-watch(
-    () => props.filters.search,
-    (value) => (searchText.value = value ?? ''),
-);
 
 /** Some filter is on, the search included. */
 const filtering = computed(() => anyFilterOn(props.filters));
@@ -88,18 +77,25 @@ const hasEstimate = computed(() =>
     [...props.expenses, ...props.incomes].some((row) => row.estimated),
 );
 
-/** What the server found wrong in the filters (a last day before the first). */
-const filterErrors = computed(
-    (): Partial<Record<string, string>> => page.props.errors ?? {},
-);
-
 /** The filters on, each with its pill: the days are those of the next due date. */
 const pills = computed(() => rangePills(props.filters, 'next'));
 
-/** How many filters the button of the phone counts: the search is in the box, not among them. */
-const filterCount = computed(
-    () => pills.value.filter((pill) => pill.key !== 'search').length,
-);
+/** The search box, the visits with other filters and the column of the filters. */
+const {
+    desktop,
+    searchText,
+    submitSearch,
+    go,
+    removePill,
+    removeAll,
+    filterCount,
+    filterErrors,
+    layout,
+} = useListFilters({
+    filters: () => props.filters,
+    pills: () => pills.value,
+    url: (query) => plannedUrl({ ...props.filters, ...query }),
+});
 
 /** The line beside the pills: how many rows passed. */
 const found = computed(() =>
@@ -120,40 +116,6 @@ const showLabel = computed(() =>
               shown.value,
           ),
 );
-
-/** The two columns on the computer, the filters first; one column on the phone. */
-const layout = computed(() =>
-    desktop.value
-        ? cn('grid grid-cols-[16rem_minmax(0,1fr)] items-start gap-5')
-        : cn('flex flex-col gap-5'),
-);
-
-/**
- * Opens the page with other filters, keeping the ones not changed and the scroll.
- *
- * @param change - the filters that change
- */
-function go(change: Partial<App.Data.PlannedFiltersData>): void {
-    router.get(
-        plannedUrl({ ...props.filters, ...change }),
-        {},
-        { preserveState: true, preserveScroll: true, replace: true },
-    );
-}
-
-/** Sends the search typed in the box; only spaces is no search. */
-function searchPlanned(): void {
-    go({ search: searchText.value.trim() || null });
-}
-
-/**
- * Takes away the filter of a pill, keeping the others.
- *
- * @param key - the filter of the pill
- */
-function removePill(key: string): void {
-    go(pills.value.find((pill) => pill.key === key)?.without ?? {});
-}
 </script>
 
 <template>
@@ -211,7 +173,7 @@ function removePill(key: string): void {
                 <form
                     role="search"
                     class="min-w-0 grow"
-                    @submit.prevent="searchPlanned"
+                    @submit.prevent="submitSearch"
                 >
                     <FmSearchField
                         v-model="searchText"
@@ -240,12 +202,12 @@ function removePill(key: string): void {
                 </FmFilterAside>
 
                 <div class="flex min-w-0 flex-col gap-5">
-                    <FilterPills
+                    <FmFilterPills
                         v-if="filtering"
                         :pills="pills"
                         :found="found"
                         @remove="removePill"
-                        @remove-all="go(withoutFilters(filters))"
+                        @remove-all="removeAll"
                     />
 
                     <div v-else class="grid gap-3 sm:grid-cols-2">

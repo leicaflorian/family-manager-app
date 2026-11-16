@@ -2,16 +2,16 @@ import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
 import { renderPage } from '@/test/page';
-import FilterPills from './FilterPills.vue';
+import FmFilterPills from './FmFilterPills.vue';
 
 const pills = [
     { key: 'amount', label: 'From 10,00 € to 100,00 €' },
     { key: 'search', label: '“luce”' },
 ];
 
-describe('FilterPills', () => {
+describe('FmFilterPills', () => {
     it('has a pill for each filter, and tells which one its × removes', async () => {
-        const view = renderPage(FilterPills, { pills });
+        const view = renderPage(FmFilterPills, { pills });
 
         await userEvent.click(
             screen.getByRole('button', { name: 'Remove the filter “luce”' }),
@@ -21,7 +21,7 @@ describe('FilterPills', () => {
     });
 
     it('removes them all, and says what was found only when told', async () => {
-        const view = renderPage(FilterPills, {
+        const view = renderPage(FmFilterPills, {
             pills,
             found: '2 planned expenses, by due date',
         });
@@ -35,7 +35,7 @@ describe('FilterPills', () => {
         expect(view.emitted('removeAll')).toHaveLength(1);
 
         view.unmount();
-        renderPage(FilterPills, { pills });
+        renderPage(FmFilterPills, { pills });
         expect(screen.queryByText(/by due date/)).not.toBeInTheDocument();
     });
 });
