@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Budget\SavePlanned;
+use App\Data\DeadlineData;
 use App\Data\PlannedRowData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\SavePlannedRequest;
 use App\Models\PlannedExpense;
 use App\Models\User;
 use App\Services\BudgetFormOptions;
+use App\Services\Deadlines;
 use App\Services\PlannedSummaries;
+use App\Support\Deadline;
+use App\Support\LocalPath;
 use App\Support\PlannedKind;
 use App\Support\PlannedPreset;
 use Carbon\CarbonImmutable;
@@ -74,13 +78,42 @@ final class PlannedController extends Controller
      *
      * @throws NotFoundHttpException if the kind is unknown or the planned item is not of the family
      */
-    public function show(string $kind, string $id, #[CurrentUser] User $user): Response
+    public function show(Request $request, string $kind, string $id, #[CurrentUser] User $user, Deadlines $deadlines): Response
     {
+        $today = CarbonImmutable::today('Europe/Rome');
+        $opening = $this->opening($deadlines, $kind, $id, $request->query('deadline'));
+
         return Inertia::render('budget/PlannedItem', [
             'kind' => $kind,
-            'detail' => $this->summaries->detail(PlannedKind::find($kind, $id), $user, CarbonImmutable::today('Europe/Rome')),
+            'detail' => $this->summaries->detail(PlannedKind::find($kind, $id), $user, $today),
             'accounts' => BudgetFormOptions::accounts(),
+            'opening' => $opening instanceof Deadline ? DeadlineData::fromDeadline($opening, $today) : null,
+            'pay' => $opening instanceof Deadline && $request->boolean('pay'),
+            'back' => $opening instanceof Deadline ? LocalPath::of($request->query('from')) : null,
         ]);
+    }
+
+    /**
+     * The due date the page opens on arrival (`?deadline=`), skipped too; none when the day is not one of its due dates.
+     *
+     * @param  Deadlines  $deadlines  the due dates
+     * @param  string  $kind  `expense` or `income`
+     * @param  string  $id  the id of the planned item
+     * @param  mixed  $date  the day the rules give, as the address carries it
+     */
+    private function opening(Deadlines $deadlines, string $kind, string $id, mixed $date): ?Deadline
+    {
+        // The address of a due date allows only this shape, and the search assumes it
+        if (! is_string($date) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) !== 1) {
+            return null;
+        }
+
+        try {
+            return $deadlines->findByAddress($kind, $id, $date, withSkipped: true);
+        } catch (NotFoundHttpException) {
+            // An old or mistyped link still opens the planned item, only without a panel
+            return null;
+        }
     }
 
     /**

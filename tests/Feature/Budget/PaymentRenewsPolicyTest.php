@@ -41,6 +41,14 @@ function renewalAddress(string $title, string $day, string $suffix = ''): string
     return "/budget/planned/expense/{$planned->id}/occurrences/{$day}{$suffix}";
 }
 
+/** The address of the page of a planned expense of the Bianchi, found by its title. */
+function renewalPlanned(string $title, string $suffix = ''): string
+{
+    $planned = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', $title)->sole());
+
+    return "/budget/planned/expense/{$planned->id}{$suffix}";
+}
+
 /** The payment of the car premium of 21/11/2026, if there is one. */
 function premiumPayment(): ?Expense
 {
@@ -62,13 +70,13 @@ it('offers the renewal only near the expiry of the policy', function (?string $e
     insideBianchi(fn (): bool => pandaPolicy()->forceFill(['expiry_date' => $expiry, 'status' => $status])->save());
 
     $this->actingAs($this->marco)
-        ->get(renewalAddress('Assicurazione auto', '2026-11-21'))
+        ->get(renewalPlanned('Assicurazione auto', '?deadline=2026-11-21'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $offered
-            ? $page->where('deadline.renewal.policy_id', pandaPolicy()->id)
-                ->where('deadline.renewal.policy', 'RC auto Panda · UnipolSai')
-                ->where('deadline.renewal.expiry_date', $expiry)
-                ->where('deadline.renewal.proposed_expiry', CarbonImmutable::parse((string) $expiry)->addYear()->toDateString())
-            : $page->where('deadline.renewal', null));
+            ? $page->where('opening.renewal.policy_id', pandaPolicy()->id)
+                ->where('opening.renewal.policy', 'RC auto Panda · UnipolSai')
+                ->where('opening.renewal.expiry_date', $expiry)
+                ->where('opening.renewal.proposed_expiry', CarbonImmutable::parse((string) $expiry)->addYear()->toDateString())
+            : $page->where('opening.renewal', null));
 })->with([
     'in 30 days' => ['2026-11-25', InsurancePolicyStatus::Active, true],
     'in 31 days' => ['2026-11-26', InsurancePolicyStatus::Active, false],
@@ -90,8 +98,8 @@ it('offers the renewal in the Agenda panel of the payment too', function (): voi
 
 it('offers nothing to a member', function (): void {
     $this->actingAs($this->rosa)
-        ->get(renewalAddress('Assicurazione auto', '2026-11-21'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('deadline.renewal', null));
+        ->get(renewalPlanned('Assicurazione auto', '?deadline=2026-11-21'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('opening.renewal', null));
 
     $this->post(renewalAddress('Assicurazione auto', '2026-11-21', '/payment'), [
         'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'same', 'new_expiry' => '2027-11-21', 'policy_expiry' => '2026-11-21',
@@ -104,7 +112,7 @@ it('records only the payment by default', function (): void {
     $this->actingAs($this->marco)
         ->post(renewalAddress('Assicurazione auto', '2026-11-21', '/payment'), ['date' => '2026-10-26', 'amount' => 418])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+        ->assertRedirect(renewalPlanned('Assicurazione auto'));
 
     expect(premiumPayment())->not->toBeNull()
         ->and(pandaPolicy()->expiry_date?->toDateString())->toBe('2026-11-21');
@@ -119,7 +127,7 @@ it('renews the policy with the same company', function (): void {
             'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'same', 'new_expiry' => '2027-11-21', 'policy_expiry' => '2026-11-21',
         ])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+        ->assertRedirect(renewalPlanned('Assicurazione auto'));
 
     $policy = pandaPolicy();
     expect(premiumPayment())->not->toBeNull()
@@ -192,7 +200,7 @@ it('records only the payment when the policy was renewed elsewhere since the pag
             'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'same', 'new_expiry' => '2027-11-21', 'policy_expiry' => '2026-11-21',
         ])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+        ->assertRedirect(renewalPlanned('Assicurazione auto'));
 
     expect(premiumPayment())->not->toBeNull()
         ->and(pandaPolicy()->expiry_date?->toDateString())->toBe('2027-11-21');
@@ -206,7 +214,7 @@ it('records only the payment when the policy was cancelled since the page opened
             'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'changed', 'policy_expiry' => '2026-11-21',
         ])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+        ->assertRedirect(renewalPlanned('Assicurazione auto'));
 
     $policy = pandaPolicy();
     expect(premiumPayment())->not->toBeNull()
@@ -222,7 +230,7 @@ it('records only the payment when the company changed but the expiry moved since
             'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'changed', 'policy_expiry' => '2026-11-21',
         ])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+        ->assertRedirect(renewalPlanned('Assicurazione auto'));
 
     expect(premiumPayment())->not->toBeNull();
 });

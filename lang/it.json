@@ -991,7 +991,7 @@
     "on :date": "il :date",
     "Notice :dates": "Avviso :dates",
     "Notice :dates · to :names": "Avviso :dates · a :names",
-    "Open the due date": "Apri la scadenza",
+    "Open the movement": "Apri il movimento",
     "Delete this task?": "Eliminare questo impegno?",
     "The task and its notices are deleted for good.": "L'impegno e i suoi avvisi vengono eliminati per sempre.",
     "Delete the task": "Elimina l'impegno",
@@ -1969,7 +1969,6 @@
     "What changes in the app, version by version": "Cosa cambia nell'app, versione per versione",
     ":card — :status": ":card — :status",
     ":card — :status on :date": ":card — :status il :date",
-    "Due dates": "Le scadenze",
     "This policy cannot be replaced.": "Questa polizza non si può sostituire.",
     "The company": "La compagnia",
     "Same company": "Stessa compagnia",
@@ -1983,8 +1982,8 @@
     "This policy cannot be renewed here.": "Questa polizza non si può rinnovare qui.",
     "Cancel the policy :name": "Disdici la polizza :name",
     "Expires on :date. Its planned expense moves to the new one.": "Scade il :date. La sua spesa fissa passa alla nuova.",
-    "Go to the planned expense": "Vai alla spesa fissa",
-    "Go to the planned income": "Vai all'entrata fissa",
+    "Open the planned expense": "Apri la spesa fissa",
+    "Open the planned income": "Apri l'entrata fissa",
     "Add another card": "Aggiungi un'altra tessera",
     "Phone number": "Telefono"
 }

@@ -251,7 +251,8 @@ export function shortMonth(month: string): string {
 }
 
 /**
- * The addresses of a due date: its page, *I paid it* and *Change this due date*.
+ * The addresses of a due date: `show` (it opens the due date on its planned
+ * item, or the movement that paid it), *I paid it* and *Change this due date*.
  * The day in them is the one the rules give, not the one an exception moved it to.
  *
  * @param deadline - the due date
