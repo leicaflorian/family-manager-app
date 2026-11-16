@@ -49,7 +49,7 @@ Codice: `budget/Deadline.vue` (cambiata con `b5eea95`), `cards/CardPayments.vue`
 
 ## Task 3: Agenda (`agenda`)
 Codice: `Agenda.vue`, `reminders/EditReminder.vue` (nuovo e modifica), pannelli di riga, calendario, polizza rinnovata.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 4: Schede (`schede`)
 Codice: `Areas.vue`, `Area.vue`, `cards/Card.vue` per ogni tipo di `app/Cards/Types/`, `cards/NewCard.vue`, `cards/EditCard.vue`. Una tavola per tipo di scheda che ha un aspetto suo.
