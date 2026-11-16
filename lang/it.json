@@ -1969,5 +1969,6 @@
     "What changes in the app, version by version": "Cosa cambia nell'app, versione per versione",
     ":card — :status": ":card — :status",
     ":card — :status on :date": ":card — :status il :date",
-    "Due dates": "Le scadenze"
+    "Due dates": "Le scadenze",
+    "This policy cannot be replaced.": "Questa polizza non si può sostituire."
 }

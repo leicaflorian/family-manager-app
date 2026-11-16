@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Cards\DeleteCard;
 use App\Actions\Cards\LinkCardDocuments;
+use App\Actions\Cards\ReplacePolicy;
 use App\Actions\Cards\SaveCard;
 use App\Actions\Loans\RefreshLoan;
 use App\Cards\CardType;
@@ -13,9 +14,11 @@ use App\Cards\CardTypes;
 use App\Data\CardBudgetData;
 use App\Data\CardTypeData;
 use App\Data\LoanFiguresData;
+use App\Data\ReplaceablePolicyData;
 use App\Enums\Area;
 use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
+use App\Models\InsurancePolicy;
 use App\Models\Loan;
 use App\Models\User;
 use App\Queries\DocumentRows;
@@ -24,6 +27,7 @@ use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use App\Services\FamilyAreas;
 use App\Services\FileStore;
+use App\Services\ReplaceablePolicies;
 use App\Support\ImportPage;
 use App\Support\LoanTerms;
 use App\Support\PresetLink;
@@ -34,6 +38,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\MergeProp;
@@ -60,6 +65,7 @@ final class CardController extends Controller
         private readonly CardBudgets $budgets,
         private readonly RefreshLoan $loans,
         private readonly FamilyAreas $familyAreas,
+        private readonly ReplaceablePolicies $replaceable,
     ) {}
 
     /**
@@ -81,6 +87,7 @@ final class CardController extends Controller
             return Inertia::render('cards/EditCard', [
                 ...$this->details->form($card, null, $request->query()),
                 ...$this->loanFigures($request, $card, null),
+                ...$this->replacement($request, $card),
                 ...$this->linkable($request, []),
                 'linked' => $this->documents->ofModels($documents),
             ]);
@@ -102,13 +109,24 @@ final class CardController extends Controller
      * files, they wait for their document and *Upload* opens with the card
      * among the links of each.
      */
-    public function store(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store): RedirectResponse
+    public function store(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store, ReplacePolicy $replace): RedirectResponse
     {
         $type = $request->cardType();
         // Looked up first: a document of another family answers 404 before anything is saved
         $link = $request->documentsToLink();
-        $card = $save->handle($type, $request->columns());
-        $links->handle($card, $link, new Collection);
+        $old = $request->policiesToReplace();
+        $payment = $request->paymentToMove();
+
+        $card = DB::transaction(function () use ($save, $links, $replace, $type, $request, $link, $old, $payment): Model {
+            $card = $save->handle($type, $request->columns());
+            $links->handle($card, $link, new Collection);
+
+            if ($card instanceof InsurancePolicy && $old->isNotEmpty()) {
+                $replace->handle($card, $old, $payment);
+            }
+
+            return $card;
+        });
 
         return $this->openWithFiles($type, $card, $request, $store);
     }
@@ -193,6 +211,32 @@ final class CardController extends Controller
         $delete->handle($card);
 
         return to_route('areas.show', $description->area());
+    }
+
+    /**
+     * For the form of a new policy: the policies it can replace, the ones the address asks to replace (only if they
+     * can be) and the payment just made. Nothing for the other types.
+     *
+     * @param  Request  $request  the request with `replaces` and `payment`
+     * @param  CardType  $type  the type of the card
+     * @return array{replaceable?: list<ReplaceablePolicyData>, replaces?: list<int>, payment?: ?int}
+     */
+    private function replacement(Request $request, CardType $type): array
+    {
+        if ($type->model() !== InsurancePolicy::class) {
+            return [];
+        }
+
+        $candidates = $this->replaceable->candidates();
+        $asked = $request->query('replaces');
+        $asked = array_map(intval(...), array_filter(is_array($asked) ? $asked : [$asked], is_numeric(...)));
+        $payment = $request->query('payment');
+
+        return [
+            'replaceable' => array_values($candidates->map(ReplaceablePolicyData::fromPolicy(...))->all()),
+            'replaces' => array_values(array_filter($candidates->pluck('id')->all(), static fn (mixed $id): bool => in_array($id, $asked, true))),
+            'payment' => is_numeric($payment) ? (int) $payment : null,
+        ];
     }
 
     /**
