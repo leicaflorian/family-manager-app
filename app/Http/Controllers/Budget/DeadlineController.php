@@ -4,24 +4,30 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Budget;
 
+use App\Actions\Agenda\UpdateDeadline;
 use App\Actions\Budget\ChangeOccurrence;
 use App\Actions\Budget\RecordPayment;
+use App\Cards\DeadlineSource;
+use App\Cards\DeadlineSources;
 use App\Data\DeadlineData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\ChangeOccurrenceRequest;
 use App\Http\Requests\Budget\RecordPaymentRequest;
 use App\Models\Expense;
 use App\Models\Income;
+use App\Models\InsurancePolicy;
 use App\Models\PlannedExpense;
 use App\Models\User;
 use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Support\Deadline;
+use App\Support\PolicyReplacement;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -70,20 +76,60 @@ final class DeadlineController extends Controller
 
     /**
      * *I paid it* / *It arrived*: records the payment and goes back to the due date, or to the page it was sent from (the Agenda).
+     * For the premium of a policy near its expiry, *Same company, renewed* also moves the expiry of the policy, in the
+     * same transaction, unless it already moved since the page was opened; *I changed company* goes on to the form of
+     * the new policy, which takes the payment.
      *
      * @throws NotFoundHttpException if the address is not a due date of the family
      */
-    public function payment(RecordPaymentRequest $request, string $kind, string $id, string $date, RecordPayment $record): RedirectResponse
+    public function payment(RecordPaymentRequest $request, string $kind, string $id, string $date, RecordPayment $record, UpdateDeadline $update): RedirectResponse
     {
         $deadline = $request->deadline();
         $paid = CarbonImmutable::createFromFormat('!Y-m-d', $request->string('date')->toString(), 'Europe/Rome') ?: throw new NotFoundHttpException;
         $account = $request->integer('financial_account_id');
         $receipt = $request->file('receipt');
+        $renewal = $request->renewal();
+        $policy = $renewal === 'only' ? null : $request->renewalPolicy();
 
-        $record->handle($deadline, $paid, $request->float('amount'), $account === 0 ? null : $account, $receipt instanceof UploadedFile ? $receipt : null);
+        $payment = DB::transaction(function () use ($record, $update, $request, $deadline, $paid, $account, $receipt, $renewal, $policy): Expense|Income {
+            $payment = $record->handle($deadline, $paid, $request->float('amount'), $account === 0 ? null : $account, $receipt instanceof UploadedFile ? $receipt : null);
+            $newExpiry = $request->day('new_expiry');
+
+            if ($renewal === 'same' && $policy instanceof InsurancePolicy && $newExpiry instanceof CarbonImmutable) {
+                $this->renew($update, $policy, $request->day('policy_expiry'), $newExpiry);
+            }
+
+            return $payment;
+        });
         Inertia::flash('toast', ['type' => 'success', 'message' => $kind === 'income' ? __('Income recorded.') : __('Payment recorded.')]);
 
+        if ($renewal === 'changed' && $policy instanceof InsurancePolicy && $payment instanceof Expense) {
+            return redirect()->to(PolicyReplacement::createUrl($policy, $payment));
+        }
+
         return $request->boolean('from_agenda') ? back() : $this->back($kind, $id, $date);
+    }
+
+    /**
+     * Renews a policy with the same company: the new expiry, the policy active again and the reminder of the old
+     * expiry done. The policy is read again under a lock: when its expiry is no longer the one the page showed,
+     * someone already renewed it, and it is left alone.
+     *
+     * @param  UpdateDeadline  $update  the action that writes the date
+     * @param  InsurancePolicy  $policy  the policy
+     * @param  CarbonImmutable|null  $shown  the expiry the page showed
+     * @param  CarbonImmutable  $expiry  the new expiry
+     */
+    private function renew(UpdateDeadline $update, InsurancePolicy $policy, ?CarbonImmutable $shown, CarbonImmutable $expiry): void
+    {
+        $current = InsurancePolicy::query()->lockForUpdate()->find($policy->id);
+        $source = DeadlineSources::find('insurance_policies.expiry_date');
+
+        if (! $current instanceof InsurancePolicy || ! $source instanceof DeadlineSource || $current->expiry_date?->toDateString() !== $shown?->toDateString()) {
+            return;
+        }
+
+        $update->handle($source, $current, $expiry, true, CarbonImmutable::today('Europe/Rome'));
     }
 
     /**

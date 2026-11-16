@@ -274,6 +274,7 @@ readonly account: string | null,
 readonly card: App.Data.CardData | null,
 readonly income_type: string | null,
 readonly person: string | null,
+readonly renewal: App.Data.PolicyRenewalData | null,
 };
 export type DocumentData = {
 readonly id: number,
@@ -639,6 +640,12 @@ readonly estimated: boolean,
 readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
+};
+export type PolicyRenewalData = {
+readonly policy_id: number,
+readonly policy: string,
+readonly expiry_date: string,
+readonly proposed_expiry: string,
 };
 export type ReceivedMailData = {
 readonly row: App.Data.ReceivedMailRowData,

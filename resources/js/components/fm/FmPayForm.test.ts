@@ -182,4 +182,133 @@ describe('FmPayForm', () => {
             screen.getByRole('button', { name: 'Carta Laura' }),
         ).toHaveAttribute('aria-pressed', 'true');
     });
+
+    describe('the premium of a policy near its expiry', () => {
+        /** The car premium of 21/11/2026, whose policy expires the same day. */
+        const policyProps = {
+            ...props,
+            deadline: {
+                ...deadline,
+                title: 'Rata RC auto',
+                planned_title: 'Assicurazione auto',
+                date: '2026-11-21',
+                original_date: '2026-11-21',
+                amount: 418,
+                renewal: {
+                    policy_id: 5,
+                    policy: 'RC auto Panda · UnipolSai',
+                    expiry_date: '2026-11-21',
+                    proposed_expiry: '2027-11-21',
+                },
+            },
+        };
+
+        it('shows the choice only with a renewal', async () => {
+            renderPage(FmPayForm, props);
+            await screen.findByLabelText('How much');
+
+            expect(
+                screen.queryByRole('button', { name: 'Only the payment' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('starts on only the payment', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(FmPayForm, policyProps);
+
+            expect(
+                await screen.findByRole('button', { name: 'Only the payment' }),
+            ).toHaveAttribute('aria-pressed', 'true');
+            expect(
+                screen.queryByLabelText('New expiry date'),
+            ).not.toBeInTheDocument();
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Confirm' }),
+            );
+            await settle();
+
+            expect(post.mock.calls[0]![1]).toMatchObject({ renewal: 'only' });
+            expect(post.mock.calls[0]![1]).not.toHaveProperty('new_expiry');
+        });
+
+        it('asks the new expiry with the same company', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(FmPayForm, policyProps);
+
+            await userEvent.click(
+                await screen.findByRole('button', {
+                    name: 'Same company, renewed',
+                }),
+            );
+            await settle();
+
+            expect(screen.getByLabelText('New expiry date')).toHaveValue(
+                '21/11/2027',
+            );
+            expect(
+                screen.getByText(
+                    'The policy stays active until this date, and the renewal reminder is marked done.',
+                ),
+            ).toBeInTheDocument();
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Confirm' }),
+            );
+            await settle();
+
+            expect(post.mock.calls[0]![1]).toMatchObject({
+                renewal: 'same',
+                new_expiry: '2027-11-21',
+                policy_expiry: '2026-11-21',
+            });
+        });
+
+        it('sends changed when the company changed', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(FmPayForm, policyProps);
+
+            await userEvent.click(
+                await screen.findByRole('button', {
+                    name: 'I changed company',
+                }),
+            );
+            await settle();
+
+            expect(
+                screen.queryByLabelText('New expiry date'),
+            ).not.toBeInTheDocument();
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Confirm' }),
+            );
+            await settle();
+
+            expect(post.mock.calls[0]![1]).toMatchObject({
+                renewal: 'changed',
+                policy_expiry: '2026-11-21',
+            });
+            expect(post.mock.calls[0]![1]).not.toHaveProperty('new_expiry');
+        });
+
+        it('goes back to only the payment when it starts again', async () => {
+            const view = renderPage(FmPayForm, policyProps);
+            await userEvent.click(
+                await screen.findByRole('button', {
+                    name: 'I changed company',
+                }),
+            );
+            await settle();
+
+            await view.rerender({
+                ...policyProps,
+                deadline: {
+                    ...policyProps.deadline,
+                    original_date: '2027-11-21',
+                },
+            });
+            await settle();
+
+            expect(
+                screen.getByRole('button', { name: 'Only the payment' }),
+            ).toHaveAttribute('aria-pressed', 'true');
+        });
+    });
 });

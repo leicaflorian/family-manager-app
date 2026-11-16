@@ -1975,5 +1975,10 @@
     "Same company": "Stessa compagnia",
     "I changed company": "Ho cambiato compagnia",
     "Continue": "Continua",
-    "The new policy opens already filled in with the car and the policyholder. The old one becomes «Cancelled» when you save the new one.": "Si apre la nuova polizza, già compilata con l'auto e il contraente. La vecchia passa a «Disdetta» quando salvi la nuova."
+    "The new policy opens already filled in with the car and the policyholder. The old one becomes «Cancelled» when you save the new one.": "Si apre la nuova polizza, già compilata con l'auto e il contraente. La vecchia passa a «Disdetta» quando salvi la nuova.",
+    "The policy": "La polizza",
+    "Only the payment": "Solo il pagamento",
+    "Same company, renewed": "Stessa compagnia, rinnovata",
+    "The policy stays active until this date, and the renewal reminder is marked done.": "La polizza resta attiva fino a questa data, e il promemoria del rinnovo si segna fatto.",
+    "This policy cannot be renewed here.": "Questa polizza non si può rinnovare qui."
 }
