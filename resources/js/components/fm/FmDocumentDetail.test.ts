@@ -266,8 +266,17 @@ describe('FmDocumentDetail', () => {
         expect(heading.querySelector('a')).toBeNull();
         const download = screen.getByRole('link', { name: 'Download' });
         const edit = screen.getByRole('link', { name: 'Edit' });
-        expect(download).toHaveClass('h-control', 'flex-1');
-        expect(edit).toHaveClass('h-control', 'flex-1');
-        expect(download.parentElement).toBe(edit.parentElement);
+        expect(download).toHaveClass('h-control', 'w-full');
+        expect(edit).toHaveClass('h-control', 'w-full');
+        for (const button of [download, edit]) {
+            expect(button.parentElement).toHaveClass(
+                'flex-1',
+                'basis-0',
+                'min-w-0',
+            );
+        }
+        expect(download.parentElement?.parentElement).toBe(
+            edit.parentElement?.parentElement,
+        );
     });
 });

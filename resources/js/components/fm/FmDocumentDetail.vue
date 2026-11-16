@@ -113,21 +113,30 @@ const shownGroup = computed(
                 }}</span>
             </div>
             <div class="flex items-center gap-2">
-                <FmButton
-                    :href="document.file.download_url"
-                    download
-                    :icon="Download"
-                    variant="neutral"
-                    class="h-control flex-1 text-action"
-                    >{{ $t('Download') }}</FmButton
-                >
-                <FmButton
+                <div data-equal class="min-w-0 flex-1 basis-0">
+                    <FmButton
+                        :href="document.file.download_url"
+                        download
+                        :icon="Download"
+                        variant="neutral"
+                        wide
+                        class="h-control min-w-0 text-action"
+                        >{{ $t('Download') }}</FmButton
+                    >
+                </div>
+                <div
                     v-if="document.can_edit"
-                    :href="edit.url(document.id)"
-                    :icon="Pencil"
-                    class="h-control flex-1"
-                    >{{ $t('Edit') }}</FmButton
+                    data-equal
+                    class="min-w-0 flex-1 basis-0"
                 >
+                    <FmButton
+                        :href="edit.url(document.id)"
+                        :icon="Pencil"
+                        wide
+                        class="h-control min-w-0"
+                        >{{ $t('Edit') }}</FmButton
+                    >
+                </div>
                 <FmDocumentActions :document="document" compact menu-only />
                 <slot name="actions" />
             </div>
