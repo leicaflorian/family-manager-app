@@ -53,7 +53,7 @@ Codice: `Agenda.vue`, `reminders/EditReminder.vue` (nuovo e modifica), pannelli 
 
 ## Task 4: Schede (`schede`)
 Codice: `Areas.vue`, `Area.vue`, `cards/Card.vue` per ogni tipo di `app/Cards/Types/`, `cards/NewCard.vue`, `cards/EditCard.vue`. Una tavola per tipo di scheda che ha un aspetto suo.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 5: Caricare (`caricare`)
 Codice: `documents/Upload.vue`, `documents/ToSort.vue`, `documents/Import.vue`, `scan/Scan.vue`, `scan/Scanner.vue`, `connect/Connect.vue`, `connect/Linked.vue`, `mail/ReceivedMails.vue`.
