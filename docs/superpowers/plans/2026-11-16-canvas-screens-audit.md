@@ -71,7 +71,7 @@ Tavole nuove già note: modifica persona, modifica ente, invito mandato.
 ## Task 8: Accesso (`accesso`)
 Codice: `auth/*.vue`, `welcome/Welcome.vue`, le email (`resources/views/vendor/mail`, `app/Mail/`).
 Tavole nuove già note: password nuova dal link, conferma dell'email, conferma della password, invito non valido, primo passo del benvenuto.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 9: Impostazioni (`impostazioni`)
 Codice: `settings/*.vue`, `FmFeedbackSheet`.
