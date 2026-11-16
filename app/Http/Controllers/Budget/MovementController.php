@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Budget;
 use App\Actions\Budget\DeleteMovement;
 use App\Actions\Budget\SaveMovement;
 use App\Data\MovementData;
+use App\Data\MovementFiltersData;
 use App\Data\OptionData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\MovementIndexRequest;
@@ -48,11 +49,14 @@ final class MovementController extends Controller
     {
         $month = $request->month();
         $selected = $request->movement();
+        $filters = $request->filters();
 
         return Inertia::render('budget/Movements', [
             ...$this->movements->month($month, $request->kind(), $request->account(), $user),
             'kind' => $request->kind(),
             'account' => $request->account(),
+            'filters' => MovementFiltersData::fromFilters($filters),
+            'search' => $filters->isSearch() ? $this->movements->search($filters, $user) : null,
             'selected' => $selected instanceof Expense || $selected instanceof Income ? MovementData::fromMovement($selected, $user) : null,
             // As on the page of a movement, the due dates are looked for around the movement's own day
             'occurrences' => fn (): array => $this->occurrences($request, $selected instanceof Income ? 'income' : 'expense', $selected->date ?? CarbonImmutable::today('Europe/Rome'), $selected),

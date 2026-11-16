@@ -6,6 +6,8 @@ namespace App\Services;
 
 use App\Data\MonthSummaryData;
 use App\Data\MovementData;
+use App\Data\MovementMonthData;
+use App\Data\MovementSearchData;
 use App\Data\OptionData;
 use App\Enums\IncomeType;
 use App\Models\Expense;
@@ -14,6 +16,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Support\Deadline;
+use App\Support\MovementFilters;
 use App\Support\Occurrence;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
@@ -28,6 +31,9 @@ final readonly class Movements
 {
     /** The relations that the rows and the panel of a movement read. */
     private const array RELATIONS = ['financialAccount', 'organization', 'documents.file', 'documents.person', 'documents.organization'];
+
+    /** How many movements a search shows at most. */
+    public const int SEARCH_LIMIT = 200;
 
     /** How many due dates the menu of a form offers at most. */
     private const int MENU = 36;
@@ -111,6 +117,82 @@ final readonly class Movements
             'summary' => $summary,
             'movements' => array_map(static fn (Expense|Income $movement): MovementData => MovementData::fromMovement($movement, $user, $paths), $shown),
         ];
+    }
+
+    /**
+     * The search of *Movements*: the expenses and incomes that match the filters in every month, grouped by month, the
+     * most recent month first and the most recent movement first. At most {@see self::SEARCH_LIMIT} movements are
+     * returned; `count` and `total` are those of all the matching ones. With both kinds the incomes count positive and
+     * the expenses negative in every total; with one kind the sums are plain. The total of a month is that of the
+     * movements listed in it.
+     *
+     * @param  MovementFilters  $filters  What to look for.
+     * @param  User  $user  Who looks at it, for the permissions of each movement.
+     */
+    public function search(MovementFilters $filters, User $user): MovementSearchData
+    {
+        $signed = $filters->kind === null;
+        $sign = static fn (Expense|Income $movement): int => $signed && $movement instanceof Expense ? -1 : 1;
+
+        $count = 0;
+        $total = 0.0;
+        $found = [];
+
+        if ($filters->kind !== 'income') {
+            $query = $this->matching(Expense::query()->with([...self::RELATIONS, 'category']), $filters);
+            $count += $query->count();
+            $total += ($signed ? -1 : 1) * (float) $query->sum('amount');
+            array_push($found, ...$query->orderByDesc('date')->orderByDesc('id')->limit(self::SEARCH_LIMIT)->get()->all());
+        }
+
+        if ($filters->kind !== 'expense') {
+            $query = $this->matching(Income::query()->with(self::RELATIONS), $filters);
+            $count += $query->count();
+            $total += (float) $query->sum('amount');
+            array_push($found, ...$query->orderByDesc('date')->orderByDesc('id')->limit(self::SEARCH_LIMIT)->get()->all());
+        }
+
+        usort($found, static fn (Expense|Income $a, Expense|Income $b): int => [$b->date, $b instanceof Income, $b->id] <=> [$a->date, $a instanceof Income, $a->id]);
+        $paths = resolve(CategoryTree::class)->paths();
+
+        $groups = [];
+
+        foreach (array_slice($found, 0, self::SEARCH_LIMIT) as $movement) {
+            $groups[$movement->date?->format('Y-m') ?? ''][] = $movement;
+        }
+
+        $months = [];
+
+        foreach ($groups as $month => $movements) {
+            $months[] = new MovementMonthData(
+                month: (string) $month,
+                total: round(array_sum(array_map(static fn (Expense|Income $movement): float => $sign($movement) * (float) $movement->amount, $movements)), 2),
+                movements: array_map(static fn (Expense|Income $movement): MovementData => MovementData::fromMovement($movement, $user, $paths), $movements),
+            );
+        }
+
+        return new MovementSearchData(months: $months, count: $count, total: round($total, 2));
+    }
+
+    /**
+     * The expenses or incomes of the family that match the filters of a search (the kind is chosen by the caller).
+     *
+     * @template TModel of Expense|Income
+     *
+     * @param  Builder<TModel>  $query  The query of the model.
+     * @param  MovementFilters  $filters  What to look for.
+     * @return Builder<TModel>
+     */
+    private function matching(Builder $query, MovementFilters $filters): Builder
+    {
+        return $query
+            // backslash is the escape of LIKE, so a % or _ typed by the person is a plain character
+            ->when($filters->search !== null, static fn (Builder $query) => $query->where('title', 'like', '%'.addcslashes((string) $filters->search, '\\%_').'%'))
+            ->when($filters->account !== null, static fn (Builder $query) => $query->where('financial_account_id', $filters->account))
+            ->when($filters->min !== null, static fn (Builder $query) => $query->where('amount', '>=', $filters->min))
+            ->when($filters->max !== null, static fn (Builder $query) => $query->where('amount', '<=', $filters->max))
+            ->when($filters->from !== null, static fn (Builder $query) => $query->whereDate('date', '>=', $filters->from))
+            ->when($filters->to !== null, static fn (Builder $query) => $query->whereDate('date', '<=', $filters->to));
     }
 
     /**

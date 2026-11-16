@@ -467,6 +467,25 @@ readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 };
+export type MovementFiltersData = {
+readonly search: string | null,
+readonly kind: string | null,
+readonly account: number | null,
+readonly min: number | null,
+readonly max: number | null,
+readonly from: string | null,
+readonly to: string | null,
+};
+export type MovementMonthData = {
+readonly month: string,
+readonly total: number,
+readonly movements: App.Data.MovementData[],
+};
+export type MovementSearchData = {
+readonly months: App.Data.MovementMonthData[],
+readonly count: number,
+readonly total: number,
+};
 export type NoticeRuleData = {
 readonly name: string,
 readonly days: number,
