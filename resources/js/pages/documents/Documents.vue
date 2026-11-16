@@ -9,15 +9,15 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { FileText, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
-import { useComputerLayout } from '@/composables/useLayoutMode';
-import FmActiveFilter from '@/components/fm/FmActiveFilter.vue';
+import { computed, ref } from 'vue';
+import { useListFilters } from '@/composables/useListFilters';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentDetail from '@/components/fm/FmDocumentDetail.vue';
 import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
 import FmFilterAside from '@/components/fm/FmFilterAside.vue';
+import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -29,7 +29,6 @@ import { useToSortCount } from '@/composables/useToSortCount';
 import { categoryOptions } from '@/lib/categories';
 import type { DocumentFilterOptions, DocumentFilters } from '@/lib/documents';
 import { filterQuery } from '@/lib/documents';
-import { cn } from '@/lib/utils';
 import { upload } from '@/routes';
 import { index, show } from '@/routes/documents';
 
@@ -55,8 +54,6 @@ const props = defineProps<{
     selected: App.Data.DocumentDetailData | null;
 }>();
 
-const desktop = useComputerLayout();
-
 const page = usePage();
 
 /** Closes the document in the left column: the same list, filters and page, without the chosen document. */
@@ -74,31 +71,6 @@ function closeSelected(): void {
 /** The panel of the filters, on the phone. */
 const filtersOpen = ref(false);
 
-/** The text in the search box, sent with Enter. */
-const search = ref(props.filters.search ?? '');
-watch(
-    () => props.filters.search,
-    (value) => (search.value = value ?? ''),
-);
-
-/**
- * Reloads the list with other filters, keeping the page where it is.
- *
- * @param filters - the new filters
- */
-function apply(filters: DocumentFilters): void {
-    router.get(index().url, filterQuery(filters), {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-    });
-}
-
-/** Sends the search. */
-function searchDocuments(): void {
-    apply({ ...props.filters, search: search.value.trim() || null });
-}
-
 /** The label of a chosen option, or the value itself if it is not among the options. */
 function labelOf(
     options: { value: string; label: string }[],
@@ -111,7 +83,7 @@ function labelOf(
 }
 
 /** The filters in use, each with its chip and what removing it leaves. */
-const chips = computed(() => {
+const pills = computed(() => {
     const filters = props.filters;
     const list: {
         key: string;
@@ -173,6 +145,22 @@ const chips = computed(() => {
     return list;
 });
 
+/** The search box, the visits with other filters, the pills and the layout. */
+const {
+    desktop,
+    searchText,
+    submitSearch,
+    go,
+    removePill,
+    removeAll,
+    filterCount,
+    layout,
+} = useListFilters<DocumentFilters>({
+    filters: () => props.filters,
+    pills: () => pills.value,
+    url: (query) => index.url({ query: filterQuery(query as DocumentFilters) }),
+});
+
 const count = computed(() =>
     transChoice(
         '{1} :count document, the most recent first|[2,*] :count documents, the most recent first',
@@ -182,6 +170,11 @@ const count = computed(() =>
         },
     ),
 );
+
+/** The page of the list in the address, or null on the first. */
+function currentPage(): string | null {
+    return new URL(page.url, window.location.origin).searchParams.get('page');
+}
 
 /**
  * Where a row leads: on the computer the document on the right of the list,
@@ -193,7 +186,11 @@ const count = computed(() =>
 function rowHref(document: App.Data.DocumentData): string {
     return desktop.value
         ? index.url({
-              query: { ...filterQuery(props.filters), document: document.id },
+              query: {
+                  ...filterQuery(props.filters),
+                  ...(currentPage() ? { page: currentPage() } : {}),
+                  document: document.id,
+              },
           })
         : show.url(document.id);
 }
@@ -224,16 +221,7 @@ function rowHref(document: App.Data.DocumentData): string {
             }}</FmButton>
         </FmEmpty>
 
-        <div
-            v-else
-            :class="
-                cn(
-                    'flex flex-col gap-6',
-                    desktop &&
-                        'grid grid-cols-[16rem_minmax(0,1fr)] items-start',
-                )
-            "
-        >
+        <div v-else :class="layout">
             <FmFilterAside
                 v-if="desktop"
                 :detail="selected !== null"
@@ -244,7 +232,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     <FmDocumentFilters
                         :filters="filters"
                         :options="options"
-                        @change="apply"
+                        @change="go"
                     />
                 </template>
                 <template #detail>
@@ -262,28 +250,26 @@ function rowHref(document: App.Data.DocumentData): string {
                     <form
                         role="search"
                         class="min-w-0 grow"
-                        @submit.prevent="searchDocuments"
+                        @submit.prevent="submitSearch"
                     >
                         <FmSearchField
-                            v-model="search"
+                            v-model="searchText"
                             :label="$t('Search a document')"
                         />
                     </form>
                     <FmFilterButton
                         v-if="!desktop"
-                        :count="chips.length"
+                        :count="filterCount"
                         @click="filtersOpen = true"
                     />
                 </div>
 
-                <div v-if="chips.length > 0" class="flex flex-wrap gap-2">
-                    <FmActiveFilter
-                        v-for="chip in chips"
-                        :key="chip.key"
-                        :label="chip.label"
-                        @remove="apply({ ...filters, ...chip.without })"
-                    />
-                </div>
+                <FmFilterPills
+                    v-if="pills.length > 0"
+                    :pills="pills"
+                    @remove="removePill"
+                    @remove-all="removeAll"
+                />
 
                 <template v-if="documents.length > 0">
                     <span class="mx-1 text-body-sm text-ink-soft">{{
@@ -314,7 +300,7 @@ function rowHref(document: App.Data.DocumentData): string {
             <FmDocumentFilters
                 :filters="filters"
                 :options="options"
-                @change="apply"
+                @change="go"
             />
             <FmButton wide @click="filtersOpen = false">{{
                 $t('Show the documents')

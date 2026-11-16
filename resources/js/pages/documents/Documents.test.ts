@@ -99,8 +99,8 @@ describe('Documents', () => {
         await choose('Person', 'Laura Bianchi');
 
         expect(get).toHaveBeenCalledWith(
-            '/documents',
-            { person: 7 },
+            '/documents?person=7',
+            {},
             expect.objectContaining({ preserveState: true }),
         );
     });
@@ -116,8 +116,8 @@ describe('Documents', () => {
         await fireEvent.submit(screen.getByRole('search'));
 
         expect(get).toHaveBeenCalledWith(
-            '/documents',
-            { search: 'danza' },
+            '/documents?search=danza',
+            {},
             expect.anything(),
         );
     });
@@ -136,8 +136,8 @@ describe('Documents', () => {
         );
 
         expect(get).toHaveBeenCalledWith(
-            '/documents',
-            { expiring: 1 },
+            '/documents?expiring=1',
+            {},
             expect.anything(),
         );
     });
@@ -268,6 +268,36 @@ describe('Documents', () => {
         expect(
             screen.getByRole('dialog', { name: 'Filters' }),
         ).toBeInTheDocument();
+    });
+
+    it('opening a row on page 2 keeps the page', async () => {
+        screenWidth(1280);
+        address.url = '/documents?person=3&page=2';
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Documents, { ...props, filters: { ...none, person: 3 } });
+
+        await fireEvent.click(
+            screen.getByRole('link', { name: /Busta paga di ottobre/ }),
+        );
+
+        const url = JSON.stringify(visit.mock.calls[0][0]);
+        expect(url).toContain('page=2');
+        expect(url).toContain('person=3');
+        expect(url).toContain('document=5');
+    });
+
+    it('the pills have Remove the filters, which takes all the filters away', async () => {
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            filters: { ...none, person: 7, expiring: true },
+        });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Remove the filters' }),
+        );
+
+        expect(get).toHaveBeenCalledWith('/documents', {}, expect.anything());
     });
 
     it('on a short window 1280 px wide, a row leads to the page of the document', () => {
