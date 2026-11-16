@@ -80,7 +80,7 @@ Tavola nuova già nota: categorie delle spese (`ExpenseCategories`).
 
 ## Task 10: Ogni giorno (`giorno`)
 Codice: `Home.vue`, `notices/Notices.vue`, `Search.vue`, il menu del +, *Altro*, la campanella.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 11: Tablet e Tema scuro (`tablet`, `scuro`)
 Codice: `useLayoutMode()` e il layout (`AppLayout`), tema scuro di `tokens.css`. Si allineano alle tavole già aggiornate nelle task di sopra.
