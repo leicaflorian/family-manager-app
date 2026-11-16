@@ -84,4 +84,4 @@ Codice: `Home.vue`, `notices/Notices.vue`, `Search.vue`, il menu del +, *Altro*,
 
 ## Task 11: Tablet e Tema scuro (`tablet`, `scuro`)
 Codice: `useLayoutMode()` e il layout (`AppLayout`), tema scuro di `tokens.css`. Si allineano alle tavole già aggiornate nelle task di sopra.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
