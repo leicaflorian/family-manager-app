@@ -76,7 +76,7 @@ Tavole nuove già note: password nuova dal link, conferma dell'email, conferma d
 ## Task 9: Impostazioni (`impostazioni`)
 Codice: `settings/*.vue`, `FmFeedbackSheet`.
 Tavola nuova già nota: categorie delle spese (`ExpenseCategories`).
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 10: Ogni giorno (`giorno`)
 Codice: `Home.vue`, `notices/Notices.vue`, `Search.vue`, il menu del +, *Altro*, la campanella.
