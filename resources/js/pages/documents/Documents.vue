@@ -2,36 +2,34 @@
 /**
  * *Documents*: the search, the filters (in the panel from below on the phone,
  * open on the left on the computer), the list, 30 at a time, and on the
- * computer the chosen document on the right: in a third column from 1440 px,
- * in a panel floating over the list below that. Without any document, the card
- * that invites to upload the first one.
+ * computer the chosen document in the left column in place of the filters
+ * (`FmFilterAside`), with *Back to the filters*. Without any document, the
+ * card that invites to upload the first one.
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { FileText, Search, X } from '@lucide/vue';
+import { FileText, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
-import {
-    useComputerLayout,
-    useWideComputerLayout,
-} from '@/composables/useLayoutMode';
+import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmActiveFilter from '@/components/fm/FmActiveFilter.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentDetail from '@/components/fm/FmDocumentDetail.vue';
 import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
+import FmFilterAside from '@/components/fm/FmFilterAside.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
-import FmSidePanel from '@/components/fm/FmSidePanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useToSortCount } from '@/composables/useToSortCount';
 import { categoryOptions } from '@/lib/categories';
 import type { DocumentFilterOptions, DocumentFilters } from '@/lib/documents';
 import { filterQuery } from '@/lib/documents';
+import { cn } from '@/lib/utils';
 import { upload } from '@/routes';
 import { index, show } from '@/routes/documents';
 
@@ -59,12 +57,9 @@ const props = defineProps<{
 
 const desktop = useComputerLayout();
 
-/** Wide enough for the chosen document in a third column, as the board draws it. */
-const wide = useWideComputerLayout();
-
 const page = usePage();
 
-/** Closes the floating panel: the same list, filters and page, without the chosen document. */
+/** Closes the document in the left column: the same list, filters and page, without the chosen document. */
 function closeSelected(): void {
     const address = new URL(page.url, window.location.origin);
     address.searchParams.delete('document');
@@ -231,22 +226,36 @@ function rowHref(document: App.Data.DocumentData): string {
 
         <div
             v-else
-            :class="[
-                'flex flex-col gap-6 md:grid md:items-start',
-                selected && wide
-                    ? 'xl:grid-cols-[16rem_minmax(0,3fr)_minmax(0,2fr)]'
-                    : 'xl:grid-cols-[16rem_minmax(0,1fr)]',
-            ]"
+            :class="
+                cn(
+                    'flex flex-col gap-6',
+                    desktop &&
+                        'grid grid-cols-[16rem_minmax(0,1fr)] items-start',
+                )
+            "
         >
-            <aside
-                class="sticky top-(--app-header) hidden rounded-card-lg bg-card p-5 shadow-card xl:block"
+            <FmFilterAside
+                v-if="desktop"
+                :detail="selected !== null"
+                :detail-label="selected?.title"
+                @close="closeSelected"
             >
-                <FmDocumentFilters
-                    :filters="filters"
-                    :options="options"
-                    @change="apply"
-                />
-            </aside>
+                <template #filters>
+                    <FmDocumentFilters
+                        :filters="filters"
+                        :options="options"
+                        @change="apply"
+                    />
+                </template>
+                <template #detail>
+                    <FmDocumentDetail
+                        v-if="selected"
+                        :document="selected"
+                        compact
+                        embedded
+                    />
+                </template>
+            </FmFilterAside>
 
             <div class="flex min-w-0 flex-col gap-3.5">
                 <div class="flex gap-2.5">
@@ -261,8 +270,8 @@ function rowHref(document: App.Data.DocumentData): string {
                         />
                     </form>
                     <FmFilterButton
+                        v-if="!desktop"
                         :count="chips.length"
-                        class="xl:hidden"
                         @click="filtersOpen = true"
                     />
                 </div>
@@ -299,32 +308,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     :text="$t('Remove a filter or change the search.')"
                 />
             </div>
-
-            <section
-                v-if="selected && wide"
-                class="sticky top-(--app-header) min-w-0"
-            >
-                <FmDocumentDetail :document="selected" compact />
-            </section>
         </div>
-
-        <FmSidePanel
-            v-if="selected && !wide"
-            :label="selected.title"
-            @close="closeSelected"
-        >
-            <FmDocumentDetail :document="selected" compact>
-                <template #actions>
-                    <FmButton
-                        variant="soft"
-                        :icon="X"
-                        :label="$t('Close')"
-                        small
-                        @click="closeSelected"
-                    />
-                </template>
-            </FmDocumentDetail>
-        </FmSidePanel>
 
         <FmBottomSheet v-model:open="filtersOpen" :title="$t('Filters')">
             <FmDocumentFilters

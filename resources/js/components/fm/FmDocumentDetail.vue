@@ -21,7 +21,11 @@ import FmDocumentActions from './FmDocumentActions.vue';
 import FmFilePanel from './FmFilePanel.vue';
 import FmIcon from './FmIcon.vue';
 
-const { document, compact = false } = defineProps<{
+const {
+    document,
+    compact = false,
+    embedded = false,
+} = defineProps<{
     /** The document. */
     document: App.Data.DocumentDetailData;
     /**
@@ -29,6 +33,11 @@ const { document, compact = false } = defineProps<{
      * and, on their right, *Download* and the ⋯ menu, icons only.
      */
     compact?: boolean;
+    /**
+     * Inside the left column of *Documents* (`FmFilterAside` is the card):
+     * no card of its own, and a link to the page of the document at the bottom.
+     */
+    embedded?: boolean;
 }>();
 
 defineSlots<{
@@ -79,11 +88,13 @@ const shownGroup = computed(
 
 <template>
     <div
-        :data-card="compact || undefined"
+        :data-card="(compact && !embedded) || undefined"
         :class="
             cn(
                 'flex flex-col gap-4',
-                compact && 'rounded-card-lg bg-card p-5.5 shadow-card',
+                compact &&
+                    !embedded &&
+                    'rounded-card-lg bg-card p-5.5 shadow-card',
             )
         "
     >
@@ -282,5 +293,13 @@ const shownGroup = computed(
                 </section>
             </div>
         </div>
+
+        <FmButton
+            v-if="embedded"
+            :href="show.url(document.id)"
+            variant="soft"
+            wide
+            >{{ $t('Open the page of the document') }}</FmButton
+        >
     </div>
 </template>

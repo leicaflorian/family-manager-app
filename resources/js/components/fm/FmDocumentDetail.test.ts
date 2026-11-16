@@ -227,4 +227,29 @@ describe('FmDocumentDetail', () => {
             screen.queryByRole('link', { name: /Spesa di ottobre/ }),
         ).not.toBeInTheDocument();
     });
+
+    it('embedded in the filters column: no card of its own and a link to the page of the document', () => {
+        const { container } = render(FmDocumentDetail, {
+            props: { document: documentDetail, compact: true, embedded: true },
+            global: { plugins: formPlugins },
+        });
+
+        expect(container.querySelector('[data-card]')).toBeNull();
+        expect(
+            screen.getByRole('link', { name: 'Open the page of the document' }),
+        ).toHaveAttribute('href', `/documents/${documentDetail.id}`);
+    });
+
+    it('beside the list, on its own card, has no link to the page at the bottom', () => {
+        render(FmDocumentDetail, {
+            props: { document: documentDetail, compact: true },
+            global: { plugins: formPlugins },
+        });
+
+        expect(
+            screen.queryByRole('link', {
+                name: 'Open the page of the document',
+            }),
+        ).not.toBeInTheDocument();
+    });
 });
