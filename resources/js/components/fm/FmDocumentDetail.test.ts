@@ -275,8 +275,11 @@ describe('FmDocumentDetail', () => {
                 'min-w-0',
             );
         }
-        expect(download.parentElement?.parentElement).toBe(
-            edit.parentElement?.parentElement,
-        );
+        const row = download.parentElement?.parentElement;
+        expect(row).toBe(edit.parentElement?.parentElement);
+        expect(row?.children).toHaveLength(2);
+        expect(
+            screen.queryByRole('button', { name: 'More actions' }),
+        ).not.toBeInTheDocument();
     });
 });

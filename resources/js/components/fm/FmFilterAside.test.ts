@@ -26,6 +26,18 @@ describe('FmFilterAside', () => {
         expect(screen.queryByText('The filters')).not.toBeInTheDocument();
     });
 
+    it('puts the detail-actions slot in the header, before the ×', () => {
+        render(FmFilterAside, {
+            props: { detail: true },
+            slots: { ...slots, 'detail-actions': '<button>Extra</button>' },
+        });
+
+        const names = screen
+            .getAllByRole('button')
+            .map((b) => b.getAttribute('aria-label') ?? b.textContent);
+        expect(names.indexOf('Extra')).toBe(names.indexOf('Close') - 1);
+    });
+
     it('emits close from Back to the filters and from Close', async () => {
         const view = render(FmFilterAside, {
             props: { detail: true },

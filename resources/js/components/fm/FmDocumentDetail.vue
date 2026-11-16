@@ -120,8 +120,10 @@ const shownGroup = computed(
                         :icon="Download"
                         variant="neutral"
                         wide
-                        class="h-control min-w-0 text-action"
-                        >{{ $t('Download') }}</FmButton
+                        class="h-control min-w-0 gap-2 px-3.5! text-action"
+                        ><span class="truncate">{{
+                            $t('Download')
+                        }}</span></FmButton
                     >
                 </div>
                 <div
@@ -133,12 +135,12 @@ const shownGroup = computed(
                         :href="edit.url(document.id)"
                         :icon="Pencil"
                         wide
-                        class="h-control min-w-0"
-                        >{{ $t('Edit') }}</FmButton
+                        class="h-control min-w-0 gap-2 px-3.5!"
+                        ><span class="truncate">{{
+                            $t('Edit')
+                        }}</span></FmButton
                     >
                 </div>
-                <FmDocumentActions :document="document" compact menu-only />
-                <slot name="actions" />
             </div>
         </div>
 

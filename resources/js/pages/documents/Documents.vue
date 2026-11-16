@@ -14,6 +14,7 @@ import { useListFilters } from '@/composables/useListFilters';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
+import FmDocumentActions from '@/components/fm/FmDocumentActions.vue';
 import FmDocumentDetail from '@/components/fm/FmDocumentDetail.vue';
 import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
 import FmFilterAside from '@/components/fm/FmFilterAside.vue';
@@ -234,6 +235,14 @@ function rowHref(document: App.Data.DocumentData): string {
                         :filters="filters"
                         :options="options"
                         @change="go"
+                    />
+                </template>
+                <template #detail-actions>
+                    <FmDocumentActions
+                        v-if="selected"
+                        :document="selected"
+                        compact
+                        menu-only
                     />
                 </template>
                 <template #detail>

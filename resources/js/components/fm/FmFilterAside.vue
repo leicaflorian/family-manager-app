@@ -45,6 +45,8 @@ defineSlots<{
     filters: () => unknown;
     /** The detail of the chosen row. */
     detail: () => unknown;
+    /** Icon buttons of the detail header, before the ×, as its ⋯ menu. */
+    'detail-actions'?: () => unknown;
 }>();
 </script>
 
@@ -66,14 +68,17 @@ defineSlots<{
                     $t('Back to the filters')
                 }}
             </button>
-            <button
-                type="button"
-                :aria-label="$t('Close')"
-                class="flex size-touch shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-ink-soft"
-                @click="emit('close')"
-            >
-                <FmIcon :icon="X" :size="22" />
-            </button>
+            <div class="flex shrink-0 items-center">
+                <slot name="detail-actions" />
+                <button
+                    type="button"
+                    :aria-label="$t('Close')"
+                    class="flex size-touch shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-ink-soft"
+                    @click="emit('close')"
+                >
+                    <FmIcon :icon="X" :size="22" />
+                </button>
+            </div>
         </div>
         <slot name="detail" />
     </aside>

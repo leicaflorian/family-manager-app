@@ -106,7 +106,7 @@ const actions = computed((): Action[] => [
             :href="document.file.download_url"
             download
         />
-        <FmMenu small>
+        <FmMenu :small="!menuOnly" :plain="menuOnly">
             <FmMenuItem :icon="ExternalLink" :href="document.file.url" external>
                 {{ $t('Open in a new tab') }}
             </FmMenuItem>
