@@ -19,7 +19,8 @@ import {
     Repeat,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -146,6 +147,18 @@ const payingOpen = ref(false);
 /** The due date opened on arrival and where its panel goes back, kept once the address loses them. */
 const arrival = { date: opening?.original_date ?? null, back };
 
+// Going back elsewhere belongs to the panel opened on arrival: once it closes,
+// a panel opened from the page stays on the page (from Change this due date
+// to I paid it both are briefly true or false in the same tick, so it carries on)
+watch(
+    () => changingOpen.value || payingOpen.value,
+    (open) => {
+        if (!open) {
+            arrival.back = null;
+        }
+    },
+);
+
 /**
  * Opens the payment panel of a due date.
  *
@@ -240,6 +253,9 @@ onMounted(() => {
         change(opening);
     } else if (detail.can_pay && payable) {
         startPaying(opening);
+    } else if (opening.skipped) {
+        // Nothing opens for who cannot change it: the link still says why
+        toast.info(trans('This due date is skipped: it is not paid.'));
     }
 });
 

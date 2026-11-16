@@ -208,7 +208,20 @@ final readonly class Deadlines
      */
     public function findByAddress(string $kind, string $id, string $date, bool $withSkipped = false): Deadline
     {
-        $planned = PlannedKind::find($kind, $id);
+        return $this->findOnDay(PlannedKind::find($kind, $id), $date, $withSkipped);
+    }
+
+    /**
+     * The due date of a planned item already in hand, from the day of its address.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     * @param  string  $date  The day the rules give, `yyyy-mm-dd`.
+     * @param  bool  $withSkipped  Whether a skipped due date is found too, flagged `skipped`.
+     *
+     * @throws NotFoundHttpException if the day is not one of its due dates
+     */
+    public function findOnDay(PlannedExpense|PlannedIncome $planned, string $date, bool $withSkipped = false): Deadline
+    {
         $day = CarbonImmutable::createFromFormat('!Y-m-d', $date, 'Europe/Rome');
 
         // A date such as 2026-13-45 is read as another day: it must come back the same
