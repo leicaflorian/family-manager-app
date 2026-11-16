@@ -11,6 +11,7 @@ import {
     policyFields,
 } from '@/test/fixtures';
 import {
+    choose,
     renderPage,
     withTrail,
     settle,
@@ -566,5 +567,104 @@ describe('EditCard on the computer', () => {
             ).toBe(shown);
             view.unmount();
         }
+    });
+});
+
+describe('The box that cancels the old policy', () => {
+    const type: App.Data.CardTypeData = {
+        type: 'insurance_policy',
+        label: 'Insurance policy',
+        plural_label: 'Policies',
+        description: '',
+        area: 'insurance',
+        area_label: 'Insurance',
+    };
+    const old: App.Data.ReplaceablePolicyData = {
+        id: 7,
+        label: 'RC Auto · 40/123456 · UnipolSai',
+        expiry_date: '2026-11-21',
+        type: 'car',
+        vehicle_id: 1,
+        home_id: null,
+        employment_id: null,
+    };
+    const page = {
+        type,
+        fields: policyFields,
+        values: { title: 'RC Auto', type: 'car', vehicle_id: '1' },
+        card: null,
+        replaceable: [old],
+    };
+
+    it('ticks the old policy when it comes from a renewal', () => {
+        renderPage(EditCard, { ...page, replaces: [7], payment: 33 });
+
+        expect(
+            screen.getByRole('checkbox', {
+                name: /Cancel the policy RC Auto · 40\/123456 · UnipolSai/,
+            }),
+        ).toBeChecked();
+        expect(
+            screen.getByText(
+                'Expires on 21/11/2026. Its planned expense moves to the new one.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('leaves the box unticked for a new policy by hand', () => {
+        renderPage(EditCard, { ...page, replaces: [], payment: null });
+
+        expect(
+            screen.getByRole('checkbox', { name: /Cancel the policy RC Auto/ }),
+        ).not.toBeChecked();
+    });
+
+    it('drops the old policy when the type changes', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditCard, { ...page, replaces: [7], payment: 33 });
+
+        await choose('Type', 'Home');
+
+        expect(
+            screen.queryByRole('checkbox', { name: /Cancel the policy/ }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        const body = post.mock.calls[0]![1] as Record<string, unknown>;
+        expect(body).not.toHaveProperty('replace_policies');
+        expect(body).not.toHaveProperty('replace_payment');
+    });
+
+    it('sends the payment with the policy to replace', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditCard, { ...page, replaces: [7], payment: 33 });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post).toHaveBeenCalledWith(
+            '/cards/insurance_policy',
+            expect.objectContaining({
+                replace_policies: [7],
+                replace_payment: 33,
+            }),
+            expect.anything(),
+        );
+    });
+
+    it('sends no payment when the box is unticked', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditCard, { ...page, replaces: [7], payment: 33 });
+
+        await userEvent.click(screen.getByRole('checkbox', { name: /Cancel the policy/ }));
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        const body = post.mock.calls[0]![1] as Record<string, unknown>;
+        expect(body).not.toHaveProperty('replace_policies');
+        expect(body).not.toHaveProperty('replace_payment');
     });
 });
