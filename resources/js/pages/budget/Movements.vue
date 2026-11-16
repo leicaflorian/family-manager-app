@@ -215,10 +215,10 @@ function subtitle(movement: App.Data.MovementData): string {
         <div
             :class="
                 cn(
-                    'flex flex-col gap-6 lg:grid lg:items-start',
+                    'flex flex-col gap-6 computer:grid computer:items-start',
                     panelOpen
-                        ? 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'
-                        : 'lg:grid-cols-1',
+                        ? 'computer:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'
+                        : 'computer:grid-cols-1',
                 )
             "
         >
@@ -232,12 +232,12 @@ function subtitle(movement: App.Data.MovementData): string {
 
                 <div class="grid grid-cols-3 gap-2.5">
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
                     >
                         <span class="text-meta text-ink-soft">{{
                             $t('Money in')
                         }}</span>
-                        <span class="text-subtitle lg:text-stat">{{
+                        <span class="text-subtitle computer:text-stat">{{
                             euro(summary.incomes)
                         }}</span>
                         <span v-if="salaries" class="text-meta text-ink-soft">{{
@@ -245,12 +245,12 @@ function subtitle(movement: App.Data.MovementData): string {
                         }}</span>
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
                     >
                         <span class="text-meta text-ink-soft">{{
                             $t('Money out')
                         }}</span>
-                        <span class="text-subtitle lg:text-stat">{{
+                        <span class="text-subtitle computer:text-stat">{{
                             euro(summary.expenses)
                         }}</span>
                         <span class="text-meta text-ink-soft">{{
@@ -258,12 +258,12 @@ function subtitle(movement: App.Data.MovementData): string {
                         }}</span>
                     </div>
                     <div
-                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card lg:p-4"
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
                     >
                         <span class="text-meta text-ink-soft">{{
                             $t('So far')
                         }}</span>
-                        <span class="text-subtitle lg:text-stat">
+                        <span class="text-subtitle computer:text-stat">
                             <FmAmount
                                 v-if="summary.balance >= 0"
                                 :amount="summary.balance"
@@ -367,7 +367,7 @@ function subtitle(movement: App.Data.MovementData): string {
 
             <section
                 v-if="panelOpen"
-                class="sticky top-(--app-header) hidden min-w-0 lg:block"
+                class="sticky top-(--app-header) hidden min-w-0 computer:block"
             >
                 <FmMovementPanel
                     :key="selected ? `${selected.kind}:${selected.id}` : 'new'"

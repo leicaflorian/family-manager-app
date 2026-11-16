@@ -87,7 +87,7 @@ const note = computed((): string => {
 
         <div
             v-if="numbers.length > 0"
-            class="grid grid-cols-2 gap-3 lg:max-w-[560px]"
+            class="grid grid-cols-2 gap-3 wide:max-w-[560px]"
         >
             <FmNumberTile
                 v-for="number in numbers"

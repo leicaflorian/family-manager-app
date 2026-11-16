@@ -141,7 +141,7 @@ const layout = useLayoutMode();
         </FmTitle>
 
         <form
-            class="flex max-w-[720px] flex-col gap-6 rounded-sheet bg-card p-5 shadow-card lg:p-7"
+            class="flex max-w-[720px] flex-col gap-6 rounded-sheet bg-card p-5 shadow-card wide:p-7"
             novalidate
             @submit.prevent="save"
         >

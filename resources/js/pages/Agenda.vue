@@ -480,7 +480,7 @@ const payAction = computed((): string =>
         <div
             v-if="!doneView && late > 0"
             role="status"
-            class="flex items-center gap-2.5 rounded-lg bg-overdue-soft px-3.5 py-2.5 text-label text-overdue lg:px-4 lg:py-3"
+            class="flex items-center gap-2.5 rounded-lg bg-overdue-soft px-3.5 py-2.5 text-label text-overdue computer:px-4 computer:py-3"
         >
             <FmIcon :icon="CircleAlert" :size="18" />
             {{
@@ -562,7 +562,7 @@ const payAction = computed((): string =>
             >
                 <template v-if="doneView" #actions>
                     <span
-                        class="text-meta whitespace-nowrap text-ink-soft lg:text-body-sm"
+                        class="text-meta whitespace-nowrap text-ink-soft computer:text-body-sm"
                         >{{ group.entries.length }}</span
                     >
                 </template>

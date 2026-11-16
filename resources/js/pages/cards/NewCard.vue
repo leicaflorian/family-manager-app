@@ -109,7 +109,7 @@ function tile(area: string): string {
                 {{ group.types[0]?.area_label }}
             </h2>
             <div
-                class="grid gap-3 lg:grid-cols-[repeat(auto-fill,minmax(320px,1fr))]"
+                class="grid gap-3 wide:grid-cols-[repeat(auto-fill,minmax(320px,1fr))]"
             >
                 <Link
                     v-for="type in group.types"

@@ -74,7 +74,7 @@ function sendLink(): void {
                 )
             }}
         </FmNotice>
-        <span class="min-h-6 grow lg:hidden" />
+        <span class="min-h-6 grow computer:hidden" />
         <FmButton type="submit" wide :disabled="form.processing">
             {{ status ? $t('Send me the link again') : $t('Send me the link') }}
         </FmButton>

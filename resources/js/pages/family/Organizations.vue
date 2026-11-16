@@ -122,7 +122,7 @@ const shown = computed(() =>
 
             <div
                 v-if="shown.length > 0"
-                class="overflow-hidden rounded-card bg-card shadow-card lg:grid lg:grid-cols-[repeat(auto-fill,minmax(420px,1fr))]"
+                class="overflow-hidden rounded-card bg-card shadow-card wide:grid wide:grid-cols-[repeat(auto-fill,minmax(420px,1fr))]"
             >
                 <FmRow
                     v-for="organization in shown"

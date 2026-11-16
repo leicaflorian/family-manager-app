@@ -132,7 +132,7 @@ usePageTrail(() => [
                     :size="64"
                 />
                 <div class="flex flex-col gap-1">
-                    <h1 class="m-0 text-title-mobile lg:text-title">
+                    <h1 class="m-0 text-title-mobile wide:text-title">
                         {{ name }}
                     </h1>
                     <span class="text-body-sm text-ink-soft">{{
@@ -144,7 +144,7 @@ usePageTrail(() => [
         </div>
 
         <div
-            class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start"
+            class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_360px] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
                 <FmNotice

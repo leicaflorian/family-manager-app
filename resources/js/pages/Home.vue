@@ -149,10 +149,10 @@ function mailTitle(mail: App.Data.HomeMailData): string {
             :class="wide ? 'items-end' : 'items-center'"
         >
             <div class="flex flex-col gap-1">
-                <span class="text-body-sm text-ink-soft lg:text-body-sm">{{
+                <span class="text-body-sm text-ink-soft wide:text-body-sm">{{
                     day
                 }}</span>
-                <h1 class="m-0 text-title-mobile lg:text-title">
+                <h1 class="m-0 text-title-mobile wide:text-title">
                     {{ $t('Hi, :name', { name: home.first_name }) }}
                 </h1>
             </div>
@@ -202,10 +202,10 @@ function mailTitle(mail: App.Data.HomeMailData): string {
             </FmButton>
         </section>
 
-        <div class="grid gap-5 lg:grid-cols-5 lg:items-start lg:gap-6">
+        <div class="grid gap-5 wide:grid-cols-5 wide:items-start wide:gap-6">
             <div
                 class="flex min-w-0 flex-col gap-5"
-                :class="hasRightColumn ? 'lg:col-span-3' : 'lg:col-span-5'"
+                :class="hasRightColumn ? 'wide:col-span-3' : 'wide:col-span-5'"
             >
                 <FmTotal
                     :total="home.total"
@@ -236,9 +236,9 @@ function mailTitle(mail: App.Data.HomeMailData): string {
 
             <div
                 v-if="hasRightColumn"
-                class="flex min-w-0 flex-col gap-5 lg:col-span-2"
+                class="flex min-w-0 flex-col gap-5 wide:col-span-2"
                 :class="{
-                    'max-lg:hidden':
+                    'not-wide:hidden':
                         home.incoming.length === 0 &&
                         home.missing.length === 0 &&
                         home.mails.length === 0,
@@ -256,7 +256,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                         layout="home"
                     />
                 </FmCard>
-                <FmCard v-else :title="$t('Incoming')" class="max-lg:hidden">
+                <FmCard v-else :title="$t('Incoming')" class="not-wide:hidden">
                     <p class="m-0 text-body-sm text-ink-soft">
                         {{
                             $t(

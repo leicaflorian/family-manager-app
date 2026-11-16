@@ -230,7 +230,7 @@ const layout = useLayoutMode();
             </template>
         </FmTitle>
         <div
-            class="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start"
+            class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-6">
                 <FmCardFiles
@@ -249,7 +249,7 @@ const layout = useLayoutMode();
                 <div
                     v-if="card && budget"
                     data-testid="card-payments"
-                    class="hidden flex-col gap-5 lg:flex"
+                    class="hidden flex-col gap-5 wide:flex"
                 >
                     <FmCardPayments
                         :budget="budget"
@@ -257,7 +257,7 @@ const layout = useLayoutMode();
                     />
                 </div>
             </div>
-            <div class="rounded-sheet bg-card p-5 shadow-card lg:p-7">
+            <div class="rounded-sheet bg-card p-5 shadow-card wide:p-7">
                 <FmCardForm
                     :fields="fields"
                     :values="values"

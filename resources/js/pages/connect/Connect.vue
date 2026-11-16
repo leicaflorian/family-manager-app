@@ -76,7 +76,7 @@ function link(): void {
             <p v-if="form.errors.code" role="alert" class="m-0 text-ink-soft">
                 {{ form.errors.code }}
             </p>
-            <span class="min-h-6 grow lg:hidden" />
+            <span class="min-h-6 grow computer:hidden" />
             <FmButton type="submit" wide :disabled="form.processing">{{
                 $t('Link this phone')
             }}</FmButton>
@@ -96,9 +96,11 @@ function link(): void {
                 autocapitalize="characters"
                 autocorrect="off"
                 spellcheck="false"
-                :errors="fieldErrors(form.errors.code ?? errors.code ?? blocked)"
+                :errors="
+                    fieldErrors(form.errors.code ?? errors.code ?? blocked)
+                "
             />
-            <span class="min-h-6 grow lg:hidden" />
+            <span class="min-h-6 grow computer:hidden" />
             <FmButton type="submit" wide :disabled="form.processing">{{
                 $t('Connect')
             }}</FmButton>

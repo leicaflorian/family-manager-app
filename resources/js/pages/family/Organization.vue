@@ -5,14 +5,7 @@
  * code. An `admin` edits and deletes it: its documents and records stay.
  */
 import { Head } from '@inertiajs/vue3';
-import {
-    Globe,
-    Mail,
-    Pencil,
-    Phone,
-    StickyNote,
-    Trash2,
-} from '@lucide/vue';
+import { Globe, Mail, Pencil, Phone, StickyNote, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
@@ -113,10 +106,10 @@ usePageTrail(() => [
                     :logo="organization.logo"
                     :name="organization.name"
                     :icon-size="28"
-                    class="size-14 rounded-card bg-card shadow-card lg:size-16"
+                    class="size-14 rounded-card bg-card shadow-card wide:size-16"
                 />
                 <div class="flex flex-col gap-1">
-                    <h1 class="m-0 text-title-mobile lg:text-title">
+                    <h1 class="m-0 text-title-mobile wide:text-title">
                         {{ organization.name }}
                     </h1>
                     <span
@@ -130,7 +123,7 @@ usePageTrail(() => [
         </div>
 
         <div
-            class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start"
+            class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_360px] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
                 <FmLinkedRecords :groups="links" />

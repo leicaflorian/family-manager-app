@@ -94,7 +94,7 @@ function logIn(): void {
                 {{ $t('Forgot your password?') }}
             </Link>
         </div>
-        <span class="min-h-6 grow lg:hidden" />
+        <span class="min-h-6 grow computer:hidden" />
         <FmButton type="submit" wide :disabled="form.processing">{{
             $t('Log in')
         }}</FmButton>

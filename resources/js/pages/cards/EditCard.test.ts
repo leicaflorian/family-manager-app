@@ -418,7 +418,7 @@ describe('Edit a card', () => {
         });
 
         const column = screen.getByTestId('card-payments');
-        expect(column).toHaveClass('hidden', 'lg:flex');
+        expect(column).toHaveClass('hidden', 'wide:flex');
         expect(
             within(column).getByRole('heading', { name: 'Expected expenses' }),
         ).toBeInTheDocument();
@@ -667,7 +667,9 @@ describe('The box that cancels the old policy', () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditCard, { ...page, replaces: [7], payment: 33 });
 
-        await userEvent.click(screen.getByRole('checkbox', { name: /Cancel the policy/ }));
+        await userEvent.click(
+            screen.getByRole('checkbox', { name: /Cancel the policy/ }),
+        );
         await settle();
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         await settle();

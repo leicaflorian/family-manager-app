@@ -225,10 +225,10 @@ useSaveShortcut(save, () => !form.processing);
             <FmNotice>{{ recipientsSentence(recipients) }}</FmNotice>
 
             <div
-                class="sticky bottom-0 -mx-5 flex gap-2.5 bg-card px-5 pt-2 pb-1 lg:static lg:m-0 lg:justify-end lg:p-0 lg:pt-2"
+                class="sticky bottom-0 -mx-5 flex gap-2.5 bg-card px-5 pt-2 pb-1 computer:static computer:m-0 computer:justify-end computer:p-0 computer:pt-2"
             >
                 <FmDeleteButton
-                    class="lg:mr-auto"
+                    class="computer:mr-auto"
                     v-if="can_delete && reminder"
                     :url="destroy.url(reminder.id)"
                     :question="$t('Delete this task?')"
@@ -238,13 +238,13 @@ useSaveShortcut(save, () => !form.processing);
                 <FmButton
                     :variant="desktop ? 'text' : 'soft'"
                     :href="agendaRoute().url"
-                    class="flex-1 lg:flex-none"
+                    class="flex-1 computer:flex-none"
                     data-discard-changes
                     >{{ $t('Cancel') }}</FmButton
                 >
                 <FmButton
                     type="submit"
-                    class="flex-2 lg:flex-none lg:px-7"
+                    class="flex-2 computer:flex-none computer:px-7"
                     :disabled="form.processing"
                     >{{ $t('Save') }}</FmButton
                 >

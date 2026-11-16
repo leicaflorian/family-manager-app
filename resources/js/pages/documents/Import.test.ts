@@ -175,8 +175,8 @@ describe('Import', () => {
     it('keeps the preview of the file 24 px under the top bar while the form scrolls, on the computer, as the board Importa (pc)', () => {
         const { container } = renderPage(Import, props([light, gas]));
 
-        expect(container.querySelector('.lg\\:sticky')).toHaveClass(
-            'lg:top-[calc(var(--app-header)+24px)]',
+        expect(container.querySelector('.computer\\:sticky')).toHaveClass(
+            'computer:top-[calc(var(--app-header)+24px)]',
         );
     });
 
