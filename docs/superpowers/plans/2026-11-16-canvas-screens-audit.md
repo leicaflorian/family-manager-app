@@ -61,12 +61,12 @@ Codice: `documents/Upload.vue`, `documents/ToSort.vue`, `documents/Import.vue`, 
 
 ## Task 6: Documenti (`documenti`)
 Codice: `documents/Documents.vue`, `documents/Document.vue`, `documents/EditDocument.vue`.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 7: Famiglia (`famiglia`)
 Codice: `family/People.vue`, `Person.vue`, `EditPerson.vue`, `Organizations.vue`, `Organization.vue`, `EditOrganization.vue`, `Invite.vue`, `InvitationSent.vue`.
 Tavole nuove già note: modifica persona, modifica ente, invito mandato.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 8: Accesso (`accesso`)
 Codice: `auth/*.vue`, `welcome/Welcome.vue`, le email (`resources/views/vendor/mail`, `app/Mail/`).
