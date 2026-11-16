@@ -75,7 +75,7 @@ function go(month: string): void {
 
 /** The classes of a number at the top. */
 const tile = cn(
-    'flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card lg:p-4',
+    'flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4',
 );
 </script>
 
@@ -96,7 +96,7 @@ const tile = cn(
         >
             <div :class="tile">
                 <span class="text-meta text-ink-soft">{{ $t('Planned') }}</span>
-                <span class="text-subtitle lg:text-stat">{{
+                <span class="text-subtitle computer:text-stat">{{
                     euro(comparison.planned)
                 }}</span>
                 <span class="text-meta text-ink-soft">{{ outgoing }}</span>
@@ -108,7 +108,7 @@ const tile = cn(
                 <span
                     :class="
                         cn(
-                            'text-subtitle lg:text-stat',
+                            'text-subtitle computer:text-stat',
                             comparison.spent > comparison.planned &&
                                 'text-overdue',
                         )
@@ -119,7 +119,7 @@ const tile = cn(
             </div>
             <div v-if="desktop" :class="tile">
                 <span class="text-meta text-ink-soft">{{ $t('Income') }}</span>
-                <span class="text-subtitle text-paid lg:text-stat">{{
+                <span class="text-subtitle text-paid computer:text-stat">{{
                     euro(comparison.incomes)
                 }}</span>
                 <span class="text-meta text-ink-soft">{{
@@ -131,7 +131,11 @@ const tile = cn(
         </div>
 
         <div class="flex flex-col gap-4">
-            <FmCard :title="$t('By category')" list class="order-2 lg:order-1">
+            <FmCard
+                :title="$t('By category')"
+                list
+                class="order-2 computer:order-1"
+            >
                 <FmCategoryBar
                     v-for="category in comparison.categories"
                     :key="category.name"
@@ -151,7 +155,7 @@ const tile = cn(
 
             <FmCard
                 :title="$t('Expenses, the last 6 months')"
-                class="order-1 lg:order-2"
+                class="order-1 computer:order-2"
             >
                 <FmBarChart :months="comparison.months" />
             </FmCard>

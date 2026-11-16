@@ -8,14 +8,14 @@
  * without an account.
  */
 import { Head, Link } from '@inertiajs/vue3';
-import { ChevronLeft, Pencil, Trash2, UserX } from '@lucide/vue';
+import { Pencil, Trash2, UserX } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmActions from '@/components/fm/FmActions.vue';
+import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import { useFormat } from '@/composables/useFormat';
@@ -120,13 +120,7 @@ usePageTrail(() => [
     <Head :title="name" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <Link
-            :href="index().url"
-            class="flex items-center gap-1.5 self-start text-row no-underline"
-        >
-            <FmIcon :icon="ChevronLeft" :size="18" />
-            {{ $t('People') }}
-        </Link>
+        <FmBackLink :href="index().url" :label="$t('People')" />
 
         <!-- As in FmTitle: the actions take the room the name leaves -->
         <div class="flex items-center justify-between gap-4">
@@ -138,7 +132,7 @@ usePageTrail(() => [
                     :size="64"
                 />
                 <div class="flex flex-col gap-1">
-                    <h1 class="m-0 text-title-mobile lg:text-title">
+                    <h1 class="m-0 text-title-mobile wide:text-title">
                         {{ name }}
                     </h1>
                     <span class="text-body-sm text-ink-soft">{{
@@ -150,7 +144,7 @@ usePageTrail(() => [
         </div>
 
         <div
-            class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start"
+            class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_360px] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
                 <FmNotice

@@ -303,7 +303,7 @@ usePageTrail(() => [
             <template #actions>
                 <!-- Linking is done from the computer, as the board «Account» has it -->
                 <FmSectionLink
-                    class="hidden lg:inline-flex"
+                    class="hidden computer:inline-flex"
                     :icon="Plus"
                     @click="linkPhone = true"
                     >{{ $t('Link a phone') }}</FmSectionLink
@@ -431,7 +431,7 @@ usePageTrail(() => [
                     :errors="errors(passwordChange.errors.password)"
                 />
                 <div
-                    class="flex flex-col gap-1 pt-2 lg:flex-row-reverse lg:gap-2.5"
+                    class="flex flex-col gap-1 pt-2 computer:flex-row-reverse computer:gap-2.5"
                 >
                     <FmButton
                         type="submit"
@@ -469,7 +469,7 @@ usePageTrail(() => [
                     :errors="errors(deletion.errors.password)"
                 />
                 <div
-                    class="flex flex-col gap-1 pt-2 lg:flex-row-reverse lg:gap-2.5"
+                    class="flex flex-col gap-1 pt-2 computer:flex-row-reverse computer:gap-2.5"
                 >
                     <FmButton
                         type="submit"

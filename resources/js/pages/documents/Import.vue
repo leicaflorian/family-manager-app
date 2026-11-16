@@ -735,7 +735,7 @@ usePageTrail(() => [
 
             <div class="flex flex-wrap items-start gap-6">
                 <div
-                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-segment p-5 lg:sticky lg:top-[calc(var(--app-header)+24px)] lg:p-8"
+                    class="flex min-w-0 flex-[1_1_400px] flex-col items-center gap-3.5 rounded-sheet bg-segment p-5 computer:sticky computer:top-[calc(var(--app-header)+24px)] computer:p-8"
                 >
                     <FmFilePreview
                         :url="current.url"
@@ -778,7 +778,7 @@ usePageTrail(() => [
                 <!-- On the phone the wait comes before the file, as the board Importa-lettura -->
                 <section
                     :aria-label="$t('The document')"
-                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-card p-5 shadow-card lg:p-7"
+                    class="flex min-w-0 flex-[1_1_460px] flex-col gap-3.5 rounded-sheet bg-card p-5 shadow-card computer:p-7"
                     :class="{ 'order-first': waiting && !desktop }"
                 >
                     <FmNotice v-if="problemOf(current)" tone="warning">

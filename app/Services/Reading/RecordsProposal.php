@@ -153,6 +153,7 @@ final readonly class RecordsProposal
             fields: $existing === null ? $this->fields($draft->kind, $values, $draft->cardType) : [],
             complete: $existing === null ? $this->fromDocument($draft->kind, $values, $draft->cardType) : [],
             cardType: $draft->cardType,
+            replaces: RecordDrafts::replaces($draft->kind, $values, $existing),
         );
     }
 

@@ -67,9 +67,9 @@ defineSlots<{
 </script>
 
 <template>
-    <div class="flex min-h-dvh bg-card text-ink lg:bg-canvas">
+    <div class="flex min-h-dvh bg-card text-ink computer:bg-canvas">
         <aside
-            class="hidden w-[42%] max-w-[600px] flex-col justify-between gap-5 bg-linear-160 from-hero to-hero-end p-12 text-on-hero lg:flex"
+            class="hidden w-[42%] max-w-[600px] flex-col justify-between gap-5 bg-linear-160 from-hero to-hero-end p-12 text-on-hero computer:flex"
         >
             <div class="flex items-center gap-3">
                 <FmLogo white :size="44" />
@@ -100,14 +100,14 @@ defineSlots<{
         </aside>
 
         <main
-            class="relative flex grow items-stretch justify-center overflow-hidden lg:items-center lg:p-12"
+            class="relative flex grow items-stretch justify-center overflow-hidden computer:items-center computer:p-12"
         >
             <!-- Only decoration, on the computer: the empty space around the card -->
             <svg
                 aria-hidden="true"
                 viewBox="0 0 1060 900"
                 preserveAspectRatio="xMidYMid slice"
-                class="pointer-events-none absolute inset-0 hidden size-full lg:block"
+                class="pointer-events-none absolute inset-0 hidden size-full computer:block"
             >
                 <defs>
                     <filter
@@ -145,9 +145,9 @@ defineSlots<{
                 </g>
             </svg>
             <div
-                class="relative flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 lg:rounded-sheet lg:bg-card lg:p-9 lg:shadow-card"
+                class="relative flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 computer:rounded-sheet computer:bg-card computer:p-9 computer:shadow-card"
             >
-                <div class="flex items-center gap-2.5 lg:hidden">
+                <div class="flex items-center gap-2.5 computer:hidden">
                     <FmLogo :size="36" />
                     <span class="text-body">{{ appName }}</span>
                 </div>

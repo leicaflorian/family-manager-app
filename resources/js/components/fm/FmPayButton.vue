@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * *Record payment* (or *Record income*) of a card: it opens *A due date* with
- * the panel of *I paid it* on the oldest open due date. With several planned
+ * *Record payment* (or *Record income*) of a card: it opens the planned item
+ * with the panel of *I paid it* on the oldest open due date. With several planned
  * items it first asks which one, in a menu; without an open due date it is
  * not there.
  *
@@ -21,7 +21,8 @@ const { deadlines, label } = defineProps<{
 }>();
 
 /**
- * Where a due date takes the payment: its page, with the panel open.
+ * Where a due date takes the payment: its address, which opens its planned
+ * item with the panel open.
  *
  * @param deadline - the due date
  * @returns the address of the page with `?pay=1`

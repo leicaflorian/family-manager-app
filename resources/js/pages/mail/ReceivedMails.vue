@@ -220,10 +220,10 @@ usePageTrail(() => [
 <template>
     <Head :title="$t('Received mail')" />
 
-    <div class="flex max-w-[1120px] flex-col gap-4 lg:gap-6">
+    <div class="flex max-w-[1120px] flex-col gap-4 wide:gap-6">
         <div
-            class="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between lg:gap-4"
-            :class="mail && 'max-lg:hidden'"
+            class="flex flex-col gap-3.5 wide:flex-row wide:items-end wide:justify-between wide:gap-4"
+            :class="mail && 'not-wide:hidden'"
         >
             <FmTitle
                 :title="$t('Received mail')"
@@ -234,19 +234,19 @@ usePageTrail(() => [
                 "
                 :back="toSort().url"
                 :back-label="$t('To sort')"
-                class="min-w-0 lg:flex-1"
+                class="min-w-0 wide:flex-1"
             />
             <FmSearchField
                 v-model="text"
-                class="lg:w-80 lg:shrink-0"
+                class="wide:w-80 wide:shrink-0"
                 :label="$t('Search sender or subject')"
             />
         </div>
 
-        <div class="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div class="flex flex-col gap-6 wide:flex-row wide:items-start">
             <div
-                class="min-w-0 lg:flex-[3_1_460px]"
-                :class="mail && 'max-lg:hidden'"
+                class="min-w-0 wide:flex-[3_1_460px]"
+                :class="mail && 'not-wide:hidden'"
             >
                 <FmEmpty
                     v-if="rows.length === 0"
@@ -279,7 +279,7 @@ usePageTrail(() => [
                         :aria-current="
                             mail?.row.id === row.id ? 'true' : undefined
                         "
-                        class="grid gap-1 px-4 py-3 text-ink no-underline lg:grid-cols-[136px_minmax(0,1fr)] lg:gap-x-4 lg:px-5 lg:py-3.5"
+                        class="grid gap-1 px-4 py-3 text-ink no-underline wide:grid-cols-[136px_minmax(0,1fr)] wide:gap-x-4 wide:px-5 wide:py-3.5"
                         :class="
                             mail?.row.id === row.id
                                 ? 'bg-action-soft'
@@ -287,7 +287,7 @@ usePageTrail(() => [
                         "
                     >
                         <span
-                            class="hidden text-body-sm text-ink-soft lg:block"
+                            class="hidden text-body-sm text-ink-soft wide:block"
                             >{{ formatDateTime(row.received_at) }}</span
                         >
                         <span class="flex min-w-0 justify-between gap-2.5">
@@ -295,14 +295,14 @@ usePageTrail(() => [
                                 row.sender
                             }}</span>
                             <span
-                                class="shrink-0 text-meta text-ink-soft lg:hidden"
+                                class="shrink-0 text-meta text-ink-soft wide:hidden"
                                 >{{
                                     formatShortDateTime(row.received_at)
                                 }}</span
                             >
                         </span>
                         <span
-                            class="min-w-0 max-lg:order-last lg:[&>span]:max-w-full lg:[&>span]:whitespace-normal"
+                            class="min-w-0 not-wide:order-last wide:[&>span]:max-w-full wide:[&>span]:whitespace-normal"
                         >
                             <FmMailOutcome
                                 :label="row.outcome_label"
@@ -329,7 +329,7 @@ usePageTrail(() => [
             <section
                 v-if="mail"
                 :aria-label="$t('The mail')"
-                class="flex min-w-0 flex-col gap-4 rounded-card-lg bg-card p-5 shadow-float lg:flex-[2_1_400px] lg:p-6"
+                class="flex min-w-0 flex-col gap-4 rounded-card-lg bg-card p-5 shadow-float wide:flex-[2_1_400px] wide:p-6"
             >
                 <div class="flex items-center justify-between gap-3">
                     <h2 class="m-0 text-stat">

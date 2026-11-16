@@ -90,14 +90,14 @@ usePageTrail(() => [
             :back-label="document.title"
         />
         <div
-            class="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start"
+            class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >
             <FmFilePanel
                 :file="document.file"
                 :change-url="file.url(document.id)"
             />
             <section
-                class="flex flex-col gap-4 rounded-sheet bg-card p-5 shadow-card lg:p-7"
+                class="flex flex-col gap-4 rounded-sheet bg-card p-5 shadow-card wide:p-7"
             >
                 <div
                     v-if="reading.can_read && !running"

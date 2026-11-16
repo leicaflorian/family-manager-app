@@ -173,3 +173,12 @@ describe('the boxes', function (): void {
             ->and(ImportChoices::fromArray(['policy' => 'none'])->policy)->toBe('none');
     });
 });
+
+test('the old policies to cancel are positive ids, each once, and survive the organization', function (): void {
+    $choices = ImportChoices::fromArray(['replace_policies' => [4, '9', 4, 0, -2, 'x', null, [3]]]);
+
+    expect($choices->replacePolicies)->toBe([4, 9])
+        ->and($choices->withOrganization(5)->replacePolicies)->toBe([4, 9])
+        ->and(ImportChoices::fromArray(['replace_policies' => 'x'])->replacePolicies)->toBe([])
+        ->and(ImportChoices::fromArray([])->replacePolicies)->toBe([]);
+});

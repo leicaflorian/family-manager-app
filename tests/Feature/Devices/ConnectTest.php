@@ -178,7 +178,10 @@ test('five wrong codes in ten minutes and then 429, even for the right code', fu
 test('connect/resume with the secret enters the phone and sets the cookie, with a wrong one it does not', function (): void {
     $device = LinkedDevice::factory()->for($this->bianchi)->for($this->marco)->create(['token_hash' => hash('sha256', 'the-secret'), 'last_used_at' => now()->subDays(3)]);
 
-    phone()->post(route('connect.resume'), ['secret' => 'wrong'])->assertSessionHasErrors('secret');
+    // the page to write a new code, with the message under the field
+    phone()->post(route('connect.resume'), ['secret' => 'wrong'])
+        ->assertRedirect(route('connect'))
+        ->assertSessionHasErrors(['code' => 'This phone is not linked any more: link it again with a new code']);
     $this->assertGuest();
 
     $response = phone()->post(route('connect.resume'), ['secret' => 'the-secret']);
@@ -191,7 +194,7 @@ test('connect/resume with the secret enters the phone and sets the cookie, with 
 });
 
 test('connect/resume asks for the secret', function (): void {
-    phone()->post(route('connect.resume'))->assertSessionHasErrors('secret');
+    phone()->post(route('connect.resume'))->assertRedirect(route('connect'))->assertSessionHasErrors('code');
 });
 
 test('with the session over, the cookie brings the phone back in and writes last_used_at', function (): void {

@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
@@ -14,14 +15,22 @@ import {
     danceExceptions,
     lateDeadline,
 } from '@/test/fixtures';
-import { renderPage, withTrail } from '@/test/page';
+import { renderPage, settle, withTrail } from '@/test/page';
 import PlannedItem from './PlannedItem.vue';
 
 const props = {
     kind: 'expense',
     detail: danceDetail,
     accounts: accountOptions,
+    opening: null,
+    pay: false,
+    back: null,
 };
+
+/** The open due date of 05/12/2026, as the server sends it to open on arrival. */
+const december = danceDetail.next.find(
+    (deadline) => deadline.original_date === '2026-12-05',
+)!;
 
 beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -122,16 +131,86 @@ describe('A planned expense', () => {
         ).toBeInTheDocument();
     });
 
-    it('leads a paid due date to its page', () => {
+    it('leads a paid due date to the movement that paid it', () => {
         renderPage(PlannedItem, props);
         const next = screen.getByRole('region', { name: 'Next due dates' });
 
         expect(
             within(next).getByRole('link', { name: /05\/11\/2026/ }),
-        ).toHaveAttribute(
-            'href',
-            '/budget/planned/expense/4/occurrences/2026-11-05',
-        );
+        ).toHaveAttribute('href', '/budget/movements/expense/31');
+    });
+
+    describe('on arrival from the address of a due date', () => {
+        let replace: ReturnType<typeof vi.spyOn>;
+
+        beforeEach(() => {
+            replace = vi.spyOn(router, 'replace').mockImplementation(() => {});
+            window.history.replaceState(
+                null,
+                '',
+                '/budget/planned/expense/4?deadline=2026-12-05&pay=1&from=%2Fagenda',
+            );
+        });
+
+        it('opens I paid it when asked, takes the request out of the address, and goes back where it came from', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(PlannedItem, {
+                ...props,
+                opening: december,
+                pay: true,
+                back: '/agenda',
+            });
+
+            expect(
+                await screen.findByRole('dialog', { name: 'I paid it' }),
+            ).toBeInTheDocument();
+            expect(replace).toHaveBeenCalledWith(
+                expect.objectContaining({ url: '/budget/planned/expense/4' }),
+            );
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Confirm' }),
+            );
+            await settle();
+
+            expect(post.mock.calls[0]![0]).toBe(
+                '/budget/planned/expense/4/occurrences/2026-12-05/payment?back=%2Fagenda',
+            );
+        });
+
+        it('opens Change this due date for an admin who did not ask to pay', async () => {
+            renderPage(PlannedItem, { ...props, opening: december });
+
+            expect(
+                await screen.findByRole('dialog', {
+                    name: 'Change this due date',
+                }),
+            ).toBeInTheDocument();
+        });
+
+        it('opens I paid it for a member who can only pay', async () => {
+            renderPage(PlannedItem, {
+                ...props,
+                detail: { ...danceDetail, can_edit: false },
+                opening: december,
+            });
+
+            expect(
+                await screen.findByRole('dialog', { name: 'I paid it' }),
+            ).toBeInTheDocument();
+        });
+
+        it('opens nothing for who can neither pay nor change', async () => {
+            renderPage(PlannedItem, {
+                ...props,
+                detail: { ...danceDetail, can_edit: false, can_pay: false },
+                opening: december,
+                pay: true,
+            });
+            await settle();
+
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
     });
 
     it('shows a late due date first, in red', () => {
@@ -238,7 +317,7 @@ describe('A planned expense', () => {
         expect(within(data).getByText('05/09/2025')).toBeInTheDocument();
     });
 
-    it('shows the payments by year and records a new one on the next open due date', () => {
+    it('shows the payments by year and records a new one on the next open due date', async () => {
         renderPage(PlannedItem, props);
 
         const payments = screen.getByRole('region', { name: 'Payments' });
@@ -247,12 +326,30 @@ describe('A planned expense', () => {
         expect(
             within(payments).getByText('Retta di novembre'),
         ).toBeInTheDocument();
-        expect(
-            within(payments).getByRole('link', { name: 'Record payment' }),
-        ).toHaveAttribute(
-            'href',
-            '/budget/planned/expense/4/occurrences/2026-12-05?pay=1',
+
+        await userEvent.click(
+            within(payments).getByRole('button', { name: 'Record payment' }),
         );
+
+        expect(
+            await screen.findByRole('dialog', { name: 'I paid it' }),
+        ).toBeInTheDocument();
+    });
+
+    it('pays an open due date from its row for a member who can only pay', async () => {
+        renderPage(PlannedItem, {
+            ...props,
+            detail: { ...danceDetail, can_edit: false },
+        });
+        const next = screen.getByRole('region', { name: 'Next due dates' });
+
+        await userEvent.click(
+            within(next).getByRole('button', { name: /05\/01\/2027/ }),
+        );
+
+        expect(
+            await screen.findByRole('dialog', { name: 'I paid it' }),
+        ).toBeInTheDocument();
     });
 
     it('has the links beside the titles as plain links, not buttons', () => {
@@ -283,12 +380,16 @@ describe('A planned expense', () => {
             screen.queryByRole('button', { name: 'Add' }),
         ).not.toBeInTheDocument();
         expect(
-            screen.queryByRole('link', { name: 'Record payment' }),
+            screen.queryByRole('button', { name: 'Record payment' }),
         ).not.toBeInTheDocument();
-        // an open due date leads to its page instead of the panel
+        // an open due date is only written: there is nothing to do with it
         const next = screen.getByRole('region', { name: 'Next due dates' });
         expect(
-            within(next).getByRole('link', { name: /05\/01\/2027/ }),
-        ).toBeInTheDocument();
+            within(next).queryByRole('link', { name: /05\/01\/2027/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(next).queryByRole('button', { name: /05\/01\/2027/ }),
+        ).not.toBeInTheDocument();
+        expect(within(next).getByText('05/01/2027')).toBeInTheDocument();
     });
 });

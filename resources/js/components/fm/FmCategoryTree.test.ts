@@ -24,7 +24,8 @@ function category(
 }
 
 const categories = [
-    category(1, 'Casa e utenze', 5, [category(2, 'Luce', 3)]),
+    // 2 of its own and 3 in Luce: the main one shows 5
+    category(1, 'Casa e utenze', 2, [category(2, 'Luce', 3)]),
     category(3, 'Lavoro', 0),
 ];
 
@@ -36,6 +37,21 @@ describe('FmCategoryTree', () => {
         expect(screen.getByText('5')).toBeInTheDocument();
         expect(screen.getByText('Lavoro')).toBeInTheDocument();
         expect(screen.getByText('0')).toBeInTheDocument();
+    });
+
+    it('counts in a main category also the documents of its subcategories', () => {
+        render(FmCategoryTree, {
+            props: {
+                categories: [
+                    category(1, 'Lavoro', 1, [
+                        category(2, 'Buste paga', 4),
+                        category(3, 'CU', 2),
+                    ]),
+                ],
+            },
+        });
+
+        expect(screen.getByText('7')).toBeInTheDocument();
     });
 
     it('keeps the subcategories hidden until the arrow is tapped, and hides them again', async () => {

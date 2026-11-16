@@ -35,6 +35,7 @@ final class AgendaEntryData extends Data
      * @param  string|null  $notes  the notes of a task; null for the other kinds and for a task without notes
      * @param  string|null  $account  the name of the account a payment or an income goes through (the one of the planned item, else the default one); null for a deadline or a task
      * @param  string|null  $planned  the planned expense or income of a payment, with how it repeats, for example «Gas - Hera, every 2 months»; null for a deadline or a task
+     * @param  string|null  $replace_url  the new policy form, prefilled, that *I changed company* of a policy renewal opens; null for any other entry and when whoever looks cannot edit the policy or create policies
      */
     public function __construct(
         public readonly string $key,
@@ -56,5 +57,6 @@ final class AgendaEntryData extends Data
         public readonly ?string $notes = null,
         public readonly ?string $account = null,
         public readonly ?string $planned = null,
+        public readonly ?string $replace_url = null,
     ) {}
 }

@@ -57,6 +57,7 @@ function entry(
         notes: null,
         account: null,
         planned: null,
+        replace_url: null,
         ...change,
     };
 }
@@ -208,12 +209,12 @@ describe('FmAgendaPanel', () => {
             planned: 'Gas - Hera, every 2 months',
         });
 
-        it('shows the amount, I paid it and a link to the due date, without Done', async () => {
+        it('shows the amount, I paid it and a link to the planned expense, without Done', async () => {
             const view = renderPage(FmAgendaPanel, { entry: payment });
 
             expect(screen.getByText(/84,20/)).toBeInTheDocument();
             expect(
-                screen.getByRole('link', { name: 'Open the due date' }),
+                screen.getByRole('link', { name: 'Open the planned expense' }),
             ).toHaveAttribute(
                 'href',
                 'http://localhost/budget/planned/expense/3/occurrences/2026-10-28',
@@ -276,7 +277,7 @@ describe('FmAgendaPanel', () => {
                 expect.anything(),
             );
             expect(
-                screen.getByRole('link', { name: 'Open the due date' }),
+                screen.getByRole('link', { name: 'Open the planned expense' }),
             ).toBeInTheDocument();
             // A light line divides the form from the details, as the boards draw it
             expect(
@@ -300,7 +301,7 @@ describe('FmAgendaPanel', () => {
             expect(view.emitted().paid).toHaveLength(1);
         });
 
-        it('names the button of an income It arrived', async () => {
+        it('names the button of an income It arrived, and leads to the planned income', async () => {
             renderPage(FmAgendaPanel, {
                 ...paying,
                 entry: { ...payment, kind: 'income' },
@@ -310,6 +311,9 @@ describe('FmAgendaPanel', () => {
             expect(
                 await screen.findByRole('button', { name: 'It arrived' }),
             ).toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: 'Open the planned income' }),
+            ).toBeInTheDocument();
         });
 
         it('has no form in the Done list', () => {
@@ -318,14 +322,14 @@ describe('FmAgendaPanel', () => {
             expect(screen.queryByLabelText('How much')).not.toBeInTheDocument();
         });
 
-        it('once paid, says so and leads to its due date, where it is changed', () => {
+        it('once paid, says so and leads to the movement that paid it, where it is changed', () => {
             renderPage(FmAgendaPanel, { entry: payment, done: true });
 
             expect(screen.getByText('Paid')).toBeInTheDocument();
             expect(screen.queryByText(/Done on/)).not.toBeInTheDocument();
             expect(screen.queryByText('deadline done')).not.toBeInTheDocument();
             expect(
-                screen.getByRole('link', { name: 'Open the due date' }),
+                screen.getByRole('link', { name: 'Open the movement' }),
             ).toHaveAttribute(
                 'href',
                 'http://localhost/budget/planned/expense/3/occurrences/2026-10-28',

@@ -33,7 +33,7 @@ defineOptions({
                 )
             "
         />
-        <span class="min-h-6 grow lg:hidden" />
+        <span class="min-h-6 grow computer:hidden" />
         <FmButton :href="login().url" wide>{{ $t('Go to Log in') }}</FmButton>
     </div>
 </template>

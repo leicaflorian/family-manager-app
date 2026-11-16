@@ -153,7 +153,7 @@ function link(id: number): void {
         </FmNotice>
 
         <div
-            class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
+            class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
                 <FmCardBudget :budget="card.budget" :card="address">

@@ -2,8 +2,8 @@
 /**
  * The payments on the page of a card, as the boards of the cards draw them:
  * in the box at the top the oldest open due date (the renewal of a policy, the
- * next instalment of a loan, the salary coming in), which opens *A due date*
- * (with *It arrived* open on a salary);
+ * next instalment of a loan, the salary coming in), which opens it on its
+ * planned item (with *It arrived* open on a salary);
  * one box with the tiles of the card (`tiles`: dates, status) and then the
  * figures of the payments; how far a loan is paid;
  * the open due dates; then the data of the card (the default slot). The
@@ -43,7 +43,7 @@ const { date, euro } = useFormat();
 /** The due date of the box at the top. */
 const next = computed(() => budget?.next ?? null);
 
-/** Where the box leads: *A due date*, with *It arrived* open on an income for whoever can record it. */
+/** Where the box leads: the due date on its planned item, with *It arrived* open on an income for whoever can record it. */
 const nextUrl = computed((): string => {
     if (next.value === null) {
         return '';

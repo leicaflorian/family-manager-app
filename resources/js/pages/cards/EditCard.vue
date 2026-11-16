@@ -23,6 +23,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
+import { replaceableFor, replaceOptions } from '@/lib/policies';
 import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
@@ -42,6 +43,9 @@ const {
     budget = null,
     loanFigures = null,
     linked = [],
+    replaceable = [],
+    replaces = [],
+    payment = null,
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -69,7 +73,38 @@ const {
     loanFigures?: App.Data.LoanFiguresData | null;
     /** The documents a new card starts linked to (`?document=`, after an import with *Create the card*). */
     linked?: App.Data.DocumentData[];
+    /** The old policies a new policy can replace (a new policy only). */
+    replaceable?: App.Data.ReplaceablePolicyData[];
+    /** The ids of the old policies ticked from the start (a renewal). */
+    replaces?: number[];
+    /** The payment of the old policy that the new one takes over, sent with the policies to replace. */
+    payment?: number | null;
 }>();
+
+/** The box *Cancel the policy* exists only for a new policy. */
+const canReplace = computed(() => !card && type.type === 'insurance_policy');
+
+/** The ids of the old policies ticked. */
+const ticked = ref<number[]>([...replaces]);
+
+/** The type the form started with: a renewal keeps its old policy only while the type is the same. */
+const startType = values.type;
+
+/**
+ * The old policies offered with the values of the form.
+ *
+ * @param live - the values of the form
+ * @returns the policies to show, each one a box
+ */
+function offered(
+    live: Record<string, unknown>,
+): App.Data.ReplaceablePolicyData[] {
+    return replaceableFor(
+        replaceable,
+        live,
+        live.type === startType ? replaces : [],
+    );
+}
 
 /** The form is being sent. */
 const processing = ref(false);
@@ -116,6 +151,29 @@ usePageTrail(() => [
 ]);
 
 /**
+ * The policies to replace and their payment, only the ids still offered with
+ * the values sent (a policy ticked before the type changed is dropped).
+ *
+ * @param data - the values of the form
+ * @returns the fields to add to the request, none when nothing is replaced
+ */
+function replacing(data: Record<string, unknown>): {
+    replace_policies?: number[];
+    replace_payment?: number;
+} {
+    const ids = offered(data)
+        .map((policy) => policy.id)
+        .filter((id) => ticked.value.includes(id));
+
+    return ids.length === 0
+        ? {}
+        : {
+              replace_policies: ids,
+              ...(payment !== null && { replace_payment: payment }),
+          };
+}
+
+/**
  * Sends the values: a change of the card (PUT), or a new one (POST).
  *
  * @param data - the values of the form
@@ -134,6 +192,7 @@ function save(data: Record<string, unknown>): void {
             link_documents: link.value.map((document) => document.id),
         }),
         ...(unlink.value.length > 0 && { unlink_documents: unlink.value }),
+        ...(canReplace.value && replacing(data)),
     } as RequestPayload;
 
     // Always a POST: PHP does not read the files of a PUT, so a change goes
@@ -171,7 +230,7 @@ const layout = useLayoutMode();
             </template>
         </FmTitle>
         <div
-            class="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start"
+            class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-6">
                 <FmCardFiles
@@ -190,7 +249,7 @@ const layout = useLayoutMode();
                 <div
                     v-if="card && budget"
                     data-testid="card-payments"
-                    class="hidden flex-col gap-5 lg:flex"
+                    class="hidden flex-col gap-5 wide:flex"
                 >
                     <FmCardPayments
                         :budget="budget"
@@ -198,7 +257,7 @@ const layout = useLayoutMode();
                     />
                 </div>
             </div>
-            <div class="rounded-sheet bg-card p-5 shadow-card lg:p-7">
+            <div class="rounded-sheet bg-card p-5 shadow-card wide:p-7">
                 <FmCardForm
                     :fields="fields"
                     :values="values"
@@ -209,6 +268,19 @@ const layout = useLayoutMode();
                     "
                     @submit="save"
                 >
+                    <template v-if="canReplace" #after="{ values: live }">
+                        <FormKit
+                            v-if="offered(live).length > 0"
+                            v-model="ticked"
+                            type="checkbox"
+                            name="replace_policies"
+                            :options="
+                                replaceOptions(offered(live), {
+                                    premiumMoves: true,
+                                })
+                            "
+                        />
+                    </template>
                     <template #start>
                         <FmButton
                             variant="text"

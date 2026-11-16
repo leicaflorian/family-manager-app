@@ -54,6 +54,7 @@ readonly update_url: string | null,
 readonly notes: string | null,
 readonly account: string | null,
 readonly planned: string | null,
+readonly replace_url: string | null,
 };
 export type AgendaFiltersData = {
 readonly months: number,
@@ -273,6 +274,7 @@ readonly account: string | null,
 readonly card: App.Data.CardData | null,
 readonly income_type: string | null,
 readonly person: string | null,
+readonly renewal: App.Data.PolicyRenewalData | null,
 };
 export type DocumentData = {
 readonly id: number,
@@ -665,6 +667,12 @@ readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
 };
+export type PolicyRenewalData = {
+readonly policy_id: number,
+readonly policy: string,
+readonly expiry_date: string,
+readonly proposed_expiry: string,
+};
 export type ReceivedMailData = {
 readonly row: App.Data.ReceivedMailRowData,
 readonly from: string,
@@ -755,6 +763,15 @@ readonly id: number,
 readonly label: string,
 readonly href: string | null,
 readonly area: string,
+};
+export type ReplaceablePolicyData = {
+readonly id: number,
+readonly label: string,
+readonly expiry_date: string | null,
+readonly type: string,
+readonly vehicle_id: number | null,
+readonly home_id: number | null,
+readonly employment_id: number | null,
 };
 export type SentInvitationData = {
 readonly email: string,
@@ -969,6 +986,7 @@ readonly reminder: string | null,
 readonly fields: App.Data.CardFieldData[],
 readonly complete: string[],
 readonly cardType: string | null,
+readonly replaces: App.Data.ReplaceablePolicyData[],
 };
 }
 namespace Search {

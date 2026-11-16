@@ -103,7 +103,7 @@ function signUp(): void {
             name="terms"
             :errors="errors(form.errors.terms)"
         />
-        <span class="min-h-6 grow lg:hidden" />
+        <span class="min-h-6 grow computer:hidden" />
         <FmButton type="submit" wide :disabled="form.processing">{{
             $t('Get started')
         }}</FmButton>

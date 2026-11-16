@@ -47,6 +47,23 @@ describe('Link the phone, with the code written by hand', () => {
             await screen.findByText('Write the code first.'),
         ).toBeInTheDocument();
     });
+
+    it('shows under the field the message the page arrives with, from the icon of a phone not linked any more', async () => {
+        renderPage(Connect, {
+            code: null,
+            person: null,
+            family: null,
+            errors: {
+                code: 'This phone is not linked any more: link it again with a new code',
+            },
+        });
+
+        expect(
+            await screen.findByText(
+                'This phone is not linked any more: link it again with a new code',
+            ),
+        ).toBeInTheDocument();
+    });
 });
 
 describe('Link the phone, from the link of the code', () => {

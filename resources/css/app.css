@@ -16,6 +16,16 @@
 @custom-variant formkit-errors (&:where([data-errors] *, [data-invalid] *));
 @custom-variant formkit-disabled (&:where([data-disabled], [data-disabled] *));
 
+/*
+ * Where the pages and the layouts change, with the conditions of the
+ * composables (resources/js/design/breakpoints.test.ts keeps them equal):
+ * wide: the columns inside a page, as useWideLayout() (WIDE_QUERY);
+ * computer: the computer layout of useLayoutMode() (COMPUTER_QUERY).
+ * not-wide: and not-computer: are the opposite.
+ */
+@custom-variant wide (@media (min-width: 900px) and (min-height: 560px));
+@custom-variant computer (@media (min-width: 1024px) and (min-height: 560px));
+
 /* Widest the content of a page gets, in the middle of AppLayout's main */
 @theme static {
     --main-width: 1120px;

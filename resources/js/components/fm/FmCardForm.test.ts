@@ -132,6 +132,22 @@ describe('FmCardForm', () => {
         ).toBeInTheDocument();
     });
 
+    it('gives the live values to the after slot, above the buttons', async () => {
+        render(FmCardForm, {
+            props: { fields: policyFields, values },
+            slots: {
+                after: '<template #after="{ values: live }"><p>Type now: {{ live.type }}</p></template>',
+            },
+            global: { plugins: [[formkit, formkitConfig]] },
+        });
+
+        expect(screen.getByText('Type now: car')).toBeInTheDocument();
+
+        await choose('Type', 'Home');
+
+        expect(screen.getByText('Type now: home')).toBeInTheDocument();
+    });
+
     it('shows the name of a linked card when the server sends its id as a number', () => {
         renderPage(FmCardForm, {
             fields: policyFields,

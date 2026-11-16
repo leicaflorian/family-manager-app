@@ -7,7 +7,9 @@
  * the POD code of electricity that is a PDR code for gas. A hidden field is
  * sent empty. For a loan the page also gives `loanFigures`: under the instalment
  * the form shows the total to pay and the cost, which it asks the server for
- * (a partial reload) 300 ms after the amounts or the start stop changing. The same form creates and
+ * (a partial reload) 300 ms after the amounts or the start stop changing. The
+ * `after` slot, above the buttons, gets the live values for what depends on
+ * them. The same form creates and
  * edits every type of card: the page gives the fields and the values, and gets
  * them back with `submit`.
  *
@@ -52,6 +54,8 @@ const emit = defineEmits<{
 defineSlots<{
     /** On the left of the *Save* button, for example *Delete*. */
     start?: () => unknown;
+    /** Above the buttons, for what follows the type chosen, for example the old policy to cancel; gets the live values of the form. */
+    after?: (props: { values: Record<string, unknown> }) => unknown;
 }>();
 
 /** The kinds whose value is the id of a record and whose options have text values. */
@@ -244,6 +248,7 @@ useSaveShortcut(save, () => !processing);
                 :figures="loanFigures"
             />
         </template>
+        <slot name="after" :values="data" />
         <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">
             <slot name="start" />
             <FmButton type="submit" class="ml-auto" :disabled="processing">

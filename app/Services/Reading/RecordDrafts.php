@@ -9,6 +9,7 @@ use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\RecordDraftData;
+use App\Data\ReplaceablePolicyData;
 use App\Enums\InsurancePolicyType;
 use App\Enums\MaintenanceType;
 use App\Enums\RecordKind;
@@ -20,6 +21,7 @@ use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Utility;
 use App\Models\Vehicle;
+use App\Services\ReplaceablePolicies;
 use App\Support\Reading\RecordLabel;
 use App\Support\Reading\ValidDate;
 use Carbon\CarbonImmutable;
@@ -427,7 +429,52 @@ final class RecordDrafts
     {
         $missing = $existing === null ? self::missing($kind, $values) : [];
 
-        return new RecordDraftData($kind, $title, $values, $ticked && $missing === [] && $x->confidence !== 'low', $missing, $existing, cardType: $kind->cardType());
+        return new RecordDraftData(
+            $kind,
+            $title,
+            $values,
+            $ticked && $missing === [] && $x->confidence !== 'low',
+            $missing,
+            $existing,
+            cardType: $kind->cardType(),
+            replaces: self::replaces($kind, $values, $existing),
+        );
+    }
+
+    /**
+     * The old policies a new policy can cancel: the active or expired ones of the same type on the same vehicle, home
+     * or job that whoever signed in can edit. None for another card, for a policy already there, or for a vehicle
+     * created with the same file (it has no policies yet).
+     *
+     * @param  RecordKind  $kind  which card
+     * @param  array<string, mixed>  $values  the fields the card is created with
+     * @param  array{id: int, title: string}|null  $existing  the card already there, to link
+     * @return list<ReplaceablePolicyData>
+     */
+    public static function replaces(RecordKind $kind, array $values, ?array $existing): array
+    {
+        if ($kind !== RecordKind::Policy || $existing !== null) {
+            return [];
+        }
+
+        $type = $values['type'] ?? null;
+
+        return array_values(resolve(ReplaceablePolicies::class)->matching([
+            'type' => is_string($type) ? $type : null,
+            'vehicle_id' => self::idOf($values['vehicle_id'] ?? null),
+            'home_id' => self::idOf($values['home_id'] ?? null),
+            'employment_id' => self::idOf($values['employment_id'] ?? null),
+        ])->map(ReplaceablePolicyData::fromPolicy(...))->all());
+    }
+
+    /**
+     * An id among the values of a card, also when written as text.
+     *
+     * @param  mixed  $value  the value
+     */
+    private static function idOf(mixed $value): ?int
+    {
+        return is_int($value) || (is_string($value) && ctype_digit($value)) ? (int) $value : null;
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data\Reading;
 
 use App\Data\CardFieldData;
+use App\Data\ReplaceablePolicyData;
 use App\Enums\RecordKind;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -27,6 +28,7 @@ final class RecordDraftData extends Data
      * @param  list<CardFieldData>  $fields  the required fields still empty that the person can write in the box, as the card form draws them
      * @param  list<string>  $complete  the (`date`, `person_id`, `organization_id`) required fields still empty that come from the document, written in its form
      * @param  string|null  $cardType  the type of the morph map of the card (`utility`, `home`); null for an organization
+     * @param  list<ReplaceablePolicyData>  $replaces  for a new policy, the old ones of the same type and card it can cancel (none for whoever cannot edit them)
      */
     public function __construct(
         public readonly RecordKind $kind,
@@ -40,5 +42,6 @@ final class RecordDraftData extends Data
         public readonly array $fields = [],
         public readonly array $complete = [],
         public readonly ?string $cardType = null,
+        public readonly array $replaces = [],
     ) {}
 }
