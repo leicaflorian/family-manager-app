@@ -108,7 +108,11 @@ export function useListFilters<
         ),
         layout: computed(() =>
             desktop.value
-                ? cn('grid grid-cols-[16rem_minmax(0,1fr)] items-start gap-5')
+                ? // The boards' `flex: 1 1 240px` beside `3 1 420px`: the column
+                  // takes a quarter of what is left after both bases and the gap
+                  cn(
+                      'grid grid-cols-[max(240px,calc(240px+(100%-680px)/4))_minmax(0,1fr)] items-start gap-5',
+                  )
                 : cn('flex flex-col gap-4'),
         ),
     };

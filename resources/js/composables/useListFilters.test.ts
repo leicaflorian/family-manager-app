@@ -120,7 +120,9 @@ describe('useListFilters', () => {
 
     it('lays the filters beside the list on the computer and above it on the phone', () => {
         screenWidth(true);
-        expect(setup().list.layout.value).toContain('grid-cols-[16rem');
+        expect(setup().list.layout.value).toContain(
+            'grid-cols-[max(240px,calc(240px+(100%-680px)/4))_minmax(0,1fr)]',
+        );
 
         vi.unstubAllGlobals();
         screenWidth(390);
