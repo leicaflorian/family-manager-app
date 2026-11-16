@@ -141,3 +141,16 @@ it('lets a member search too', function (): void {
 
     $this->actingAs($rosa)->get('/budget/movements?search=zzq')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('search.count', 5));
 });
+
+it('never finds the movements of another family', function (): void {
+    $other = Family::factory()->create();
+    CurrentFamily::using($other->id, function () use ($other): void {
+        Expense::factory()->create(['family_id' => $other->id, 'title' => 'Zzq altrui', 'date' => '2026-10-15', 'amount' => 30]);
+        Income::factory()->create(['family_id' => $other->id, 'title' => 'Zzq entrata altrui', 'date' => '2026-10-16', 'amount' => 40]);
+    });
+
+    searchMovements('search=zzq')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('search.count', 5)
+        ->where('search.total', fn ($total): bool => abs($total - (50 - 19.99 - 20 - 100 - 100.01)) < 0.001)
+        ->where('search.months', fn ($months): bool => collect($months)->flatMap(fn ($month): mixed => $month['movements'])->doesntContain(fn ($movement): bool => str_contains((string) $movement['title'], 'altrui'))));
+});

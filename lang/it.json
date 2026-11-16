@@ -2003,5 +2003,6 @@
     "{1} Show :count planned expense|[2,*] Show :count planned expenses": "{1} Mostra :count spesa fissa|[2,*] Mostra :count spese fisse",
     "No planned expense matches the filters": "Nessuna spesa fissa con questi filtri",
     "You search the title in the box above the list.": "Il titolo lo cerchi nel campo sopra l'elenco.",
-    "Open the page of the document": "Apri la pagina del documento"
+    "Open the page of the document": "Apri la pagina del documento",
+    "Only the :shown most recent are shown: narrow the search to see the others.": "Ne vedi solo i :shown più recenti: restringi la ricerca per vedere gli altri."
 }

@@ -2,7 +2,9 @@
 /**
  * The line above a filtered list: a pill for each filter on, each with its ×,
  * *Remove the filters*, and what was found (beside them on the computer,
- * under them on the phone). Shared by *Movements* and *Planned expenses*.
+ * under them on the phone). What was found is announced to screen readers
+ * when it changes: the live region stays in the page, hidden while empty.
+ * Shared by *Movements*, *Planned expenses* and *Documents*.
  *
  * @group fields
  */
@@ -28,7 +30,7 @@ const desktop = useComputerLayout();
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="relative flex flex-wrap items-center gap-2">
         <FmActiveFilter
             v-for="pill in pills"
             :key="pill.key"
@@ -43,12 +45,14 @@ const desktop = useComputerLayout();
             {{ $t('Remove the filters') }}
         </button>
         <span
-            v-if="found !== ''"
+            aria-live="polite"
             :class="
-                cn(
-                    'text-body-sm text-ink-soft',
-                    desktop ? 'ml-1' : 'mt-1 basis-full',
-                )
+                found === ''
+                    ? 'sr-only'
+                    : cn(
+                          'text-body-sm text-ink-soft',
+                          desktop ? 'ml-1' : 'mt-1 basis-full',
+                      )
             "
             >{{ found }}</span
         >

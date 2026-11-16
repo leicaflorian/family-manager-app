@@ -94,7 +94,7 @@ const {
 } = useListFilters({
     filters: () => props.filters,
     pills: () => pills.value,
-    url: (query) => plannedUrl({ ...props.filters, ...query }),
+    url: plannedUrl,
 });
 
 /** The line beside the pills: how many rows passed. */
@@ -183,6 +183,7 @@ const showLabel = computed(() =>
                 <FmFilterButton
                     v-if="!desktop"
                     :count="filterCount"
+                    :expanded="filtersOpen"
                     @click="filtersOpen = true"
                 />
             </div>
@@ -191,7 +192,7 @@ const showLabel = computed(() =>
                 <FmFilterAside v-if="desktop" :detail="false">
                     <template #filters>
                         <div class="flex flex-col gap-4">
-                            <span class="text-amount">{{ $t('Filter') }}</span>
+                            <h2 class="text-amount">{{ $t('Filter') }}</h2>
                             <FmPlannedFilters
                                 :filters="filters"
                                 :errors="filterErrors"

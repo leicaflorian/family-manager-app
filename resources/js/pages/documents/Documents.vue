@@ -161,6 +161,7 @@ const {
     url: (query) => index.url({ query: filterQuery(query as DocumentFilters) }),
 });
 
+/** How many documents pass the filters, said beside the pills (or above the list without filters). */
 const count = computed(() =>
     transChoice(
         '{1} :count document, the most recent first|[2,*] :count documents, the most recent first',
@@ -260,6 +261,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     <FmFilterButton
                         v-if="!desktop"
                         :count="filterCount"
+                        :expanded="filtersOpen"
                         @click="filtersOpen = true"
                     />
                 </div>
@@ -267,14 +269,17 @@ function rowHref(document: App.Data.DocumentData): string {
                 <FmFilterPills
                     v-if="pills.length > 0"
                     :pills="pills"
+                    :found="documents.length > 0 ? count : ''"
                     @remove="removePill"
                     @remove-all="removeAll"
                 />
 
                 <template v-if="documents.length > 0">
-                    <span class="mx-1 text-body-sm text-ink-soft">{{
-                        count
-                    }}</span>
+                    <span
+                        v-if="pills.length === 0"
+                        class="mx-1 text-body-sm text-ink-soft"
+                        >{{ count }}</span
+                    >
                     <FmCard list>
                         <FmDocumentRow
                             v-for="document in documents"
@@ -296,7 +301,11 @@ function rowHref(document: App.Data.DocumentData): string {
             </div>
         </div>
 
-        <FmBottomSheet v-model:open="filtersOpen" :title="$t('Filters')">
+        <FmBottomSheet
+            v-if="!desktop"
+            v-model:open="filtersOpen"
+            :title="$t('Filters')"
+        >
             <FmDocumentFilters
                 :filters="filters"
                 :options="options"

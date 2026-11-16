@@ -1,6 +1,9 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen, within } from '@testing-library/vue';
+import { fireEvent, render, screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
+import { formPlugins } from '@/lib/formPlugins';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import type { Component } from 'vue';
 import { documentDetail, documentFilterOptions } from '@/test/fixtures';
 import { choose, renderPage, screenWidth } from '@/test/page';
 import Documents from './Documents.vue';
@@ -307,5 +310,49 @@ describe('Documents', () => {
         expect(
             screen.queryByRole('link', { name: /Busta paga di ottobre/ }),
         ).toHaveAttribute('href', '/documents/5');
+    });
+
+    it('with filters on says how many were found beside the pills, as the other lists do', () => {
+        renderPage(Documents, {
+            ...props,
+            filters: { ...none, person: 7 },
+        });
+
+        const found = screen.getByText('18 documents, the most recent first');
+        expect(found).toHaveAttribute('aria-live', 'polite');
+        expect(screen.getAllByText(/the most recent first/)).toHaveLength(1);
+    });
+
+    it('has the panel of the filters only below the computer layout', () => {
+        const sheet = { template: '<div data-testid="filters-sheet" />' };
+
+        for (const [computer, count] of [
+            [true, 0],
+            [false, 1],
+        ] as const) {
+            screenWidth(computer);
+            // the props of the file are looser than the page's types, as renderPage takes them
+            const view = render(Documents as Component, {
+                props,
+                global: {
+                    plugins: formPlugins,
+                    stubs: { FmBottomSheet: sheet },
+                },
+            });
+
+            expect(view.queryAllByTestId('filters-sheet')).toHaveLength(count);
+            view.unmount();
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('says on the phone whether the panel of the filters is open', async () => {
+        renderPage(Documents, props);
+        const button = screen.getByRole('button', { name: 'Filters' });
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+
+        await userEvent.click(button);
+
+        expect(button).toHaveAttribute('aria-expanded', 'true');
     });
 });

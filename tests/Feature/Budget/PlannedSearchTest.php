@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Models\Family;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
@@ -110,4 +111,17 @@ it('lets a member search too', function (): void {
     $rosa = User::factory()->create(['role' => Role::Member, 'family_id' => $this->marco->family_id]);
 
     $this->actingAs($rosa)->get('/budget/planned?search=zzq')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('expenses', 4));
+});
+
+it('never finds the planned items of another family', function (): void {
+    $other = Family::factory()->create();
+    CurrentFamily::using($other->id, function () use ($other): void {
+        PlannedExpense::factory()->create(['family_id' => $other->id, 'title' => 'Zzq altrui', 'start_date' => '2026-11-07', 'amount' => 30]);
+        PlannedIncome::factory()->create(['family_id' => $other->id, 'title' => 'Zzq entrata altrui', 'start_date' => '2026-11-08', 'amount' => 40]);
+    });
+
+    searchPlanned('search=zzq')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('expenses', fn ($rows): bool => plannedTitles($rows->all()) === ['Zzq uno', 'ZZQ due', 'Altro zzq', 'zzq tre'])
+        ->where('incomes', fn ($rows): bool => plannedTitles($rows->all()) === ['Rimborso zzq'])
+        ->where('ended', fn ($rows): bool => plannedTitles($rows->all()) === ['Zzq finita']));
 });

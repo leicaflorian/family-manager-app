@@ -38,4 +38,17 @@ describe('FmFilterPills', () => {
         renderPage(FmFilterPills, { pills });
         expect(screen.queryByText(/by due date/)).not.toBeInTheDocument();
     });
+
+    it('announces what was found when it changes', async () => {
+        const view = renderPage(FmFilterPills, { pills });
+        const live = view.container.querySelector('[aria-live="polite"]');
+
+        expect(live).not.toBeNull();
+        expect(live).toHaveTextContent('');
+
+        await view.rerender({ pills, found: '6 movements found' });
+        expect(
+            view.container.querySelector('[aria-live="polite"]'),
+        ).toHaveTextContent('6 movements found');
+    });
 });

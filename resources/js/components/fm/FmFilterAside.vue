@@ -3,12 +3,14 @@
  * The left column of a list with filters, on a computer: a sticky card that
  * shows the filters, or, with `detail`, the detail of a row chosen in the list
  * under a header with *Back to the filters* and a ×, both asking to close the
- * detail. Used by *Movements*, *Planned expenses* and *Documents*.
+ * detail. The column is never taller than the window below the top bar and
+ * scrolls inside. Used by *Movements*, *Planned expenses* and *Documents*.
  *
  * @group panels
  */
 import { ArrowLeft, X } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
+import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 const {
@@ -29,6 +31,15 @@ const emit = defineEmits<{
     close: [];
 }>();
 
+/**
+ * The card of the column: sticky under the top bar, never taller than the
+ * window below it, so the end of a long detail (*Save*) stays in reach by
+ * scrolling inside the column.
+ */
+const column = cn(
+    'sticky top-(--app-header) max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(6)))] overflow-y-auto rounded-card-lg bg-card p-5 shadow-card',
+);
+
 defineSlots<{
     /** The filters. */
     filters: () => unknown;
@@ -41,7 +52,7 @@ defineSlots<{
     <aside
         v-if="detail"
         :aria-label="detailLabel"
-        class="sticky top-(--app-header) flex flex-col gap-3.5 rounded-card-lg bg-card p-5 shadow-card"
+        :class="cn(column, 'flex flex-col gap-3.5')"
     >
         <div
             class="-mt-2 -mr-2 -ml-1.5 flex items-center justify-between gap-2"
@@ -66,11 +77,7 @@ defineSlots<{
         </div>
         <slot name="detail" />
     </aside>
-    <aside
-        v-else
-        :aria-label="label"
-        class="sticky top-(--app-header) rounded-card-lg bg-card p-5 shadow-card"
-    >
+    <aside v-else :aria-label="label" :class="column">
         <slot name="filters" />
     </aside>
 </template>

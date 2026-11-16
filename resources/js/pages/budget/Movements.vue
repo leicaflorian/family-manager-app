@@ -36,7 +36,13 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTitleTools from '@/components/fm/FmTitleTools.vue';
 import { useFormat } from '@/composables/useFormat';
 import type { MovementFormOptions, MovementsQuery } from '@/lib/budget';
-import { monthName, movementsUrl, weekdayShort } from '@/lib/budget';
+import {
+    accountChoices,
+    monthName,
+    movementKinds,
+    movementsUrl,
+    weekdayShort,
+} from '@/lib/budget';
 import { budgetTabs } from '@/lib/budgetTabs';
 import type { FilterPill } from '@/lib/filters';
 import { rangePills } from '@/lib/filters';
@@ -89,6 +95,7 @@ const {
     filters: () => props.filters,
     pills: () => pills.value,
     url: (query) => movementsUrl({ month: props.summary.month, ...query }),
+    confirm: confirmLeaveDetail,
 });
 
 /** The panel of a new expense or income is open (on the computer). */
@@ -110,11 +117,7 @@ watch(
 );
 
 /** The kinds the list can be narrowed to, on the phone. */
-const kinds = computed(() => [
-    { value: null, label: trans('Everything') },
-    { value: 'expense', label: trans('Expenses') },
-    { value: 'income', label: trans('Income') },
-]);
+const kinds = computed(() => movementKinds(null));
 
 /** The accounts of the family, for the filters. */
 const accountOptions = computed(() =>
@@ -122,10 +125,7 @@ const accountOptions = computed(() =>
 );
 
 /** The accounts of the menu of the phone, «All the accounts» first. */
-const accounts = computed(() => [
-    { value: '', label: trans('All the accounts') },
-    ...accountOptions.value,
-]);
+const accounts = computed(() => accountChoices(accountOptions.value));
 
 watch(accountChoice, (choice) => {
     const account = choice === '' ? null : Number(choice);
@@ -163,15 +163,34 @@ const pills = computed(() => {
     return [...list, ...rangePills(filters)];
 });
 
-/** The line of a search: how many were found and their total. */
+/** The line of a search: how many were found and their total; empty when nothing was found. */
 const found = computed(() =>
-    props.search === null
+    props.search === null || props.search.count === 0
         ? ''
         : transChoice(
               '{1} :count movement found, :total in all|[2,*] :count movements found, :total in all',
               props.search.count,
               { total: euro(props.search.total) },
           ),
+);
+
+/** How many movements of a search the list shows (the server sends the most recent only). */
+const shownCount = computed(
+    () =>
+        props.search?.months.reduce(
+            (sum, group) => sum + group.movements.length,
+            0,
+        ) ?? 0,
+);
+
+/** The line under a search that found more than the list shows; empty when it shows them all. */
+const cutNote = computed(() =>
+    props.search !== null && props.search.count > shownCount.value
+        ? trans(
+              'Only the :shown most recent are shown: narrow the search to see the others.',
+              { shown: String(shownCount.value) },
+          )
+        : '',
 );
 
 /** The button that closes the panel of the filters, on the phone. */
@@ -191,6 +210,34 @@ function closePanel(): void {
     if (props.selected) {
         go({ movement: null });
     }
+}
+
+/**
+ * Before the list changes (a search, a filter, a pill, the month) with a
+ * movement or a new one open in the column: its changes are lost, so the panel
+ * asks first, and the new one closes when the person leaves.
+ *
+ * @returns true when the list may change, or the answer of the person
+ */
+function confirmLeaveDetail(): boolean | Promise<boolean> {
+    /**
+     * Closes the new expense or income when the list may change.
+     *
+     * @param leave - whether the list may change
+     * @returns the same answer
+     */
+    const closeNew = (leave: boolean): boolean => {
+        if (leave) {
+            creating.value = false;
+        }
+
+        return leave;
+    };
+    const answer = panel.value?.confirmLeave() ?? true;
+
+    return typeof answer === 'boolean'
+        ? closeNew(answer)
+        : answer.then(closeNew);
 }
 
 /** *Back to the filters* or the ×: the panel asks first when something changed. */
@@ -359,6 +406,7 @@ function subtitle(movement: App.Data.MovementData): string {
             <FmFilterButton
                 v-if="!desktop"
                 :count="filterCount"
+                :expanded="filtersOpen"
                 @click="filtersOpen = true"
             />
         </div>
@@ -372,7 +420,7 @@ function subtitle(movement: App.Data.MovementData): string {
             >
                 <template #filters>
                     <div class="flex flex-col gap-4">
-                        <span class="text-amount">{{ $t('Filter') }}</span>
+                        <h2 class="text-amount">{{ $t('Filter') }}</h2>
                         <FmMovementFilters
                             :filters="filters"
                             :accounts="accountOptions"
@@ -462,7 +510,7 @@ function subtitle(movement: App.Data.MovementData): string {
                 <FmFilterPills
                     v-if="pills.length > 0"
                     :pills="pills"
-                    :found="search !== null && search.count > 0 ? found : ''"
+                    :found="found"
                     @remove="removePill"
                     @remove-all="removeAll"
                 />
@@ -516,8 +564,14 @@ function subtitle(movement: App.Data.MovementData): string {
                             />
                         </template>
                     </FmCard>
+                    <p
+                        v-if="cutNote !== ''"
+                        class="mx-1 my-0 text-body-sm text-ink-soft"
+                    >
+                        {{ cutNote }}
+                    </p>
                     <FmEmpty
-                        v-else
+                        v-if="search.months.length === 0"
                         :icon="Search"
                         :title="$t('No movement matches the filters')"
                         :text="$t('Remove a filter or change the search.')"

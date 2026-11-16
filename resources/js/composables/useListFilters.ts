@@ -36,7 +36,9 @@ export type ListFilters<F, E> = {
  *
  * @param options.filters - the filters in use, as the server sends them
  * @param options.pills - the pills of the filters on, each with what removing it leaves
- * @param options.url - the address of the page for the filters (and the other values of the address) given
+ * @param options.url - the address of the page for the filters, whole, and the other values of the address given
+ * @param options.confirm - asked before every visit, for a form open beside the list with changes not saved:
+ *   true (or a promise of true) lets the visit go, false stops it
  * @returns the state and the actions of the filters
  */
 export function useListFilters<
@@ -45,7 +47,8 @@ export function useListFilters<
 >(options: {
     filters: () => F;
     pills: () => FilterPill<F>[];
-    url: (query: Partial<F & E>) => string;
+    url: (query: F & Partial<E>) => string;
+    confirm?: () => boolean | Promise<boolean>;
 }): ListFilters<F, E> {
     const desktop = useComputerLayout();
     const page = usePage();
@@ -62,11 +65,25 @@ export function useListFilters<
      * @param change - what changes from the page in use
      */
     function go(change: Partial<F & E> = {}): void {
-        router.get(
-            options.url({ ...options.filters(), ...change }),
-            {},
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
+        /** The visit, with the filters of when it goes. */
+        const visit = (): void =>
+            router.get(
+                options.url({ ...options.filters(), ...change }),
+                {},
+                { preserveState: true, preserveScroll: true, replace: true },
+            );
+        const answer = options.confirm?.() ?? true;
+
+        // A plain yes visits at once: only a question waits for the answer
+        if (answer === true) {
+            visit();
+        } else if (answer !== false) {
+            void answer.then((leave) => {
+                if (leave) {
+                    visit();
+                }
+            });
+        }
     }
 
     return {

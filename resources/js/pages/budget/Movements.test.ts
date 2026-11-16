@@ -465,6 +465,168 @@ describe('Movements', () => {
         expect(
             screen.getByText('No movement matches the filters'),
         ).toBeInTheDocument();
+        expect(screen.queryByText(/found/)).not.toBeInTheDocument();
+    });
+
+    it('says when the list shows only the most recent of what was found', () => {
+        const cut = renderPage(Movements, {
+            ...searching,
+            search: { ...searching.search, count: 206, total: 9120.5 },
+        });
+
+        expect(
+            screen.getByText(
+                'Only the 6 most recent are shown: narrow the search to see the others.',
+            ),
+        ).toBeInTheDocument();
+
+        cut.unmount();
+        renderPage(Movements, searching);
+        expect(
+            screen.queryByText(/most recent are shown/),
+        ).not.toBeInTheDocument();
+    });
+
+    it('announces how many were found', () => {
+        renderPage(Movements, searching);
+
+        expect(
+            screen.getByText('6 movements found, 310,10 € in all'),
+        ).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('names the column of the filters with a heading', () => {
+        screenWidth(true);
+        renderPage(Movements, props);
+
+        expect(
+            screen.getByRole('heading', { level: 2, name: 'Filter' }),
+        ).toBeInTheDocument();
+    });
+
+    it('says on the phone whether the panel of the filters is open', async () => {
+        screenWidth(390);
+        renderPage(Movements, props);
+        const button = screen.getByRole('button', { name: 'Filters' });
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+
+        await userEvent.click(button);
+
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    for (const [action, expected] of [
+        [
+            'sends a search',
+            '/budget/movements?month=2026-10&kind=expense&search=retta&min=20',
+        ],
+        ['removes a filter', '/budget/movements?month=2026-10&kind=expense'],
+        ['removes every filter', '/budget/movements?month=2026-10'],
+    ] as const) {
+        it(`asks before it ${action} while the movement open in the column has changes`, async () => {
+            screenWidth(true);
+            const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+            renderPage(Movements, {
+                ...props,
+                kind: 'expense',
+                filters: { ...noFilters, kind: 'expense', min: 20 },
+                selected: danceMovement,
+            });
+            await fireEvent.update(screen.getByLabelText('Title'), 'Retta');
+            await settle();
+
+            if (action === 'sends a search') {
+                await userEvent.type(
+                    screen.getByRole('searchbox', {
+                        name: 'Search a movement',
+                    }),
+                    'retta{Enter}',
+                );
+            } else if (action === 'removes a filter') {
+                await userEvent.click(
+                    screen.getByRole('button', {
+                        name: 'Remove the filter At least 20,00 €',
+                    }),
+                );
+            } else {
+                await userEvent.click(
+                    screen.getByRole('button', { name: 'Remove the filters' }),
+                );
+            }
+
+            expect(leaveQuestion.open).toBe(true);
+            answerLeave(false);
+            await settle();
+            expect(get).not.toHaveBeenCalled();
+            expect(screen.getByLabelText('Title')).toHaveValue('Retta');
+
+            // asked again, this time the person leaves without saving
+            if (action === 'sends a search') {
+                await userEvent.type(
+                    screen.getByRole('searchbox', {
+                        name: 'Search a movement',
+                    }),
+                    '{Enter}',
+                );
+            } else if (action === 'removes a filter') {
+                await userEvent.click(
+                    screen.getByRole('button', {
+                        name: 'Remove the filter At least 20,00 €',
+                    }),
+                );
+            } else {
+                await userEvent.click(
+                    screen.getByRole('button', { name: 'Remove the filters' }),
+                );
+            }
+            answerLeave(true);
+            await settle();
+            expect(get).toHaveBeenCalledTimes(1);
+            expect(get.mock.calls[0]![0]).toBe(expected);
+        });
+    }
+
+    it('closes a new expense or income with changes only after asking, when the filters change', async () => {
+        screenWidth(true);
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Movements, {
+            ...props,
+            filters: { ...noFilters, min: 20 },
+        });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'New expense or income' }),
+        );
+        await fireEvent.update(screen.getByLabelText('Title'), 'Pizza');
+        await settle();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Remove the filters' }),
+        );
+        expect(leaveQuestion.open).toBe(true);
+        answerLeave(true);
+        await settle();
+
+        expect(get.mock.calls[0]![0]).toBe('/budget/movements?month=2026-10');
+        expect(
+            screen.getByRole('complementary', { name: 'Filters' }),
+        ).toBeInTheDocument();
+    });
+
+    it('changes the filters at once when the movement open in the column has no changes', async () => {
+        screenWidth(true);
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Movements, {
+            ...props,
+            filters: { ...noFilters, min: 20 },
+            selected: danceMovement,
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Remove the filters' }),
+        );
+
+        expect(leaveQuestion.open).toBe(false);
+        expect(get.mock.calls[0]![0]).toBe('/budget/movements?month=2026-10');
     });
 
     it('sends the search with Enter', async () => {

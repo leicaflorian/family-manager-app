@@ -346,7 +346,17 @@ function save(): void {
 
 useSaveShortcut(save, () => canSave.value && !processing.value);
 
-defineExpose({ close });
+/**
+ * Asks before the panel goes away with its changes because the list beside
+ * it changes (a search, a filter): with no changes it answers at once.
+ *
+ * @returns true, or the answer of the person when something changed
+ */
+function confirmLeave(): boolean | Promise<boolean> {
+    return changes.dirty.value ? changes.confirmClose() : true;
+}
+
+defineExpose({ close, confirmLeave });
 </script>
 
 <template>

@@ -2,7 +2,7 @@
 /**
  * The square button that opens the filters of a list on the phone and the
  * tablet. With filters on it turns soft blue and shows how many are on in a
- * badge; its name says it too.
+ * badge; its name says it too, and `aria-expanded` whether the panel is open.
  *
  * @group basics
  */
@@ -12,9 +12,11 @@ import { computed } from 'vue';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
-const { count } = defineProps<{
+const { count, expanded = false } = defineProps<{
     /** How many filters are on. */
     count: number;
+    /** Whether the panel of the filters it opens is open, said to screen readers. */
+    expanded?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -44,6 +46,8 @@ const look = computed(() =>
     <button
         type="button"
         :aria-label="name"
+        aria-haspopup="dialog"
+        :aria-expanded="expanded"
         :class="look"
         @click="emit('click')"
     >

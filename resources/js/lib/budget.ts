@@ -379,6 +379,40 @@ export function weekdayShort(date: string): string {
     return format(new Date(year, month - 1, day), 'ddd', getActiveLanguage());
 }
 
+/** A choice of a menu or of a row of buttons. */
+export interface Choice<T> {
+    /** What the choice sends. */
+    value: T;
+    /** What the person reads. */
+    label: string;
+}
+
+/**
+ * The kinds a list of movements can be narrowed to: everything, the expenses
+ * or the incomes, in this order.
+ *
+ * @param all - the value of «Everything»: `null` for a visit, a text for buttons that cannot hold `null`
+ * @returns the three choices, in the language of the page
+ */
+export function movementKinds<T>(all: T): Choice<T | 'expense' | 'income'>[] {
+    return [
+        { value: all, label: trans('Everything') },
+        { value: 'expense', label: trans('Expenses') },
+        { value: 'income', label: trans('Income') },
+    ];
+}
+
+/**
+ * The accounts of a menu that filters by account, «All the accounts» first
+ * with an empty value.
+ *
+ * @param accounts - the accounts of the family
+ * @returns the choices of the menu
+ */
+export function accountChoices(accounts: Choice<string>[]): Choice<string>[] {
+    return [{ value: '', label: trans('All the accounts') }, ...accounts];
+}
+
 /** What *Movements* shows: the month and, if chosen, the filters and the movement open beside the list. */
 export interface MovementsQuery extends Partial<App.Data.MovementFiltersData> {
     /** `yyyy-mm`. */

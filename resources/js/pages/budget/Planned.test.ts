@@ -293,4 +293,23 @@ describe('Planned expenses', () => {
             screen.queryByText('No planned expenses yet'),
         ).not.toBeInTheDocument();
     });
+
+    it('names the column of the filters with a heading', () => {
+        screenWidth(true);
+        renderPage(Planned, props);
+
+        expect(
+            screen.getByRole('heading', { level: 2, name: 'Filter' }),
+        ).toBeInTheDocument();
+    });
+
+    it('says on the phone whether the panel of the filters is open', async () => {
+        renderPage(Planned, filtered);
+        const button = screen.getByRole('button', { name: 'Filters, 2 on' });
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+
+        await userEvent.click(button);
+
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+    });
 });

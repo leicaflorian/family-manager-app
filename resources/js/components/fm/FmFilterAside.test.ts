@@ -40,4 +40,18 @@ describe('FmFilterAside', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Close' }));
         expect(view.emitted().close).toHaveLength(2);
     });
+
+    it('keeps the column within the window below the top bar, scrolling inside it', () => {
+        for (const detail of [true, false]) {
+            const view = render(FmFilterAside, { props: { detail }, slots });
+
+            expect(screen.getByRole('complementary')).toHaveClass(
+                'sticky',
+                'top-(--app-header)',
+                'max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(6)))]',
+                'overflow-y-auto',
+            );
+            view.unmount();
+        }
+    });
 });

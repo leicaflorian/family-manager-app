@@ -109,7 +109,7 @@ final readonly class Movements
             'income' => $incomes,
             default => [...$expenses, ...$incomes],
         };
-        usort($shown, static fn (Expense|Income $a, Expense|Income $b): int => [$b->date, $b instanceof Income, $b->id] <=> [$a->date, $a instanceof Income, $a->id]);
+        $shown = $this->newestFirst($shown);
 
         $paths = resolve(CategoryTree::class)->paths();
 
@@ -152,7 +152,7 @@ final readonly class Movements
             array_push($found, ...$query->orderByDesc('date')->orderByDesc('id')->limit(self::SEARCH_LIMIT)->get()->all());
         }
 
-        usort($found, static fn (Expense|Income $a, Expense|Income $b): int => [$b->date, $b instanceof Income, $b->id] <=> [$a->date, $a instanceof Income, $a->id]);
+        $found = $this->newestFirst($found);
         $paths = resolve(CategoryTree::class)->paths();
 
         $groups = [];
@@ -172,6 +172,20 @@ final readonly class Movements
         }
 
         return new MovementSearchData(months: $months, count: $count, total: round($total, 2));
+    }
+
+    /**
+     * Sorts movements the most recent first: by day, then the incomes before the expenses of the same day, then the
+     * last added first.
+     *
+     * @param  array<int, Expense|Income>  $movements  The movements, in any order.
+     * @return list<Expense|Income>
+     */
+    private function newestFirst(array $movements): array
+    {
+        usort($movements, static fn (Expense|Income $a, Expense|Income $b): int => [$b->date, $b instanceof Income, $b->id] <=> [$a->date, $a instanceof Income, $a->id]);
+
+        return $movements;
     }
 
     /**

@@ -9,9 +9,9 @@
  *
  * @group forms
  */
-import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FilterRanges from '@/components/filters/FilterRanges.vue';
+import { accountChoices as withAllAccounts, movementKinds } from '@/lib/budget';
 import { anyFilterOn, withoutFilters } from '@/lib/filters';
 import { textOrNull } from '@/lib/forms';
 
@@ -37,17 +37,10 @@ const emit = defineEmits<{
 const ALL = 'all';
 
 /** The kinds the list can be narrowed to. */
-const kinds = computed(() => [
-    { value: ALL, label: trans('Everything') },
-    { value: 'expense', label: trans('Expenses') },
-    { value: 'income', label: trans('Income') },
-]);
+const kinds = computed(() => movementKinds(ALL));
 
 /** The accounts of the menu, «All the accounts» first. */
-const accountChoices = computed(() => [
-    { value: '', label: trans('All the accounts') },
-    ...accounts,
-]);
+const accountChoices = computed(() => withAllAccounts(accounts));
 
 /** Whether any filter is on, the search included. */
 const anyOn = computed(() => anyFilterOn(filters));

@@ -9,11 +9,13 @@ import {
     salaryDeadline,
 } from '@/test/fixtures';
 import {
+    accountChoices,
     comparisonComment,
     deadlineStanding,
     deadlineStatus,
     deadlineUrls,
     monthName,
+    movementKinds,
     movementsUrl,
     plannedUrl,
     recurrenceText,
@@ -314,5 +316,41 @@ describe('plannedUrl', () => {
         ).toBe(
             '/budget/planned?search=luce&min=10&max=100&from=2026-11-01&to=2026-11-30',
         );
+    });
+});
+
+describe('movementKinds', () => {
+    it('offers everything first, then the expenses and the incomes', () => {
+        expect(movementKinds(null)).toEqual([
+            { value: null, label: 'Everything' },
+            { value: 'expense', label: 'Expenses' },
+            { value: 'income', label: 'Income' },
+        ]);
+    });
+
+    it('takes the value that means everything', () => {
+        expect(movementKinds('all')[0]).toEqual({
+            value: 'all',
+            label: 'Everything',
+        });
+    });
+
+    it('speaks the language of the page', async () => {
+        await speak('it');
+
+        expect(movementKinds(null).map(({ label }) => label)).toEqual([
+            'Tutto',
+            'Spese',
+            'Entrate',
+        ]);
+    });
+});
+
+describe('accountChoices', () => {
+    it('puts «All the accounts» first, with an empty value', () => {
+        expect(accountChoices([{ value: '1', label: 'Conto BPER' }])).toEqual([
+            { value: '', label: 'All the accounts' },
+            { value: '1', label: 'Conto BPER' },
+        ]);
     });
 });

@@ -29,4 +29,15 @@ describe('FmFilterButton', () => {
 
         expect(view.emitted().click).toHaveLength(1);
     });
+
+    it('says it opens a panel, and whether the panel is open', async () => {
+        const view = render(FmFilterButton, { props: { count: 0 } });
+        const button = screen.getByRole('button', { name: 'Filters' });
+
+        expect(button).toHaveAttribute('aria-haspopup', 'dialog');
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+
+        await view.rerender({ count: 0, expanded: true });
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+    });
 });
