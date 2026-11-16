@@ -24,6 +24,7 @@ use App\Models\User;
 use App\Support\Deadline;
 use App\Support\DefaultAccount;
 use App\Support\ModelId;
+use App\Support\PlannedFilters;
 use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -49,11 +50,13 @@ final readonly class PlannedSummaries
     /**
      * *Planned expenses*: the active expenses and incomes by next due date, the ended ones apart, and what they
      * come to in a month on average (the sum of the due dates of the next 12 months, exceptions applied, over 12).
+     * With filters only the rows that pass them are listed, while the averages stay those of all the planned items.
      *
      * @param  CarbonImmutable  $today  today in Rome
+     * @param  PlannedFilters|null  $filters  what narrows the rows, null for all
      * @return array{expenses: list<PlannedRowData>, incomes: list<PlannedRowData>, ended: list<PlannedRowData>, monthly_out: float, monthly_in: float}
      */
-    public function index(CarbonImmutable $today): array
+    public function index(CarbonImmutable $today, ?PlannedFilters $filters = null): array
     {
         $planned = [
             ...PlannedExpense::query()->with(['category', 'person', 'financialAccount'])->get()->all(),
@@ -81,6 +84,10 @@ final readonly class PlannedSummaries
                 static fn (Deadline $deadline): float => $deadline->occurrence->date->toDateString() <= $lastDay ? $deadline->occurrence->amount : 0.0,
                 $mine,
             ));
+        }
+
+        if ($filters instanceof PlannedFilters) {
+            $rows = array_map(static fn (array $list): array => array_values(array_filter($list, $filters->keeps(...))), $rows);
         }
 
         return [

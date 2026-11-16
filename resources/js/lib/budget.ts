@@ -6,6 +6,7 @@ import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import { exceptions, payment, show } from '@/routes/budget/deadlines';
 import { index as movementsIndex } from '@/routes/budget/movements';
+import { index as plannedIndex } from '@/routes/budget/planned';
 import { daysFromToday, formatDate, formatEuro, relativeDays } from './format';
 import { listNames } from './names';
 
@@ -406,11 +407,37 @@ export function movementsUrl(query: MovementsQuery): string {
         movement: query.movement,
     };
 
-    return movementsIndex.url({
-        query: Object.fromEntries(
-            Object.entries(ordered).filter(
-                ([, value]) => value !== null && value !== undefined,
-            ),
-        ),
+    return movementsIndex.url({ query: filled(ordered) });
+}
+
+/**
+ * The address of *Planned expenses* with the filters in use, always in the
+ * same order. What is empty is left out.
+ *
+ * @param filters - the search, the amounts and the next due dates
+ * @returns for example `/budget/planned?search=luce&min=20`
+ */
+export function plannedUrl(filters: App.Data.PlannedFiltersData): string {
+    const { search, min, max, from, to } = filters;
+
+    return plannedIndex.url({
+        query: filled({ search, min, max, from, to }),
     });
+}
+
+/**
+ * The values of a query that are not empty, in the order given.
+ *
+ * @param query - the values by name
+ * @returns the query without the empty ones
+ */
+function filled(
+    query: Record<string, string | number | null | undefined>,
+): Record<string, string | number> {
+    return Object.fromEntries(
+        Object.entries(query).filter(
+            (entry): entry is [string, string | number] =>
+                entry[1] !== null && entry[1] !== undefined,
+        ),
+    );
 }

@@ -1992,5 +1992,15 @@
     "Show the movements": "Mostra i movimenti",
     "{1} Show :count movement|[2,*] Show :count movements": "{1} Mostra :count movimento|[2,*] Mostra :count movimenti",
     "No movement matches the filters": "Nessun movimento con questi filtri",
-    "You search the title in the box above the list. You can change the type and the account on the page too.": "Il titolo lo cerchi nel campo sopra l'elenco. Tipo e conto li cambi anche dalla pagina."
+    "You search the title in the box above the list. You can change the type and the account on the page too.": "Il titolo lo cerchi nel campo sopra l'elenco. Tipo e conto li cambi anche dalla pagina.",
+    "Next from :from to :to": "Prossima dal :from al :to",
+    "Next from :date": "Prossima dal :date",
+    "Next until :date": "Prossima fino al :date",
+    "Without dates you see them all.": "Senza date le vedi tutte.",
+    "Search a planned expense": "Cerca una spesa fissa",
+    "{1} :count planned expense, by due date|[2,*] :count planned expenses, by due date": "{1} :count spesa fissa, in ordine di scadenza|[2,*] :count spese fisse, in ordine di scadenza",
+    "Show the planned expenses": "Mostra le spese fisse",
+    "{1} Show :count planned expense|[2,*] Show :count planned expenses": "{1} Mostra :count spesa fissa|[2,*] Mostra :count spese fisse",
+    "No planned expense matches the filters": "Nessuna spesa fissa con questi filtri",
+    "You search the title in the box above the list.": "Il titolo lo cerchi nel campo sopra l'elenco."
 }

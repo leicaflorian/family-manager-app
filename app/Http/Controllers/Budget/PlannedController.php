@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Budget\SavePlanned;
+use App\Data\PlannedFiltersData;
 use App\Data\PlannedRowData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Budget\PlannedIndexRequest;
 use App\Http\Requests\Budget\SavePlannedRequest;
 use App\Models\PlannedExpense;
 use App\Models\User;
@@ -32,12 +34,16 @@ final class PlannedController extends Controller
     public function __construct(private readonly PlannedSummaries $summaries) {}
 
     /**
-     * *Planned expenses*: the active expenses and incomes by next due date, the monthly averages and the ended ones.
+     * *Planned expenses*: the active expenses and incomes by next due date, the monthly averages and the ended ones,
+     * narrowed by the search and the filters of the address.
      */
-    public function index(#[CurrentUser] User $user): Response
+    public function index(PlannedIndexRequest $request, #[CurrentUser] User $user): Response
     {
+        $filters = $request->filters();
+
         return Inertia::render('budget/Planned', [
-            ...$this->summaries->index(CarbonImmutable::today('Europe/Rome')),
+            ...$this->summaries->index(CarbonImmutable::today('Europe/Rome'), $filters),
+            'filters' => PlannedFiltersData::fromFilters($filters),
             'canEdit' => $user->can('create', PlannedExpense::class),
         ]);
     }

@@ -114,6 +114,7 @@
         "FmCategoryTree": "pages",
         "FmDocumentFilters": "pages",
         "FmMovementFilters": "pages",
+        "FmPlannedFilters": "pages",
         "FmDocumentForm": "pages",
         "FmNotificationRule": "pages",
         "FmChangeDeadlineSheet": "pages",

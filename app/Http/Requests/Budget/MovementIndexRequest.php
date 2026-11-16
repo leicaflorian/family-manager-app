@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Budget;
 
 use App\Http\Requests\Concerns\ReadsMonth;
+use App\Http\Requests\Concerns\ReadsSearchFilters;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Rules\OfFamily;
@@ -14,7 +15,6 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -27,9 +27,7 @@ final class MovementIndexRequest extends FormRequest
     use ReadsMonth {
         failedValidation as private notFound;
     }
-
-    /** The fields typed by the person: a mistake in them is a 422, not a wrong address. */
-    private const array FILTER_FIELDS = ['search', 'min', 'max', 'from', 'to'];
+    use ReadsSearchFilters;
 
     /**
      * The rules of the address.
@@ -43,11 +41,7 @@ final class MovementIndexRequest extends FormRequest
             'kind' => ['nullable', 'in:expense,income'],
             'account' => ['nullable', new OfFamily('financial_accounts')],
             'movement' => ['nullable', 'regex:/^(expense|income):[0-9]+$/'],
-            'search' => ['nullable', 'string', 'max:100'],
-            'min' => ['nullable', 'numeric', 'min:0'],
-            'max' => ['nullable', 'numeric', 'min:0', Rule::when($this->filled('min'), 'gte:min')],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', Rule::when($this->filled('from'), 'after_or_equal:from')],
+            ...$this->searchFilterRules(),
         ];
     }
 
@@ -56,16 +50,14 @@ final class MovementIndexRequest extends FormRequest
      */
     public function filters(): MovementFilters
     {
-        $text = trim($this->string('search')->toString());
-
         return new MovementFilters(
-            search: $text === '' ? null : $text,
+            search: $this->searchText(),
             kind: $this->kind(),
             account: $this->account(),
-            min: $this->filled('min') ? $this->float('min') : null,
-            max: $this->filled('max') ? $this->float('max') : null,
-            from: $this->filled('from') ? $this->string('from')->toString() : null,
-            to: $this->filled('to') ? $this->string('to')->toString() : null,
+            min: $this->filterAmount('min'),
+            max: $this->filterAmount('max'),
+            from: $this->filterDay('from'),
+            to: $this->filterDay('to'),
         );
     }
 

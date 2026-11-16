@@ -11,8 +11,9 @@
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
-import { errors as fieldErrors } from '@/lib/errors';
-import { formatAmount, parseAmount } from '@/lib/forms';
+import FilterRanges from '@/components/filters/FilterRanges.vue';
+import { anyFilterOn, withoutFilters } from '@/lib/filters';
+import { textOrNull } from '@/lib/forms';
 
 const {
     filters,
@@ -49,9 +50,7 @@ const accountChoices = computed(() => [
 ]);
 
 /** Whether any filter is on, the search included. */
-const anyOn = computed(() =>
-    Object.values(filters).some((value) => value !== null),
-);
+const anyOn = computed(() => anyFilterOn(filters));
 
 /**
  * Sends the filters with some of them changed, unless nothing changed.
@@ -68,31 +67,6 @@ function change(changed: Partial<App.Data.MovementFiltersData>): void {
     ) {
         emit('change', next);
     }
-}
-
-/**
- * Text from a field, or null when it is empty.
- *
- * @param value - what the field holds
- * @returns the text, or null
- */
-function textOrNull(value: unknown): string | null {
-    return value === '' || value === null || value === undefined
-        ? null
-        : String(value);
-}
-
-/** Takes every filter away, the search too. */
-function removeAll(): void {
-    emit('change', {
-        search: null,
-        kind: null,
-        account: null,
-        min: null,
-        max: null,
-        from: null,
-        to: null,
-    });
 }
 </script>
 
@@ -127,75 +101,14 @@ function removeAll(): void {
                 }
             "
         />
-        <fieldset class="m-0 flex min-w-0 flex-col gap-2.5 border-0 p-0">
-            <legend class="mb-2 p-0 text-label text-ink-soft">
-                {{ $t('Amount') }}
-            </legend>
-            <div class="grid gap-3 @xs:grid-cols-2">
-                <FormKit
-                    type="currency"
-                    :label="$t('At least')"
-                    name="min"
-                    :delay="600"
-                    :model-value="formatAmount(filters.min)"
-                    :errors="fieldErrors(errors.min)"
-                    @update:model-value="
-                        (value: unknown) => change({ min: parseAmount(value) })
-                    "
-                />
-                <FormKit
-                    type="currency"
-                    :label="$t('At most')"
-                    name="max"
-                    :delay="600"
-                    :model-value="formatAmount(filters.max)"
-                    :errors="fieldErrors(errors.max)"
-                    @update:model-value="
-                        (value: unknown) => change({ max: parseAmount(value) })
-                    "
-                />
-            </div>
-        </fieldset>
-        <fieldset class="m-0 flex min-w-0 flex-col gap-2.5 border-0 p-0">
-            <legend class="mb-2 p-0 text-label text-ink-soft">
-                {{ $t('Date') }}
-            </legend>
-            <!-- A datepicker does not empty itself when its value goes back to null: the key starts it again -->
-            <div class="grid gap-3 @xs:grid-cols-2">
-                <FormKit
-                    :key="`from:${filters.from}`"
-                    type="datepicker"
-                    :label="$t('From')"
-                    name="from"
-                    :model-value="filters.from"
-                    :errors="fieldErrors(errors.from)"
-                    @update:model-value="
-                        (value: unknown) => change({ from: textOrNull(value) })
-                    "
-                />
-                <FormKit
-                    :key="`to:${filters.to}`"
-                    type="datepicker"
-                    :label="$t('To')"
-                    name="to"
-                    :model-value="filters.to"
-                    :errors="fieldErrors(errors.to)"
-                    @update:model-value="
-                        (value: unknown) => change({ to: textOrNull(value) })
-                    "
-                />
-            </div>
-            <p class="m-0 text-meta text-ink-soft">
-                {{ $t('Without dates I look in every month.') }}
-            </p>
-        </fieldset>
-        <button
-            v-if="anyOn"
-            type="button"
-            class="cursor-pointer self-start border-0 bg-transparent p-0 text-row text-action"
-            @click="removeAll"
-        >
-            {{ $t('Remove the filters') }}
-        </button>
+        <FilterRanges
+            :filters="filters"
+            :date-label="$t('Date')"
+            :help="$t('Without dates I look in every month.')"
+            :removable="anyOn"
+            :errors="errors"
+            @change="change"
+            @remove="emit('change', withoutFilters(filters))"
+        />
     </div>
 </template>

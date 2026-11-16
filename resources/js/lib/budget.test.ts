@@ -15,6 +15,7 @@ import {
     deadlineUrls,
     monthName,
     movementsUrl,
+    plannedUrl,
     recurrenceText,
     skippedMonthsText,
 } from './budget';
@@ -284,6 +285,34 @@ describe('movementsUrl', () => {
     it('keeps an amount of zero', () => {
         expect(movementsUrl({ month: '2026-10', min: 0 })).toBe(
             '/budget/movements?month=2026-10&min=0',
+        );
+    });
+});
+
+describe('plannedUrl', () => {
+    it('leaves out what is empty', () => {
+        expect(
+            plannedUrl({
+                search: null,
+                min: null,
+                max: null,
+                from: null,
+                to: null,
+            }),
+        ).toBe('/budget/planned');
+    });
+
+    it('carries every filter, in this order', () => {
+        expect(
+            plannedUrl({
+                to: '2026-11-30',
+                from: '2026-11-01',
+                max: 100,
+                min: 10,
+                search: 'luce',
+            }),
+        ).toBe(
+            '/budget/planned?search=luce&min=10&max=100&from=2026-11-01&to=2026-11-30',
         );
     });
 });

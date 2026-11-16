@@ -16,7 +16,7 @@ import { createReusableTemplate } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import { useComputerLayout, useLayoutMode } from '@/composables/useLayoutMode';
-import FmActiveFilter from '@/components/fm/FmActiveFilter.vue';
+import FilterPills from '@/components/filters/FilterPills.vue';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -37,6 +37,8 @@ import { useFormat } from '@/composables/useFormat';
 import type { MovementFormOptions, MovementsQuery } from '@/lib/budget';
 import { monthName, movementsUrl, weekdayShort } from '@/lib/budget';
 import { budgetTabs } from '@/lib/budgetTabs';
+import type { FilterPill } from '@/lib/filters';
+import { rangePills, withoutFilters } from '@/lib/filters';
 import { isoDate } from '@/lib/format';
 import { expenseIcon } from '@/lib/icons';
 import { cn } from '@/lib/utils';
@@ -71,7 +73,7 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 /** The layout: the magnifier and the bell beside the title are only on the phone. */
 const mode = useLayoutMode();
 const desktop = useComputerLayout();
-const { euro, date } = useFormat();
+const { euro } = useFormat();
 const page = usePage();
 
 /** The panel of a new expense or income is open (on the computer). */
@@ -155,25 +157,13 @@ function searchMovements(): void {
 
 /** Takes every filter away, the search too. */
 function removeFilters(): void {
-    go({
-        search: null,
-        kind: null,
-        account: null,
-        min: null,
-        max: null,
-        from: null,
-        to: null,
-    });
+    go(withoutFilters(props.filters));
 }
 
 /** The filters on, each with its pill and what removing it leaves. */
 const pills = computed(() => {
     const filters = props.filters;
-    const list: {
-        key: string;
-        label: string;
-        without: Partial<App.Data.MovementFiltersData>;
-    }[] = [];
+    const list: FilterPill<App.Data.MovementFiltersData>[] = [];
 
     if (filters.kind !== null) {
         list.push({
@@ -195,48 +185,17 @@ const pills = computed(() => {
         });
     }
 
-    if (filters.min !== null || filters.max !== null) {
-        list.push({
-            key: 'amount',
-            label:
-                filters.min !== null && filters.max !== null
-                    ? trans('From :min to :max', {
-                          min: euro(filters.min),
-                          max: euro(filters.max),
-                      })
-                    : filters.min !== null
-                      ? trans('At least :amount', { amount: euro(filters.min) })
-                      : trans('Up to :amount', { amount: euro(filters.max) }),
-            without: { min: null, max: null },
-        });
-    }
-
-    if (filters.from !== null || filters.to !== null) {
-        list.push({
-            key: 'days',
-            label:
-                filters.from !== null && filters.to !== null
-                    ? trans('From :from to :to', {
-                          from: date(filters.from),
-                          to: date(filters.to),
-                      })
-                    : filters.from !== null
-                      ? trans('From :date', { date: date(filters.from) })
-                      : trans('Until :date', { date: date(filters.to) }),
-            without: { from: null, to: null },
-        });
-    }
-
-    if (filters.search !== null) {
-        list.push({
-            key: 'search',
-            label: `“${filters.search}”`,
-            without: { search: null },
-        });
-    }
-
-    return list;
+    return [...list, ...rangePills(filters)];
 });
+
+/**
+ * Takes away the filter of a pill, keeping the others.
+ *
+ * @param key - the filter of the pill
+ */
+function removePill(key: string): void {
+    go(pills.value.find((pill) => pill.key === key)?.without ?? {});
+}
 
 /** How many filters the button of the phone counts: the search is in the box, not among them. */
 const filterCount = computed(
@@ -546,34 +505,13 @@ function subtitle(movement: App.Data.MovementData): string {
                     </div>
                 </template>
 
-                <div
+                <FilterPills
                     v-if="pills.length > 0"
-                    class="flex flex-wrap items-center gap-2"
-                >
-                    <FmActiveFilter
-                        v-for="pill in pills"
-                        :key="pill.key"
-                        :label="pill.label"
-                        @remove="go(pill.without)"
-                    />
-                    <button
-                        type="button"
-                        class="cursor-pointer border-0 bg-transparent px-1 py-0 text-label text-action"
-                        @click="removeFilters"
-                    >
-                        {{ $t('Remove the filters') }}
-                    </button>
-                    <span
-                        v-if="search !== null && search.count > 0"
-                        :class="
-                            cn(
-                                'text-body-sm text-ink-soft',
-                                desktop ? 'ml-1' : 'mt-1 basis-full',
-                            )
-                        "
-                        >{{ found }}</span
-                    >
-                </div>
+                    :pills="pills"
+                    :found="search !== null && search.count > 0 ? found : ''"
+                    @remove="removePill"
+                    @remove-all="removeFilters"
+                />
 
                 <div
                     v-if="!desktop"

@@ -639,6 +639,13 @@ readonly payments: App.Data.PaymentYearData[],
 readonly can_edit: boolean,
 readonly can_pay: boolean,
 };
+export type PlannedFiltersData = {
+readonly search: string | null,
+readonly min: number | null,
+readonly max: number | null,
+readonly from: string | null,
+readonly to: string | null,
+};
 export type PlannedRowData = {
 readonly kind: string,
 readonly id: number,

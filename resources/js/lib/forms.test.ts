@@ -3,6 +3,7 @@ import {
     formatAmount,
     isEmpty,
     parseAmount,
+    textOrNull,
     withMethod,
     withNone,
 } from './forms';
@@ -57,5 +58,15 @@ describe('formatAmount', () => {
         expect(formatAmount(45)).toBe('45.00');
         expect(formatAmount(null)).toBe('');
         expect(formatAmount(undefined)).toBe('');
+    });
+});
+
+describe('textOrNull', () => {
+    it('gives the text of a field, and null when it is empty', () => {
+        expect(textOrNull('2026-11-01')).toBe('2026-11-01');
+        expect(textOrNull(3)).toBe('3');
+        expect(textOrNull('')).toBeNull();
+        expect(textOrNull(null)).toBeNull();
+        expect(textOrNull(undefined)).toBeNull();
     });
 });
