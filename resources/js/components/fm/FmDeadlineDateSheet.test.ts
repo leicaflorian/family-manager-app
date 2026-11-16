@@ -225,7 +225,7 @@ describe('FmDeadlineDateSheet', () => {
         ).not.toBeInTheDocument();
         expect(
             screen.getByText(
-                'The new policy opens already filled in with the car and the policyholder. The old one becomes «Cancelled» when you save the new one.',
+                'The new policy opens, already filled in from the old one: you write the new company, number and expiry. The old one becomes «Cancelled» when you save the new one.',
             ),
         ).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Continue' }));

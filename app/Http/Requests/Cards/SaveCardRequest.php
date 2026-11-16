@@ -130,7 +130,7 @@ final class SaveCardRequest extends FormRequest
      * The payment just made that moves to the new policy, or null when there is none or it is not a payment of the
      * premium of one of the policies replaced.
      *
-     * @throws ModelNotFoundException if the expense is not of the family (it answers 404)
+     * A payment deleted meanwhile, or of another family, is not found and ignored.
      */
     public function paymentToMove(): ?Expense
     {
@@ -141,10 +141,10 @@ final class SaveCardRequest extends FormRequest
             return null;
         }
 
-        $payment = Expense::query()->with('plannedExpense')->findOrFail((int) $id);
-        $planned = $payment->plannedExpense;
+        $payment = Expense::query()->with('plannedExpense')->find((int) $id);
+        $planned = $payment?->plannedExpense;
 
-        return $planned !== null
+        return $payment !== null && $planned !== null
             && $planned->card_type === (new InsurancePolicy)->getMorphClass()
             && $old->contains('id', $planned->card_id)
                 ? $payment

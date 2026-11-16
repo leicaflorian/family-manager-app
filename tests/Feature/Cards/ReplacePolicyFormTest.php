@@ -144,3 +144,19 @@ it('offers only candidates', function (): void {
         ->where('replaces', [])
         ->has('replaceable', 0));
 });
+
+it('ignores the policies to replace when an existing policy is updated', function (): void {
+    $other = inPolicyFamily($this, fn (): InsurancePolicy => InsurancePolicy::factory()->create(['family_id' => $this->familyId, 'title' => 'Other', 'vehicle_id' => $this->vehicle->id]));
+
+    $this->actingAs($this->marco)->post(route('cards.update', ['type' => 'insurance_policy', 'id' => $other->id]), policyForm($this, ['_method' => 'put', 'title' => 'Other renamed', 'replace_policies' => [$this->old->id]]))->assertRedirect();
+
+    expect(fresh($this, $this->old)->status)->toBe(InsurancePolicyStatus::Active)
+        ->and(fresh($this, $other)->title)->toBe('Other renamed');
+});
+
+it('saves the policy when the payment to move was deleted meanwhile', function (): void {
+    $this->actingAs($this->marco)->post(route('cards.store', 'insurance_policy'), policyForm($this, ['replace_policies' => [$this->old->id], 'replace_payment' => 999999]))->assertRedirect();
+
+    expect(fresh($this, $this->old)->status)->toBe(InsurancePolicyStatus::Cancelled)
+        ->and(inPolicyFamily($this, fn (): int => InsurancePolicy::query()->where('title', 'RC auto 2027')->count()))->toBe(1);
+});

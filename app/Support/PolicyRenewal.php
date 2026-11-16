@@ -54,7 +54,7 @@ final class PolicyRenewal
     {
         $planned = $deadline->planned;
 
-        if (! $planned instanceof PlannedExpense || $planned->card_type !== 'insurance_policy') {
+        if (! $planned instanceof PlannedExpense || $planned->card_type !== (new InsurancePolicy)->getMorphClass()) {
             return null;
         }
 

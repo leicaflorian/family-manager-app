@@ -11,7 +11,9 @@ use App\Models\Family;
 use App\Models\InsurancePolicy;
 use App\Models\PlannedExpense;
 use App\Models\Reminder;
+use App\Services\Deadlines;
 use App\Support\CurrentFamily;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -45,10 +47,12 @@ function policyOf(Family $family, array $state = []): InsurancePolicy
 
 /**
  * Makes the yearly premium of a policy.
+ *
+ * @param  array<string, mixed>  $state  the columns
  */
-function premiumOf(Family $family, InsurancePolicy $policy): PlannedExpense
+function premiumOf(Family $family, InsurancePolicy $policy, array $state = []): PlannedExpense
 {
-    return CurrentFamily::using($family->id, fn (): PlannedExpense => PlannedExpense::factory()->forCard($policy)->create(['family_id' => $family->id, 'title' => 'Premium', 'amount' => 480, 'interval' => 1, 'interval_unit' => IntervalUnit::Year]));
+    return CurrentFamily::using($family->id, fn (): PlannedExpense => PlannedExpense::factory()->forCard($policy)->create(['family_id' => $family->id, 'title' => 'Premium', 'amount' => 480, 'interval' => 1, 'interval_unit' => IntervalUnit::Year, 'start_date' => '2025-12-01', ...$state]));
 }
 
 /**
@@ -115,7 +119,7 @@ it('ends the old premium when the new policy already has one', function (): void
     replacePolicy($family, $new, collect([$old]));
 
     $oldPremium = PlannedExpense::query()->withoutGlobalScopes()->findOrFail($oldPremium->id);
-    expect($oldPremium->end_date?->toDateString())->toBe('2026-12-01')->and($oldPremium->card_id)->toBe($old->id)
+    expect($oldPremium->end_date?->toDateString())->toBe('2026-11-30')->and($oldPremium->card_id)->toBe($old->id)
         ->and(PlannedExpense::query()->withoutGlobalScopes()->findOrFail($newPremium->id)->end_date)->toBeNull();
 });
 
@@ -131,5 +135,44 @@ it('replaces two old policies at once', function (): void {
 
     expect(reloaded($a)->status)->toBe(InsurancePolicyStatus::Cancelled)->and(reloaded($b)->status)->toBe(InsurancePolicyStatus::Cancelled)
         ->and(PlannedExpense::query()->withoutGlobalScopes()->findOrFail($premiumA->id)->card_id)->toBe($new->id)
-        ->and(PlannedExpense::query()->withoutGlobalScopes()->findOrFail($premiumB->id)->end_date?->toDateString())->toBe('2026-12-05');
+        ->and(PlannedExpense::query()->withoutGlobalScopes()->findOrFail($premiumB->id)->end_date?->toDateString())->toBe('2026-12-04');
+});
+
+it('leaves no open due date on the expiry day of the old premium', function (): void {
+    $family = Family::factory()->create();
+    $old = policyOf($family, ['expiry_date' => '2026-11-21']);
+    $new = policyOf($family);
+    $oldPremium = premiumOf($family, $old, ['start_date' => '2025-11-21']);
+    premiumOf($family, $new, ['start_date' => '2026-11-21']);
+
+    replacePolicy($family, $new, collect([$old]));
+
+    $oldPremium = PlannedExpense::query()->withoutGlobalScopes()->findOrFail($oldPremium->id);
+    $open = CurrentFamily::using($family->id, fn (): array => resolve(Deadlines::class)->between([$oldPremium], CarbonImmutable::parse('2026-11-21'), CarbonImmutable::parse('2026-11-21')));
+    expect($oldPremium->end_date?->toDateString())->toBe('2026-11-20')->and($open)->toBe([]);
+});
+
+it('keeps the expiry day of the old premium when that due date is already paid', function (): void {
+    $family = Family::factory()->create();
+    $old = policyOf($family, ['expiry_date' => '2026-11-21']);
+    $new = policyOf($family);
+    $oldPremium = premiumOf($family, $old, ['start_date' => '2025-11-21']);
+    premiumOf($family, $new, ['start_date' => '2026-11-21']);
+    CurrentFamily::using($family->id, fn (): Expense => Expense::factory()->create(['family_id' => $family->id, 'planned_expense_id' => $oldPremium->id, 'date' => '2026-11-21', 'occurrence_date' => '2026-11-21']));
+
+    replacePolicy($family, $new, collect([$old]));
+
+    expect(PlannedExpense::query()->withoutGlobalScopes()->findOrFail($oldPremium->id)->end_date?->toDateString())->toBe('2026-11-21');
+});
+
+it('never moves the end of the old premium later', function (): void {
+    $family = Family::factory()->create();
+    $old = policyOf($family, ['expiry_date' => '2026-11-21']);
+    $new = policyOf($family);
+    $oldPremium = premiumOf($family, $old, ['end_date' => '2026-06-01']);
+    premiumOf($family, $new);
+
+    replacePolicy($family, $new, collect([$old]));
+
+    expect(PlannedExpense::query()->withoutGlobalScopes()->findOrFail($oldPremium->id)->end_date?->toDateString())->toBe('2026-06-01');
 });

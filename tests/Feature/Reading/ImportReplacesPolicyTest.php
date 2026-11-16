@@ -34,7 +34,7 @@ beforeEach(function (): void {
             'vehicle_id' => $this->panda->id, 'expiry_date' => '2026-11-21',
         ]);
         $this->premium = PlannedExpense::factory()->forCard($this->old)->create([
-            'family_id' => $this->familyId, 'title' => 'Premio RC auto', 'amount' => 480, 'interval' => 1, 'interval_unit' => IntervalUnit::Year,
+            'family_id' => $this->familyId, 'title' => 'Premio RC auto', 'amount' => 480, 'interval' => 1, 'interval_unit' => IntervalUnit::Year, 'start_date' => '2025-11-21',
         ]);
     });
 
@@ -115,7 +115,7 @@ it('ends the old premium when the import makes a new one', function (): void {
     expect(freshInFamily($this, $this->old)->status)->toBe(InsurancePolicyStatus::Cancelled)
         ->and($own)->toBe(1)
         ->and($premium->card_id)->toBe($this->old->id)
-        ->and($premium->end_date?->toDateString())->toBe('2026-11-21');
+        ->and($premium->end_date?->toDateString())->toBe('2026-11-20');
 });
 
 it('cancels nothing for a member', function (): void {
