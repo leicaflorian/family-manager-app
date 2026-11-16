@@ -78,7 +78,8 @@ final class DeadlineController extends Controller
      * *I paid it* / *It arrived*: records the payment and goes back to the due date, or to the page it was sent from (the Agenda).
      * For the premium of a policy near its expiry, *Same company, renewed* also moves the expiry of the policy, in the
      * same transaction, unless it already moved since the page was opened; *I changed company* goes on to the form of
-     * the new policy, which takes the payment.
+     * the new policy, which takes the payment. When the page was stale (the policy renewed, replaced or cancelled since
+     * it opened) the choice records only the payment and leaves the policy alone.
      *
      * @throws NotFoundHttpException if the address is not a due date of the family
      */

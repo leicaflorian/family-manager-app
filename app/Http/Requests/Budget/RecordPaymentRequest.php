@@ -52,14 +52,16 @@ final class RecordPaymentRequest extends FormRequest
             'financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
             'receipt' => ['nullable', ...array_slice(self::FILE, 1)],
             'from_agenda' => ['sometimes', 'boolean'],
-            'renewal' => ['sometimes', Rule::in(['only', 'same', 'changed'])],
+            'renewal' => ['sometimes', Rule::in(PolicyRenewal::CHOICES)],
             'new_expiry' => ['required_if:renewal,same', 'nullable', 'date_format:Y-m-d'],
             'policy_expiry' => ['required_if:renewal,same,changed', 'nullable', 'date_format:Y-m-d'],
         ];
     }
 
     /**
-     * A renewal is refused when the due date has no policy to renew, or the person may not renew it.
+     * A renewal is refused when the due date is not the premium of a policy, or the person may not renew it. A
+     * policy that is no longer offered (renewed or cancelled elsewhere since the page opened) is not refused: the
+     * payment is recorded alone, see `renewalPolicy()`.
      *
      * @return list<callable(Validator):void>
      */
@@ -67,7 +69,7 @@ final class RecordPaymentRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                if ($this->renewal() !== 'only' && ! $this->renewalPolicy() instanceof InsurancePolicy) {
+                if ($this->renewal() !== 'only' && ! PolicyRenewal::linkedPolicy($this->deadline()) instanceof InsurancePolicy) {
                     $validator->errors()->add('renewal', __('This policy cannot be renewed here.'));
                 }
             },
@@ -81,15 +83,19 @@ final class RecordPaymentRequest extends FormRequest
     {
         $renewal = $this->input('renewal', 'only');
 
-        return is_string($renewal) && in_array($renewal, ['same', 'changed'], true) ? $renewal : 'only';
+        return is_string($renewal) && in_array($renewal, PolicyRenewal::CHOICES, true) ? $renewal : 'only';
     }
 
     /**
-     * The policy the due date can renew, if there is one.
+     * The policy the choice acts on: the one the due date can renew, while its expiry is still the one the page
+     * showed. Null when the page is stale (the policy was renewed, replaced or cancelled since): then the choice
+     * falls back to only the payment.
      */
     public function renewalPolicy(): ?InsurancePolicy
     {
-        return PolicyRenewal::policyFor($this->deadline(), CarbonImmutable::today('Europe/Rome'));
+        $policy = PolicyRenewal::policyFor($this->deadline(), CarbonImmutable::today('Europe/Rome'));
+
+        return $policy?->expiry_date?->toDateString() === $this->day('policy_expiry')?->toDateString() ? $policy : null;
     }
 
     /**

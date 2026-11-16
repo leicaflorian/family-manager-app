@@ -288,6 +288,41 @@ describe('FmPayForm', () => {
             expect(post.mock.calls[0]![1]).not.toHaveProperty('new_expiry');
         });
 
+        it('shows a refusal of the renewal even when the choice is gone', async () => {
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, options?: VisitOptions) => {
+                    options?.onError?.({
+                        renewal: 'This policy cannot be renewed here.',
+                    });
+                    options?.onFinish?.({} as never);
+                },
+            );
+            const view = renderPage(FmPayForm, policyProps);
+            await userEvent.click(
+                await screen.findByRole('button', {
+                    name: 'Same company, renewed',
+                }),
+            );
+            await settle();
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Confirm' }),
+            );
+            await settle();
+
+            await view.rerender({
+                ...policyProps,
+                deadline: { ...policyProps.deadline, renewal: null },
+            });
+            await settle();
+
+            expect(
+                screen.queryByRole('button', { name: 'Only the payment' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.getByText('This policy cannot be renewed here.'),
+            ).toBeInTheDocument();
+        });
+
         it('goes back to only the payment when it starts again', async () => {
             const view = renderPage(FmPayForm, policyProps);
             await userEvent.click(

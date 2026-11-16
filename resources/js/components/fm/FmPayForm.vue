@@ -272,7 +272,7 @@ defineExpose({ confirmClose: changes.confirmClose, reset });
                 :label="$t('The policy')"
                 name="renewal"
                 :options="renewalOptions"
-                :errors="errors(problems.renewal ?? problems.policy_expiry)"
+                :errors="errors(problems.policy_expiry)"
             />
             <FormKit
                 v-if="values.renewal === 'same'"
@@ -288,6 +288,10 @@ defineExpose({ confirmClose: changes.confirmClose, reset });
                 :errors="errors(problems.new_expiry)"
             />
         </template>
+        <!-- Outside the choice: after a refusal the page can come back without it, and the message must still show -->
+        <p v-if="problems.renewal" class="m-0 text-meta-strong text-overdue">
+            {{ problems.renewal }}
+        </p>
         <div class="flex flex-col gap-1.5">
             <button
                 type="button"

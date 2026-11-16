@@ -183,3 +183,46 @@ it('refuses a choice it does not know', function (): void {
 
     expect(premiumPayment())->toBeNull();
 });
+
+it('records only the payment when the policy was renewed elsewhere since the page opened', function (): void {
+    insideBianchi(fn (): bool => pandaPolicy()->forceFill(['expiry_date' => '2027-11-21'])->save());
+
+    $this->actingAs($this->marco)
+        ->post(renewalAddress('Assicurazione auto', '2026-11-21', '/payment'), [
+            'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'same', 'new_expiry' => '2027-11-21', 'policy_expiry' => '2026-11-21',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+
+    expect(premiumPayment())->not->toBeNull()
+        ->and(pandaPolicy()->expiry_date?->toDateString())->toBe('2027-11-21');
+});
+
+it('records only the payment when the policy was cancelled since the page opened', function (): void {
+    insideBianchi(fn (): bool => pandaPolicy()->forceFill(['status' => InsurancePolicyStatus::Cancelled])->save());
+
+    $this->actingAs($this->marco)
+        ->post(renewalAddress('Assicurazione auto', '2026-11-21', '/payment'), [
+            'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'changed', 'policy_expiry' => '2026-11-21',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+
+    $policy = pandaPolicy();
+    expect(premiumPayment())->not->toBeNull()
+        ->and($policy->status)->toBe(InsurancePolicyStatus::Cancelled)
+        ->and($policy->expiry_date?->toDateString())->toBe('2026-11-21');
+});
+
+it('records only the payment when the company changed but the expiry moved since the page opened', function (): void {
+    insideBianchi(fn (): bool => pandaPolicy()->forceFill(['expiry_date' => '2026-11-20'])->save());
+
+    $this->actingAs($this->marco)
+        ->post(renewalAddress('Assicurazione auto', '2026-11-21', '/payment'), [
+            'date' => '2026-10-26', 'amount' => 418, 'renewal' => 'changed', 'policy_expiry' => '2026-11-21',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(renewalAddress('Assicurazione auto', '2026-11-21'));
+
+    expect(premiumPayment())->not->toBeNull();
+});
