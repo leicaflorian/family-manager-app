@@ -427,6 +427,21 @@ describe('FmMovementPanel', () => {
         expect(close).not.toHaveClass('border');
     });
 
+    it('inside a column that has its own ×, has no × nor a card of its own', () => {
+        renderPage(FmMovementPanel, {
+            ...props,
+            compact: true,
+            embedded: true,
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Close' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('form', { name: 'New expense or income' }),
+        ).not.toHaveClass('shadow-card');
+    });
+
     it('has Cancel white with a grey edge and Save taking the rest of the line', () => {
         renderPage(FmMovementPanel, props);
 

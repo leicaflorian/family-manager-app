@@ -378,28 +378,37 @@ export function weekdayShort(date: string): string {
     return format(new Date(year, month - 1, day), 'ddd', getActiveLanguage());
 }
 
-/** What *Movements* shows: the month and, if chosen, the kind, the account and the movement open beside the list. */
-export interface MovementsQuery {
+/** What *Movements* shows: the month and, if chosen, the filters and the movement open beside the list. */
+export interface MovementsQuery extends Partial<App.Data.MovementFiltersData> {
     /** `yyyy-mm`. */
     month: string;
-    /** `expense` or `income`, or null for both. */
-    kind?: string | null;
-    /** The id of the account, or null for all. */
-    account?: number | null;
     /** The movement open beside the list, `kind:id`. */
     movement?: string | null;
 }
 
 /**
- * The address of *Movements* for a month and the filters in use. What is empty is left out.
+ * The address of *Movements* for a month and the filters in use, always in the
+ * same order whoever builds it. What is empty is left out.
  *
  * @param query - the month, the filters and the open movement
- * @returns for example `/budget/movements?month=2026-10&kind=expense`
+ * @returns for example `/budget/movements?month=2026-10&kind=expense&min=20`
  */
 export function movementsUrl(query: MovementsQuery): string {
+    const ordered = {
+        month: query.month,
+        kind: query.kind,
+        account: query.account,
+        search: query.search,
+        min: query.min,
+        max: query.max,
+        from: query.from,
+        to: query.to,
+        movement: query.movement,
+    };
+
     return movementsIndex.url({
         query: Object.fromEntries(
-            Object.entries(query).filter(
+            Object.entries(ordered).filter(
                 ([, value]) => value !== null && value !== undefined,
             ),
         ),

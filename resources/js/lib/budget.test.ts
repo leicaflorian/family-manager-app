@@ -14,6 +14,7 @@ import {
     deadlineStatus,
     deadlineUrls,
     monthName,
+    movementsUrl,
     recurrenceText,
     skippedMonthsText,
 } from './budget';
@@ -243,5 +244,46 @@ describe('skippedMonthsText', () => {
         await speak('it');
         expect(skippedMonthsText([7, 8])).toBe('luglio e agosto saltati');
         await speak('en');
+    });
+});
+
+describe('movementsUrl', () => {
+    it('writes the month and leaves out what is empty', () => {
+        expect(
+            movementsUrl({
+                month: '2026-10',
+                kind: null,
+                account: null,
+                search: null,
+                min: null,
+                max: null,
+                from: null,
+                to: null,
+            }),
+        ).toBe('/budget/movements?month=2026-10');
+    });
+
+    it('carries every filter and the movement open, in this order', () => {
+        expect(
+            movementsUrl({
+                month: '2026-10',
+                kind: 'expense',
+                account: 1,
+                search: 'spesa',
+                min: 20,
+                max: 100.5,
+                from: '2026-09-01',
+                to: '2026-10-31',
+                movement: 'expense:52',
+            }),
+        ).toBe(
+            '/budget/movements?month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100.5&from=2026-09-01&to=2026-10-31&movement=expense%3A52',
+        );
+    });
+
+    it('keeps an amount of zero', () => {
+        expect(movementsUrl({ month: '2026-10', min: 0 })).toBe(
+            '/budget/movements?month=2026-10&min=0',
+        );
     });
 });

@@ -113,6 +113,7 @@
         "FmCategoryOption": "pages",
         "FmCategoryTree": "pages",
         "FmDocumentFilters": "pages",
+        "FmMovementFilters": "pages",
         "FmDocumentForm": "pages",
         "FmNotificationRule": "pages",
         "FmChangeDeadlineSheet": "pages",
