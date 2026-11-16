@@ -20,12 +20,14 @@ describe('FmFilterAside', () => {
     it('shows the detail and not the filters when detail is on', () => {
         render(FmFilterAside, { props: { detail: true }, slots });
 
-        expect(screen.getByText('The detail')).toBeInTheDocument();
+        expect(
+            screen.getByRole('complementary', { name: 'Detail' }),
+        ).toHaveTextContent('The detail');
         expect(screen.queryByText('The filters')).not.toBeInTheDocument();
     });
 
     it('emits close from Back to the filters and from Close', async () => {
-        const { emitted } = render(FmFilterAside, {
+        const view = render(FmFilterAside, {
             props: { detail: true },
             slots,
         });
@@ -33,9 +35,9 @@ describe('FmFilterAside', () => {
         await userEvent.click(
             screen.getByRole('button', { name: 'Back to the filters' }),
         );
-        expect(emitted().close).toHaveLength(1);
+        expect(view.emitted().close).toHaveLength(1);
 
         await userEvent.click(screen.getByRole('button', { name: 'Close' }));
-        expect(emitted().close).toHaveLength(2);
+        expect(view.emitted().close).toHaveLength(2);
     });
 });

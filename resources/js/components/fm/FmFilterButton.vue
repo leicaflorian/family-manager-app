@@ -32,9 +32,9 @@ const name = computed(() =>
 /** The look of the button, soft blue when a filter is on. */
 const look = computed(() =>
     cn(
-        'relative flex size-control-md shrink-0 cursor-pointer items-center justify-center rounded-md border',
+        'relative flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border',
         count > 0
-            ? 'border-action bg-action-soft text-action-dark'
+            ? 'border-action-soft bg-action-soft text-action-dark'
             : 'border-edge-soft bg-card text-ink',
     ),
 );
@@ -51,7 +51,7 @@ const look = computed(() =>
         <span
             v-if="count > 0"
             aria-hidden="true"
-            class="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-action px-1 text-tiny text-on-action"
+            class="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-canvas bg-action px-1.25 text-badge text-on-action"
             >{{ count }}</span
         >
     </button>

@@ -23,10 +23,10 @@ describe('FmFilterButton', () => {
     });
 
     it('emits click', async () => {
-        const { emitted } = render(FmFilterButton, { props: { count: 1 } });
+        const view = render(FmFilterButton, { props: { count: 1 } });
 
         await userEvent.click(screen.getByRole('button'));
 
-        expect(emitted().click).toHaveLength(1);
+        expect(view.emitted().click).toHaveLength(1);
     });
 });

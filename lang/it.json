@@ -1973,5 +1973,6 @@
     "Go to the planned expense": "Vai alla spesa fissa",
     "Go to the planned income": "Vai all'entrata fissa",
     "Back to the filters": "Torna ai filtri",
+    "Detail": "Dettaglio",
     "{1} Filters, :count on|[2,*] Filters, :count on": "{1} Filtri, :count attivo|[2,*] Filtri, :count attivi"
 }

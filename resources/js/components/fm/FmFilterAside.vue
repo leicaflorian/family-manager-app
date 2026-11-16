@@ -11,11 +11,17 @@ import { ArrowLeft, X } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import FmIcon from './FmIcon.vue';
 
-const { detail, label = trans('Filters') } = defineProps<{
+const {
+    detail,
+    label = trans('Filters'),
+    detailLabel = trans('Detail'),
+} = defineProps<{
     /** Shows the detail slot, with its header, instead of the filters. */
     detail: boolean;
     /** What the filters are called, said to screen readers. */
     label?: string;
+    /** What the detail is called, said to screen readers. */
+    detailLabel?: string;
 }>();
 
 const emit = defineEmits<{
@@ -32,12 +38,13 @@ defineSlots<{
 </script>
 
 <template>
-    <div
+    <aside
         v-if="detail"
+        :aria-label="detailLabel"
         class="sticky top-(--app-header) flex flex-col gap-3.5 rounded-card-lg bg-card p-5 shadow-card"
     >
         <div
-            class="-mt-2 -mr-2 -mb-0 -ml-1.5 flex items-center justify-between gap-2"
+            class="-mt-2 -mr-2 -ml-1.5 flex items-center justify-between gap-2"
         >
             <button
                 type="button"
@@ -58,7 +65,7 @@ defineSlots<{
             </button>
         </div>
         <slot name="detail" />
-    </div>
+    </aside>
     <aside
         v-else
         :aria-label="label"
