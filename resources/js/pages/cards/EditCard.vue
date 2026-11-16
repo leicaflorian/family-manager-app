@@ -82,9 +82,7 @@ const {
 }>();
 
 /** The box *Cancel the policy* exists only for a new policy. */
-const canReplace = computed(
-    () => card === null && type.type === 'insurance_policy',
-);
+const canReplace = computed(() => !card && type.type === 'insurance_policy');
 
 /** The ids of the old policies ticked. */
 const ticked = ref<number[]>([...replaces]);

@@ -611,6 +611,15 @@ describe('The box that cancels the old policy', () => {
         ).toBeInTheDocument();
     });
 
+    it('shows the box when the server sends no card prop for a new policy', () => {
+        const { card: _card, ...asSent } = page;
+        renderPage(EditCard, { ...asSent, replaces: [7], payment: 33 });
+
+        expect(
+            screen.getByRole('checkbox', { name: /Cancel the policy RC Auto/ }),
+        ).toBeChecked();
+    });
+
     it('leaves the box unticked for a new policy by hand', () => {
         renderPage(EditCard, { ...page, replaces: [], payment: null });
 
