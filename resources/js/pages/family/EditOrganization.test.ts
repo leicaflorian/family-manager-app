@@ -102,7 +102,7 @@ describe('Edit an organization', () => {
         expect(
             screen.getByRole('button', { name: 'Bank or lender' }),
         ).toHaveAttribute('aria-pressed', 'false');
-        expect(screen.getByLabelText('Phone')).toHaveValue('800 123 456');
+        expect(screen.getByLabelText('Phone number')).toHaveValue('800 123 456');
         await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
         expect(post).toHaveBeenCalledWith(

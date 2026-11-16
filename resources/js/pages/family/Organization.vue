@@ -4,9 +4,8 @@
  * its contacts (phone, website, email) and the notes, such as the customer
  * code. An `admin` edits and deletes it: its documents and records stay.
  */
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import {
-    ChevronLeft,
     Globe,
     Mail,
     Pencil,
@@ -17,6 +16,7 @@ import {
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
+import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -103,13 +103,7 @@ usePageTrail(() => [
     <Head :title="organization.name" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <Link
-            :href="index().url"
-            class="flex items-center gap-1.5 self-start text-row no-underline"
-        >
-            <FmIcon :icon="ChevronLeft" :size="18" />
-            {{ $t('Organizations') }}
-        </Link>
+        <FmBackLink :href="index().url" :label="$t('Organizations')" />
 
         <!-- As in FmTitle: the actions take the room the name leaves -->
         <div class="flex items-center justify-between gap-4">

@@ -151,7 +151,7 @@ usePageTrail(() => [
                     <FormKit
                         v-model="form.phone"
                         type="tel"
-                        :label="$t('Phone')"
+                        :label="$t('Phone number')"
                         name="phone"
                         :errors="errors(form.errors.phone)"
                     />

@@ -126,7 +126,8 @@ final class ConnectController extends Controller
         if (! $device instanceof LinkedDevice) {
             RateLimiter::hit($this->key($request), PhoneLinks::CODE_MINUTES * 60);
 
-            return to_route('connect.linked')->withErrors(['secret' => __('This phone is not linked any more: link it again with a new code')]);
+            // The page to write a new code: `connect.linked` has no place for the message and moves on at once
+            return to_route('connect')->withErrors(['code' => __('This phone is not linked any more: link it again with a new code')]);
         }
 
         $this->links->signIn($device, $request);

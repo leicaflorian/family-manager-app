@@ -1984,5 +1984,7 @@
     "Cancel the policy :name": "Disdici la polizza :name",
     "Expires on :date. Its planned expense moves to the new one.": "Scade il :date. La sua spesa fissa passa alla nuova.",
     "Go to the planned expense": "Vai alla spesa fissa",
-    "Go to the planned income": "Vai all'entrata fissa"
+    "Go to the planned income": "Vai all'entrata fissa",
+    "Add another card": "Aggiungi un'altra tessera",
+    "Phone number": "Telefono"
 }

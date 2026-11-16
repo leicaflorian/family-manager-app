@@ -8,7 +8,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmHeader from '@/components/fm/FmHeader.vue';
-import { errors } from '@/lib/errors';
+import { errors as fieldErrors } from '@/lib/errors';
 import { use } from '@/routes/connect';
 
 defineOptions({
@@ -22,7 +22,12 @@ defineOptions({
     },
 });
 
-const { code, person, blocked } = defineProps<{
+const {
+    code,
+    person,
+    blocked,
+    errors = {},
+} = defineProps<{
     /** The code of the link, already valid, or null when it is to be written. */
     code: string | null;
     /** The first name of whom the code is for, with a valid code. */
@@ -31,6 +36,8 @@ const { code, person, blocked } = defineProps<{
     family: string | null;
     /** The message of a plain request refused for too many wrong codes. */
     blocked?: string;
+    /** The errors the page arrives with, from a visit of another page (the icon of a phone not linked any more). */
+    errors?: Record<string, string>;
 }>();
 
 const form = useForm({ code: code ?? '' });
@@ -89,7 +96,7 @@ function link(): void {
                 autocapitalize="characters"
                 autocorrect="off"
                 spellcheck="false"
-                :errors="errors(form.errors.code ?? blocked)"
+                :errors="fieldErrors(form.errors.code ?? errors.code ?? blocked)"
             />
             <span class="min-h-6 grow lg:hidden" />
             <FmButton type="submit" wide :disabled="form.processing">{{

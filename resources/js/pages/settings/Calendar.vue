@@ -91,20 +91,20 @@ usePageTrail(() => [
                     name="enabled"
                     :label="$t('Calendar on')"
                 />
-                <template v-if="calendar.on">
-                    <FmCalendarLink :calendar="calendar" />
-                    <div v-if="calendar.can_change">
-                        <FmButton
-                            variant="outline"
-                            @click="confirmingReset = true"
-                            >{{
-                                $t(
-                                    'Change the address (the old one stops working)',
-                                )
-                            }}</FmButton
-                        >
-                    </div>
-                </template>
+                <!-- off, a member reads who can turn it on: the admin has the switch -->
+                <FmCalendarLink
+                    v-if="calendar.on || !calendar.can_change"
+                    :calendar="calendar"
+                />
+                <div v-if="calendar.on && calendar.can_change">
+                    <FmButton
+                        variant="outline"
+                        @click="confirmingReset = true"
+                        >{{
+                            $t('Change the address (the old one stops working)')
+                        }}</FmButton
+                    >
+                </div>
             </div>
         </FmCard>
         <FmConfirm
