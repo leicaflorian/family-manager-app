@@ -41,11 +41,11 @@
 ## Task 1: Bilancio (`soldi`)
 Codice: `budget/Movements.vue`, `budget/Movement.vue`, `budget/Comparison.vue`, `budget/Planned.vue`, `budget/PlannedItem.vue`, `budget/EditPlanned.vue`, `components/budget/`, `app/Http/Controllers/Budget/`.
 Tavole nuove già note: un movimento e la sua modifica (`Movement`), nuova e modifica di una spesa fissa (`EditPlanned`). Controllare `Spese-fisse-filtri-dettaglio-pc.dc.html` (nuova, di un'altra sessione).
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 2: Pagare (`pagare`)
 Codice: `budget/Deadline.vue` (cambiata con `b5eea95`), `cards/CardPayments.vue`, `FmChangeDeadlineSheet`, il pannello del pagamento, entrata incassata, premio di una polizza.
-- [ ] Giro del flusso fatto e pubblicato
+- [x] Giro del flusso fatto e pubblicato
 
 ## Task 3: Agenda (`agenda`)
 Codice: `Agenda.vue`, `reminders/EditReminder.vue` (nuovo e modifica), pannelli di riga, calendario, polizza rinnovata.
