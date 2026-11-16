@@ -12,6 +12,7 @@ use App\Data\AgendaReminderData;
 use App\Enums\AgendaReminderState;
 use App\Enums\ReminderStatus;
 use App\Models\Document;
+use App\Models\InsurancePolicy;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
@@ -24,6 +25,7 @@ use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use App\Support\ModelId;
 use App\Support\PlannedKind;
+use App\Support\PolicyReplacement;
 use App\Support\Reminders\Delivery;
 use App\Support\Reminders\Notices;
 use App\Support\Reminders\NotificationRule;
@@ -297,6 +299,9 @@ final readonly class Agenda
                 ? route('documents.show', $card)
                 : route('cards.show', ['type' => CardTypes::for($card)->type(), 'id' => ModelId::of($card)]),
             update_url: Gate::allows('update', $card) ? route('agenda.deadlines.update', ['field' => $deadline->source->field, 'id' => ModelId::of($card)]) : null,
+            replace_url: $card instanceof InsurancePolicy && $deadline->source->field === 'insurance_policies.expiry_date' && Gate::allows('update', $card) && Gate::allows('create', InsurancePolicy::class)
+                ? PolicyReplacement::createUrl($card)
+                : null,
         );
     }
 

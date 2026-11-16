@@ -57,6 +57,7 @@ function entry(
         notes: null,
         account: null,
         planned: null,
+        replace_url: null,
         ...change,
     };
 }

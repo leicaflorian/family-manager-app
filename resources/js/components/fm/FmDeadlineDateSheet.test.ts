@@ -4,7 +4,7 @@ import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
-import { agendaEntries } from '@/test/fixtures';
+import { agendaEntries, agendaEntry } from '@/test/fixtures';
 import { renderPage, settle } from '@/test/page';
 import FmDeadlineDateSheet from './FmDeadlineDateSheet.vue';
 
@@ -13,6 +13,17 @@ const healthCard = agendaEntries[0];
 
 afterEach(() => {
     vi.restoreAllMocks();
+});
+
+/** The renewal of a policy, which the person may replace with a new one. */
+const policy = agendaEntry({
+    kind: 'deadline',
+    date: '2026-11-21',
+    title: 'Renew the policy',
+    name: 'RC auto Panda',
+    detail: 'Policy renewal',
+    update_url: '/agenda/deadlines/insurance_policies.expiry_date/3',
+    replace_url: '/cards/create?card=insurance_policy&replaces=3',
 });
 
 describe('FmDeadlineDateSheet', () => {
@@ -152,5 +163,94 @@ describe('FmDeadlineDateSheet', () => {
         answerLeave(false);
         await settle();
         expect(view.emitted()['update:open']).toBeUndefined();
+    });
+
+    it('offers the choice of the company only for a policy', async () => {
+        const view = renderPage(FmDeadlineDateSheet, {
+            entry: policy,
+            renewed: true,
+            open: true,
+        });
+        await screen.findByRole('dialog');
+
+        expect(
+            screen.getByRole('button', { name: 'Same company' }),
+        ).toHaveAttribute('aria-pressed', 'true');
+        expect(
+            screen.getByRole('button', { name: 'I changed company' }),
+        ).toHaveAttribute('aria-pressed', 'false');
+        view.unmount();
+
+        renderPage(FmDeadlineDateSheet, {
+            entry: healthCard,
+            renewed: true,
+            open: true,
+        });
+        await screen.findByRole('dialog');
+        expect(
+            screen.queryByRole('button', { name: 'Same company' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('is not offered when only the date is corrected', async () => {
+        renderPage(FmDeadlineDateSheet, {
+            entry: policy,
+            renewed: false,
+            open: true,
+        });
+        await screen.findByRole('dialog');
+
+        expect(
+            screen.queryByRole('button', { name: 'Same company' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('goes to the new policy form when the company changed', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(FmDeadlineDateSheet, {
+            entry: policy,
+            renewed: true,
+            open: true,
+        });
+        await screen.findByRole('dialog');
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'I changed company' }),
+        );
+        await settle();
+
+        expect(
+            screen.queryByLabelText('New expiry date'),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'The new policy opens already filled in with the car and the policyholder. The old one becomes «Cancelled» when you save the new one.',
+            ),
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+        await settle();
+
+        expect(visit).toHaveBeenCalledWith(policy.replace_url);
+        expect(put).not.toHaveBeenCalled();
+    });
+
+    it('still renews with the same company', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(FmDeadlineDateSheet, {
+            entry: policy,
+            renewed: true,
+            open: true,
+        });
+        await screen.findByRole('dialog');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(put).toHaveBeenCalledWith(
+            policy.update_url,
+            { date: '2027-11-21', renewed: true },
+            expect.objectContaining({ preserveScroll: true }),
+        );
     });
 });

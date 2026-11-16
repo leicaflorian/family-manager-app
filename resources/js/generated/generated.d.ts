@@ -54,6 +54,7 @@ readonly update_url: string | null,
 readonly notes: string | null,
 readonly account: string | null,
 readonly planned: string | null,
+readonly replace_url: string | null,
 };
 export type AgendaFiltersData = {
 readonly months: number,

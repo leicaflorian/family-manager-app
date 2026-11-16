@@ -3,12 +3,14 @@
  * The panel of a passed deadline in the Agenda: *Update the date* corrects
  * the date written on the card, *Renewed* writes the new one (proposed a year
  * later) and marks the reminder of the old date done. It sends the date to the
- * `update_url` of the entry.
+ * `update_url` of the entry. For the renewal of a policy (the entry has a
+ * `replace_url`) it first asks whether the company is the same: *I changed
+ * company* hides the date and goes on to the new policy form.
  *
  * @group panels
  */
 import { router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { addYears } from '@/lib/days';
@@ -40,6 +42,14 @@ function proposed(): string {
 /** The new date, `yyyy-mm-dd`. */
 const day = ref(proposed());
 
+/** Whether the company is the same or changed; only a policy renewal asks. */
+const company = ref<'same' | 'changed'>('same');
+
+/** The renewal goes on to the new policy form instead of writing a date. */
+const replacing = computed<boolean>(
+    () => renewed && entry.replace_url !== null && company.value === 'changed',
+);
+
 /** The messages of the server, by field. */
 const problems = ref<Record<string, string>>({});
 
@@ -47,7 +57,7 @@ const problems = ref<Record<string, string>>({});
 const processing = ref(false);
 
 /** Asks before leaving or closing with the date changed and not saved. */
-const changes = useUnsavedChanges(() => day.value, {
+const changes = useUnsavedChanges(() => [day.value, company.value], {
     active: () => open.value,
 });
 
@@ -55,6 +65,7 @@ const changes = useUnsavedChanges(() => day.value, {
 watch(open, (isOpen) => {
     if (isOpen) {
         day.value = proposed();
+        company.value = 'same';
         problems.value = {};
         changes.reset();
     }
@@ -62,6 +73,14 @@ watch(open, (isOpen) => {
 
 /** Sends the new date. */
 function save(): void {
+    if (replacing.value && entry.replace_url !== null) {
+        // Leaving for the new form is not losing a change
+        changes.reset();
+        router.visit(entry.replace_url);
+
+        return;
+    }
+
     if (entry.update_url === null) {
         return;
     }
@@ -102,6 +121,26 @@ function save(): void {
         </div>
         <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
             <FormKit
+                v-if="renewed && entry.replace_url !== null"
+                v-model="company"
+                type="togglebuttons"
+                enforced
+                name="company"
+                :label="$t('The company')"
+                :options="[
+                    { value: 'same', label: $t('Same company') },
+                    { value: 'changed', label: $t('I changed company') },
+                ]"
+            />
+            <p v-if="replacing" class="text-body-sm text-ink-soft">
+                {{
+                    $t(
+                        'The new policy opens already filled in with the car and the policyholder. The old one becomes «Cancelled» when you save the new one.',
+                    )
+                }}
+            </p>
+            <FormKit
+                v-else
                 v-model="day"
                 type="datepicker"
                 name="date"
@@ -122,7 +161,7 @@ function save(): void {
                     $t('Cancel')
                 }}</FmButton>
                 <FmButton type="submit" :disabled="processing">{{
-                    $t('Save')
+                    replacing ? $t('Continue') : $t('Save')
                 }}</FmButton>
             </div>
         </form>

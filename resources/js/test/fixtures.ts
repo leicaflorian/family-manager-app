@@ -1428,6 +1428,7 @@ export function agendaEntry(
         notes: null,
         account: null,
         planned: null,
+        replace_url: null,
         href: '/agenda',
         name: entry.subtitle ?? '',
         detail: entry.title,

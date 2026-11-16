@@ -3,13 +3,16 @@
 declare(strict_types=1);
 
 use App\Enums\DocumentStatus;
+use App\Enums\InsurancePolicyType;
 use App\Enums\Role;
 use App\Enums\VehicleStatus;
 use App\Models\Document;
+use App\Models\InsurancePolicy;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Support\CurrentFamily;
+use App\Support\PolicyReplacement;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -132,4 +135,15 @@ test('a new reminder is born only for this family', function (): void {
 
     expect(Reminder::query()->withoutGlobalScopes()->whereDate('due_date', '2031-10-20')->pluck('family_id')->unique()->all())
         ->toBe([insideBianchi(static fn (): int => CurrentFamily::id())]);
+});
+
+test('the deadline of a policy carries the address of the new policy form, only to who may create policies', function (): void {
+    // A policy with no payment of its own, so that its deadline is not folded into the payment
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Casa', 'type' => InsurancePolicyType::Home, 'expiry_date' => '2026-12-01']));
+    $find = static fn (User $user, string $key): ?array => collect(test()->actingAs($user)->get('/agenda?months=12')->viewData('page')['props']['agenda']['entries'])
+        ->first(static fn (array $entry): bool => str_starts_with($entry['key'], $key));
+    $key = "deadline:insurance_policies.expiry_date:{$policy->id}:";
+    expect($find($this->marco, $key)['replace_url'])->toBe(PolicyReplacement::createUrl($policy))
+        ->and($find($this->member, $key)['replace_url'])->toBeNull()
+        ->and($find($this->marco, 'deadline:documents.expiry_date:')['replace_url'])->toBeNull();
 });
