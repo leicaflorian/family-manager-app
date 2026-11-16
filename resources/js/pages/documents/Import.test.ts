@@ -1211,11 +1211,13 @@ describe('Import', () => {
                     name: /Cancel the policy RC auto Panda · 40\/123456 · UnipolSai/,
                 }),
             ).toBeChecked();
+            // Import may plan a premium for the new policy, so the help does not promise the old one moves
             expect(
-                screen.getByText(
-                    'Expires on 21/11/2026. Its planned expense moves to the new one.',
-                ),
+                screen.getByText('Expires on 21/11/2026.'),
             ).toBeInTheDocument();
+            expect(
+                screen.queryByText(/Its planned expense moves/),
+            ).not.toBeInTheDocument();
 
             await fireEvent.click(importButton('Import the file'));
             expect(sent(post)[0]?.also).toMatchObject({

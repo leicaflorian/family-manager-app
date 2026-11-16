@@ -143,3 +143,19 @@ it('ignores an id not proposed', function (): void {
     expect(freshInFamily($this, $other)->status)->toBe(InsurancePolicyStatus::Active)
         ->and(freshInFamily($this, $this->old)->status)->toBe(InsurancePolicyStatus::Active);
 });
+
+it('ignores a policy of another family', function (): void {
+    $rossi = registerFamily('Rossi', 'anna@example.com');
+    $foreign = CurrentFamily::using($rossi->family_id, function () use ($rossi): InsurancePolicy {
+        $car = Vehicle::factory()->create(['family_id' => $rossi->family_id, 'plate_number' => 'GH 482 TK']);
+
+        return InsurancePolicy::factory()->create(['family_id' => $rossi->family_id, 'vehicle_id' => $car->id]);
+    });
+
+    $this->actingAs($this->marco)->post(route('import.store'), replacingImport($this->paper, ['replace_policies' => [$foreign->id]]))
+        ->assertSessionHasNoErrors()->assertRedirect(route('documents.index'));
+
+    expect(CurrentFamily::using($rossi->family_id, fn (): InsurancePolicyStatus => InsurancePolicy::query()->findOrFail($foreign->id)->status))
+        ->toBe(InsurancePolicyStatus::Active)
+        ->and(freshInFamily($this, $this->old)->status)->toBe(InsurancePolicyStatus::Active);
+});

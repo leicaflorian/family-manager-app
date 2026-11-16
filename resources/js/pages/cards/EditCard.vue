@@ -23,8 +23,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
-import { replaceableFor } from '@/lib/policies';
-import { useFormat } from '@/composables/useFormat';
+import { replaceableFor, replaceOptions } from '@/lib/policies';
 import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
@@ -82,8 +81,6 @@ const {
     payment?: number | null;
 }>();
 
-const { date } = useFormat();
-
 /** The box *Cancel the policy* exists only for a new policy. */
 const canReplace = computed(
     () => card === null && type.type === 'insurance_policy',
@@ -109,27 +106,6 @@ function offered(
         live,
         live.type === startType ? replaces : [],
     );
-}
-
-/**
- * The options of the box: one per old policy, with its expiry as help.
- *
- * @param live - the values of the form
- * @returns the options of the checkbox
- */
-function replaceOptions(
-    live: Record<string, unknown>,
-): { value: number; label: string; help: string | null }[] {
-    return offered(live).map((policy) => ({
-        value: policy.id,
-        label: trans('Cancel the policy :name', { name: policy.label }),
-        help:
-            policy.expiry_date === null
-                ? null
-                : trans('Expires on :date. Its planned expense moves to the new one.', {
-                      date: date(policy.expiry_date),
-                  }),
-    }));
 }
 
 /** The form is being sent. */
@@ -183,9 +159,10 @@ usePageTrail(() => [
  * @param data - the values of the form
  * @returns the fields to add to the request, none when nothing is replaced
  */
-function replacing(
-    data: Record<string, unknown>,
-): { replace_policies?: number[]; replace_payment?: number } {
+function replacing(data: Record<string, unknown>): {
+    replace_policies?: number[];
+    replace_payment?: number;
+} {
     const ids = offered(data)
         .map((policy) => policy.id)
         .filter((id) => ticked.value.includes(id));
@@ -299,7 +276,11 @@ const layout = useLayoutMode();
                             v-model="ticked"
                             type="checkbox"
                             name="replace_policies"
-                            :options="replaceOptions(live)"
+                            :options="
+                                replaceOptions(offered(live), {
+                                    premiumMoves: true,
+                                })
+                            "
                         />
                     </template>
                     <template #start>

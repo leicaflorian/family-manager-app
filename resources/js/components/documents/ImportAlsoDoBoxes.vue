@@ -57,7 +57,7 @@ import {
     recordWarnings,
 } from '@/lib/alsoDo';
 import { cardIcon, fieldInput, isMenuField } from '@/lib/cards';
-import { useFormat } from '@/composables/useFormat';
+import { replaceOptions } from '@/lib/policies';
 
 const props = defineProps<{
     /** The file, to name its fields. */
@@ -109,8 +109,6 @@ const [DefineActions, ReuseActions] = createReusableTemplate<{
     existing: boolean;
     candidates: App.Data.OptionData[];
 }>();
-
-const { date } = useFormat();
 
 /** The box whose menu to choose another is open. */
 const picking = ref<AlsoSide | undefined>();
@@ -288,29 +286,6 @@ function movementFieldShown(field: 'amount'): boolean {
         (movement.fill.includes(field) ||
             props.choices.overrideOf('movement', field) !== undefined)
     );
-}
-
-/**
- * The boxes *Cancel the policy …* under a new policy: one per old policy, with
- * its expiry as help, as in the form of a new policy.
- *
- * @param draft - the box of the policy
- * @returns the options of the checkbox
- */
-function replaceOptions(
-    draft: App.Data.Reading.RecordDraftData,
-): { value: number; label: string; help: string | null }[] {
-    return draft.replaces.map((old) => ({
-        value: old.id,
-        label: trans('Cancel the policy :name', { name: old.label }),
-        help:
-            old.expiry_date === null
-                ? null
-                : trans(
-                      'Expires on :date. Its planned expense moves to the new one.',
-                      { date: date(old.expiry_date) },
-                  ),
-    }));
 }
 
 /**
@@ -670,7 +645,9 @@ function recordFields(
                     v-if="draft.kind === 'policy' && draft.replaces.length > 0"
                     type="checkbox"
                     :name="`replace_policies_${fileId}`"
-                    :options="replaceOptions(draft)"
+                    :options="
+                        replaceOptions(draft.replaces, { premiumMoves: false })
+                    "
                     :model-value="replacing(draft)"
                     @update:model-value="setReplacing(draft, $event)"
                 />

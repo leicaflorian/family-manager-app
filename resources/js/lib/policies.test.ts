@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { replaceableFor } from './policies';
+import { replaceableFor, replaceOptions } from './policies';
 
 /** An old policy the form can replace. */
 function policy(
@@ -27,11 +27,9 @@ describe('replaceableFor', () => {
         ];
 
         expect(
-            replaceableFor(
-                policies,
-                { type: 'car', vehicle_id: '1' },
-                [],
-            ).map((item) => item.id),
+            replaceableFor(policies, { type: 'car', vehicle_id: '1' }, []).map(
+                (item) => item.id,
+            ),
         ).toEqual([1]);
     });
 
@@ -39,18 +37,10 @@ describe('replaceableFor', () => {
         const policies = [policy(1, { type: 'travel' })];
 
         expect(
-            replaceableFor(
-                policies,
-                { type: 'travel', vehicle_id: '1' },
-                [],
-            ),
+            replaceableFor(policies, { type: 'travel', vehicle_id: '1' }, []),
         ).toEqual([]);
         expect(
-            replaceableFor(
-                [policy(1)],
-                { type: 'car', vehicle_id: null },
-                [],
-            ),
+            replaceableFor([policy(1)], { type: 'car', vehicle_id: null }, []),
         ).toEqual([]);
     });
 
@@ -58,11 +48,39 @@ describe('replaceableFor', () => {
         const policies = [policy(1), policy(7, { type: 'home', home_id: 4 })];
 
         expect(
-            replaceableFor(
-                policies,
-                { type: 'car', vehicle_id: '1' },
-                [7],
-            ).map((item) => item.id),
+            replaceableFor(policies, { type: 'car', vehicle_id: '1' }, [7]).map(
+                (item) => item.id,
+            ),
         ).toEqual([1, 7]);
+    });
+});
+
+describe('replaceOptions', () => {
+    it('names each old policy and says its premium moves, for the card form', () => {
+        expect(
+            replaceOptions([policy(1, { label: 'RC auto · 40/123456' })], {
+                premiumMoves: true,
+            }),
+        ).toEqual([
+            {
+                value: 1,
+                label: 'Cancel the policy RC auto · 40/123456',
+                help: 'Expires on 21/11/2026. Its planned expense moves to the new one.',
+            },
+        ]);
+    });
+
+    it('says only the expiry when the premium may not move, for Import', () => {
+        expect(
+            replaceOptions([policy(1)], { premiumMoves: false })[0]?.help,
+        ).toBe('Expires on 21/11/2026.');
+    });
+
+    it('has no help without an expiry', () => {
+        expect(
+            replaceOptions([policy(1, { expiry_date: null })], {
+                premiumMoves: true,
+            })[0]?.help,
+        ).toBeNull();
     });
 });
