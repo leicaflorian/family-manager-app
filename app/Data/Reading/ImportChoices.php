@@ -77,6 +77,7 @@ final readonly class ImportChoices
      * @param  bool  $createCard  the box *Create the card* is ticked: after the import *New card* opens with the document linked
      * @param  array<string, mixed>  $cardOverrides  what was written in the box of the card of the document category, still to clean: its fields depend on the type of the card, known only with the proposal (`recordOverrides()`)
      * @param  string|false|null  $cardFor  the card type of the proposal the page showed when the person chose (null: no card); false when the page did not say
+     * @param  list<int>  $replacePolicies  the old policies ticked under the box of the new policy, to cancel
      */
     public function __construct(
         public array $document = [],
@@ -90,12 +91,13 @@ final readonly class ImportChoices
         public bool $createCard = false,
         public array $cardOverrides = [],
         public string|false|null $cardFor = false,
+        public array $replacePolicies = [],
     ) {}
 
     /**
      * The choices as the page sends them, cleaned.
      *
-     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy, create_card}`
+     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy, create_card, card_type, replace_policies}`
      */
     public static function fromArray(array $raw): self
     {
@@ -123,6 +125,7 @@ final readonly class ImportChoices
             createCard: self::bool($raw['create_card'] ?? null) ?? false,
             cardOverrides: self::stringKeys(self::arrayOf($overrides['records'] ?? null)[RecordKind::Card->value] ?? null),
             cardFor: array_key_exists('card_type', $raw) ? (is_string($raw['card_type']) ? $raw['card_type'] : null) : false,
+            replacePolicies: self::ids($raw['replace_policies'] ?? null),
         );
     }
 
@@ -150,6 +153,7 @@ final readonly class ImportChoices
             createCard: $this->createCard,
             cardOverrides: $this->cardOverrides,
             cardFor: $this->cardFor,
+            replacePolicies: $this->replacePolicies,
         );
     }
 
@@ -402,6 +406,25 @@ final readonly class ImportChoices
         ));
 
         return $types === [] ? null : $types;
+    }
+
+    /**
+     * The positive ids of a list, each once, in the order they were sent; anything else is dropped.
+     *
+     * @param  mixed  $value  what the page sent
+     * @return list<int>
+     */
+    private static function ids(mixed $value): array
+    {
+        $ids = [];
+        foreach (is_array($value) ? $value : [] as $item) {
+            $id = self::id($item);
+            if ($id !== null && ! in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
     }
 
     /**

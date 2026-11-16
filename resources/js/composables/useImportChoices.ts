@@ -41,6 +41,8 @@ export type ImportPicks = {
     policy: string;
     /** *Create the card*: after the import, *New card* opens with the document linked. */
     createCard: boolean;
+    /** The old policies the person unticked under the box of the new policy: the others are cancelled. */
+    spared: number[];
 };
 
 /** What one file does too, as the server reads it (`App\Data\Reading\ImportChoices`, without the document). */
@@ -58,6 +60,8 @@ export type ImportAlso = {
     create_card?: true;
     /** The card of the category of the proposal shown: the server drops the choices of its box for another card. */
     card_type: string | null;
+    /** Only while the box of the new policy is ticked and at least one old policy under it is: the ones to cancel. */
+    replace_policies?: number[];
 };
 
 /** The choices of one file, and how to ask its proposal again. */
@@ -128,6 +132,7 @@ export function useImportChoices(
         due: null,
         policy: 'auto',
         createCard: false,
+        spared: [],
     });
 
     /**
@@ -157,12 +162,19 @@ export function useImportChoices(
             return undefined;
         }
 
+        const records = current.records.filter(
+            (draft) => picks.records[draft.kind] ?? draft.suggested,
+        );
+        const replaced = records
+            .filter((draft) => draft.kind === 'policy')
+            .flatMap((draft) => draft.replaces)
+            .map((old) => old.id)
+            .filter((id) => !picks.spared.includes(id));
+
         return {
             movement: picks.movement ?? current.movement?.suggested ?? false,
             event: picks.event ?? current.event?.suggested ?? false,
-            records: current.records
-                .filter((draft) => picks.records[draft.kind] ?? draft.suggested)
-                .map((draft) => draft.kind),
+            records: records.map((draft) => draft.kind),
             targets: {
                 movement: picks.targets.movement,
                 event: picks.targets.event,
@@ -175,6 +187,7 @@ export function useImportChoices(
                 ? { create_card: true as const }
                 : {}),
             card_type: current.cardType,
+            ...(replaced.length > 0 ? { replace_policies: replaced } : {}),
         };
     });
 

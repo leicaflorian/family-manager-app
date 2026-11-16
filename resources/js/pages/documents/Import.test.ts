@@ -1146,6 +1146,7 @@ describe('Import', () => {
                 ],
                 complete: [],
                 cardType: 'insurance_policy',
+                replaces: [],
             };
             renderPage(
                 Import,
@@ -1168,6 +1169,89 @@ describe('Import', () => {
                 records: ['policy'],
                 overrides: { records: { policy: { type: 'car' } } },
             });
+        });
+
+        /** A new car policy on the Panda, which can cancel the old one. */
+        const newPolicy: App.Data.Reading.RecordDraftData = {
+            kind: 'policy',
+            title: 'the policy 40/987654 · Allianz',
+            values: { policy_number: '40/987654', type: 'car', vehicle_id: 4 },
+            suggested: true,
+            missing: [],
+            existing: null,
+            candidates: [],
+            reminder: null,
+            fields: [],
+            complete: [],
+            cardType: 'insurance_policy',
+            replaces: [
+                {
+                    id: 9,
+                    label: 'RC auto Panda · 40/123456 · UnipolSai',
+                    expiry_date: '2026-11-21',
+                    type: 'car',
+                    vehicle_id: 4,
+                    home_id: null,
+                    employment_id: null,
+                },
+            ],
+        };
+
+        it('ticks the old policy under the new policy box', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(
+                Import,
+                ferriProps({ ...ferriProposal, records: [newPolicy] }),
+            );
+            await settle();
+
+            expect(
+                screen.getByRole('checkbox', {
+                    name: /Cancel the policy RC auto Panda · 40\/123456 · UnipolSai/,
+                }),
+            ).toBeChecked();
+            expect(
+                screen.getByText(
+                    'Expires on 21/11/2026. Its planned expense moves to the new one.',
+                ),
+            ).toBeInTheDocument();
+
+            await fireEvent.click(importButton('Import the file'));
+            expect(sent(post)[0]?.also).toMatchObject({
+                records: ['policy'],
+                replace_policies: [9],
+            });
+
+            await fireEvent.click(
+                screen.getByRole('checkbox', { name: /Cancel the policy/ }),
+            );
+            await settle();
+            await fireEvent.click(importButton('Import the file'));
+            expect(sent(post)[0]?.also).not.toHaveProperty('replace_policies');
+        });
+
+        it('sends no policy to cancel when the policy box is unticked', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            vi.spyOn(router, 'reload').mockImplementation(() => {});
+            renderPage(
+                Import,
+                ferriProps({ ...ferriProposal, records: [newPolicy] }),
+            );
+            await settle();
+
+            await fireEvent.click(
+                screen.getByRole('checkbox', {
+                    name: /Create the policy 40\/987654/,
+                }),
+            );
+            await settle();
+
+            expect(
+                screen.queryByRole('checkbox', { name: /Cancel the policy/ }),
+            ).not.toBeInTheDocument();
+            await fireEvent.click(importButton('Import the file'));
+            expect(sent(post)[0]?.also).not.toHaveProperty('replace_policies');
         });
 
         it('asks the expense for the amount not read in its box, and sends the one written', async () => {

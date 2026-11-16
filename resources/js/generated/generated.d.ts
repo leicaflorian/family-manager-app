@@ -960,6 +960,7 @@ readonly reminder: string | null,
 readonly fields: App.Data.CardFieldData[],
 readonly complete: string[],
 readonly cardType: string | null,
+readonly replaces: App.Data.ReplaceablePolicyData[],
 };
 }
 namespace Search {

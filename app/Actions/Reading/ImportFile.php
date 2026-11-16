@@ -8,6 +8,7 @@ use App\Actions\Budget\ChangeOccurrence;
 use App\Actions\Budget\MovePlannedDocuments;
 use App\Actions\Budget\SaveMovement;
 use App\Actions\Budget\SavePlanned;
+use App\Actions\Cards\ReplacePolicy;
 use App\Actions\Documents\FileDocument;
 use App\Data\Reading\DueData;
 use App\Data\Reading\EventProposalData;
@@ -17,6 +18,8 @@ use App\Data\Reading\MovementProposalData;
 use App\Data\Reading\MovementValuesData;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
+use App\Data\Reading\RecordDraftData;
+use App\Data\ReplaceablePolicyData;
 use App\Enums\Area;
 use App\Enums\DocumentStatus;
 use App\Enums\DueMode;
@@ -34,6 +37,7 @@ use App\Services\Reading\ExpenseChanges;
 use App\Services\Reading\Matcher;
 use App\Services\Reading\Proposal;
 use App\Services\Reading\ReadingContext;
+use App\Services\ReplaceablePolicies;
 use App\Support\CurrentFamily;
 use App\Support\DocumentRules;
 use App\Support\PaymentTitle;
@@ -58,7 +62,9 @@ use Throwable;
  * 2. the document, linked to them and to the policy taken from another file;
  * 3. the expense or income, or the expense to pay, or the payment of a due date;
  * 4. the health event;
- * 5. the intervention, with the expense.
+ * 5. the intervention, with the expense;
+ * 6. the old policies the new policy replaces, ticked under its box ({@see ReplacePolicy}): after the movement, so a
+ *    premium the file just planned for the new policy counts.
  *
  * The proposal it starts from is the one the request checked, when the caller passes it and the paper takes no
  * policy from another file (the policies are the only thing the other files change); otherwise it is made here.
@@ -92,6 +98,8 @@ final readonly class ImportFile
      * @param  Matcher  $matcher  the policy taken from another file, by its number
      * @param  Deadlines  $deadlines  whether a due date is paid
      * @param  FamilyAreas  $areas  the areas the family hides, put back when a card is created in one
+     * @param  ReplaceablePolicies  $replaceable  the old policies a new one can replace
+     * @param  ReplacePolicy  $replacePolicy  cancels the old policies
      */
     public function __construct(
         private Proposal $proposals,
@@ -105,6 +113,8 @@ final readonly class ImportFile
         private Matcher $matcher,
         private Deadlines $deadlines,
         private FamilyAreas $areas,
+        private ReplaceablePolicies $replaceable,
+        private ReplacePolicy $replacePolicy,
     ) {}
 
     /**
@@ -171,6 +181,7 @@ final readonly class ImportFile
         $expense = $movement instanceof Expense ? $movement : null;
         $event = $choices->event && $proposal->event instanceof EventProposalData ? $this->event($proposal->event, $document, $expense) : null;
         $after = $this->records->after($first->records, $choices->records, $before['ids'], $document, $expense);
+        $this->replacePolicies($first, $choices, $before['records'][RecordKind::Policy->value] ?? null);
 
         // Read again: SaveCard puts an area back through its own instance
         $hiddenAfter = $this->areas->refresh()->hidden();
@@ -179,6 +190,35 @@ final readonly class ImportFile
         }
 
         return ['document' => $document, 'movement' => $movement, 'event' => $event, 'records' => [...$before['records'], ...$after], 'warnings' => $warnings];
+    }
+
+    /**
+     * Step 6: the old policies ticked under the box of the new policy are cancelled, only those the box proposed and
+     * that still are replaceable by the new one (read again: one changed or no longer editable since is left alone).
+     * Nothing for a policy the box linked instead of creating.
+     *
+     * @param  ProposalData  $first  the proposal the person saw
+     * @param  ImportChoices  $choices  what the person confirmed
+     * @param  Model|null  $policy  the policy saved with the file
+     */
+    private function replacePolicies(ProposalData $first, ImportChoices $choices, ?Model $policy): void
+    {
+        $draft = collect($first->records)->first(static fn (RecordDraftData $draft): bool => $draft->kind === RecordKind::Policy);
+        if (! $policy instanceof InsurancePolicy || ! $draft instanceof RecordDraftData || $draft->existing !== null || $choices->replacePolicies === []) {
+            return;
+        }
+
+        $ids = array_intersect($choices->replacePolicies, array_map(static fn (ReplaceablePolicyData $old): int => $old->id, $draft->replaces));
+        $old = $this->replaceable->matching([
+            'type' => $policy->type->value,
+            'vehicle_id' => $policy->vehicle_id,
+            'home_id' => $policy->home_id,
+            'employment_id' => $policy->employment_id,
+        ], $policy->id)->filter(static fn (InsurancePolicy $candidate): bool => in_array($candidate->id, $ids, true))->values();
+
+        if ($old->isNotEmpty()) {
+            $this->replacePolicy->handle($policy, $old);
+        }
     }
 
     /**

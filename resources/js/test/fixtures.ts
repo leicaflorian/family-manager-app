@@ -1877,6 +1877,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             fields: [],
             complete: [],
             cardType: null,
+            replaces: [],
         },
     ],
     policy: null,
@@ -1925,6 +1926,7 @@ export const homeDraft: App.Data.Reading.RecordDraftData = {
     ],
     complete: [],
     cardType: 'home',
+    replaces: [],
 };
 
 /**
