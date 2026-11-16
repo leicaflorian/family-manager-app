@@ -10,7 +10,7 @@
  * @group sections
  */
 import { Link } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { Download, Pencil, Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,13 @@ defineSlots<{
 }>();
 
 const { date } = useFormat();
+
+/** The line under the title of the embedded layout: the kind, whose it is and who it is from. */
+const subtitle = computed(() =>
+    [document.category, document.person, document.organization]
+        .filter(Boolean)
+        .join(' · '),
+);
 
 /** The colours of the badge of each status. */
 const statusColor: Record<string, string> = {
@@ -98,8 +105,36 @@ const shownGroup = computed(
             )
         "
     >
+        <div v-if="embedded" class="flex flex-col gap-3">
+            <div class="flex min-w-0 flex-col gap-1">
+                <h2 class="m-0 text-stat">{{ document.title }}</h2>
+                <span v-if="subtitle" class="text-body-sm text-ink-soft">{{
+                    subtitle
+                }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <FmButton
+                    :href="document.file.download_url"
+                    download
+                    :icon="Download"
+                    variant="neutral"
+                    class="h-control flex-1 text-action"
+                    >{{ $t('Download') }}</FmButton
+                >
+                <FmButton
+                    v-if="document.can_edit"
+                    :href="edit.url(document.id)"
+                    :icon="Pencil"
+                    class="h-control flex-1"
+                    >{{ $t('Edit') }}</FmButton
+                >
+                <FmDocumentActions :document="document" compact menu-only />
+                <slot name="actions" />
+            </div>
+        </div>
+
         <div
-            v-if="compact"
+            v-else-if="compact"
             class="flex flex-nowrap items-start justify-between gap-3"
         >
             <div class="flex min-w-0 flex-1 flex-col gap-1">

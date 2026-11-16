@@ -252,4 +252,22 @@ describe('FmDocumentDetail', () => {
             }),
         ).not.toBeInTheDocument();
     });
+
+    it('embedded: the title is in a heading of its own, with Download and Edit as two equal buttons under it', () => {
+        render(FmDocumentDetail, {
+            props: { document: documentDetail, compact: true, embedded: true },
+            global: { plugins: formPlugins },
+        });
+
+        const heading = screen.getByRole('heading', {
+            name: documentDetail.title,
+        });
+        expect(heading.parentElement).not.toHaveClass('justify-between');
+        expect(heading.querySelector('a')).toBeNull();
+        const download = screen.getByRole('link', { name: 'Download' });
+        const edit = screen.getByRole('link', { name: 'Edit' });
+        expect(download).toHaveClass('h-control', 'flex-1');
+        expect(edit).toHaveClass('h-control', 'flex-1');
+        expect(download.parentElement).toBe(edit.parentElement);
+    });
 });

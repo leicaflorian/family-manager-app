@@ -425,7 +425,7 @@ defineExpose({ close, confirmLeave });
                 autocomplete="off"
                 :errors="errors(problems.title)"
             />
-            <div class="grid grid-cols-2 gap-3">
+            <div :class="cn('grid gap-3', !embedded && 'grid-cols-2')">
                 <FormKit
                     v-model="values.date"
                     type="datepicker"

@@ -20,11 +20,17 @@ import FmConfirmDelete from './FmConfirmDelete.vue';
 import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
 
-const { document, compact = false } = defineProps<{
+const {
+    document,
+    compact = false,
+    menuOnly = false,
+} = defineProps<{
     /** The document. */
     document: App.Data.DocumentDetailData;
     /** The panel beside the list: *Download* as an icon, *Edit* in the menu. */
     compact?: boolean;
+    /** With `compact`: only the ⋯ menu, for a layout that shows *Download* and *Edit* as buttons of its own. */
+    menuOnly?: boolean;
 }>();
 
 const { canShare, shareFile } = useShare();
@@ -92,6 +98,7 @@ const actions = computed((): Action[] => [
     <FmActions v-if="!compact" :actions="actions" />
     <div v-else class="flex shrink-0 items-center gap-1.5">
         <FmButton
+            v-if="!menuOnly"
             variant="soft"
             :icon="Download"
             :label="$t('Download')"
@@ -111,7 +118,7 @@ const actions = computed((): Action[] => [
                 {{ $t('Share') }}
             </FmMenuItem>
             <FmMenuItem
-                v-if="document.can_edit"
+                v-if="document.can_edit && !menuOnly"
                 :icon="Pencil"
                 :href="edit.url(document.id)"
             >

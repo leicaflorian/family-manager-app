@@ -442,6 +442,22 @@ describe('FmMovementPanel', () => {
         ).not.toHaveClass('shadow-card');
     });
 
+    it('inside a column, stacks the date and the amount; otherwise they sit side by side', () => {
+        const first = renderPage(FmMovementPanel, {
+            ...props,
+            compact: true,
+            embedded: true,
+        });
+        const amount = screen.getByLabelText('Amount');
+        expect(amount.closest('.grid-cols-2')).toBeNull();
+        first.unmount();
+
+        renderPage(FmMovementPanel, { ...props, compact: true });
+        expect(
+            screen.getByLabelText('Amount').closest('.grid-cols-2'),
+        ).not.toBeNull();
+    });
+
     it('has Cancel white with a grey edge and Save taking the rest of the line', () => {
         renderPage(FmMovementPanel, props);
 
