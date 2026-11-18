@@ -348,3 +348,41 @@ it('leaves the payments alone when the schedule does not change', function (): v
 
     expect(insideBianchi(fn (): array => Expense::query()->where('planned_expense_id', $planned->id)->orderBy('id')->pluck('occurrence_date')->map(fn ($date): ?string => $date?->toDateString())->all()))->toBe($before);
 });
+
+it('saves the commission of a planned expense, added to its amount', function (): void {
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['amount' => 650, 'fee_amount' => 1]))
+        ->assertRedirect();
+
+    $saved = savePlannedOf('Palestra');
+
+    expect((float) $saved->amount)->toBe(650.0)
+        ->and((float) $saved->fee_amount)->toBe(1.0);
+
+    $this->get("/budget/planned/expense/{$saved->id}/edit")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.fee_amount', fn (mixed $fee): bool => (float) $fee === 1.0));
+});
+
+it('keeps a planned expense without commission when none is given', function (): void {
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['fee_amount' => null]))
+        ->assertRedirect();
+
+    expect(savePlannedOf('Palestra')->fee_amount)->toBeNull();
+});
+
+it('refuses a negative commission', function (): void {
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['fee_amount' => -1]))
+        ->assertSessionHasErrors('fee_amount');
+});
+
+it('never gives a commission to a planned income', function (): void {
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/income', savePlannedValues(['title' => 'Affitto garage', 'type' => 'other', 'fee_amount' => 1]))
+        ->assertRedirect();
+
+    $income = insideBianchi(fn (): PlannedIncome => PlannedIncome::query()->where('title', 'Affitto garage')->sole());
+
+    expect($income->getAttributes())->not->toHaveKey('fee_amount');
+});
