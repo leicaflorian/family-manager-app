@@ -68,7 +68,7 @@ function subscriptionForm(object $test, array $planned = []): array
  *
  * @return Collection<int, PlannedExpense>
  */
-function plannedOfFamily(object $test): Collection
+function subscriptionPlannedOfFamily(object $test): Collection
 {
     return inSubscriptionFamily($test, fn (): Collection => PlannedExpense::query()->get()->toBase());
 }
@@ -77,7 +77,7 @@ it('creates the planned expense of a new subscription', function (): void {
     $this->actingAs($this->marco)->post(route('cards.store', 'subscription'), subscriptionForm($this))->assertRedirect();
 
     $card = inSubscriptionFamily($this, fn (): Subscription => Subscription::query()->sole());
-    $planned = plannedOfFamily($this)->sole();
+    $planned = subscriptionPlannedOfFamily($this)->sole();
 
     expect($planned->title)->toBe('Hostinger')
         ->and((float) $planned->amount)->toBe(35.88)
@@ -97,7 +97,7 @@ it('creates the planned expense of a new subscription', function (): void {
 it('records the first payment when asked', function (): void {
     $this->actingAs($this->marco)->post(route('cards.store', 'subscription'), subscriptionForm($this, ['paid' => true]))->assertRedirect();
 
-    $planned = plannedOfFamily($this)->sole();
+    $planned = subscriptionPlannedOfFamily($this)->sole();
     $payment = inSubscriptionFamily($this, fn (): Expense => Expense::query()->sole());
 
     expect($payment->planned_expense_id)->toBe($planned->id)
@@ -110,7 +110,7 @@ it('creates nothing without a cost', function (): void {
     $this->actingAs($this->marco)->post(route('cards.store', 'subscription'), subscriptionForm($this, ['amount' => null, 'paid' => true]))->assertRedirect();
 
     expect(inSubscriptionFamily($this, fn (): int => Subscription::query()->count()))->toBe(1)
-        ->and(plannedOfFamily($this))->toBeEmpty()
+        ->and(subscriptionPlannedOfFamily($this))->toBeEmpty()
         ->and(inSubscriptionFamily($this, fn (): int => Expense::query()->count()))->toBe(0);
 });
 
@@ -118,7 +118,7 @@ it('asks for the first payment when there is a cost', function (): void {
     $this->actingAs($this->marco)->post(route('cards.store', 'subscription'), subscriptionForm($this, ['start_date' => null]))->assertSessionHasErrors('planned.start_date');
 
     expect(inSubscriptionFamily($this, fn (): int => Subscription::query()->count()))->toBe(0)
-        ->and(plannedOfFamily($this))->toBeEmpty();
+        ->and(subscriptionPlannedOfFamily($this))->toBeEmpty();
 });
 
 it('refuses a category of another family', function (): void {
@@ -135,7 +135,7 @@ it('ignores the section when changing a subscription', function (): void {
 
     $this->actingAs($this->marco)->put(route('cards.update', ['type' => 'subscription', 'id' => $card->id]), subscriptionForm($this))->assertRedirect();
 
-    expect(plannedOfFamily($this))->toBeEmpty();
+    expect(subscriptionPlannedOfFamily($this))->toBeEmpty();
 });
 
 it('ignores the section for another card type', function (): void {
@@ -145,7 +145,7 @@ it('ignores the section for another card type', function (): void {
         'planned' => subscriptionForm($this)['planned'],
     ])->assertRedirect();
 
-    expect(plannedOfFamily($this))->toBeEmpty();
+    expect(subscriptionPlannedOfFamily($this))->toBeEmpty();
 });
 
 it('offers the expense categories only on a new subscription', function (): void {
