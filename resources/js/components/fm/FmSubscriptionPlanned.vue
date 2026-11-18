@@ -11,6 +11,7 @@
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, watch } from 'vue';
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { isoDate } from '@/lib/format';
 import { formatAmount, parseAmount, withNone } from '@/lib/forms';
 import type { SubscriptionPlan } from '@/lib/subscriptionPlan';
@@ -54,6 +55,16 @@ function set<K extends keyof SubscriptionPlan>(
 function startFrom(day: string | null): string {
     return day ?? isoDate();
 }
+
+// Leaving with something written asks first; the first payment the section
+// fills in from the activation is not something the person wrote.
+useUnsavedChanges(() => ({
+    ...plan.value,
+    start_date:
+        plan.value.start_date === startFrom(activation)
+            ? null
+            : plan.value.start_date,
+}));
 
 onMounted(() => {
     if (plan.value.start_date === null) {

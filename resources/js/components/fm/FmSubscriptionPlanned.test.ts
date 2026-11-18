@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import {
     afterEach,
     beforeEach,
@@ -9,6 +10,7 @@ import {
 } from 'vite-plus/test';
 import { renderPage, settle } from '@/test/page';
 import { emptyPlan, type SubscriptionPlan } from '@/lib/subscriptionPlan';
+import { hasChanges } from '@/lib/unsavedChanges';
 import FmSubscriptionPlanned from './FmSubscriptionPlanned.vue';
 
 const categories = [{ value: '4', label: 'Abbonamenti', help: null }];
@@ -105,5 +107,19 @@ describe('FmSubscriptionPlanned', () => {
         await settle();
 
         expect(plan().start_date).toBe('2026-11-18');
+    });
+
+    it('asks before leaving once the person writes something, not for the first payment it fills in', async () => {
+        const { view } = renderSection('2026-11-15');
+        await settle();
+        await view.rerender({ activation: '2026-12-01' });
+        await settle();
+
+        expect(hasChanges()).toBe(false);
+
+        await userEvent.click(screen.getByText('I already paid it'));
+        await settle();
+
+        expect(hasChanges()).toBe(true);
     });
 });
