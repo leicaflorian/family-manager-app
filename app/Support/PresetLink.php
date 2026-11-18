@@ -6,13 +6,15 @@ namespace App\Support;
 
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Models\Expense;
 use App\Models\File;
+use App\Models\Income;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * The card an upload comes from (`?link=<type>:<id>`): read from the query only
- * when it is a card of the family, so nothing of another family is used or echoed.
+ * Where an upload comes from (`?link=<type>:<id>`): read from the query only when it is a card of the family
+ * (and, for an upload, an expense or an income of it), so nothing of another family is used or echoed.
  */
 final class PresetLink
 {
@@ -30,6 +32,61 @@ final class PresetLink
         }
 
         return self::find($parts[1], (int) $parts[2]);
+    }
+
+    /**
+     * Where an upload comes from: a card of the family, or an expense or an income of it. The form of a card keeps
+     * using {@see self::from()}, which never takes a movement.
+     *
+     * @param  mixed  $link  the `link` of the query, `<type>:<id>`
+     * @return array{type: string, id: int}|null
+     */
+    public static function fromUpload(mixed $link): ?array
+    {
+        if (! is_string($link) || preg_match('/^([a-z_]+):(\d+)$/', $link, $parts) !== 1) {
+            return null;
+        }
+
+        return self::findUpload($parts[1], (int) $parts[2]);
+    }
+
+    /**
+     * The card, expense or income of a type and an id, or null when the type is unknown or it is not of the family.
+     *
+     * @param  string  $type  `expense`, `income` or the type of a card
+     * @param  int  $id  its id
+     * @return array{type: string, id: int}|null
+     */
+    public static function findUpload(string $type, int $id): ?array
+    {
+        return match ($type) {
+            'expense' => Expense::query()->whereKey($id)->exists() ? ['type' => 'expense', 'id' => $id] : null,
+            'income' => Income::query()->whereKey($id)->exists() ? ['type' => 'income', 'id' => $id] : null,
+            default => self::find($type, $id),
+        };
+    }
+
+    /**
+     * A movement as a link, for the files uploaded from its page.
+     *
+     * @param  Expense|Income  $movement  the expense or income
+     * @return array{type: string, id: int}
+     */
+    public static function movement(Expense|Income $movement): array
+    {
+        return ['type' => $movement instanceof Expense ? 'expense' : 'income', 'id' => ModelId::of($movement)];
+    }
+
+    /**
+     * The page a link leads back to: the card, or the expense or income.
+     *
+     * @param  array{type: string, id: int}  $link  the link
+     */
+    public static function route(array $link): string
+    {
+        return in_array($link['type'], ['expense', 'income'], true)
+            ? route('budget.movements.show', ['kind' => $link['type'], 'id' => $link['id']])
+            : route('cards.show', $link);
     }
 
     /**
@@ -64,14 +121,14 @@ final class PresetLink
     }
 
     /**
-     * The card a file of *Upload* was uploaded from, while it is still one of the family.
+     * Where a file of *Upload* was uploaded from, while it is still one of the family.
      *
      * @param  File  $file  the waiting file
      * @return array{type: string, id: int}|null
      */
     public static function ofFile(File $file): ?array
     {
-        return $file->link_type === null || $file->link_id === null ? null : self::find($file->link_type, $file->link_id);
+        return $file->link_type === null || $file->link_id === null ? null : self::findUpload($file->link_type, $file->link_id);
     }
 
     /**
@@ -83,7 +140,7 @@ final class PresetLink
      */
     public static function query(mixed $link): array
     {
-        $preset = self::from($link);
+        $preset = self::fromUpload($link);
 
         return $preset === null ? [] : ['link' => $preset['type'].':'.$preset['id']];
     }

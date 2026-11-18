@@ -21,9 +21,9 @@ import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import { useToSortCount } from '@/composables/useToSortCount';
 import { cn } from '@/lib/utils';
+import { presetUrl } from '@/lib/documents';
 import type { DocumentLink } from '@/lib/documents';
 import { dashboard, toSort } from '@/routes';
-import { show as showCard } from '@/routes/cards';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
 
@@ -40,7 +40,7 @@ const preset = computed(() => props.presetLinks[0]);
 
 /** Where the × goes: the card the person comes from, or the home page. */
 const closeUrl = computed(() =>
-    preset.value ? showCard.url(preset.value) : dashboard().url,
+    preset.value ? presetUrl(preset.value) : dashboard().url,
 );
 
 const {

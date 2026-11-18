@@ -130,6 +130,29 @@ final readonly class ImportChoices
     }
 
     /**
+     * The choices with the movement picked, as if the person had chosen it in the menu.
+     *
+     * @param  int  $movementId  the expense or income to link
+     */
+    public function withMovementTarget(int $movementId): self
+    {
+        return new self(
+            document: $this->document,
+            movement: $this->movement,
+            event: $this->event,
+            records: $this->records,
+            overrides: $this->overrides,
+            targets: [...$this->targets, 'movement' => $movementId],
+            due: $this->due,
+            policy: $this->policy,
+            createCard: $this->createCard,
+            cardOverrides: $this->cardOverrides,
+            cardFor: $this->cardFor,
+            replacePolicies: $this->replacePolicies,
+        );
+    }
+
+    /**
      * The choices with the organization created or linked with the file in the menus *Organization* of the document
      * and of the movement that are empty: the page sends them empty when the issuer was not found. One picked by hand
      * stays.

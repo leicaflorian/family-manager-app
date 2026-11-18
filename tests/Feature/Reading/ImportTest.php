@@ -240,6 +240,47 @@ test('the page keeps the card the files come from, and ignores one of another fa
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetLinks', []));
 });
 
+test('the page keeps the expense the files come from, and offers no card', function (): void {
+    $file = waitingFile(['link_type' => 'expense']);
+    $expense = Expense::factory()->for($this->marco->family)->create();
+    $file->update(['link_id' => $expense->id]);
+    $theirs = Expense::factory()->create();
+
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id, 'link' => 'expense:'.$expense->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('presetLinks', [['type' => 'expense', 'id' => $expense->id]])
+            ->where('files.0.links', [['type' => 'expense', 'id' => $expense->id]])
+            ->where("proposals.{$file->id}.createCard", false));
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id, 'link' => 'expense:'.$theirs->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetLinks', []));
+});
+
+test('files imported from an expense go back to the expense', function (): void {
+    $file = waitingFile();
+    $expense = Expense::factory()->for($this->marco->family)->create();
+
+    $this->actingAs($this->marco)->post(route('import.store', ['link' => 'expense:'.$expense->id]), ['files' => [importEntry($file)]])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('budget.movements.show', ['kind' => 'expense', 'id' => $expense->id]));
+});
+
+test('a file that comes from an expense links to it when the movement is left on automatic', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-10-16 10:00', 'Europe/Rome'));
+    $expense = Expense::factory()->for($this->marco->family)->create(['amount' => 12, 'date' => '2026-01-03', 'title' => 'Altra cosa']);
+    $file = File::factory()->for($this->marco->family)->read([
+        'kind' => 'receipt', 'title' => 'Scontrino', 'total_amount' => 480, 'issue_date' => '2026-10-15',
+    ])->create(['to_sort' => true, 'link_type' => 'expense', 'link_id' => $expense->id]);
+    $before = Expense::withoutGlobalScopes()->count();
+
+    $this->actingAs($this->marco)->post(route('import.store', ['link' => 'expense:'.$expense->id]), ['files' => [
+        [...importEntry($file), 'also' => ['movement' => true, 'due' => false]],
+    ]])->assertSessionHasNoErrors();
+
+    expect(Expense::withoutGlobalScopes()->count())->toBe($before)
+        ->and($expense->documents()->pluck('documents.id')->all())->toBe([Document::query()->sole()->id]);
+    Date::setTestNow();
+});
+
 test('files imported from a card go back to the card', function (): void {
     $file = waitingFile();
     $panda = Vehicle::factory()->for($this->marco->family)->create();

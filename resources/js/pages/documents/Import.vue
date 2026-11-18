@@ -64,11 +64,17 @@ import type {
     DocumentFormValues,
     DocumentLink,
 } from '@/lib/documents';
-import { linkQuery, newDocument, proposalOf, toPayload } from '@/lib/documents';
+import {
+    linkQuery,
+    newDocument,
+    presetUrl,
+    proposalOf,
+    toPayload,
+} from '@/lib/documents';
 import { cn } from '@/lib/utils';
 import { anyFileReading, isReading, readAgain } from '@/lib/reading';
 import { toSort } from '@/routes';
-import { create as createCard, show as showCard } from '@/routes/cards';
+import { create as createCard } from '@/routes/cards';
 import { store } from '@/routes/import';
 import { useComputerLayout } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
@@ -116,7 +122,7 @@ const preset = computed(() => props.presetLinks[0]);
 
 /** Where × goes: the card the files come from, or *To sort*, where the files stay. */
 const closeUrl = computed(() =>
-    preset.value ? showCard.url(preset.value) : toSort().url,
+    preset.value ? presetUrl(preset.value) : toSort().url,
 );
 
 /** Whether the open file is the last one. */
