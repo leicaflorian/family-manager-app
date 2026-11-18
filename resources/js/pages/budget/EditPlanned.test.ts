@@ -220,6 +220,35 @@ describe('Edit a planned expense', () => {
         );
     });
 
+    it('sends the commission of a planned expense, added to its amount', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(EditPlanned, {
+            ...props,
+            planned: danceRow,
+            values: {
+                ...newPlannedValues,
+                title: 'Affitto',
+                amount: 650,
+                fee_amount: 1,
+                start_date: '2025-09-05',
+            },
+        });
+
+        expect(
+            await screen.findByLabelText('Commission (optional)'),
+        ).toHaveValue('1\u00a0€');
+        expect(
+            screen.getByText('It is added to the amount.'),
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(put).toHaveBeenCalledWith(
+            '/budget/planned/expense/4',
+            expect.objectContaining({ amount: '650', fee_amount: '1' }),
+            expect.anything(),
+        );
+    });
+
     it('hides how often until it repeats', async () => {
         renderPage(EditPlanned, props);
 
@@ -243,6 +272,7 @@ describe('Edit a planned expense', () => {
                 ...newPlannedValues,
                 type: 'salary',
                 employment_id: null,
+                fee_amount: undefined,
             },
             options: {
                 ...plannedExpenseOptions,
@@ -263,6 +293,9 @@ describe('Edit a planned expense', () => {
                 level: 1,
             }),
         ).toBeInTheDocument();
+        expect(
+            screen.queryByLabelText('Commission (optional)'),
+        ).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Salary' })).toHaveAttribute(
             'aria-pressed',
             'true',

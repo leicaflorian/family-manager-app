@@ -28,7 +28,9 @@ import {
     isEmpty,
     parseAmount,
     withMethod,
+    withFee,
     withNone,
+    withoutFee,
 } from '@/lib/forms';
 import { cn } from '@/lib/utils';
 import { show as showDocument } from '@/routes/documents';
@@ -93,7 +95,8 @@ const values = reactive({
     kind: movement?.kind ?? start.kind,
     title: movement?.title ?? '',
     date: movement?.date ?? start.date,
-    amount: formatAmount(movement?.amount),
+    // The form speaks in cost + commission; what is stored is the total
+    amount: formatAmount(withoutFee(movement?.amount, movement?.fee_amount)),
     fee_amount: formatAmount(movement?.fee_amount),
     financial_account_id: text(movement?.account_id),
     category_id: movement
@@ -302,7 +305,12 @@ function save(): void {
     const data = {
         ...(movement ? {} : { kind: values.kind }),
         title: values.title,
-        amount: parseAmount(values.amount),
+        amount: expense.value
+            ? withFee(
+                  parseAmount(values.amount),
+                  parseAmount(values.fee_amount),
+              )
+            : parseAmount(values.amount),
         date: values.date,
         financial_account_id: values.financial_account_id || null,
         organization_id: values.organization_id || null,
@@ -451,9 +459,7 @@ defineExpose({ close, confirmLeave });
                     :errors="errors(problems.fee_amount)"
                 />
                 <p class="m-0 text-meta text-ink-soft">
-                    {{
-                        $t('The commission is already included in the amount.')
-                    }}
+                    {{ $t('It is added to the amount.') }}
                 </p>
             </div>
             <FormKit

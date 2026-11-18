@@ -165,6 +165,16 @@ const layout = useLayoutMode();
                     :errors="errors(form.errors.amount)"
                 />
                 <FormKit
+                    v-if="kind === 'expense'"
+                    v-model="form.fee_amount"
+                    type="currency"
+                    :label="$t('Commission')"
+                    optional
+                    name="fee_amount"
+                    :help="$t('It is added to the amount.')"
+                    :errors="errors(form.errors.fee_amount)"
+                />
+                <FormKit
                     v-model="form.is_estimated"
                     type="toggle"
                     name="is_estimated"

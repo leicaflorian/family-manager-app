@@ -32,7 +32,9 @@ describe('FmAmount', () => {
         render(FmAmount, { props: { amount: 651, fee: 1 } });
 
         expect(screen.getByText('651,00 €')).toBeInTheDocument();
-        expect(screen.getByText('of which 1,00 € commission')).toBeInTheDocument();
+        expect(
+            screen.getByText('of which 1,00 € commission'),
+        ).toBeInTheDocument();
     });
 
     it('writes no commission line without a commission', () => {

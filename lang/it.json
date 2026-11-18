@@ -2024,5 +2024,6 @@
     "Phone number": "Telefono",
     "This due date is skipped: it is not paid.": "Questa scadenza è saltata: non si paga.",
     "of which :fee commission": "di cui :fee di commissione",
-    "It is added to the amount.": "Si aggiunge all'importo."
+    "It is added to the amount.": "Si aggiunge all'importo.",
+    "Plus :fee commission.": "Più :fee di commissione."
 }

@@ -15,7 +15,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { errors } from '@/lib/errors';
-import { formatAmount, parseAmount } from '@/lib/forms';
+import { formatAmount, parseAmount, withoutFee } from '@/lib/forms';
 import FmAmount from './FmAmount.vue';
 import FmBottomSheet from './FmBottomSheet.vue';
 import FmButton from './FmButton.vue';
@@ -66,7 +66,8 @@ function initial() {
     return {
         skip: deadline.skipped,
         change_amount: deadline.base_amount !== null,
-        amount: formatAmount(deadline.amount),
+        // The other amount is a cost: the commission of the planned expense is added to it
+        amount: formatAmount(withoutFee(deadline.amount, deadline.fee)),
         change_date: deadline.date !== deadline.original_date,
         date: deadline.date,
         notes: deadline.notes ?? '',
@@ -85,8 +86,13 @@ const problems = ref<Record<string, string>>({});
 /** The changes are being sent. */
 const processing = ref(false);
 
-/** The amount the planned item says, which the new one replaces. */
+/** The amount the planned item says, commission included. */
 const plannedAmount = computed(() => deadline.base_amount ?? deadline.amount);
+
+/** The cost the planned item says, without the commission: the new cost replaces it. */
+const plannedCost = computed(
+    () => withoutFee(plannedAmount.value, deadline.fee) ?? 0,
+);
 
 // A due date that does not happen has no other amount or day
 watch(
@@ -162,7 +168,7 @@ function save(): void {
                 }}</span>
             </span>
             <span class="shrink-0 text-amount">
-                <FmAmount :amount="plannedAmount" />
+                <FmAmount :amount="plannedAmount" :fee="deadline.fee" />
             </span>
         </div>
         <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
@@ -189,7 +195,7 @@ function save(): void {
                     :label="$t('Different amount')"
                     :help="
                         $t('Instead of :amount', {
-                            amount: euro(plannedAmount),
+                            amount: euro(plannedCost),
                         })
                     "
                 />
@@ -199,6 +205,13 @@ function save(): void {
                     type="currency"
                     name="amount"
                     :label="$t('New amount')"
+                    :help="
+                        deadline.fee > 0
+                            ? $t('Plus :fee commission.', {
+                                  fee: euro(deadline.fee),
+                              })
+                            : undefined
+                    "
                     :errors="errors(problems.amount)"
                 />
                 <FormKit

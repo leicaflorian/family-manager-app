@@ -303,6 +303,8 @@ export function skippedMonthsText(months: number[]): string {
 export interface PlannedFormValues {
     title: string;
     amount: number | string | null;
+    /** An expense: the commission added to the amount of every due date. */
+    fee_amount?: number | string | null;
     is_estimated: boolean;
     notes: string | null;
     start_date: string | null;

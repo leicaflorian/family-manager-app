@@ -43,6 +43,40 @@ describe('FmPayForm', () => {
         });
     });
 
+    it('starts from the cost and the commission of the planned expense, and sends their sum', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmPayForm, {
+            ...props,
+            deadline: { ...deadline, amount: 651, fee: 1 },
+        });
+
+        expect(await screen.findByLabelText('How much')).toHaveValue(
+            '650,00\u00a0€',
+        );
+        expect(screen.getByLabelText('Commission (optional)')).toHaveValue(
+            '1,00\u00a0€',
+        );
+        expect(
+            screen.getByText('It is added to the amount.'),
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            amount: 651,
+            fee_amount: 1,
+        });
+    });
+
+    it('asks no commission for an income', async () => {
+        renderPage(FmPayForm, { ...props, deadline: salaryDeadline });
+
+        await screen.findByLabelText('How much');
+        expect(
+            screen.queryByLabelText('Commission (optional)'),
+        ).not.toBeInTheDocument();
+    });
+
     it('sends another account when it is chosen', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(FmPayForm, props);

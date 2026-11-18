@@ -3,6 +3,8 @@ import {
     formatAmount,
     isEmpty,
     parseAmount,
+    withFee,
+    withoutFee,
     textOrNull,
     withMethod,
     withNone,
@@ -68,5 +70,22 @@ describe('textOrNull', () => {
         expect(textOrNull('')).toBeNull();
         expect(textOrNull(null)).toBeNull();
         expect(textOrNull(undefined)).toBeNull();
+    });
+});
+
+describe('withoutFee and withFee', () => {
+    it('splits a total into the cost without its commission, to the cent', () => {
+        expect(withoutFee(651, 1)).toBe(650);
+        expect(withoutFee(70.8, 0.8)).toBe(70);
+        expect(withoutFee(45, null)).toBe(45);
+        expect(withoutFee(null, 1)).toBeNull();
+    });
+
+    it('adds the commission back to the cost, to the cent', () => {
+        expect(withFee(650, 1)).toBe(651);
+        expect(withFee(70, 0.8)).toBe(70.8);
+        expect(withFee(0.1, 0.2)).toBe(0.3);
+        expect(withFee(45, null)).toBe(45);
+        expect(withFee(null, 1)).toBeNull();
     });
 });
