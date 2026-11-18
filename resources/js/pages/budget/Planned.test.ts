@@ -72,7 +72,10 @@ describe('Planned expenses', () => {
         renderPage(Planned, props);
 
         expect(
-            screen.getByRole('heading', { name: 'Planned expenses', level: 1 }),
+            screen.getByRole('heading', {
+                name: 'Planned expenses and incomes',
+                level: 1,
+            }),
         ).toBeInTheDocument();
         expect(screen.getByText('Going out, on average')).toBeInTheDocument();
         expect(screen.getByText('1.482,60 €')).toBeInTheDocument();
@@ -171,9 +174,10 @@ describe('Planned expenses', () => {
     it('has the tabs of the budget with this page marked', () => {
         renderPage(Planned, props);
 
-        expect(
-            screen.getByRole('link', { name: 'Planned expenses' }),
-        ).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Recurring' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
         expect(
             screen.getByRole('link', { name: 'Planned and spent' }),
         ).toHaveAttribute('href', '/budget/comparison');

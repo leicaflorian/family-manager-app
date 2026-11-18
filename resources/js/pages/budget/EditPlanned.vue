@@ -81,7 +81,7 @@ const back = computed(() =>
 
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
-    { label: trans('Planned expenses'), href: index().url },
+    { label: trans('Planned expenses and incomes'), href: index().url },
     ...(planned ? [{ label: planned.title, href: back.value }] : []),
     { label: heading.value },
 ]);
@@ -126,7 +126,7 @@ const layout = useLayoutMode();
         <FmTitle
             :title="heading"
             :back="back"
-            :back-label="planned?.title ?? $t('Planned expenses')"
+            :back-label="planned?.title ?? $t('Planned expenses and incomes')"
         >
             <template #actions>
                 <Link

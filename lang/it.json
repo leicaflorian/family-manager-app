@@ -665,7 +665,6 @@
     "Weeks": "Settimane",
     "Months": "Mesi",
     "Years": "Anni",
-    "Planned expenses": "Spese fisse",
     "What": "Cosa",
     "Amount": "Importo",
     "Estimated amount": "Importo stimato",
@@ -2029,5 +2028,7 @@
     "I already paid it": "L'ho già pagato",
     "Plus :fee commission.": "Più :fee di commissione.",
     "There's a new version": "C'è una versione nuova",
-    "Reload": "Ricarica"
+    "Reload": "Ricarica",
+    "Recurring": "Ricorrenti",
+    "Planned expenses and incomes": "Spese ed entrate fisse"
 }
