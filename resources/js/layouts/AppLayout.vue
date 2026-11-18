@@ -40,6 +40,7 @@ import FmToaster from '@/components/fm/FmToaster.vue';
 import { useBellNotices } from '@/composables/useBellNotices';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useLeavePage } from '@/composables/useLeavePage';
+import { useNewVersion } from '@/composables/useNewVersion';
 import { SEARCH_PAGE_FIELD } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
 import type { TrailPiece } from '@/lib/pageTrail';
@@ -63,6 +64,8 @@ const user = computed((): string => page.props.auth?.user?.name ?? '');
 const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
 const { unread: unreadNotices, notices, loadNotices } = useBellNotices();
+// A release while the page is open: a message with Reload, in the toaster below
+useNewVersion();
 const impersonating = computed(
     (): string | null => page.props.impersonating ?? null,
 );
