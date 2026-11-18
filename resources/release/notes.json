@@ -1,5 +1,31 @@
 [
     {
+        "version": "2.2.0",
+        "date": "2026-11-18",
+        "notes": {
+            "it": [
+                "Nei Movimenti puoi cercare e filtrare per testo, tipo, conto, importi e giorni; i risultati sono divisi per mese.",
+                "Anche nelle Spese fisse puoi cercare e filtrare per importo e prossima scadenza.",
+                "Quando registri una nuova polizza puoi disdire la vecchia dello stesso veicolo e farle prendere il suo premio.",
+                "Nei Documenti, sul computer, il documento scelto si apre nella colonna a sinistra al posto dei filtri.",
+                "Una scadenza si apre direttamente dalla spesa fissa, e puoi segnarla come pagata dal pannello Cambia questa scadenza.",
+                "Le colonne delle pagine partono da 900 px di larghezza, così si vedono meglio anche su tablet.",
+                "Tornando indietro dopo un pagamento la Home non mostra più la scadenza appena pagata.",
+                "Sistemati alcuni piccoli errori: testi del telefono e dello scanner, conteggio dei documenti nelle categorie, scheda con stato a colori."
+            ],
+            "en": [
+                "In Movements you can search and filter by text, kind, account, amounts and days; results are grouped by month.",
+                "In Planned expenses you can also search and filter by amount and next due date.",
+                "When you add a new policy you can cancel the old one of the same vehicle and let it take over its premium.",
+                "In Documents, on the computer, the document you choose opens in the left column in place of the filters.",
+                "A due date opens straight from its planned expense, and you can mark it paid from the Change this due date panel.",
+                "Page columns now start from 900 px wide, so tablets show them better too.",
+                "Going back after a payment, Home no longer shows the due date you just paid.",
+                "Fixed a few small things: phone and scanner texts, document counts in categories, cards showing their status in colour."
+            ]
+        }
+    },
+    {
         "version": "2.1.4",
         "date": "2026-11-15",
         "notes": {

@@ -2,6 +2,37 @@
 
 All notable changes to Fameja.app.
 
+## [2.2.0] - 2026-11-18
+
+### Budget
+- Movements: search box and filters (text, kind, account, amounts, days) on the server, results grouped by month, a note when a search is cut at 200 results; filters column on the computer, sheet on the phone.
+- Planned expenses: search box and filters (amounts, next due date), shared with Movements through `useListFilters`, `FilterRanges` and `FmFilterPills`.
+- Due dates no longer have a page of their own: the address opens the planned expense with the right panel (I paid it, Change this due date) or the movement that paid it; saving goes back to the page it was opened from.
+- An admin can pay an unpaid due date from the Change this due date panel.
+- A skipped due date reached from an old link now shows a toast instead of nothing.
+- Paying a policy premium: same company renews the policy, another company opens the new policy form.
+
+### Cards
+- A new policy can cancel the old one of the same vehicle and take its premium (`ReplacePolicy`, `ReplaceablePolicies`); also available from Import.
+- Card page: status shown as a coloured figure, figures in one box with the tiles first; a paid off loan is grey, a cancelled or sold card's past expiry is no longer red.
+- Refers to menu tells the status or expiry of a closed or expired card, so two similar policies can be told apart.
+
+### Documents
+- On the computer layout the chosen document opens in the left column in place of the filters (embedded `FmDocumentDetail`), with its menu in the column header.
+- Documents use the shared filter composable and pills; new `FmFilterAside` and `FmFilterButton`.
+
+### Layout
+- Page columns start from 900 px (`wide:` and `computer:` variants) instead of Tailwind's `lg:` at 1024 px, with a test that keeps them aligned with the composables.
+- Back after a save reloads the page, so Home no longer lists a due date just paid.
+
+### Fixes
+- Scanner: the feeder button for another ID card has its own text.
+- Organization form: the phone field reads «Telefono».
+- Person and Organization pages no longer show a back link on the computer.
+- Settings › Calendar: a member sees who can turn the calendar on.
+- Category tree: a main category counts the documents of its subcategories.
+- A phone not linked any more lands on the code page with the message under the field.
+
 ## [2.1.4] - 2026-11-15
 
 ### Production
