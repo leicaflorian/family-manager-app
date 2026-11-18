@@ -117,14 +117,6 @@ it('answers 404 for an account of another family', function (): void {
     searchMovements('search=zzq&account='.$account->id)->assertNotFound();
 });
 
-it('opens the movement asked together with the filters', function (): void {
-    $id = insideBianchi(fn (): int => Expense::query()->where('title', 'Zzq uno')->sole()->id);
-
-    searchMovements("search=zzq&movement=expense:{$id}")->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('selected.id', $id)
-        ->where('search.count', 5));
-});
-
 it('shows at most 200 movements and counts them all', function (): void {
     insideBianchi(function (): void {
         Expense::factory()->count(201)->create(['family_id' => CurrentFamily::id(), 'title' => 'Zzq tanti', 'date' => '2026-10-01', 'amount' => 1]);

@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen, within } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
@@ -8,7 +8,6 @@ import {
     octoberSummary,
     salaryMovement,
 } from '@/test/fixtures';
-import { answerLeave, leaveQuestion } from '@/lib/unsavedChanges';
 import { choose, renderPage, screenWidth, settle } from '@/test/page';
 import Movements from './Movements.vue';
 
@@ -53,9 +52,7 @@ const props = {
     account: null,
     filters: noFilters,
     search: null,
-    selected: null,
-    occurrences: [],
-    options: movementOptions,
+    accounts: movementOptions.accounts,
 };
 
 /**
@@ -176,10 +173,10 @@ describe('Movements', () => {
             within(parkingRow).getByText('Tper · Conto BPER'),
         ).toBeInTheDocument();
         expect(within(parkingRow).getByText('12,00 €')).toBeInTheDocument();
-        // On the phone a row opens the page of the movement
+        // A row opens the page of the movement, with the list to go back to
         expect(parkingRow).toHaveAttribute(
             'href',
-            '/budget/movements/expense/40',
+            '/budget/movements/expense/40?from=%2Fbudget%2Fmovements%3Fmonth%3D2026-10',
         );
     });
 
@@ -249,16 +246,18 @@ describe('Movements', () => {
         ).toHaveAttribute('aria-pressed', 'false');
     });
 
-    it('opens a row on its own page on a wide but short window', () => {
-        screenWidth(1280, 400);
+    it('opens a row on its own page, with the list to go back to', () => {
         renderPage(Movements, props);
 
         expect(
             screen.getByRole('link', { name: /Parcheggio/ }),
-        ).toHaveAttribute('href', '/budget/movements/expense/40');
+        ).toHaveAttribute(
+            'href',
+            '/budget/movements/expense/40?from=%2Fbudget%2Fmovements%3Fmonth%3D2026-10',
+        );
     });
 
-    it('opens a row beside the list on the computer', () => {
+    it('on the computer too a row opens its own page, not a column beside the list', () => {
         screenWidth(true);
         renderPage(Movements, props);
 
@@ -266,68 +265,16 @@ describe('Movements', () => {
             screen.getByRole('link', { name: /Parcheggio/ }),
         ).toHaveAttribute(
             'href',
-            '/budget/movements?month=2026-10&movement=expense%3A40',
+            '/budget/movements/expense/40?from=%2Fbudget%2Fmovements%3Fmonth%3D2026-10',
         );
-    });
-
-    it('on the computer opens a row beside the list without scrolling the list back to the top', async () => {
-        screenWidth(true);
-        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
-        renderPage(Movements, props);
-
-        await fireEvent.click(screen.getByRole('link', { name: /Parcheggio/ }));
-
-        expect(visit).toHaveBeenCalledWith(
-            expect.stringContaining('movement=expense%3A40'),
-            expect.objectContaining({ preserveScroll: true }),
-        );
-    });
-
-    it('keeps the panel of the movement in view while the list scrolls', () => {
-        screenWidth(true);
-        renderPage(Movements, { ...props, selected: danceMovement });
-
-        // sticky under the top bar of the layout, not under the top of the window
-        expect(screen.getByLabelText('Title').closest('aside')).toHaveClass(
-            'sticky',
-            'top-(--app-header)',
-        );
-    });
-
-    it('shows the panel of the movement chosen', () => {
-        screenWidth(true);
-        renderPage(Movements, { ...props, selected: danceMovement });
-
-        expect(screen.getByLabelText('Title')).toHaveValue('Retta di novembre');
         expect(
-            screen.getByRole('button', { name: 'Delete' }),
+            screen.getByRole('complementary', { name: 'Filters' }),
         ).toBeInTheDocument();
-    });
-
-    it('closes the panel with the cross', async () => {
-        screenWidth(true);
-        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-        renderPage(Movements, { ...props, selected: danceMovement });
-
-        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-
-        expect(get.mock.calls[0]![0]).toBe('/budget/movements?month=2026-10');
-    });
-
-    it('opens the panel of a new expense or income on the computer', async () => {
-        screenWidth(true);
-        renderPage(Movements, props);
         expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'New expense or income' }),
-        );
-
-        expect(screen.getByLabelText('Title')).toHaveValue('');
-        await settle();
     });
 
-    it('goes to the page of a new expense or income on the phone', async () => {
+    it('goes to the page of a new expense or income, on the computer too', async () => {
+        screenWidth(true);
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Movements, props);
 
@@ -335,7 +282,10 @@ describe('Movements', () => {
             screen.getByRole('button', { name: 'New expense or income' }),
         );
 
-        expect(get.mock.calls[0]![0]).toBe('/budget/movements/create');
+        expect(get.mock.calls[0]![0]).toBe(
+            '/budget/movements/create?from=%2Fbudget%2Fmovements%3Fmonth%3D2026-10',
+        );
+        expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
     });
 
     it('has the tabs of the budget with this page marked', () => {
@@ -515,120 +465,6 @@ describe('Movements', () => {
         expect(button).toHaveAttribute('aria-expanded', 'true');
     });
 
-    for (const [action, expected] of [
-        [
-            'sends a search',
-            '/budget/movements?month=2026-10&kind=expense&search=retta&min=20',
-        ],
-        ['removes a filter', '/budget/movements?month=2026-10&kind=expense'],
-        ['removes every filter', '/budget/movements?month=2026-10'],
-    ] as const) {
-        it(`asks before it ${action} while the movement open in the column has changes`, async () => {
-            screenWidth(true);
-            const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-            renderPage(Movements, {
-                ...props,
-                kind: 'expense',
-                filters: { ...noFilters, kind: 'expense', min: 20 },
-                selected: danceMovement,
-            });
-            await fireEvent.update(screen.getByLabelText('Title'), 'Retta');
-            await settle();
-
-            if (action === 'sends a search') {
-                await userEvent.type(
-                    screen.getByRole('searchbox', {
-                        name: 'Search a movement',
-                    }),
-                    'retta{Enter}',
-                );
-            } else if (action === 'removes a filter') {
-                await userEvent.click(
-                    screen.getByRole('button', {
-                        name: 'Remove the filter At least 20,00 €',
-                    }),
-                );
-            } else {
-                await userEvent.click(
-                    screen.getByRole('button', { name: 'Remove the filters' }),
-                );
-            }
-
-            expect(leaveQuestion.open).toBe(true);
-            answerLeave(false);
-            await settle();
-            expect(get).not.toHaveBeenCalled();
-            expect(screen.getByLabelText('Title')).toHaveValue('Retta');
-
-            // asked again, this time the person leaves without saving
-            if (action === 'sends a search') {
-                await userEvent.type(
-                    screen.getByRole('searchbox', {
-                        name: 'Search a movement',
-                    }),
-                    '{Enter}',
-                );
-            } else if (action === 'removes a filter') {
-                await userEvent.click(
-                    screen.getByRole('button', {
-                        name: 'Remove the filter At least 20,00 €',
-                    }),
-                );
-            } else {
-                await userEvent.click(
-                    screen.getByRole('button', { name: 'Remove the filters' }),
-                );
-            }
-            answerLeave(true);
-            await settle();
-            expect(get).toHaveBeenCalledTimes(1);
-            expect(get.mock.calls[0]![0]).toBe(expected);
-        });
-    }
-
-    it('closes a new expense or income with changes only after asking, when the filters change', async () => {
-        screenWidth(true);
-        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-        renderPage(Movements, {
-            ...props,
-            filters: { ...noFilters, min: 20 },
-        });
-        await userEvent.click(
-            screen.getByRole('button', { name: 'New expense or income' }),
-        );
-        await fireEvent.update(screen.getByLabelText('Title'), 'Pizza');
-        await settle();
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Remove the filters' }),
-        );
-        expect(leaveQuestion.open).toBe(true);
-        answerLeave(true);
-        await settle();
-
-        expect(get.mock.calls[0]![0]).toBe('/budget/movements?month=2026-10');
-        expect(
-            screen.getByRole('complementary', { name: 'Filters' }),
-        ).toBeInTheDocument();
-    });
-
-    it('changes the filters at once when the movement open in the column has no changes', async () => {
-        screenWidth(true);
-        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-        renderPage(Movements, {
-            ...props,
-            filters: { ...noFilters, min: 20 },
-            selected: danceMovement,
-        });
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Remove the filters' }),
-        );
-
-        expect(leaveQuestion.open).toBe(false);
-        expect(get.mock.calls[0]![0]).toBe('/budget/movements?month=2026-10');
-    });
-
     it('sends the search with Enter', async () => {
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Movements, props);
@@ -663,85 +499,15 @@ describe('Movements', () => {
         );
     });
 
-    it('opens a row keeping the filters, and marks it', () => {
+    it('opens a row with the filters in the way back', () => {
         screenWidth(true);
-        renderPage(Movements, {
-            ...searching,
-            selected: groceries(52, '2026-10-11', 48.6),
-        });
+        renderPage(Movements, searching);
 
         const links = screen.getAllByRole('link', { name: /Spesa/ });
         expect(links[0]).toHaveAttribute(
             'href',
-            `/budget/movements?${allFiltersQuery}&movement=expense%3A51`,
+            `/budget/movements/expense/51?from=${encodeURIComponent(`/budget/movements?${allFiltersQuery}`)}`,
         );
-        expect(links[1]).toHaveAttribute('aria-current', 'page');
         expect(links[0]).not.toHaveAttribute('aria-current');
-    });
-
-    it('on the computer shows the movement in place of the filters, and goes back to them keeping the filters', async () => {
-        screenWidth(true);
-        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-        renderPage(Movements, {
-            ...searching,
-            selected: groceries(52, '2026-10-11', 48.6),
-        });
-
-        expect(
-            screen.queryByRole('complementary', { name: 'Filters' }),
-        ).not.toBeInTheDocument();
-        const detail = screen.getByRole('complementary', { name: 'Spesa' });
-        expect(within(detail).getByLabelText('Title')).toHaveValue('Spesa');
-        // one × only: the one of the column
-        expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(
-            1,
-        );
-
-        await fireEvent.click(
-            within(detail).getByRole('button', { name: 'Back to the filters' }),
-        );
-
-        expect(get.mock.calls[0]![0]).toBe(
-            `/budget/movements?${allFiltersQuery}`,
-        );
-    });
-
-    it('asks before going back to the filters when the movement has changes', async () => {
-        screenWidth(true);
-        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-        renderPage(Movements, { ...props, selected: danceMovement });
-        await fireEvent.update(screen.getByLabelText('Title'), 'Retta');
-        await settle();
-
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Back to the filters' }),
-        );
-
-        expect(leaveQuestion.open).toBe(true);
-        answerLeave(false);
-        await settle();
-        expect(get).not.toHaveBeenCalled();
-    });
-
-    it('opens a new expense or income in place of the filters', async () => {
-        screenWidth(true);
-        renderPage(Movements, props);
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'New expense or income' }),
-        );
-
-        const detail = screen.getByRole('complementary', {
-            name: 'New expense or income',
-        });
-        expect(within(detail).getByLabelText('Title')).toHaveValue('');
-
-        await fireEvent.click(
-            within(detail).getByRole('button', { name: 'Back to the filters' }),
-        );
-        await settle();
-        expect(
-            screen.getByRole('complementary', { name: 'Filters' }),
-        ).toBeInTheDocument();
     });
 });

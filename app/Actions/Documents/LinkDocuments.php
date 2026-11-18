@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Actions\Cards;
+namespace App\Actions\Documents;
 
 use App\Models\Document;
 use Illuminate\Database\Eloquent\Collection;
@@ -11,23 +11,23 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use RuntimeException;
 
 /**
- * Links documents to a card and unlinks them; the documents stay. Linking a
+ * Links documents to a record (a card, an expense, an income) and unlinks them; the documents stay. Linking a
  * document twice changes nothing.
  */
-final class LinkCardDocuments
+final class LinkDocuments
 {
     /**
-     * Links and unlinks the documents of the card.
+     * Links and unlinks the documents of the record.
      *
-     * @param  Model  $card  the card
+     * @param  Model  $record  the record, a model with `documents()`
      * @param  Collection<int, Document>  $link  the documents to link
      * @param  Collection<int, Document>  $unlink  the documents to unlink
      *
-     * @throws RuntimeException if the card has no documents
+     * @throws RuntimeException if the record has no documents
      */
-    public function handle(Model $card, Collection $link, Collection $unlink): void
+    public function handle(Model $record, Collection $link, Collection $unlink): void
     {
-        $documents = $this->documents($card);
+        $documents = $this->documents($record);
 
         if ($link->isNotEmpty()) {
             $documents->syncWithoutDetaching($link->modelKeys());
@@ -39,17 +39,17 @@ final class LinkCardDocuments
     }
 
     /**
-     * The documents relation of a card.
+     * The documents relation of a record.
      *
-     * @param  Model  $card  the card
+     * @param  Model  $record  the record
      * @return MorphToMany<Document, Model>
      *
-     * @throws RuntimeException if the card has no documents
+     * @throws RuntimeException if the record has no documents
      */
-    private function documents(Model $card): MorphToMany
+    private function documents(Model $record): MorphToMany
     {
-        $relation = method_exists($card, 'documents') ? $card->documents() : null;
+        $relation = method_exists($record, 'documents') ? $record->documents() : null;
 
-        return $relation instanceof MorphToMany ? $relation : throw new RuntimeException($card::class.' has no documents.');
+        return $relation instanceof MorphToMany ? $relation : throw new RuntimeException($record::class.' has no documents.');
     }
 }

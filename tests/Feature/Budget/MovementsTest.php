@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
+use App\Models\File;
 use App\Models\FinancialAccount;
 use App\Models\HealthEvent;
 use App\Models\Income;
@@ -18,6 +19,7 @@ use App\Models\User;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -71,7 +73,9 @@ it('sums the month', function (): void {
             ->where('movements.0.title', 'Parcheggio')
             ->where('movements.1.title', 'Stipendio di ottobre')
             ->where('movements.1.kind', 'income')
-            ->where('selected', null));
+            ->missing('selected')
+            ->missing('occurrences')
+            ->missing('options'));
 });
 
 it('counts only the salaries expected on the account that is shown', function (): void {
@@ -128,21 +132,9 @@ it('filters by kind and account', function (): void {
         });
 });
 
-it('answers 404 to a query that is not a month, a kind, an account or a movement', function (string $query): void {
+it('answers 404 to a query that is not a month, a kind or an account', function (string $query): void {
     $this->actingAs($this->marco)->get("/budget/movements?{$query}")->assertNotFound();
-})->with(['month=2026-13', 'month=ottobre', 'kind=gift', 'account=99999', 'movement=expense:99999', 'movement=gift:1']);
-
-it('opens a movement beside the list', function (): void {
-    $dentist = movementExpense('Visita dal dentista');
-
-    $this->actingAs($this->marco)
-        ->get("/budget/movements?month=2026-10&movement=expense:{$dentist->id}")
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->where('selected.id', $dentist->id)
-            ->where('selected.kind', 'expense')
-            ->where('selected.amount', 80)
-            ->where('selected.can_delete', true));
-});
+})->with(['month=2026-13', 'month=ottobre', 'kind=gift', 'account=99999']);
 
 it('shows a movement on its page', function (): void {
     $dentist = movementExpense('Visita dal dentista');
@@ -169,11 +161,11 @@ it('offers the open due dates of the planned expense of a movement, with its own
         });
 });
 
-it('offers the due dates around the selected movement, not around today', function (): void {
+it('offers the due dates around the movement of its page, not around today', function (): void {
     $september = insideBianchi(fn (): Expense => Expense::query()->where('title', 'Retta di settembre')->whereDate('date', '2025-09-05')->sole());
 
     $this->actingAs($this->marco)
-        ->get("/budget/movements?month=2025-09&movement=expense:{$september->id}")
+        ->get("/budget/movements/expense/{$september->id}")
         ->assertInertia(function (AssertableInertia $page): void {
             $values = collect($page->toArray()['props']['occurrences'])->pluck('value');
 
@@ -354,7 +346,6 @@ it('answers 404 to a movement of another family', function (): void {
         $this->actingAs($user)->get("/budget/movements/income/{$foreignIncome->id}")->assertNotFound();
         $this->actingAs($user)->put("/budget/movements/expense/{$foreignExpense->id}", $body)->assertNotFound();
         $this->actingAs($user)->delete("/budget/movements/expense/{$foreignExpense->id}")->assertNotFound();
-        $this->actingAs($user)->get("/budget/movements?movement=expense:{$foreignExpense->id}")->assertNotFound();
     }
 
     $this->actingAs($this->marco)->get('/budget/movements/gift/1')->assertNotFound();
@@ -407,7 +398,7 @@ it('lets a movement keep its own due date when its day is changed without naming
 it('offers the open due dates of whichever planned expense is asked, by a reload of the page', function (): void {
     $dance = movementPlan('Retta danza');
 
-    foreach (['/budget/movements', '/budget/movements/create', '/budget/movements/expense/'.movementExpense('Parcheggio')->id] as $address) {
+    foreach (['/budget/movements/create', '/budget/movements/expense/'.movementExpense('Parcheggio')->id] as $address) {
         $this->actingAs($this->marco)
             ->get("{$address}?planned_kind=expense&planned={$dance->id}&planned_date=2026-10-26")
             ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('occurrences.0.value', '2026-12-05'));
@@ -415,7 +406,7 @@ it('offers the open due dates of whichever planned expense is asked, by a reload
 
     $rossi = Family::factory()->create();
     $foreign = PlannedExpense::factory()->create(['family_id' => $rossi->id]);
-    $this->actingAs($this->marco)->get("/budget/movements?planned_kind=expense&planned={$foreign->id}")->assertNotFound();
+    $this->actingAs($this->marco)->get("/budget/movements/create?planned_kind=expense&planned={$foreign->id}")->assertNotFound();
 });
 
 it('gives the employments to the form of an income', function (): void {
@@ -495,4 +486,157 @@ it('goes back to the card after adding an expense from it', function (): void {
     $this->actingAs($this->marco)
         ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Senza scheda', 'amount' => 5, 'date' => '2026-10-20', 'back_to_card' => true])
         ->assertRedirectContains('/budget/movements');
+});
+
+/** A document of the Bianchi family. */
+function movementDocument(string $title = 'Scontrino'): Document
+{
+    return insideBianchi(fn (): Document => Document::factory()->create(['family_id' => movementExpense('Visita dal dentista')->family_id, 'title' => $title]));
+}
+
+it('links the documents chosen when a movement is added', function (): void {
+    $document = movementDocument();
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Gelato', 'amount' => 3, 'date' => '2026-10-25', 'link_documents' => [$document->id]])
+        ->assertSessionHasNoErrors();
+
+    expect(insideBianchi(fn (): array => movementExpense('Gelato')->documents()->pluck('documents.id')->all()))->toBe([$document->id]);
+});
+
+it('links and unlinks documents when an income is changed', function (): void {
+    $income = insideBianchi(fn (): Income => Income::query()->latest('date')->firstOrFail());
+    $old = movementDocument('Vecchio');
+    $new = movementDocument('Nuovo');
+    insideBianchi(fn () => $income->documents()->attach($old));
+
+    $this->actingAs($this->rosa)
+        ->put("/budget/movements/income/{$income->id}", ['title' => $income->title, 'amount' => 10, 'date' => '2026-10-02', 'link_documents' => [$new->id], 'unlink_documents' => [$old->id]])
+        ->assertSessionHasNoErrors();
+
+    expect(insideBianchi(fn (): array => $income->documents()->pluck('documents.id')->all()))->toBe([$new->id]);
+});
+
+it('answers 404 and saves nothing for a document of another family', function (string $list): void {
+    $rossi = Family::factory()->create();
+    $foreign = CurrentFamily::using($rossi->id, fn (): Document => Document::factory()->create(['family_id' => $rossi->id]));
+    $dentist = movementExpense('Visita dal dentista');
+
+    $this->actingAs($this->marco)
+        ->put("/budget/movements/expense/{$dentist->id}", ['title' => 'Cambiato', 'amount' => 80, 'date' => '2026-10-10', $list => [$foreign->id]])
+        ->assertNotFound();
+
+    expect($dentist->refresh()->title)->toBe('Visita dal dentista');
+})->with(['link_documents', 'unlink_documents']);
+
+it('answers 404 and saves nothing for a document of another family on a new movement', function (): void {
+    $rossi = Family::factory()->create();
+    $foreign = CurrentFamily::using($rossi->id, fn (): Document => Document::factory()->create(['family_id' => $rossi->id]));
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Zzz', 'amount' => 3, 'date' => '2026-10-25', 'link_documents' => [$foreign->id]])
+        ->assertNotFound();
+
+    expect(insideBianchi(fn (): int => Expense::query()->where('title', 'Zzz')->count()))->toBe(0);
+});
+
+it('opens Import with the files sent with a new movement, linked to it', function (): void {
+
+    $response = $this->actingAs($this->marco)->post('/budget/movements', [
+        'kind' => 'expense', 'title' => 'Con scontrino', 'amount' => 9, 'date' => '2026-10-25',
+        'files' => [UploadedFile::fake()->create('scontrino.pdf', 100, 'application/pdf')],
+    ]);
+
+    $expense = movementExpense('Con scontrino');
+    $file = insideBianchi(fn (): File => File::query()->toSort()->where('link_type', 'expense')->sole());
+
+    $response->assertRedirect("/import?files={$file->id}&link=expense%3A{$expense->id}");
+    expect($file->link_type)->toBe('expense')->and($file->link_id)->toBe($expense->id);
+});
+
+it('opens Import with the files sent when a movement is changed, even by a member', function (): void {
+    $income = insideBianchi(fn (): Income => Income::query()->latest('date')->firstOrFail());
+
+    $this->actingAs($this->rosa)
+        ->put("/budget/movements/income/{$income->id}", [
+            '_method' => 'put', 'title' => $income->title, 'amount' => 10, 'date' => '2026-10-02',
+            'files' => [UploadedFile::fake()->create('busta.pdf', 100, 'application/pdf')],
+        ])
+        ->assertRedirectContains('link=income%3A'.$income->id);
+
+    expect(insideBianchi(fn (): string => File::query()->toSort()->where('link_type', 'income')->sole()->link_type))->toBe('income');
+});
+
+it('refuses a file that is not a document', function (): void {
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Zzz', 'amount' => 3, 'date' => '2026-10-25', 'files' => [UploadedFile::fake()->create('virus.exe', 10, 'application/x-msdownload')]])
+        ->assertSessionHasErrors('files.0');
+});
+
+it('goes back to the page it came from after saving', function (): void {
+    $dentist = movementExpense('Visita dal dentista');
+    $list = '/budget/movements?month=2026-10&kind=expense';
+
+    $this->actingAs($this->marco)
+        ->put("/budget/movements/expense/{$dentist->id}", ['title' => 'Dentista', 'amount' => 80, 'date' => '2026-10-10', 'from' => $list])
+        ->assertRedirect($list);
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Altro', 'amount' => 3, 'date' => '2026-10-25', 'from' => $list])
+        ->assertRedirect($list);
+});
+
+it('goes to the month, not to a movement, when `from` is not a path of the app', function (): void {
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Altro', 'amount' => 3, 'date' => '2026-10-25', 'from' => 'https://x.test'])
+        ->assertRedirect('/budget/movements?month=2026-10');
+});
+
+it('keeps going back to the card when there are no files', function (): void {
+    $tv = insideBianchi(fn (): int => Belonging::query()->where('name', 'TV Samsung')->sole()->id);
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', ['kind' => 'expense', 'title' => 'Staffa', 'amount' => 35, 'date' => '2026-10-20', 'card' => "belonging:{$tv}", 'back_to_card' => true, 'from' => '/budget/movements?month=2026-10'])
+        ->assertRedirect("/cards/belonging/{$tv}");
+});
+
+it('gives the page of a movement the documents to link and where to go back', function (): void {
+    $dentist = movementExpense('Visita dal dentista');
+    $linked = movementDocument('Già collegato');
+    insideBianchi(fn () => $dentist->documents()->attach($linked));
+    $free = movementDocument('Da collegare');
+
+    $this->actingAs($this->marco)
+        ->get("/budget/movements/expense/{$dentist->id}?from=/budget/movements%3Fmonth%3D2026-10")
+        ->assertInertia(function (AssertableInertia $page) use ($free, $linked): void {
+            $props = $page->toArray()['props'];
+            $ids = collect($props['linkable'])->pluck('id');
+
+            expect($props['back'])->toBe('/budget/movements?month=2026-10')
+                ->and($props['hasLinkable'])->toBeTrue()
+                ->and($props['canDeleteDocuments'])->toBeTrue()
+                ->and($ids)->toContain($free->id)->not->toContain($linked->id)
+                ->and($props)->toHaveKeys(['linkableNext', 'linkableSearch']);
+        });
+});
+
+it('does not take a `from` outside the app for the way back, and a member cannot delete documents', function (): void {
+    $dentist = movementExpense('Visita dal dentista');
+
+    $this->actingAs($this->rosa)
+        ->get("/budget/movements/expense/{$dentist->id}?from=//x.test")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('back', null)->where('canDeleteDocuments', false));
+});
+
+it('offers every document on the form of a new movement', function (): void {
+    movementDocument();
+
+    $this->actingAs($this->marco)
+        ->get('/budget/movements/create?kind=expense&from=/budget/movements')
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('back', '/budget/movements')
+            ->where('hasLinkable', true)
+            ->has('linkable')
+            ->where('canDeleteDocuments', true));
 });
