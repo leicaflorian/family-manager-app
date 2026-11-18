@@ -407,7 +407,11 @@ function reopenTask(): void {
                         @click="emit('postpone')"
                         >{{ $t('Postpone') }}</FmButton
                     >
-                    <FmMenu v-if="canEdit || canDelete" :label="$t('More')">
+                    <FmMenu
+                        v-if="canEdit || canDelete"
+                        :label="$t('More')"
+                        control
+                    >
                         <FmMenuItem
                             v-if="canEdit"
                             :icon="Pencil"
