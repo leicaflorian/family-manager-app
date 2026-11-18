@@ -7,7 +7,6 @@ namespace App\Mail;
 use App\Data\AgendaEntryData;
 use App\Models\User;
 use App\Support\Money;
-use App\Support\Reminders\DueText;
 use App\Support\Reminders\MorningItem;
 use App\Support\Reminders\WeeklySummary;
 use Carbon\CarbonImmutable;
@@ -72,14 +71,7 @@ final class WeeklySummaryMail extends Mailable
             'late' => $this->rows($this->summary->late),
             'toPay' => $this->rows($this->summary->toPay),
             'tasks' => $this->rows($this->summary->tasks),
-            'noticeLines' => array_map(fn (MorningItem $item): array => [
-                'title' => $item->translatable ? __($item->title) : $item->title,
-                'subject' => $item->subject,
-                'when' => DueText::when($today, $this->day($item->dueOn), $item->manual),
-                'late' => $this->day($item->dueOn)->lessThanOrEqualTo($today),
-                'url' => $item->url,
-                'area' => $item->area,
-            ], $this->notices),
+            'noticeLines' => array_map(static fn (MorningItem $item): array => $item->line($today), $this->notices),
         ]);
     }
 
@@ -87,12 +79,13 @@ final class WeeklySummaryMail extends Mailable
      * The rows of one section.
      *
      * @param  list<AgendaEntryData>  $entries  the entries of the section
-     * @return list<array{day: string, area: string, title: string, subtitle: string, person: ?string, amount: ?string, url: string}>
+     * @return list<array{day: string, weekday: string, area: string, title: string, subtitle: string, person: ?string, amount: ?string, url: string}>
      */
     private function rows(array $entries): array
     {
         return array_map(fn (AgendaEntryData $entry): array => [
-            'day' => $this->day($entry->date)->isoFormat('D ddd'),
+            'day' => $this->day($entry->date)->isoFormat('D'),
+            'weekday' => $this->day($entry->date)->isoFormat('ddd'),
             'area' => $entry->area,
             'title' => $entry->title,
             'subtitle' => $entry->subtitle,

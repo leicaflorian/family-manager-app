@@ -106,8 +106,10 @@ test('the sections show their rows', function (): void {
         ->assertSeeInHtml('Pagamento')
         ->assertSeeInHtml('Florian')
         ->assertSeeInHtml(Money::euro(34.90))
-        ->assertSeeInHtml('20 Fri')
-        ->assertSeeInHtml('23 Mon')
+        ->assertSeeInHtml('>20<', false)
+        ->assertSeeInHtml('>Fri<', false)
+        ->assertSeeInHtml('>23<', false)
+        ->assertSeeInHtml('>Mon<', false)
         ->assertSeeInHtml(Money::euro(10.40))
         ->assertSeeInHtml('Chiamare idraulico')
         ->assertSeeInHtml(Money::euro(163.39))
@@ -115,7 +117,7 @@ test('the sections show their rows', function (): void {
         ->assertSeeInHtml('https://app.test/agenda/Netflix')
         ->assertSeeInHtml('Open the Agenda')
         ->assertSeeInHtml(route('agenda'));
-    expect(substr_count($mail->render(), 'class="due-late'))->toBe(1);
+    expect(substr_count($mail->render(), 'class="week-day-number due-late"'))->toBe(1);
 });
 
 test('an empty section is not shown', function (): void {
@@ -152,7 +154,8 @@ test('in Italian', function (): void {
     $mail->locale('it');
 
     $mail->assertHasSubject('Questa settimana: '.Money::euro(163.39).' da pagare')
-        ->assertSeeInHtml('23 lun')
+        ->assertSeeInHtml('>23<', false)
+        ->assertSeeInHtml('>lun<', false)
         ->assertSeeInHtml('>In ritardo<', false)
         ->assertSeeInHtml('>Da pagare in settimana<', false)
         ->assertSeeInHtml('>Promemoria e cose da fare<', false)
