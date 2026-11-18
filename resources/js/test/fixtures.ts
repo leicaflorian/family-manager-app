@@ -714,6 +714,7 @@ export const danceRow: App.Data.PlannedRowData = {
     icon: 'graduation-cap',
     color: '#E5A50A',
     ended: false,
+    fee: 0,
 };
 
 /** The gas bill: an estimate, for the whole family, with the card of the supply. */

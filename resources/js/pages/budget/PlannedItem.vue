@@ -376,6 +376,7 @@ const exceptionIcons = {
                                     :base="deadline.base_amount"
                                     :estimated="deadline.estimated"
                                     :income="income"
+                                    :fee="deadline.fee"
                                 />
                             </template>
                         </FmRow>

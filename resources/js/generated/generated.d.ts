@@ -667,6 +667,7 @@ readonly estimated: boolean,
 readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
+readonly fee: number,
 };
 export type PolicyRenewalData = {
 readonly policy_id: number,

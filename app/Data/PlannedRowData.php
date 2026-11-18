@@ -33,11 +33,12 @@ final class PlannedRowData extends Data
      * @param  string|null  $person  the first name of the person it is for; empty means the whole family
      * @param  string|null  $next_date  the next due date that is not late and not paid, ISO
      * @param  string|null  $account  the name of its account, else of the default account of the family
-     * @param  float  $amount  the amount of every due date
+     * @param  float  $amount  the amount of every due date, commission included
      * @param  bool  $estimated  whether the amount is an estimate
      * @param  string|null  $icon  the icon of the category
      * @param  string|null  $color  the colour of the category
      * @param  bool  $ended  whether its last day is over
+     * @param  float  $fee  the commission that the amount includes, 0 without one
      */
     public function __construct(
         public readonly string $kind,
@@ -57,6 +58,7 @@ final class PlannedRowData extends Data
         public readonly ?string $icon,
         public readonly ?string $color,
         public readonly bool $ended,
+        public readonly float $fee = 0.0,
     ) {}
 
     /**
@@ -72,6 +74,7 @@ final class PlannedRowData extends Data
     {
         $card = PlannedKind::card($planned);
         $category = $planned instanceof PlannedExpense ? $planned->category : null;
+        $fee = $planned instanceof PlannedExpense ? (float) $planned->fee_amount : 0.0;
 
         return new self(
             kind: $planned instanceof PlannedExpense ? 'expense' : 'income',
@@ -86,11 +89,12 @@ final class PlannedRowData extends Data
             person: $planned->person?->first_name,
             next_date: $next?->toDateString(),
             account: ($planned->financialAccount ?? $default)?->name,
-            amount: round((float) $planned->amount, 2),
+            amount: round((float) $planned->amount + $fee, 2),
             estimated: (bool) $planned->is_estimated,
             icon: $category?->icon,
             color: $category?->color,
             ended: $planned->end_date !== null && $planned->end_date->toDateString() < $today->toDateString(),
+            fee: $fee,
         );
     }
 }

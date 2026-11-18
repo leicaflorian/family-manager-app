@@ -19,6 +19,17 @@ describe('FmPlannedRow', () => {
         expect(link).toHaveTextContent('45,00 €');
     });
 
+    it('writes the commission that the amount includes', () => {
+        render(FmPlannedRow, {
+            props: { row: { ...danceRow, amount: 46, fee: 1 }, href: '/x' },
+        });
+
+        expect(screen.getByText('46,00 €')).toBeInTheDocument();
+        expect(
+            screen.getByText('of which 1,00 € commission'),
+        ).toBeInTheDocument();
+    });
+
     it('marks an estimated amount with a tilde', () => {
         render(FmPlannedRow, { props: { row: gasRow, href: '/x' } });
 
