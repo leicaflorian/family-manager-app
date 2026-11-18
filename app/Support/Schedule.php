@@ -25,6 +25,7 @@ final readonly class Schedule
      * @param  float  $amount  The amount of every due date.
      * @param  bool  $estimated  Whether the amount is an estimate.
      * @param  list<ScheduleException>  $exceptions  The exceptions to single occurrences.
+     * @param  float  $fee  The commission added to the amount of every due date, also to an amount an exception changes.
      */
     public function __construct(
         public ?CarbonImmutable $start,
@@ -35,6 +36,7 @@ final readonly class Schedule
         public float $amount,
         public bool $estimated,
         public array $exceptions = [],
+        public float $fee = 0.0,
     ) {}
 
     /**
@@ -69,6 +71,7 @@ final readonly class Schedule
             (float) $planned->amount,
             (bool) $planned->is_estimated,
             $exceptions,
+            $planned instanceof PlannedExpense ? (float) $planned->fee_amount : 0.0,
         );
     }
 }

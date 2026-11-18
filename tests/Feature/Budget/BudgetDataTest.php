@@ -60,6 +60,15 @@ test('it sends a changed amount with the old one', function (): void {
         ->and($data->payment)->toBeNull();
 });
 
+test('it sends the commission that the amount of a due date includes', function (): void {
+    insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Retta danza')->update(['fee_amount' => 1.5]));
+
+    $data = budgetDataRetta('2026-11-05');
+
+    expect($data->amount)->toBe(46.5)
+        ->and($data->fee)->toBe(1.5);
+});
+
 test('it lets a member edit a movement but not delete it', function (): void {
     $member = User::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'role' => Role::Member]);
 

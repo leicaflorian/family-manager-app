@@ -275,6 +275,7 @@ readonly card: App.Data.CardData | null,
 readonly income_type: string | null,
 readonly person: string | null,
 readonly renewal: App.Data.PolicyRenewalData | null,
+readonly fee: number,
 };
 export type DocumentData = {
 readonly id: number,
