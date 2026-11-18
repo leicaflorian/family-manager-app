@@ -9,12 +9,13 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { danceMovement, movementOptions } from '@/test/fixtures';
+import { danceMovement, healthCard, movementOptions } from '@/test/fixtures';
 import {
     choose,
     openMenu,
     renderPage,
     withTrail,
+    screenWidth,
     search,
     settle,
     shown,
@@ -42,6 +43,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
 });
 
@@ -301,5 +303,70 @@ describe('Movement', () => {
         expect(
             screen.queryByRole('combobox', { name: 'Refers to (optional)' }),
         ).not.toBeInTheDocument();
+    });
+
+    describe('documents and back link', () => {
+        it('shows the Documents column with Link and the documents of the movement', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, documents: [healthCard] },
+                hasLinkable: true,
+            });
+
+            expect(
+                screen.getByRole('heading', { name: 'Documents' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'Link document' }),
+            ).toBeInTheDocument();
+            expect(screen.getByText(healthCard.title)).toBeInTheDocument();
+        });
+
+        it('says No documents yet for a new movement', () => {
+            renderPage(Movement, newExpense);
+
+            expect(screen.getByText('No documents yet')).toBeInTheDocument();
+        });
+
+        it('sends the files with the movement when it is saved', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(Movement, newExpense);
+            const file = new File(['x'], 'ricevuta.pdf', {
+                type: 'application/pdf',
+            });
+
+            await userEvent.upload(
+                document.querySelector<HTMLInputElement>('input[type=file]')!,
+                file,
+            );
+            await write('Title', 'Parcheggio');
+            await write('Amount', '2,50');
+            await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+            expect(post.mock.calls[0]![1]).toMatchObject({ files: [file] });
+        });
+
+        it('goes back to the page given by the server', () => {
+            renderPage(Movement, {
+                ...props,
+                back: '/budget/movements?month=2026-09',
+            });
+
+            expect(
+                screen.getByRole('link', { name: 'Movements' }),
+            ).toHaveAttribute('href', '/budget/movements?month=2026-09');
+        });
+
+        it('has the page title as the heading on the computer, with the form without its own', () => {
+            screenWidth(true);
+            renderPage(Movement, props);
+
+            expect(
+                screen.getAllByRole('heading', { name: 'Retta di novembre' }),
+            ).toHaveLength(1);
+            expect(
+                screen.queryByRole('link', { name: 'Movements' }),
+            ).not.toBeInTheDocument();
+        });
     });
 });

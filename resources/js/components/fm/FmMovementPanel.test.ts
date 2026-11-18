@@ -38,6 +38,12 @@ async function write(label: string, text: string): Promise<void> {
 }
 
 describe('FmMovementPanel', () => {
+    it('has the padding of the card form on the computer', () => {
+        renderPage(FmMovementPanel, props);
+
+        expect(screen.getByRole('form')).toHaveClass('p-5', 'wide:p-7');
+    });
+
     it('asks first whether it is an expense or an income, and has no Delete when new', () => {
         renderPage(FmMovementPanel, props);
 

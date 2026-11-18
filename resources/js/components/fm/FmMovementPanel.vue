@@ -374,7 +374,7 @@ defineExpose({ fileErrors });
 
 <template>
     <form
-        class="flex flex-col gap-4 rounded-sheet bg-card p-5 shadow-card"
+        class="flex flex-col gap-4 rounded-sheet bg-card p-5 shadow-card wide:p-7"
         :aria-label="heading"
         novalidate
         @submit.prevent="save"

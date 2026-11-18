@@ -285,7 +285,7 @@ describe('movementsUrl', () => {
         ).toBe('/budget/movements?month=2026-10');
     });
 
-    it('carries every filter and the movement open, in this order', () => {
+    it('carries every filter, in this order', () => {
         expect(
             movementsUrl({
                 month: '2026-10',
@@ -296,10 +296,9 @@ describe('movementsUrl', () => {
                 max: 100.5,
                 from: '2026-09-01',
                 to: '2026-10-31',
-                movement: 'expense:52',
             }),
         ).toBe(
-            '/budget/movements?month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100.5&from=2026-09-01&to=2026-10-31&movement=expense%3A52',
+            '/budget/movements?month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100.5&from=2026-09-01&to=2026-10-31',
         );
     });
 

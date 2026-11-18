@@ -436,19 +436,17 @@ export function accountChoices(accounts: Choice<string>[]): Choice<string>[] {
     return [{ value: '', label: trans('All the accounts') }, ...accounts];
 }
 
-/** What *Movements* shows: the month and, if chosen, the filters and the movement open beside the list. */
+/** What *Movements* shows: the month and, if chosen, the filters. */
 export interface MovementsQuery extends Partial<App.Data.MovementFiltersData> {
     /** `yyyy-mm`. */
     month: string;
-    /** The movement open beside the list, `kind:id`. */
-    movement?: string | null;
 }
 
 /**
  * The address of *Movements* for a month and the filters in use, always in the
  * same order whoever builds it. What is empty is left out.
  *
- * @param query - the month, the filters and the open movement
+ * @param query - the month and the filters
  * @returns for example `/budget/movements?month=2026-10&kind=expense&min=20`
  */
 export function movementsUrl(query: MovementsQuery): string {
@@ -461,7 +459,6 @@ export function movementsUrl(query: MovementsQuery): string {
         max: query.max,
         from: query.from,
         to: query.to,
-        movement: query.movement,
     };
 
     return movementsIndex.url({ query: filled(ordered) });
