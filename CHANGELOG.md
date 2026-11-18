@@ -2,6 +2,14 @@
 
 All notable changes to Fameja.app.
 
+## [2.2.2] - 2026-11-18
+
+### Tests
+- Renamed a global helper in the subscription tests that clashed with one in the due date tests, which stopped the whole Pest suite in CI.
+
+### Docs
+- Added a learning about unique names for global test helpers.
+
 ## [2.2.1] - 2026-11-18
 
 ### Planned expenses

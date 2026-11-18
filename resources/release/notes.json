@@ -1,5 +1,17 @@
 [
     {
+        "version": "2.2.2",
+        "date": "2026-11-18",
+        "notes": {
+            "it": [
+                "Piccole sistemazioni interne per tenere l'app stabile, senza cambiamenti che si vedono."
+            ],
+            "en": [
+                "Small internal fixes to keep the app stable, with no visible changes."
+            ]
+        }
+    },
+    {
         "version": "2.2.1",
         "date": "2026-11-18",
         "notes": {
