@@ -4,25 +4,28 @@
  * when it was paid (or received) and how much, the commission and the account,
  * the category and (for an expense) the card of its type, the organization,
  * the holder, the planned expense or income it
- * settles (and which of its due dates), and the documents linked to it, with
- * *Delete*, *Cancel* and *Save*. Without a movement it is the form of a new
+ * settles (and which of its due dates), with *Delete*, *Cancel* and *Save*.
+ * The fields sit in pairs as the boards *Movimento* and *Entrata* draw them.
+ * The documents are chosen on the page (`FmCardFiles`): the panel holds the
+ * files, the documents to link and to unlink as models and sends them with
+ * the movement. Without a movement it is the form of a new
  * expense or income, which starts with the choice between the two. Choosing a
  * planned expense or income, or a card (also the one *Add expense* of a card
- * starts with), fills the fields still empty from it. Used beside
- * the list on the computer (`compact`) and on its own page on the phone.
+ * starts with), fills the fields still empty from it. On the computer the
+ * page has the title, so the form has no heading of its own there.
  *
  * @group panels
  */
 import { router } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref, toRef, watch } from 'vue';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { useCardChoice } from '@/composables/useCardChoice';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import type { MovementFormOptions, MovementStart } from '@/lib/budget';
-import { errors } from '@/lib/errors';
+import { errors, listErrors } from '@/lib/errors';
 import {
     formatAmount,
     isEmpty,
@@ -33,12 +36,9 @@ import {
     withoutFee,
 } from '@/lib/forms';
 import { cn } from '@/lib/utils';
-import { show as showDocument } from '@/routes/documents';
 import { destroy, store, update } from '@/routes/budget/movements';
 import FmButton from './FmButton.vue';
 import FmDeleteButton from './FmDeleteButton.vue';
-import FmIcon from './FmIcon.vue';
-import FmRow from './FmRow.vue';
 
 /** The organization field, beside the account for an income and beside the category for an expense. */
 const [DefineOrganization, ReuseOrganization] = createReusableTemplate();
@@ -48,8 +48,7 @@ const {
     options,
     start,
     occurrences = [],
-    compact = false,
-    embedded = false,
+    back = null,
 } = defineProps<{
     /** The movement to show and change, or null for a new expense or income. */
     movement: App.Data.MovementData | null;
@@ -59,18 +58,23 @@ const {
     start: MovementStart;
     /** The due dates of the planned item that the movement can settle. */
     occurrences?: App.Data.OptionData[];
-    /** Beside the list on the computer: it has the × to close it. */
-    compact?: boolean;
-    /**
-     * Inside a card that has its own × (the column of `FmFilterAside`): no
-     * card look and no × of its own. That card closes it with `close()`,
-     * which asks first when something changed.
-     */
-    embedded?: boolean;
+    /** The page to go back to (a local path): the server sends the person there after saving. */
+    back?: string | null;
 }>();
 
+/** The files chosen on the page and not saved yet, sent with the movement. */
+const files = defineModel<File[]>('files', { default: () => [] });
+
+/** The documents chosen in *Link*, linked when the movement is saved. */
+const link = defineModel<App.Data.DocumentData[]>('link', {
+    default: () => [],
+});
+
+/** The ids of the linked documents to unlink when the movement is saved. */
+const unlink = defineModel<number[]>('unlink', { default: () => [] });
+
 const emit = defineEmits<{
-    /** The person gave up, or closed the panel. */
+    /** The person gave up. */
     close: [];
 }>();
 
@@ -136,6 +140,9 @@ const defaultType =
 if (values.kind === 'income' && values.type === '') {
     values.type = defaultType;
 }
+
+/** The page has the title on the computer: the form keeps its own heading on the phone only. */
+const wide = useWideLayout();
 
 /** The messages of the server, by field. */
 const problems = ref<Record<string, string>>({});
@@ -273,14 +280,15 @@ watch(
  * The changes not saved, from the values filled in so far: the ones the
  * movement, the start and the planned item gave are not changes.
  */
-const changes = useUnsavedChanges(() => values);
+const changes = useUnsavedChanges(() => ({
+    ...values,
+    files: files.value.length,
+    link: link.value.map((document) => document.id),
+    unlink: unlink.value,
+}));
 
-/** The ×: closes the panel, asking first when something changed. */
-async function close(): Promise<void> {
-    if (await changes.confirmClose()) {
-        emit('close');
-    }
-}
+/** Why the server refused the files (`files`, `files.0`…), for the zone of the files on the page. */
+const fileErrors = computed(() => listErrors(problems.value, 'files'));
 
 /** *Cancel*: gives up the changes without asking. */
 function cancel(): void {
@@ -312,6 +320,10 @@ function save(): void {
               )
             : parseAmount(values.amount),
         date: values.date,
+        files: files.value,
+        link_documents: link.value.map((document) => document.id),
+        unlink_documents: unlink.value,
+        ...(back ? { from: back } : {}),
         financial_account_id: values.financial_account_id || null,
         organization_id: values.organization_id || null,
         person_id: values.person_id || null,
@@ -343,6 +355,9 @@ function save(): void {
                 problems.value = messages;
             },
             onSuccess: () => {
+                files.value = [];
+                link.value = [];
+                unlink.value = [];
                 changes.reset();
             },
             onFinish: () => {
@@ -354,31 +369,12 @@ function save(): void {
 
 useSaveShortcut(save, () => canSave.value && !processing.value);
 
-/**
- * Asks before the panel goes away with its changes because the list beside
- * it changes (a search, a filter): with no changes it answers at once.
- *
- * @returns true, or the answer of the person when something changed
- */
-function confirmLeave(): boolean | Promise<boolean> {
-    return changes.dirty.value ? changes.confirmClose() : true;
-}
-
-defineExpose({ close, confirmLeave });
+defineExpose({ fileErrors });
 </script>
 
 <template>
     <form
-        :class="
-            cn(
-                'flex flex-col gap-4',
-                embedded
-                    ? undefined
-                    : compact
-                      ? 'rounded-card-lg bg-card p-5 shadow-card'
-                      : 'rounded-sheet bg-card p-5 shadow-card lg:p-7',
-            )
-        "
+        class="flex flex-col gap-4 rounded-sheet bg-card p-5 shadow-card"
         :aria-label="heading"
         novalidate
         @submit.prevent="save"
@@ -395,18 +391,7 @@ defineExpose({ close, confirmLeave });
                 :errors="errors(problems.organization_id)"
             />
         </DefineOrganization>
-        <div class="flex items-center justify-between gap-3">
-            <h2 class="m-0 text-stat">{{ heading }}</h2>
-            <button
-                v-if="compact && !embedded"
-                type="button"
-                :aria-label="$t('Close')"
-                class="-mr-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-ink-soft hover:bg-canvas"
-                @click="close"
-            >
-                <FmIcon :icon="X" :size="20" />
-            </button>
-        </div>
+        <h2 v-if="!wide" class="m-0 text-stat">{{ heading }}</h2>
 
         <fieldset
             :disabled="readonly"
@@ -433,7 +418,7 @@ defineExpose({ close, confirmLeave });
                 autocomplete="off"
                 :errors="errors(problems.title)"
             />
-            <div :class="cn('grid gap-3', !embedded && 'grid-cols-2')">
+            <div class="grid grid-cols-2 gap-3">
                 <FormKit
                     v-model="values.date"
                     type="datepicker"
@@ -462,15 +447,28 @@ defineExpose({ close, confirmLeave });
                     {{ $t('It is added to the amount.') }}
                 </p>
             </div>
-            <FormKit
-                v-model="values.financial_account_id"
-                type="dropdown"
-                :label="$t('Bank account')"
-                name="financial_account_id"
-                :options="withNone(options.accounts)"
-                :errors="errors(problems.financial_account_id)"
-            />
-            <ReuseOrganization v-if="!expense" />
+            <div class="grid grid-cols-2 gap-3">
+                <FormKit
+                    v-model="values.financial_account_id"
+                    type="dropdown"
+                    :label="$t('Bank account')"
+                    name="financial_account_id"
+                    :options="withNone(options.accounts)"
+                    :errors="errors(problems.financial_account_id)"
+                />
+                <FormKit
+                    v-if="expense"
+                    v-model="values.category_id"
+                    type="autocomplete"
+                    open-on-click
+                    :label="$t('Category')"
+                    name="category_id"
+                    :options="withNone(options.categories)"
+                    :errors="errors(problems.category_id)"
+                />
+                <ReuseOrganization v-else />
+            </div>
+            <ReuseOrganization v-if="expense" />
             <FormKit
                 v-if="!expense"
                 v-model="values.type"
@@ -481,93 +479,64 @@ defineExpose({ close, confirmLeave });
                 :options="options.income_types"
                 :errors="errors(problems.type)"
             />
-            <FormKit
-                v-if="expense"
-                v-model="values.category_id"
-                type="autocomplete"
-                open-on-click
-                :label="$t('Category')"
-                name="category_id"
-                :options="withNone(options.categories)"
-                :errors="errors(problems.category_id)"
-            />
-            <ReuseOrganization v-if="expense" />
-            <FormKit
-                v-if="expense"
-                v-model="values.card"
-                type="autocomplete"
-                open-on-click
-                :label="cardLabel"
-                optional
-                name="card"
-                :options="withNone(cardChoices)"
-                :errors="errors(problems.card)"
-            />
-            <FormKit
-                v-model="values.person_id"
-                type="autocomplete"
-                open-on-click
-                :label="$t('Holder')"
-                optional
-                name="person_id"
-                :options="withNone(options.people)"
-                :errors="errors(problems.person_id)"
-            />
-            <FormKit
-                v-model="values.planned_id"
-                type="autocomplete"
-                open-on-click
-                :label="expense ? $t('Planned expense') : $t('Planned income')"
-                name="planned_id"
-                optional
-                :options="plannedChoices"
-                :errors="errors(problems.planned_id)"
-            />
-            <FormKit
-                v-if="!expense"
-                v-model="values.employment_id"
-                type="autocomplete"
-                open-on-click
-                :label="$t('Employment')"
-                optional
-                name="employment_id"
-                :options="withNone(options.employments)"
-                :errors="errors(problems.employment_id)"
-            />
-            <FormKit
-                v-if="showOccurrences"
-                v-model="values.occurrence_date"
-                type="dropdown"
-                :label="$t('Due date')"
-                name="occurrence_date"
-                :options="occurrences"
-                :errors="errors(problems.occurrence_date)"
-            />
-        </fieldset>
-
-        <div
-            v-if="movement && movement.documents.length > 0"
-            class="flex flex-col gap-1.5"
-        >
-            <span class="text-meta-strong text-ink-soft">{{
-                $t('Documents')
-            }}</span>
-            <div
-                class="divide-y divide-divider overflow-hidden rounded-card border border-edge-soft"
-            >
-                <FmRow
-                    v-for="document in movement.documents"
-                    :key="document.id"
-                    :title="document.title"
-                    :subtitle="
-                        [document.category, document.organization]
-                            .filter((part) => part !== null)
-                            .join(' · ')
-                    "
-                    :href="showDocument.url(document.id)"
+            <div class="grid grid-cols-2 gap-3">
+                <FormKit
+                    v-if="expense"
+                    v-model="values.card"
+                    type="autocomplete"
+                    open-on-click
+                    :label="cardLabel"
+                    optional
+                    name="card"
+                    :options="withNone(cardChoices)"
+                    :errors="errors(problems.card)"
+                />
+                <FormKit
+                    v-model="values.person_id"
+                    type="autocomplete"
+                    open-on-click
+                    :label="$t('Holder')"
+                    optional
+                    name="person_id"
+                    :options="withNone(options.people)"
+                    :errors="errors(problems.person_id)"
+                />
+                <FormKit
+                    v-if="!expense"
+                    v-model="values.employment_id"
+                    type="autocomplete"
+                    open-on-click
+                    :label="$t('Employment')"
+                    optional
+                    name="employment_id"
+                    :options="withNone(options.employments)"
+                    :errors="errors(problems.employment_id)"
                 />
             </div>
-        </div>
+            <div class="grid grid-cols-2 gap-3">
+                <FormKit
+                    v-model="values.planned_id"
+                    type="autocomplete"
+                    open-on-click
+                    :label="
+                        expense ? $t('Planned expense') : $t('Planned income')
+                    "
+                    name="planned_id"
+                    optional
+                    :options="plannedChoices"
+                    :errors="errors(problems.planned_id)"
+                />
+                <FormKit
+                    v-if="showOccurrences"
+                    v-model="values.occurrence_date"
+                    type="dropdown"
+                    :label="$t('Due date')"
+                    name="occurrence_date"
+                    :options="occurrences"
+                    :errors="errors(problems.occurrence_date)"
+                />
+            </div>
+        </fieldset>
 
         <div class="flex flex-wrap items-center gap-2.5 pt-1">
             <FmDeleteButton
