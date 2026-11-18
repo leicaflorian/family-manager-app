@@ -1,5 +1,25 @@
 [
     {
+        "version": "2.2.1",
+        "date": "2026-11-18",
+        "notes": {
+            "it": [
+                "Una spesa fissa può avere una commissione, che si somma all'importo: le scadenze valgono importo più commissione.",
+                "Sotto un importo vedi quanta commissione include, per esempio «di cui 1,00 € di commissione».",
+                "Quando paghi una scadenza, la commissione viene registrata insieme al pagamento.",
+                "Quando aggiungi un nuovo abbonamento puoi creare subito la sua spesa fissa: costo, ogni quanto, primo pagamento, categoria e se l'hai già pagato.",
+                "Se esci dal modulo con modifiche non salvate, ti viene chiesto se vuoi davvero uscire."
+            ],
+            "en": [
+                "A planned expense can have a commission, added to the amount: due dates are worth the amount plus the commission.",
+                "Under an amount you see how much commission it includes, for example \"of which 1,00 € commission\".",
+                "When you pay a due date, the commission is recorded with the payment.",
+                "When you add a new subscription you can create its planned expense right away: cost, how often, first payment, category and whether you already paid it.",
+                "If you leave the form with unsaved changes, you are asked whether you really want to leave."
+            ]
+        }
+    },
+    {
         "version": "2.2.0",
         "date": "2026-11-18",
         "notes": {

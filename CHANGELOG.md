@@ -2,6 +2,22 @@
 
 All notable changes to Fameja.app.
 
+## [2.2.1] - 2026-11-18
+
+### Planned expenses
+- Optional commission (`fee_amount`) on planned expenses, added to the amount: due dates are worth amount plus commission.
+- Each payment now leads to its movement.
+- Payments carry the commission through "I paid it", a chosen planned item and the import.
+- Forms (expense, "I paid it", planned expense, changed due date) work with cost + commission.
+- Rows and the amount component show the commission an amount includes ("of which 1,00 € commission"), also in the planned expenses list and page.
+
+### Subscriptions
+- A new subscription can create its planned expense in the same form (cost, how often, first payment, category, "I already paid it"), following the Nuovo-abbonamento boards.
+- The planned expense section asks before leaving the page with unsaved changes.
+
+### Database
+- Migration adding `fee_amount` to `planned_expenses` (nullable, compatible with the previous code).
+
 ## [2.2.0] - 2026-11-18
 
 ### Budget
