@@ -351,6 +351,16 @@ test('a paid due date leaves the agenda', function (): void {
     expect(array_column(array_filter(agendaFor($marco)['entries'], static fn (array $entry): bool => $entry['date'] === '2026-10-30'), 'title'))->not->toContain('Bolletta gas');
 });
 
+test('a deadline paid by the payment of its card on the same day leaves the agenda with it', function (): void {
+    $marco = boardFamily();
+    insideFamilyOf($marco, function (): void {
+        $policy = PlannedExpense::query()->where('title', 'Rata RC auto')->sole();
+        Expense::factory()->create(['family_id' => CurrentFamily::id(), 'planned_expense_id' => $policy->id, 'occurrence_date' => '2026-11-21', 'amount' => 418.00, 'date' => '2026-11-18']);
+    });
+
+    expect(array_filter(agendaFor($marco)['entries'], static fn (array $entry): bool => $entry['date'] === '2026-11-21'))->toBe([]);
+});
+
 test('a skipped due date is not in the agenda', function (): void {
     $marco = boardFamily();
     insideFamilyOf($marco, function (): void {

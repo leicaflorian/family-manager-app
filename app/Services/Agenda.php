@@ -107,7 +107,13 @@ final readonly class Agenda
     private function build(CarbonImmutable $today, CarbonImmutable $until, int $deadlinesBack, int $paymentsBack): array
     {
         $today = $today->startOfDay();
-        $payments = $this->openDueDates($today->subDays($paymentsBack), $until);
+        $dueDates = $this->dueDates($today->subDays(max($deadlinesBack, $paymentsBack)), $until);
+        $paymentsFrom = $today->subDays($paymentsBack)->toDateString();
+        $payments = array_values(array_filter(
+            $dueDates,
+            static fn (Deadline $due): bool => ! $due->isPaid() && $due->occurrence->date->toDateString() >= $paymentsFrom,
+        ));
+        $paid = $this->paidByCard($dueDates);
         $deadlines = $this->cardDeadlines->between($today->subDays($deadlinesBack), $until, $today);
         $this->loadLabels($deadlines);
         $groups = ReminderGroup::query()->get();
@@ -135,6 +141,11 @@ final readonly class Agenda
         $merged = [];
 
         foreach ($deadlines as $deadline) {
+            // Paid by the payment of its card on that day: it leaves with the payment, as paid due dates do
+            if ($deadline->source->hasExpense && isset($paid[$this->sameCard($deadline->card, $deadline->date)])) {
+                continue;
+            }
+
             $index = $deadline->source->hasExpense ? ($byCard[$this->sameCard($deadline->card, $deadline->date)] ?? null) : null;
 
             if ($index === null || isset($merged[$index])) {
@@ -229,23 +240,42 @@ final readonly class Agenda
     }
 
     /**
-     * The due dates of the planned expenses and incomes of the family between two days that nothing settles.
+     * The due dates of the planned expenses and incomes of the family between two days, paid or not; the skipped
+     * ones are not there.
      *
      * @param  CarbonImmutable  $from  the first day
      * @param  CarbonImmutable  $to  the last day
      * @return list<Deadline>
      */
-    private function openDueDates(CarbonImmutable $from, CarbonImmutable $to): array
+    private function dueDates(CarbonImmutable $from, CarbonImmutable $to): array
     {
         $planned = [
             ...PlannedExpense::query()->with('organization')->get()->all(),
             ...PlannedIncome::query()->with('organization')->get()->all(),
         ];
 
-        return array_values(array_filter(
-            $this->deadlines->between($planned, $from, $to),
-            static fn (Deadline $deadline): bool => ! $deadline->isPaid(),
-        ));
+        return $this->deadlines->between($planned, $from, $to);
+    }
+
+    /**
+     * The cards and days that a payment of a planned expense of the card has already paid.
+     *
+     * @param  list<Deadline>  $dueDates  the due dates of the period
+     * @return array<string, true> by `sameCard` key
+     */
+    private function paidByCard(array $dueDates): array
+    {
+        $paid = [];
+
+        foreach ($dueDates as $due) {
+            $card = $due->isPaid() && $due->planned instanceof PlannedExpense ? PlannedKind::card($due->planned) : null;
+
+            if ($card instanceof Model) {
+                $paid[$this->sameCard($card, $due->occurrence->date)] = true;
+            }
+        }
+
+        return $paid;
     }
 
     /**
