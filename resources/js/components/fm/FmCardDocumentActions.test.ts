@@ -205,4 +205,19 @@ describe('FmCardDocumentActions', () => {
             screen.queryByRole('menuitem', { name: 'Delete' }),
         ).not.toBeInTheDocument();
     });
+
+    it('in the form needs no card: it renders and emits unlink', async () => {
+        const { emitted } = renderPage(FmCardDocumentActions, {
+            document: healthCard,
+            canDelete: false,
+            inForm: true,
+        });
+
+        await openMenu();
+        await userEvent.click(
+            await screen.findByRole('menuitem', { name: 'Unlink' }),
+        );
+
+        expect(emitted()).toHaveProperty('unlink');
+    });
 });

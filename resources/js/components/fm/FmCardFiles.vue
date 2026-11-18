@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The documents of a card on grey, beside its form, as the file beside *Edit
+ * The documents of a card or a movement on grey, beside its form, as the file beside *Edit
  * the document*: *Link* beside the title, at the top the zone to add files,
  * then the files chosen and not saved yet, then the documents: those chosen
  * in *Link*, and those already linked, with the menu of the card page. Every
@@ -26,7 +26,6 @@ import FmSectionLink from './FmSectionLink.vue';
 
 const {
     documents = [],
-    card,
     canDelete = false,
     errors = [],
     linkable = [],
@@ -34,10 +33,8 @@ const {
     linkableSearch = '',
     hasLinkable = false,
 } = defineProps<{
-    /** The documents already linked to the card; none for a new card. */
+    /** The documents already linked to the record; none for a new one. */
     documents?: App.Data.DocumentData[];
-    /** The address of the card in the routes; none for a new card. */
-    card?: { type: string; id: number };
     /** Whether whoever edits may delete the linked documents. */
     canDelete?: boolean;
     /** Why the server refused some of the files. */
@@ -275,9 +272,7 @@ function keep(id: number): void {
                         dateless
                     />
                     <FmCardDocumentActions
-                        v-if="card"
                         :document="document"
-                        :card="card"
                         :can-delete="canDelete"
                         in-form
                         @unlink="unlink = [...unlink, document.id]"
