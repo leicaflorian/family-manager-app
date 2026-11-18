@@ -34,9 +34,9 @@ use Throwable;
  * email per account with all its notices of the morning (rewrite of `notify` of the Directus extension).
  *
  * On Monday the admins get the weekly summary mail instead of the morning one: the week of the family, with their
- * email notices of the day that are not already in its lists. It goes out once per family and Monday; if the summary
- * cannot be built, the failure is reported and the admins get the morning mail as on any other day. Members and the
- * bell do not change.
+ * email notices of the day that are not already in its lists. It goes out once per family and Monday: a later run of
+ * the same Monday sends the admins their new notices by the morning mail. If the summary cannot be built, the failure
+ * is reported and the admins get the morning mail as on any other day. Members and the bell do not change.
  */
 final class SendMorningNotices
 {
@@ -114,7 +114,7 @@ final class SendMorningNotices
 
     /**
      * Queues one mail for each account, with all its items, in the language of the account. On Monday the admins get
-     * the weekly summary instead, when it could be built.
+     * the weekly summary instead, but only in the run that queues it: in any other run they get the morning mail.
      *
      * @param  Collection<int, User>  $accounts  the accounts of the family
      * @param  array<int, list<MorningItem>>  $emails  the items of each account, by user id
@@ -123,10 +123,14 @@ final class SendMorningNotices
     private function queueMails(Collection $accounts, array $emails, CarbonImmutable $today): void
     {
         $summary = $today->isMonday() ? $this->weeklySummary($today) : null;
-        $admins = $summary instanceof WeeklySummary ? $accounts->filter(static fn (User $user): bool => $user->role === Role::Admin) : new Collection;
+        /** @var Collection<int, User> $admins */
+        $admins = new Collection;
 
-        // Taken only once the summary exists, so a failed build leaves the Monday to a later run
+        // Taken only once the summary exists, so a failed build leaves the Monday to a later run. When a run of the
+        // same Monday already took it, the admins get their new notices by the morning mail, so none is lost.
         if ($summary instanceof WeeklySummary && Cache::add(sprintf('weekly-summary:%d:%s', CurrentFamily::id(), $today->toDateString()), true, now()->addDays(2))) {
+            $admins = $accounts->filter(static fn (User $user): bool => $user->role === Role::Admin);
+
             foreach ($admins as $admin) {
                 $this->queueWeekly($admin, $summary, $emails[$admin->id] ?? [], $today);
             }

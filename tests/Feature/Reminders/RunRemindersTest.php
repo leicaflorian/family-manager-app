@@ -310,12 +310,30 @@ test('a notice for later is in today\'s notices', function (): void {
 test('running the round twice on Monday sends the weekly mail once', function (): void {
     runRemindersMorningOf('2026-11-23');
     runRemindersExpenseOfTheWeek();
+    // A notice that fires on the first run: it goes in the weekly mail, never in a morning one
+    $this->panda->update(['inspection_due_date' => '2027-01-07']);
 
     $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
     $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
 
     Mail::assertQueued(WeeklySummaryMail::class, 1);
-    Mail::assertNotQueued(MorningNoticesMail::class);
+    Mail::assertQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('marco@example.com') && count($mail->notices) === 1);
+    Mail::assertNotQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com'));
+});
+
+test('a notice that appears on a second Monday run reaches the admin by the morning mail', function (): void {
+    runRemindersMorningOf('2026-11-23');
+    runRemindersExpenseOfTheWeek();
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    // 45 days before 07/01/2027 is today: a new email notice for the second run
+    $this->panda->update(['inspection_due_date' => '2027-01-07']);
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertQueued(WeeklySummaryMail::class, 1);
+    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com')
+        && count($mail->items) === 1 && $mail->items[0]->dueOn === '2027-01-07');
+    expect(Mail::queued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com')))->toHaveCount(1);
 });
 
 test('a family with nothing gets no weekly mail', function (): void {
