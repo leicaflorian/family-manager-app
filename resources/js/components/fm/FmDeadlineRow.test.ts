@@ -23,6 +23,25 @@ describe('FmDeadlineRow', () => {
         expect(link).toHaveTextContent('60,00 €');
     });
 
+    it('writes the commission that its amount includes', () => {
+        render(FmDeadlineRow, {
+            props: {
+                deadline: {
+                    ...danceDeadline,
+                    amount: 651,
+                    base_amount: null,
+                    fee: 1,
+                },
+                href: '/x',
+            },
+        });
+
+        expect(screen.getByText('651,00 €')).toBeInTheDocument();
+        expect(
+            screen.getByText('of which 1,00 € commission'),
+        ).toBeInTheDocument();
+    });
+
     it('is red when late', () => {
         render(FmDeadlineRow, {
             props: { deadline: lateDeadline, href: '/x' },

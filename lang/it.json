@@ -2022,5 +2022,7 @@
     "Open the planned income": "Apri l'entrata fissa",
     "Add another card": "Aggiungi un'altra tessera",
     "Phone number": "Telefono",
-    "This due date is skipped: it is not paid.": "Questa scadenza è saltata: non si paga."
+    "This due date is skipped: it is not paid.": "Questa scadenza è saltata: non si paga.",
+    "of which :fee commission": "di cui :fee di commissione",
+    "It is added to the amount.": "Si aggiunge all'importo."
 }
