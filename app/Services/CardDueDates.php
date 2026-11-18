@@ -27,14 +27,20 @@ final readonly class CardDueDates
     /** How many days ahead an open due date is shown as *To pay*. */
     public const int DUE_DAYS = 30;
 
+    /**
+     * How many months ahead *An area* looks for the next open due date of a card: two years reach the next renewal
+     * of a yearly or two-yearly planned expense, so the row always shows its cost.
+     */
+    public const int AHEAD_MONTHS = 24;
+
     /** The models of the cards a planned expense refers to with its pair `card_type`, `card_id`. */
     private const array PLANNED_CARDS = [Utility::class, InsurancePolicy::class, Loan::class, Enrollment::class, Home::class, Vehicle::class, Subscription::class];
 
     public function __construct(private Deadlines $deadlines) {}
 
     /**
-     * For the rows of *An area*: the open due date of each card that is late or falls in the next 30 days, with one
-     * query of planned items per type, whatever the number of cards. The oldest one wins.
+     * For the rows of *An area*: the next open due date of each card, late or in the next {@see self::AHEAD_MONTHS}
+     * months, with one query of planned items per type, whatever the number of cards. The oldest one wins.
      *
      * @param  CardType  $type  the type of the cards
      * @param  iterable<Model>  $cards  the cards of that type
@@ -61,7 +67,7 @@ final readonly class CardDueDates
             : PlannedExpense::query()->where('card_type', $type->type())->whereIn($column, $ids)->get()->all();
         $due = [];
 
-        foreach ($this->deadlines->unpaidUntil($planned, $today->addDays(self::DUE_DAYS), $today) as $deadline) {
+        foreach ($this->deadlines->unpaidUntil($planned, $today->addMonthsNoOverflow(self::AHEAD_MONTHS), $today) as $deadline) {
             $id = $deadline->planned->getAttribute($column);
 
             if (is_int($id) && ! isset($due[$id])) {

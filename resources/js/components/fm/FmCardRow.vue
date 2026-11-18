@@ -2,8 +2,9 @@
 /**
  * A card in a list: the icon of its type in the colour of its area, the name
  * and below the subtitle or the next date («Inspection · in 75 days», red once
- * overdue). It leads to the card; a closed card is grey. In *An area* the
- * amount of an open due date of the next 30 days is on the right, red when late.
+ * overdue, bold within 30 days). It leads to the card; a closed card is grey.
+ * In *An area* the cost of the next open due date of its planned item is on
+ * the right, red when late; a card without one has the arrow.
  *
  * @group rows
  */
@@ -11,8 +12,9 @@ import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { areaOf, areaTile } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
-import { relativeDays } from '@/lib/format';
+import { daysFromToday, relativeDays } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import type { RowTone } from './FmRow.vue';
 import { show } from '@/routes/cards';
 import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
@@ -23,6 +25,24 @@ const { card } = defineProps<{
 }>();
 
 const { euro } = useFormat();
+
+/** How many days ahead the next date is written in bold. */
+const SOON_DAYS = 30;
+
+/** The colour of the line below the name: red once overdue, bold when the date is within 30 days. */
+const tone = computed((): RowTone => {
+    if (card.next_date === null) {
+        return 'normal';
+    }
+
+    if (card.overdue) {
+        return 'overdue';
+    }
+
+    const days = daysFromToday(card.next_date);
+
+    return !card.closed && days >= 0 && days <= SOON_DAYS ? 'soon' : 'normal';
+});
 
 /** The line below the name: the next date if there is one, else the subtitle. */
 const line = computed((): string | undefined => {
@@ -50,7 +70,7 @@ const tile = computed((): string => {
     <FmRow
         :title="card.label"
         :subtitle="line"
-        :tone="card.overdue && card.next_date !== null ? 'overdue' : 'normal'"
+        :tone="tone"
         :href="show({ type: card.type, id: card.id }).url"
         :class="card.closed && 'opacity-60'"
     >
