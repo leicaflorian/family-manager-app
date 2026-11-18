@@ -8,11 +8,12 @@
  * (when it has an automatic reminder), *Update the date* and *Renewed* (when
  * the person can edit the card) and *Open the card*; an open payment (or
  * income) holds the form of the payment (`FmPayForm`), already filled, whose
- * *I paid it* (*It arrived*) records it in one tap, and *Open the due date*,
+ * *I paid it* (*It arrived*) records it in one tap, and *Open the planned
+ * expense* (*income*), which opens the due date there,
  * never *Done*; a task has *Done*, *Postpone* and the
  * ⋯ menu with *Edit* and *Delete*. In the Done list (`done`) it says who closed
  * it and when, and only *Reopen* is left; a paid payment (the done things of
- * the calendar) says *Paid* and keeps *Open the due date*, where the payment
+ * the calendar) says *Paid* and has *Open the movement*, where the payment
  * is changed or taken back. *Done*, *Reopen* and *Delete* are
  * done here (*Done* says so for a moment with *Undo*); the others are emitted,
  * for the page. A payment that also pays a deadline carries its reminder, but
@@ -351,7 +352,7 @@ function reopenTask(): void {
                     v-if="paid"
                     :href="withoutPayQuery(entry.href)"
                     :icon="ArrowRight"
-                    >{{ $t('Open the due date') }}</FmSectionLink
+                    >{{ $t('Open the movement') }}</FmSectionLink
                 >
                 <FmButton
                     v-if="reminder"
@@ -382,7 +383,11 @@ function reopenTask(): void {
                     <FmSectionLink
                         :href="withoutPayQuery(entry.href)"
                         :icon="ArrowRight"
-                        >{{ $t('Open the due date') }}</FmSectionLink
+                        >{{
+                            entry.kind === 'income'
+                                ? $t('Open the planned income')
+                                : $t('Open the planned expense')
+                        }}</FmSectionLink
                     >
                 </div>
                 <div

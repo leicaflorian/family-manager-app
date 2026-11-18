@@ -227,4 +227,59 @@ describe('FmDocumentDetail', () => {
             screen.queryByRole('link', { name: /Spesa di ottobre/ }),
         ).not.toBeInTheDocument();
     });
+
+    it('embedded in the filters column: no card of its own and a link to the page of the document', () => {
+        const { container } = render(FmDocumentDetail, {
+            props: { document: documentDetail, compact: true, embedded: true },
+            global: { plugins: formPlugins },
+        });
+
+        expect(container.querySelector('[data-card]')).toBeNull();
+        expect(
+            screen.getByRole('link', { name: 'Open the page of the document' }),
+        ).toHaveAttribute('href', `/documents/${documentDetail.id}`);
+    });
+
+    it('beside the list, on its own card, has no link to the page at the bottom', () => {
+        render(FmDocumentDetail, {
+            props: { document: documentDetail, compact: true },
+            global: { plugins: formPlugins },
+        });
+
+        expect(
+            screen.queryByRole('link', {
+                name: 'Open the page of the document',
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('embedded: the title is in a heading of its own, with Download and Edit as two equal buttons under it', () => {
+        render(FmDocumentDetail, {
+            props: { document: documentDetail, compact: true, embedded: true },
+            global: { plugins: formPlugins },
+        });
+
+        const heading = screen.getByRole('heading', {
+            name: documentDetail.title,
+        });
+        expect(heading.parentElement).not.toHaveClass('justify-between');
+        expect(heading.querySelector('a')).toBeNull();
+        const download = screen.getByRole('link', { name: 'Download' });
+        const edit = screen.getByRole('link', { name: 'Edit' });
+        expect(download).toHaveClass('h-control', 'w-full');
+        expect(edit).toHaveClass('h-control', 'w-full');
+        for (const button of [download, edit]) {
+            expect(button.parentElement).toHaveClass(
+                'flex-1',
+                'basis-0',
+                'min-w-0',
+            );
+        }
+        const row = download.parentElement?.parentElement;
+        expect(row).toBe(edit.parentElement?.parentElement);
+        expect(row?.children).toHaveLength(2);
+        expect(
+            screen.queryByRole('button', { name: 'More actions' }),
+        ).not.toBeInTheDocument();
+    });
 });

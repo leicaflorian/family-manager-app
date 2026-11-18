@@ -23,6 +23,7 @@
         "FmDeleteButton": "Basi",
         "FmEmpty": "Basi",
         "FmFaces": "Basi",
+        "FmFilterButton": "Basi",
         "FmFold": "Basi",
         "FmIcon": "Basi",
         "FmLogo": "Basi",
@@ -36,6 +37,7 @@
 
         "FmActiveFilter": "Campi",
         "FmFileDrop": "Campi",
+        "FmFilterPills": "Campi",
         "FmPasswordField": "Campi",
         "FmSearchField": "Campi",
         "FmSearchMenu": "Campi",
@@ -72,6 +74,7 @@
 
         "FmBottomSheet": "Pannelli",
         "FmFilePanel": "Pannelli",
+        "FmFilterAside": "Pannelli",
         "FmImagePanel": "Pannelli",
         "FmAgendaPanel": "Pannelli",
         "FmCalendarLink": "Pannelli",
@@ -111,6 +114,8 @@
         "FmCategoryOption": "pages",
         "FmCategoryTree": "pages",
         "FmDocumentFilters": "pages",
+        "FmMovementFilters": "pages",
+        "FmPlannedFilters": "pages",
         "FmDocumentForm": "pages",
         "FmNotificationRule": "pages",
         "FmChangeDeadlineSheet": "pages",

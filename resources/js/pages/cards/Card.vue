@@ -27,6 +27,7 @@ import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardDocumentActions from '@/components/fm/FmCardDocumentActions.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
+import FmNumberTile from '@/components/fm/FmNumberTile.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
@@ -152,15 +153,24 @@ function link(id: number): void {
         </FmNotice>
 
         <div
-            class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start"
+            class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
                 <FmCardBudget :budget="card.budget" :card="address">
-                    <template v-if="card.dates.length > 0" #tiles>
+                    <template
+                        v-if="card.dates.length > 0 || card.status"
+                        #tiles
+                    >
                         <FmDateTile
                             v-for="date in card.dates"
                             :key="date.label"
                             :date="date"
+                            inset
+                        />
+                        <FmNumberTile
+                            v-if="card.status"
+                            :number="card.status"
+                            inset
                         />
                     </template>
                     <FmCard v-if="card.values.length > 0" :title="$t('Data')">

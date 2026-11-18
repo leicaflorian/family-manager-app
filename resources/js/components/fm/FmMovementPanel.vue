@@ -47,6 +47,7 @@ const {
     start,
     occurrences = [],
     compact = false,
+    embedded = false,
 } = defineProps<{
     /** The movement to show and change, or null for a new expense or income. */
     movement: App.Data.MovementData | null;
@@ -58,6 +59,12 @@ const {
     occurrences?: App.Data.OptionData[];
     /** Beside the list on the computer: it has the × to close it. */
     compact?: boolean;
+    /**
+     * Inside a card that has its own × (the column of `FmFilterAside`): no
+     * card look and no × of its own. That card closes it with `close()`,
+     * which asks first when something changed.
+     */
+    embedded?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -338,14 +345,30 @@ function save(): void {
 }
 
 useSaveShortcut(save, () => canSave.value && !processing.value);
+
+/**
+ * Asks before the panel goes away with its changes because the list beside
+ * it changes (a search, a filter): with no changes it answers at once.
+ *
+ * @returns true, or the answer of the person when something changed
+ */
+function confirmLeave(): boolean | Promise<boolean> {
+    return changes.dirty.value ? changes.confirmClose() : true;
+}
+
+defineExpose({ close, confirmLeave });
 </script>
 
 <template>
     <form
         :class="
             cn(
-                'flex flex-col gap-4 bg-card p-5 shadow-card',
-                compact ? 'rounded-card-lg' : 'rounded-sheet lg:p-7',
+                'flex flex-col gap-4',
+                embedded
+                    ? undefined
+                    : compact
+                      ? 'rounded-card-lg bg-card p-5 shadow-card'
+                      : 'rounded-sheet bg-card p-5 shadow-card lg:p-7',
             )
         "
         :aria-label="heading"
@@ -367,7 +390,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
         <div class="flex items-center justify-between gap-3">
             <h2 class="m-0 text-stat">{{ heading }}</h2>
             <button
-                v-if="compact"
+                v-if="compact && !embedded"
                 type="button"
                 :aria-label="$t('Close')"
                 class="-mr-2.5 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-ink-soft hover:bg-canvas"
@@ -402,7 +425,7 @@ useSaveShortcut(save, () => canSave.value && !processing.value);
                 autocomplete="off"
                 :errors="errors(problems.title)"
             />
-            <div class="grid grid-cols-2 gap-3">
+            <div :class="cn('grid gap-3', !embedded && 'grid-cols-2')">
                 <FormKit
                     v-model="values.date"
                     type="datepicker"

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use App\Models\InsurancePolicy;
 use App\Models\PlannedIncome;
 use App\Services\CardSummaries;
 use App\Support\Deadline;
 use App\Support\PlannedKind;
+use App\Support\PolicyRenewal;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\LaravelData\Data;
@@ -38,6 +40,7 @@ final class DeadlineData extends Data
      * @param  CardData|null  $card  the card the planned expense belongs to, for example the policy
      * @param  string|null  $income_type  the type of an income, for example `salary`
      * @param  string|null  $person  the first name of the person it is for
+     * @param  PolicyRenewalData|null  $renewal  the policy *I paid it* can renew with this premium
      */
     public function __construct(
         public readonly string $kind,
@@ -58,6 +61,7 @@ final class DeadlineData extends Data
         public readonly ?CardData $card,
         public readonly ?string $income_type,
         public readonly ?string $person,
+        public readonly ?PolicyRenewalData $renewal = null,
     ) {}
 
     /**
@@ -66,7 +70,7 @@ final class DeadlineData extends Data
      * It reads the account, the person and the card of the planned item and the account of the payment:
      * `Deadlines::between()` and `find()` load them for the whole collection, so a list does not query once per row.
      * The account is the one of the planned item or, when it has none, the default account of the family, so that
-     * *I paid it* starts from it.
+     * *I paid it* starts from it. The premium of a policy near its expiry also says which policy it can renew.
      *
      * @param  Deadline  $deadline  the due date
      * @param  CarbonImmutable  $today  today in Rome
@@ -78,6 +82,7 @@ final class DeadlineData extends Data
         $payment = $deadline->payment;
         $account = $deadline->account;
         $card = PlannedKind::card($planned);
+        $policy = PolicyRenewal::policyFor($deadline, $today);
 
         return new self(
             kind: $deadline->kind(),
@@ -98,6 +103,7 @@ final class DeadlineData extends Data
             card: $card instanceof Model ? resolve(CardSummaries::class)->row($card, $today) : null,
             income_type: $planned instanceof PlannedIncome ? $planned->type->value : null,
             person: $planned->person?->first_name,
+            renewal: $policy instanceof InsurancePolicy ? PolicyRenewalData::fromPolicy($policy) : null,
         );
     }
 }

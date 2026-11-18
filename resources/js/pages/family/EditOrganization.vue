@@ -102,7 +102,7 @@ usePageTrail(() => [
             </template>
         </FmTitle>
         <div
-            class="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start"
+            class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >
             <FmImagePanel
                 v-model:file="form.logo"
@@ -123,7 +123,7 @@ usePageTrail(() => [
                 </template>
             </FmImagePanel>
             <form
-                class="flex flex-col gap-3.5 rounded-sheet bg-card p-5 shadow-card lg:p-7"
+                class="flex flex-col gap-3.5 rounded-sheet bg-card p-5 shadow-card wide:p-7"
                 novalidate
                 @submit.prevent="save"
             >
@@ -151,7 +151,7 @@ usePageTrail(() => [
                     <FormKit
                         v-model="form.phone"
                         type="tel"
-                        :label="$t('Phone')"
+                        :label="$t('Phone number')"
                         name="phone"
                         :errors="errors(form.errors.phone)"
                     />

@@ -9,10 +9,15 @@ import {
     salaryDeadline,
 } from '@/test/fixtures';
 import {
+    accountChoices,
     comparisonComment,
+    deadlineStanding,
     deadlineStatus,
     deadlineUrls,
     monthName,
+    movementKinds,
+    movementsUrl,
+    plannedUrl,
     recurrenceText,
     skippedMonthsText,
 } from './budget';
@@ -166,6 +171,45 @@ describe('deadlineStatus', () => {
     });
 });
 
+describe('deadlineStanding', () => {
+    it('says where a due date stands in a list: late, paid, changed, or nothing', () => {
+        expect(deadlineStanding(lateDeadline, today)).toEqual({
+            text: 'Overdue by 3 days',
+            tone: 'overdue',
+        });
+        expect(deadlineStanding(paidDeadline, today)).toEqual({
+            text: 'Paid on 20/10',
+            tone: 'paid',
+        });
+        expect(
+            deadlineStanding(
+                { ...danceDeadline, base_amount: 60, notes: 'one lesson more' },
+                today,
+            ),
+        ).toEqual({
+            text: 'Different amount: one lesson more',
+            tone: 'warning',
+        });
+        expect(
+            deadlineStanding(
+                {
+                    ...danceDeadline,
+                    base_amount: null,
+                    notes: null,
+                    date: '2026-12-07',
+                },
+                today,
+            ),
+        ).toEqual({ text: 'Different date', tone: 'warning' });
+        expect(
+            deadlineStanding(
+                { ...danceDeadline, base_amount: null, notes: null },
+                today,
+            ),
+        ).toEqual({ text: null, tone: 'normal' });
+    });
+});
+
 describe('monthName', () => {
     it('writes a month in the language of the page', async () => {
         expect(monthName('2026-10')).toBe('October 2026');
@@ -203,5 +247,110 @@ describe('skippedMonthsText', () => {
         await speak('it');
         expect(skippedMonthsText([7, 8])).toBe('luglio e agosto saltati');
         await speak('en');
+    });
+});
+
+describe('movementsUrl', () => {
+    it('writes the month and leaves out what is empty', () => {
+        expect(
+            movementsUrl({
+                month: '2026-10',
+                kind: null,
+                account: null,
+                search: null,
+                min: null,
+                max: null,
+                from: null,
+                to: null,
+            }),
+        ).toBe('/budget/movements?month=2026-10');
+    });
+
+    it('carries every filter and the movement open, in this order', () => {
+        expect(
+            movementsUrl({
+                month: '2026-10',
+                kind: 'expense',
+                account: 1,
+                search: 'spesa',
+                min: 20,
+                max: 100.5,
+                from: '2026-09-01',
+                to: '2026-10-31',
+                movement: 'expense:52',
+            }),
+        ).toBe(
+            '/budget/movements?month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100.5&from=2026-09-01&to=2026-10-31&movement=expense%3A52',
+        );
+    });
+
+    it('keeps an amount of zero', () => {
+        expect(movementsUrl({ month: '2026-10', min: 0 })).toBe(
+            '/budget/movements?month=2026-10&min=0',
+        );
+    });
+});
+
+describe('plannedUrl', () => {
+    it('leaves out what is empty', () => {
+        expect(
+            plannedUrl({
+                search: null,
+                min: null,
+                max: null,
+                from: null,
+                to: null,
+            }),
+        ).toBe('/budget/planned');
+    });
+
+    it('carries every filter, in this order', () => {
+        expect(
+            plannedUrl({
+                to: '2026-11-30',
+                from: '2026-11-01',
+                max: 100,
+                min: 10,
+                search: 'luce',
+            }),
+        ).toBe(
+            '/budget/planned?search=luce&min=10&max=100&from=2026-11-01&to=2026-11-30',
+        );
+    });
+});
+
+describe('movementKinds', () => {
+    it('offers everything first, then the expenses and the incomes', () => {
+        expect(movementKinds(null)).toEqual([
+            { value: null, label: 'Everything' },
+            { value: 'expense', label: 'Expenses' },
+            { value: 'income', label: 'Income' },
+        ]);
+    });
+
+    it('takes the value that means everything', () => {
+        expect(movementKinds('all')[0]).toEqual({
+            value: 'all',
+            label: 'Everything',
+        });
+    });
+
+    it('speaks the language of the page', async () => {
+        await speak('it');
+
+        expect(movementKinds(null).map(({ label }) => label)).toEqual([
+            'Tutto',
+            'Spese',
+            'Entrate',
+        ]);
+    });
+});
+
+describe('accountChoices', () => {
+    it('puts «All the accounts» first, with an empty value', () => {
+        expect(accountChoices([{ value: '1', label: 'Conto BPER' }])).toEqual([
+            { value: '', label: 'All the accounts' },
+            { value: '1', label: 'Conto BPER' },
+        ]);
     });
 });

@@ -9,7 +9,8 @@
  * deadline, the title and type of a new event, the required fields of a new
  * card) and the actions *Create a new …*, *Choose another…* and *Back to the
  * proposal*. A paper that names no card offers *Create the card*, unticked:
- * after the import *New card* opens with its document linked. A part of the page `documents/Import`, not a component of the
+ * after the import *New card* opens with its document linked. Under the ticked box of a new policy, one box per
+ * old policy of the same vehicle, home or job, ticked: *Cancel the policy …* (board *Proposta-polizza*). A part of the page `documents/Import`, not a component of the
  * canvas: it writes in the choices of the file (`useImportChoices`).
  */
 import type { LucideIcon } from '@lucide/vue';
@@ -56,6 +57,7 @@ import {
     recordWarnings,
 } from '@/lib/alsoDo';
 import { cardIcon, fieldInput, isMenuField } from '@/lib/cards';
+import { replaceOptions } from '@/lib/policies';
 
 const props = defineProps<{
     /** The file, to name its fields. */
@@ -284,6 +286,41 @@ function movementFieldShown(field: 'amount'): boolean {
         (movement.fill.includes(field) ||
             props.choices.overrideOf('movement', field) !== undefined)
     );
+}
+
+/**
+ * The old policies ticked under a new policy: all but the ones the person
+ * unticked.
+ *
+ * @param draft - the box of the policy
+ * @returns the ids ticked
+ */
+function replacing(draft: App.Data.Reading.RecordDraftData): number[] {
+    return draft.replaces
+        .map((old) => old.id)
+        .filter((id) => !props.choices.picks.spared.includes(id));
+}
+
+/**
+ * Keeps the old policies the person unticked, from the ids the checkbox gives.
+ *
+ * @param draft - the box of the policy
+ * @param value - the ids ticked, as the checkbox gives them
+ */
+function setReplacing(
+    draft: App.Data.Reading.RecordDraftData,
+    value: unknown,
+): void {
+    const ticked = Array.isArray(value) ? value.map(Number) : [];
+    const offered = draft.replaces.map((old) => old.id);
+    const spared = props.choices.picks.spared.filter(
+        (id) => !offered.includes(id),
+    );
+
+    props.choices.picks.spared = [
+        ...spared,
+        ...offered.filter((id) => !ticked.includes(id)),
+    ];
 }
 
 /**
@@ -604,6 +641,16 @@ function recordFields(
                     <FmIcon :icon="Bell" :size="14" />
                     {{ draft.reminder }}
                 </p>
+                <FormKit
+                    v-if="draft.kind === 'policy' && draft.replaces.length > 0"
+                    type="checkbox"
+                    :name="`replace_policies_${fileId}`"
+                    :options="
+                        replaceOptions(draft.replaces, { premiumMoves: false })
+                    "
+                    :model-value="replacing(draft)"
+                    @update:model-value="setReplacing(draft, $event)"
+                />
             </template>
             <template #actions>
                 <ReuseActions

@@ -149,7 +149,7 @@ const scanLabel = computed((): string => {
 
     // from the feeder a card goes through once, front and back
     if (scanner.oneSheet.value) {
-        return cards ? trans('Add a card') : trans('Scan the card');
+        return cards ? trans('Add another card') : trans('Scan the card');
     }
 
     if (!hasSides.value) return trans('Start scanning');

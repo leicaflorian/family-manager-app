@@ -6,7 +6,10 @@
  * For an income it also says what was expected and what the income will be
  * called. It sends the form to `action`. `FmPaySheet` puts it in a panel of
  * its own; the panel of a row of the Agenda shows it under the details, so the
- * payment takes one tap.
+ * payment takes one tap. For the premium of a policy near its expiry
+ * (`deadline.renewal`) it also asks what happens to the policy: only the
+ * payment, the same company renewed (with the new expiry, a year later), or
+ * another company, which the server follows with the form of the new policy.
  *
  * @group panels
  */
@@ -58,8 +61,12 @@ const { euro } = useFormat();
 /** Whether the due date is an income. */
 const income = computed(() => deadline.kind === 'income');
 
+/** What happens to the policy of the premium. */
+type Renewal = 'only' | 'same' | 'changed';
+
 /**
- * The values the form starts from: today, the amount and the account of the due date.
+ * The values the form starts from: today, the amount and the account of the
+ * due date, only the payment and the expiry a year after the policy's.
  *
  * @returns the fields, without a receipt
  */
@@ -68,6 +75,8 @@ function startValues(): {
     amount: string;
     financial_account_id: string;
     receipt: File | null;
+    renewal: Renewal;
+    new_expiry: string;
 } {
     return {
         date: isoDate(),
@@ -75,6 +84,8 @@ function startValues(): {
         financial_account_id:
             deadline.account_id === null ? '' : String(deadline.account_id),
         receipt: null,
+        renewal: 'only',
+        new_expiry: deadline.renewal?.proposed_expiry ?? '',
     };
 }
 
@@ -105,6 +116,36 @@ watch(
     () => `${deadline.kind}:${deadline.planned_id}:${deadline.original_date}`,
     reset,
 );
+
+/** The choices of the policy, as the panel names them. */
+const renewalOptions = computed<{ value: Renewal; label: string }[]>(() => [
+    { value: 'only', label: trans('Only the payment') },
+    { value: 'same', label: trans('Same company, renewed') },
+    { value: 'changed', label: trans('I changed company') },
+]);
+
+/**
+ * The fields of the policy to send: the choice, the expiry the page showed
+ * (so the server does not renew twice) and, with the same company, the new
+ * expiry. Nothing for a due date without a policy to renew.
+ *
+ * @returns the fields to add to the payment
+ */
+function renewalFields(): Record<string, string> {
+    if (deadline.renewal === null) {
+        return {};
+    }
+
+    if (values.renewal === 'only') {
+        return { renewal: 'only' };
+    }
+
+    return {
+        renewal: values.renewal,
+        policy_expiry: deadline.renewal.expiry_date,
+        ...(values.renewal === 'same' ? { new_expiry: values.new_expiry } : {}),
+    };
+}
 
 /** The text of the button of the file. */
 const fileLabel = computed(() =>
@@ -160,6 +201,7 @@ function save(): void {
             amount: parseAmount(values.amount),
             financial_account_id: values.financial_account_id || null,
             ...(values.receipt ? { receipt: values.receipt } : {}),
+            ...renewalFields(),
         },
         {
             forceFormData: true,
@@ -222,6 +264,34 @@ defineExpose({ confirmClose: changes.confirmClose, reset });
             :options="accounts"
             :errors="errors(problems.financial_account_id)"
         />
+        <template v-if="deadline.renewal">
+            <FormKit
+                v-model="values.renewal"
+                type="togglebuttons"
+                enforced
+                :label="$t('The policy')"
+                name="renewal"
+                :options="renewalOptions"
+                :errors="errors(problems.policy_expiry)"
+            />
+            <FormKit
+                v-if="values.renewal === 'same'"
+                v-model="values.new_expiry"
+                type="datepicker"
+                :label="$t('New expiry date')"
+                :help="
+                    $t(
+                        'The policy stays active until this date, and the renewal reminder is marked done.',
+                    )
+                "
+                name="new_expiry"
+                :errors="errors(problems.new_expiry)"
+            />
+        </template>
+        <!-- Outside the choice: after a refusal the page can come back without it, and the message must still show -->
+        <p v-if="problems.renewal" class="m-0 text-meta-strong text-overdue">
+            {{ problems.renewal }}
+        </p>
         <div class="flex flex-col gap-1.5">
             <button
                 type="button"

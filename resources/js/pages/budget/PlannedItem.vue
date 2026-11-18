@@ -1,12 +1,15 @@
 <script setup lang="ts">
 /**
  * *A planned expense* (or income): the head with the card, the amount, how it
- * repeats and what it comes to in a year; the next due dates, which open
- * *Change this due date* for an `admin` and the due date's page for everyone
- * else; the exceptions, with the pencil and *Add*; the data; and the payments by
- * year, which on the phone come last.
+ * repeats and what it comes to in a year; the next due dates, where an open
+ * one opens *Change this due date* for an `admin` (with *I paid it* inside) and
+ * *I paid it* for who can only pay, and a paid one leads to its movement; the
+ * exceptions, with the pencil and *Add*; the data; and the payments by year,
+ * which on the phone come last. A due date has no page of its own: its address
+ * leads here with `opening` (and `pay`), whose panel opens at once, and saving
+ * that panel goes back to the page it came from (`back`).
  */
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import {
     CalendarClock,
     CalendarX2,
@@ -16,39 +19,52 @@ import {
     Repeat,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
+import FmPaySheet from '@/components/fm/FmPaySheet.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
-import type { RowTone } from '@/components/fm/FmRow.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useFormat } from '@/composables/useFormat';
 import {
     capitalized,
-    deadlineStatus,
+    deadlineStanding,
     deadlineUrls,
     recurrenceText,
     skippedMonthsText,
 } from '@/lib/budget';
 import type { RecurrenceUnit } from '@/lib/budget';
 import { budget } from '@/routes';
+import { show as showMovement } from '@/routes/budget/movements';
 import { index, edit } from '@/routes/budget/planned';
 import { show as showCard } from '@/routes/cards';
 
-const { detail } = defineProps<{
+const {
+    detail,
+    opening,
+    pay: payOnArrival,
+    back,
+} = defineProps<{
     /** `expense` or `income`. */
     kind: string;
     /** The planned item with its year, due dates, exceptions, data and payments. */
     detail: App.Data.PlannedDetailData;
     /** The accounts of the family, for the panels that take a payment. */
     accounts: App.Data.OptionData[];
+    /** The due date whose panel opens on arrival, from its address. */
+    opening: App.Data.DeadlineData | null;
+    /** The panel to open on arrival is *I paid it*. */
+    pay: boolean;
+    /** The page the due date was opened from, where its panel goes back after saving. */
+    back: string | null;
 }>();
 
 const { euro, date } = useFormat();
@@ -122,6 +138,127 @@ const changing = ref<App.Data.DeadlineData | null>(null);
 /** The panel is open. */
 const changingOpen = ref(false);
 
+/** The due date whose payment panel is open, if there is one. */
+const paying = ref<App.Data.DeadlineData | null>(null);
+
+/** The payment panel is open. */
+const payingOpen = ref(false);
+
+/** The due date opened on arrival and where its panel goes back, kept once the address loses them. */
+const arrival = { date: opening?.original_date ?? null, back };
+
+// Going back elsewhere belongs to the panel opened on arrival: once it closes,
+// a panel opened from the page stays on the page (from Change this due date
+// to I paid it both are briefly true or false in the same tick, so it carries on)
+watch(
+    () => changingOpen.value || payingOpen.value,
+    (open) => {
+        if (!open) {
+            arrival.back = null;
+        }
+    },
+);
+
+/**
+ * Opens the payment panel of a due date.
+ *
+ * @param deadline - the due date to pay
+ */
+function startPaying(deadline: App.Data.DeadlineData): void {
+    paying.value = deadline;
+    payingOpen.value = true;
+}
+
+/**
+ * Whether tapping an open due date does something: it can be changed or paid.
+ *
+ * @param deadline - the due date of the row
+ * @returns true for an open due date and who can change or pay it
+ */
+function opens(deadline: App.Data.DeadlineData): boolean {
+    return deadline.payment === null && (detail.can_edit || detail.can_pay);
+}
+
+/**
+ * Opens the panel of an open due date: *Change this due date* for an `admin`,
+ * *I paid it* for who can only pay.
+ *
+ * @param deadline - the due date of the row
+ */
+function openRow(deadline: App.Data.DeadlineData): void {
+    if (detail.can_edit) {
+        change(deadline);
+    } else {
+        startPaying(deadline);
+    }
+}
+
+/**
+ * The movement that paid a due date.
+ *
+ * @param deadline - the due date
+ * @returns its address, none for a due date not paid
+ */
+function movementUrl(deadline: App.Data.DeadlineData): string | undefined {
+    return deadline.payment === null
+        ? undefined
+        : showMovement.url({
+              kind: deadline.payment.kind,
+              id: deadline.payment.id,
+          });
+}
+
+/**
+ * Where a panel sends its form: for the due date opened on arrival, with the
+ * page to go back to.
+ *
+ * @param url - the address of the form
+ * @param deadline - the due date of the panel
+ * @returns the address, with `?back=` when it goes back elsewhere
+ */
+function withBack(url: string, deadline: App.Data.DeadlineData): string {
+    return arrival.back !== null && deadline.original_date === arrival.date
+        ? `${url}?back=${encodeURIComponent(arrival.back)}`
+        : url;
+}
+
+// The address of a due date leads here: its panel opens once, and the request
+// leaves the address so that Back does not open it again
+onMounted(() => {
+    if (opening === null) {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    for (const name of ['deadline', 'pay', 'from']) {
+        url.searchParams.delete(name);
+    }
+    router.replace({
+        url: `${url.pathname}${url.search}${url.hash}`,
+        props: (current) => ({
+            ...current,
+            opening: null,
+            pay: false,
+            back: null,
+        }),
+        preserveState: true,
+        preserveScroll: true,
+    });
+
+    const payable = opening.payment === null && !opening.skipped;
+
+    if (payOnArrival && detail.can_pay && payable) {
+        startPaying(opening);
+    } else if (detail.can_edit && opening.payment === null) {
+        change(opening);
+    } else if (detail.can_pay && payable) {
+        startPaying(opening);
+    } else if (opening.skipped) {
+        // Nothing opens for who cannot change it: the link still says why
+        toast.info(trans('This due date is skipped: it is not paid.'));
+    }
+});
+
 /**
  * Opens the panel *Change this due date* for a due date.
  *
@@ -141,38 +278,6 @@ function changeException(exception: App.Data.ExceptionData): void {
     if (exception.deadline !== null) {
         change(exception.deadline);
     }
-}
-
-/**
- * Says where a due date stands in the list: paid, late, or changed by an exception.
- *
- * @param deadline - the due date
- * @returns the text, or null if nothing is worth saying, and the colour it takes
- */
-function standing(deadline: App.Data.DeadlineData): {
-    text: string | null;
-    tone: RowTone;
-} {
-    if (deadline.payment !== null || deadline.late) {
-        return {
-            text: deadlineStatus(deadline),
-            tone: deadline.late ? 'overdue' : 'paid',
-        };
-    }
-
-    const notes = deadline.notes;
-    const text =
-        deadline.base_amount !== null
-            ? notes
-                ? trans('Different amount: :notes', { notes })
-                : trans('Different amount')
-            : deadline.date !== deadline.original_date
-              ? notes
-                  ? trans('Different date: :notes', { notes })
-                  : trans('Different date')
-              : null;
-
-    return { text, tone: text === null ? 'normal' : 'warning' };
 }
 
 /**
@@ -246,7 +351,7 @@ const exceptionIcons = {
         </div>
 
         <div
-            class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-6"
+            class="flex flex-col gap-5 wide:grid wide:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] wide:items-start wide:gap-6"
         >
             <div class="flex flex-col gap-5">
                 <FmCard :title="$t('Next due dates')" list>
@@ -256,18 +361,14 @@ const exceptionIcons = {
                     >
                         <FmRow
                             :title="date(deadline.date)"
-                            :subtitle="standing(deadline).text ?? undefined"
-                            :tone="standing(deadline).tone"
-                            :button="
-                                detail.can_edit && deadline.payment === null
+                            :subtitle="
+                                deadlineStanding(deadline).text ?? undefined
                             "
-                            :href="
-                                detail.can_edit && deadline.payment === null
-                                    ? undefined
-                                    : deadlineUrls(deadline).show
-                            "
+                            :tone="deadlineStanding(deadline).tone"
+                            :button="opens(deadline)"
+                            :href="movementUrl(deadline)"
                             :arrow="false"
-                            @click="change(deadline)"
+                            @click="openRow(deadline)"
                         >
                             <template #after>
                                 <FmAmount
@@ -353,7 +454,7 @@ const exceptionIcons = {
                     <template v-if="detail.can_pay && firstOpen" #actions>
                         <FmSectionLink
                             :icon="Plus"
-                            :href="`${deadlineUrls(firstOpen).show}?pay=1`"
+                            @click="startPaying(firstOpen)"
                             >{{ $t('Record payment') }}</FmSectionLink
                         >
                     </template>
@@ -373,8 +474,19 @@ const exceptionIcons = {
             :key="changing.original_date"
             v-model:open="changingOpen"
             :deadline="changing"
-            :action="deadlineUrls(changing).exceptions"
+            :action="withBack(deadlineUrls(changing).exceptions, changing)"
+            :can-pay="detail.can_pay"
+            @pay="startPaying(changing)"
             @close="changing = null"
+        />
+        <FmPaySheet
+            v-if="detail.can_pay && paying"
+            :key="`pay-${paying.original_date}`"
+            v-model:open="payingOpen"
+            :deadline="paying"
+            :accounts="accounts"
+            :action="withBack(deadlineUrls(paying).payment, paying)"
+            @close="paying = null"
         />
     </div>
 </template>

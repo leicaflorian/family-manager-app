@@ -427,6 +427,37 @@ describe('FmMovementPanel', () => {
         expect(close).not.toHaveClass('border');
     });
 
+    it('inside a column that has its own ×, has no × nor a card of its own', () => {
+        renderPage(FmMovementPanel, {
+            ...props,
+            compact: true,
+            embedded: true,
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Close' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('form', { name: 'New expense or income' }),
+        ).not.toHaveClass('shadow-card');
+    });
+
+    it('inside a column, stacks the date and the amount; otherwise they sit side by side', () => {
+        const first = renderPage(FmMovementPanel, {
+            ...props,
+            compact: true,
+            embedded: true,
+        });
+        const amount = screen.getByLabelText('Amount');
+        expect(amount.closest('.grid-cols-2')).toBeNull();
+        first.unmount();
+
+        renderPage(FmMovementPanel, { ...props, compact: true });
+        expect(
+            screen.getByLabelText('Amount').closest('.grid-cols-2'),
+        ).not.toBeNull();
+    });
+
     it('has Cancel white with a grey edge and Save taking the rest of the line', () => {
         renderPage(FmMovementPanel, props);
 

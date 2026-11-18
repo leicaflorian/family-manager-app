@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Cards\CardDate;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Cards\FieldKind;
@@ -20,7 +21,10 @@ use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\ModelId;
+use BackedEnum;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * The choices of the forms of the budget: the accounts, the categories with the card type of each, the organizations,
@@ -160,10 +164,12 @@ final class BudgetFormOptions
                 ])
                 ->sort(static fn (array $a, array $b): int => ($a[2] <=> $b[2]) ?: strnatcasecmp($a[1], $b[1]));
 
-            foreach ($cards as [$card, $label]) {
+            foreach ($cards as [$card, $label, $closed]) {
+                $name = "{$type->label()} · {$label}";
+
                 $options[] = new CardChoiceData(
                     value: "{$type->type()}:".ModelId::of($card),
-                    label: "{$type->label()} · {$label}",
+                    label: $closed ? self::closedLabel($type, $card, $name) : $name,
                     person_id: self::fieldId($type, $card, FieldKind::Person),
                     organization_id: self::fieldId($type, $card, FieldKind::Organization),
                     category_id: $category === null ? null : (string) $category,
@@ -172,6 +178,33 @@ final class BudgetFormOptions
         }
 
         return $options;
+    }
+
+    /**
+     * The name of a closed card followed by its status, so that it stands apart from an open card with the same name
+     * (the expired policy of a car and the new one): «Policy · RCA — expired on 14/03/2026», «Vehicle · Alfa — sold».
+     * Only an expired card takes a date, the first deadline of its type: on a card closed otherwise that date says
+     * something else (the inspection of a car sold).
+     *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the closed card
+     * @param  string  $name  «Type · name»
+     */
+    private static function closedLabel(CardType $type, Model $card, string $name): string
+    {
+        $status = $card->getAttribute('status');
+
+        if (! $status instanceof BackedEnum || ! method_exists($status, 'label')) {
+            return $name;
+        }
+
+        $text = Str::lower((string) $status->label());
+        $deadline = collect($type->dates())->first(static fn (CardDate $date): bool => $date->expires);
+        $date = $status->value === 'expired' && $deadline !== null ? $card->getAttribute($deadline->column) : null;
+
+        return $date instanceof CarbonInterface
+            ? __(':card — :status on :date', ['card' => $name, 'status' => $text, 'date' => $date->format('d/m/Y')])
+            : __(':card — :status', ['card' => $name, 'status' => $text]);
     }
 
     /**

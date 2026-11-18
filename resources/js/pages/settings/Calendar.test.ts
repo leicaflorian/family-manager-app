@@ -164,6 +164,24 @@ describe('Settings, Calendar', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('tells a member that the calendar is off and who can turn it on', () => {
+        renderPage(Calendar, { calendar: { ...off, can_change: false } });
+
+        expect(
+            screen.getByText(
+                'Whoever manages the family can turn it on in Settings.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('does not tell an admin who can turn it on: the switch is there', () => {
+        renderPage(Calendar, { calendar: off });
+
+        expect(
+            screen.queryByText(/Whoever manages the family/),
+        ).not.toBeInTheDocument();
+    });
+
     it('forgets that the address was copied when the address changes', async () => {
         Object.assign(navigator, {
             clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },

@@ -77,7 +77,7 @@ final class ImportRequest extends FormRequest
             'files.*' => ['required', 'array:file_id,document,also'],
             'files.*.file_id' => [...DocumentRules::fileId(), 'distinct'],
             'files.*.document' => ['required', 'array'],
-            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card,card_type'],
+            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card,card_type,replace_policies'],
             'files.*.also.movement' => ['sometimes', 'boolean'],
             'files.*.also.event' => ['sometimes', 'boolean'],
             'files.*.also.due' => ['sometimes', 'nullable', 'boolean'],
@@ -86,6 +86,8 @@ final class ImportRequest extends FormRequest
             'files.*.also.card_type' => ['sometimes', 'nullable', 'string', 'max:50'],
             'files.*.also.policy' => ['sometimes', 'string', 'max:50'],
             'files.*.also.records' => ['sometimes', 'array', 'list'],
+            // The old policies to cancel: only the ones proposed are taken, read again when saving
+            'files.*.also.replace_policies' => ['sometimes', 'array', 'list', 'max:20'],
             'files.*.also.overrides' => ['sometimes', 'array'],
             'files.*.also.overrides.movement' => ['sometimes', 'array'],
             // The ids of the corrections go into new rows: only those of the family

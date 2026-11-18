@@ -178,7 +178,7 @@ function confirmDelete(): void {
 <template>
     <Head :title="$t('To sort')" />
 
-    <div class="flex flex-col gap-4 lg:gap-6">
+    <div class="flex flex-col gap-4 wide:gap-6">
         <FmTitle
             :title="$t('To sort')"
             :subtitle="

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * The lines of the box *Data* of a page: the label on the left, the value on
- * the right. A value that is a person, an organization or a card is a link;
- * `newTab` opens it in a new tab, so the page it comes from stays open.
+ * the right. A value that is a person, an organization or a card is a link,
+ * in the primary colour; `newTab` opens it in a new tab, so the page it comes
+ * from stays open.
  *
  * @group rows
  */
@@ -35,14 +36,14 @@ const { values, newTab = false } = defineProps<{
                 <template v-if="value.href">
                     <FmNewTabLink
                         v-if="newTab"
-                        class="hover:text-action"
+                        class="text-action hover:text-action-dark"
                         :href="value.href"
                         :text="value.text"
                     />
                     <Link
                         v-else
                         :href="value.href"
-                        class="underline-offset-2 hover:text-action hover:underline"
+                        class="text-action underline-offset-2 hover:text-action-dark hover:underline"
                         >{{ value.text }}</Link
                     >
                 </template>

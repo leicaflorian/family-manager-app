@@ -1,6 +1,9 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, render, screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
+import { formPlugins } from '@/lib/formPlugins';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import type { Component } from 'vue';
 import { documentDetail, documentFilterOptions } from '@/test/fixtures';
 import { choose, renderPage, screenWidth } from '@/test/page';
 import Documents from './Documents.vue';
@@ -92,14 +95,15 @@ describe('Documents', () => {
     });
 
     it('a filter narrows the list', async () => {
+        screenWidth(1280);
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Documents, props);
 
         await choose('Person', 'Laura Bianchi');
 
         expect(get).toHaveBeenCalledWith(
-            '/documents',
-            { person: 7 },
+            '/documents?person=7',
+            {},
             expect.objectContaining({ preserveState: true }),
         );
     });
@@ -115,8 +119,8 @@ describe('Documents', () => {
         await fireEvent.submit(screen.getByRole('search'));
 
         expect(get).toHaveBeenCalledWith(
-            '/documents',
-            { search: 'danza' },
+            '/documents?search=danza',
+            {},
             expect.anything(),
         );
     });
@@ -135,8 +139,8 @@ describe('Documents', () => {
         );
 
         expect(get).toHaveBeenCalledWith(
-            '/documents',
-            { expiring: 1 },
+            '/documents?expiring=1',
+            {},
             expect.anything(),
         );
     });
@@ -170,53 +174,76 @@ describe('Documents', () => {
         ).toHaveAttribute('href', '/upload');
     });
 
-    it('shows the chosen document on the right', () => {
+    it('on the computer shows the filters in a column from 1024 px, not only from 1440', () => {
+        screenWidth(1024);
+        renderPage(Documents, props);
+
+        const aside = screen.getByRole('complementary', { name: 'Filters' });
+        expect(aside).toHaveClass('sticky', 'top-(--app-header)');
+        expect(
+            screen.queryByRole('button', { name: /Filters/ }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('on the computer shows the chosen document in the left column in place of the filters', () => {
+        screenWidth(1280);
         renderPage(Documents, { ...props, selected: documentDetail });
 
+        const aside = screen.getByRole('complementary', {
+            name: 'Busta paga di ottobre',
+        });
         expect(
-            screen.getByRole('heading', {
+            within(aside).getByRole('heading', {
                 name: 'Busta paga di ottobre',
                 level: 2,
             }),
         ).toBeInTheDocument();
+        expect(
+            within(aside).getByRole('button', { name: 'Back to the filters' }),
+        ).toBeInTheDocument();
+        expect(
+            within(aside).getByRole('link', {
+                name: 'Open the page of the document',
+            }),
+        ).toBeInTheDocument();
+        expect(screen.queryByLabelText('Person')).not.toBeInTheDocument();
+        // no third column and no floating panel
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.getAllByRole('complementary')).toHaveLength(1);
         expect(screen.getByRole('link', { current: 'page' })).toHaveTextContent(
             'Busta paga di ottobre',
         );
-        expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
-            'title',
-            'Download',
-        );
-        expect(
-            screen.getByRole('button', { name: 'More actions' }),
-        ).toBeInTheDocument();
     });
-    it('from 1440 px shows the chosen document in a third column', () => {
-        screenWidth(1440);
-        renderPage(Documents, { ...props, selected: documentDetail });
 
-        expect(
-            screen.getByRole('heading', {
-                name: 'Busta paga di ottobre',
-                level: 2,
+    it('Back to the filters and the × leave the document, keeping filters and page', async () => {
+        screenWidth(1280);
+        address.url = '/documents?person=3&page=2&document=5';
+        const visit = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            filters: { ...none, person: 3 },
+            selected: documentDetail,
+        });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Back to the filters' }),
+        );
+        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+        expect(visit).toHaveBeenCalledTimes(2);
+        expect(visit).toHaveBeenNthCalledWith(
+            1,
+            '/documents?person=3&page=2',
+            {},
+            expect.objectContaining({
+                preserveState: true,
+                preserveScroll: true,
             }),
-        ).toBeInTheDocument();
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-        expect(
-            screen.queryByRole('button', { name: 'Close' }),
-        ).not.toBeInTheDocument();
-        // sticky under the top bar of the layout, not under the top of the window
-        expect(
-            screen
-                .getByRole('heading', {
-                    name: 'Busta paga di ottobre',
-                    level: 2,
-                })
-                .closest('section'),
-        ).toHaveClass('sticky', 'top-(--app-header)');
+        );
     });
 
     it('on the computer opens a document beside the list without scrolling the list back to the top', async () => {
-        screenWidth(1440);
+        screenWidth(1280);
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Documents, props);
 
@@ -230,24 +257,50 @@ describe('Documents', () => {
         );
     });
 
-    it('keeps the filters beside the list in view while the list scrolls', () => {
-        screenWidth(1440);
+    it('below the computer layout the filter button opens the sheet and a row leads to its page', async () => {
+        screenWidth(false);
         renderPage(Documents, props);
 
-        // sticky under the top bar of the layout, and as high as its filters
-        expect(screen.getByRole('complementary')).toHaveClass(
-            'sticky',
-            'top-(--app-header)',
-        );
-    });
+        expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: /Busta paga di ottobre/ }),
+        ).toHaveAttribute('href', '/documents/5');
 
-    it('on a wide but short window, shows it in a floating panel and a row leads to its page', () => {
-        screenWidth(1500, 400);
-        renderPage(Documents, { ...props, selected: documentDetail });
+        await fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
 
         expect(
-            screen.getByRole('dialog', { name: 'Busta paga di ottobre' }),
+            screen.getByRole('dialog', { name: 'Filters' }),
         ).toBeInTheDocument();
+    });
+
+    it('opening a row on page 2 keeps the page', async () => {
+        screenWidth(1280);
+        address.url = '/documents?person=3&page=2';
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Documents, { ...props, filters: { ...none, person: 3 } });
+
+        await fireEvent.click(
+            screen.getByRole('link', { name: /Busta paga di ottobre/ }),
+        );
+
+        const url = JSON.stringify(visit.mock.calls[0][0]);
+        expect(url).toContain('page=2');
+        expect(url).toContain('person=3');
+        expect(url).toContain('document=5');
+    });
+
+    it('the pills have Remove the filters, which takes all the filters away', async () => {
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            filters: { ...none, person: 7, expiring: true },
+        });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Remove the filters' }),
+        );
+
+        expect(get).toHaveBeenCalledWith('/documents', {}, expect.anything());
     });
 
     it('on a short window 1280 px wide, a row leads to the page of the document', () => {
@@ -259,27 +312,47 @@ describe('Documents', () => {
         ).toHaveAttribute('href', '/documents/5');
     });
 
-    it('narrower, shows it in a floating panel that the × closes, keeping filters and page', async () => {
-        screenWidth(1280);
-        address.url = '/documents?person=3&page=2&document=5';
-        const visit = vi.spyOn(router, 'get').mockImplementation(() => {});
+    it('with filters on says how many were found beside the pills, as the other lists do', () => {
         renderPage(Documents, {
             ...props,
-            filters: { ...none, person: 3 },
-            selected: documentDetail,
+            filters: { ...none, person: 7 },
         });
 
-        const panel = screen.getByRole('dialog', {
-            name: 'Busta paga di ottobre',
-        });
-        expect(panel).toHaveTextContent('Lavoro › Buste paga');
+        const found = screen.getByText('18 documents, the most recent first');
+        expect(found).toHaveAttribute('aria-live', 'polite');
+        expect(screen.getAllByText(/the most recent first/)).toHaveLength(1);
+    });
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    it('has the panel of the filters only below the computer layout', () => {
+        const sheet = { template: '<div data-testid="filters-sheet" />' };
 
-        expect(visit).toHaveBeenCalledWith(
-            '/documents?person=3&page=2',
-            {},
-            expect.objectContaining({ preserveScroll: true }),
-        );
+        for (const [computer, count] of [
+            [true, 0],
+            [false, 1],
+        ] as const) {
+            screenWidth(computer);
+            // the props of the file are looser than the page's types, as renderPage takes them
+            const view = render(Documents as Component, {
+                props,
+                global: {
+                    plugins: formPlugins,
+                    stubs: { FmBottomSheet: sheet },
+                },
+            });
+
+            expect(view.queryAllByTestId('filters-sheet')).toHaveLength(count);
+            view.unmount();
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('says on the phone whether the panel of the filters is open', async () => {
+        renderPage(Documents, props);
+        const button = screen.getByRole('button', { name: 'Filters' });
+        expect(button).toHaveAttribute('aria-expanded', 'false');
+
+        await userEvent.click(button);
+
+        expect(button).toHaveAttribute('aria-expanded', 'true');
     });
 });

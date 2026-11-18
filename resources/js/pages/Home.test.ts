@@ -407,11 +407,11 @@ describe('Home', () => {
             screen
                 .getByRole('heading', { name: 'Incoming' })
                 .closest('section'),
-        ).toHaveClass('max-lg:hidden');
+        ).toHaveClass('not-wide:hidden');
         expect(
             screen
                 .getByRole('heading', { name: 'Something is missing' })
                 .closest('section'),
-        ).not.toHaveClass('max-lg:hidden');
+        ).not.toHaveClass('not-wide:hidden');
     });
 });

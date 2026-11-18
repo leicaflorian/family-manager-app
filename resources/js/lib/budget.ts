@@ -6,6 +6,7 @@ import { format } from '@formkit/tempo';
 import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import { exceptions, payment, show } from '@/routes/budget/deadlines';
 import { index as movementsIndex } from '@/routes/budget/movements';
+import { index as plannedIndex } from '@/routes/budget/planned';
 import { daysFromToday, formatDate, formatEuro, relativeDays } from './format';
 import { listNames } from './names';
 
@@ -118,6 +119,43 @@ export function comparisonComment(
     return parts.join(' · ');
 }
 
+/** The colour of a due date in a list, as `FmRow` takes it. */
+export type DeadlineTone = 'normal' | 'overdue' | 'warning' | 'paid';
+
+/**
+ * Says where a due date stands in a list of due dates: paid, late, or changed
+ * by an exception; nothing for an open one that falls as the rules say.
+ *
+ * @param deadline - the due date
+ * @param today - the moment taken as now, the clock if missing
+ * @returns the text, or null if nothing is worth saying, and the colour it takes
+ */
+export function deadlineStanding(
+    deadline: App.Data.DeadlineData,
+    today: Date = new Date(),
+): { text: string | null; tone: DeadlineTone } {
+    if (deadline.payment !== null || deadline.late) {
+        return {
+            text: deadlineStatus(deadline, today),
+            tone: deadline.late ? 'overdue' : 'paid',
+        };
+    }
+
+    const notes = deadline.notes;
+    const text =
+        deadline.base_amount !== null
+            ? notes
+                ? trans('Different amount: :notes', { notes })
+                : trans('Different amount')
+            : deadline.date !== deadline.original_date
+              ? notes
+                  ? trans('Different date: :notes', { notes })
+                  : trans('Different date')
+              : null;
+
+    return { text, tone: text === null ? 'normal' : 'warning' };
+}
+
 /**
  * Says where a due date stands: skipped, when it falls, how late it is, or when it was paid.
  *
@@ -214,7 +252,8 @@ export function shortMonth(month: string): string {
 }
 
 /**
- * The addresses of a due date: its page, *I paid it* and *Change this due date*.
+ * The addresses of a due date: `show` (it opens the due date on its planned
+ * item, or the movement that paid it), *I paid it* and *Change this due date*.
  * The day in them is the one the rules give, not the one an exception moved it to.
  *
  * @param deadline - the due date
@@ -341,30 +380,99 @@ export function weekdayShort(date: string): string {
     return format(new Date(year, month - 1, day), 'ddd', getActiveLanguage());
 }
 
-/** What *Movements* shows: the month and, if chosen, the kind, the account and the movement open beside the list. */
-export interface MovementsQuery {
+/** A choice of a menu or of a row of buttons. */
+export interface Choice<T> {
+    /** What the choice sends. */
+    value: T;
+    /** What the person reads. */
+    label: string;
+}
+
+/**
+ * The kinds a list of movements can be narrowed to: everything, the expenses
+ * or the incomes, in this order.
+ *
+ * @param all - the value of «Everything»: `null` for a visit, a text for buttons that cannot hold `null`
+ * @returns the three choices, in the language of the page
+ */
+export function movementKinds<T>(all: T): Choice<T | 'expense' | 'income'>[] {
+    return [
+        { value: all, label: trans('Everything') },
+        { value: 'expense', label: trans('Expenses') },
+        { value: 'income', label: trans('Income') },
+    ];
+}
+
+/**
+ * The accounts of a menu that filters by account, «All the accounts» first
+ * with an empty value.
+ *
+ * @param accounts - the accounts of the family
+ * @returns the choices of the menu
+ */
+export function accountChoices(accounts: Choice<string>[]): Choice<string>[] {
+    return [{ value: '', label: trans('All the accounts') }, ...accounts];
+}
+
+/** What *Movements* shows: the month and, if chosen, the filters and the movement open beside the list. */
+export interface MovementsQuery extends Partial<App.Data.MovementFiltersData> {
     /** `yyyy-mm`. */
     month: string;
-    /** `expense` or `income`, or null for both. */
-    kind?: string | null;
-    /** The id of the account, or null for all. */
-    account?: number | null;
     /** The movement open beside the list, `kind:id`. */
     movement?: string | null;
 }
 
 /**
- * The address of *Movements* for a month and the filters in use. What is empty is left out.
+ * The address of *Movements* for a month and the filters in use, always in the
+ * same order whoever builds it. What is empty is left out.
  *
  * @param query - the month, the filters and the open movement
- * @returns for example `/budget/movements?month=2026-10&kind=expense`
+ * @returns for example `/budget/movements?month=2026-10&kind=expense&min=20`
  */
 export function movementsUrl(query: MovementsQuery): string {
-    return movementsIndex.url({
-        query: Object.fromEntries(
-            Object.entries(query).filter(
-                ([, value]) => value !== null && value !== undefined,
-            ),
-        ),
+    const ordered = {
+        month: query.month,
+        kind: query.kind,
+        account: query.account,
+        search: query.search,
+        min: query.min,
+        max: query.max,
+        from: query.from,
+        to: query.to,
+        movement: query.movement,
+    };
+
+    return movementsIndex.url({ query: filled(ordered) });
+}
+
+/**
+ * The address of *Planned expenses* with the filters in use, always in the
+ * same order. What is empty is left out.
+ *
+ * @param filters - the search, the amounts and the next due dates
+ * @returns for example `/budget/planned?search=luce&min=20`
+ */
+export function plannedUrl(filters: App.Data.PlannedFiltersData): string {
+    const { search, min, max, from, to } = filters;
+
+    return plannedIndex.url({
+        query: filled({ search, min, max, from, to }),
     });
+}
+
+/**
+ * The values of a query that are not empty, in the order given.
+ *
+ * @param query - the values by name
+ * @returns the query without the empty ones
+ */
+function filled(
+    query: Record<string, string | number | null | undefined>,
+): Record<string, string | number> {
+    return Object.fromEntries(
+        Object.entries(query).filter(
+            (entry): entry is [string, string | number] =>
+                entry[1] !== null && entry[1] !== undefined,
+        ),
+    );
 }

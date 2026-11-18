@@ -73,8 +73,8 @@ final class InsurancePolicyCard extends CardType
     public function dates(): array
     {
         return [
-            new CardDate('expiry_date', __('Expiry'), expires: true),
             new CardDate('start_date', __('Start'), expires: false),
+            new CardDate('expiry_date', __('Expiry'), expires: true),
         ];
     }
 

@@ -41,6 +41,9 @@ describe('A card', () => {
             screen.getByText('Car · policyholder Marco Bianchi'),
         ).toBeInTheDocument();
         expect(screen.getByText('20/11/2026')).toBeInTheDocument();
+        // The status is a green figure beside the dates
+        expect(screen.getByText('Status')).toBeInTheDocument();
+        expect(screen.getByText('Active')).toHaveClass('text-paid');
         expect(
             screen.getByRole('heading', { name: 'Data' }),
         ).toBeInTheDocument();
@@ -145,7 +148,7 @@ describe('A card', () => {
         const panda = screen.getByRole('link', { name: 'Fiat Panda' });
         expect(panda).toHaveAttribute('href', '/cards/vehicle/1');
         expect(panda).toHaveAttribute('target', '_blank');
-        expect(panda).toHaveClass('hover:text-action');
+        expect(panda).toHaveClass('text-action');
     });
 
     it('shows a notice with its title, its text and its action', () => {

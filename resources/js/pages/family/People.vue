@@ -51,7 +51,7 @@ const { people, family, canEdit } = defineProps<{
             </template>
         </FmFamilyViews>
 
-        <FmCard list class="lg:hidden">
+        <FmCard list class="wide:hidden">
             <FmRow
                 v-for="person in people"
                 :key="person.id"
@@ -78,7 +78,7 @@ const { people, family, canEdit } = defineProps<{
         </FmCard>
 
         <div
-            class="hidden gap-5 lg:grid lg:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]"
+            class="hidden gap-5 wide:grid wide:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]"
         >
             <Link
                 v-for="person in people"
@@ -134,7 +134,7 @@ const { people, family, canEdit } = defineProps<{
         <Link
             v-if="canEdit"
             :href="invite().url"
-            class="flex items-center gap-3 rounded-card border-[1.5px] border-dashed border-ink-faint bg-card px-4 py-3.5 text-action no-underline lg:hidden"
+            class="flex items-center gap-3 rounded-card border-[1.5px] border-dashed border-ink-faint bg-card px-4 py-3.5 text-action no-underline wide:hidden"
         >
             <span
                 class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"

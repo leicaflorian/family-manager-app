@@ -30,6 +30,16 @@ export function isEmpty(value: unknown): boolean {
 }
 
 /**
+ * The text of a field, or null when it is empty.
+ *
+ * @param value - what the field holds
+ * @returns the text, or null
+ */
+export function textOrNull(value: unknown): string | null {
+    return isEmpty(value) ? null : String(value);
+}
+
+/**
  * The options of a menu that can stay empty: the empty choice, then the options.
  *
  * @param choices - the options of the menu

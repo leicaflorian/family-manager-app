@@ -18,6 +18,7 @@ import { login, logout } from '@/routes';
 import { pageTitle } from '@/lib/pageTitle';
 import { pageVisitOptions } from '@/lib/transitions';
 import { reportVueError, startDiagnostics } from '@/lib/diagnostics';
+import { startFreshOnBack } from '@/lib/freshOnBack';
 import { startVisitHistory } from '@/lib/visitHistory';
 
 // The server picks the language and writes it in <html lang>. The pages translate
@@ -30,6 +31,9 @@ I18n.getSharedInstance(i18nOptions(lang));
 // before Inertia fires the `initial` navigate, which happens before any layout mounts.
 // Back never leads to a page outside the layout of the app (sign-in, welcome, scan).
 startVisitHistory((name) => pageLayout(name) === AppLayout);
+
+// Back after a save shows the page with what the server says now, not the old props
+startFreshOnBack();
 
 // What a report of a problem carries about the browser, kept from the very start
 startDiagnostics();

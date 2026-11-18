@@ -54,6 +54,7 @@ readonly update_url: string | null,
 readonly notes: string | null,
 readonly account: string | null,
 readonly planned: string | null,
+readonly replace_url: string | null,
 };
 export type AgendaFiltersData = {
 readonly months: number,
@@ -177,6 +178,7 @@ readonly can_edit: boolean,
 readonly can_delete: boolean,
 readonly can_delete_documents: boolean,
 readonly budget: App.Data.CardBudgetData | null,
+readonly status: App.Data.CardNumberData | null,
 };
 export type CardFieldData = {
 readonly column: string,
@@ -201,6 +203,8 @@ readonly amount: number | null,
 readonly count: number | null,
 readonly hint: string | null,
 readonly hint_amount: number | null,
+readonly text: string | null,
+readonly tone: 'open' | 'overdue' | 'closed' | null,
 };
 export type CardTypeData = {
 readonly type: string,
@@ -270,6 +274,7 @@ readonly account: string | null,
 readonly card: App.Data.CardData | null,
 readonly income_type: string | null,
 readonly person: string | null,
+readonly renewal: App.Data.PolicyRenewalData | null,
 };
 export type DocumentData = {
 readonly id: number,
@@ -464,6 +469,25 @@ readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 };
+export type MovementFiltersData = {
+readonly search: string | null,
+readonly kind: string | null,
+readonly account: number | null,
+readonly min: number | null,
+readonly max: number | null,
+readonly from: string | null,
+readonly to: string | null,
+};
+export type MovementMonthData = {
+readonly month: string,
+readonly total: number,
+readonly movements: App.Data.MovementData[],
+};
+export type MovementSearchData = {
+readonly months: App.Data.MovementMonthData[],
+readonly count: number,
+readonly total: number,
+};
 export type NoticeRuleData = {
 readonly name: string,
 readonly days: number,
@@ -617,6 +641,13 @@ readonly payments: App.Data.PaymentYearData[],
 readonly can_edit: boolean,
 readonly can_pay: boolean,
 };
+export type PlannedFiltersData = {
+readonly search: string | null,
+readonly min: number | null,
+readonly max: number | null,
+readonly from: string | null,
+readonly to: string | null,
+};
 export type PlannedRowData = {
 readonly kind: string,
 readonly id: number,
@@ -635,6 +666,12 @@ readonly estimated: boolean,
 readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
+};
+export type PolicyRenewalData = {
+readonly policy_id: number,
+readonly policy: string,
+readonly expiry_date: string,
+readonly proposed_expiry: string,
 };
 export type ReceivedMailData = {
 readonly row: App.Data.ReceivedMailRowData,
@@ -726,6 +763,15 @@ readonly id: number,
 readonly label: string,
 readonly href: string | null,
 readonly area: string,
+};
+export type ReplaceablePolicyData = {
+readonly id: number,
+readonly label: string,
+readonly expiry_date: string | null,
+readonly type: string,
+readonly vehicle_id: number | null,
+readonly home_id: number | null,
+readonly employment_id: number | null,
 };
 export type SentInvitationData = {
 readonly email: string,
@@ -940,6 +986,7 @@ readonly reminder: string | null,
 readonly fields: App.Data.CardFieldData[],
 readonly complete: string[],
 readonly cardType: string | null,
+readonly replaces: App.Data.ReplaceablePolicyData[],
 };
 }
 namespace Search {

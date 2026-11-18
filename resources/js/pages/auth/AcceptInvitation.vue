@@ -82,7 +82,7 @@ function join(): void {
             autocomplete="new-password"
             :errors="errors(form.errors.password)"
         />
-        <span class="min-h-6 grow lg:hidden" />
+        <span class="min-h-6 grow computer:hidden" />
         <FmButton type="submit" wide :disabled="form.processing">{{
             $t('Join the family')
         }}</FmButton>

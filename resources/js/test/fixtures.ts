@@ -512,6 +512,15 @@ export const policyDetail: App.Data.CardDetailData = {
     can_delete: true,
     can_delete_documents: true,
     budget: null,
+    status: {
+        label: 'Status',
+        amount: null,
+        count: null,
+        hint: null,
+        hint_amount: null,
+        text: 'Active',
+        tone: 'open',
+    },
 };
 
 /** The nine areas with their active cards, as the sidebar receives them. */
@@ -593,6 +602,7 @@ export const danceDeadline: App.Data.DeadlineData = {
     card: danceEnrollmentRow,
     income_type: null,
     person: 'Giulia',
+    renewal: null,
 };
 
 /** The dance lessons of 05/11/2026, already paid on 20/10. */
@@ -632,6 +642,7 @@ export const lateDeadline: App.Data.DeadlineData = {
     card: null,
     income_type: null,
     person: null,
+    renewal: null,
 };
 
 /** The October salary of Marco, expected on 27/10/2026. */
@@ -662,6 +673,7 @@ export const salaryDeadline: App.Data.DeadlineData = {
     },
     income_type: 'salary',
     person: 'Marco',
+    renewal: null,
 };
 
 /** The accounts of the family as options of a choice. */
@@ -1235,6 +1247,8 @@ export const luceBudget: App.Data.CardBudgetData = {
             count: null,
             hint: 'per month, estimated',
             hint_amount: null,
+            text: null,
+            tone: null,
         },
         {
             label: 'Paid in 2026',
@@ -1242,6 +1256,8 @@ export const luceBudget: App.Data.CardBudgetData = {
             count: null,
             hint: '9 bills',
             hint_amount: null,
+            text: null,
+            tone: null,
         },
     ],
     due_label: 'To pay',
@@ -1283,6 +1299,8 @@ export const policyBudget: App.Data.CardBudgetData = {
             count: null,
             hint: 'every year',
             hint_amount: null,
+            text: null,
+            tone: null,
         },
     ],
     due_label: null,
@@ -1413,6 +1431,7 @@ export function agendaEntry(
         notes: null,
         account: null,
         planned: null,
+        replace_url: null,
         href: '/agenda',
         name: entry.subtitle ?? '',
         detail: entry.title,
@@ -1858,6 +1877,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             fields: [],
             complete: [],
             cardType: null,
+            replaces: [],
         },
     ],
     policy: null,
@@ -1906,6 +1926,7 @@ export const homeDraft: App.Data.Reading.RecordDraftData = {
     ],
     complete: [],
     cardType: 'home',
+    replaces: [],
 };
 
 /**

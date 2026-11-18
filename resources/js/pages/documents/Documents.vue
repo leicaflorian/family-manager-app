@@ -2,30 +2,28 @@
 /**
  * *Documents*: the search, the filters (in the panel from below on the phone,
  * open on the left on the computer), the list, 30 at a time, and on the
- * computer the chosen document on the right: in a third column from 1440 px,
- * in a panel floating over the list below that. Without any document, the card
- * that invites to upload the first one.
+ * computer the chosen document in the left column in place of the filters
+ * (`FmFilterAside`), with *Back to the filters*. Without any document, the
+ * card that invites to upload the first one.
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { FileText, ListFilter, Search, X } from '@lucide/vue';
+import { FileText, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
-import {
-    useComputerLayout,
-    useWideComputerLayout,
-} from '@/composables/useLayoutMode';
-import FmActiveFilter from '@/components/fm/FmActiveFilter.vue';
+import { computed, ref } from 'vue';
+import { useListFilters } from '@/composables/useListFilters';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
+import FmDocumentActions from '@/components/fm/FmDocumentActions.vue';
 import FmDocumentDetail from '@/components/fm/FmDocumentDetail.vue';
 import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
+import FmFilterAside from '@/components/fm/FmFilterAside.vue';
+import FmFilterPills from '@/components/fm/FmFilterPills.vue';
+import FmFilterButton from '@/components/fm/FmFilterButton.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
-import FmSidePanel from '@/components/fm/FmSidePanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useToSortCount } from '@/composables/useToSortCount';
@@ -57,14 +55,9 @@ const props = defineProps<{
     selected: App.Data.DocumentDetailData | null;
 }>();
 
-const desktop = useComputerLayout();
-
-/** Wide enough for the chosen document in a third column, as the board draws it. */
-const wide = useWideComputerLayout();
-
 const page = usePage();
 
-/** Closes the floating panel: the same list, filters and page, without the chosen document. */
+/** Closes the document in the left column: the same list, filters and page, without the chosen document. */
 function closeSelected(): void {
     const address = new URL(page.url, window.location.origin);
     address.searchParams.delete('document');
@@ -79,31 +72,6 @@ function closeSelected(): void {
 /** The panel of the filters, on the phone. */
 const filtersOpen = ref(false);
 
-/** The text in the search box, sent with Enter. */
-const search = ref(props.filters.search ?? '');
-watch(
-    () => props.filters.search,
-    (value) => (search.value = value ?? ''),
-);
-
-/**
- * Reloads the list with other filters, keeping the page where it is.
- *
- * @param filters - the new filters
- */
-function apply(filters: DocumentFilters): void {
-    router.get(index().url, filterQuery(filters), {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-    });
-}
-
-/** Sends the search. */
-function searchDocuments(): void {
-    apply({ ...props.filters, search: search.value.trim() || null });
-}
-
 /** The label of a chosen option, or the value itself if it is not among the options. */
 function labelOf(
     options: { value: string; label: string }[],
@@ -116,7 +84,7 @@ function labelOf(
 }
 
 /** The filters in use, each with its chip and what removing it leaves. */
-const chips = computed(() => {
+const pills = computed(() => {
     const filters = props.filters;
     const list: {
         key: string;
@@ -178,6 +146,23 @@ const chips = computed(() => {
     return list;
 });
 
+/** The search box, the visits with other filters, the pills and the layout. */
+const {
+    desktop,
+    searchText,
+    submitSearch,
+    go,
+    removePill,
+    removeAll,
+    filterCount,
+    layout,
+} = useListFilters<DocumentFilters>({
+    filters: () => props.filters,
+    pills: () => pills.value,
+    url: (query) => index.url({ query: filterQuery(query as DocumentFilters) }),
+});
+
+/** How many documents pass the filters, said beside the pills (or above the list without filters). */
 const count = computed(() =>
     transChoice(
         '{1} :count document, the most recent first|[2,*] :count documents, the most recent first',
@@ -187,6 +172,11 @@ const count = computed(() =>
         },
     ),
 );
+
+/** The page of the list in the address, or null on the first. */
+function currentPage(): string | null {
+    return new URL(page.url, window.location.origin).searchParams.get('page');
+}
 
 /**
  * Where a row leads: on the computer the document on the right of the list,
@@ -198,7 +188,11 @@ const count = computed(() =>
 function rowHref(document: App.Data.DocumentData): string {
     return desktop.value
         ? index.url({
-              query: { ...filterQuery(props.filters), document: document.id },
+              query: {
+                  ...filterQuery(props.filters),
+                  ...(currentPage() ? { page: currentPage() } : {}),
+                  document: document.id,
+              },
           })
         : show.url(document.id);
 }
@@ -229,60 +223,72 @@ function rowHref(document: App.Data.DocumentData): string {
             }}</FmButton>
         </FmEmpty>
 
-        <div
-            v-else
-            :class="[
-                'flex flex-col gap-6 md:grid md:items-start',
-                selected && wide
-                    ? 'xl:grid-cols-[16rem_minmax(0,3fr)_minmax(0,2fr)]'
-                    : 'xl:grid-cols-[16rem_minmax(0,1fr)]',
-            ]"
-        >
-            <aside
-                class="sticky top-(--app-header) hidden rounded-card-lg bg-card p-5 shadow-card xl:block"
+        <div v-else :class="layout">
+            <FmFilterAside
+                v-if="desktop"
+                :detail="selected !== null"
+                :detail-label="selected?.title"
+                @close="closeSelected"
             >
-                <FmDocumentFilters
-                    :filters="filters"
-                    :options="options"
-                    @change="apply"
-                />
-            </aside>
+                <template #filters>
+                    <FmDocumentFilters
+                        :filters="filters"
+                        :options="options"
+                        @change="go"
+                    />
+                </template>
+                <template #detail-actions>
+                    <FmDocumentActions
+                        v-if="selected"
+                        :document="selected"
+                        compact
+                        menu-only
+                    />
+                </template>
+                <template #detail>
+                    <FmDocumentDetail
+                        v-if="selected"
+                        :document="selected"
+                        compact
+                        embedded
+                    />
+                </template>
+            </FmFilterAside>
 
             <div class="flex min-w-0 flex-col gap-3.5">
                 <div class="flex gap-2.5">
                     <form
                         role="search"
                         class="min-w-0 grow"
-                        @submit.prevent="searchDocuments"
+                        @submit.prevent="submitSearch"
                     >
                         <FmSearchField
-                            v-model="search"
+                            v-model="searchText"
                             :label="$t('Search a document')"
                         />
                     </form>
-                    <button
-                        type="button"
-                        :aria-label="$t('Filters')"
-                        class="flex size-control-md shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-ink xl:hidden"
+                    <FmFilterButton
+                        v-if="!desktop"
+                        :count="filterCount"
+                        :expanded="filtersOpen"
                         @click="filtersOpen = true"
-                    >
-                        <FmIcon :icon="ListFilter" :size="22" />
-                    </button>
-                </div>
-
-                <div v-if="chips.length > 0" class="flex flex-wrap gap-2">
-                    <FmActiveFilter
-                        v-for="chip in chips"
-                        :key="chip.key"
-                        :label="chip.label"
-                        @remove="apply({ ...filters, ...chip.without })"
                     />
                 </div>
 
+                <FmFilterPills
+                    v-if="pills.length > 0"
+                    :pills="pills"
+                    :found="documents.length > 0 ? count : ''"
+                    @remove="removePill"
+                    @remove-all="removeAll"
+                />
+
                 <template v-if="documents.length > 0">
-                    <span class="mx-1 text-body-sm text-ink-soft">{{
-                        count
-                    }}</span>
+                    <span
+                        v-if="pills.length === 0"
+                        class="mx-1 text-body-sm text-ink-soft"
+                        >{{ count }}</span
+                    >
                     <FmCard list>
                         <FmDocumentRow
                             v-for="document in documents"
@@ -302,38 +308,17 @@ function rowHref(document: App.Data.DocumentData): string {
                     :text="$t('Remove a filter or change the search.')"
                 />
             </div>
-
-            <section
-                v-if="selected && wide"
-                class="sticky top-(--app-header) min-w-0"
-            >
-                <FmDocumentDetail :document="selected" compact />
-            </section>
         </div>
 
-        <FmSidePanel
-            v-if="selected && !wide"
-            :label="selected.title"
-            @close="closeSelected"
+        <FmBottomSheet
+            v-if="!desktop"
+            v-model:open="filtersOpen"
+            :title="$t('Filters')"
         >
-            <FmDocumentDetail :document="selected" compact>
-                <template #actions>
-                    <FmButton
-                        variant="soft"
-                        :icon="X"
-                        :label="$t('Close')"
-                        small
-                        @click="closeSelected"
-                    />
-                </template>
-            </FmDocumentDetail>
-        </FmSidePanel>
-
-        <FmBottomSheet v-model:open="filtersOpen" :title="$t('Filters')">
             <FmDocumentFilters
                 :filters="filters"
                 :options="options"
-                @change="apply"
+                @change="go"
             />
             <FmButton wide @click="filtersOpen = false">{{
                 $t('Show the documents')

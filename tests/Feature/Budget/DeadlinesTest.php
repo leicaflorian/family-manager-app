@@ -161,6 +161,20 @@ it('finds only real occurrences', function (): void {
     });
 })->throws(NotFoundHttpException::class);
 
+it('finds the due date of a planned item already in hand from the day of its address', function (): void {
+    insideBianchi(function (): void {
+        $retta = deadlinesRetta();
+
+        expect(resolve(Deadlines::class)->findOnDay($retta, '2026-12-05')->occurrence->originalDate->toDateString())->toBe('2026-12-05');
+    });
+});
+
+it('does not read a day out of range as another day', function (): void {
+    insideBianchi(function (): void {
+        resolve(Deadlines::class)->findOnDay(deadlinesRetta(), '2026-11-35');
+    });
+})->throws(NotFoundHttpException::class);
+
 it('lists the late deadlines and those up to a day, unpaid only', function (): void {
     insideBianchi(function (): void {
         $retta = deadlinesRetta(['start_date' => '2026-09-05']);

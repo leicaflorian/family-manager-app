@@ -101,7 +101,7 @@ describe('FmCardBudget', () => {
         expect(screen.getByText('Left 3.024,00 €')).toBeInTheDocument();
     });
 
-    it('places the tiles of the card beside the figures and its data after the bills to pay', () => {
+    it('puts the tiles of the card and the figures in one box, the tiles first, and its data after the bills to pay', () => {
         renderPage({
             render: () =>
                 h(
@@ -114,7 +114,16 @@ describe('FmCardBudget', () => {
                 ),
         });
 
-        expect(screen.getByText('Expiry tile')).toBeInTheDocument();
+        // One box holds the tiles of the card first, then the figures
+        const tile = screen.getByText('Expiry tile');
+        const box = tile.closest('.shadow-card')!;
+        const figure = within(box as HTMLElement).getByText(
+            luceBudget.numbers[0]!.label,
+        );
+        expect(
+            tile.compareDocumentPosition(figure) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
         const titles = screen
             .getAllByRole('heading', { level: 2 })
             .map((heading) => heading.textContent);

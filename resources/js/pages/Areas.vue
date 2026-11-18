@@ -160,7 +160,7 @@ function tile(area: string): string {
         <div
             v-else
             v-auto-animate
-            class="grid gap-4 lg:grid-cols-[repeat(auto-fill,minmax(340px,1fr))] lg:gap-5"
+            class="grid gap-4 wide:grid-cols-[repeat(auto-fill,minmax(340px,1fr))] wide:gap-5"
         >
             <section
                 v-for="area in shown"

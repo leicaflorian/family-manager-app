@@ -13,8 +13,8 @@
 >
 /**
  * A level of the tree of the categories, of documents or of expenses: each
- * category with, on the right, the number of its documents (or what the `after`
- * slot shows) and, if it has any, the arrow that opens the subcategories. It
+ * category with, on the right, the number of its documents, those of its
+ * subcategories included (or what the `after` slot shows) and, if it has any, the arrow that opens the subcategories. It
  * calls itself for the levels below.
  *
  * @group forms
@@ -55,6 +55,23 @@ defineSlots<{
 
 /** The ids of the open categories. */
 const open = ref(new Set<number>());
+
+/**
+ * How many documents a category holds, those of its subcategories included:
+ * the server counts each category on its own (deleting it looks only at those).
+ *
+ * @param category - the category
+ * @returns the documents of the category and of all the levels below
+ */
+function documentsWithin(category: T): number {
+    const own =
+        'documents_count' in category ? Number(category.documents_count) : 0;
+
+    return category.children.reduce(
+        (total, child) => total + documentsWithin(child),
+        own,
+    );
+}
 
 /**
  * Opens or closes the subcategories.
@@ -133,7 +150,7 @@ function toggle(id: number): void {
                             <span
                                 v-if="'documents_count' in category"
                                 class="text-meta text-ink-soft"
-                                >{{ category.documents_count }}</span
+                                >{{ documentsWithin(category) }}</span
                             >
                         </slot>
                     </template>

@@ -2,7 +2,8 @@
 /**
  * A date of a card on its page: the label, the date as `15/10/2026` and below
  * how far it is from today. An expiring date already passed reads «Expired 3
- * days ago» in red.
+ * days ago» in red. `inset` drops the card around it, for a date inside the box
+ * of the figures.
  *
  * @group figures
  */
@@ -12,9 +13,11 @@ import { useFormat } from '@/composables/useFormat';
 import { daysFromToday, relativeDays } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-const { date } = defineProps<{
+const { date, inset = false } = defineProps<{
     /** The date, with its label and whether it expires. */
     date: App.Data.CardDateData;
+    /** Inside the box of the figures: no card of its own. */
+    inset?: boolean;
 }>();
 
 const { date: formatted } = useFormat();
@@ -37,7 +40,10 @@ const distance = computed((): { text: string; expired: boolean } => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-1 rounded-card bg-card p-4 shadow-card">
+    <div
+        class="flex min-w-0 flex-col gap-1"
+        :class="!inset && 'rounded-card bg-card p-4 shadow-card'"
+    >
         <span class="text-meta-strong text-ink-soft">{{ date.label }}</span>
         <span class="text-subtitle text-ink">{{ formatted(date.date) }}</span>
         <span

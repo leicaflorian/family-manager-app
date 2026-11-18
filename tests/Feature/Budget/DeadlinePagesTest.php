@@ -37,78 +37,127 @@ function deadlineAddress(string $title, string $day, string $suffix = ''): strin
     return "/budget/planned/expense/{$planned->id}/occurrences/{$day}{$suffix}";
 }
 
-test('it shows a due date with its card and the next ones', function (): void {
+/** The address of the page of a planned expense of the Bianchi, found by its title. */
+function plannedAddress(string $title, string $suffix = ''): string
+{
+    $planned = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', $title)->sole());
+
+    return "/budget/planned/expense/{$planned->id}{$suffix}";
+}
+
+test('the address of a due date leads to its planned expense, which opens it', function (): void {
     $this->actingAs($this->marco)
         ->get(deadlineAddress('Assicurazione auto', '2026-11-21'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->component('budget/Deadline')
-            ->where('deadline.title', 'Assicurazione auto')
-            ->where('deadline.amount', 418)
-            ->where('deadline.date', '2026-11-21')
-            ->where('deadline.card.label', 'RC auto Panda')
-            ->where('deadline.payment', null)
-            ->has('next', 2)
-            ->where('next.0.date', '2027-11-21')
-            ->has('accounts', 2)
-            ->where('canPay', true)
-            ->where('canChange', true)
-            ->where('pay', false));
+        ->assertRedirect(plannedAddress('Assicurazione auto', '?deadline=2026-11-21'));
 });
 
-test('it shows a paid due date with its payment', function (): void {
+test('it keeps the request to pay and the page the visit came from', function (): void {
+    $this->actingAs($this->marco)
+        ->from('http://localhost/cards/vehicle/3?tab=1')
+        ->get(deadlineAddress('Assicurazione auto', '2026-11-21', '?pay=1'))
+        ->assertRedirect(plannedAddress('Assicurazione auto', '?deadline=2026-11-21&pay=1&from='.rawurlencode('/cards/vehicle/3?tab=1')));
+});
+
+test('it does not keep a page of another site, or the planned expense itself, as where it came from', function (string $from): void {
+    $this->actingAs($this->marco)
+        ->from(strtr($from, ['{planned}' => plannedAddress('Assicurazione auto')]))
+        ->get(deadlineAddress('Assicurazione auto', '2026-11-21'))
+        ->assertRedirect(plannedAddress('Assicurazione auto', '?deadline=2026-11-21'));
+})->with([
+    'another site' => 'https://example.com/agenda',
+    'the planned expense' => 'http://localhost{planned}',
+]);
+
+test('a paid due date leads to the movement that paid it', function (): void {
+    $expense = insideBianchi(fn (): Expense => Expense::query()->where('occurrence_date', '2026-11-05')->sole());
+
     $this->actingAs($this->marco)
         ->get(deadlineAddress('Retta danza', '2026-11-05'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->where('deadline.payment.date', '2026-10-20')
-            ->where('deadline.payment.amount', 45)
-            ->where('deadline.payment.account', 'Carta Laura')
-            ->has('next', 3)
-            ->where('next.0.date', '2026-12-05'));
+        ->assertRedirect("/budget/movements/expense/{$expense->id}");
 });
 
-test('it opens with the panel of the payment when asked', function (): void {
+test('the address of a due date of an income leads to the planned income', function (): void {
+    $planned = insideBianchi(fn (): PlannedIncome => PlannedIncome::query()->where('title', 'Stipendio di Marco')->sole());
+
     $this->actingAs($this->marco)
-        ->get(deadlineAddress('Assicurazione auto', '2026-11-21', '?pay=1'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('pay', true));
+        ->get("/budget/planned/income/{$planned->id}/occurrences/2026-10-27")
+        ->assertRedirect("/budget/planned/income/{$planned->id}?deadline=2026-10-27");
 });
+
+test('the planned expense sends the due date to open, the request to pay and where to go back', function (): void {
+    $this->actingAs($this->marco)
+        ->get(plannedAddress('Assicurazione auto', '?deadline=2026-11-21&pay=1&from=%2Fagenda'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('budget/PlannedItem')
+            ->where('opening.date', '2026-11-21')
+            ->where('opening.amount', 418)
+            ->where('opening.card.label', 'RC auto Panda')
+            ->where('pay', true)
+            ->where('back', '/agenda'));
+});
+
+test('without a due date, or with a day that is not one, the planned expense opens nothing', function (string $suffix): void {
+    $this->actingAs($this->marco)
+        ->get(plannedAddress('Assicurazione auto', $suffix))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('opening', null)
+            ->where('pay', false)
+            ->where('back', null));
+})->with([
+    'nothing' => '',
+    'not a due date' => '?deadline=2026-11-22',
+    'not a date' => '?deadline=soon',
+]);
+
+test('the planned expense goes back only to a page of the app', function (string $from): void {
+    $this->actingAs($this->marco)
+        ->get(plannedAddress('Assicurazione auto', '?deadline=2026-11-21&from='.rawurlencode($from)))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('back', null));
+})->with([
+    'another site' => 'https://example.com',
+    'no scheme' => '//example.com',
+    'a backslash' => '/\\example.com',
+    'not a path' => 'agenda',
+]);
 
 test('it preselects the default account when the planned expense has none', function (): void {
     insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Assicurazione auto')->update(['financial_account_id' => null]));
 
     $this->actingAs($this->marco)
-        ->get(deadlineAddress('Assicurazione auto', '2026-11-21'))
+        ->get(plannedAddress('Assicurazione auto', '?deadline=2026-11-21'))
         ->assertInertia(function (AssertableInertia $page): void {
             $default = insideBianchi(fn (): FinancialAccount => FinancialAccount::query()->where('is_default', true)->firstOrFail());
 
-            $page->where('deadline.account_id', $default->id)->where('deadline.account', $default->name);
+            $page->where('opening.account_id', $default->id)->where('opening.account', $default->name);
         });
 });
 
-test('it opens the due date of an income', function (): void {
-    $planned = insideBianchi(fn (): PlannedIncome => PlannedIncome::query()->where('title', 'Stipendio di Marco')->sole());
-
-    $this->actingAs($this->marco)
-        ->get("/budget/planned/income/{$planned->id}/occurrences/2026-10-27")
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->where('deadline.kind', 'income')
-            ->where('deadline.amount', 1850));
-});
-
-test('it records the payment and goes back to the due date', function (): void {
+test('it records the payment and goes back to the planned expense', function (): void {
     $address = deadlineAddress('Assicurazione auto', '2026-11-21');
 
     $this->actingAs($this->marco)
         ->withHeader('Accept-Language', 'it')
         ->post("{$address}/payment", ['date' => '2026-10-26', 'amount' => 418, 'financial_account_id' => null])
-        ->assertRedirect($address)
+        ->assertRedirect(plannedAddress('Assicurazione auto'))
         ->assertInertiaFlash('toast.type', 'success');
 
     $expense = insideBianchi(fn (): Expense => Expense::query()->where('occurrence_date', '2026-11-21')->sole());
     expect($expense->title)->toBe('Assicurazione auto novembre 2026');
-
-    $this->get($address)->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('deadline.payment.date', '2026-10-26'));
 });
+
+test('it goes back to the page the due date was opened from, only a page of the app', function (string $how): void {
+    $address = deadlineAddress('Retta danza', '2027-01-05');
+    $this->actingAs($this->marco);
+
+    $response = $how === 'payment'
+        ? $this->post("{$address}/payment?back=%2Fcards%2Fvehicle%2F3", ['date' => '2026-10-26', 'amount' => 45])
+        : $this->put("{$address}/exceptions?back=%2Fcards%2Fvehicle%2F3", ['skip' => false, 'change_amount' => true, 'amount' => 50]);
+    $response->assertRedirect('/cards/vehicle/3');
+
+    $this->put("{$address}/exceptions?back=%2F%2Fexample.com", ['skip' => false, 'change_amount' => true, 'amount' => 55])
+        ->assertRedirect(plannedAddress('Retta danza'));
+})->with(['payment', 'exceptions']);
 
 test('it goes back to the agenda after paying from it', function (): void {
     $address = deadlineAddress('Assicurazione auto', '2026-11-21');
@@ -132,17 +181,17 @@ test('it refuses to pay twice and keeps one expense', function (): void {
     expect(insideBianchi(fn (): int => Expense::query()->where('occurrence_date', '2026-11-05')->count()))->toBe(1);
 });
 
-test('it changes a due date and goes back to it', function (): void {
+test('it changes a due date and goes back to the planned expense', function (): void {
     $address = deadlineAddress('Retta danza', '2027-01-05');
 
     $this->actingAs($this->marco)
         ->put("{$address}/exceptions", ['skip' => false, 'change_amount' => true, 'amount' => 70, 'change_date' => false, 'notes' => 'Saggio'])
-        ->assertRedirect($address);
+        ->assertRedirect(plannedAddress('Retta danza'));
 
-    $this->get($address)->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('deadline.amount', 70)
-        ->where('deadline.base_amount', 45)
-        ->where('deadline.notes', 'Saggio'));
+    $this->get(plannedAddress('Retta danza', '?deadline=2027-01-05'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('opening.amount', 70)
+        ->where('opening.base_amount', 45)
+        ->where('opening.notes', 'Saggio'));
 });
 
 test('it answers 404 to an address that is not a due date', function (string $path, string $how): void {
@@ -182,14 +231,10 @@ test('it answers 404 to an address that is not a due date', function (string $pa
 test('a member pays but cannot change a due date', function (): void {
     $address = deadlineAddress('Assicurazione auto', '2026-11-21');
 
-    $this->actingAs($this->rosa)
-        ->get($address)
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->where('canPay', true)
-            ->where('canChange', false));
+    $this->actingAs($this->rosa);
 
     $this->put("{$address}/exceptions", ['skip' => true])->assertForbidden();
-    $this->post("{$address}/payment", ['date' => '2026-10-26', 'amount' => 418])->assertRedirect($address);
+    $this->post("{$address}/payment", ['date' => '2026-10-26', 'amount' => 418])->assertRedirect(plannedAddress('Assicurazione auto'));
 });
 
 test('the planned kind finds only the planned items of the family', function (): void {
@@ -209,31 +254,18 @@ function plannedOfFamily(User $user): PlannedExpense
     return CurrentFamily::using($user->family_id, fn (): PlannedExpense => PlannedExpense::factory()->create(['family_id' => $user->family_id, 'start_date' => '2026-12-05']));
 }
 
-test('a skipped due date keeps its address and says it is not paid', function (): void {
-    $address = deadlineAddress('Retta danza', '2026-07-05');
-
+test('a skipped due date keeps its address and opens on the planned expense, saying it is not paid', function (): void {
     $this->actingAs($this->marco)
-        ->get($address)
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->component('budget/Deadline')
-            ->where('deadline.skipped', true)
-            ->where('deadline.late', false)
-            ->where('deadline.payment', null)
-            ->where('deadline.original_date', '2026-07-05')
-            ->where('deadline.notes', 'Vacanze'));
-});
+        ->get(deadlineAddress('Retta danza', '2026-07-05'))
+        ->assertRedirect(plannedAddress('Retta danza', '?deadline=2026-07-05'));
 
-test('skipping a due date leads back to its page, which says it is not paid', function (): void {
-    $address = deadlineAddress('Retta danza', '2027-01-05');
-
-    $this->actingAs($this->marco)
-        ->followingRedirects()
-        ->put("{$address}/exceptions", ['skip' => true])
-        ->assertOk()
+    $this->get(plannedAddress('Retta danza', '?deadline=2026-07-05'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->component('budget/Deadline')
-            ->where('deadline.skipped', true));
+            ->where('opening.skipped', true)
+            ->where('opening.late', false)
+            ->where('opening.payment', null)
+            ->where('opening.original_date', '2026-07-05')
+            ->where('opening.notes', 'Vacanze'));
 });
 
 test('saving a skipped due date with no choice brings it back', function (): void {
@@ -241,11 +273,11 @@ test('saving a skipped due date with no choice brings it back', function (): voi
 
     $this->actingAs($this->marco)
         ->put("{$address}/exceptions", ['skip' => false, 'change_amount' => false, 'change_date' => false])
-        ->assertRedirect($address);
+        ->assertRedirect(plannedAddress('Retta danza'));
 
-    $this->get($address)->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('deadline.skipped', false)
-        ->where('deadline.late', true));
+    $this->get(plannedAddress('Retta danza', '?deadline=2026-07-05'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('opening.skipped', false)
+        ->where('opening.late', true));
 });
 
 test('a skipped due date cannot be paid', function (): void {

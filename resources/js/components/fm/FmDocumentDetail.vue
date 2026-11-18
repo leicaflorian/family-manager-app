@@ -10,7 +10,7 @@
  * @group sections
  */
 import { Link } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { Download, Pencil, Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,11 @@ import FmDocumentActions from './FmDocumentActions.vue';
 import FmFilePanel from './FmFilePanel.vue';
 import FmIcon from './FmIcon.vue';
 
-const { document, compact = false } = defineProps<{
+const {
+    document,
+    compact = false,
+    embedded = false,
+} = defineProps<{
     /** The document. */
     document: App.Data.DocumentDetailData;
     /**
@@ -29,6 +33,11 @@ const { document, compact = false } = defineProps<{
      * and, on their right, *Download* and the ⋯ menu, icons only.
      */
     compact?: boolean;
+    /**
+     * Inside the left column of *Documents* (`FmFilterAside` is the card):
+     * no card of its own, and a link to the page of the document at the bottom.
+     */
+    embedded?: boolean;
 }>();
 
 defineSlots<{
@@ -37,6 +46,13 @@ defineSlots<{
 }>();
 
 const { date } = useFormat();
+
+/** The line under the title of the embedded layout: the kind, whose it is and who it is from. */
+const subtitle = computed(() =>
+    [document.category, document.person, document.organization]
+        .filter(Boolean)
+        .join(' · '),
+);
 
 /** The colours of the badge of each status. */
 const statusColor: Record<string, string> = {
@@ -79,16 +95,57 @@ const shownGroup = computed(
 
 <template>
     <div
-        :data-card="compact || undefined"
+        :data-card="(compact && !embedded) || undefined"
         :class="
             cn(
                 'flex flex-col gap-4',
-                compact && 'rounded-card-lg bg-card p-5.5 shadow-card',
+                compact &&
+                    !embedded &&
+                    'rounded-card-lg bg-card p-5.5 shadow-card',
             )
         "
     >
+        <div v-if="embedded" class="flex flex-col gap-3">
+            <div class="flex min-w-0 flex-col gap-1">
+                <h2 class="m-0 text-stat">{{ document.title }}</h2>
+                <span v-if="subtitle" class="text-body-sm text-ink-soft">{{
+                    subtitle
+                }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div data-equal class="min-w-0 flex-1 basis-0">
+                    <FmButton
+                        :href="document.file.download_url"
+                        download
+                        :icon="Download"
+                        variant="neutral"
+                        wide
+                        class="h-control min-w-0 gap-2 px-3.5! text-action"
+                        ><span class="truncate">{{
+                            $t('Download')
+                        }}</span></FmButton
+                    >
+                </div>
+                <div
+                    v-if="document.can_edit"
+                    data-equal
+                    class="min-w-0 flex-1 basis-0"
+                >
+                    <FmButton
+                        :href="edit.url(document.id)"
+                        :icon="Pencil"
+                        wide
+                        class="h-control min-w-0 gap-2 px-3.5!"
+                        ><span class="truncate">{{
+                            $t('Edit')
+                        }}</span></FmButton
+                    >
+                </div>
+            </div>
+        </div>
+
         <div
-            v-if="compact"
+            v-else-if="compact"
             class="flex flex-nowrap items-start justify-between gap-3"
         >
             <div class="flex min-w-0 flex-1 flex-col gap-1">
@@ -282,5 +339,13 @@ const shownGroup = computed(
                 </section>
             </div>
         </div>
+
+        <FmButton
+            v-if="embedded"
+            :href="show.url(document.id)"
+            variant="soft"
+            wide
+            >{{ $t('Open the page of the document') }}</FmButton
+        >
     </div>
 </template>

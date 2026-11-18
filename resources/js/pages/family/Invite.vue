@@ -139,7 +139,7 @@ usePageTrail(() => [
             }}
         </FmNotice>
         <div
-            class="flex flex-col gap-1 pt-2 lg:flex-row-reverse lg:justify-start lg:gap-2.5"
+            class="flex flex-col gap-1 pt-2 wide:flex-row-reverse wide:justify-start wide:gap-2.5"
         >
             <FmButton type="submit" :disabled="form.processing">{{
                 $t('Send the invitation')
