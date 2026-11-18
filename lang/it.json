@@ -2021,5 +2021,6 @@
     "Open the planned expense": "Apri la spesa fissa",
     "Open the planned income": "Apri l'entrata fissa",
     "Add another card": "Aggiungi un'altra tessera",
-    "Phone number": "Telefono"
+    "Phone number": "Telefono",
+    "This due date is skipped: it is not paid.": "Questa scadenza è saltata: non si paga."
 }

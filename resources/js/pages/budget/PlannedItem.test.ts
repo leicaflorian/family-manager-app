@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
+import { toast } from 'vue-sonner';
 import {
     afterEach,
     beforeEach,
@@ -210,6 +211,69 @@ describe('A planned expense', () => {
             await settle();
 
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        });
+
+        it('goes back where it came from only from the panel opened on arrival', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(PlannedItem, {
+                ...props,
+                detail: { ...danceDetail, can_edit: false },
+                opening: december,
+                back: '/agenda',
+            });
+            await screen.findByRole('dialog', { name: 'I paid it' });
+
+            await userEvent.keyboard('{Escape}');
+            await settle();
+            const next = screen.getByRole('region', { name: 'Next due dates' });
+            await userEvent.click(
+                within(next).getByRole('button', { name: /05\/12\/2026/ }),
+            );
+            await userEvent.click(
+                await screen.findByRole('button', { name: 'Confirm' }),
+            );
+            await settle();
+
+            expect(post.mock.calls[0]![0]).toBe(
+                '/budget/planned/expense/4/occurrences/2026-12-05/payment',
+            );
+        });
+
+        it('still goes back where it came from when Change this due date leads to I paid it', async () => {
+            const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+            renderPage(PlannedItem, {
+                ...props,
+                opening: december,
+                back: '/agenda',
+            });
+            await screen.findByRole('dialog', { name: 'Change this due date' });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'I paid it' }),
+            );
+            await userEvent.click(
+                await screen.findByRole('button', { name: 'Confirm' }),
+            );
+            await settle();
+
+            expect(post.mock.calls[0]![0]).toBe(
+                '/budget/planned/expense/4/occurrences/2026-12-05/payment?back=%2Fagenda',
+            );
+        });
+
+        it('says a skipped due date is not paid to who cannot change it', async () => {
+            const info = vi.spyOn(toast, 'info');
+            renderPage(PlannedItem, {
+                ...props,
+                detail: { ...danceDetail, can_edit: false },
+                opening: { ...december, skipped: true },
+            });
+            await settle();
+
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            expect(info).toHaveBeenCalledWith(
+                'This due date is skipped: it is not paid.',
+            );
         });
     });
 
