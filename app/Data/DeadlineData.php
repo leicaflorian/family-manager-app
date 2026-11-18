@@ -41,6 +41,7 @@ final class DeadlineData extends Data
      * @param  string|null  $income_type  the type of an income, for example `salary`
      * @param  string|null  $person  the first name of the person it is for
      * @param  PolicyRenewalData|null  $renewal  the policy *I paid it* can renew with this premium
+     * @param  float  $fee  the commission that the amount includes, 0 without one
      */
     public function __construct(
         public readonly string $kind,
@@ -62,6 +63,7 @@ final class DeadlineData extends Data
         public readonly ?string $income_type,
         public readonly ?string $person,
         public readonly ?PolicyRenewalData $renewal = null,
+        public readonly float $fee = 0.0,
     ) {}
 
     /**
@@ -104,6 +106,7 @@ final class DeadlineData extends Data
             income_type: $planned instanceof PlannedIncome ? $planned->type->value : null,
             person: $planned->person?->first_name,
             renewal: $policy instanceof InsurancePolicy ? PolicyRenewalData::fromPolicy($policy) : null,
+            fee: $occurrence->fee,
         );
     }
 }

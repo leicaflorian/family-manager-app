@@ -97,7 +97,7 @@ final class DeadlineController extends Controller
         $policy = $renewal === 'only' ? null : $request->renewalPolicy();
 
         $payment = DB::transaction(function () use ($record, $update, $request, $deadline, $paid, $account, $receipt, $renewal, $policy): Expense|Income {
-            $payment = $record->handle($deadline, $paid, $request->float('amount'), $account === 0 ? null : $account, $receipt instanceof UploadedFile ? $receipt : null);
+            $payment = $record->handle($deadline, $paid, $request->float('amount'), $account === 0 ? null : $account, $receipt instanceof UploadedFile ? $receipt : null, $request->filled('fee_amount') ? $request->float('fee_amount') : null);
             $newExpiry = $request->day('new_expiry');
 
             if ($renewal === 'same' && $policy instanceof InsurancePolicy && $newExpiry instanceof CarbonImmutable) {

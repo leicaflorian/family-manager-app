@@ -51,6 +51,7 @@ const subtitle = computed(() =>
                 :base="deadline.base_amount"
                 :estimated="deadline.estimated"
                 :income="deadline.kind === 'income'"
+                :fee="deadline.fee"
             />
         </template>
     </FmRow>

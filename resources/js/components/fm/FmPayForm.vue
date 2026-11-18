@@ -21,7 +21,7 @@ import { useFormat } from '@/composables/useFormat';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { monthName } from '@/lib/budget';
 import { errors } from '@/lib/errors';
-import { formatAmount, parseAmount } from '@/lib/forms';
+import { formatAmount, parseAmount, withFee, withoutFee } from '@/lib/forms';
 import { isoDate, relativeDays } from '@/lib/format';
 import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
@@ -66,13 +66,15 @@ type Renewal = 'only' | 'same' | 'changed';
 
 /**
  * The values the form starts from: today, the amount and the account of the
- * due date, only the payment and the expiry a year after the policy's.
+ * due date (an expense as its cost plus the commission of the planned
+ * expense), only the payment and the expiry a year after the policy's.
  *
  * @returns the fields, without a receipt
  */
 function startValues(): {
     date: string;
     amount: string;
+    fee_amount: string;
     financial_account_id: string;
     receipt: File | null;
     renewal: Renewal;
@@ -80,7 +82,8 @@ function startValues(): {
 } {
     return {
         date: isoDate(),
-        amount: formatAmount(deadline.amount),
+        amount: formatAmount(withoutFee(deadline.amount, deadline.fee)),
+        fee_amount: deadline.fee > 0 ? formatAmount(deadline.fee) : '',
         financial_account_id:
             deadline.account_id === null ? '' : String(deadline.account_id),
         receipt: null,
@@ -198,7 +201,15 @@ function save(): void {
         action,
         {
             date: values.date,
-            amount: parseAmount(values.amount),
+            ...(income.value
+                ? { amount: parseAmount(values.amount) }
+                : {
+                      amount: withFee(
+                          parseAmount(values.amount),
+                          parseAmount(values.fee_amount),
+                      ),
+                      fee_amount: parseAmount(values.fee_amount),
+                  }),
             financial_account_id: values.financial_account_id || null,
             ...(values.receipt ? { receipt: values.receipt } : {}),
             ...renewalFields(),
@@ -240,6 +251,19 @@ defineExpose({ confirmClose: changes.confirmClose, reset });
                 name="amount"
                 :errors="errors(problems.amount)"
             />
+        </div>
+        <div v-if="!income" class="flex flex-col gap-1.5">
+            <FormKit
+                v-model="values.fee_amount"
+                type="currency"
+                :label="$t('Commission')"
+                optional
+                name="fee_amount"
+                :errors="errors(problems.fee_amount)"
+            />
+            <p class="m-0 text-meta text-ink-soft">
+                {{ $t('It is added to the amount.') }}
+            </p>
         </div>
         <p
             v-if="income"

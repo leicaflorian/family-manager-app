@@ -10,10 +10,12 @@ use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Cards\FieldKind;
 use App\Enums\InsurancePolicyStatus;
+use App\Enums\IntervalUnit;
 use App\Http\Requests\Concerns\UploadsFiles;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\InsurancePolicy;
+use App\Rules\OfFamily;
 use Closure;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Database\Eloquent\Collection;
@@ -21,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -84,6 +87,7 @@ final class SaveCardRequest extends FormRequest
             'unlink_documents' => ['array'],
             'unlink_documents.*' => ['integer'],
             ...$this->replacementRules(),
+            ...$this->plannedRules(),
         ];
     }
 
@@ -249,6 +253,59 @@ final class SaveCardRequest extends FormRequest
         }
 
         return $columns;
+    }
+
+    /**
+     * The planned expense to create with a new subscription, from the section *Planned expense* of its form; null
+     * on any other card, or when the section has no cost.
+     *
+     * @return array{amount: float, interval: int, interval_unit: string, start_date: string, category_id: ?int, paid: bool}|null
+     */
+    public function subscriptionPlanned(): ?array
+    {
+        if (! $this->canPlan() || ! $this->filled('planned.amount')) {
+            return null;
+        }
+
+        return [
+            'amount' => $this->float('planned.amount'),
+            'interval' => max(1, $this->integer('planned.interval')),
+            'interval_unit' => $this->string('planned.interval_unit', IntervalUnit::Month->value)->toString() ?: IntervalUnit::Month->value,
+            'start_date' => $this->string('planned.start_date')->toString(),
+            'category_id' => $this->filled('planned.category_id') ? $this->integer('planned.category_id') : null,
+            'paid' => $this->boolean('planned.paid'),
+        ];
+    }
+
+    /**
+     * The rules of the section *Planned expense*, only for a new subscription: with a cost, the first payment is
+     * needed.
+     *
+     * @return array<string, list<mixed>>
+     */
+    private function plannedRules(): array
+    {
+        if (! $this->canPlan()) {
+            return [];
+        }
+
+        return [
+            'planned' => ['nullable', 'array'],
+            'planned.amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'planned.interval' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'planned.interval_unit' => ['nullable', Rule::enum(IntervalUnit::class)],
+            'planned.start_date' => ['nullable', 'required_with:planned.amount', 'date_format:Y-m-d'],
+            'planned.category_id' => ['nullable', new OfFamily('expense_categories')],
+            'planned.paid' => ['boolean'],
+        ];
+    }
+
+    /**
+     * Whether the form can create a planned expense: a new subscription.
+     */
+    private function canPlan(): bool
+    {
+        return $this->cardType()->type() === 'subscription' && ! $this->card() instanceof Model;
     }
 
     /**

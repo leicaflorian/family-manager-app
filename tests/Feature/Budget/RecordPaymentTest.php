@@ -171,3 +171,22 @@ test('it gives the payment the card of its planned expense', function (): void {
         expect($expense)->card_type->toBe('vehicle')->card_id->toBe($planned->card_id);
     });
 });
+
+test('it records the commission of a payment, included in its amount', function (): void {
+    insideBianchi(function (): void {
+        $expense = resolve(RecordPayment::class)->handle(paymentDeadline('expense', 'Assicurazione auto', '2026-11-21'), CarbonImmutable::parse('2026-10-26'), 419.0, null, null, 1.0);
+
+        expect((float) $expense->amount)->toBe(419.0)
+            ->and((float) $expense->fee_amount)->toBe(1.0);
+    });
+});
+
+test('it records a payment without commission when none is given, even if the planned expense has one', function (): void {
+    insideBianchi(function (): void {
+        PlannedExpense::query()->where('title', 'Assicurazione auto')->update(['fee_amount' => 1]);
+
+        $expense = recordIt(paymentDeadline('expense', 'Assicurazione auto', '2026-11-21'), '2026-10-26', 418.0);
+
+        expect($expense->fee_amount)->toBeNull();
+    });
+});

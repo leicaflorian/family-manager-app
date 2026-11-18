@@ -135,6 +135,29 @@ describe('FmChangeDeadlineSheet', () => {
         });
     });
 
+    it('changes the cost of a due date with a commission, which stays apart', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(FmChangeDeadlineSheet, {
+            ...props,
+            deadline: { ...props.deadline, amount: 651, fee: 1 },
+        });
+        await screen.findByRole('dialog');
+
+        expect(screen.getByText('Instead of 650,00 €')).toBeInTheDocument();
+        await userEvent.click(screen.getByLabelText('Different amount'));
+        await settle();
+        await waitFor(() =>
+            expect(screen.getByLabelText('New amount')).toHaveValue(
+                '650,00\u00a0€',
+            ),
+        );
+        expect(screen.getByText('Plus 1,00 € commission.')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(put.mock.calls[0]![1]).toMatchObject({ amount: 650 });
+    });
+
     it('starts from the changes the due date already has', async () => {
         renderPage(FmChangeDeadlineSheet, {
             ...props,

@@ -73,3 +73,35 @@ export function parseAmount(value: unknown): number | null {
 export function formatAmount(amount: number | null | undefined): string {
     return amount === null || amount === undefined ? '' : amount.toFixed(2);
 }
+
+/**
+ * The cost of an expense without its commission, which the amount includes.
+ *
+ * @param total - the amount, commission included, or null
+ * @param fee - the commission, or null
+ * @returns the cost, to the cent, or null without an amount
+ */
+export function withoutFee(
+    total: number | null | undefined,
+    fee: number | null | undefined,
+): number | null {
+    return total === null || total === undefined
+        ? null
+        : (Math.round(total * 100) - Math.round((fee ?? 0) * 100)) / 100;
+}
+
+/**
+ * The amount of an expense: its cost plus the commission.
+ *
+ * @param cost - the cost without the commission, or null
+ * @param fee - the commission, or null
+ * @returns the amount, to the cent, or null without a cost
+ */
+export function withFee(
+    cost: number | null,
+    fee: number | null,
+): number | null {
+    return cost === null
+        ? null
+        : (Math.round(cost * 100) + Math.round((fee ?? 0) * 100)) / 100;
+}

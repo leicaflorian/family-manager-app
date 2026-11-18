@@ -603,6 +603,7 @@ export const danceDeadline: App.Data.DeadlineData = {
     income_type: null,
     person: 'Giulia',
     renewal: null,
+    fee: 0,
 };
 
 /** The dance lessons of 05/11/2026, already paid on 20/10. */
@@ -643,6 +644,7 @@ export const lateDeadline: App.Data.DeadlineData = {
     income_type: null,
     person: null,
     renewal: null,
+    fee: 0,
 };
 
 /** The October salary of Marco, expected on 27/10/2026. */
@@ -674,6 +676,7 @@ export const salaryDeadline: App.Data.DeadlineData = {
     income_type: 'salary',
     person: 'Marco',
     renewal: null,
+    fee: 0,
 };
 
 /** The accounts of the family as options of a choice. */
@@ -711,6 +714,7 @@ export const danceRow: App.Data.PlannedRowData = {
     icon: 'graduation-cap',
     color: '#E5A50A',
     ended: false,
+    fee: 0,
 };
 
 /** The gas bill: an estimate, for the whole family, with the card of the supply. */
@@ -930,6 +934,7 @@ export const plannedExpenseOptions = {
 export const newPlannedValues = {
     title: '',
     amount: null,
+    fee_amount: null,
     is_estimated: false,
     notes: null,
     start_date: null,

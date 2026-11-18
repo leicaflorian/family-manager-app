@@ -376,6 +376,7 @@ function subtitle(movement: App.Data.MovementData): string {
                 <FmAmount
                     :amount="movement.amount"
                     :income="movement.kind === 'income'"
+                    :fee="movement.fee_amount"
                 />
             </template>
         </FmRow>

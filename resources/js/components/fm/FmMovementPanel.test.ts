@@ -82,6 +82,44 @@ describe('FmMovementPanel', () => {
         expect(data).not.toHaveProperty('_method');
     });
 
+    it('adds the commission to the amount it sends', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmMovementPanel, props);
+
+        await write('Title', 'Affitto');
+        await write('Amount', '650');
+        await write('Commission (optional)', '1');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            amount: 651,
+            fee_amount: 1,
+        });
+        expect(
+            screen.getByText('It is added to the amount.'),
+        ).toBeInTheDocument();
+    });
+
+    it('shows a saved expense as its cost plus its commission, and saves it back the same', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmMovementPanel, {
+            ...props,
+            movement: { ...danceMovement, amount: 46, fee_amount: 1 },
+        });
+
+        expect(await screen.findByLabelText('Amount')).toHaveValue(
+            '45,00\u00a0€',
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            amount: 46,
+            fee_amount: 1,
+        });
+    });
+
     it('does not send a movement without its title and amount', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(FmMovementPanel, props);

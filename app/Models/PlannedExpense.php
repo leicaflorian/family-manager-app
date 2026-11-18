@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property int $family_id
  * @property string $title
  * @property numeric $amount
+ * @property numeric|null $fee_amount
  * @property int|null $category_id
  * @property bool $is_recurring
  * @property int $interval
@@ -62,7 +63,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'notes'])]
+#[Fillable(['title', 'amount', 'fee_amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'notes'])]
 #[ObservedBy([LoanPlanObserver::class, PlannedExpenseObserver::class])]
 final class PlannedExpense extends FamilyModel
 {
@@ -156,6 +157,7 @@ final class PlannedExpense extends FamilyModel
     {
         return [
             'amount' => 'decimal:2',
+            'fee_amount' => 'decimal:2',
             'is_recurring' => 'boolean',
             'interval' => 'integer',
             'interval_unit' => IntervalUnit::class,

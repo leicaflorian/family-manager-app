@@ -108,6 +108,7 @@
         "FmMailText": "pages",
         "FmNoticeList": "pages",
         "FmPaymentYears": "pages",
+        "FmSubscriptionPlanned": "pages",
         "FmReminderGroup": "pages",
         "FmAgendaFilters": "pages",
         "FmCardForm": "pages",

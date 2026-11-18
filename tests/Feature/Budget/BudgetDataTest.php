@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Data\DeadlineData;
 use App\Data\MovementData;
+use App\Data\PlannedRowData;
 use App\Enums\Role;
 use App\Models\Expense;
 use App\Models\Family;
@@ -58,6 +59,27 @@ test('it sends a changed amount with the old one', function (): void {
         ->and($data->base_amount)->toBe(45.0)
         ->and($data->notes)->toBe('Comprende la quota del saggio di Natale')
         ->and($data->payment)->toBeNull();
+});
+
+test('it sends the commission that the amount of a due date includes', function (): void {
+    insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Retta danza')->update(['fee_amount' => 1.5]));
+
+    $data = budgetDataRetta('2026-11-05');
+
+    expect($data->amount)->toBe(46.5)
+        ->and($data->fee)->toBe(1.5);
+});
+
+test('a planned expense row is worth its amount plus its commission', function (): void {
+    $row = insideBianchi(function (): PlannedRowData {
+        $retta = PlannedExpense::query()->where('title', 'Retta danza')->sole();
+        $retta->update(['fee_amount' => 1.5]);
+
+        return PlannedRowData::fromPlanned($retta, null, null, CarbonImmutable::today('Europe/Rome'));
+    });
+
+    expect($row->amount)->toBe(46.5)
+        ->and($row->fee)->toBe(1.5);
 });
 
 test('it lets a member edit a movement but not delete it', function (): void {
@@ -168,6 +190,7 @@ test('a planned item gives its payments the same columns everywhere', function (
             'category_id' => $expense->category_id,
             'card_type' => 'enrollment',
             'card_id' => $expense->card_id,
+            'fee_amount' => null,
         ])->and(PlannedKind::paymentColumns($income))->toBe([
             'organization_id' => $income->organization_id,
             'financial_account_id' => $income->financial_account_id,

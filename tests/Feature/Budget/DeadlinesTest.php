@@ -234,3 +234,40 @@ it('reads the schedule of a planned item just made by a factory', function (): v
             ->and($incomeSchedule->unit)->toBe(IntervalUnit::Month);
     });
 });
+
+it('adds the commission of a planned expense to every due date', function (): void {
+    insideBianchi(function (): void {
+        $rent = deadlinesRetta(['amount' => 650, 'fee_amount' => 1]);
+        $deadline = resolve(Deadlines::class)->find($rent, deadlinesDay('2026-10-05'));
+
+        expect($deadline->occurrence->amount)->toBe(651.0)
+            ->and($deadline->occurrence->fee)->toBe(1.0)
+            ->and($deadline->occurrence->baseAmount)->toBeNull();
+    });
+});
+
+it('adds the commission to the other amount of a single due date', function (): void {
+    insideBianchi(function (): void {
+        $rent = deadlinesRetta(['amount' => 650, 'fee_amount' => 1]);
+        PlannedExpenseException::factory()->create([
+            'family_id' => deadlinesFamily(),
+            'planned_expense_id' => $rent->id,
+            'type' => ExceptionType::AmountOverride,
+            'occurrence_date' => '2026-10-05',
+            'amount_override' => 700,
+        ]);
+        $deadline = resolve(Deadlines::class)->find($rent->fresh(), deadlinesDay('2026-10-05'));
+
+        expect($deadline->occurrence->amount)->toBe(701.0)
+            ->and($deadline->occurrence->baseAmount)->toBe(651.0);
+    });
+});
+
+it('leaves the due dates of a planned item without commission as they are', function (): void {
+    insideBianchi(function (): void {
+        $deadline = resolve(Deadlines::class)->find(deadlinesRetta(), deadlinesDay('2026-10-05'));
+
+        expect($deadline->occurrence->amount)->toBe(100.0)
+            ->and($deadline->occurrence->fee)->toBe(0.0);
+    });
+});

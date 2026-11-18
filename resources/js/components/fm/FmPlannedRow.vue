@@ -67,6 +67,7 @@ const subtitle = computed(() =>
                     :amount="row.amount"
                     :estimated="row.estimated"
                     :income="row.kind === 'income'"
+                    :fee="row.fee"
                 />
             </span>
         </template>

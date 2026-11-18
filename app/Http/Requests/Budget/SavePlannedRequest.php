@@ -90,6 +90,7 @@ final class SavePlannedRequest extends FormRequest
             'person_id' => ['nullable', new OfFamily('people')],
             ...$expense
                 ? [
+                    'fee_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
                     'category_id' => ['nullable', new OfFamily('expense_categories')],
                     ...$this->cardRules(),
                 ]

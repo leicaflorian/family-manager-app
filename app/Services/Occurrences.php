@@ -229,11 +229,12 @@ final class Occurrences
         return new Occurrence(
             $moved?->startOfDay() ?? $original,
             $original,
-            $amount ?? $schedule->amount,
+            round(($amount ?? $schedule->amount) + $schedule->fee, 2),
             $schedule->estimated && $amount === null,
-            $amount === null ? null : $schedule->amount,
+            $amount === null ? null : round($schedule->amount + $schedule->fee, 2),
             $notes === [] ? null : implode(' · ', $notes),
             $skipped,
+            $schedule->fee,
         );
     }
 

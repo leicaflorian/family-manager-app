@@ -48,7 +48,7 @@ final class PlannedPreset
             'organization_id' => null,
             'financial_account_id' => null,
             'person_id' => null,
-            ...$kind === 'expense' ? ['category_id' => null, 'card' => null] : ['type' => 'salary', 'employment_id' => null],
+            ...$kind === 'expense' ? ['fee_amount' => null, 'category_id' => null, 'card' => null] : ['type' => 'salary', 'employment_id' => null],
         ];
     }
 
@@ -83,6 +83,7 @@ final class PlannedPreset
 
         return self::asText([
             ...$values,
+            'fee_amount' => $planned->fee_amount === null ? null : (float) $planned->fee_amount,
             'category_id' => $planned->category_id,
             'card' => $card instanceof Model ? CardTypes::for($card)->type().':'.ModelId::of($card) : null,
         ]);

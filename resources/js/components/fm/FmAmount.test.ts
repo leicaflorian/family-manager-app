@@ -27,4 +27,19 @@ describe('FmAmount', () => {
 
         expect(screen.getByText('+1.720,00 €')).toHaveClass('text-paid');
     });
+
+    it('writes the commission that the amount includes under it', () => {
+        render(FmAmount, { props: { amount: 651, fee: 1 } });
+
+        expect(screen.getByText('651,00 €')).toBeInTheDocument();
+        expect(
+            screen.getByText('of which 1,00 € commission'),
+        ).toBeInTheDocument();
+    });
+
+    it('writes no commission line without a commission', () => {
+        render(FmAmount, { props: { amount: 650, fee: 0 } });
+
+        expect(screen.queryByText(/commission/)).not.toBeInTheDocument();
+    });
 });
