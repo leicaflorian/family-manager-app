@@ -54,7 +54,7 @@ request as `planned`.
 - `CardController::create` adds `'expense_categories' => BudgetFormOptions::categories()` for the subscription type
   only (check the name against the keys of `HandleInertiaRequests::share()`).
 
-- [ ] **Step 1: Write the failing tests** in `SubscriptionPlannedTest` (as `SaveCardTest` posts a card):
+- [x] **Step 1: Write the failing tests** in `SubscriptionPlannedTest` (as `SaveCardTest` posts a card):
   - `it creates the planned expense of a new subscription`: post name «Hostinger», supplier, holder,
     `financial_account_id`, `planned` = amount 35.88, interval 1, unit year, start 2026-11-15, category → one
     `PlannedExpense` with title «Hostinger», amount 35.88, `is_recurring` true, interval 1, unit year, start
@@ -68,16 +68,16 @@ request as `planned`.
     policy) → no planned expense.
   - `it offers the expense categories only on a new subscription`: GET `cards.create?card=subscription` has
     `expense_categories`; `?card=insurance_policy` has not.
-- [ ] **Step 2: Run** — expected FAIL (no planned expense / missing prop).
-- [ ] **Step 3: Implement** the rules (in a `plannedRules()` like `replacementRules()`, empty unless
+- [x] **Step 2: Run** — expected FAIL (no planned expense / missing prop).
+- [x] **Step 3: Implement** the rules (in a `plannedRules()` like `replacementRules()`, empty unless
   `canPlan()` = type `subscription` and no card), `subscriptionPlanned()`, the action (columns: title from card
   `name`, `amount`, `is_recurring` true, `is_estimated` false, `interval`, `interval_unit`, `start_date`,
   `organization_id`, `person_id`, `financial_account_id` from the card, `category_id`, `card_type` `subscription`,
   `card_id`; then if `paid`: `RecordPayment::handle($deadlines->find($planned, $start), $start, $amount, null, null)`),
   and in `store` call it inside the transaction when `$card instanceof Subscription` and the plan is not null.
-- [ ] **Step 4: Run** the new test and `SaveCardTest`, `ReplacePolicyFormTest`, `CardPagesTest` — PASS.
-- [ ] **Step 5:** PHPStan, Rector `--dry-run`, Pint on the touched files; `typescript:transform` not needed (no Data class).
-- [ ] **Step 6: Commit** «A new subscription creates its planned expense (server)».
+- [x] **Step 4: Run** the new test and `SaveCardTest`, `ReplacePolicyFormTest`, `CardPagesTest` — PASS.
+- [x] **Step 5:** PHPStan, Rector `--dry-run`, Pint on the touched files; `typescript:transform` not needed (no Data class).
+- [x] **Step 6: Commit** «A new subscription creates its planned expense (server)».
 
 ### Task 2: The section on the page
 
@@ -92,7 +92,7 @@ request as `planned`.
   `SubscriptionPlan = { amount: number | null; interval: number; interval_unit: 'week' | 'month' | 'year'; start_date: string | null; category_id: string | null; paid: boolean }`
   (type in `resources/js/lib/subscriptionPlan.ts`, with `emptyPlan(): SubscriptionPlan`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - Component: shows the section title *Planned expense* and help *Optional: with the cost the planned expense is
     created too.*; fields *Cost*, *Every* (1), *How often* (Month chosen), *First payment*, *Category*, *I already
     paid it*; *First payment* follows `activation` (rerender with a new activation changes it) until the person
@@ -100,16 +100,16 @@ request as `planned`.
   - Page: a new subscription shows the section; a new insurance policy and an edited subscription do not; saving a
     new subscription with a cost sends `planned` with the values (spy `router.post`, as the policy tests do); without
     a cost it sends no `planned`.
-- [ ] **Step 2: Run** `npx vp test run resources/js/components/fm/FmSubscriptionPlanned.test.ts resources/js/pages/cards/EditCard.test.ts` — FAIL.
-- [ ] **Step 3: Implement** the component (fields as in `EditPlanned`: `grid-cols-[7rem_minmax(0,1fr)]` for every /
+- [x] **Step 2: Run** `npx vp test run resources/js/components/fm/FmSubscriptionPlanned.test.ts resources/js/pages/cards/EditCard.test.ts` — FAIL.
+- [x] **Step 3: Implement** the component (fields as in `EditPlanned`: `grid-cols-[7rem_minmax(0,1fr)]` for every /
   how often, units from the same labels), the boards row, and in `EditCard` the `#after` slot for
   `!card && type.type === 'subscription'` passing `live.activation_date`, plus `...(plan.amount !== null && { planned: plan })` in `save`.
-- [ ] **Step 4: Run** the two tests, `boards.test.ts`, `text-styles.test.ts`, `edges.test.ts` — PASS; types, oxlint,
+- [x] **Step 4: Run** the two tests, `boards.test.ts`, `text-styles.test.ts`, `edges.test.ts` — PASS; types, oxlint,
   `vp check` on touched files; `TranslationsTest`.
-- [ ] **Step 5: Commit** «A new subscription creates its planned expense (page)».
+- [x] **Step 5: Commit** «A new subscription creates its planned expense (page)».
 
 ### Task 3: Canvas boards (fork, in parallel with Task 1)
 
-- [ ] Draw *Nuovo-abbonamento* and *Nuovo-abbonamento-pc* from *Nuova-polizza* / *Nuova-polizza-pc* with the section
+- [x] Draw *Nuovo-abbonamento* and *Nuovo-abbonamento-pc* from *Nuova-polizza* / *Nuova-polizza-pc* with the section
   of Task 2, in the row of the new cards, `var(--…)` colours; publish the canvas; save copies in
   `.superpowers/sdd/subscription-planned/boards/`. Task 2 compares the component with them.
