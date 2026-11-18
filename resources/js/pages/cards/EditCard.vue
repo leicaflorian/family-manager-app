@@ -19,11 +19,13 @@ import FmCardFiles from '@/components/fm/FmCardFiles.vue';
 import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardForm from '@/components/fm/FmCardForm.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmSubscriptionPlanned from '@/components/fm/FmSubscriptionPlanned.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
 import { replaceableFor, replaceOptions } from '@/lib/policies';
+import { emptyPlan, type SubscriptionPlan } from '@/lib/subscriptionPlan';
 import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
@@ -46,6 +48,7 @@ const {
     replaceable = [],
     replaces = [],
     payment = null,
+    expenseCategories = [],
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -79,10 +82,18 @@ const {
     replaces?: number[];
     /** The payment of the old policy that the new one takes over, sent with the policies to replace. */
     payment?: number | null;
+    /** The expense categories, for the planned expense of a new subscription. */
+    expenseCategories?: App.Data.OptionData[];
 }>();
 
 /** The box *Cancel the policy* exists only for a new policy. */
 const canReplace = computed(() => !card && type.type === 'insurance_policy');
+
+/** The section *Planned expense* exists only for a new subscription. */
+const canPlan = computed(() => !card && type.type === 'subscription');
+
+/** The values of the section *Planned expense*. */
+const plan = ref<SubscriptionPlan>(emptyPlan());
 
 /** The ids of the old policies ticked. */
 const ticked = ref<number[]>([...replaces]);
@@ -193,6 +204,8 @@ function save(data: Record<string, unknown>): void {
         }),
         ...(unlink.value.length > 0 && { unlink_documents: unlink.value }),
         ...(canReplace.value && replacing(data)),
+        ...(canPlan.value &&
+            plan.value.amount !== null && { planned: plan.value }),
     } as RequestPayload;
 
     // Always a POST: PHP does not read the files of a PUT, so a change goes
@@ -278,6 +291,18 @@ const layout = useLayoutMode();
                                 replaceOptions(offered(live), {
                                     premiumMoves: true,
                                 })
+                            "
+                        />
+                    </template>
+                    <template v-if="canPlan" #after="{ values: live }">
+                        <FmSubscriptionPlanned
+                            v-model="plan"
+                            :categories="expenseCategories"
+                            :activation="
+                                typeof live.activation_date === 'string' &&
+                                live.activation_date !== ''
+                                    ? live.activation_date
+                                    : null
                             "
                         />
                     </template>

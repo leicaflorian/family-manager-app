@@ -679,3 +679,113 @@ describe('The box that cancels the old policy', () => {
         expect(body).not.toHaveProperty('replace_payment');
     });
 });
+
+describe('The planned expense of a new subscription', () => {
+    const type: App.Data.CardTypeData = {
+        type: 'subscription',
+        label: 'Subscription',
+        plural_label: 'Subscriptions',
+        description: '',
+        area: 'subscriptions',
+        area_label: 'Subscriptions',
+    };
+    const fields: App.Data.CardFieldData[] = [
+        {
+            column: 'name',
+            label: 'Name',
+            kind: 'text',
+            required: true,
+            options: [],
+            show_when: {},
+            label_when: {},
+        },
+        {
+            column: 'activation_date',
+            label: 'Activation',
+            kind: 'date',
+            required: false,
+            options: [],
+            show_when: {},
+            label_when: {},
+        },
+    ];
+    const page = {
+        type,
+        fields,
+        values: { name: 'Hostinger', activation_date: '2026-11-15' },
+        expenseCategories: [{ value: '4', label: 'Abbonamenti', help: null }],
+    };
+
+    it('asks for it on a new subscription', () => {
+        renderPage(EditCard, page);
+
+        expect(
+            screen.getByRole('group', { name: 'Planned expense' }),
+        ).toBeInTheDocument();
+    });
+
+    it('is not asked when changing a subscription', () => {
+        renderPage(EditCard, {
+            ...page,
+            card: { type: 'subscription', id: 3, title: 'Hostinger' },
+        });
+        expect(
+            screen.queryByRole('group', { name: 'Planned expense' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('is not asked for a new card of another type', () => {
+        renderPage(EditCard, {
+            type: { ...type, type: 'insurance_policy' },
+            fields: policyFields,
+            values: { title: 'RC Auto', type: 'car' },
+        });
+
+        expect(
+            screen.queryByRole('group', { name: 'Planned expense' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('sends nothing of it without a cost', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditCard, page);
+        await settle();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        const body = post.mock.calls[0]![1] as Record<string, unknown>;
+        expect(body).not.toHaveProperty('planned');
+    });
+
+    it('sends it with the card when there is a cost', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditCard, page);
+        await settle();
+
+        await fireEvent.update(screen.getByLabelText('Cost'), '35,88');
+        await settle();
+        await userEvent.click(
+            screen.getByRole('switch', { name: 'I already paid it' }),
+        );
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post).toHaveBeenCalledWith(
+            '/cards/subscription',
+            expect.objectContaining({
+                name: 'Hostinger',
+                planned: {
+                    amount: 35.88,
+                    interval: 1,
+                    interval_unit: 'month',
+                    start_date: '2026-11-15',
+                    category_id: null,
+                    paid: true,
+                },
+            }),
+            expect.anything(),
+        );
+    });
+});

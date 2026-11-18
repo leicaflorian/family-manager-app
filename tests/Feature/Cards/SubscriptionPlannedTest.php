@@ -150,8 +150,8 @@ it('ignores the section for another card type', function (): void {
 
 it('offers the expense categories only on a new subscription', function (): void {
     $this->actingAs($this->marco)->get(route('cards.create', ['card' => 'subscription']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('expense_categories', fn (Collection $options): bool => $options->contains('label', 'Abbonamenti')));
+        ->where('expenseCategories', fn (Collection $options): bool => $options->contains('label', 'Abbonamenti')));
 
     $this->actingAs($this->marco)->get(route('cards.create', ['card' => 'insurance_policy']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->missing('expense_categories'));
+        ->missing('expenseCategories'));
 });

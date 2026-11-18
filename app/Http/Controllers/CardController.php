@@ -91,7 +91,7 @@ final class CardController extends Controller
                 ...$this->details->form($card, null, $request->query()),
                 ...$this->loanFigures($request, $card, null),
                 ...$this->replacement($request, $card),
-                ...($card->model() === Subscription::class ? ['expense_categories' => BudgetFormOptions::categories()] : []),
+                ...($card->model() === Subscription::class ? ['expenseCategories' => BudgetFormOptions::categories()] : []),
                 ...$this->linkable($request, []),
                 'linked' => $this->documents->ofModels($documents),
             ]);
