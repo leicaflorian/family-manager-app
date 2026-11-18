@@ -20,6 +20,7 @@ import {
     plannedUrl,
     recurrenceText,
     skippedMonthsText,
+    yearlessDate,
 } from './budget';
 
 const today = new Date(2026, 9, 26, 10, 0);
@@ -36,6 +37,24 @@ async function speak(lang: string): Promise<void> {
 
 afterEach(async () => {
     await speak('en');
+});
+
+describe('yearlessDate', () => {
+    it('leaves out the year of a day of this year', () => {
+        expect(yearlessDate('2026-11-15', today)).toBe('15/11');
+    });
+
+    it('writes the year of a day of another year', () => {
+        expect(yearlessDate('2027-11-15', today)).toBe('15/11/2027');
+        expect(yearlessDate('2025-03-02', today)).toBe('02/03/2025');
+    });
+
+    it('counts the year on the calendar of Rome', () => {
+        // 23:30 UTC of 31 December is already 1 January in Rome
+        const newYear = new Date(Date.UTC(2026, 11, 31, 23, 30));
+
+        expect(yearlessDate('2027-01-05', newYear)).toBe('05/01');
+    });
 });
 
 describe('recurrenceText', () => {

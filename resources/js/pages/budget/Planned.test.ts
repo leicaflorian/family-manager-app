@@ -1,7 +1,14 @@
 import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { danceRow, gasRow, netflixRow, salaryRow } from '@/test/fixtures';
 import { renderPage, screenWidth } from '@/test/page';
 import Planned from './Planned.vue';
@@ -48,7 +55,14 @@ const allFiltersQuery = 'search=e&min=10&max=100&from=2026-11-01&to=2026-11-30';
 /** How the page visits itself with other filters. */
 const visit = { preserveState: true, preserveScroll: true, replace: true };
 
+// The due dates of the fixtures are in 2026: a date of this year has no year
+beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
+});
+
 afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });

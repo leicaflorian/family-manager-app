@@ -7,7 +7,13 @@ import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import { exceptions, payment, show } from '@/routes/budget/deadlines';
 import { index as movementsIndex } from '@/routes/budget/movements';
 import { index as plannedIndex } from '@/routes/budget/planned';
-import { daysFromToday, formatDate, formatEuro, relativeDays } from './format';
+import {
+    daysFromToday,
+    formatDate,
+    formatEuro,
+    relativeDays,
+    todayInRome,
+} from './format';
 import { listNames } from './names';
 
 /** The unit of a recurrence. */
@@ -21,6 +27,20 @@ export type RecurrenceUnit = 'week' | 'month' | 'year';
  */
 export function shortDate(date: string): string {
     return formatDate(date).slice(0, 5);
+}
+
+/**
+ * A date as `21/11` when it falls in this year, else with its year
+ * (`21/11/2027`), so a due date of next year does not look like this year's.
+ *
+ * @param date - a date of the server, `yyyy-mm-dd`
+ * @param today - the moment taken as now, the clock if missing
+ * @returns the date, with the year only when it is another
+ */
+export function yearlessDate(date: string, today: Date = new Date()): string {
+    return date.slice(0, 4) === todayInRome(today).slice(0, 4)
+        ? shortDate(date)
+        : formatDate(date);
 }
 
 /**

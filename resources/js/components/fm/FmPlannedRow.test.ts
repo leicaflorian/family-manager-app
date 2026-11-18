@@ -1,9 +1,22 @@
 import { render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { danceRow, gasRow, netflixRow, salaryRow } from '@/test/fixtures';
 import FmPlannedRow from './FmPlannedRow.vue';
 
 describe('FmPlannedRow', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
+    });
+    afterEach(() => vi.useRealTimers());
+
     it('leads to the planned item, with its card, how it repeats, who it is for, the next due date and the amount', () => {
         render(FmPlannedRow, {
             props: { row: danceRow, href: '/budget/planned/expense/4' },
@@ -51,6 +64,19 @@ describe('FmPlannedRow', () => {
             'every month, on day 4',
         );
         expect(screen.getByRole('link')).toHaveTextContent('Next on 04/11');
+    });
+
+    it('writes the year of a next due date in another year', () => {
+        render(FmPlannedRow, {
+            props: {
+                row: { ...danceRow, next_date: '2027-11-15' },
+                href: '/x',
+            },
+        });
+
+        expect(screen.getByRole('link')).toHaveTextContent(
+            'Next on 15/11/2027',
+        );
     });
 
     it('writes an income with a plus', () => {

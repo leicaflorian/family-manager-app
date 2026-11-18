@@ -8,7 +8,7 @@
  */
 import { computed } from 'vue';
 import { colorTile } from '@/lib/areas';
-import { recurrenceText, shortDate } from '@/lib/budget';
+import { recurrenceText, yearlessDate } from '@/lib/budget';
 import { expenseIcon } from '@/lib/icons';
 import FmAmount from './FmAmount.vue';
 import FmIcon from './FmIcon.vue';
@@ -59,7 +59,9 @@ const subtitle = computed(() =>
                     class="hidden flex-col items-end text-meta text-ink-soft sm:flex"
                 >
                     <span>{{
-                        $t('Next on :date', { date: shortDate(row.next_date) })
+                        $t('Next on :date', {
+                            date: yearlessDate(row.next_date),
+                        })
                     }}</span>
                     <span v-if="row.account">{{ row.account }}</span>
                 </span>
