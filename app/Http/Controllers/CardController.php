@@ -8,6 +8,7 @@ use App\Actions\Cards\DeleteCard;
 use App\Actions\Cards\LinkCardDocuments;
 use App\Actions\Cards\ReplacePolicy;
 use App\Actions\Cards\SaveCard;
+use App\Actions\Cards\StartSubscriptionPlanned;
 use App\Actions\Loans\RefreshLoan;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
@@ -20,8 +21,10 @@ use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Queries\DocumentRows;
+use App\Services\BudgetFormOptions;
 use App\Services\CardBudgets;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
@@ -88,6 +91,7 @@ final class CardController extends Controller
                 ...$this->details->form($card, null, $request->query()),
                 ...$this->loanFigures($request, $card, null),
                 ...$this->replacement($request, $card),
+                ...($card->model() === Subscription::class ? ['expense_categories' => BudgetFormOptions::categories()] : []),
                 ...$this->linkable($request, []),
                 'linked' => $this->documents->ofModels($documents),
             ]);
@@ -109,20 +113,25 @@ final class CardController extends Controller
      * files, they wait for their document and *Upload* opens with the card
      * among the links of each.
      */
-    public function store(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store, ReplacePolicy $replace): RedirectResponse
+    public function store(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store, ReplacePolicy $replace, StartSubscriptionPlanned $plan): RedirectResponse
     {
         $type = $request->cardType();
         // Looked up first: a document of another family answers 404 before anything is saved
         $link = $request->documentsToLink();
         $old = $request->policiesToReplace();
         $payment = $request->paymentToMove();
+        $planned = $request->subscriptionPlanned();
 
-        $card = DB::transaction(function () use ($save, $links, $replace, $type, $request, $link, $old, $payment): Model {
+        $card = DB::transaction(function () use ($save, $links, $replace, $plan, $type, $request, $link, $old, $payment, $planned): Model {
             $card = $save->handle($type, $request->columns());
             $links->handle($card, $link, new Collection);
 
             if ($card instanceof InsurancePolicy && $old->isNotEmpty()) {
                 $replace->handle($card, $old, $payment);
+            }
+
+            if ($card instanceof Subscription && $planned !== null) {
+                $plan->handle($card, $planned);
             }
 
             return $card;
