@@ -39,12 +39,13 @@ final readonly class RecordPayment
      * @param  float  $amount  What was paid or received.
      * @param  ?int  $accountId  The account; empty takes the one of the planned item, then the default one.
      * @param  ?UploadedFile  $receipt  A file that becomes a document linked to the payment.
+     * @param  ?float  $fee  The commission of an expense, included in the amount; null without one, whatever the planned expense says.
      *
      * @throws ValidationException if the due date is already paid
      */
-    public function handle(Deadline $deadline, CarbonImmutable $date, float $amount, ?int $accountId, ?UploadedFile $receipt): Expense|Income
+    public function handle(Deadline $deadline, CarbonImmutable $date, float $amount, ?int $accountId, ?UploadedFile $receipt, ?float $fee = null): Expense|Income
     {
-        return DB::transaction(function () use ($deadline, $date, $amount, $accountId, $receipt): Expense|Income {
+        return DB::transaction(function () use ($deadline, $date, $amount, $accountId, $receipt, $fee): Expense|Income {
             // The caller's due date can be stale: with the planned item locked, read again whether something already pays it.
             PlannedKind::lock($deadline->planned);
             $current = $this->deadlines->find($deadline->planned, $deadline->occurrence->originalDate);
@@ -67,7 +68,7 @@ final readonly class RecordPayment
                 'financial_account_id' => $account,
             ];
             $payment = $planned instanceof PlannedExpense
-                ? Expense::query()->create([...$columns, 'planned_expense_id' => $planned->id])
+                ? Expense::query()->create([...$columns, 'fee_amount' => $fee, 'planned_expense_id' => $planned->id])
                 : Income::query()->create([...$columns, 'planned_income_id' => $planned->id]);
 
             if ($planned instanceof PlannedExpense && $payment instanceof Expense) {

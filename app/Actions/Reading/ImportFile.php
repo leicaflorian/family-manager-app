@@ -84,7 +84,7 @@ final readonly class ImportFile
     private const array MOVEMENT_CARDS = ['utility', 'insurance_policy', 'vehicle', 'subscription'];
 
     /** The columns of an expense its commitment fills when they are empty ({@see PlannedKind::paymentColumns()}). */
-    private const array PLANNED_GIVES = ['organization_id', 'financial_account_id', 'person_id', 'category_id', 'card_type', 'card_id'];
+    private const array PLANNED_GIVES = ['organization_id', 'financial_account_id', 'person_id', 'category_id', 'card_type', 'card_id', 'fee_amount'];
 
     /**
      * @param  Proposal  $proposals  what the file does

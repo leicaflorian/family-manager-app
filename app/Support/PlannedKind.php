@@ -64,7 +64,7 @@ final class PlannedKind
         ];
 
         return $planned instanceof PlannedExpense
-            ? [...$shared, 'category_id' => $planned->category_id, 'card_type' => $planned->card_type, 'card_id' => $planned->card_id]
+            ? [...$shared, 'category_id' => $planned->category_id, 'card_type' => $planned->card_type, 'card_id' => $planned->card_id, 'fee_amount' => $planned->fee_amount]
             : [...$shared, 'employment_id' => $planned->employment_id, 'type' => $planned->type->value];
     }
 

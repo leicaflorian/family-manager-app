@@ -302,3 +302,20 @@ test('it refuses an amount too big to be written', function (string $suffix, arr
     'I paid it' => ['/payment', ['date' => '2026-10-26', 'amount' => 100000000], 'amount'],
     'Change this due date' => ['/exceptions', ['change_amount' => true, 'amount' => 100000000], 'amount'],
 ]);
+
+test('I paid it sends the commission of the payment', function (): void {
+    $this->actingAs($this->marco)
+        ->post(deadlineAddress('Assicurazione auto', '2026-11-21').'/payment', ['date' => '2026-10-26', 'amount' => 419, 'fee_amount' => 1])
+        ->assertSessionHasNoErrors();
+
+    $expense = insideBianchi(fn (): Expense => Expense::query()->where('occurrence_date', '2026-11-21')->sole());
+
+    expect((float) $expense->amount)->toBe(419.0)
+        ->and((float) $expense->fee_amount)->toBe(1.0);
+});
+
+test('I paid it refuses a negative commission', function (): void {
+    $this->actingAs($this->marco)
+        ->post(deadlineAddress('Assicurazione auto', '2026-11-21').'/payment', ['date' => '2026-10-26', 'amount' => 419, 'fee_amount' => -1])
+        ->assertSessionHasErrors('fee_amount');
+});

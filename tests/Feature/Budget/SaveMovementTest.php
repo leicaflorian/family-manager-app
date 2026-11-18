@@ -137,3 +137,25 @@ it('does not take a card for an income', function (): void {
         ->post('/budget/movements', ['kind' => 'income', 'title' => 'Regalo', 'amount' => 50, 'date' => '2026-10-24', 'type' => 'other', 'card' => "vehicle:{$this->panda->id}"])
         ->assertSessionHasNoErrors();
 });
+
+it('takes the commission of the planned expense it pays when it has none', function (): void {
+    insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Bollo auto')->update(['fee_amount' => 1.5]));
+    $roadTax = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Bollo auto')->sole());
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', cardExpense(['title' => 'Bollo 2027', 'amount' => 199.5, 'date' => '2027-01-31', 'planned_id' => $roadTax->id]))
+        ->assertSessionHasNoErrors();
+
+    expect((float) cardExpenseOf('Bollo 2027')->fee_amount)->toBe(1.5);
+});
+
+it('keeps the commission it was given over the one of the planned expense', function (): void {
+    insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Bollo auto')->update(['fee_amount' => 1.5]));
+    $roadTax = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Bollo auto')->sole());
+
+    $this->actingAs($this->marco)
+        ->post('/budget/movements', cardExpense(['title' => 'Bollo 2027', 'amount' => 200, 'fee_amount' => 2, 'date' => '2027-01-31', 'planned_id' => $roadTax->id]))
+        ->assertSessionHasNoErrors();
+
+    expect((float) cardExpenseOf('Bollo 2027')->fee_amount)->toBe(2.0);
+});
