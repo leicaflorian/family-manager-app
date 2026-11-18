@@ -21,6 +21,7 @@ final readonly class MorningItem
      * @param  string  $dueOn  the due date, `aaaa-mm-gg`
      * @param  string  $url  the page of the thing, or of the reminders
      * @param  string  $area  the area of the thing, for its icon (`general` without one)
+     * @param  int|null  $reminderId  the reminder behind the notice, so the weekly mail does not repeat one already in its lists
      */
     public function __construct(
         public string $title,
@@ -30,6 +31,7 @@ final readonly class MorningItem
         public string $dueOn,
         public string $url,
         public string $area = AgendaData::GENERAL_AREA,
+        public ?int $reminderId = null,
     ) {}
 
     /**

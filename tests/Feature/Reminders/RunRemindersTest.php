@@ -3,14 +3,17 @@
 declare(strict_types=1);
 
 use App\Mail\MorningNoticesMail;
+use App\Mail\WeeklySummaryMail;
 use App\Models\Document;
 use App\Models\Family;
 use App\Models\Person;
+use App\Models\PlannedExpense;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\Reminders\WeeklySummaries;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -201,4 +204,147 @@ test('the lock is let go after a run, also one that fails', function (): void {
     $lock = Cache::lock('reminders:run', 60);
     expect($lock->get())->toBeTrue();
     $lock->release();
+});
+
+/**
+ * Moves the clock to a morning in Rome, for the rounds of the weekly summary.
+ *
+ * @param  string  $day  the day, `yyyy-mm-dd`
+ */
+function runRemindersMorningOf(string $day): void
+{
+    Date::setTestNow(CarbonImmutable::parse($day.' 06:00', 'Europe/Rome'));
+}
+
+/**
+ * A one-off planned expense of the family, due on 25/11/2026.
+ */
+function runRemindersExpenseOfTheWeek(): PlannedExpense
+{
+    return PlannedExpense::factory()->create([
+        'family_id' => CurrentFamily::id(),
+        'title' => 'Bolletta luce',
+        'amount' => 34.90,
+        'is_recurring' => false,
+        'start_date' => '2026-11-25',
+    ]);
+}
+
+/**
+ * Sets the only rule of the vehicles group.
+ *
+ * @param  int  $days  how many days before the date
+ * @param  string  $channels  `app`, `email` or `both`
+ */
+function runRemindersVehicleRule(int $days, string $channels = 'both'): void
+{
+    ReminderGroup::query()->update(['notifications' => [
+        ['name' => 'rule', 'days' => $days, 'timing' => 'before', 'channels' => $channels, 'recipients' => ['all']],
+    ]]);
+}
+
+test('on Monday an admin gets the weekly mail instead of the morning one', function (): void {
+    runRemindersMorningOf('2026-11-23');
+    runRemindersExpenseOfTheWeek();
+    // 45 days before 07/01/2027 is Monday 23/11/2026: a notice of the day for everybody
+    $this->panda->update(['inspection_due_date' => '2027-01-07']);
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('marco@example.com')
+        && count($mail->summary->toPay) === 1 && $mail->today === '2026-11-23');
+    Mail::assertNotQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com'));
+});
+
+test('on Monday a member still gets the morning mail', function (): void {
+    runRemindersMorningOf('2026-11-23');
+    runRemindersExpenseOfTheWeek();
+    $this->panda->update(['inspection_due_date' => '2027-01-07']);
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('laura@example.com'));
+    Mail::assertNotQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('laura@example.com'));
+    Mail::assertQueued(WeeklySummaryMail::class, 1);
+});
+
+test('an admin with email notices off still gets the weekly mail, without notices', function (): void {
+    runRemindersMorningOf('2026-11-23');
+    runRemindersExpenseOfTheWeek();
+    runRemindersVehicleRule(45, 'app');
+    $this->panda->update(['inspection_due_date' => '2027-01-07']);
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('marco@example.com') && $mail->notices === []);
+    expect(ReminderNotice::query()->count())->toBe(2);
+});
+
+test('a notice already in the week list is not repeated', function (): void {
+    runRemindersMorningOf('2026-11-23');
+    runRemindersVehicleRule(3);
+    $this->panda->update(['inspection_due_date' => '2026-11-26']);
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('marco@example.com')
+        && $mail->notices === []
+        && count($mail->summary->tasks) === 1
+        && $mail->summary->tasks[0]->date === '2026-11-26');
+});
+
+test('a notice for later is in today\'s notices', function (): void {
+    runRemindersMorningOf('2026-11-23');
+    runRemindersVehicleRule(30);
+    $this->panda->update(['inspection_due_date' => '2026-12-23']);
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('marco@example.com')
+        && $mail->summary->isEmpty()
+        && count($mail->notices) === 1
+        && $mail->notices[0]->dueOn === '2026-12-23'
+        && $mail->notices[0]->reminderId === Reminder::query()->where('source_field', 'vehicles.inspection_due_date')->sole()->id);
+});
+
+test('running the round twice on Monday sends the weekly mail once', function (): void {
+    runRemindersMorningOf('2026-11-23');
+    runRemindersExpenseOfTheWeek();
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertQueued(WeeklySummaryMail::class, 1);
+    Mail::assertNotQueued(MorningNoticesMail::class);
+});
+
+test('a family with nothing gets no weekly mail', function (): void {
+    runRemindersMorningOf('2026-11-23');
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Mail::assertNothingQueued();
+});
+
+test('if the summary fails, the admins get their morning mail', function (): void {
+    Exceptions::fake();
+    runRemindersMorningOf('2026-11-23');
+    runRemindersExpenseOfTheWeek();
+    $this->panda->update(['inspection_due_date' => '2027-01-07']);
+    app()->bind(WeeklySummaries::class, fn () => throw new RuntimeException('boom'));
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    Exceptions::assertReported(fn (RuntimeException $exception): bool => $exception->getMessage() === 'boom');
+    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com'));
+    Mail::assertNotQueued(WeeklySummaryMail::class);
+});
+
+test('on Tuesday nothing changes', function (): void {
+    runRemindersMorningOf('2026-11-24');
+    runRemindersExpenseOfTheWeek();
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-24'])->assertSuccessful();
+
+    Mail::assertNotQueued(WeeklySummaryMail::class);
 });
