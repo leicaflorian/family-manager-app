@@ -49,6 +49,7 @@ use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\VersionController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\RedirectToWelcome;
 use App\Http\Middleware\SeparateHosts;
@@ -93,6 +94,14 @@ Route::get('sw.js', ServiceWorkerController::class)
     ->middleware(SeparateHosts::OUTSIDE_WEB)
     ->withoutMiddleware('web')
     ->name('service-worker');
+
+// The version of the server, asked by every open page when it comes back to the front and every few minutes, to tell
+// the person that a new version is out. Outside the web group: asked often by everyone, it opens no session and sets
+// no cookie (and the linked phone, kept to the scan inside the web group, reads it too).
+Route::get('version', VersionController::class)
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:120,1'])
+    ->withoutMiddleware('web')
+    ->name('version');
 
 // *Share* on Android (`share_target` of the manifest): the service worker answers it on the phone; this is the
 // fallback when the worker is not active yet, and it only sends the person to *Scan*. Outside the web group because

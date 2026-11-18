@@ -66,6 +66,12 @@ test('the pages outside the web group are not touched', function (): void {
     $this->get('calendar/nothing.ics')->assertNotFound();
 });
 
+test('a linked phone reads the version of the server, outside the web group', function (): void {
+    config(['app.version' => '2.3.0']);
+
+    linkedPhone()->getJson(route('version'))->assertOk()->assertExactJson(['version' => '2.3.0']);
+});
+
 test('the scan of a linked phone shares only what the scan needs', function (): void {
     linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page
         ->component('scan/Scan')
