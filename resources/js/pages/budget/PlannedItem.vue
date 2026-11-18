@@ -458,7 +458,7 @@ const exceptionIcons = {
                             >{{ $t('Record payment') }}</FmSectionLink
                         >
                     </template>
-                    <FmPaymentYears :years="detail.payments" />
+                    <FmPaymentYears :years="detail.payments" linked />
                     <p
                         v-if="detail.payments.length === 0"
                         class="m-0 px-4 py-3 text-body-sm text-ink-soft"

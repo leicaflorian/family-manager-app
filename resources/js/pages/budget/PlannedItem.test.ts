@@ -400,6 +400,15 @@ describe('A planned expense', () => {
         ).toBeInTheDocument();
     });
 
+    it('leads each payment to its movement', () => {
+        renderPage(PlannedItem, props);
+
+        const payments = screen.getByRole('region', { name: 'Payments' });
+        expect(
+            within(payments).getByRole('link', { name: /Retta di novembre/ }),
+        ).toHaveAttribute('href', '/budget/movements/expense/31');
+    });
+
     it('pays an open due date from its row for a member who can only pay', async () => {
         renderPage(PlannedItem, {
             ...props,

@@ -5,7 +5,7 @@
  * then each payment with its day, title, account, the clip of a receipt and
  * the amount. *A planned expense* and the cards list them; on a card a page
  * of them, on *Payments of a card* every year, the older ones folded with the
- * whole dates; on both each payment leads to its page.
+ * whole dates; on all of them each payment leads to its page.
  *
  * @group sections
  */
