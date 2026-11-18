@@ -247,3 +247,50 @@ a {
 .notice-icon .icon {
     margin: 0;
 }
+
+.total {
+    background-color: #eaf4ff;
+    border-radius: 12px;
+    margin: 0 0 24px;
+}
+
+.total-label {
+    color: #18212f;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 16px 0 16px 20px;
+}
+
+.total-amount {
+    color: #18212f;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.2;
+    padding: 16px 20px 16px 0;
+}
+
+.section-title {
+    color: #18212f;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0 0 4px;
+}
+
+.section-title-late {
+    color: #c4283f;
+}
+
+.week-day {
+    border-bottom: 1px solid #eef1f5;
+    padding: 14px 12px 14px 0;
+    white-space: nowrap;
+    width: 48px;
+}
+
+.week-amount {
+    color: #18212f;
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+}
