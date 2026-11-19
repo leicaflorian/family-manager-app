@@ -300,7 +300,7 @@ usePageTrail(() => [
                             showMoreLabel(
                                 personalTotal - personal.length,
                                 PERSONAL_STEP,
-                                true,
+                                'documents',
                             )
                         "
                         :loading="loading.personal"
@@ -387,7 +387,7 @@ usePageTrail(() => [
                             showMoreLabel(
                                 documentsTotal - documents.length,
                                 DOCUMENTS_STEP,
-                                true,
+                                'documents',
                             )
                         "
                         :loading="loading.documents"

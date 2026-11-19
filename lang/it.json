@@ -2063,5 +2063,6 @@
     "About :amount": "Circa :amount",
     "Family created, but the email did not go out. Send it again from the Accounts tab of the family.": "Famiglia creata, ma l'email non è partita. Mandala di nuovo dalla scheda Account della famiglia.",
     "The email did not go out. Try again in a few minutes.": "L'email non è partita. Riprova tra qualche minuto.",
-    "You choose the password, and you find your family ready.": "Scegli la password e trovi la tua famiglia pronta."
+    "You choose the password, and you find your family ready.": "Scegli la password e trovi la tua famiglia pronta.",
+    "{1} Show :shown other · 1 left|[2,*] Show :shown others · :count left": "{1} Mostra altri :shown · ne resta 1|[2,*] Mostra altri :shown · ne restano :count"
 }

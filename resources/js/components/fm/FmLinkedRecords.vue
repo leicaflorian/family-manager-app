@@ -8,7 +8,7 @@
  * @group sections
  */
 import { computed, ref, watch } from 'vue';
-import { showMoreLabel } from '@/lib/showMore';
+import { linkKind, showMoreLabel } from '@/lib/showMore';
 import { show } from '@/routes/cards';
 import FmRow from './FmRow.vue';
 import FmShowMore from './FmShowMore.vue';
@@ -78,7 +78,7 @@ const left = computed((): number =>
                     />
                     <FmShowMore
                         v-if="left > 0"
-                        :label="showMoreLabel(left, STEP)"
+                        :label="showMoreLabel(left, STEP, linkKind(open.type))"
                         @more="shown += STEP"
                     />
                 </div>

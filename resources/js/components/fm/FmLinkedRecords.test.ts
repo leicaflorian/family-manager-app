@@ -72,6 +72,23 @@ describe('FmLinkedRecords', () => {
         expect(screen.getAllByRole('link')).toHaveLength(3);
     });
 
+    it('says «others» under the tabs whose name takes «altri» in Italian, as Vehicles', async () => {
+        const vehicles: App.Data.LinkGroupData = {
+            type: 'vehicle',
+            label: 'Vehicles',
+            options: Array.from({ length: 5 }, (_, index) => ({
+                value: String(index + 30),
+                label: `Car ${index + 1}`,
+                help: null,
+            })),
+        };
+        render(FmLinkedRecords, { props: { groups: [vehicles] } });
+
+        expect(
+            screen.getByRole('button', { name: 'Show 2 others · 2 left' }),
+        ).toBeInTheDocument();
+    });
+
     it('has no button when the records of a tab fit', () => {
         const three: App.Data.LinkGroupData = {
             ...groups[1],
