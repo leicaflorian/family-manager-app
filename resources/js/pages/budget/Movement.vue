@@ -139,6 +139,7 @@ function close(): void {
                     :linkable-next="linkableNext"
                     :linkable-search="linkableSearch"
                     :has-linkable="hasLinkable"
+                    :readonly="movement !== null && !movement.can_edit"
                 />
             </div>
             <div class="order-1 min-w-0 wide:order-2">

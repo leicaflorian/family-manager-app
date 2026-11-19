@@ -288,6 +288,21 @@ describe('Movements', () => {
         expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
     });
 
+    it('starts a new movement as an income from a list filtered on incomes', async () => {
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Movements, {
+            ...props,
+            kind: 'income',
+            filters: { ...noFilters, kind: 'income' },
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'New expense or income' }),
+        );
+
+        expect(get.mock.calls[0]![0]).toContain('kind=income');
+    });
+
     it('has the tabs of the budget with this page marked', () => {
         renderPage(Movements, props);
 

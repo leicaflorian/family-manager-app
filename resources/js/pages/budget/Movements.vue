@@ -218,9 +218,16 @@ const listUrl = computed(() =>
     movementsUrl({ month: props.summary.month, ...props.filters }),
 );
 
-/** Adds an expense or an income: its own page, which leads back to this list. */
+/** Adds an expense or an income: its own page, which leads back to this list and starts as the kind shown. */
 function add(): void {
-    router.get(create.url({ query: { from: listUrl.value } }));
+    router.get(
+        create.url({
+            query: {
+                from: listUrl.value,
+                ...(props.kind ? { kind: props.kind } : {}),
+            },
+        }),
+    );
 }
 
 /**

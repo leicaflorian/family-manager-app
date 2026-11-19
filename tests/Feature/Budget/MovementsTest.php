@@ -601,6 +601,28 @@ it('keeps going back to the card when there are no files', function (): void {
         ->assertRedirect("/cards/belonging/{$tv}");
 });
 
+it('does not send the documents of the movements in the month list or in the search, but sends them on the movement page', function (): void {
+    $parking = movementExpense('Parcheggio');
+    $linked = movementDocument('Ricevuta del parcheggio');
+    insideBianchi(fn () => $parking->documents()->attach($linked));
+
+    $this->actingAs($this->marco)
+        ->get('/budget/movements?month=2026-10')
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('movements.0.title', 'Parcheggio')
+            ->where('movements.0.documents', []));
+
+    $this->actingAs($this->marco)
+        ->get('/budget/movements?search=Parcheggio')
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('search.months.0.movements.0.documents', []));
+
+    $this->actingAs($this->marco)
+        ->get("/budget/movements/expense/{$parking->id}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('movement.documents.0.id', $linked->id));
+});
+
 it('gives the page of a movement the documents to link and where to go back', function (): void {
     $dentist = movementExpense('Visita dal dentista');
     $linked = movementDocument('Già collegato');

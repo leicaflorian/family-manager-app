@@ -32,6 +32,7 @@ const {
     linkableNext = null,
     linkableSearch = '',
     hasLinkable = false,
+    readonly = false,
 } = defineProps<{
     /** The documents already linked to the record; none for a new one. */
     documents?: App.Data.DocumentData[];
@@ -47,6 +48,8 @@ const {
     linkableSearch?: string;
     /** At least one document of the family can be linked. */
     hasLinkable?: boolean;
+    /** The form cannot be saved: no files to add, no document to link or unlink, only the list to read. */
+    readonly?: boolean;
 }>();
 
 /** The files chosen and not saved yet. */
@@ -147,7 +150,7 @@ function keep(id: number): void {
 
 <template>
     <section
-        class="flex flex-col gap-3 rounded-sheet bg-segment p-5 lg:p-7"
+        class="flex flex-col gap-3 rounded-sheet bg-segment p-5 wide:p-7"
         :aria-labelledby="titleId"
     >
         <div class="flex items-center justify-between gap-3">
@@ -155,13 +158,14 @@ function keep(id: number): void {
                 {{ $t('Documents') }}
             </h2>
             <FmSectionLink
-                v-if="hasLinkable"
+                v-if="hasLinkable && !readonly"
                 :icon="Link2"
                 @click="linking = true"
                 >{{ $t('Link document') }}</FmSectionLink
             >
         </div>
         <FmFileDrop
+            v-if="!readonly"
             compact
             :label="$t('Its documents? Drag them here, or choose them')"
             @files="add"
@@ -272,6 +276,7 @@ function keep(id: number): void {
                         dateless
                     />
                     <FmCardDocumentActions
+                        v-if="!readonly"
                         :document="document"
                         :can-delete="canDelete"
                         in-form

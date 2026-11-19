@@ -320,6 +320,38 @@ describe('Movement', () => {
                 screen.getByRole('button', { name: 'Link document' }),
             ).toBeInTheDocument();
             expect(screen.getByText(healthCard.title)).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', {
+                    name: `More actions on ${healthCard.title}`,
+                }),
+            ).toBeInTheDocument();
+        });
+
+        it('leaves the documents to be read only when the movement cannot be changed', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    can_edit: false,
+                    documents: [healthCard],
+                },
+                hasLinkable: true,
+            });
+
+            expect(screen.getByText(healthCard.title)).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Link document' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByText(
+                    'Its documents? Drag them here, or choose them',
+                ),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', {
+                    name: `More actions on ${healthCard.title}`,
+                }),
+            ).not.toBeInTheDocument();
         });
 
         it('says No documents yet for a new movement', () => {

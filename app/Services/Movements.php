@@ -29,8 +29,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final readonly class Movements
 {
-    /** The relations that the rows and the panel of a movement read. */
-    private const array RELATIONS = ['financialAccount', 'organization', 'documents.file', 'documents.person', 'documents.organization'];
+    /** The relations that the rows of the list read: the documents are only sent with the page of a movement. */
+    private const array LIST_RELATIONS = ['financialAccount', 'organization'];
+
+    /** The relations that the page of a movement reads. */
+    private const array RELATIONS = [...self::LIST_RELATIONS, 'documents.file', 'documents.person', 'documents.organization'];
 
     /** How many movements a search shows at most. */
     public const int SEARCH_LIMIT = 200;
@@ -89,8 +92,8 @@ final readonly class Movements
     {
         $from = $month->startOfMonth();
         $to = $month->endOfMonth();
-        $expenses = $this->inMonth(Expense::query()->with([...self::RELATIONS, 'category']), $from, $to, $accountId);
-        $incomes = $this->inMonth(Income::query()->with(self::RELATIONS), $from, $to, $accountId);
+        $expenses = $this->inMonth(Expense::query()->with([...self::LIST_RELATIONS, 'category']), $from, $to, $accountId);
+        $incomes = $this->inMonth(Income::query()->with(self::LIST_RELATIONS), $from, $to, $accountId);
 
         $salariesIn = count(array_filter($incomes, static fn (Expense|Income $income): bool => $income instanceof Income && $income->type === IncomeType::Salary));
         $total = static fn (array $movements): float => round(array_sum(array_map(static fn (Expense|Income $movement): float => (float) $movement->amount, $movements)), 2);
@@ -115,7 +118,7 @@ final readonly class Movements
 
         return [
             'summary' => $summary,
-            'movements' => array_map(static fn (Expense|Income $movement): MovementData => MovementData::fromMovement($movement, $user, $paths), $shown),
+            'movements' => array_map(static fn (Expense|Income $movement): MovementData => MovementData::fromMovement($movement, $user, $paths, withDocuments: false), $shown),
         ];
     }
 
@@ -139,14 +142,14 @@ final readonly class Movements
         $found = [];
 
         if ($filters->kind !== 'income') {
-            $query = $this->matching(Expense::query()->with([...self::RELATIONS, 'category']), $filters);
+            $query = $this->matching(Expense::query()->with([...self::LIST_RELATIONS, 'category']), $filters);
             $count += $query->count();
             $total += ($signed ? -1 : 1) * (float) $query->sum('amount');
             array_push($found, ...$query->orderByDesc('date')->orderByDesc('id')->limit(self::SEARCH_LIMIT)->get()->all());
         }
 
         if ($filters->kind !== 'expense') {
-            $query = $this->matching(Income::query()->with(self::RELATIONS), $filters);
+            $query = $this->matching(Income::query()->with(self::LIST_RELATIONS), $filters);
             $count += $query->count();
             $total += (float) $query->sum('amount');
             array_push($found, ...$query->orderByDesc('date')->orderByDesc('id')->limit(self::SEARCH_LIMIT)->get()->all());
@@ -167,7 +170,7 @@ final readonly class Movements
             $months[] = new MovementMonthData(
                 month: (string) $month,
                 total: round(array_sum(array_map(static fn (Expense|Income $movement): float => $sign($movement) * (float) $movement->amount, $movements)), 2),
-                movements: array_map(static fn (Expense|Income $movement): MovementData => MovementData::fromMovement($movement, $user, $paths), $movements),
+                movements: array_map(static fn (Expense|Income $movement): MovementData => MovementData::fromMovement($movement, $user, $paths, withDocuments: false), $movements),
             );
         }
 
