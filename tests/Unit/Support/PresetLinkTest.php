@@ -7,6 +7,7 @@ use App\Models\Income;
 use App\Models\Vehicle;
 use App\Support\PresetLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Pest\Expectation;
 
 uses(RefreshDatabase::class);
 
@@ -27,19 +28,19 @@ test('an upload link can name an expense or an income of the family', function (
 test('an upload link of an expense of another family is dropped', function (): void {
     $theirs = Expense::factory()->create();
 
-    insideBianchi(fn () => expect(PresetLink::fromUpload('expense:'.$theirs->id))->toBeNull());
+    insideBianchi(fn (): Expectation => expect(PresetLink::fromUpload('expense:'.$theirs->id))->toBeNull());
 });
 
 test('an upload link still names a card of the family', function (): void {
     $panda = Vehicle::factory()->for($this->marco->family)->create();
 
-    insideBianchi(fn () => expect(PresetLink::fromUpload('vehicle:'.$panda->id))->toBe(['type' => 'vehicle', 'id' => $panda->id]));
+    insideBianchi(fn (): Expectation => expect(PresetLink::fromUpload('vehicle:'.$panda->id))->toBe(['type' => 'vehicle', 'id' => $panda->id]));
 });
 
 test('the card link of a form never takes an expense', function (): void {
     $expense = Expense::factory()->for($this->marco->family)->create();
 
-    insideBianchi(fn () => expect(PresetLink::from('expense:'.$expense->id))->toBeNull());
+    insideBianchi(fn (): Expectation => expect(PresetLink::from('expense:'.$expense->id))->toBeNull());
 });
 
 test('the address of a link is the card or the movement', function (): void {
