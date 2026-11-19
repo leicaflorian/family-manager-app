@@ -53,9 +53,9 @@ final class MorningNoticesMail extends Mailable
                 : trans_choice('{1} :count reminder coming up|[2,*] :count reminders coming up', count($this->items)));
         }
 
-        $title = $this->title($first);
+        $title = $first->displayTitle();
 
-        return new Envelope(subject: DueText::subject($today, $this->day($first->dueOn), $first->manual).': '.ReminderList::joinTitle($title, $first->subject));
+        return new Envelope(subject: DueText::subject($today, $first->dueDay(), $first->manual).': '.ReminderList::joinTitle($title, $first->subject));
     }
 
     /**
@@ -68,26 +68,8 @@ final class MorningNoticesMail extends Mailable
         return new Content(markdown: 'mail.morning-notices', with: [
             'name' => $this->user->firstName(),
             'agenda' => route('agenda'),
-            'lines' => array_map(fn (MorningItem $item): array => [
-                'title' => $this->title($item),
-                'subject' => $item->subject,
-                'when' => DueText::when($today, $this->day($item->dueOn), $item->manual),
-                // Due today or already late: written in red, as on the board
-                'late' => $this->day($item->dueOn)->lessThanOrEqualTo($today),
-                'url' => $item->url,
-                'area' => $item->area,
-            ], $this->items),
+            'lines' => array_map(static fn (MorningItem $item): array => $item->line($today), $this->items),
         ]);
-    }
-
-    /**
-     * The title of a notice in the language of the mail.
-     *
-     * @param  MorningItem  $item  the notice
-     */
-    private function title(MorningItem $item): string
-    {
-        return $item->translatable ? __($item->title) : $item->title;
     }
 
     /**

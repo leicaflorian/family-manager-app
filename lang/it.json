@@ -2051,5 +2051,14 @@
     "Send the welcome email again": "Manda di nuovo l'email di benvenuto",
     "Send the welcome email again?": "Mandare di nuovo l'email di benvenuto?",
     "We send :email a new link to choose the password.": "Mandiamo a :email un link nuovo per scegliere la password.",
-    "Sent": "Inviata"
+    "Sent": "Inviata",
+    "This week: :amount to pay": "Questa settimana: :amount da pagare",
+    "This week: about :amount to pay": "Questa settimana: circa :amount da pagare",
+    "Your week at a glance": "La tua settimana in breve",
+    "To pay this week": "Da pagare in settimana",
+    "Reminders and things to do": "Promemoria e cose da fare",
+    "Today's notices": "Avvisi di oggi",
+    "Here is what to pay and to do this week.": "Ecco cosa c'è da pagare e da fare questa settimana.",
+    "You get this email every Monday because you are an admin of the family.": "Ricevi questa email ogni lunedì perché sei admin della famiglia.",
+    "About :amount": "Circa :amount"
 }
