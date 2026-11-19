@@ -2037,5 +2037,9 @@
     "Choose your password": "Scegli la tua password",
     "Not expecting it? Ignore this email.": "Non te l'aspettavi? Ignora questa email.",
     "{1} The link is valid for one day.|[2,*] The link is valid for :count days.": "{1} Il link vale un giorno.|[2,*] Il link vale :count giorni.",
-    "We are writing to you because a :app account was opened with this email.": "Ti scriviamo perché è stato aperto un account di :app con questa email."
+    "We are writing to you because a :app account was opened with this email.": "Ti scriviamo perché è stato aperto un account di :app con questa email.",
+    "{1} Show :shown more · 1 left|[2,*] Show :shown more · :count left": "{1} Mostra altre :shown · ne resta 1|[2,*] Mostra altre :shown · ne restano :count",
+    "{1} Show :shown more documents · 1 left|[2,*] Show :shown more documents · :count left": "{1} Mostra altri :shown · ne resta 1|[2,*] Mostra altri :shown · ne restano :count",
+    "Open in the Agenda": "Apri nell'Agenda",
+    "Open in the Archive": "Apri nell'Archivio"
 }
