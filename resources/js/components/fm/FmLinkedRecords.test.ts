@@ -113,37 +113,4 @@ describe('FmLinkedRecords', () => {
             screen.getByRole('link', { name: /Fiat Panda/ }),
         ).toHaveAttribute('href', '/cards/vehicle/1');
     });
-
-    it('adds the To do entry with the number of tasks, leading to the Agenda of that person', () => {
-        render(FmLinkedRecords, {
-            props: {
-                groups,
-                reminders: { count: 2, href: '/reminders?person=3' },
-            },
-        });
-
-        const entry = screen.getByRole('link', { name: 'To do 2' });
-        expect(entry).toHaveAttribute('href', '/reminders?person=3');
-    });
-
-    it('shows the To do entry even when no record names them', () => {
-        render(FmLinkedRecords, {
-            props: {
-                groups: [],
-                reminders: { count: 1, href: '/reminders?person=3' },
-            },
-        });
-
-        expect(
-            screen.getByRole('link', { name: 'To do 1' }),
-        ).toBeInTheDocument();
-    });
-
-    it('has no To do entry without the prop', () => {
-        render(FmLinkedRecords, { props: { groups } });
-
-        expect(
-            screen.queryByRole('link', { name: /To do/ }),
-        ).not.toBeInTheDocument();
-    });
 });

@@ -1,25 +1,21 @@
 <script setup lang="ts">
 /**
  * *Links* of *A person* and *An organization*: the records that name them, one
- * type at a time, with a tab for each type and how many records it has. With
- * `reminders` a last entry, *To do* with the number of open tasks, leads to the
- * Agenda filtered on that person. A tab shows three records at a time, with
+ * type at a time, with a tab for each type and how many records it has. A tab
+ * shows three records at a time, with
  * *Show 3 more* under them.
  *
  * @group sections
  */
-import { Link } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import { showMoreLabel } from '@/lib/showMore';
 import { show } from '@/routes/cards';
 import FmRow from './FmRow.vue';
 import FmShowMore from './FmShowMore.vue';
 
-const { groups, reminders } = defineProps<{
+const { groups } = defineProps<{
     /** The records, grouped by type. */
     groups: App.Data.LinkGroupData[];
-    /** The open tasks of the person: how many, and the address of the Agenda filtered on them; no entry when missing. */
-    reminders?: { count: number; href: string };
 }>();
 
 /** The type whose records are shown: the first, until another is chosen. */
@@ -50,7 +46,7 @@ const left = computed((): number =>
     <section class="flex flex-col gap-2">
         <h2 class="m-0 text-subtitle">{{ $t('Links') }}</h2>
         <div class="rounded-card bg-card px-4 pt-1 shadow-card">
-            <template v-if="open || reminders">
+            <template v-if="open">
                 <div
                     class="flex gap-4 overflow-x-auto border-b border-edge-soft"
                 >
@@ -72,16 +68,6 @@ const left = computed((): number =>
                             group.options.length
                         }}</span>
                     </button>
-                    <Link
-                        v-if="reminders"
-                        :href="reminders.href"
-                        class="flex h-9 shrink-0 items-center gap-1.5 border-b-2 border-transparent px-0.5 text-body-sm whitespace-nowrap text-ink-soft no-underline"
-                    >
-                        {{ $t('To do') }}
-                        <span class="font-semibold text-ink-soft">{{
-                            reminders.count
-                        }}</span>
-                    </Link>
                 </div>
                 <div v-if="open" class="-mx-4 divide-y divide-divider">
                     <FmRow
