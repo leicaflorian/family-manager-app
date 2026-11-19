@@ -176,7 +176,7 @@ test('the personal documents of a person come 5 at a time, the next page on requ
         return $page->has('personal', 5)->where('personalNext', 2)->where('personalTotal', 7);
     });
 
-    $version = app(HandleInertiaRequests::class)->version(request());
+    $version = resolve(HandleInertiaRequests::class)->version(request());
     $response = $this->withHeaders([
         'X-Inertia' => 'true',
         'X-Inertia-Version' => (string) $version,
@@ -196,7 +196,7 @@ test('the personal documents of a person come 5 at a time, the next page on requ
 test('a page of documents asked by the page reads only the documents', function (): void {
     peopleGiveGiuliaDocuments(5, linked: false);
     $giulia = bianchi('Giulia');
-    $version = app(HandleInertiaRequests::class)->version(request());
+    $version = resolve(HandleInertiaRequests::class)->version(request());
 
     DB::enableQueryLog();
     $this->withHeaders([
