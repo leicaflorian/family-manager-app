@@ -1,6 +1,7 @@
 {
     "key": { "lucide": "key-round", "color": "action", "tile": "action-soft" },
     "mail": { "lucide": "mail", "color": "paid", "tile": "paid-soft" },
+    "welcome": { "lucide": "party-popper", "color": "action", "tile": "action-soft" },
     "alert": { "lucide": "triangle-alert", "color": "warning", "tile": "warning-soft" },
     "home": { "lucide": "house", "color": "home-text", "tile": "home-soft" },
     "vehicles": { "lucide": "car", "color": "vehicles-text", "tile": "vehicles-soft" },
