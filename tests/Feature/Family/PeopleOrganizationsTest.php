@@ -193,6 +193,33 @@ test('the personal documents of a person come 5 at a time, the next page on requ
     expect(array_intersect(array_column($response->json('props.personal'), 'id'), $first))->toBe([]);
 });
 
+test('a page of documents asked by the page reads only the documents', function (): void {
+    peopleGiveGiuliaDocuments(5, linked: false);
+    $giulia = bianchi('Giulia');
+    $version = app(HandleInertiaRequests::class)->version(request());
+
+    DB::enableQueryLog();
+    $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Person',
+        'X-Inertia-Partial-Data' => 'personal,personalNext,personalTotal',
+    ])->get(route('people.show', ['person' => $giulia, 'personal_page' => 2]))->assertOk();
+
+    $tables = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $query): bool => preg_match('/from [`"]?(reminders|vehicles|enrollments|health_events)[`"]?/i', $query) === 1);
+    expect($tables)->toBeEmpty();
+});
+
+test('a page number in the address of a full visit starts from the first page', function (): void {
+    peopleGiveGiuliaDocuments(5, linked: false);
+
+    $this->get(route('people.show', ['person' => bianchi('Giulia'), 'personal_page' => 2, 'documents_page' => 9]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('personal', 5)
+        ->where('personalNext', 2)
+        ->has('documents', 2)
+        ->where('pageSizes', ['personal' => 5, 'documents' => 10]));
+});
+
 test('the other documents of a person come 10 at a time', function (): void {
     peopleGiveGiuliaDocuments(10, linked: true);
 

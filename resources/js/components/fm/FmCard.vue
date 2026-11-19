@@ -48,8 +48,12 @@ defineSlots<{
         >
             <h2
                 v-if="title"
-                class="m-0 flex items-center gap-2 text-section"
-                :class="tone === 'overdue' && 'text-overdue'"
+                class="m-0 flex gap-2 text-section"
+                :class="[
+                    tone === 'overdue' && 'text-overdue',
+                    // The number sits on the line of the title, as in the boards
+                    count ? 'items-baseline' : 'items-center',
+                ]"
             >
                 <FmIcon
                     v-if="tone === 'overdue'"

@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Inertia\Support\Header;
 
 /**
  * *People*, *A person* and their form: everyone sees them, only an `admin`
@@ -81,29 +82,48 @@ final class PersonController extends Controller
     public function show(Request $request, Person $person, DocumentRows $rows, #[CurrentUser] User $user): Response
     {
         $theirs = ['person' => $person->id];
-        $reminders = $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'];
-        // One query per list for the documents, their next page and their total, run the first time one is asked
+        // Each list runs its queries the first time one of its props is asked, and never on a reload that does not ask it
+        $reminderList = null;
+        $reminders = function () use (&$reminderList, $person): array {
+            return $reminderList ??= $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'];
+        };
         $personalPage = null;
         $personal = function () use (&$personalPage, $rows, $theirs, $request): array {
-            return $personalPage ??= $rows->page([...$theirs, 'linked' => false], max(1, $request->integer('personal_page')), self::PERSONAL_PER_PAGE);
+            return $personalPage ??= $rows->page([...$theirs, 'linked' => false], $this->pageAsked($request, 'personal'), self::PERSONAL_PER_PAGE);
         };
         $documentsPage = null;
         $documents = function () use (&$documentsPage, $rows, $theirs, $request): array {
-            return $documentsPage ??= $rows->page([...$theirs, 'linked' => true], max(1, $request->integer('documents_page')), self::DOCUMENTS_PER_PAGE);
+            return $documentsPage ??= $rows->page([...$theirs, 'linked' => true], $this->pageAsked($request, 'documents'), self::DOCUMENTS_PER_PAGE);
         };
 
         return Inertia::render('family/Person', [
-            'person' => PersonDetailData::fromPerson($person, $user),
+            'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user),
             'personal' => Inertia::merge(fn (): array => $personal()['documents'])->matchOn('id'),
             'personalNext' => fn (): ?int => $personal()['next'],
             'personalTotal' => fn (): int => $personal()['total'],
             'documents' => Inertia::merge(fn (): array => $documents()['documents'])->matchOn('id'),
             'documentsNext' => fn (): ?int => $documents()['next'],
             'documentsTotal' => fn (): int => $documents()['total'],
-            'links' => $this->records->ofPerson($person),
+            'pageSizes' => ['personal' => self::PERSONAL_PER_PAGE, 'documents' => self::DOCUMENTS_PER_PAGE],
+            'links' => fn (): array => $this->records->ofPerson($person),
             'reminders' => $reminders,
-            'remindersCount' => count($reminders),
+            'remindersCount' => fn (): int => count($reminders()),
         ]);
+    }
+
+    /**
+     * The page of a list of documents to send: the one in the request only on
+     * the partial reload of *Show more*, which asks for that list; a full visit
+     * always starts from the first, even with a number left in the address.
+     *
+     * @param  Request  $request  the request
+     * @param  'personal'|'documents'  $list  the list, also the name of its prop and of its parameter (`personal_page`)
+     */
+    private function pageAsked(Request $request, string $list): int
+    {
+        $asked = explode(',', (string) $request->header(Header::PARTIAL_ONLY, ''));
+
+        return in_array($list, $asked, true) ? max(1, $request->integer($list.'_page')) : 1;
     }
 
     /**

@@ -2,8 +2,8 @@
 /**
  * *Links* of *A person* and *An organization*: the records that name them, one
  * type at a time, with a tab for each type and how many records it has. A tab
- * shows three records at a time, with
- * *Show 3 more* under them.
+ * shows three records at a time, with *Show 3 more* under them («altre» or
+ * «altri» in Italian, as the name of the tab).
  *
  * @group sections
  */

@@ -27,6 +27,7 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmShowMore from '@/components/fm/FmShowMore.vue';
 import { useFormat } from '@/composables/useFormat';
 import { accountText, personSubtitle } from '@/lib/family';
+import type { Area } from '@/lib/areas';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { daysFromToday, relativeDays } from '@/lib/format';
 import { showMoreLabel } from '@/lib/showMore';
@@ -50,6 +51,7 @@ const {
     documents,
     documentsNext = null,
     documentsTotal,
+    pageSizes,
 } = defineProps<{
     /** The person. */
     person: App.Data.PersonDetailData;
@@ -69,18 +71,14 @@ const {
     documentsNext?: number | null;
     /** How many documents linked to a record they have in all. */
     documentsTotal: number;
+    /** How many documents a page of each list holds, as the server sends them: what *Show more* promises. */
+    pageSizes: { personal: number; documents: number };
     /** The records that name them, by type. */
     links: App.Data.LinkGroupData[];
 }>();
 
 /** How many reminders a tap on *Show more* adds to *To do*. */
 const REMINDERS_STEP = 5;
-
-/** How many personal documents a page holds (`PersonController::PERSONAL_PER_PAGE`). */
-const PERSONAL_STEP = 5;
-
-/** How many other documents a page holds (`PersonController::DOCUMENTS_PER_PAGE`). */
-const DOCUMENTS_STEP = 10;
 
 const { date } = useFormat();
 
@@ -142,6 +140,17 @@ function reminderText(reminder: App.Data.ReminderData): string {
             : relativeDays(reminder.due_date);
 
     return [reminder.subject?.label, when].filter(Boolean).join(' · ');
+}
+
+/**
+ * The area of the thing a reminder refers to, for its tile and its icon: the
+ * general one when it refers to nothing or to an area the app does not know.
+ *
+ * @param reminder - an open reminder
+ * @returns the area
+ */
+function reminderArea(reminder: App.Data.ReminderData): Area {
+    return areaOf(reminder.subject?.area ?? null) ?? 'general';
 }
 
 /** *Edit* and *Delete*, for an `admin` and a person without an account. */
@@ -248,20 +257,10 @@ usePageTrail(() => [
                         <template #before>
                             <span
                                 class="flex size-9 shrink-0 items-center justify-center rounded-md"
-                                :class="
-                                    areaTile[
-                                        areaOf(
-                                            reminder.subject?.area ?? null,
-                                        ) ?? 'general'
-                                    ]
-                                "
+                                :class="areaTile[reminderArea(reminder)]"
                             >
                                 <FmIcon
-                                    :icon="
-                                        areaIcon(
-                                            reminder.subject?.area ?? 'general',
-                                        )
-                                    "
+                                    :icon="areaIcon(reminderArea(reminder))"
                                     :size="18"
                                 />
                             </span>
@@ -299,7 +298,7 @@ usePageTrail(() => [
                         :label="
                             showMoreLabel(
                                 personalTotal - personal.length,
-                                PERSONAL_STEP,
+                                pageSizes.personal,
                                 'documents',
                             )
                         "
@@ -386,7 +385,7 @@ usePageTrail(() => [
                         :label="
                             showMoreLabel(
                                 documentsTotal - documents.length,
-                                DOCUMENTS_STEP,
+                                pageSizes.documents,
                                 'documents',
                             )
                         "

@@ -46,6 +46,7 @@ function documentProps(
         documents,
         documentsNext: null,
         documentsTotal: documents.length,
+        pageSizes: { personal: 5, documents: 10 },
     };
 }
 
@@ -301,6 +302,21 @@ describe('A person', () => {
             }),
         );
         reload.mockRestore();
+    });
+
+    it('promises as many personal documents as a page of the server holds', () => {
+        renderGiulia(personDetail, [], {
+            ...documentProps(),
+            personalNext: 2,
+            personalTotal: 7,
+            pageSizes: { personal: 3, documents: 10 },
+        });
+
+        expect(
+            screen.getByRole('button', {
+                name: 'Show 3 more documents · 6 left',
+            }),
+        ).toBeInTheDocument();
     });
 
     it('asks the server for the next other documents, and leads to the Archive of the person', async () => {

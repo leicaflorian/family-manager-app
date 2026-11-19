@@ -33,6 +33,8 @@ describe('FmCard', () => {
             name: 'Personal documents 42',
         });
         expect(heading).toHaveTextContent('42');
+        // As the boards: the number sits on the line of the title
+        expect(heading).toHaveClass('items-baseline');
     });
 
     it('shows no number when there are none', () => {
