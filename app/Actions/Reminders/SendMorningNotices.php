@@ -22,12 +22,12 @@ use App\Support\Reminders\Notices;
 use App\Support\Reminders\SubjectLink;
 use App\Support\Reminders\WeeklySummary;
 use Carbon\CarbonImmutable;
-use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Traits\Localizable;
 use Throwable;
 
 /**
@@ -41,6 +41,8 @@ use Throwable;
  */
 final class SendMorningNotices
 {
+    use Localizable;
+
     /**
      * Looks at each open reminder, writes the bell rows, remembers what was reached and queues the mails. Without
      * any account nothing is sent and nothing is remembered, so the notices wait for the first one.
@@ -164,7 +166,7 @@ final class SendMorningNotices
 
             foreach ($accounts->filter(static fn (User $user): bool => $user->role === Role::Admin) as $admin) {
                 $locale = $this->locale($admin);
-                $summaries[$locale] ??= $this->inLocale($locale, static fn (): WeeklySummary => $service->week($today));
+                $summaries[$locale] ??= $this->withLocale($locale, static fn (): WeeklySummary => $service->week($today));
             }
 
             return $summaries;
@@ -172,28 +174,6 @@ final class SendMorningNotices
             report($exception);
 
             return null;
-        }
-    }
-
-    /**
-     * Runs a callback with the application in a language, and puts the language of the run back afterwards.
-     *
-     * @template TReturn
-     *
-     * @param  string  $locale  the language
-     * @param  Closure(): TReturn  $callback  what to run
-     * @return TReturn
-     */
-    private function inLocale(string $locale, Closure $callback): mixed
-    {
-        $original = app()->getLocale();
-
-        try {
-            app()->setLocale($locale);
-
-            return $callback();
-        } finally {
-            app()->setLocale($original);
         }
     }
 
