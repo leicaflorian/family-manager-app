@@ -22,6 +22,7 @@ use App\Support\Reminders\Notices;
 use App\Support\Reminders\SubjectLink;
 use App\Support\Reminders\WeeklySummary;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -122,17 +123,17 @@ final class SendMorningNotices
      */
     private function queueMails(Collection $accounts, array $emails, CarbonImmutable $today): void
     {
-        $summary = $today->isMonday() ? $this->weeklySummary($today) : null;
+        $summaries = $today->isMonday() ? $this->weeklySummaries($accounts, $today) : null;
         /** @var Collection<int, User> $admins */
         $admins = new Collection;
 
         // Taken only once the summary exists, so a failed build leaves the Monday to a later run. When a run of the
         // same Monday already took it, the admins get their new notices by the morning mail, so none is lost.
-        if ($summary instanceof WeeklySummary && Cache::add(sprintf('weekly-summary:%d:%s', CurrentFamily::id(), $today->toDateString()), true, now()->addDays(2))) {
+        if ($summaries !== null && Cache::add(sprintf('weekly-summary:%d:%s', CurrentFamily::id(), $today->toDateString()), true, now()->addDays(2))) {
             $admins = $accounts->filter(static fn (User $user): bool => $user->role === Role::Admin);
 
             foreach ($admins as $admin) {
-                $this->queueWeekly($admin, $summary, $emails[$admin->id] ?? [], $today);
+                $this->queueWeekly($admin, $summaries[$this->locale($admin)], $emails[$admin->id] ?? [], $today);
             }
         }
 
@@ -146,19 +147,53 @@ final class SendMorningNotices
     }
 
     /**
-     * The summary of the week for the current family, or null when it cannot be built. The service is resolved
-     * here and not in the constructor, so that a failure while resolving it also falls back to the morning mail.
+     * The summary of the week for the current family, built once per language of its admins (the titles of the
+     * entries are worded when it is built, so each admin needs it in their own language), or null when it cannot be
+     * built. The service is resolved here and not in the constructor, so that a failure while resolving it also falls
+     * back to the morning mail.
      *
+     * @param  Collection<int, User>  $accounts  the accounts of the family
      * @param  CarbonImmutable  $today  the Monday, in Rome
+     * @return array<string, WeeklySummary>|null the summary by language
      */
-    private function weeklySummary(CarbonImmutable $today): ?WeeklySummary
+    private function weeklySummaries(Collection $accounts, CarbonImmutable $today): ?array
     {
         try {
-            return resolve(WeeklySummaries::class)->week($today);
+            $service = resolve(WeeklySummaries::class);
+            $summaries = [];
+
+            foreach ($accounts->filter(static fn (User $user): bool => $user->role === Role::Admin) as $admin) {
+                $locale = $this->locale($admin);
+                $summaries[$locale] ??= $this->inLocale($locale, static fn (): WeeklySummary => $service->week($today));
+            }
+
+            return $summaries;
         } catch (Throwable $exception) {
             report($exception);
 
             return null;
+        }
+    }
+
+    /**
+     * Runs a callback with the application in a language, and puts the language of the run back afterwards.
+     *
+     * @template TReturn
+     *
+     * @param  string  $locale  the language
+     * @param  Closure(): TReturn  $callback  what to run
+     * @return TReturn
+     */
+    private function inLocale(string $locale, Closure $callback): mixed
+    {
+        $original = app()->getLocale();
+
+        try {
+            app()->setLocale($locale);
+
+            return $callback();
+        } finally {
+            app()->setLocale($original);
         }
     }
 

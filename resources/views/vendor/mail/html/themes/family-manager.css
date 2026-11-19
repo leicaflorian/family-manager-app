@@ -289,6 +289,7 @@ a {
 }
 
 .week-day-number {
+    color: #18212f;
     font-size: 18px;
     font-weight: 700;
     line-height: 1.2;
@@ -299,6 +300,11 @@ a {
     font-size: 13px;
     font-weight: 400;
     line-height: 1.4;
+}
+
+.week-day-number.due-late,
+.week-day-name.due-late {
+    color: #c4283f;
 }
 
 .week-amount {

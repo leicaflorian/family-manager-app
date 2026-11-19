@@ -7,7 +7,7 @@
 <table class="total" width="100%" cellpadding="0" cellspacing="0" role="presentation">
 <tr>
 <td class="total-label" valign="middle">{{ __('To pay') }}</td>
-<td class="total-amount" align="right" valign="middle">{{ $total }}</td>
+<td class="total-amount" align="right" valign="middle">{{ $estimated ? __('About :amount', ['amount' => $total]) : $total }}</td>
 </tr>
 </table>
 @endif

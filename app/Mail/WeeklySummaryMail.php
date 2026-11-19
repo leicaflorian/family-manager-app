@@ -67,6 +67,7 @@ final class WeeklySummaryMail extends Mailable
         return new Content(markdown: 'mail.weekly-summary', with: [
             'name' => $this->user->firstName(),
             'agenda' => route('agenda'),
+            'estimated' => $this->summary->estimated,
             'total' => $this->summary->total > 0 ? Money::euro($this->summary->total) : null,
             'late' => $this->rows($this->summary->late),
             'toPay' => $this->rows($this->summary->toPay),
@@ -76,16 +77,18 @@ final class WeeklySummaryMail extends Mailable
     }
 
     /**
-     * The rows of one section.
+     * The rows of one section: the day, with the weekday and the short month (a late entry shows the month, because
+     * a weekday alone is ambiguous over 90 days).
      *
      * @param  list<AgendaEntryData>  $entries  the entries of the section
-     * @return list<array{day: string, weekday: string, area: string, title: string, subtitle: string, person: ?string, amount: ?string, url: string}>
+     * @return list<array{day: string, weekday: string, month: string, area: string, title: string, subtitle: string, person: ?string, amount: ?string, url: string}>
      */
     private function rows(array $entries): array
     {
         return array_map(fn (AgendaEntryData $entry): array => [
             'day' => $this->day($entry->date)->isoFormat('D'),
             'weekday' => $this->day($entry->date)->isoFormat('ddd'),
+            'month' => $this->day($entry->date)->isoFormat('MMM'),
             'area' => $entry->area,
             'title' => $entry->title,
             'subtitle' => $entry->subtitle,

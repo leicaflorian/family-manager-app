@@ -107,7 +107,8 @@ test('the sections show their rows', function (): void {
         ->assertSeeInHtml('Florian')
         ->assertSeeInHtml(Money::euro(34.90))
         ->assertSeeInHtml('>20<', false)
-        ->assertSeeInHtml('>Fri<', false)
+        ->assertSeeInHtml('>Nov<', false)
+        ->assertDontSeeInHtml('>Fri<', false)
         ->assertSeeInHtml('>23<', false)
         ->assertSeeInHtml('>Mon<', false)
         ->assertSeeInHtml(Money::euro(10.40))
@@ -118,6 +119,29 @@ test('the sections show their rows', function (): void {
         ->assertSeeInHtml('Open the Agenda')
         ->assertSeeInHtml(route('agenda'));
     expect(substr_count($mail->render(), 'class="week-day-number due-late"'))->toBe(1);
+});
+
+test('the late row shows the month and the week rows the weekday', function (): void {
+    $html = weeklySummaryMailFor(weeklySummaryMailWeek())->render();
+
+    expect($html)->toContain('>Nov<')
+        ->and(substr_count($html, '>Nov<'))->toBe(1)
+        ->and($html)->toContain('>Mon<')
+        ->and($html)->toContain('>Tue<')
+        ->and($html)->toContain('>Wed<');
+});
+
+test('an estimated total says about, an exact one does not', function (): void {
+    expect(weeklySummaryMailFor(weeklySummaryMailWeek(163.39, true))->render())->toContain('About '.Money::euro(163.39))
+        ->and(weeklySummaryMailFor(weeklySummaryMailWeek(163.39, false))->render())->not->toContain('About ');
+});
+
+test('the colours of the day cells follow the board', function (): void {
+    $css = (string) file_get_contents(resource_path('views/vendor/mail/html/themes/family-manager.css'));
+
+    expect($css)->toMatch('/\.week-day-number\s*\{[^}]*color:\s*#18212f/')
+        ->and($css)->toMatch('/\.week-day-number\.due-late,\s*\.week-day-name\.due-late\s*\{\s*color:\s*#c4283f/');
+    expect(weeklySummaryMailFor(weeklySummaryMailWeek())->render())->toContain('class="week-day-number"');
 });
 
 test('an empty section is not shown', function (): void {

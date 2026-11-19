@@ -293,6 +293,25 @@ test('a notice already in the week list is not repeated', function (): void {
         && $mail->summary->tasks[0]->date === '2026-11-26');
 });
 
+test('each admin gets the titles of the week in their own language', function (): void {
+    config(['app.locale' => 'it']);
+    app()->setLocale('it');
+    runRemindersMorningOf('2026-11-23');
+    $this->panda->update(['inspection_due_date' => '2026-11-26']);
+    $this->marcoUser->forceFill(['locale' => 'en'])->save();
+    $giulia = User::factory()->for($this->family)->admin()->create(['email' => 'giulia@example.com']);
+    $giulia->forceFill(['locale' => 'it'])->save();
+    Person::factory()->for($this->family)->create(['first_name' => 'Giulia', 'user_id' => $giulia->id]);
+
+    $this->artisan('reminders:run', ['--date' => '2026-11-23'])->assertSuccessful();
+
+    $texts = fn (WeeklySummaryMail $mail): string => json_encode($mail->summary->tasks, JSON_THROW_ON_ERROR);
+    Mail::assertQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('marco@example.com')
+        && str_contains($texts($mail), 'Inspection') && ! str_contains($texts($mail), 'Revisione'));
+    Mail::assertQueued(WeeklySummaryMail::class, fn (WeeklySummaryMail $mail): bool => $mail->hasTo('giulia@example.com')
+        && str_contains($texts($mail), 'Revisione') && ! str_contains($texts($mail), 'Inspection'));
+});
+
 test('a notice for later is in today\'s notices', function (): void {
     runRemindersMorningOf('2026-11-23');
     runRemindersVehicleRule(30);
