@@ -93,3 +93,11 @@ test('the log label exists in both languages', function (): void {
     app()->setLocale('it');
     expect(OwnerActionType::FamilyCreated->label())->toBe('Famiglia creata');
 });
+
+test('the owner is never written as the author of the new family', function (): void {
+    $laura = createFamilyFromPanelRossi();
+
+    $person = CurrentFamily::using($laura->family_id, fn (): Person => Person::query()->where('user_id', $laura->id)->sole());
+    expect($person->created_by)->toBeNull()
+        ->and($person->updated_by)->toBeNull();
+});
