@@ -26,8 +26,10 @@ use App\Models\Utility;
 use App\Support\CurrentFamily;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -198,4 +200,14 @@ function familyWithMailAddress(string $lastName, string $email, string $address)
     });
 
     return $admin;
+}
+
+/**
+ * Sends the mails to a server that does not answer, so a sending fails as when the provider is down. It replaces a
+ * `Mail::fake()` too.
+ */
+function mailServerDown(): void
+{
+    config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => '127.0.0.1', 'mail.mailers.smtp.port' => 1, 'mail.mailers.smtp.timeout' => 2]);
+    Mail::swap(new MailManager(app()));
 }

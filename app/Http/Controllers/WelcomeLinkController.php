@@ -34,6 +34,8 @@ final class WelcomeLinkController extends Controller
         return to_route('password.reset', [
             'token' => Password::broker()->createToken($user),
             'email' => $user->email,
+            // The page speaks of a welcome, not of a forgotten password
+            'welcome' => 1,
         ]);
     }
 }

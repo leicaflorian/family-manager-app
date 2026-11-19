@@ -5,13 +5,14 @@ declare(strict_types=1);
 use App\Actions\Admin\CreateFamilyFromPanel;
 use App\Enums\OwnerActionType;
 use App\Enums\Role;
-use App\Mail\WelcomeMail;
 use App\Models\DocumentCategory;
+use App\Models\Family;
 use App\Models\Owner;
 use App\Models\OwnerAction;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\CurrentFamily;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
@@ -79,13 +80,14 @@ test('it writes the log', function (): void {
     expect($line->action)->toBe(OwnerActionType::FamilyCreated)
         ->and($line->family_id)->toBe($laura->family_id)
         ->and($line->family_name)->toBe('Rossi')
-        ->and($line->owner_id)->toBe($this->owner->id);
+        ->and($line->owner_id)->toBe($this->owner->id)
+        ->and($line->user_id)->toBe($laura->id);
 });
 
-test('it sends the welcome mail in the language chosen', function (): void {
+test('it sends no mail by itself: the panel sends it, and tells when it does not go out', function (): void {
     createFamilyFromPanelRossi('it');
 
-    Mail::assertSent(WelcomeMail::class, fn (WelcomeMail $mail): bool => $mail->hasTo('laura@example.com') && $mail->locale === 'it');
+    Mail::assertNothingOutgoing();
 });
 
 test('the log label exists in both languages', function (): void {
@@ -95,6 +97,20 @@ test('the log label exists in both languages', function (): void {
 });
 
 test('the owner is never written as the author of the new family', function (): void {
+    $laura = createFamilyFromPanelRossi();
+
+    $person = CurrentFamily::using($laura->family_id, fn (): Person => Person::query()->where('user_id', $laura->id)->sole());
+    expect($person->created_by)->toBeNull()
+        ->and($person->updated_by)->toBeNull();
+});
+
+test('the owner is not the author either with a visit of another account open in the same session', function (): void {
+    // Without a host of its own the panel shares the session of the app: *Enter as…* signs in an account there
+    $marco = User::factory()->for(Family::factory())->create();
+    actingAs($marco, 'web');
+    actingAs($this->owner, 'owner');
+    Filament::setServingStatus();
+
     $laura = createFamilyFromPanelRossi();
 
     $person = CurrentFamily::using($laura->family_id, fn (): Person => Person::query()->where('user_id', $laura->id)->sole());

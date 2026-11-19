@@ -1,12 +1,14 @@
 <script setup lang="ts">
 /**
  * *New password* page: it is reached from the link of the email and the new
- * password is chosen.
+ * password is chosen. From the welcome mail of an account created from the owner
+ * panel it speaks of a welcome, not of a forgotten password.
  */
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, setLayoutProps, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmPasswordField from '@/components/fm/FmPasswordField.vue';
+import { useAppName } from '@/composables/useAppName';
 import { errors } from '@/lib/errors';
 import { update } from '@/routes/password';
 
@@ -24,6 +26,8 @@ defineOptions({
 });
 
 const props = defineProps<{
+    /** It is reached from the welcome mail: the person chooses the first password. */
+    welcome: boolean;
     /** The code of the link of the email. */
     token: string;
     /** The email of the account. */
@@ -31,6 +35,18 @@ const props = defineProps<{
     /** The password rules, for the hint of the browser. */
     passwordRules: string;
 }>();
+
+if (props.welcome) {
+    setLayoutProps({
+        title: trans('Choose your password'),
+        panel: {
+            title: trans('Welcome to :app', { app: useAppName().value }),
+            text: trans(
+                'You choose the password, and you find your family ready.',
+            ),
+        },
+    });
+}
 
 const form = useForm({
     token: props.token,

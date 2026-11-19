@@ -133,3 +133,15 @@ test('the password page then sets the password', function (): void {
 
     expect(Hash::check('a-brand-new-password', (string) $this->laura->refresh()->password))->toBeTrue();
 });
+
+test('the password page of a welcome link speaks of a welcome, not of a forgotten password', function (): void {
+    $location = (string) $this->get(WelcomeLink::for($this->laura))->headers->get('Location');
+
+    expect($location)->toContain('welcome=1');
+    $this->get($location)->assertInertia(fn ($page) => $page->component('auth/ResetPassword')->where('welcome', true));
+});
+
+test('the password page of a forgotten password stays as it is', function (): void {
+    $this->get(route('password.reset', ['token' => 'abc', 'email' => 'laura@example.com']))
+        ->assertInertia(fn ($page) => $page->component('auth/ResetPassword')->where('welcome', false));
+});

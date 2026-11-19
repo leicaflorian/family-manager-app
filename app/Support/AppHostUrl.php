@@ -32,4 +32,20 @@ final class AppHostUrl
 
         return $generator;
     }
+
+    /**
+     * The address of a file of `public/` on the host of the app, for the pictures of a mail: a mail sent from the
+     * panel would otherwise point them to the host of the panel.
+     *
+     * @param  string  $path  the file, for example `mail-icons/welcome.png`
+     */
+    public static function asset(string $path): string
+    {
+        $generator = self::generator();
+        // Files served from elsewhere (`ASSET_URL`), as the generator of the application has them
+        $origin = config('app.asset_url');
+        $generator->useAssetOrigin(is_string($origin) ? $origin : null);
+
+        return $generator->asset($path);
+    }
 }

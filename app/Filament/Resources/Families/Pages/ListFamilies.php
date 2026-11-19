@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Families\Pages;
 
 use App\Actions\Admin\CreateFamilyFromPanel;
+use App\Actions\Admin\SendWelcomeMail;
 use App\Admin\FamilyFigure;
 use App\Admin\FamilyFigures;
 use App\Filament\Resources\Families\FamilyResource;
@@ -92,10 +93,19 @@ final class ListFamilies extends ListRecords
                     /** @var array{first_name: string, last_name: string, family_name: string, email: string, locale: string} $data */
                     $user = resolve(CreateFamilyFromPanel::class)->handle($data['family_name'], $data['first_name'], $data['last_name'], $data['email'], $data['locale']);
 
-                    Notification::make()
-                        ->title(__('Family created. We sent :email the link to choose the password.', ['email' => $user->email]))
-                        ->success()
-                        ->send();
+                    // The family stays even when the mail does not go out: the owner sends it again from its page
+                    if (resolve(SendWelcomeMail::class)->handle($user)) {
+                        Notification::make()
+                            ->title(__('Family created. We sent :email the link to choose the password.', ['email' => $user->email]))
+                            ->success()
+                            ->send();
+                    } else {
+                        Notification::make()
+                            ->title(__('Family created, but the email did not go out. Send it again from the Accounts tab of the family.'))
+                            ->warning()
+                            ->persistent()
+                            ->send();
+                    }
 
                     $this->redirect(FamilyResource::getUrl('view', ['record' => $user->family_id]));
                 }),

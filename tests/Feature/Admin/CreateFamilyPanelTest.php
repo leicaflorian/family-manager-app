@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\OwnerActionType;
 use App\Filament\Resources\Families\FamilyResource;
 use App\Filament\Resources\Families\Pages\ListFamilies;
 use App\Filament\Resources\Families\Pages\ViewFamily;
@@ -9,6 +10,7 @@ use App\Filament\Resources\Families\RelationManagers\UsersRelationManager;
 use App\Mail\WelcomeMail;
 use App\Models\Family;
 use App\Models\Owner;
+use App\Models\OwnerAction;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
@@ -97,23 +99,69 @@ test('every field is required and the email must be an email', function (): void
     expect(Family::query()->count())->toBe(0);
 });
 
-test('the welcome mail can be sent again, in the language of the panel', function (): void {
+test('when the welcome mail does not go out, the family stays and the owner is told how to send it again', function (): void {
+    createFamilyPanelAsOwner();
+    mailServerDown();
+
+    $component = Livewire::test(ListFamilies::class)
+        ->callAction('createFamily', createFamilyPanelRossi())
+        ->assertHasNoActionErrors()
+        ->assertNotified('Family created, but the email did not go out. Send it again from the Accounts tab of the family.');
+
+    $component->assertRedirect(FamilyResource::getUrl('view', ['record' => Family::query()->where('name', 'Rossi')->sole()]));
+});
+
+/**
+ * A family created from the panel, with its first account still to confirm.
+ *
+ * @param  string  $locale  the language of the account
+ * @return array{0: Family, 1: User}
+ */
+function createFamilyPanelCreated(string $locale = 'it'): array
+{
     $family = Family::factory()->create(['name' => 'Rossi']);
-    $laura = User::factory()->for($family)->create(['email' => 'laura@example.com', 'email_verified_at' => null]);
+    $laura = User::factory()->for($family)->create(['email' => 'laura@example.com', 'email_verified_at' => null, 'locale' => $locale]);
+    OwnerAction::query()->create(['family_id' => $family->id, 'family_name' => 'Rossi', 'user_id' => $laura->id, 'action' => OwnerActionType::FamilyCreated]);
+
+    return [$family, $laura];
+}
+
+test('the welcome mail can be sent again, in the language of the account', function (): void {
+    [$family, $laura] = createFamilyPanelCreated('it');
     createFamilyPanelAsOwner();
     app()->setLocale('en');
 
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $family, 'pageClass' => ViewFamily::class])
-        ->callTableAction('resendWelcome', $laura);
+        ->callTableAction('resendWelcome', $laura)
+        ->assertNotified('Sent');
 
-    Mail::assertSent(WelcomeMail::class, fn (WelcomeMail $mail): bool => $mail->hasTo('laura@example.com') && $mail->locale === 'en');
+    Mail::assertSent(WelcomeMail::class, fn (WelcomeMail $mail): bool => $mail->hasTo('laura@example.com') && $mail->locale === 'it');
+});
+
+test('a welcome mail sent again that does not go out is told', function (): void {
+    [$family, $laura] = createFamilyPanelCreated();
+    createFamilyPanelAsOwner();
+    mailServerDown();
+
+    Livewire::test(UsersRelationManager::class, ['ownerRecord' => $family, 'pageClass' => ViewFamily::class])
+        ->callTableAction('resendWelcome', $laura)
+        ->assertNotified('The email did not go out. Try again in a few minutes.');
 });
 
 test('the welcome mail is not offered to a confirmed account', function (): void {
-    $family = Family::factory()->create(['name' => 'Rossi']);
-    $laura = User::factory()->for($family)->create(['email_verified_at' => now()]);
+    [$family, $laura] = createFamilyPanelCreated();
+    $laura->forceFill(['email_verified_at' => now()])->save();
     createFamilyPanelAsOwner();
 
     Livewire::test(UsersRelationManager::class, ['ownerRecord' => $family, 'pageClass' => ViewFamily::class])
         ->assertTableActionHidden('resendWelcome', $laura);
+});
+
+test('the welcome mail is offered only to the account the panel created, not to another one to confirm', function (): void {
+    [$family] = createFamilyPanelCreated();
+    $marco = User::factory()->for($family)->create(['email_verified_at' => null]);
+    createFamilyPanelAsOwner();
+
+    Livewire::test(UsersRelationManager::class, ['ownerRecord' => $family, 'pageClass' => ViewFamily::class])
+        ->assertTableActionHidden('resendWelcome', $marco);
 });

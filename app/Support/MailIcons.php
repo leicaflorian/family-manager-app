@@ -54,7 +54,7 @@ final class MailIcons
      */
     public static function src(string $name): string
     {
-        return asset('mail-icons/'.self::name($name).'.png');
+        return AppHostUrl::asset('mail-icons/'.self::name($name).'.png');
     }
 
     /**

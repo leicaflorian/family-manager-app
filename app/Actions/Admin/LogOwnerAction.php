@@ -22,7 +22,7 @@ final class LogOwnerAction
      *
      * @param  OwnerActionType  $type  what was done
      * @param  Family  $family  the family it was done to
-     * @param  User|null  $user  the account involved, for a visit
+     * @param  User|null  $user  the account involved: the one visited, or the first account of a family created
      * @param  Owner|null  $owner  the owner who did it, when it is not the one of the `owner` guard (a visit that ends
      *                             because the owner signed out of the panel)
      */

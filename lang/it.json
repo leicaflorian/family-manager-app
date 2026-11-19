@@ -2060,5 +2060,8 @@
     "Today's notices": "Avvisi di oggi",
     "Here is what to pay and to do this week.": "Ecco cosa c'è da pagare e da fare questa settimana.",
     "You get this email every Monday because you are an admin of the family.": "Ricevi questa email ogni lunedì perché sei admin della famiglia.",
-    "About :amount": "Circa :amount"
+    "About :amount": "Circa :amount",
+    "Family created, but the email did not go out. Send it again from the Accounts tab of the family.": "Famiglia creata, ma l'email non è partita. Mandala di nuovo dalla scheda Account della famiglia.",
+    "The email did not go out. Try again in a few minutes.": "L'email non è partita. Riprova tra qualche minuto.",
+    "You choose the password, and you find your family ready.": "Scegli la password e trovi la tua famiglia pronta."
 }
