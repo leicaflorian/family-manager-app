@@ -207,7 +207,7 @@ describe('FmCardDocumentActions', () => {
     });
 
     it('in the form needs no card: it renders and emits unlink', async () => {
-        const { emitted } = renderPage(FmCardDocumentActions, {
+        const result = renderPage(FmCardDocumentActions, {
             document: healthCard,
             canDelete: false,
             inForm: true,
@@ -218,6 +218,6 @@ describe('FmCardDocumentActions', () => {
             await screen.findByRole('menuitem', { name: 'Unlink' }),
         );
 
-        expect(emitted()).toHaveProperty('unlink');
+        expect(result.emitted()).toHaveProperty('unlink');
     });
 });
