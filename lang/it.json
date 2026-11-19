@@ -2041,5 +2041,15 @@
     "{1} Show :shown more · 1 left|[2,*] Show :shown more · :count left": "{1} Mostra altre :shown · ne resta 1|[2,*] Mostra altre :shown · ne restano :count",
     "{1} Show :shown more documents · 1 left|[2,*] Show :shown more documents · :count left": "{1} Mostra altri :shown · ne resta 1|[2,*] Mostra altri :shown · ne restano :count",
     "Open in the Agenda": "Apri nell'Agenda",
-    "Open in the Archive": "Apri nell'Archivio"
+    "Open in the Archive": "Apri nell'Archivio",
+    "Create a family": "Crea una famiglia",
+    "We send the first account an email with the link to choose the password.": "Mandiamo al primo account un'email con il link per scegliere la password.",
+    "Create": "Crea",
+    "Name of the family": "Nome della famiglia",
+    "Language of the family and of the email": "Lingua della famiglia e dell'email",
+    "Family created. We sent :email the link to choose the password.": "Famiglia creata. Abbiamo mandato a :email il link per scegliere la password.",
+    "Send the welcome email again": "Manda di nuovo l'email di benvenuto",
+    "Send the welcome email again?": "Mandare di nuovo l'email di benvenuto?",
+    "We send :email a new link to choose the password.": "Mandiamo a :email un link nuovo per scegliere la password.",
+    "Sent": "Inviata"
 }
