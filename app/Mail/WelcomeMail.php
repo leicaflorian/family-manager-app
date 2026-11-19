@@ -31,7 +31,7 @@ final class WelcomeMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        return new Envelope(subject: __('Welcome to :app', ['app' => config('app.name')]));
+        return new Envelope(subject: __('Welcome to :app', ['app' => config()->string('app.name')]));
     }
 
     /**
