@@ -18,7 +18,7 @@ La registrazione è chiusa (`REGISTRATION_OPEN=false`) e il pannello non crea fa
 
 ## Approcci per il link della password (scelto: 1)
 
-1. **Link di benvenuto firmato, che porta alla pagina della password che c'è già** (scelto). `GET welcome/{user}`, firmato a tempo (7 giorni). Quando lo si apre, se l'email dell'account non è confermata: la conferma, crea un token normale della password (`Password::broker()->createToken`) e porta a `password.reset` con token ed email. Se è già confermata, il link non vale più: va alla pagina di accesso con un messaggio (si usa *Password dimenticata*). Nessuna pagina nuova, e la password dimenticata resta di 60 minuti.
+1. **Link di benvenuto firmato, che porta alla pagina della password che c'è già** (scelto). `GET welcome/{user}`, firmato a tempo (7 giorni). Quando lo si apre, se l'email dell'account non è confermata e è quella a cui è partito il link (`hash`): crea un token normale della password (`Password::broker()->createToken`) e porta a `password.reset` con token ed email, senza cambiare altro; l'email si conferma quando la password si salva (cambiato dopo la revisione finale: prima la confermava l'apertura, che un programma che controlla i link avrebbe consumato, e un'email cambiata riapriva un link vecchio). Se è già confermata o cambiata, il link non vale più: va alla pagina di accesso con un messaggio (si usa *Password dimenticata*). Nessuna pagina nuova, e la password dimenticata resta di 60 minuti.
 2. Un secondo tipo di token della password da 7 giorni: andrebbe riscritta o duplicata la pagina di reset di Fortify. Scartato.
 3. Portare a 7 giorni tutti i link della password: rende meno sicura la password dimenticata. Scartato.
 

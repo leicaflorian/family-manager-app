@@ -35,13 +35,13 @@ test('the link is on the host of the app, also from the panel', function (): voi
     expect(WelcomeLink::for($this->laura))->toStartWith('https://my.fameja.app/start/'.$this->laura->id.'?');
 });
 
-test('opening the link confirms the email and opens the choice of the password', function (): void {
+test('opening the link opens the choice of the password, and does not confirm the email yet', function (): void {
     $response = $this->get(WelcomeLink::for($this->laura));
 
     $location = (string) $response->headers->get('Location');
     expect($location)->toStartWith(rtrim(route('password.reset', ['token' => 'x']), 'x'))
         ->and($location)->toContain('email=laura%40example.com')
-        ->and($this->laura->refresh()->email_verified_at)->not->toBeNull()
+        ->and($this->laura->refresh()->email_verified_at)->toBeNull()
         ->and(Password::broker()->tokenExists($this->laura, welcomeLinkToken($location)))->toBeTrue();
 });
 
@@ -62,13 +62,40 @@ test('a used link goes to the sign in with a message', function (): void {
     expect(DB::table('password_reset_tokens')->count())->toBe(0);
 });
 
-test('the same link opened twice does not make a second token', function (): void {
+test('a link opened before the person, by a mail scanner, still works for the person', function (): void {
     $link = WelcomeLink::for($this->laura);
-    $first = (string) $this->get($link)->headers->get('Location');
+    $this->get($link);
 
+    $location = (string) $this->get($link)->headers->get('Location');
+
+    expect($location)->toContain('/reset-password/')
+        ->and(Password::broker()->tokenExists($this->laura, welcomeLinkToken($location)))->toBeTrue();
+});
+
+test('saving the password confirms the email, and the link is used', function (): void {
+    $link = WelcomeLink::for($this->laura);
+    $location = (string) $this->get($link)->headers->get('Location');
+
+    $this->post(route('password.update'), [
+        'token' => welcomeLinkToken($location),
+        'email' => 'laura@example.com',
+        'password' => 'a-brand-new-password',
+        'password_confirmation' => 'a-brand-new-password',
+    ])->assertSessionHasNoErrors();
+
+    expect($this->laura->refresh()->email_verified_at)->not->toBeNull();
     $this->get($link)->assertRedirect(route('login'));
+});
 
-    expect(Password::broker()->tokenExists($this->laura, welcomeLinkToken($first)))->toBeTrue();
+test('an old link does not open anything after the email changes', function (): void {
+    $link = WelcomeLink::for($this->laura);
+    $this->laura->forceFill(['email' => 'laura.new@example.com', 'email_verified_at' => null])->save();
+
+    $this->get($link)
+        ->assertRedirect(route('login'))
+        ->assertSessionHas('status', 'This link was already used. To sign in, use Forgot password.');
+
+    expect(DB::table('password_reset_tokens')->count())->toBe(0);
 });
 
 test('an expired link answers 403', function (): void {
@@ -77,7 +104,7 @@ test('an expired link answers 403', function (): void {
     $this->travel(8)->days();
 
     $this->get($link)->assertForbidden();
-    expect($this->laura->refresh()->email_verified_at)->toBeNull();
+    expect(DB::table('password_reset_tokens')->count())->toBe(0);
 });
 
 test('a link still valid after six days', function (): void {
