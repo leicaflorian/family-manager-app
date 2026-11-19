@@ -1,5 +1,31 @@
 [
     {
+        "version": "2.3.0",
+        "date": "2026-11-19",
+        "notes": {
+            "it": [
+                "Ogni lunedì gli amministratori ricevono una email con il riepilogo della settimana.",
+                "Una spesa o un'entrata si apre in una pagina tutta sua, con i documenti accanto al modulo.",
+                "Se hai una pagina aperta e arriva una versione nuova dell'app, te lo diciamo.",
+                "Nella pagina di una persona i documenti arrivano a poco a poco e le righe non si ripetono più.",
+                "Pagando la scadenza di una scheda, il promemoria di quella scadenza si segna fatto da solo.",
+                "Una scadenza già pagata non resta più in ritardo nella Home e nell'Agenda.",
+                "Nelle righe delle aree vedi sempre il costo, e la prossima data è in grassetto se è entro 30 giorni.",
+                "I gestori di password non si aprono più sopra i menu con la ricerca e le date."
+            ],
+            "en": [
+                "Every Monday the admins get an email with the summary of the week.",
+                "An expense or an income opens on its own page, with its documents beside the form.",
+                "If a new version of the app arrives while a page is open, you are told.",
+                "On the page of a person the documents load a few at a time and rows no longer repeat.",
+                "Paying the due date of a card marks done the reminder of that deadline on its own.",
+                "A deadline that is already paid no longer stays late on the Home and in the Agenda.",
+                "In the rows of an area you always see the cost, and the next date is bold when it is within 30 days.",
+                "Password managers no longer open over the menus with search and the dates."
+            ]
+        }
+    },
+    {
         "version": "2.2.2",
         "date": "2026-11-18",
         "notes": {

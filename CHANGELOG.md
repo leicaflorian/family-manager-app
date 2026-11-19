@@ -2,6 +2,41 @@
 
 All notable changes to Fameja.app.
 
+## [2.3.0] - 2026-11-19
+
+### Owner panel
+- Create a family from the panel (`CreateFamilyFromPanel`): family, first admin account, categories in the chosen language and a *Family created* log line; a signed 7-day welcome link (`start/{user}`) opens the choice of the password and confirms the email when it is saved. The link is tied to the email fingerprint.
+- `SendWelcomeMail`: a failed mail does not stop the panel (the family stays, the error is logged); the mail goes out in the account's language; *Send again* is offered only for accounts created by the panel and until the email is confirmed.
+- Mail pictures are served from the host of `APP_URL`, also when sent from the panel.
+- `TracksAuthors` never writes an owner of the panel as author (it reads only the `web` guard and not while Filament is serving).
+
+### Reminders and mail
+- Weekly summary mail sent on Monday to the admins (sections of the week, late dates with the month, titles in the admin's language); a second Monday run still mails new notices. The morning mail shares its notice lines with it.
+- Paying the due date of a card (first and last instalment, road tax, inspection, policy renewal) marks done the open automatic reminder of that deadline on the same day.
+
+### Agenda and areas
+- A deadline paid by the payment of its card on the same day leaves the Agenda and the Home with it (before, the bare deadline stayed, late).
+- Rows of an area always show the cost; `CardDueDates` looks two years ahead and the next date is bold when it is within 30 days.
+- The next due date of a planned expense shows its year when it is not this year.
+
+### Budget
+- A movement opens on its own page, with its form in pairs and its documents beside it; it saves its documents and files.
+- The tab of planned expenses and incomes is now *Recurring*.
+- A new movement from a list filtered on incomes starts as an income; list and search no longer send the documents.
+- Import: files can come from an expense or an income.
+
+### People and links
+- The page of a person is in boxes, a few rows at a time; each list of documents loads its next page on its own and a row never shows twice (`FmShowMore`).
+- Linked records are shown three at a time; the number beside the title of a card sits on the title line.
+
+### App
+- Notice of a new version in the open pages (`VersionController`, `useNewVersion`).
+- The bottom bar's *Add* and *More* close when the page changes; menus open above the panels.
+- Password managers leave searched menus and dates alone (Bitwarden opened over *Link it to*).
+
+### Docs
+- Specs and plans for the weekly summary, the new-version notice, the movement page, many documents of a person and creating a family from the panel; learnings updated.
+
 ## [2.2.2] - 2026-11-18
 
 ### Tests
