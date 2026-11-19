@@ -51,6 +51,7 @@ use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\VersionController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\WelcomeLinkController;
 use App\Http\Middleware\RedirectToWelcome;
 use App\Http\Middleware\SeparateHosts;
 use App\Services\AgentRelease;
@@ -62,6 +63,8 @@ Route::redirect('/', '/dashboard')->name('home');
 Route::middleware('guest')->group(function (): void {
     Route::get('invitation/{token}', [InvitationLinkController::class, 'show'])->name('invitation.show');
     Route::post('invitation/{token}', [InvitationLinkController::class, 'store'])->name('invitation.store');
+    // The link of the welcome mail of a family created from the owner panel: signed, valid for a week
+    Route::get('start/{user}', WelcomeLinkController::class)->middleware(['signed', 'throttle:6,1'])->name('welcome.link');
 });
 
 // Linking a phone with the code made on the computer: opened by a phone that has not entered yet. The order
