@@ -39,6 +39,72 @@ describe('FmLinkedRecords', () => {
         expect(health).toHaveAttribute('aria-pressed', 'false');
     });
 
+    it('shows three records at a time, and starts again from three on another tab', async () => {
+        const policies: App.Data.LinkGroupData = {
+            type: 'insurance_policy',
+            label: 'Policies',
+            options: Array.from({ length: 8 }, (_, index) => ({
+                value: String(index + 10),
+                label: `Policy ${index + 1}`,
+                help: null,
+            })),
+        };
+        render(FmLinkedRecords, { props: { groups: [policies, ...groups] } });
+
+        expect(screen.getAllByRole('link')).toHaveLength(3);
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Show 3 more · 5 left' }),
+        );
+        expect(screen.getAllByRole('link')).toHaveLength(6);
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Show 2 more · 2 left' }),
+        );
+        expect(screen.getAllByRole('link')).toHaveLength(8);
+        expect(
+            screen.queryByRole('button', { name: /Show .* more/ }),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Health 1' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Policies 8' }),
+        );
+
+        expect(screen.getAllByRole('link')).toHaveLength(3);
+    });
+
+    it('says «others» under the tabs whose name takes «altri» in Italian, as Vehicles', async () => {
+        const vehicles: App.Data.LinkGroupData = {
+            type: 'vehicle',
+            label: 'Vehicles',
+            options: Array.from({ length: 5 }, (_, index) => ({
+                value: String(index + 30),
+                label: `Car ${index + 1}`,
+                help: null,
+            })),
+        };
+        render(FmLinkedRecords, { props: { groups: [vehicles] } });
+
+        expect(
+            screen.getByRole('button', { name: 'Show 2 others · 2 left' }),
+        ).toBeInTheDocument();
+    });
+
+    it('has no button when the records of a tab fit', () => {
+        const three: App.Data.LinkGroupData = {
+            ...groups[1],
+            options: [
+                ...groups[1].options,
+                { value: '5', label: 'Nuoto Giulia', help: null },
+            ],
+        };
+        render(FmLinkedRecords, { props: { groups: [three] } });
+
+        expect(screen.getAllByRole('link')).toHaveLength(3);
+        expect(
+            screen.queryByRole('button', { name: /Show .* more/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('says so when nothing names them', () => {
         render(FmLinkedRecords, { props: { groups: [] } });
 
@@ -63,38 +129,5 @@ describe('FmLinkedRecords', () => {
         expect(
             screen.getByRole('link', { name: /Fiat Panda/ }),
         ).toHaveAttribute('href', '/cards/vehicle/1');
-    });
-
-    it('adds the To do entry with the number of tasks, leading to the Agenda of that person', () => {
-        render(FmLinkedRecords, {
-            props: {
-                groups,
-                reminders: { count: 2, href: '/reminders?person=3' },
-            },
-        });
-
-        const entry = screen.getByRole('link', { name: 'To do 2' });
-        expect(entry).toHaveAttribute('href', '/reminders?person=3');
-    });
-
-    it('shows the To do entry even when no record names them', () => {
-        render(FmLinkedRecords, {
-            props: {
-                groups: [],
-                reminders: { count: 1, href: '/reminders?person=3' },
-            },
-        });
-
-        expect(
-            screen.getByRole('link', { name: 'To do 1' }),
-        ).toBeInTheDocument();
-    });
-
-    it('has no To do entry without the prop', () => {
-        render(FmLinkedRecords, { props: { groups } });
-
-        expect(
-            screen.queryByRole('link', { name: /To do/ }),
-        ).not.toBeInTheDocument();
     });
 });

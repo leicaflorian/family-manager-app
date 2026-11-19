@@ -244,6 +244,17 @@ test('it shows the amount due in the area rows', function (): void {
     });
 });
 
+test('it shows the cost of a due date that is months away', function (): void {
+    insideBianchi(function (): void {
+        $domain = Subscription::query()->create(['name' => 'Domain fameja.app', 'type' => 'software', 'renewal_date' => '2027-10-23']);
+        PlannedExpense::factory()->forCard($domain)->create(['family_id' => $domain->family_id, 'title' => 'Domain', 'amount' => 15, 'start_date' => '2027-10-23', 'interval' => 1, 'interval_unit' => 'year', 'financial_account_id' => DefaultAccount::id()]);
+
+        $row = rowOf(summaries()->area(Area::Subscriptions), 'Domain fameja.app');
+
+        expect($row->due_amount)->toBe(15.0)->and($row->due_late)->toBeFalse();
+    });
+});
+
 test('it reads the amounts due of an area with the same queries however many cards there are', function (): void {
     insideBianchi(function (): void {
         $count = function (): int {

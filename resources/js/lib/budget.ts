@@ -7,7 +7,13 @@ import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import { exceptions, payment, show } from '@/routes/budget/deadlines';
 import { index as movementsIndex } from '@/routes/budget/movements';
 import { index as plannedIndex } from '@/routes/budget/planned';
-import { daysFromToday, formatDate, formatEuro, relativeDays } from './format';
+import {
+    daysFromToday,
+    formatDate,
+    formatEuro,
+    relativeDays,
+    todayInRome,
+} from './format';
 import { listNames } from './names';
 
 /** The unit of a recurrence. */
@@ -21,6 +27,20 @@ export type RecurrenceUnit = 'week' | 'month' | 'year';
  */
 export function shortDate(date: string): string {
     return formatDate(date).slice(0, 5);
+}
+
+/**
+ * A date as `21/11` when it falls in this year, else with its year
+ * (`21/11/2027`), so a due date of next year does not look like this year's.
+ *
+ * @param date - a date of the server, `yyyy-mm-dd`
+ * @param today - the moment taken as now, the clock if missing
+ * @returns the date, with the year only when it is another
+ */
+export function yearlessDate(date: string, today: Date = new Date()): string {
+    return date.slice(0, 4) === todayInRome(today).slice(0, 4)
+        ? shortDate(date)
+        : formatDate(date);
 }
 
 /**
@@ -416,19 +436,17 @@ export function accountChoices(accounts: Choice<string>[]): Choice<string>[] {
     return [{ value: '', label: trans('All the accounts') }, ...accounts];
 }
 
-/** What *Movements* shows: the month and, if chosen, the filters and the movement open beside the list. */
+/** What *Movements* shows: the month and, if chosen, the filters. */
 export interface MovementsQuery extends Partial<App.Data.MovementFiltersData> {
     /** `yyyy-mm`. */
     month: string;
-    /** The movement open beside the list, `kind:id`. */
-    movement?: string | null;
 }
 
 /**
  * The address of *Movements* for a month and the filters in use, always in the
  * same order whoever builds it. What is empty is left out.
  *
- * @param query - the month, the filters and the open movement
+ * @param query - the month and the filters
  * @returns for example `/budget/movements?month=2026-10&kind=expense&min=20`
  */
 export function movementsUrl(query: MovementsQuery): string {
@@ -441,7 +459,6 @@ export function movementsUrl(query: MovementsQuery): string {
         max: query.max,
         from: query.from,
         to: query.to,
-        movement: query.movement,
     };
 
     return movementsIndex.url({ query: filled(ordered) });

@@ -14,7 +14,7 @@ import {
     movementOptions,
     salaryMovement,
 } from '@/test/fixtures';
-import { answerLeave, hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
+import { hasChanges, leaveQuestion } from '@/lib/unsavedChanges';
 import { choose, renderPage, settle } from '@/test/page';
 import FmMovementPanel from './FmMovementPanel.vue';
 
@@ -38,6 +38,12 @@ async function write(label: string, text: string): Promise<void> {
 }
 
 describe('FmMovementPanel', () => {
+    it('has the padding of the card form on the computer', () => {
+        renderPage(FmMovementPanel, props);
+
+        expect(screen.getByRole('form')).toHaveClass('p-5', 'wide:p-7');
+    });
+
     it('asks first whether it is an expense or an income, and has no Delete when new', () => {
         renderPage(FmMovementPanel, props);
 
@@ -355,33 +361,6 @@ describe('FmMovementPanel', () => {
         });
     });
 
-    it('lists the documents of a movement as links', () => {
-        renderPage(FmMovementPanel, {
-            ...props,
-            movement: {
-                ...danceMovement,
-                documents: [
-                    {
-                        id: 7,
-                        title: 'Ricevuta retta',
-                        category: 'Scuola',
-                        person: null,
-                        organization: 'Scuola Passo a Due',
-                        date: '2026-10-20',
-                        expiry_date: null,
-                        status: 'active',
-                        mime_type: 'application/pdf',
-                        file_url: '/files/9',
-                    },
-                ],
-            },
-        });
-
-        expect(
-            screen.getByRole('link', { name: /Ricevuta retta/ }),
-        ).toHaveAttribute('href', '/documents/7');
-    });
-
     it('asks again before deleting, and only to those who may', async () => {
         const first = renderPage(FmMovementPanel, {
             ...props,
@@ -457,43 +436,137 @@ describe('FmMovementPanel', () => {
         ]);
     });
 
-    it('has the × of the board: no edge, in the soft colour', () => {
-        renderPage(FmMovementPanel, { ...props, compact: true });
+    /** The grid row (two columns) that holds a field, by its label. */
+    function pairOf(label: string): HTMLElement | null {
+        return screen.getByLabelText(label).closest('.grid-cols-2');
+    }
 
-        const close = screen.getByRole('button', { name: 'Close' });
-        expect(close).toHaveClass('size-11', 'text-ink-soft');
-        expect(close).not.toHaveClass('border');
+    it('puts the expense fields in pairs, as the board Movimento', async () => {
+        renderPage(FmMovementPanel, props);
+
+        expect(pairOf('Paid on')).toBe(pairOf('Amount'));
+        expect(pairOf('Bank account')).toBe(pairOf('Category'));
+        expect(pairOf('Refers to (optional)')).toBe(
+            pairOf('Holder (optional)'),
+        );
+        expect(pairOf('Planned expense (optional)')).not.toBeNull();
+        // Organization and Commission have a line of their own
+        expect(pairOf('Organization (optional)')).toBeNull();
+        expect(pairOf('Commission (optional)')).toBeNull();
+        // Without a planned item the field is alone in its half row
+        expect(
+            pairOf('Planned expense (optional)')!.querySelectorAll('label'),
+        ).toHaveLength(1);
     });
 
-    it('inside a column that has its own ×, has no × nor a card of its own', () => {
+    it('puts the planned expense beside its due date', () => {
         renderPage(FmMovementPanel, {
             ...props,
-            compact: true,
-            embedded: true,
+            movement: danceMovement,
+            occurrences: [
+                { value: '2026-11-05', label: '05/11/2026', help: null },
+            ],
         });
 
+        expect(pairOf('Due date')).not.toBeNull();
+        expect(pairOf('Planned expense (optional)')).toBe(pairOf('Due date'));
+    });
+
+    it('puts the income fields in pairs, as the board Entrata', async () => {
+        renderPage(FmMovementPanel, props);
+        await userEvent.click(
+            screen.getByRole('button', { name: 'An income' }),
+        );
+        await settle();
+
+        expect(pairOf('Received on')).toBe(pairOf('Amount'));
+        expect(pairOf('Bank account')).toBe(pairOf('Organization (optional)'));
+        expect(pairOf('Holder (optional)')).toBe(
+            pairOf('Employment (optional)'),
+        );
+        expect(pairOf('Planned income (optional)')).not.toBeNull();
+        expect(screen.getByText('Type').closest('.grid-cols-2')).toBeNull();
+    });
+
+    it('sends the files, the documents to link and to unlink with a change', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        const file = new File(['x'], 'scontrino.jpg', { type: 'image/jpeg' });
+        renderPage(FmMovementPanel, {
+            ...props,
+            movement: danceMovement,
+            files: [file],
+            link: [{ id: 7 } as App.Data.DocumentData],
+            unlink: [9],
+            back: '/budget/movements?month=2026-10',
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            _method: 'put',
+            files: [file],
+            link_documents: [7],
+            unlink_documents: [9],
+            from: '/budget/movements?month=2026-10',
+        });
+    });
+
+    it('sends the empty lists and no from when nothing was chosen', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmMovementPanel, props);
+
+        await write('Title', 'Gelato');
+        await write('Amount', '3,50');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        const data = post.mock.calls[0]![1] as Record<string, unknown>;
+        expect(data).toMatchObject({
+            files: [],
+            link_documents: [],
+            unlink_documents: [],
+        });
+        expect(data).not.toHaveProperty('from');
+    });
+
+    it('counts a file chosen as a change not saved', async () => {
+        const view = renderPage(FmMovementPanel, {
+            ...props,
+            movement: danceMovement,
+        });
+        await settle();
+        expect(hasChanges()).toBe(false);
+
+        await view.rerender({ files: [new File(['x'], 'scontrino.jpg')] });
+        await settle();
+
+        expect(hasChanges()).toBe(true);
+    });
+
+    it('has no change when nothing was touched', async () => {
+        renderPage(FmMovementPanel, { ...props, movement: danceMovement });
+        await settle();
+
+        expect(hasChanges()).toBe(false);
+    });
+
+    it('has no heading of its own on the computer, where the page has the title', () => {
+        const matchMedia = window.matchMedia;
+        window.matchMedia = ((query: string) => {
+            const media = matchMedia(query);
+
+            return Object.assign(media, { matches: true });
+        }) as typeof window.matchMedia;
+        renderPage(FmMovementPanel, props);
+        window.matchMedia = matchMedia;
+
         expect(
-            screen.queryByRole('button', { name: 'Close' }),
+            screen.queryByRole('heading', { name: 'New expense or income' }),
         ).not.toBeInTheDocument();
         expect(
             screen.getByRole('form', { name: 'New expense or income' }),
-        ).not.toHaveClass('shadow-card');
-    });
-
-    it('inside a column, stacks the date and the amount; otherwise they sit side by side', () => {
-        const first = renderPage(FmMovementPanel, {
-            ...props,
-            compact: true,
-            embedded: true,
-        });
-        const amount = screen.getByLabelText('Amount');
-        expect(amount.closest('.grid-cols-2')).toBeNull();
-        first.unmount();
-
-        renderPage(FmMovementPanel, { ...props, compact: true });
-        expect(
-            screen.getByLabelText('Amount').closest('.grid-cols-2'),
-        ).not.toBeNull();
+        ).toBeInTheDocument();
     });
 
     it('has Cancel white with a grey edge and Save taking the rest of the line', () => {
@@ -505,28 +578,6 @@ describe('FmMovementPanel', () => {
         expect(screen.getByRole('button', { name: 'Save' })).toHaveClass(
             'grow',
         );
-    });
-
-    it('asks before closing with the × when something changed', async () => {
-        const panel = renderPage(FmMovementPanel, { ...props, compact: true });
-        await write('Title', 'Spesa al mercato');
-
-        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-
-        expect(leaveQuestion.open).toBe(true);
-        answerLeave(false);
-        await settle();
-        expect(panel.emitted()).not.toHaveProperty('close');
-    });
-
-    it('closes with the × without asking when nothing changed', async () => {
-        const panel = renderPage(FmMovementPanel, { ...props, compact: true });
-
-        await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-        await settle();
-
-        expect(leaveQuestion.open).toBe(false);
-        expect(panel.emitted()).toHaveProperty('close');
     });
 
     it('gives up the changes with Cancel without asking, and the page does not ask either', async () => {

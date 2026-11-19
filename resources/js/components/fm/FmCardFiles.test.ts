@@ -18,7 +18,6 @@ const libretto = new File(['%PDF-1.4'], 'Libretto.pdf', {
     type: 'application/pdf',
 });
 const bollo = new File(['%PDF-1.4'], 'Bollo.pdf', { type: 'application/pdf' });
-const card = { type: 'insurance_policy', id: 1 };
 const booklet = { ...healthCard, id: 30, title: 'Libretto di circolazione' };
 
 /**
@@ -31,7 +30,6 @@ const booklet = { ...healthCard, id: 30, title: 'Libretto di circolazione' };
 function box(
     props: {
         documents?: App.Data.DocumentData[];
-        card?: { type: string; id: number };
         canDelete?: boolean;
         errors?: string[];
         linkable?: App.Data.DocumentData[];
@@ -98,7 +96,7 @@ afterEach(() => {
 
 describe('FmCardFiles', () => {
     it('has the zone at the top, then the new files, then the linked documents', async () => {
-        box({ documents: [healthCard], card, canDelete: true });
+        box({ documents: [healthCard], canDelete: true });
 
         await choose(libretto);
 
@@ -112,7 +110,7 @@ describe('FmCardFiles', () => {
     });
 
     it('opens the file of a linked document in a new tab, with only the menu beside it', () => {
-        box({ documents: [healthCard], card, canDelete: true });
+        box({ documents: [healthCard], canDelete: true });
 
         const row = screen.getByRole('link', { name: /^Tessera sanitaria/ });
         expect(row).toHaveAttribute('href', healthCard.file_url);
@@ -130,8 +128,23 @@ describe('FmCardFiles', () => {
         expect(screen.queryByText('No documents yet')).not.toBeInTheDocument();
     });
 
+    it('shows the menu of a linked document without being told of a card, and unlinks it when saved', async () => {
+        const { unlink } = box({ documents: [healthCard] });
+
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: 'More actions on Tessera sanitaria',
+            }),
+        );
+        await userEvent.click(
+            await screen.findByRole('menuitem', { name: 'Unlink' }),
+        );
+
+        expect(unlink.value).toEqual([healthCard.id]);
+    });
+
     it('leaves the date out of the rows, as the box is narrow', () => {
-        box({ documents: [healthCard], card });
+        box({ documents: [healthCard] });
 
         // The date of healthCard, which a row elsewhere shows on the right
         expect(screen.queryByText('20/10/2020')).not.toBeInTheDocument();
@@ -144,7 +157,7 @@ describe('FmCardFiles', () => {
     });
 
     it('opens a new file in a new tab, and takes one away', async () => {
-        const { files } = box({ documents: [healthCard], card });
+        const { files } = box({ documents: [healthCard] });
 
         await choose(libretto);
         await choose(bollo);
@@ -176,7 +189,6 @@ describe('FmCardFiles', () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         const { link } = box({
             documents: [healthCard],
-            card,
             linkable: [booklet],
             hasLinkable: true,
         });
@@ -208,7 +220,7 @@ describe('FmCardFiles', () => {
     });
 
     it('has no Link when there is nothing to link', () => {
-        box({ documents: [healthCard], card });
+        box({ documents: [healthCard] });
 
         expect(
             screen.queryByRole('button', { name: 'Link document' }),
@@ -217,7 +229,7 @@ describe('FmCardFiles', () => {
 
     it('unlinks a document when the card is saved, greyed until then, and undoes it', async () => {
         const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
-        const { unlink } = box({ documents: [healthCard], card });
+        const { unlink } = box({ documents: [healthCard] });
 
         await userEvent.click(
             screen.getByRole('button', {

@@ -19,8 +19,8 @@ import { splitTail } from '@/lib/text';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
-/** The colour of the subtitle: normal, red if overdue, orange if it needs attention. */
-export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid';
+/** The colour of the subtitle: normal, red if overdue, orange if it needs attention, bold if it is soon. */
+export type RowTone = 'normal' | 'overdue' | 'warning' | 'paid' | 'soon';
 
 const {
     title,
@@ -74,6 +74,7 @@ const toneColor: Record<RowTone, string> = {
     overdue: cn('text-meta-strong text-overdue'),
     warning: cn('text-meta-strong text-warning'),
     paid: cn('text-meta-strong text-paid'),
+    soon: cn('text-meta-strong text-ink'),
 };
 
 /** The title in two: the beginning, cut where room is short, and its last 5 characters. */

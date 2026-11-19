@@ -23,7 +23,7 @@ export function budgetTabs(current: BudgetPage): Tab[] {
         },
         {
             page: 'planned',
-            label: trans('Planned expenses'),
+            label: trans('Recurring'),
             href: plannedExpenses().url,
         },
     ];

@@ -74,7 +74,7 @@ final class ImportController extends Controller
             'notices' => is_array($notices) ? $notices : [],
             // The documents imported with *Create the card* while other files failed: the page offers their card
             'cardDocuments' => is_string($cards) ? $cards : null,
-            'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
+            'presetLinks' => array_filter([PresetLink::fromUpload($request->query('link'))]),
             // The names the boxes of *What I do too* show for the expense: its category and the account it was paid with
             'expenseCategories' => BudgetFormOptions::categories(...),
             'accounts' => BudgetFormOptions::accounts(...),
@@ -102,13 +102,13 @@ final class ImportController extends Controller
 
         ['failures' => $failures, 'notices' => $notices, 'cards' => $cards] = $import->handle($entries);
         $waiting = File::query()->toSort()->whereKey(array_keys($failures))->get()->map(fn (File $file): int => $file->id)->all();
-        $card = PresetLink::from($request->query('link'));
+        $card = PresetLink::fromUpload($request->query('link'));
         $cards = $this->offersCard($request) && $cards !== [] ? implode(',', $cards) : null;
 
         $response = match (true) {
             $waiting !== [] => ImportPage::open($waiting, $request->query('link'))->with('import_failures', $failures),
             $cards !== null => to_route('cards.create', ['document' => $cards]),
-            $card !== null => to_route('cards.show', $card),
+            $card !== null => redirect(PresetLink::route($card)),
             default => to_route('documents.index'),
         };
 
@@ -130,7 +130,7 @@ final class ImportController extends Controller
     {
         $user = $request->user();
 
-        return PresetLink::from($request->query('link')) === null && CardTypes::canCreate($user instanceof User ? $user : null);
+        return PresetLink::fromUpload($request->query('link')) === null && CardTypes::canCreate($user instanceof User ? $user : null);
     }
 
     /**

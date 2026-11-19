@@ -28,6 +28,8 @@ class ResetUserPassword implements ResetsUserPasswords
 
         $user->forceFill([
             'password' => $input['password'],
+            // The link arrived in the mailbox: that confirms the email (the welcome mail of a new family relies on it)
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
     }
 }

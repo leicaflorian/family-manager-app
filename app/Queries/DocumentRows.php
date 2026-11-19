@@ -24,18 +24,11 @@ final readonly class DocumentRows
      * The documents that pass the filters, with what their rows show.
      *
      * @param  array<string, mixed>  $filters  the filters of `FilterDocuments::apply()`
-     * @param  bool  $byExpiry  the first to expire first, instead of the most recent first
      * @return list<DocumentData>
      */
-    public function of(array $filters, bool $byExpiry = false): array
+    public function of(array $filters): array
     {
-        $query = $this->filter->apply(Document::query()->with(self::RELATIONS), $filters);
-
-        if ($byExpiry) {
-            $query->reorder('expiry_date');
-        }
-
-        return $this->rows($query->get());
+        return $this->rows($this->filter->apply(Document::query()->with(self::RELATIONS), $filters)->get());
     }
 
     /**
@@ -44,7 +37,7 @@ final readonly class DocumentRows
      * @param  array<string, mixed>  $filters  the filters of `FilterDocuments::apply()`
      * @param  int  $page  the number of the page, from 1
      * @param  int  $perPage  how many documents a page holds
-     * @return array{documents: list<DocumentData>, next: ?int}
+     * @return array{documents: list<DocumentData>, next: ?int, total: int}
      */
     public function page(array $filters, int $page, int $perPage): array
     {
@@ -54,6 +47,7 @@ final readonly class DocumentRows
         return [
             'documents' => $this->rows($paginator->getCollection()),
             'next' => $paginator->hasMorePages() ? $page + 1 : null,
+            'total' => $paginator->total(),
         ];
     }
 

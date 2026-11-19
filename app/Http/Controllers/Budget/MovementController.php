@@ -6,12 +6,14 @@ namespace App\Http\Controllers\Budget;
 
 use App\Actions\Budget\DeleteMovement;
 use App\Actions\Budget\SaveMovement;
+use App\Actions\Documents\LinkDocuments;
 use App\Data\MovementData;
 use App\Data\MovementFiltersData;
 use App\Data\OptionData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\MovementIndexRequest;
 use App\Http\Requests\Budget\SaveMovementRequest;
+use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\Income;
@@ -19,36 +21,41 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Services\BudgetFormOptions;
+use App\Services\FileStore;
+use App\Services\LinkableDocuments;
 use App\Services\Movements;
+use App\Support\ImportPage;
+use App\Support\LocalPath;
 use App\Support\PlannedKind;
 use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * *Movements*: the expenses and incomes of a month, and the panel (or the page, on the phone) to add, change and
+ * *Movements*: the expenses and incomes of a month, and the page to add, change and
  * delete one. Everyone of the family sees them, adds them and changes them; only an `admin` deletes them.
  */
 final class MovementController extends Controller
 {
-    public function __construct(private readonly Movements $movements) {}
+    public function __construct(private readonly Movements $movements, private readonly LinkableDocuments $linkable) {}
 
     /**
-     * *Movements*: the month with its figures and list, narrowed by kind and account, and on the computer the
-     * movement of `?movement=kind:id` open on the right.
+     * *Movements*: the month with its figures and list, narrowed by kind and account. Every row opens the page of its
+     * movement.
      *
-     * @throws NotFoundHttpException if the month, the kind, the account or the movement of the address is wrong
+     * @throws NotFoundHttpException if the month, the kind or the account of the address is wrong
      */
     public function index(MovementIndexRequest $request, #[CurrentUser] User $user): Response
     {
         $month = $request->month();
-        $selected = $request->movement();
         $filters = $request->filters();
 
         return Inertia::render('budget/Movements', [
@@ -57,10 +64,8 @@ final class MovementController extends Controller
             'account' => $request->account(),
             'filters' => MovementFiltersData::fromFilters($filters),
             'search' => $filters->isSearch() ? $this->movements->search($filters, $user) : null,
-            'selected' => $selected instanceof Expense || $selected instanceof Income ? MovementData::fromMovement($selected, $user) : null,
-            // As on the page of a movement, the due dates are looked for around the movement's own day
-            'occurrences' => fn (): array => $this->occurrences($request, $selected instanceof Income ? 'income' : 'expense', $selected->date ?? CarbonImmutable::today('Europe/Rome'), $selected),
-            'options' => BudgetFormOptions::forMovement(),
+            // For the account filter
+            'accounts' => BudgetFormOptions::accounts(),
         ]);
     }
 
@@ -96,28 +101,35 @@ final class MovementController extends Controller
             ],
             'occurrences' => fn (): array => $this->occurrences($request, $kind, $today, null, $planned),
             'options' => BudgetFormOptions::forMovement(),
+            'back' => LocalPath::of($request->query('from')),
+            ...$this->linkable->props($request, []),
+            'canDeleteDocuments' => $user->can('deleteAny', Document::class),
         ]);
     }
 
     /**
-     * Adds the movement and opens the month it belongs to, or the card it is linked to when it comes from *Add expense*
-     * of the card (`back_to_card`).
+     * Adds the movement with the documents chosen in the form. With files, they wait for their document and *Import*
+     * opens with the movement as the link of each; otherwise it goes back to the card of *Add expense* (`back_to_card`),
+     * to the page the form came from (`from`) or to the month of the movement.
      */
-    public function store(SaveMovementRequest $request, SaveMovement $save): RedirectResponse
+    public function store(SaveMovementRequest $request, SaveMovement $save, LinkDocuments $links, FileStore $store): RedirectResponse
     {
-        $movement = $save->handle($request->kind(), $request->columns());
+        // Looked up first: a document of another family answers 404 before anything is saved
+        $link = $request->documentsToLink();
 
-        if ($request->boolean('back_to_card') && $movement instanceof Expense && $movement->card_type !== null && $movement->card_id !== null) {
-            Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved.')]);
+        $movement = DB::transaction(function () use ($request, $save, $links, $link): Expense|Income {
+            $movement = $save->handle($request->kind(), $request->columns());
+            $links->handle($movement, $link, new Collection);
 
-            return to_route('cards.show', ['type' => $movement->card_type, 'id' => $movement->card_id]);
-        }
+            return $movement;
+        });
 
-        return $this->saved($movement);
+        return $this->saved($movement, $request, $store);
     }
 
     /**
-     * A movement on its own page, for the phone.
+     * A movement on its own page, with a page of the documents of the family not yet linked to it (*Link a document*)
+     * and the way back in `?from=`.
      *
      * @throws NotFoundHttpException if the kind is unknown or the movement is not of the family
      */
@@ -131,19 +143,32 @@ final class MovementController extends Controller
             'start' => ['kind' => $data->kind, 'planned_id' => $data->planned_id === null ? null : (string) $data->planned_id, 'date' => $data->date, 'card' => null, 'category_id' => null],
             'occurrences' => fn (): array => $this->occurrences($request, $data->kind, CarbonImmutable::parse($data->date, 'Europe/Rome'), $movement),
             'options' => BudgetFormOptions::forMovement(),
+            'back' => LocalPath::of($request->query('from')),
+            ...$this->linkable->props($request, ['not_record' => PresetLink::movement($movement)]),
+            'canDeleteDocuments' => $user->can('deleteAny', Document::class),
         ]);
     }
 
     /**
-     * Saves the change and opens the month of the movement.
+     * Saves the change, links and unlinks the documents chosen in the form and goes on as an added movement does.
      *
      * @throws NotFoundHttpException if the kind is unknown or the movement is not of the family
      */
-    public function update(SaveMovementRequest $request, SaveMovement $save): RedirectResponse
+    public function update(SaveMovementRequest $request, SaveMovement $save, LinkDocuments $links, FileStore $store): RedirectResponse
     {
         $movement = $request->movement();
+        // Looked up first: a document of another family answers 404 before anything is saved
+        $link = $request->documentsToLink();
+        $unlink = $request->documentsToUnlink();
 
-        return $this->saved($save->handle($request->kind(), $request->columns(), $movement));
+        $saved = DB::transaction(function () use ($request, $save, $links, $link, $unlink, $movement): Expense|Income {
+            $saved = $save->handle($request->kind(), $request->columns(), $movement);
+            $links->handle($saved, $link, $unlink);
+
+            return $saved;
+        });
+
+        return $this->saved($saved, $request, $store);
     }
 
     /**
@@ -163,18 +188,36 @@ final class MovementController extends Controller
     }
 
     /**
-     * Back to the list, on the month of the movement and with the movement open.
+     * What comes after a save: *Import* with the files sent (each linked to the movement), the card of *Add expense*
+     * (`back_to_card`), the page the form came from (`from`), or the month of the movement.
      *
      * @param  Expense|Income  $movement  the movement just saved
+     * @param  SaveMovementRequest  $request  the request, with the files, `back_to_card` and `from`
+     * @param  FileStore  $store  where the files are kept
      */
-    private function saved(Expense|Income $movement): RedirectResponse
+    private function saved(Expense|Income $movement, SaveMovementRequest $request, FileStore $store): RedirectResponse
     {
+        $ids = [];
+
+        foreach ($request->uploadedFiles() as $file) {
+            $ids[] = $store->store($file, toSort: true, link: PresetLink::movement($movement))->id;
+        }
+
+        if ($ids !== []) {
+            return ImportPage::open($ids, ($movement instanceof Expense ? 'expense' : 'income').":{$movement->id}");
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved.')]);
 
-        return to_route('budget.movements.index', [
-            'month' => $movement->date?->format('Y-m'),
-            'movement' => ($movement instanceof Expense ? 'expense' : 'income').":{$movement->id}",
-        ]);
+        if ($request->boolean('back_to_card') && $movement instanceof Expense && $movement->card_type !== null && $movement->card_id !== null) {
+            return to_route('cards.show', ['type' => $movement->card_type, 'id' => $movement->card_id]);
+        }
+
+        $back = $request->back();
+
+        return $back === null
+            ? to_route('budget.movements.index', ['month' => $movement->date?->format('Y-m')])
+            : redirect($back);
     }
 
     /**

@@ -1,7 +1,14 @@
 import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { danceRow, gasRow, netflixRow, salaryRow } from '@/test/fixtures';
 import { renderPage, screenWidth } from '@/test/page';
 import Planned from './Planned.vue';
@@ -48,7 +55,14 @@ const allFiltersQuery = 'search=e&min=10&max=100&from=2026-11-01&to=2026-11-30';
 /** How the page visits itself with other filters. */
 const visit = { preserveState: true, preserveScroll: true, replace: true };
 
+// The due dates of the fixtures are in 2026: a date of this year has no year
+beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
+});
+
 afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -58,7 +72,10 @@ describe('Planned expenses', () => {
         renderPage(Planned, props);
 
         expect(
-            screen.getByRole('heading', { name: 'Planned expenses', level: 1 }),
+            screen.getByRole('heading', {
+                name: 'Planned expenses and incomes',
+                level: 1,
+            }),
         ).toBeInTheDocument();
         expect(screen.getByText('Going out, on average')).toBeInTheDocument();
         expect(screen.getByText('1.482,60 €')).toBeInTheDocument();
@@ -157,9 +174,10 @@ describe('Planned expenses', () => {
     it('has the tabs of the budget with this page marked', () => {
         renderPage(Planned, props);
 
-        expect(
-            screen.getByRole('link', { name: 'Planned expenses' }),
-        ).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('link', { name: 'Recurring' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
         expect(
             screen.getByRole('link', { name: 'Planned and spent' }),
         ).toHaveAttribute('href', '/budget/comparison');

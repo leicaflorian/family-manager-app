@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Requests\Budget;
 
 use App\Enums\IncomeType;
+use App\Http\Requests\Concerns\LinksDocuments;
 use App\Http\Requests\Concerns\ReadsCard;
+use App\Http\Requests\Concerns\UploadsFiles;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Rules\OfFamily;
 use App\Services\Movements;
+use App\Support\LocalPath;
 use App\Support\PlannedKind;
 use App\Support\PresetLink;
 use Carbon\CarbonImmutable;
@@ -26,11 +29,14 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * The form of an expense or an income, new or changed. A new one names its kind in the body, a change in the address.
  * The address is resolved first: an unknown kind or a movement of another family answers 404 before anyone is refused
- * or the body is read. Whoever may create or change an expense or an income (so a `member` too) may save it.
+ * or the body is read. Whoever may create or change an expense or an income (so a `member` too) may save it, with the
+ * files of its documents and the documents to link or unlink chosen in the form.
  */
 final class SaveMovementRequest extends FormRequest
 {
+    use LinksDocuments;
     use ReadsCard;
+    use UploadsFiles;
 
     /**
      * The kind: the one of the address of a change, the one of the body of a new movement.
@@ -92,6 +98,9 @@ final class SaveMovementRequest extends FormRequest
             'planned_id' => ['nullable', new OfFamily($expense ? 'planned_expenses' : 'planned_incomes')],
             'occurrence_date' => ['nullable', 'date_format:Y-m-d', $this->occurrenceRule(...)],
             'back_to_card' => ['sometimes', 'boolean'],
+            'from' => ['nullable', 'string'],
+            ...$this->filesRules(required: false),
+            ...$this->linkDocumentsRules(),
             ...$expense
                 ? [
                     'fee_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
@@ -135,9 +144,27 @@ final class SaveMovementRequest extends FormRequest
      */
     public function columns(): array
     {
-        $columns = $this->safe()->except(['kind', 'card', 'back_to_card']);
+        $columns = $this->safe()->except(['kind', 'card', 'back_to_card', 'from', 'files', 'link_documents', 'unlink_documents']);
 
         return $this->kind() === 'expense' && $this->exists('card') ? [...$columns, ...$this->cardColumns()] : $columns;
+    }
+
+    /**
+     * The path of the app to go back to after saving (`from`), null when there is none or it is not a path of the app.
+     */
+    public function back(): ?string
+    {
+        return LocalPath::of($this->input('from'));
+    }
+
+    /**
+     * The messages of the files that say what to do.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->filesMessages();
     }
 
     /**

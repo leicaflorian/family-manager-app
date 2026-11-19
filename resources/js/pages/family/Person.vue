@@ -1,61 +1,126 @@
 <script setup lang="ts">
 /**
- * *A person*: at the top their open reminders (the late ones in red, with the
- * link to the *Agenda*: `/reminders?person=` remembers the person in the
- * filters of the Agenda and opens it) and the documents expiring, then the personal documents
- * (linked to no record) and the records that name them; on the side their
- * data and the other documents. An `admin` edits them and deletes a person
- * without an account.
+ * *A person* (the boards *Persona-tanti* and *Persona-tanti-pc*): the first
+ * late reminder in red, then *To do* with their open reminders five at a time
+ * and the link to the *Agenda* (`/reminders?person=` remembers the person in
+ * the filters of the Agenda and opens it), the personal documents (linked to
+ * no record) five at a time, and the records that name them; on the side their
+ * data and the other documents, ten at a time, with the link to the Archive
+ * filtered on them. The documents come from the server a page at a time, added
+ * below with a partial reload that keeps the address. An `admin` edits them and
+ * deletes a person without an account.
  */
-import { Head, Link } from '@inertiajs/vue3';
-import { Pencil, Trash2, UserX } from '@lucide/vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Pencil, Plus, Trash2, UserX } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmRow from '@/components/fm/FmRow.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
+import FmShowMore from '@/components/fm/FmShowMore.vue';
 import { useFormat } from '@/composables/useFormat';
 import { accountText, personSubtitle } from '@/lib/family';
+import type { Area } from '@/lib/areas';
+import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { daysFromToday, relativeDays } from '@/lib/format';
-import { show as showDocument } from '@/routes/documents';
+import { showMoreLabel } from '@/lib/showMore';
+import {
+    index as documentsIndex,
+    show as showDocument,
+} from '@/routes/documents';
 import { index as remindersIndex } from '@/routes/reminders';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/people';
 import { usePageTrail } from '@/composables/usePageTrail';
-import { family } from '@/routes';
+import { family, upload } from '@/routes';
 
 const {
     person,
     reminders,
     remindersCount,
-    expiring,
     personal,
+    personalNext = null,
+    personalTotal,
     documents,
-    links,
+    documentsNext = null,
+    documentsTotal,
+    pageSizes,
 } = defineProps<{
     /** The person. */
     person: App.Data.PersonDetailData;
     /** Their open reminders, the late ones first. */
     reminders: App.Data.ReminderData[];
-    /** How many open reminders they have: the number of the entry in *Links*. */
+    /** How many open reminders they have: the number beside *To do*. */
     remindersCount: number;
-    /** Their documents expiring within 60 days or already expired, the first to expire first. */
-    expiring: App.Data.DocumentData[];
-    /** Their documents linked to no record, such as the identity card. */
+    /** The pages of their documents linked to no record (such as the identity card) loaded so far, the most recent first. */
     personal: App.Data.DocumentData[];
-    /** Their documents linked to a record. */
+    /** The number of the next page of `personal`, null at the last one. */
+    personalNext?: number | null;
+    /** How many documents linked to no record they have in all. */
+    personalTotal: number;
+    /** The pages of their documents linked to a record loaded so far, the most recent first. */
     documents: App.Data.DocumentData[];
+    /** The number of the next page of `documents`, null at the last one. */
+    documentsNext?: number | null;
+    /** How many documents linked to a record they have in all. */
+    documentsTotal: number;
+    /** How many documents a page of each list holds, as the server sends them: what *Show more* promises. */
+    pageSizes: { personal: number; documents: number };
     /** The records that name them, by type. */
     links: App.Data.LinkGroupData[];
 }>();
 
+/** How many reminders a tap on *Show more* adds to *To do*. */
+const REMINDERS_STEP = 5;
+
 const { date } = useFormat();
 
 const name = computed(() => `${person.first_name} ${person.last_name}`);
+
+/** The Agenda filtered on the person. */
+const agenda = computed(
+    (): string => remindersIndex({ query: { person: person.id } }).url,
+);
+
+/** The first late reminder, shown in red above *To do*. */
+const late = computed(() =>
+    reminders.find((reminder) => daysFromToday(reminder.due_date) < 0),
+);
+
+/** How many reminders of *To do* are shown. */
+const shownReminders = ref(REMINDERS_STEP);
+
+/** The lists of documents loading their next page: each on its own, because both can load at the same time. */
+const loading = ref<Record<'personal' | 'documents', boolean>>({
+    personal: false,
+    documents: false,
+});
+
+/**
+ * Adds the next page of a list of documents below the rows already shown,
+ * without reloading the rest of the page nor changing the address.
+ *
+ * @param list - the list: the personal documents or the other ones
+ * @param page - the number of the page to add
+ */
+function loadMore(list: 'personal' | 'documents', page: number): void {
+    loading.value[list] = true;
+    router.reload({
+        data: { [`${list}_page`]: page },
+        only: [list, `${list}Next`, `${list}Total`],
+        preserveUrl: true,
+        onFinish: () => {
+            loading.value[list] = false;
+        },
+    });
+}
 
 /**
  * How far the day of a reminder is: «overdue by 26 days» when it is passed.
@@ -75,6 +140,17 @@ function reminderText(reminder: App.Data.ReminderData): string {
             : relativeDays(reminder.due_date);
 
     return [reminder.subject?.label, when].filter(Boolean).join(' · ');
+}
+
+/**
+ * The area of the thing a reminder refers to, for its tile and its icon: the
+ * general one when it refers to nothing or to an area the app does not know.
+ *
+ * @param reminder - an open reminder
+ * @returns the area
+ */
+function reminderArea(reminder: App.Data.ReminderData): Area {
+    return areaOf(reminder.subject?.area ?? null) ?? 'general';
 }
 
 /** *Edit* and *Delete*, for an `admin` and a person without an account. */
@@ -147,44 +223,87 @@ usePageTrail(() => [
             class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_360px] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
-                <FmNotice
-                    v-for="reminder in reminders"
-                    :key="reminder.id"
-                    :tone="
-                        daysFromToday(reminder.due_date) < 0 ? 'danger' : 'info'
-                    "
-                    :title="reminder.title"
-                >
-                    {{ reminderText(reminder) }}
+                <FmNotice v-if="late" tone="danger" :title="late.title">
+                    {{ reminderText(late) }}
                     <template #action>
-                        <Link
-                            :href="
-                                remindersIndex({ query: { person: person.id } })
-                                    .url
-                            "
-                            class="no-underline"
-                            >{{ $t('Agenda') }}</Link
-                        >
+                        <Link :href="agenda" class="no-underline">{{
+                            $t('Agenda')
+                        }}</Link>
                     </template>
                 </FmNotice>
-                <FmCard v-if="expiring.length > 0" :title="$t('Expiring')" list>
-                    <FmDocumentRow
-                        v-for="document in expiring"
-                        :key="document.id"
-                        :document="document"
-                        :href="showDocument.url(document.id)"
-                        expiry
+                <FmCard
+                    v-if="reminders.length > 0"
+                    :title="$t('To do')"
+                    :count="remindersCount"
+                    list
+                >
+                    <template #actions>
+                        <FmSectionLink :href="agenda">{{
+                            $t('Open in the Agenda')
+                        }}</FmSectionLink>
+                    </template>
+                    <FmRow
+                        v-for="reminder in reminders.slice(0, shownReminders)"
+                        :key="reminder.id"
+                        :title="reminder.title"
+                        :subtitle="reminderText(reminder)"
+                        :tone="
+                            daysFromToday(reminder.due_date) < 0
+                                ? 'overdue'
+                                : 'normal'
+                        "
+                        :href="agenda"
+                    >
+                        <template #before>
+                            <span
+                                class="flex size-9 shrink-0 items-center justify-center rounded-md"
+                                :class="areaTile[reminderArea(reminder)]"
+                            >
+                                <FmIcon
+                                    :icon="areaIcon(reminderArea(reminder))"
+                                    :size="18"
+                                />
+                            </span>
+                        </template>
+                    </FmRow>
+                    <FmShowMore
+                        v-if="reminders.length > shownReminders"
+                        :label="
+                            showMoreLabel(
+                                reminders.length - shownReminders,
+                                REMINDERS_STEP,
+                            )
+                        "
+                        @more="shownReminders += REMINDERS_STEP"
                     />
                 </FmCard>
                 <FmCard
                     :title="$t('Personal documents')"
+                    :count="personalTotal"
                     :list="personal.length > 0"
                 >
+                    <template #actions>
+                        <FmSectionLink :href="upload().url" :icon="Plus">{{
+                            $t('Add')
+                        }}</FmSectionLink>
+                    </template>
                     <FmDocumentRow
                         v-for="document in personal"
                         :key="document.id"
                         :document="document"
                         :href="showDocument.url(document.id)"
+                    />
+                    <FmShowMore
+                        v-if="personalNext"
+                        :label="
+                            showMoreLabel(
+                                personalTotal - personal.length,
+                                pageSizes.personal,
+                                'documents',
+                            )
+                        "
+                        :loading="loading.personal"
+                        @more="loadMore('personal', personalNext)"
                     />
                     <p
                         v-if="personal.length === 0"
@@ -193,19 +312,7 @@ usePageTrail(() => [
                         {{ $t('No personal documents yet.') }}
                     </p>
                 </FmCard>
-                <FmLinkedRecords
-                    :groups="links"
-                    :reminders="
-                        remindersCount > 0
-                            ? {
-                                  count: remindersCount,
-                                  href: remindersIndex({
-                                      query: { person: person.id },
-                                  }).url,
-                              }
-                            : undefined
-                    "
-                />
+                <FmLinkedRecords :groups="links" />
             </div>
 
             <div class="flex min-w-0 flex-col gap-5">
@@ -255,13 +362,35 @@ usePageTrail(() => [
                 <FmCard
                     v-if="documents.length > 0"
                     :title="$t('Other documents')"
+                    :count="documentsTotal"
                     list
                 >
+                    <template #actions>
+                        <FmSectionLink
+                            :href="
+                                documentsIndex({ query: { person: person.id } })
+                                    .url
+                            "
+                            >{{ $t('Open in the Archive') }}</FmSectionLink
+                        >
+                    </template>
                     <FmDocumentRow
                         v-for="document in documents"
                         :key="document.id"
                         :document="document"
                         :href="showDocument.url(document.id)"
+                    />
+                    <FmShowMore
+                        v-if="documentsNext"
+                        :label="
+                            showMoreLabel(
+                                documentsTotal - documents.length,
+                                pageSizes.documents,
+                                'documents',
+                            )
+                        "
+                        :loading="loading.documents"
+                        @more="loadMore('documents', documentsNext)"
                     />
                 </FmCard>
                 <FmCard v-if="person.notes" :title="$t('Notes')">

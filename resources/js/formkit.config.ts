@@ -16,6 +16,7 @@ import { labelLateOptions } from '@/lib/formkitLateOptions';
 import { sayNoResults } from '@/lib/formkitNoResults';
 import { markOptional } from '@/lib/formkitOptional';
 import { openOnFocus } from '@/lib/formkitOpenOnFocus';
+import { ignorePasswordManagers } from '@/lib/formkitPasswordManagers';
 import { toggleAsSwitch } from '@/lib/formkitSwitch';
 import { tabChoosesSuggestion } from '@/lib/formkitTagTab';
 
@@ -84,6 +85,7 @@ export default defaultConfig({
         openOnFocus,
         sayNoResults,
         markOptional,
+        ignorePasswordManagers,
     ],
     locales: { en, it },
     // The server writes the language in <html lang>; the tests have no document language

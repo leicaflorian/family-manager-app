@@ -3,8 +3,22 @@
  * document*, and what the form sends.
  */
 
+import { show as showMovement } from '@/routes/budget/movements';
+import { show as showCard } from '@/routes/cards';
+
 /** A record the document links to: its type, as the morph map writes it, and its id. */
 export type DocumentLink = { type: string; id: number };
+
+/**
+ * The page a link leads to: the expense or income, or the card.
+ *
+ * @param link - The record the files come from.
+ */
+export function presetUrl(link: DocumentLink): string {
+    return link.type === 'expense' || link.type === 'income'
+        ? showMovement.url({ kind: link.type, id: link.id })
+        : showCard.url(link);
+}
 
 /** The fields of the form: the menus hold strings, empty when nothing is chosen. */
 export type DocumentFormValues = {

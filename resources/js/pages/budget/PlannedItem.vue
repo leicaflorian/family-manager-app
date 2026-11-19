@@ -77,7 +77,7 @@ const income = computed(() => row.value.kind === 'income');
 
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
-    { label: trans('Planned expenses'), href: index().url },
+    { label: trans('Planned expenses and incomes'), href: index().url },
     { label: row.value.title },
 ]);
 
@@ -313,7 +313,10 @@ const exceptionIcons = {
     <Head :title="row.title" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink :href="index().url" :label="$t('Planned expenses')" />
+        <FmBackLink
+            :href="index().url"
+            :label="$t('Planned expenses and incomes')"
+        />
 
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="flex min-w-0 flex-col gap-1.5">

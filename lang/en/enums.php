@@ -214,6 +214,7 @@ return [
         'confirmation' => 'Gmail code',
     ],
     'owner_action_type' => [
+        'family_created' => 'Family created',
         'suspended' => 'Suspended',
         'reactivated' => 'Reactivated',
         'deletion_scheduled' => 'Deletion scheduled',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Reminders;
 
 use App\Data\AgendaData;
+use Carbon\CarbonImmutable;
 
 /**
  * One notice of the morning email, with raw values: the mail words it in the language of the account when it is
@@ -20,6 +21,7 @@ final readonly class MorningItem
      * @param  string  $dueOn  the due date, `aaaa-mm-gg`
      * @param  string  $url  the page of the thing, or of the reminders
      * @param  string  $area  the area of the thing, for its icon (`general` without one)
+     * @param  int|null  $reminderId  the reminder behind the notice, so the weekly mail does not repeat one already in its lists
      */
     public function __construct(
         public string $title,
@@ -29,5 +31,43 @@ final readonly class MorningItem
         public string $dueOn,
         public string $url,
         public string $area = AgendaData::GENERAL_AREA,
+        public ?int $reminderId = null,
     ) {}
+
+    /**
+     * The title in the language of the mail being rendered.
+     */
+    public function displayTitle(): string
+    {
+        return $this->translatable ? __($this->title) : $this->title;
+    }
+
+    /**
+     * The due date as a day in Rome.
+     */
+    public function dueDay(): CarbonImmutable
+    {
+        return CarbonImmutable::parse($this->dueOn, 'Europe/Rome');
+    }
+
+    /**
+     * The line of this notice in a mail, worded in the language being rendered.
+     *
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return array{title: string, subject: ?string, when: string, late: bool, url: string, area: string}
+     */
+    public function line(CarbonImmutable $today): array
+    {
+        $due = $this->dueDay();
+
+        return [
+            'title' => $this->displayTitle(),
+            'subject' => $this->subject,
+            'when' => DueText::when($today, $due, $this->manual),
+            // Due today or already late: written in red, as on the board
+            'late' => $due->lessThanOrEqualTo($today),
+            'url' => $this->url,
+            'area' => $this->area,
+        ];
+    }
 }

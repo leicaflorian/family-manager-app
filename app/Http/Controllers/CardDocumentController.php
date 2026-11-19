@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\Cards\LinkCardDocuments;
+use App\Actions\Documents\LinkDocuments;
 use App\Cards\CardTypes;
 use App\Http\Requests\Cards\LinkDocumentRequest;
 use App\Models\Document;
@@ -21,7 +21,7 @@ final class CardDocumentController extends Controller
     /**
      * Links the document to the card; linking it twice changes nothing.
      */
-    public function store(LinkDocumentRequest $request, string $type, string $id, LinkCardDocuments $links): RedirectResponse
+    public function store(LinkDocumentRequest $request, string $type, string $id, LinkDocuments $links): RedirectResponse
     {
         $description = CardTypes::findOrFail($type);
         $card = $description->findOrFail($id);
@@ -37,7 +37,7 @@ final class CardDocumentController extends Controller
      * Unlinks the document from the card and goes back to the page it came
      * from (the card, or its form); the document stays.
      */
-    public function destroy(string $type, string $id, Document $document, LinkCardDocuments $links): RedirectResponse
+    public function destroy(string $type, string $id, Document $document, LinkDocuments $links): RedirectResponse
     {
         $card = CardTypes::findOrFail($type)->findOrFail($id);
         Gate::authorize('update', $document);

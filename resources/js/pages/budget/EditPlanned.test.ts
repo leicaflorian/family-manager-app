@@ -39,7 +39,7 @@ describe('Edit a planned expense', () => {
 
         expect(created.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses', href: '/budget/planned' },
+            { label: 'Planned expenses and incomes', href: '/budget/planned' },
             { label: 'New planned expense' },
         ]);
         first.unmount();
@@ -53,7 +53,7 @@ describe('Edit a planned expense', () => {
 
         expect(changed.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses', href: '/budget/planned' },
+            { label: 'Planned expenses and incomes', href: '/budget/planned' },
             { label: 'Retta danza', href: '/budget/planned/expense/4' },
             { label: 'Edit Retta danza' },
         ]);
@@ -340,8 +340,9 @@ describe('EditPlanned on the computer', () => {
                 shown,
             );
             expect(
-                screen.queryByRole('link', { name: 'Planned expenses' }) !==
-                    null,
+                screen.queryByRole('link', {
+                    name: 'Planned expenses and incomes',
+                }) !== null,
             ).toBe(shown);
             view.unmount();
         }

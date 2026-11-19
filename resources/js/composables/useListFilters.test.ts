@@ -23,13 +23,9 @@ const visit = { preserveState: true, preserveScroll: true, replace: true };
  * The filters of a list, with the address written as `search|min|page`.
  *
  * @param start - the filters in use
- * @param confirm - asked before every visit, as `useListFilters` takes it
  * @returns the filters, the ref that holds them and the composable
  */
-function setup(
-    start: Filters = { search: 'luce', min: 20 },
-    confirm?: () => boolean | Promise<boolean>,
-) {
+function setup(start: Filters = { search: 'luce', min: 20 }) {
     const filters = ref<Filters>(start);
     const pills = (): FilterPill<Filters>[] => [
         ...(filters.value.min === null
@@ -44,7 +40,6 @@ function setup(
         pills,
         url: (query) =>
             `/list?${query.search ?? ''}|${query.min ?? ''}|${query.page ?? ''}`,
-        confirm,
     });
 
     return { filters, list };
@@ -127,36 +122,5 @@ describe('useListFilters', () => {
         vi.unstubAllGlobals();
         screenWidth(390);
         expect(setup().list.layout.value).toContain('flex-col');
-    });
-
-    it('asks before every visit, and visits only when the answer is yes', async () => {
-        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-        let answer: (leave: boolean) => void = () => undefined;
-        const confirm = vi.fn(
-            () => new Promise<boolean>((resolve) => (answer = resolve)),
-        );
-        const { list } = setup(undefined, confirm);
-
-        list.removeAll();
-        expect(confirm).toHaveBeenCalledTimes(1);
-        expect(get).not.toHaveBeenCalled();
-        answer(false);
-        await nextTick();
-        expect(get).not.toHaveBeenCalled();
-
-        list.searchText.value = 'gas';
-        list.submitSearch();
-        answer(true);
-        await nextTick();
-        expect(get).toHaveBeenCalledWith('/list?gas|20|', {}, visit);
-    });
-
-    it('visits at once when the answer is a plain yes', () => {
-        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
-        const { list } = setup(undefined, () => true);
-
-        list.removePill('amount');
-
-        expect(get).toHaveBeenCalledWith('/list?luce||', {}, visit);
     });
 });

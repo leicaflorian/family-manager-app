@@ -75,12 +75,13 @@ final class MovementData extends Data
      * @param  Expense|Income  $movement  the expense or income
      * @param  User  $user  who looks at it, for the permissions
      * @param  array<int, list<string>>|null  $paths  the paths of the document categories; read here when missing
+     * @param  bool  $withDocuments  false for a list of movements, which leaves the documents out (and does not load them)
      */
-    public static function fromMovement(Expense|Income $movement, User $user, ?array $paths = null): self
+    public static function fromMovement(Expense|Income $movement, User $user, ?array $paths = null, bool $withDocuments = true): self
     {
         $expense = $movement instanceof Expense ? $movement : null;
         $income = $movement instanceof Income ? $movement : null;
-        $documents = $movement->documents;
+        $documents = $withDocuments ? $movement->documents : collect();
         $paths ??= $documents->isEmpty() ? [] : resolve(CategoryTree::class)->paths();
 
         return new self(

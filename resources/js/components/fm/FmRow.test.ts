@@ -216,6 +216,20 @@ describe('FmRow', () => {
         expect(subtitle).not.toHaveClass('text-meta', 'font-semibold');
     });
 
+    it('writes a subtitle that is soon in the strong style and the colour of the text', () => {
+        render(FmRow, {
+            props: {
+                title: 'Claude AI',
+                subtitle: 'Renewal · in 12 days',
+                tone: 'soon',
+            },
+        });
+
+        const subtitle = screen.getByText('Renewal · in 12 days');
+        expect(subtitle).toHaveClass('text-meta-strong', 'text-ink');
+        expect(subtitle).not.toHaveClass('text-ink-soft');
+    });
+
     it('strikes the title through when the thing is done', () => {
         render(FmRow, { props: { title: 'Upload a bill', done: true } });
 

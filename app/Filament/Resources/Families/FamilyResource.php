@@ -48,7 +48,7 @@ final class FamilyResource extends Resource
     }
 
     /**
-     * Nobody creates a family from the panel: a family signs up on its own.
+     * No page of Filament to create a family: *Create a family* of the list does it, with the welcome mail.
      */
     public static function canCreate(): bool
     {

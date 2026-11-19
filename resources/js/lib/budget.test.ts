@@ -20,6 +20,7 @@ import {
     plannedUrl,
     recurrenceText,
     skippedMonthsText,
+    yearlessDate,
 } from './budget';
 
 const today = new Date(2026, 9, 26, 10, 0);
@@ -36,6 +37,24 @@ async function speak(lang: string): Promise<void> {
 
 afterEach(async () => {
     await speak('en');
+});
+
+describe('yearlessDate', () => {
+    it('leaves out the year of a day of this year', () => {
+        expect(yearlessDate('2026-11-15', today)).toBe('15/11');
+    });
+
+    it('writes the year of a day of another year', () => {
+        expect(yearlessDate('2027-11-15', today)).toBe('15/11/2027');
+        expect(yearlessDate('2025-03-02', today)).toBe('02/03/2025');
+    });
+
+    it('counts the year on the calendar of Rome', () => {
+        // 23:30 UTC of 31 December is already 1 January in Rome
+        const newYear = new Date(Date.UTC(2026, 11, 31, 23, 30));
+
+        expect(yearlessDate('2027-01-05', newYear)).toBe('05/01');
+    });
 });
 
 describe('recurrenceText', () => {
@@ -266,7 +285,7 @@ describe('movementsUrl', () => {
         ).toBe('/budget/movements?month=2026-10');
     });
 
-    it('carries every filter and the movement open, in this order', () => {
+    it('carries every filter, in this order', () => {
         expect(
             movementsUrl({
                 month: '2026-10',
@@ -277,10 +296,9 @@ describe('movementsUrl', () => {
                 max: 100.5,
                 from: '2026-09-01',
                 to: '2026-10-31',
-                movement: 'expense:52',
             }),
         ).toBe(
-            '/budget/movements?month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100.5&from=2026-09-01&to=2026-10-31&movement=expense%3A52',
+            '/budget/movements?month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100.5&from=2026-09-01&to=2026-10-31',
         );
     });
 

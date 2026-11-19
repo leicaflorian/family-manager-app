@@ -11,14 +11,13 @@ use App\Cards\CardTypes;
 use App\Cards\FieldKind;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\IntervalUnit;
+use App\Http\Requests\Concerns\LinksDocuments;
 use App\Http\Requests\Concerns\UploadsFiles;
-use App\Models\Document;
 use App\Models\Expense;
 use App\Models\InsurancePolicy;
 use App\Rules\OfFamily;
 use Closure;
 use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -34,6 +33,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class SaveCardRequest extends FormRequest
 {
+    use LinksDocuments;
     use UploadsFiles;
 
     /**
@@ -82,10 +82,7 @@ final class SaveCardRequest extends FormRequest
         return [
             ...CardRules::for($this->cardType()),
             ...$this->filesRules(required: false),
-            'link_documents' => ['array'],
-            'link_documents.*' => ['integer'],
-            'unlink_documents' => ['array'],
-            'unlink_documents.*' => ['integer'],
+            ...$this->linkDocumentsRules(),
             ...$this->replacementRules(),
             ...$this->plannedRules(),
         ];
@@ -153,30 +150,6 @@ final class SaveCardRequest extends FormRequest
             && $old->contains('id', $planned->card_id)
                 ? $payment
                 : null;
-    }
-
-    /**
-     * The documents to link to the card.
-     *
-     * @return Collection<int, Document>
-     *
-     * @throws ModelNotFoundException if one is not of the family (it answers 404)
-     */
-    public function documentsToLink(): Collection
-    {
-        return $this->documents('link_documents');
-    }
-
-    /**
-     * The documents to unlink from the card.
-     *
-     * @return Collection<int, Document>
-     *
-     * @throws ModelNotFoundException if one is not of the family (it answers 404)
-     */
-    public function documentsToUnlink(): Collection
-    {
-        return $this->documents('unlink_documents');
     }
 
     /**
@@ -332,31 +305,6 @@ final class SaveCardRequest extends FormRequest
     private function canReplace(): bool
     {
         return $this->cardType()->type() === 'insurance_policy' && ! $this->card() instanceof Model;
-    }
-
-    /**
-     * The ids of a list of the form, as numbers.
-     *
-     * @param  string  $key  the list
-     * @return list<int>
-     */
-    private function ids(string $key): array
-    {
-        return array_values($this->collect($key)->map(fn (mixed $id): int => is_numeric($id) ? (int) $id : 0)->unique()->all());
-    }
-
-    /**
-     * The documents of the family whose ids are in a list of the form.
-     *
-     * @param  string  $key  the list, `link_documents` or `unlink_documents`
-     * @return Collection<int, Document>
-     *
-     * @throws ModelNotFoundException if one is not of the family (it answers 404)
-     */
-    private function documents(string $key): Collection
-    {
-        // The rule lets "5" through as well as 5
-        return Document::query()->findOrFail($this->ids($key));
     }
 
     /**

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The documents of a card on grey, beside its form, as the file beside *Edit
+ * The documents of a card or a movement on grey, beside its form, as the file beside *Edit
  * the document*: *Link* beside the title, at the top the zone to add files,
  * then the files chosen and not saved yet, then the documents: those chosen
  * in *Link*, and those already linked, with the menu of the card page. Every
@@ -26,18 +26,16 @@ import FmSectionLink from './FmSectionLink.vue';
 
 const {
     documents = [],
-    card,
     canDelete = false,
     errors = [],
     linkable = [],
     linkableNext = null,
     linkableSearch = '',
     hasLinkable = false,
+    readonly = false,
 } = defineProps<{
-    /** The documents already linked to the card; none for a new card. */
+    /** The documents already linked to the record; none for a new one. */
     documents?: App.Data.DocumentData[];
-    /** The address of the card in the routes; none for a new card. */
-    card?: { type: string; id: number };
     /** Whether whoever edits may delete the linked documents. */
     canDelete?: boolean;
     /** Why the server refused some of the files. */
@@ -50,6 +48,8 @@ const {
     linkableSearch?: string;
     /** At least one document of the family can be linked. */
     hasLinkable?: boolean;
+    /** The form cannot be saved: no files to add, no document to link or unlink, only the list to read. */
+    readonly?: boolean;
 }>();
 
 /** The files chosen and not saved yet. */
@@ -150,7 +150,7 @@ function keep(id: number): void {
 
 <template>
     <section
-        class="flex flex-col gap-3 rounded-sheet bg-segment p-5 lg:p-7"
+        class="flex flex-col gap-3 rounded-sheet bg-segment p-5 wide:p-7"
         :aria-labelledby="titleId"
     >
         <div class="flex items-center justify-between gap-3">
@@ -158,13 +158,14 @@ function keep(id: number): void {
                 {{ $t('Documents') }}
             </h2>
             <FmSectionLink
-                v-if="hasLinkable"
+                v-if="hasLinkable && !readonly"
                 :icon="Link2"
                 @click="linking = true"
                 >{{ $t('Link document') }}</FmSectionLink
             >
         </div>
         <FmFileDrop
+            v-if="!readonly"
             compact
             :label="$t('Its documents? Drag them here, or choose them')"
             @files="add"
@@ -275,9 +276,8 @@ function keep(id: number): void {
                         dateless
                     />
                     <FmCardDocumentActions
-                        v-if="card"
+                        v-if="!readonly"
                         :document="document"
-                        :card="card"
                         :can-delete="canDelete"
                         in-form
                         @unlink="unlink = [...unlink, document.id]"

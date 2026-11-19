@@ -25,7 +25,7 @@ final class CardData extends Data
      * @param  string|null  $next_date  the next date, as `yyyy-mm-dd`
      * @param  bool  $overdue  whether an expiring date has passed on an active card
      * @param  bool  $closed  whether the status closes the card
-     * @param  float|null  $due_amount  in *An area*: the amount of the open due date that is late or falls in the next 30 days
+     * @param  float|null  $due_amount  in *An area*: the cost of the next open due date of its planned item, late or months away
      * @param  bool  $due_late  in *An area*: whether that due date is late
      */
     public function __construct(

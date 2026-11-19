@@ -1,11 +1,14 @@
 <?php
 
 declare(strict_types=1);
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\Document;
 use App\Models\Enrollment;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\Reminder;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\DB;
@@ -59,8 +62,11 @@ test('the page of Giulia shows the health card at the top, her personal document
         ->where('person.first_name', 'Giulia')
         ->where('person.birth_date', '2016-05-24')
         ->where('person.can_delete', true)
-        ->where('expiring.0.title', 'Tessera sanitaria')
-        ->where('expiring.1.title', 'Certificato medico sportivo')
+        ->missing('expiring')
+        ->where('personalTotal', 2)
+        ->where('personalNext', null)
+        ->where('documentsTotal', 2)
+        ->where('documentsNext', null)
         ->where('personal', fn ($documents): bool => collect($documents)->pluck('title')->sort()->values()->all() === ["Carta d'identità", 'Tessera sanitaria'])
         ->where('documents', fn ($documents): bool => collect($documents)->pluck('title')->sort()->values()->all() === ['Certificato medico sportivo', 'Iscrizione danza 2026/27'])
         ->where('links', fn ($groups): bool => collect($groups)->pluck('type')->all() === ['health_event', 'enrollment'])
@@ -144,6 +150,90 @@ test('a member gets 403 on new, edit and delete of people and organizations', fu
 
     expect($giulia->fresh())->first_name->toBe('Giulia')->and($edison->fresh())->name->toBe('Edison');
     $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.can_edit', false));
+});
+
+/**
+ * Gives Giulia some documents of her own: personal ones, or linked to the Panda.
+ */
+function peopleGiveGiuliaDocuments(int $count, bool $linked): void
+{
+    insideBianchi(function () use ($count, $linked): void {
+        $giulia = Person::query()->where('first_name', 'Giulia')->sole();
+        $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+        Document::factory()->count($count)->create(['family_id' => $giulia->family_id, 'person_id' => $giulia->id])
+            ->each(fn (Document $document): bool => ! $linked || DB::table('documentables')->insert(['document_id' => $document->id, 'documentable_type' => 'vehicle', 'documentable_id' => $panda->id]));
+    });
+}
+
+test('the personal documents of a person come 5 at a time, the next page on request', function (): void {
+    peopleGiveGiuliaDocuments(5, linked: false);
+    $giulia = bianchi('Giulia');
+    $first = [];
+
+    $this->get(route('people.show', $giulia))->assertInertia(function (AssertableInertia $page) use (&$first): AssertableInertia {
+        $first = collect($page->toArray()['props']['personal'])->pluck('id')->all();
+
+        return $page->has('personal', 5)->where('personalNext', 2)->where('personalTotal', 7);
+    });
+
+    $version = app(HandleInertiaRequests::class)->version(request());
+    $response = $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Person',
+        'X-Inertia-Partial-Data' => 'personal,personalNext,personalTotal',
+    ])->get(route('people.show', ['person' => $giulia, 'personal_page' => 2]));
+
+    $response->assertOk()
+        ->assertJsonCount(2, 'props.personal')
+        ->assertJsonPath('props.personalNext', null)
+        ->assertJsonMissingPath('props.documents')
+        // A page asked twice, or shifted by a document added in between, never shows a row twice
+        ->assertJsonPath('matchPropsOn', ['personal.id']);
+    expect(array_intersect(array_column($response->json('props.personal'), 'id'), $first))->toBe([]);
+});
+
+test('a page of documents asked by the page reads only the documents', function (): void {
+    peopleGiveGiuliaDocuments(5, linked: false);
+    $giulia = bianchi('Giulia');
+    $version = app(HandleInertiaRequests::class)->version(request());
+
+    DB::enableQueryLog();
+    $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Person',
+        'X-Inertia-Partial-Data' => 'personal,personalNext,personalTotal',
+    ])->get(route('people.show', ['person' => $giulia, 'personal_page' => 2]))->assertOk();
+
+    $tables = collect(DB::getQueryLog())->pluck('query')->filter(fn (string $query): bool => preg_match('/from [`"]?(reminders|vehicles|enrollments|health_events)[`"]?/i', $query) === 1);
+    expect($tables)->toBeEmpty();
+});
+
+test('a page number in the address of a full visit starts from the first page', function (): void {
+    peopleGiveGiuliaDocuments(5, linked: false);
+
+    $this->get(route('people.show', ['person' => bianchi('Giulia'), 'personal_page' => 2, 'documents_page' => 9]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('personal', 5)
+        ->where('personalNext', 2)
+        ->has('documents', 2)
+        ->where('pageSizes', ['personal' => 5, 'documents' => 10]));
+});
+
+test('the other documents of a person come 10 at a time', function (): void {
+    peopleGiveGiuliaDocuments(10, linked: true);
+
+    $this->get(route('people.show', bianchi('Giulia')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 10)
+        ->where('documentsNext', 2)
+        ->where('documentsTotal', 12));
+});
+
+test('a person of another family answers 404 also with a page', function (): void {
+    $rossi = registerFamily('Rossi', 'anna@example.com');
+    $theirs = CurrentFamily::using($rossi->family_id, fn (): Person => Person::query()->sole());
+
+    $this->get(route('people.show', ['person' => $theirs, 'personal_page' => 2]))->assertNotFound();
 });
 
 test('a person of another family answers 404', function (): void {

@@ -5,7 +5,28 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { renderPage, settle } from '@/test/page';
 import ResetPassword from './ResetPassword.vue';
 
+/** What the page asks the layout to show, beyond what it says in its options. */
+const layout = vi.hoisted(() => ({
+    props: null as null | {
+        title: string;
+        panel: { title: string; text: string };
+    },
+}));
+
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({ props: { name: 'Fameja.app' } }),
+    setLayoutProps: (props: {
+        title: string;
+        panel: { title: string; text: string };
+    }) => {
+        layout.props = props;
+    },
+}));
+
 const props = {
+    welcome: false,
     token: 'abc',
     email: 'marco.bianchi@example.com',
     passwordRules: '',
@@ -14,6 +35,25 @@ const props = {
 describe('New password', () => {
     afterEach(() => {
         vi.restoreAllMocks();
+        layout.props = null;
+    });
+
+    it('from a forgotten password keeps the texts of a forgotten password', () => {
+        renderPage(ResetPassword, { ...props, welcome: false });
+
+        expect(layout.props).toBeNull();
+    });
+
+    it('from the welcome mail speaks of a welcome, not of a forgotten password', () => {
+        renderPage(ResetPassword, { ...props, welcome: true });
+
+        expect(layout.props).toEqual({
+            title: 'Choose your password',
+            panel: {
+                title: 'Welcome to Fameja.app',
+                text: 'You choose the password, and you find your family ready.',
+            },
+        });
     });
 
     it('shows the email and asks for the new password twice', () => {

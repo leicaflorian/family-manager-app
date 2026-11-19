@@ -37,6 +37,50 @@ describe('FmCardRow', () => {
         );
     });
 
+    it('writes in bold a date within 30 days', () => {
+        render(FmCardRow, {
+            props: { card: { ...pandaRow, next_date: '2026-11-07' } },
+        });
+
+        expect(screen.getByText('Inspection · in 12 days')).toHaveClass(
+            'text-meta-strong',
+            'text-ink',
+        );
+    });
+
+    it('writes in bold a date that is 30 days away', () => {
+        render(FmCardRow, {
+            props: { card: { ...pandaRow, next_date: '2026-11-25' } },
+        });
+
+        expect(screen.getByText('Inspection · in 30 days')).toHaveClass(
+            'text-meta-strong',
+        );
+    });
+
+    it('writes a date further away in the normal style', () => {
+        render(FmCardRow, {
+            props: { card: { ...pandaRow, next_date: '2026-11-26' } },
+        });
+
+        expect(screen.getByText('Inspection · in 31 days')).toHaveClass(
+            'text-meta',
+            'text-ink-soft',
+        );
+    });
+
+    it('does not write in bold the date of a closed card', () => {
+        render(FmCardRow, {
+            props: {
+                card: { ...pandaRow, next_date: '2026-11-07', closed: true },
+            },
+        });
+
+        expect(screen.getByText('Inspection · in 12 days')).toHaveClass(
+            'text-ink-soft',
+        );
+    });
+
     it('shows the subtitle when there is no date', () => {
         render(FmCardRow, {
             props: { card: { ...pandaRow, next_label: null, next_date: null } },

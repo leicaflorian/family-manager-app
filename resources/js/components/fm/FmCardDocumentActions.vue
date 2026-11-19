@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * The buttons beside a document on the page of a card: *Open in a new tab*,
+ * The buttons beside a document on the page of a card, or in the form of a
+ * card or of a movement: *Open in a new tab*,
  * always in sight, and the ⋮ menu with *Edit* (the page of the document, as
  * its row), *Unlink* and *Delete* (for an `admin`), each after asking. The
  * page keeps its state, so in the form of the card what is written stays.
@@ -36,8 +37,8 @@ const {
 } = defineProps<{
     /** The document linked to the card. */
     document: App.Data.DocumentData;
-    /** The address of the card in the routes: its type and its number. */
-    card: { type: string; id: number };
+    /** The address of the card in the routes: its type and its number; needed out of the form, for *Unlink*. */
+    card?: { type: string; id: number };
     /** Whether whoever looks may delete the document. */
     canDelete: boolean;
     /** In the form of the card: only the menu, its links in a new tab, and *Unlink* left to the form. */
@@ -57,6 +58,10 @@ const confirmingDelete = ref(false);
 
 /** Removes the link between the document and the card; the document stays. */
 function unlink(): void {
+    if (card === undefined) {
+        return;
+    }
+
     router.delete(unlinkDocument.url({ ...card, document: document.id }), {
         preserveScroll: true,
         preserveState: true,

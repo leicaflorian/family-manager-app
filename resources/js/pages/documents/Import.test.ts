@@ -427,6 +427,17 @@ describe('Import', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('from an income, closes to the income', async () => {
+        screenWidth(1280, 400);
+        renderPage(Import, props([light], {}, [{ type: 'income', id: 4 }]));
+        await settle();
+
+        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
+            'href',
+            '/budget/movements/income/4',
+        );
+    });
+
     it('from a card, on a wide but short window, closes to the card and imports going back to it', async () => {
         screenWidth(1280, 400);
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});

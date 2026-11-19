@@ -33,7 +33,7 @@ final class UploadController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('documents/Upload', [
-            'presetLinks' => array_filter([PresetLink::from($request->query('link'))]),
+            'presetLinks' => array_filter([PresetLink::fromUpload($request->query('link'))]),
         ]);
     }
 
@@ -46,7 +46,7 @@ final class UploadController extends Controller
      */
     public function store(UploadRequest $request, FileStore $store, QueueReading $queue, #[CurrentUser] User $user): RedirectResponse
     {
-        $link = PresetLink::from($request->query('link'));
+        $link = PresetLink::fromUpload($request->query('link'));
         $ids = [];
 
         foreach ($request->file('files', []) as $file) {

@@ -99,7 +99,7 @@ final readonly class CardSummaries
     }
 
     /**
-     * One area with its cards, each with the amount of its open due date that is late or falls in the next 30 days.
+     * One area with its cards, each with the cost of the next open due date of its planned item.
      */
     public function area(Area $area): AreaData
     {

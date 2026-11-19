@@ -11,7 +11,7 @@ describe('budgetTabs', () => {
         expect(budgetTabs('movements').map((tab) => tab.label)).toEqual([
             'Movements',
             'Planned and spent',
-            'Planned expenses',
+            'Recurring',
         ]);
     });
 

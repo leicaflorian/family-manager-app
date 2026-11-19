@@ -17,6 +17,7 @@ const Menu = defineComponent({
         plain: { type: Boolean, default: false },
         text: { type: Boolean, default: false },
         outline: { type: Boolean, default: false },
+        control: { type: Boolean, default: false },
         icon: { type: Function as PropType<LucideIcon>, default: undefined },
     },
     setup: (props) => () =>
@@ -28,6 +29,7 @@ const Menu = defineComponent({
                 plain: props.plain,
                 text: props.text,
                 outline: props.outline,
+                control: props.control,
                 icon: props.icon,
             },
             { default: () => h(FmMenuItem, null, () => 'Rename') },
@@ -90,6 +92,34 @@ describe('FmMenu', () => {
         expect(
             await screen.findByRole('menuitem', { name: 'Rename' }),
         ).toBeInTheDocument();
+    });
+
+    it('as a control, the ⋯ is a square as tall as the buttons beside it, in a panel too', async () => {
+        renderPage(Menu, { control: true });
+
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(button).toHaveClass(
+            'size-control',
+            'rounded-control',
+            'border-edge-soft',
+            'bg-segment',
+        );
+        expect(button.querySelector('.lucide-ellipsis')).not.toBeNull();
+        await userEvent.click(button);
+        expect(
+            await screen.findByRole('menuitem', { name: 'Rename' }),
+        ).toBeInTheDocument();
+    });
+
+    it('opens its entries above a panel from below, even one over another', async () => {
+        renderPage(Menu);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'More actions' }),
+        );
+
+        // FmBottomSheet is z-50, and z-[70] over another panel
+        expect(await screen.findByRole('menu')).toHaveClass('z-[80]');
     });
 
     it('outlined, shows its label beside the icon in a white button with a grey border', async () => {

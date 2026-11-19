@@ -18,6 +18,7 @@ use App\Models\DocumentCategory;
 use App\Models\Expense;
 use App\Models\File;
 use App\Models\HealthEvent;
+use App\Models\Income;
 use App\Support\CurrentFamily;
 use App\Support\Reading\Choices;
 use App\Support\Reading\IssuerOrder;
@@ -105,7 +106,7 @@ final readonly class Proposal
 
         $movement = $draft['movement'] === null
             ? null
-            : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $choices, $side['date']);
+            : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $this->fromMovement($file, $draft['movement']->kind, $choices), $side['date']);
         $document = $this->receiptCategory($x, $document, $movement);
         $amount = $choices->movementOverrides($movement->values->kind ?? 'expense')['amount'] ?? $x->total_amount;
         ['records' => $records, 'warnings' => $warnings] = $this->records->of($x, $side, is_numeric($amount) ? (float) $amount : null, $choices, $cardType);
@@ -124,6 +125,25 @@ final readonly class Proposal
             createCard: $cardType === null && $this->namesNoCard($document, $event, $records),
             cardType: $cardType,
         );
+    }
+
+    /**
+     * The choices with the movement the file was uploaded from as the target left on `auto`, when it is still there
+     * in the family and of the kind the reading proposes: the document goes to that expense or income, no new one.
+     *
+     * @param  File  $file  the file
+     * @param  string  $kind  `expense` or `income`, the kind of the movement the reading proposes
+     * @param  ImportChoices  $choices  the choices of the person
+     */
+    private function fromMovement(File $file, string $kind, ImportChoices $choices): ImportChoices
+    {
+        if ($choices->targets['movement'] !== 'auto' || $file->link_type !== $kind || $file->link_id === null) {
+            return $choices;
+        }
+
+        $exists = $kind === 'income' ? Income::query()->whereKey($file->link_id)->exists() : Expense::query()->whereKey($file->link_id)->exists();
+
+        return $exists ? $choices->withMovementTarget($file->link_id) : $choices;
     }
 
     /**
