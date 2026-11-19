@@ -99,8 +99,11 @@ const late = computed(() =>
 /** How many reminders of *To do* are shown. */
 const shownReminders = ref(REMINDERS_STEP);
 
-/** The list of documents loading its next page, if any. */
-const loading = ref<'personal' | 'documents' | null>(null);
+/** The lists of documents loading their next page: each on its own, because both can load at the same time. */
+const loading = ref<Record<'personal' | 'documents', boolean>>({
+    personal: false,
+    documents: false,
+});
 
 /**
  * Adds the next page of a list of documents below the rows already shown,
@@ -110,13 +113,13 @@ const loading = ref<'personal' | 'documents' | null>(null);
  * @param page - the number of the page to add
  */
 function loadMore(list: 'personal' | 'documents', page: number): void {
-    loading.value = list;
+    loading.value[list] = true;
     router.reload({
         data: { [`${list}_page`]: page },
         only: [list, `${list}Next`, `${list}Total`],
         preserveUrl: true,
         onFinish: () => {
-            loading.value = null;
+            loading.value[list] = false;
         },
     });
 }
@@ -300,7 +303,7 @@ usePageTrail(() => [
                                 true,
                             )
                         "
-                        :loading="loading === 'personal'"
+                        :loading="loading.personal"
                         @more="loadMore('personal', personalNext)"
                     />
                     <p
@@ -387,7 +390,7 @@ usePageTrail(() => [
                                 true,
                             )
                         "
-                        :loading="loading === 'documents'"
+                        :loading="loading.documents"
                         @more="loadMore('documents', documentsNext)"
                     />
                 </FmCard>

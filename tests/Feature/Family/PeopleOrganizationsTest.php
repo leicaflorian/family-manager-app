@@ -187,7 +187,9 @@ test('the personal documents of a person come 5 at a time, the next page on requ
     $response->assertOk()
         ->assertJsonCount(2, 'props.personal')
         ->assertJsonPath('props.personalNext', null)
-        ->assertJsonMissingPath('props.documents');
+        ->assertJsonMissingPath('props.documents')
+        // A page asked twice, or shifted by a document added in between, never shows a row twice
+        ->assertJsonPath('matchPropsOn', ['personal.id']);
     expect(array_intersect(array_column($response->json('props.personal'), 'id'), $first))->toBe([]);
 });
 

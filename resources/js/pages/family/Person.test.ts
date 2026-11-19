@@ -331,6 +331,31 @@ describe('A person', () => {
         reload.mockRestore();
     });
 
+    it('keeps Show more of a list disabled while its page loads, also when the other list asks for its own', async () => {
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderGiulia(personDetail, [], {
+            ...documentProps(),
+            personalNext: 2,
+            personalTotal: 7,
+            documentsNext: 2,
+            documentsTotal: 12,
+        });
+
+        const personal = screen.getByRole('button', {
+            name: 'Show 5 more documents · 6 left',
+        });
+        await userEvent.click(personal);
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: 'Show 10 more documents · 11 left',
+            }),
+        );
+
+        expect(personal).toBeDisabled();
+        expect(reload).toHaveBeenCalledTimes(2);
+        reload.mockRestore();
+    });
+
     it('says when there are no personal documents, without a number', () => {
         renderGiulia(personDetail, [], documentProps([], []));
 

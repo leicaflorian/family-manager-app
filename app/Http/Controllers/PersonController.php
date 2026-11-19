@@ -94,10 +94,10 @@ final class PersonController extends Controller
 
         return Inertia::render('family/Person', [
             'person' => PersonDetailData::fromPerson($person, $user),
-            'personal' => Inertia::merge(fn (): array => $personal()['documents']),
+            'personal' => Inertia::merge(fn (): array => $personal()['documents'])->matchOn('id'),
             'personalNext' => fn (): ?int => $personal()['next'],
             'personalTotal' => fn (): int => $personal()['total'],
-            'documents' => Inertia::merge(fn (): array => $documents()['documents']),
+            'documents' => Inertia::merge(fn (): array => $documents()['documents'])->matchOn('id'),
             'documentsNext' => fn (): ?int => $documents()['next'],
             'documentsTotal' => fn (): int => $documents()['total'],
             'links' => $this->records->ofPerson($person),
