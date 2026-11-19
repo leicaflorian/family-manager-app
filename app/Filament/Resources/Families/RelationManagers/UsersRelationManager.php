@@ -6,19 +6,22 @@ namespace App\Filament\Resources\Families\RelationManagers;
 
 use App\Admin\FamilyFigures;
 use App\Filament\Resources\Families\FamilyResource;
+use App\Mail\WelcomeMail;
 use App\Models\Family;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
 /**
- * The accounts of a family: name, email, level, confirmed email and last access, and *Enter as…* while the family
- * lets support in.
+ * The accounts of a family: name, email, level, confirmed email and last access, *Enter as…* while the family
+ * lets support in, and the welcome mail again for an account that has not confirmed its email.
  */
 final class UsersRelationManager extends RelationManager
 {
@@ -59,6 +62,16 @@ final class UsersRelationManager extends RelationManager
                     // A route of the panel: the one-time link of the app lasts one minute, so it is made on the click
                     ->url(static fn (User $record): string => URL::signedRoute('filament.admin.enter-as', ['user' => $record->id]))
                     ->openUrlInNewTab(),
+                // The link of the welcome mail works until the email is confirmed: a new one lasts another week
+                Action::make('resendWelcome')->label(__('Send the welcome email again'))->icon('heroicon-o-envelope')
+                    ->visible(static fn (User $record): bool => $record->email_verified_at === null)
+                    ->requiresConfirmation()
+                    ->modalHeading(__('Send the welcome email again?'))
+                    ->modalDescription(static fn (User $record): string => __('We send :email a new link to choose the password.', ['email' => $record->email]))
+                    ->action(static function (User $record): void {
+                        Mail::to($record)->locale(app()->getLocale())->send(new WelcomeMail($record));
+                        Notification::make()->title(__('Sent'))->success()->send();
+                    }),
             ])
             ->paginated(false);
     }

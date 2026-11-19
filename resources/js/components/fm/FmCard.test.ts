@@ -26,6 +26,23 @@ describe('FmCard', () => {
         );
     });
 
+    it('shows how many there are beside the title', () => {
+        render(FmCard, { props: { title: 'Personal documents', count: 42 } });
+
+        const heading = screen.getByRole('heading', {
+            name: 'Personal documents 42',
+        });
+        expect(heading).toHaveTextContent('42');
+    });
+
+    it('shows no number when there are none', () => {
+        render(FmCard, { props: { title: 'Personal documents', count: 0 } });
+
+        expect(
+            screen.getByRole('heading', { name: 'Personal documents' }),
+        ).not.toHaveTextContent('0');
+    });
+
     it('shows the actions beside the title', () => {
         render(FmCard, {
             props: { title: 'Linked to' },

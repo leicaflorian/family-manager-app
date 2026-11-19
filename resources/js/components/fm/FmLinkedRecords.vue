@@ -3,14 +3,17 @@
  * *Links* of *A person* and *An organization*: the records that name them, one
  * type at a time, with a tab for each type and how many records it has. With
  * `reminders` a last entry, *To do* with the number of open tasks, leads to the
- * Agenda filtered on that person.
+ * Agenda filtered on that person. A tab shows three records at a time, with
+ * *Show 3 more* under them.
  *
  * @group sections
  */
 import { Link } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { showMoreLabel } from '@/lib/showMore';
 import { show } from '@/routes/cards';
 import FmRow from './FmRow.vue';
+import FmShowMore from './FmShowMore.vue';
 
 const { groups, reminders } = defineProps<{
     /** The records, grouped by type. */
@@ -24,6 +27,22 @@ const chosen = ref(groups[0]?.type ?? '');
 
 const open = computed(
     () => groups.find((group) => group.type === chosen.value) ?? groups[0],
+);
+
+/** How many records of a tab a tap on *Show more* adds. */
+const STEP = 3;
+
+/** How many records of the open tab are shown: three, until more are asked. */
+const shown = ref(STEP);
+
+// Another tab starts again from its first three
+watch(chosen, () => {
+    shown.value = STEP;
+});
+
+/** How many records of the open tab are still hidden. */
+const left = computed((): number =>
+    Math.max(0, (open.value?.options.length ?? 0) - shown.value),
 );
 </script>
 
@@ -66,10 +85,15 @@ const open = computed(
                 </div>
                 <div v-if="open" class="-mx-4 divide-y divide-divider">
                     <FmRow
-                        v-for="record in open.options"
+                        v-for="record in open.options.slice(0, shown)"
                         :key="record.value"
                         :title="record.label"
                         :href="show({ type: open.type, id: record.value }).url"
+                    />
+                    <FmShowMore
+                        v-if="left > 0"
+                        :label="showMoreLabel(left, STEP)"
+                        @more="shown += STEP"
                     />
                 </div>
             </template>
