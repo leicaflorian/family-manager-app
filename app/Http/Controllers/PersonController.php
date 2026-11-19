@@ -20,6 +20,7 @@ use App\Services\Reminders\ReminderList;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,6 +31,12 @@ use Inertia\Response;
  */
 final class PersonController extends Controller
 {
+    /** How many personal documents a page of *A person* holds. */
+    public const int PERSONAL_PER_PAGE = 5;
+
+    /** How many other documents a page of *A person* holds. */
+    public const int DOCUMENTS_PER_PAGE = 10;
+
     public function __construct(private readonly LinkedRecords $records, private readonly ReminderList $reminders) {}
 
     /**
@@ -66,20 +73,33 @@ final class PersonController extends Controller
     }
 
     /**
-     * *A person*: at the top the documents expiring, then the personal
-     * documents (linked to no record), the records that name them and the
-     * other documents; above them their open reminders.
+     * *A person*: their open reminders, their personal documents (linked to no
+     * record) and the records that name them; on the side the other
+     * documents. The two lists of documents come a page at a time: a partial
+     * reload with `personal_page` or `documents_page` adds the next page below.
      */
-    public function show(Person $person, DocumentRows $rows, #[CurrentUser] User $user): Response
+    public function show(Request $request, Person $person, DocumentRows $rows, #[CurrentUser] User $user): Response
     {
         $theirs = ['person' => $person->id];
         $reminders = $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'];
+        // One query per list for the documents, their next page and their total, run the first time one is asked
+        $personalPage = null;
+        $personal = function () use (&$personalPage, $rows, $theirs, $request): array {
+            return $personalPage ??= $rows->page([...$theirs, 'linked' => false], max(1, $request->integer('personal_page')), self::PERSONAL_PER_PAGE);
+        };
+        $documentsPage = null;
+        $documents = function () use (&$documentsPage, $rows, $theirs, $request): array {
+            return $documentsPage ??= $rows->page([...$theirs, 'linked' => true], max(1, $request->integer('documents_page')), self::DOCUMENTS_PER_PAGE);
+        };
 
         return Inertia::render('family/Person', [
             'person' => PersonDetailData::fromPerson($person, $user),
-            'expiring' => $rows->of([...$theirs, 'expiring' => true], byExpiry: true),
-            'personal' => $rows->of([...$theirs, 'linked' => false]),
-            'documents' => $rows->of([...$theirs, 'linked' => true]),
+            'personal' => Inertia::merge(fn (): array => $personal()['documents']),
+            'personalNext' => fn (): ?int => $personal()['next'],
+            'personalTotal' => fn (): int => $personal()['total'],
+            'documents' => Inertia::merge(fn (): array => $documents()['documents']),
+            'documentsNext' => fn (): ?int => $documents()['next'],
+            'documentsTotal' => fn (): int => $documents()['total'],
             'links' => $this->records->ofPerson($person),
             'reminders' => $reminders,
             'remindersCount' => count($reminders),

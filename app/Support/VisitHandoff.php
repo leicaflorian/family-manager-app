@@ -7,10 +7,7 @@ namespace App\Support;
 use App\Http\Middleware\LimitVisit;
 use App\Models\Owner;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 /**
@@ -37,7 +34,7 @@ final class VisitHandoff
 
         Cache::put(self::KEY.$token, ['owner_id' => $owner->id, 'user_id' => $user->id], LimitVisit::LINK_SECONDS);
 
-        return self::onAppHost()->temporarySignedRoute(
+        return AppHostUrl::generator()->temporarySignedRoute(
             'support.visit.start',
             now()->addSeconds(LimitVisit::LINK_SECONDS),
             ['user' => $user->id, 'token' => $token],
@@ -62,24 +59,5 @@ final class VisitHandoff
         }
 
         return Owner::query()->find($entry['owner_id']);
-    }
-
-    /**
-     * A new URL generator on the host of the app, so the generator of the request (the panel's host) is left as it
-     * was. Not a clone of it: a clone shares the route generator, which keeps writing with the original root.
-     */
-    private static function onAppHost(): UrlGenerator
-    {
-        $root = rtrim(config()->string('app.url'), '/');
-        if (! str_contains($root, '://')) {
-            $root = 'https://'.$root;
-        }
-
-        $generator = new UrlGenerator(Route::getRoutes(), Request::create($root));
-        $generator->forceRootUrl($root);
-        // The key that `signed` checks against, as the generator of the application has it
-        $generator->setKeyResolver(static fn (): string => config()->string('app.key'));
-
-        return $generator;
     }
 }

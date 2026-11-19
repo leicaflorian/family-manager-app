@@ -15,6 +15,7 @@
 import { Link } from '@inertiajs/vue3';
 import { LogOut, Menu, Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { useLeavePage } from '@/composables/useLeavePage';
 import { countBadge } from '@/lib/badge';
 import { cn } from '@/lib/utils';
 import FmBottomSheet from './FmBottomSheet.vue';
@@ -53,6 +54,13 @@ function report(): void {
 
 /** The panel *Add* of the +. */
 const addOpen = ref(false);
+
+// The layout stays mounted from a page to the next: a panel left open would
+// stay over the page its row just opened
+useLeavePage(() => {
+    addOpen.value = false;
+    moreOpen.value = false;
+});
 
 /** The sections that stay in the bar, in the order of the board. */
 const barSections: Section[] = ['home', 'budget', 'areas'];

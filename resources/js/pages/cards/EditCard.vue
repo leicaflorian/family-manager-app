@@ -251,7 +251,6 @@ const layout = useLayoutMode();
                     v-model:link="link"
                     v-model:unlink="unlink"
                     :documents="documents"
-                    :card="card ? { type: card.type, id: card.id } : undefined"
                     :can-delete="canDeleteDocuments"
                     :errors="fileErrors"
                     :linkable="linkable"

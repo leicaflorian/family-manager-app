@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Cards\DeleteCard;
-use App\Actions\Cards\LinkCardDocuments;
 use App\Actions\Cards\ReplacePolicy;
 use App\Actions\Cards\SaveCard;
 use App\Actions\Cards\StartSubscriptionPlanned;
+use App\Actions\Documents\LinkDocuments;
 use App\Actions\Loans\RefreshLoan;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
@@ -30,6 +30,7 @@ use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use App\Services\FamilyAreas;
 use App\Services\FileStore;
+use App\Services\LinkableDocuments;
 use App\Services\ReplaceablePolicies;
 use App\Support\ImportPage;
 use App\Support\LoanTerms;
@@ -44,7 +45,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
-use Inertia\MergeProp;
 use Inertia\OptionalProp;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -58,9 +58,6 @@ final class CardController extends Controller
     /** How many documents `?document=` links to a new card at most, as many as one import holds. */
     public const int MAX_DOCUMENTS = 50;
 
-    /** How many documents a page of *Link a document* holds. */
-    private const int LINKABLE_PER_PAGE = 15;
-
     public function __construct(
         private readonly CardDetails $details,
         private readonly CardSummaries $summaries,
@@ -69,6 +66,7 @@ final class CardController extends Controller
         private readonly RefreshLoan $loans,
         private readonly FamilyAreas $familyAreas,
         private readonly ReplaceablePolicies $replaceable,
+        private readonly LinkableDocuments $linkableDocuments,
     ) {}
 
     /**
@@ -92,7 +90,7 @@ final class CardController extends Controller
                 ...$this->loanFigures($request, $card, null),
                 ...$this->replacement($request, $card),
                 ...($card->model() === Subscription::class ? ['expenseCategories' => BudgetFormOptions::categories()] : []),
-                ...$this->linkable($request, []),
+                ...$this->linkableDocuments->props($request, []),
                 'linked' => $this->documents->ofModels($documents),
             ]);
         }
@@ -113,7 +111,7 @@ final class CardController extends Controller
      * files, they wait for their document and *Upload* opens with the card
      * among the links of each.
      */
-    public function store(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store, ReplacePolicy $replace, StartSubscriptionPlanned $plan): RedirectResponse
+    public function store(SaveCardRequest $request, SaveCard $save, LinkDocuments $links, FileStore $store, ReplacePolicy $replace, StartSubscriptionPlanned $plan): RedirectResponse
     {
         $type = $request->cardType();
         // Looked up first: a document of another family answers 404 before anything is saved
@@ -151,7 +149,7 @@ final class CardController extends Controller
 
         return Inertia::render('cards/Card', [
             'card' => $detail,
-            ...$this->linkable($request, ['not_record' => ['type' => $detail->card->type, 'id' => $detail->card->id]]),
+            ...$this->linkableDocuments->props($request, ['not_record' => ['type' => $detail->card->type, 'id' => $detail->card->id]]),
         ]);
     }
 
@@ -186,7 +184,7 @@ final class CardController extends Controller
 
                 return $budget instanceof CardBudgetData ? $this->budgets->page($budget, 1) : null;
             },
-            ...$this->linkable($request, ['not_record' => ['type' => $description->type(), 'id' => $row->id]]),
+            ...$this->linkableDocuments->props($request, ['not_record' => ['type' => $description->type(), 'id' => $row->id]]),
         ]);
     }
 
@@ -195,7 +193,7 @@ final class CardController extends Controller
      * opens the card. With files, they wait for their document and *Upload*
      * opens with the card among the links of each.
      */
-    public function update(SaveCardRequest $request, SaveCard $save, LinkCardDocuments $links, FileStore $store): RedirectResponse
+    public function update(SaveCardRequest $request, SaveCard $save, LinkDocuments $links, FileStore $store): RedirectResponse
     {
         $type = $request->cardType();
         $card = $request->card() ?? abort(404);
@@ -307,28 +305,6 @@ final class CardController extends Controller
     private function amount(mixed $value): ?float
     {
         return is_numeric($value) ? (float) $value : null;
-    }
-
-    /**
-     * For *Link a document*: a page of the documents of the family that match
-     * `link_search` (the page in `link_page`), the next pages added below
-     * those already shown, and whether there is any document to link.
-     *
-     * @param  Request  $request  the request with the search and the page
-     * @param  array<string, mixed>  $filters  the filters that leave out the documents already linked
-     * @return array{linkable: MergeProp, linkableNext: ?int, linkableSearch: string, hasLinkable: bool}
-     */
-    private function linkable(Request $request, array $filters): array
-    {
-        $search = $request->string('link_search')->trim()->value();
-        $page = $this->documents->page([...$filters, 'search' => $search], max(1, $request->integer('link_page', 1)), self::LINKABLE_PER_PAGE);
-
-        return [
-            'linkable' => Inertia::merge($page['documents']),
-            'linkableNext' => $page['next'],
-            'linkableSearch' => $search,
-            'hasLinkable' => $this->documents->exist($filters),
-        ];
     }
 
     /**

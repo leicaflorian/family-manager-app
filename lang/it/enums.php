@@ -214,6 +214,7 @@ return [
         'confirmation' => 'Codice di Gmail',
     ],
     'owner_action_type' => [
+        'family_created' => 'Famiglia creata',
         'suspended' => 'Sospesa',
         'reactivated' => 'Riattivata',
         'deletion_scheduled' => 'Eliminazione programmata',

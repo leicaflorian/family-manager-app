@@ -119,11 +119,11 @@ const showLabel = computed(() =>
 </script>
 
 <template>
-    <Head :title="$t('Planned expenses')" />
+    <Head :title="$t('Planned expenses and incomes')" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmTitle
-            :title="$t('Planned expenses')"
+            :title="$t('Planned expenses and incomes')"
             :subtitle="
                 $t(
                     'The expenses and incomes that repeat, by due date. Home and the Agenda take their due dates from here.',

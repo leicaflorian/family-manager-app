@@ -6,6 +6,19 @@ import type { Section } from './navigation';
 import { navigationItems } from './navigation';
 
 /**
+ * What Inertia fires once the visit to another page is done.
+ *
+ * @param url - the address of the page shown
+ */
+function navigated(url: string): void {
+    document.dispatchEvent(
+        new CustomEvent('inertia:navigate', {
+            detail: { page: { url, component: 'Upload' }, type: 'visit' },
+        }),
+    );
+}
+
+/**
  * The bar with the real items of the app, on the given page.
  */
 function bar(active: Section) {
@@ -52,6 +65,30 @@ describe('FmBottomBar', () => {
             expect(links[i]).toHaveTextContent(hint);
             expect(links[i]).toHaveAttribute('href', href);
         });
+    });
+
+    it('closes Add and More when the page changes', async () => {
+        bar('home');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+        expect(screen.getByRole('dialog', { name: 'Add' })).toBeInTheDocument();
+        navigated('/upload');
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Add' }),
+            ).not.toBeInTheDocument(),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: 'More' }));
+        expect(
+            screen.getByRole('dialog', { name: 'More' }),
+        ).toBeInTheDocument();
+        navigated('/documents');
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'More' }),
+            ).not.toBeInTheDocument(),
+        );
     });
 
     it('puts To sort first in Add, with how many files wait, only when some do', async () => {

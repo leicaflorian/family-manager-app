@@ -3,7 +3,10 @@
  * The ⋯ button that opens a small menu of the less frequent actions, so that
  * a title next to it keeps its room. The entries are `FmMenuItem`. With
  * `text` or `outline` the button shows its label beside the icon, as
- * *Record payment* beside a title or *Postpone* on a late reminder.
+ * *Record payment* beside a title or *Postpone* on a late reminder. With
+ * `control` the ⋯ is a square as tall as the buttons beside it (52 px in a
+ * panel from below), as beside *Done* and *Postpone* of a reminder. The entries
+ * open above every panel, so a menu inside a panel shows.
  *
  * @group navigation
  */
@@ -25,6 +28,7 @@ const {
     plain = false,
     text = false,
     outline = false,
+    control = false,
     icon,
 } = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
@@ -39,6 +43,8 @@ const {
     text?: boolean;
     /** The label beside the icon, in a white button with a grey border, as *Postpone* of a late reminder. */
     outline?: boolean;
+    /** The ⋯ square as tall as the buttons beside it, 44 px on the page and 52 px in a panel, as beside *Done* of a reminder. */
+    control?: boolean;
 }>();
 
 defineSlots<{
@@ -60,6 +66,15 @@ defineSlots<{
                     label ?? $t('More actions')
                 }}
             </button>
+            <button
+                v-else-if="control"
+                type="button"
+                :aria-label="label ?? $t('More actions')"
+                :title="label ?? $t('More actions')"
+                class="flex size-control shrink-0 cursor-pointer items-center justify-center rounded-control border border-edge-soft bg-segment text-ink hover:bg-divider focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+            >
+                <FmIcon :icon="icon ?? Ellipsis" :size="20" />
+            </button>
             <FmSectionLink v-else-if="text" :icon="icon ?? Ellipsis">{{
                 label ?? $t('More actions')
             }}</FmSectionLink>
@@ -76,7 +91,7 @@ defineSlots<{
             <DropdownMenuContent
                 align="end"
                 :side-offset="6"
-                class="z-30 flex min-w-56 flex-col gap-0.5 rounded-xl bg-card p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                class="z-[80] flex min-w-56 flex-col gap-0.5 rounded-xl bg-card p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             >
                 <slot />
             </DropdownMenuContent>

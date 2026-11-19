@@ -13,6 +13,7 @@ enum OwnerActionType: string
 {
     use HasLabel;
 
+    case FamilyCreated = 'family_created';
     case Suspended = 'suspended';
     case Reactivated = 'reactivated';
     case DeletionScheduled = 'deletion_scheduled';

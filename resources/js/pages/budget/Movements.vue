@@ -6,15 +6,15 @@
  * the most recent, with a button to add one. With a text, an amount or a day
  * the page searches every month: the list is grouped by month, with how many
  * were found and their total instead of the month and its figures. On the
- * computer the filters are a column on the left, and a row (or a new expense
- * or income) opens in that column in their place; on the phone the filters
- * are in the panel from below and a row opens its page.
+ * computer the filters are a column on the left; on the phone they are in the
+ * panel from below. A row, and *New expense or income*, always open the page of
+ * the movement, which brings back to this list (`?from=`).
  */
 import { Head, router } from '@inertiajs/vue3';
 import { Plus, Receipt, Search, Wallet } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useListFilters } from '@/composables/useListFilters';
 import FmAmount from '@/components/fm/FmAmount.vue';
@@ -28,14 +28,13 @@ import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmMonthSwitch from '@/components/fm/FmMonthSwitch.vue';
 import FmMovementFilters from '@/components/fm/FmMovementFilters.vue';
-import FmMovementPanel from '@/components/fm/FmMovementPanel.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTitleTools from '@/components/fm/FmTitleTools.vue';
 import { useFormat } from '@/composables/useFormat';
-import type { MovementFormOptions, MovementsQuery } from '@/lib/budget';
+import type { MovementsQuery } from '@/lib/budget';
 import {
     accountChoices,
     monthName,
@@ -46,7 +45,6 @@ import {
 import { budgetTabs } from '@/lib/budgetTabs';
 import type { FilterPill } from '@/lib/filters';
 import { rangePills } from '@/lib/filters';
-import { isoDate } from '@/lib/format';
 import { expenseIcon } from '@/lib/icons';
 import { create, show } from '@/routes/budget/movements';
 
@@ -63,12 +61,8 @@ const props = defineProps<{
     filters: App.Data.MovementFiltersData;
     /** What a search found in every month, or null when the page shows the month. */
     search: App.Data.MovementSearchData | null;
-    /** The movement open beside the list on the computer. */
-    selected: App.Data.MovementData | null;
-    /** The due dates that the open movement can settle. */
-    occurrences: App.Data.OptionData[];
-    /** The choices of the forms. */
-    options: MovementFormOptions;
+    /** The accounts of the family, for the account filter. */
+    accounts: App.Data.OptionData[];
 }>();
 
 /** One row of the list, the same in the month and in a search. */
@@ -80,7 +74,7 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 const mode = useLayoutMode();
 const { euro } = useFormat();
 
-/** The search box, the visits with other filters and the column of the filters (or of the detail). */
+/** The search box, the visits with other filters and the column of the filters. */
 const {
     desktop,
     searchText,
@@ -95,17 +89,10 @@ const {
     filters: () => props.filters,
     pills: () => pills.value,
     url: (query) => movementsUrl({ month: props.summary.month, ...query }),
-    confirm: confirmLeaveDetail,
 });
-
-/** The panel of a new expense or income is open (on the computer). */
-const creating = ref(false);
 
 /** The panel of the filters, on the phone. */
 const filtersOpen = ref(false);
-
-/** The panel of the movement, closed from the column so it can ask about changes first. */
-const panel = useTemplateRef<InstanceType<typeof FmMovementPanel>>('panel');
 
 /** The account chosen in the menu of the phone, as text; empty is all of them. */
 const accountChoice = ref(props.account === null ? '' : String(props.account));
@@ -121,7 +108,7 @@ const kinds = computed(() => movementKinds(null));
 
 /** The accounts of the family, for the filters. */
 const accountOptions = computed(() =>
-    props.options.accounts.map(({ value, label }) => ({ value, label })),
+    props.accounts.map(({ value, label }) => ({ value, label })),
 );
 
 /** The accounts of the menu of the phone, «All the accounts» first. */
@@ -203,52 +190,6 @@ const showLabel = computed(() =>
           ),
 );
 
-/** Closes the panel: the movement goes away from the address, the filters stay. */
-function closePanel(): void {
-    creating.value = false;
-
-    if (props.selected) {
-        go({ movement: null });
-    }
-}
-
-/**
- * Before the list changes (a search, a filter, a pill, the month) with a
- * movement or a new one open in the column: its changes are lost, so the panel
- * asks first, and the new one closes when the person leaves.
- *
- * @returns true when the list may change, or the answer of the person
- */
-function confirmLeaveDetail(): boolean | Promise<boolean> {
-    /**
-     * Closes the new expense or income when the list may change.
-     *
-     * @param leave - whether the list may change
-     * @returns the same answer
-     */
-    const closeNew = (leave: boolean): boolean => {
-        if (leave) {
-            creating.value = false;
-        }
-
-        return leave;
-    };
-    const answer = panel.value?.confirmLeave() ?? true;
-
-    return typeof answer === 'boolean'
-        ? closeNew(answer)
-        : answer.then(closeNew);
-}
-
-/** *Back to the filters* or the ×: the panel asks first when something changed. */
-function closeDetail(): void {
-    if (panel.value) {
-        void panel.value.close();
-    } else {
-        closePanel();
-    }
-}
-
 /** The text under the money that came in. */
 const salaries = computed(() =>
     props.summary.salaries_expected === 0
@@ -272,52 +213,27 @@ const payments = computed(() =>
     ),
 );
 
-/** Whether a movement, or a new one, is open in the column. */
-const panelOpen = computed(() => props.selected !== null || creating.value);
-
-/** What the column says it shows, to screen readers. */
-const detailLabel = computed(
-    () => props.selected?.title ?? trans('New expense or income'),
+/** The list as it is now (month and filters): where a movement page leads back to. */
+const listUrl = computed(() =>
+    movementsUrl({ month: props.summary.month, ...props.filters }),
 );
 
-/** What a new movement starts from. */
-const start = computed(() =>
-    props.selected
-        ? {
-              kind: props.selected.kind,
-              planned_id:
-                  props.selected.planned_id === null
-                      ? null
-                      : String(props.selected.planned_id),
-              date: props.selected.date,
-          }
-        : { kind: props.kind ?? 'expense', planned_id: null, date: isoDate() },
-);
-
-/** Adds an expense or an income: the column on the computer, its page on the phone. */
+/** Adds an expense or an income: its own page, which leads back to this list. */
 function add(): void {
-    if (desktop.value) {
-        creating.value = true;
-    } else {
-        router.get(create.url());
-    }
+    router.get(create.url({ query: { from: listUrl.value } }));
 }
 
 /**
- * Where a row leads: on the computer the column beside the list, keeping the
- * filters; on the phone the page of the movement.
+ * Where a row leads: the page of the movement, which leads back to this list.
  *
  * @param movement - the movement of the row
  * @returns the address
  */
 function rowHref(movement: App.Data.MovementData): string {
-    return desktop.value
-        ? movementsUrl({
-              month: props.summary.month,
-              ...props.filters,
-              movement: `${movement.kind}:${movement.id}`,
-          })
-        : show.url({ kind: movement.kind, id: movement.id });
+    return show.url(
+        { kind: movement.kind, id: movement.id },
+        { query: { from: listUrl.value } },
+    );
 }
 
 /**
@@ -341,10 +257,6 @@ function subtitle(movement: App.Data.MovementData): string {
             :title="movement.title"
             :subtitle="subtitle(movement)"
             :href="rowHref(movement)"
-            :preserve-scroll="desktop"
-            :current="
-                selected?.kind === movement.kind && selected?.id === movement.id
-            "
             :arrow="false"
         >
             <template #before>
@@ -413,12 +325,7 @@ function subtitle(movement: App.Data.MovementData): string {
         </div>
 
         <div :class="layout">
-            <FmFilterAside
-                v-if="desktop"
-                :detail="panelOpen"
-                :detail-label="detailLabel"
-                @close="closeDetail"
-            >
+            <FmFilterAside v-if="desktop" :detail="false">
                 <template #filters>
                     <div class="flex flex-col gap-4">
                         <h2 class="text-amount">{{ $t('Filter') }}</h2>
@@ -429,21 +336,6 @@ function subtitle(movement: App.Data.MovementData): string {
                             @change="go"
                         />
                     </div>
-                </template>
-                <template #detail>
-                    <FmMovementPanel
-                        ref="panel"
-                        :key="
-                            selected ? `${selected.kind}:${selected.id}` : 'new'
-                        "
-                        :movement="selected"
-                        :options="options"
-                        :start="start"
-                        :occurrences="occurrences"
-                        compact
-                        embedded
-                        @close="closePanel"
-                    />
                 </template>
             </FmFilterAside>
 
