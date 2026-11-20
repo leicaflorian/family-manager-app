@@ -2,8 +2,9 @@
 /**
  * The layout of the pages of the app for who is signed in, in the three
  * layouts of `useLayoutMode()`: on the phone the bottom bar; on the tablet the
- * top bar, whose Menu button opens the sidebar in a panel from the left; on
- * the computer the sidebar and, over the page, the top bar with Back and the
+ * sidebar collapsed to its icons and the top bar, whose *Expand the menu* opens
+ * the sidebar in a panel from the left; on the computer, with room for it, the
+ * sidebar always open. On both, over the page, the top bar with Back and the
  * trail. The marked section comes from the address of the page; the trail is
  * the name of the section on the page of a section, otherwise the pieces the
  * page writes with `usePageTrail`. While a form has changes not saved, it asks
@@ -45,7 +46,6 @@ import { useLeavePage } from '@/composables/useLeavePage';
 import { useNewVersion } from '@/composables/useNewVersion';
 import { SEARCH_PAGE_FIELD } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
-import { useSidebarCollapsed } from '@/composables/useSidebarCollapsed';
 import type { TrailPiece } from '@/lib/pageTrail';
 import { createTrailState, isSectionPage, TRAIL_KEY } from '@/lib/pageTrail';
 import { search } from '@/routes';
@@ -109,27 +109,8 @@ const query = computed((): string =>
 /** The sidebar of the tablet is open over the page. */
 const menuOpen = ref(false);
 
-/** The sidebar of the computer is collapsed to its icons, as this browser remembers. */
-const sidebarCollapsed = useSidebarCollapsed();
-
-/** Whether the sidebar in the page is collapsed: always on the tablet, which opens it over the page. */
-const collapsed = computed(
-    (): boolean => mode.value === 'tablet' || sidebarCollapsed.value,
-);
-
-/**
- * Collapses or expands the sidebar: on the computer it stays so (and the browser remembers it), on the tablet
- * expanding opens it over the page and collapsing closes it.
- *
- * @param value - true to collapse it
- */
-function setCollapsed(value: boolean): void {
-    if (mode.value === 'tablet') {
-        menuOpen.value = !value;
-    } else {
-        sidebarCollapsed.value = value;
-    }
-}
+/** Whether the sidebar in the page is collapsed: on the tablet, which opens it over the page; the computer has room for it open. */
+const collapsed = computed((): boolean => mode.value === 'tablet');
 
 /** The panel *Report a problem or an idea* is open. */
 const feedbackOpen = ref(false);
@@ -237,7 +218,6 @@ useSearchShortcut(focusSearch);
             :user="user"
             :upload-count="toSort"
             @report="openFeedback"
-            @update:collapsed="setCollapsed"
         />
         <div class="flex min-w-0 grow flex-col">
             <div ref="header" class="sticky top-0 z-30">
@@ -263,7 +243,7 @@ useSearchShortcut(focusSearch);
                     :unread-notices="unreadNotices"
                     :notices="notices"
                     :query="query"
-                    @expand="setCollapsed(false)"
+                    @expand="menuOpen = true"
                     @load-notices="loadNotices"
                 />
             </div>
@@ -316,7 +296,6 @@ useSearchShortcut(focusSearch);
                         :user="user"
                         :upload-count="toSort"
                         @report="openFeedback"
-                        @update:collapsed="menuOpen = false"
                     />
                 </DialogContent>
             </DialogPortal>

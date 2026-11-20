@@ -196,25 +196,6 @@ describe('AppLayout', () => {
         );
     });
 
-    it('on the tablet collapses the open sidebar with its button', async () => {
-        screenWidth(820);
-        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Expand the menu' }),
-        );
-        const menu = await screen.findByRole('dialog', { name: 'Menu' });
-
-        await userEvent.click(
-            within(menu).getByRole('button', { name: 'Collapse the menu' }),
-        );
-
-        await waitFor(() =>
-            expect(
-                screen.queryByRole('dialog', { name: 'Menu' }),
-            ).not.toBeInTheDocument(),
-        );
-    });
-
     it('on the tablet closes the sidebar also for a visit to the page already open', async () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
@@ -244,29 +225,12 @@ describe('AppLayout', () => {
         );
     });
 
-    it('on the computer collapses the sidebar to the icons, expands it from the top bar, and remembers it', async () => {
-        const first = render(AppLayout, {
-            slots: { default: '<h1>Documents</h1>' },
-        });
-        expect(
-            screen.queryByRole('button', { name: 'Expand the menu' }),
-        ).toBeNull();
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Collapse the menu' }),
-        );
-
-        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
-        first.unmount();
-
+    it('on the computer keeps the sidebar open, with no button to collapse or expand it', () => {
+        localStorage.setItem('fm.sidebar.collapsed', '1');
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
-        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Expand the menu' }),
-        );
 
         expect(screen.getByRole('complementary')).toHaveClass('w-[260px]');
+        expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
     });
 
     it('on the computer has the sidebar and the trail, with the section of the page', () => {

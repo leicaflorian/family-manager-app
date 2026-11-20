@@ -1,28 +1,22 @@
 <script setup lang="ts">
 /**
  * The sidebar of the tablet and of the computer: the bar of its head (the same box as the top bar, white) with the
- * logo and the family, and at the right the button that collapses it; Upload (which only uploads), Home and the
+ * logo and the family; Upload (which only uploads), Home and the
  * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
  * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, with the areas under it, Documents, Family),
  * and at the bottom *My account*, which opens Settings, *Report a problem or an idea* (it emits `report`: the layout
  * opens the panel) and Log out. When the sections do not fit the window, only they scroll: the head, Upload and
  * *My account* stay in place.
- * Collapsed (`v-model:collapsed`) it is 76 px wide: the logo alone in the head, only the icons with their names on
- * hover and for screen readers, lines in place of the names of the groups, no list of the areas and the avatar alone
- * at the bottom. The button that expands it is in the top bar, before the trail (`FmTopBar`). The tablet always has
- * it collapsed, and opens it over the page.
+ * Collapsed (`collapsed`, always on the tablet) it is 76 px wide: the logo alone in the head, only the icons with
+ * their names for screen readers, lines in place of the names of the groups, no list of the areas and the avatar
+ * alone at the bottom; it opens over the page while the pointer or the focus is on it. The computer, with room for
+ * it, always has it open: there is no button to collapse it. The button that opens it in a panel is in the top bar,
+ * before the trail (`FmTopBar`).
  *
  * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
-import {
-    ChevronDown,
-    ChevronUp,
-    LogOut,
-    PanelLeftClose,
-    PanelLeftOpen,
-    Plus,
-} from '@lucide/vue';
+import { ChevronDown, ChevronUp, LogOut, Plus } from '@lucide/vue';
 import {
     DropdownMenuContent,
     DropdownMenuItem,
@@ -41,7 +35,6 @@ import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
 import { cn } from '@/lib/utils';
-import { squareButton } from '@/lib/topBar';
 import FmLogo from './FmLogo.vue';
 import type { NavigationItem, NavigationItems, Section } from './navigation';
 
@@ -79,8 +72,6 @@ const {
 const emit = defineEmits<{
     /** *Report a problem or an idea* was chosen: the layout opens its panel. */
     report: [];
-    /** The button of the head was chosen: collapse (true) or, open over the page, keep it open (false). */
-    'update:collapsed': [collapsed: boolean];
 }>();
 
 /** The pointer is over the collapsed sidebar. */
@@ -118,22 +109,6 @@ function focusLeft(event: FocusEvent): void {
     focusInside.value =
         event.relatedTarget instanceof Node &&
         aside.contains(event.relatedTarget);
-}
-
-/**
- * The button of the head: keeps open the sidebar that is open over the page, or collapses the open one, which
- * then collapses at once, even with the pointer still over it.
- */
-function headButton(): void {
-    if (floating.value) {
-        emit('update:collapsed', false);
-
-        return;
-    }
-
-    pointerOver.value = false;
-    focusInside.value = false;
-    emit('update:collapsed', true);
 }
 
 // The classes of the page are merged with the sidebar's (the layout makes it sticky, as tall as the window)
@@ -278,7 +253,7 @@ function isPage(section: Section): boolean {
     >
         <!-- The box of the top bar, across the whole sidebar, 20 px above Upload: the logo stays 20 px from the edge, open or collapsed -->
         <div
-            class="-mx-3.5 mb-3.5 flex h-topbar shrink-0 items-center gap-2.5 border-b border-edge-soft bg-card pr-4 pl-5"
+            class="-mx-3.5 mb-3.5 flex h-topbar shrink-0 items-center border-b border-edge-soft bg-card pr-4 pl-5"
         >
             <span class="flex min-w-0 grow items-center gap-2.5">
                 <FmLogo :size="36" />
@@ -294,24 +269,6 @@ function isPage(section: Section): boolean {
                     }}</span>
                 </span>
             </span>
-            <button
-                v-if="!small"
-                type="button"
-                :aria-label="
-                    floating ? $t('Expand the menu') : $t('Collapse the menu')
-                "
-                :title="
-                    floating ? $t('Expand the menu') : $t('Collapse the menu')
-                "
-                :class="squareButton"
-                class="cursor-pointer hover:bg-canvas"
-                @click="headButton"
-            >
-                <FmIcon
-                    :icon="floating ? PanelLeftOpen : PanelLeftClose"
-                    :size="22"
-                />
-            </button>
         </div>
 
         <Link

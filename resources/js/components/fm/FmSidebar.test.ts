@@ -31,25 +31,15 @@ function areaList() {
 }
 
 describe('FmSidebar', () => {
-    it('starts with the bar of the page: the logo and the family, and at the right the button that collapses it', async () => {
-        const sidebar = bar('home');
+    it('starts with the bar of the page: the logo and the family, without a button to collapse it', () => {
+        bar('home');
 
-        const collapse = screen.getByRole('button', {
-            name: 'Collapse the menu',
-        });
+        const head = screen.getByText('Fameja.app').closest('.h-topbar');
         // the same box as the top bar, white as the sidebar
-        expect(collapse.parentElement).toHaveClass(
-            'h-topbar',
-            'border-b',
-            'bg-card',
-        );
-        expect(collapse.parentElement).toHaveTextContent('Fameja.app');
-        expect(collapse.parentElement).toHaveTextContent('Bianchi family');
+        expect(head).toHaveClass('border-b', 'bg-card');
+        expect(head).toHaveTextContent('Bianchi family');
+        expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
-
-        await userEvent.click(collapse);
-
-        expect(sidebar.emitted('update:collapsed')).toEqual([[true]]);
     });
 
     it('collapsed keeps the logo and the icons, with the names for who cannot see them', async () => {
@@ -95,8 +85,8 @@ describe('FmSidebar', () => {
         expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
     });
 
-    it('collapsed opens over the page while the pointer is on it, and its button keeps it open', async () => {
-        const sidebar = render(FmSidebar, {
+    it('collapsed opens over the page while the pointer is on it', async () => {
+        render(FmSidebar, {
             props: {
                 active: 'documents',
                 path: '/documents',
@@ -118,10 +108,7 @@ describe('FmSidebar', () => {
             screen.getByRole('button', { name: 'Show the areas' }),
         ).toBeInTheDocument();
 
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Expand the menu' }),
-        );
-        expect(sidebar.emitted('update:collapsed')).toEqual([[false]]);
+        expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
 
         await userEvent.unhover(aside);
 
