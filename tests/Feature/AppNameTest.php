@@ -37,11 +37,21 @@ test('the linked phone share carries the name', function (): void {
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('name', 'Fameja.app'));
 });
 
-test('the manifest says the name', function (): void {
-    $manifest = json_decode((string) file_get_contents(public_path('manifest.webmanifest')), true, flags: JSON_THROW_ON_ERROR);
+test('the manifests say the name', function (string $file): void {
+    $manifest = json_decode((string) file_get_contents(public_path($file)), true, flags: JSON_THROW_ON_ERROR);
 
     expect($manifest['name'])->toBe(config('app.name'))
         ->and($manifest['short_name'])->toBe(config('app.name'));
+})->with(['manifest.webmanifest', 'manifest-ios.webmanifest']);
+
+test('the manifest of iPhone and iPad keeps the whole site in the app and starts where the icon was added', function (): void {
+    $manifest = json_decode((string) file_get_contents(public_path('manifest-ios.webmanifest')), true, flags: JSON_THROW_ON_ERROR);
+
+    // Without a manifest the scope of the icon is the folder of its page, and outside it Safari shows its bars;
+    // without a start address the icon opens the page it was added from, with the secret of the phone after the #
+    expect($manifest['scope'])->toBe('/')
+        ->and($manifest['display'])->toBe('standalone')
+        ->and($manifest)->not->toHaveKey('start_url');
 });
 
 test('the offline page says the name', function (): void {
@@ -75,6 +85,7 @@ test('nothing says Family Manager, except the scanner agent', function (): void 
     $files = [
         ...array_map(fn (SplFileInfo $file): string => $file->getPathname(), $paths),
         public_path('manifest.webmanifest'),
+        public_path('manifest-ios.webmanifest'),
         public_path('offline.html'),
         base_path('Dockerfile'),
         base_path('composer.json'),

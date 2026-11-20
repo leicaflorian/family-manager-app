@@ -18,16 +18,18 @@ export type InstallPromptEvent = Event & {
 export const installPrompt = shallowRef<InstallPromptEvent | null>(null);
 
 /**
- * Adds the manifest of the app, once. Not on an iPhone or an iPad: there the link would take the page to a
- * different storage space than Safari's, and the phone linked from the browser would find itself unlinked from the
- * icon (analysis, point 2). Apple has its own headers, in the Blade head.
+ * Adds the manifest of the app, once. An iPhone or an iPad gets a manifest of its own: the scope of the whole site,
+ * so that Safari does not show its bars when the app opened from the icon leaves the folder of the page the icon was
+ * added from (an icon added from /dashboard saw /login and /balance as other sites), and no start address, so that
+ * the icon opens the page it was added from, with the secret of the linked phone after the `#`. The icon keeps a
+ * storage of its own anyway, which is why the secret travels in the address.
  */
 export function addManifestLink(): void {
-    if (isIos() || document.head.querySelector('link[rel="manifest"]')) return;
+    if (document.head.querySelector('link[rel="manifest"]')) return;
 
     const link = document.createElement('link');
     link.rel = 'manifest';
-    link.href = '/manifest.webmanifest';
+    link.href = isIos() ? '/manifest-ios.webmanifest' : '/manifest.webmanifest';
     document.head.appendChild(link);
 }
 
