@@ -115,6 +115,19 @@ readonly name: string,
 readonly country: string,
 readonly logo: string | null,
 };
+export type BankTransactionData = {
+readonly id: number,
+readonly booked_on: string | null,
+readonly value_on: string | null,
+readonly text: string,
+readonly counterparty: string | null,
+readonly amount: number,
+readonly currency: string,
+readonly account: string | null,
+readonly pending: boolean,
+readonly ignored: boolean,
+readonly recurring: boolean,
+};
 export type CalendarSettingsData = {
 readonly on: boolean,
 readonly url: string | null,

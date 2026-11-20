@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Settings;
 use App\Actions\Banks\CompleteBankConnection;
 use App\Actions\Banks\ConnectBank;
 use App\Actions\Banks\DisconnectBank;
+use App\Actions\Banks\RefreshBanks;
 use App\Data\BankConnectionData;
 use App\Data\BankInstitutionData;
 use App\Exceptions\Banks\BankFeedFailed;
@@ -16,6 +17,7 @@ use App\Models\BankConnection;
 use App\Models\FinancialAccount;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankInstitutions;
+use App\Support\Banks\BankVisitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -103,9 +105,11 @@ final class BankController extends Controller
 
         $labels = $connection->accounts()->whereNotNull('bank_account_uid')->orderBy('id')->get()
             ->map(static fn (FinancialAccount $account): string => $account->last_four_digits === null ? $account->name : $account->name.' ·· '.$account->last_four_digits);
-        $message = $labels->count() === 1
-            ? __(':account connected.', ['account' => $labels->first()])
-            : __(':count accounts connected.', ['count' => $labels->count()]);
+        $message = match ($labels->count()) {
+            0 => __('The bank is connected, but it gave no account we can read.'),
+            1 => __(':account connected.', ['account' => $labels->first()]),
+            default => __(':count accounts connected.', ['count' => $labels->count()]),
+        };
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return to_route('banks.index');
@@ -125,6 +129,22 @@ final class BankController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Bank disconnected.')]);
 
         return to_route('banks.index');
+    }
+
+    /**
+     * *Update* on a bank: reads it now, as the person who is looking, and says how many movements are new.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family
+     */
+    public function sync(Request $request, BankConnection $connection, RefreshBanks $refresh): RedirectResponse
+    {
+        $this->ensureOn();
+        Gate::authorize('update', $connection);
+
+        $new = $refresh->handle([$connection], new BankVisitor((string) $request->ip(), (string) $request->userAgent()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => RefreshBanks::message($new)]);
+
+        return back(fallback: route('banks.index'));
     }
 
     /**

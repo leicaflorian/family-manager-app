@@ -2001,3 +2001,46 @@ export const bankInstitutions: App.Data.BankInstitutionData[] = [
     { name: 'Intesa Sanpaolo', country: 'IT', logo: null },
     { name: 'UniCredit', country: 'IT', logo: null },
 ];
+
+/** The transactions of the bank still to sort, as *From the bank* receives them: a pending one, a booked one, one in dollars. */
+export const bankTransactions: App.Data.BankTransactionData[] = [
+    {
+        id: 3,
+        booked_on: null,
+        value_on: '2026-11-06',
+        text: 'PAGAMENTO POS Q8 STAZIONE SERVIZIO VIA EMILIA BOLOGNA',
+        counterparty: null,
+        amount: -40,
+        currency: 'EUR',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: true,
+        ignored: false,
+        recurring: false,
+    },
+    {
+        id: 2,
+        booked_on: '2026-11-05',
+        value_on: '2026-11-05',
+        text: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+        counterparty: 'EDISON ENERGIA SPA',
+        amount: -72.4,
+        currency: 'EUR',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: false,
+        ignored: false,
+        recurring: false,
+    },
+    {
+        id: 1,
+        booked_on: '2026-11-04',
+        value_on: '2026-11-04',
+        text: 'CARD PAYMENT NEW YORK HOTEL',
+        counterparty: null,
+        amount: -120,
+        currency: 'USD',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: false,
+        ignored: false,
+        recurring: false,
+    },
+];

@@ -22,6 +22,7 @@ import FmMonthSwitch from '@/components/fm/FmMonthSwitch.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { comparisonComment, deadlineUrls, longMonth } from '@/lib/budget';
+import { useBankFeed } from '@/composables/useBankFeed';
 import { budgetTabs } from '@/lib/budgetTabs';
 import { cn } from '@/lib/utils';
 import { comparison as comparisonRoute } from '@/routes/budget';
@@ -33,6 +34,7 @@ const props = defineProps<{
 
 const desktop = useComputerLayout();
 const { euro } = useFormat();
+const bankFeed = useBankFeed();
 
 /** What the spending is next to the plan, for example «185,10 € less». */
 const difference = computed(() =>
@@ -84,7 +86,10 @@ const tile = cn(
 
     <div class="flex max-w-[1120px] flex-col gap-4">
         <FmTitle :title="$t('Budget')" />
-        <FmTabs :tabs="budgetTabs('comparison')" :label="$t('Budget')" />
+        <FmTabs
+            :tabs="budgetTabs('comparison', bankFeed)"
+            :label="$t('Budget')"
+        />
 
         <FmMonthSwitch :month="comparison.month" @change="go" />
         <p v-if="daysLeft" class="m-0 text-body-sm text-ink-soft">

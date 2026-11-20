@@ -16,6 +16,7 @@ use App\Models\Person;
 use App\Models\User;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankInstitution;
+use App\Support\Banks\BankSession;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
@@ -136,6 +137,24 @@ test('the callback creates the connection, links the account with the same last 
         ->and(FinancialAccount::query()->count())->toBe(1)
         ->and(session('bank_connect'))->toBeNull();
     Queue::assertPushed(SyncBank::class, 1);
+});
+
+test('a bank that shares no account says so, not that zero accounts are connected', function (): void {
+    Queue::fake();
+    // The trial bank, except that the session it gives has no account
+    $fake = new FakeBankFeed;
+    $feed = Mockery::mock(BankFeed::class);
+    $feed->shouldReceive('isActive')->andReturn(true);
+    $feed->shouldReceive('institutions')->andReturnUsing(fn (string $country): array => $fake->institutions($country));
+    $feed->shouldReceive('start')->andReturnUsing(fn (BankInstitution $bank, string $state, string $url, CarbonImmutable $until): string => $fake->start($bank, $state, $url, $until));
+    $feed->shouldReceive('complete')->andReturn(new BankSession('fake-session', CarbonImmutable::now()->addDays(180), 'Banca di prova', []));
+    app()->instance(BankFeed::class, $feed);
+    $state = bankConnectStart();
+
+    $this->get(route('banks.callback', ['code' => 'fake', 'state' => $state]))
+        ->assertRedirect(route('banks.index'))
+        ->assertInertiaFlash('toast.type', 'success')
+        ->assertInertiaFlash('toast.message', 'The bank is connected, but it gave no account we can read.');
 });
 
 test('an account with no match is created with the name of the bank', function (): void {

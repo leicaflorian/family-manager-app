@@ -316,4 +316,60 @@ describe('Settings, Linked banks', () => {
             expect.objectContaining({ only: ['institutions'] }),
         );
     });
+
+    it('updates a bank that is connected, with its own address', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation(() => undefined);
+        renderPage(Banks, props());
+
+        // Only the bank that reads has it: the other has to be connected again
+        expect(screen.getAllByRole('button', { name: 'Update' })).toHaveLength(
+            1,
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/settings/banks/1/sync',
+            {},
+            expect.anything(),
+        );
+    });
+
+    it('gives a member no Update', () => {
+        renderPage(Banks, props({ can_change: false }));
+
+        expect(
+            screen.queryByRole('button', { name: 'Update' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('does not send the same request twice while one is running', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onStart?.({} as never);
+            });
+        renderPage(Banks, props());
+
+        await userEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+        // While it runs, no button of the page starts another visit
+        for (const name of ['Update', 'Reconnect', 'Disconnect']) {
+            for (const button of screen.getAllByRole('button', { name })) {
+                expect(button).toBeDisabled();
+            }
+        }
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Reconnect' }),
+        );
+        expect(post).toHaveBeenCalledTimes(1);
+
+        post.mock.calls[0]![2]!.onFinish?.({} as never);
+        await vi.waitFor(() =>
+            expect(
+                screen.getByRole('button', { name: 'Update' }),
+            ).toBeEnabled(),
+        );
+    });
 });

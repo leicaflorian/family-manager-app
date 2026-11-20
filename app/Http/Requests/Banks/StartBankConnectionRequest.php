@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Banks;
 
+use App\Exceptions\Banks\BankFeedFailed;
 use App\Models\BankConnection;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankInstitutions;
@@ -35,7 +36,17 @@ final class StartBankConnectionRequest extends FormRequest
     {
         return [
             'institution' => ['required', 'string', function (string $attribute, mixed $value, callable $fail): void {
-                if (! is_string($value) || ! resolve(BankInstitutions::class)->find($value) instanceof BankInstitution) {
+                try {
+                    $banks = resolve(BankInstitutions::class)->all();
+                } catch (BankFeedFailed $failure) {
+                    // Not the person's mistake: the provider does not answer
+                    report($failure);
+                    $fail(__('We cannot load the list of banks right now. Try again in a moment.'));
+
+                    return;
+                }
+
+                if (! is_string($value) || collect($banks)->doesntContain(static fn (BankInstitution $bank): bool => $bank->name === $value)) {
                     $fail(__('Choose a bank from the list.'));
                 }
             }],

@@ -42,6 +42,7 @@ import {
     movementsUrl,
     weekdayShort,
 } from '@/lib/budget';
+import { useBankFeed } from '@/composables/useBankFeed';
 import { budgetTabs } from '@/lib/budgetTabs';
 import type { FilterPill } from '@/lib/filters';
 import { rangePills } from '@/lib/filters';
@@ -73,6 +74,7 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 /** The layout: the magnifier and the bell beside the title are only on the phone. */
 const mode = useLayoutMode();
 const { euro } = useFormat();
+const bankFeed = useBankFeed();
 
 /** The search box, the visits with other filters and the column of the filters. */
 const {
@@ -310,7 +312,10 @@ function subtitle(movement: App.Data.MovementData): string {
                 }}</FmButton>
             </template>
         </FmTitle>
-        <FmTabs :tabs="budgetTabs('movements')" :label="$t('Budget')" />
+        <FmTabs
+            :tabs="budgetTabs('movements', bankFeed)"
+            :label="$t('Budget')"
+        />
 
         <div class="flex w-full max-w-105 gap-2.5">
             <form

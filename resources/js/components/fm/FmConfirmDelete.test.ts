@@ -30,6 +30,23 @@ describe('FmConfirmDelete', () => {
         expect(destroy).toHaveBeenCalledWith('/documents/5', expect.anything());
     });
 
+    it('deletes once when the button is tapped twice before the answer', async () => {
+        const destroy = vi
+            .spyOn(router, 'delete')
+            .mockImplementation((_url, options) => {
+                options?.onStart?.({} as never);
+            });
+        renderPage(FmConfirmDelete, props);
+
+        const button = await screen.findByRole('button', {
+            name: 'Delete the document',
+        });
+        await fireEvent.click(button);
+        await fireEvent.click(button);
+
+        expect(destroy).toHaveBeenCalledTimes(1);
+    });
+
     it('closed, it shows nothing', () => {
         renderPage(FmConfirmDelete, { ...props, open: false });
 

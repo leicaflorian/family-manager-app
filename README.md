@@ -100,6 +100,10 @@ Mailgun calls `POST mail/mailgun` (see `AGENTS.md`). Without Mailgun, on a local
 
 `mail-inbox:try` hands a call signed like Mailgun's straight to the action in the same process, with the signing key of `.env` or, if there is none, a key made for that call. Outside local it refuses.
 
+## Link to the bank
+
+The Bianchis have the link to the bank on, with a trial bank («Banca di prova») on the *Conto BPER* and its transactions already saved (`database/seeders/bank/transactions.json`). To try it in the app put `BANK_FEED_PROVIDER=fake` in `.env`: *Settings → Linked banks* connects the trial bank in one step, *Budget → From the bank* lists its transactions and *Update* reads them again. With the line empty the link is off for everyone and none of these pages exists. The fake never calls a bank and never runs in production.
+
 ## Commands
 
 The full list of commands, with the code rules, is in `AGENTS.md`. The most used:

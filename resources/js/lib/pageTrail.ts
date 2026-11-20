@@ -47,6 +47,7 @@ export const SECTION_PAGES: readonly string[] = [
     'budget/Movements',
     'budget/Comparison',
     'budget/Planned',
+    'budget/BankTransactions',
     'family/People',
     'family/Organizations',
     'settings/Settings',

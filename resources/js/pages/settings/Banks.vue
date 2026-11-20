@@ -5,7 +5,8 @@
  * administrator opens *Connect a bank*, the panel with the search and the list of banks (asked to the server only
  * when the panel opens); a member sees the list without buttons. While a bank waits for its first read the page
  * asks for the state again by itself. Choosing a bank, and *Reconnect* on a bank that ended, send the person to the
- * bank's own website (the server answers with the address); *Disconnect* asks first. *Update* comes with its route.
+ * bank's own website (the server answers with the address); *Disconnect* asks first. *Update* reads a bank that
+ * works now and the server says how many movements are new. While a visit runs no button starts another.
  */
 import { Head, router } from '@inertiajs/vue3';
 import {
@@ -37,7 +38,7 @@ import { listNames } from '@/lib/names';
 import { formatDate } from '@/lib/format';
 import { plainText } from '@/lib/text';
 import { settings as settingsIndex } from '@/routes';
-import { destroy, store } from '@/routes/banks';
+import { destroy, store, sync } from '@/routes/banks';
 
 const { connections, can_change, sync_hours, consent_days, institutions } =
     defineProps<{
@@ -60,6 +61,19 @@ const open = ref(false);
 const query = ref('');
 /** The bank the person is asked to disconnect, or null while no question is open. */
 const disconnecting = ref<App.Data.BankConnectionData | null>(null);
+/** A visit of a button is running: the buttons wait, so a double tap does not send it twice. */
+const busy = ref(false);
+
+/** The options of every visit of the page: they keep the scroll and tell when one is running. */
+const visit = {
+    preserveScroll: true,
+    onStart: (): void => {
+        busy.value = true;
+    },
+    onFinish: (): void => {
+        busy.value = false;
+    },
+};
 
 /** The hours of the reads written as a sentence: «7, 13 and 19». */
 const times = computed((): string =>
@@ -103,7 +117,24 @@ watch(open, (isOpen) => {
  * @param institution - the name of the bank
  */
 function connect(institution: string): void {
-    router.post(store().url, { institution }, { preserveScroll: true });
+    if (busy.value) {
+        return;
+    }
+
+    router.post(store().url, { institution }, visit);
+}
+
+/**
+ * Reads a bank now: the server says how many movements are new.
+ *
+ * @param connection - the bank to read
+ */
+function refresh(connection: App.Data.BankConnectionData): void {
+    if (busy.value) {
+        return;
+    }
+
+    router.post(sync(connection.id).url, {}, visit);
 }
 
 /** Closes the question about disconnecting, with or without disconnecting. */
@@ -261,13 +292,23 @@ usePageTrail(() => [
                     <FmButton
                         v-if="connection.status !== 'active'"
                         :icon="RefreshCw"
+                        :disabled="busy"
                         @click="connect(connection.institution)"
                         >{{ $t('Reconnect') }}</FmButton
+                    >
+                    <FmButton
+                        v-if="connection.status !== 'needs_reconnect'"
+                        variant="outline"
+                        :icon="RefreshCw"
+                        :disabled="busy"
+                        @click="refresh(connection)"
+                        >{{ $t('Update') }}</FmButton
                     >
                     <FmButton
                         variant="text"
                         :icon="Unplug"
                         class="text-overdue"
+                        :disabled="busy"
                         @click="disconnecting = connection"
                         >{{ $t('Disconnect') }}</FmButton
                     >
@@ -332,6 +373,7 @@ usePageTrail(() => [
                         <li v-for="bank in found" :key="bank.name">
                             <button
                                 type="button"
+                                :disabled="busy"
                                 class="flex w-full items-center gap-3 border-0 bg-transparent px-3.5 py-3 text-left text-inherit"
                                 @click="connect(bank.name)"
                             >

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Actions\Banks\StoreBankEntries;
 use App\Actions\Families\CreateFamily;
 use App\Actions\Reminders\SyncReminders;
 use App\Data\Reading\Extraction;
+use App\Enums\BankConnectionStatus;
 use App\Enums\DocumentStatus;
 use App\Enums\EnrollmentType;
 use App\Enums\ExceptionType;
@@ -25,6 +27,7 @@ use App\Enums\ReminderStatus;
 use App\Enums\Role;
 use App\Enums\SubscriptionType;
 use App\Enums\UtilityType;
+use App\Models\BankConnection;
 use App\Models\Belonging;
 use App\Models\Document;
 use App\Models\DocumentCategory;
@@ -51,6 +54,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
+use App\Services\Banks\FakeBankFeed;
 use App\Services\FileStore;
 use App\Services\Reading\DocumentProposal;
 use App\Services\Reading\ReadingContext;
@@ -200,10 +204,13 @@ final class BianchiFamilySeeder extends Seeder
                 $this->createFilesToSort();
                 $this->mails->handle($this->organizations);
                 $this->createBudget();
+                $this->createBank();
             });
 
             // The Bianchis have already done the Welcome: they go straight to the Home.
             $marco->family->update(['welcomed_at' => now()]);
+            // The link to the bank is on for them: with `BANK_FEED_PROVIDER=fake` they can try it
+            $marco->family->forceFill(['bank_feed_enabled' => true])->save();
         }));
     }
 
@@ -463,6 +470,31 @@ final class BianchiFamilySeeder extends Seeder
             ->update(['planned_expense_id' => $this->plannedExpenses['Luce']->id]);
         $this->createPayments();
         $this->createMovements();
+    }
+
+    /**
+     * The trial bank of the link to the bank (`provider` `fake`) on the *Conto BPER*, with the transactions of
+     * `database/seeders/bank/transactions.json` already saved as a first read would leave them.
+     */
+    private function createBank(): void
+    {
+        $connection = BankConnection::query()->create([
+            'provider' => 'fake',
+            'institution_name' => 'Banca di prova',
+            'institution_country' => 'IT',
+            'valid_until' => now()->addDays(180),
+            'status' => BankConnectionStatus::Active,
+            'last_synced_at' => now(),
+        ]);
+        $connection->writeSession('fake-session', CarbonImmutable::now()->addDays(180));
+
+        $account = FinancialAccount::query()->where('name', 'Conto BPER')->sole();
+        // Not mass assignable: only the link to the bank sets them
+        $account->forceFill(['bank_connection_id' => $connection->id, 'bank_account_uid' => 'fake-account'])->save();
+
+        $today = CarbonImmutable::now('Europe/Rome')->startOfDay();
+        $entries = (new FakeBankFeed)->transactions('fake-session', 'fake-account', $today->subDays(config()->integer('bank_feed.first_days')), $today);
+        resolve(StoreBankEntries::class)->handle($connection, $account, $entries);
     }
 
     /**
