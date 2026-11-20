@@ -52,7 +52,7 @@ final class BankMatchPreview
 
         return [
             'count' => $found->count(),
-            'rows' => array_values(array_reverse($found->take(self::ROWS)->map(BankTransactionData::fromTransaction(...))->all())),
+            'rows' => array_values(array_reverse($found->take(self::ROWS)->map(static fn (BankTransaction $row): BankTransactionData => BankTransactionData::fromTransaction($row))->all())),
         ];
     }
 }

@@ -65,13 +65,7 @@ final class BankMatch
         }
 
         // The engine must not give up on a long text of the characters the rule is made of
-        foreach (self::stressTexts($pattern) as $stress) {
-            if (self::run($pattern, $stress, true) === null) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all(self::stressTexts($pattern), fn (string $stress): bool => self::run($pattern, $stress, true) !== null);
     }
 
     /**

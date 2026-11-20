@@ -55,7 +55,7 @@ final class BankMatchController extends Controller
             ->limit(self::EXAMPLES)
             ->get();
 
-        return response()->json(['rows' => $rows->map(BankTransactionData::fromTransaction(...))->all()]);
+        return response()->json(['rows' => $rows->map(static fn (BankTransaction $row): BankTransactionData => BankTransactionData::fromTransaction($row))->all()]);
     }
 
     /**

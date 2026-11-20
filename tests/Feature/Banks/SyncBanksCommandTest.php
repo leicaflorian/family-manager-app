@@ -77,7 +77,7 @@ test('the job is unique per connection and waits long enough for a first read', 
     $job = new SyncBank(7, 1);
 
     expect($job->uniqueId())->toBe('7')
-        ->and((new ReflectionClass($job))->getAttributes(Timeout::class)[0]->newInstance()->timeout)->toBe(80);
+        ->and(new ReflectionClass($job)->getAttributes(Timeout::class)[0]->newInstance()->timeout)->toBe(80);
 });
 
 test('the job does nothing when the family, the feed or the connection changed since it was queued', function (): void {

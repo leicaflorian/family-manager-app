@@ -30,7 +30,11 @@ uses(RefreshDatabase::class);
  * The columns the person never fills in: the key, the family, the status (it
  * has a default) and the system fields of Laravel.
  */
-const NOT_ASKED = ['id', 'family_id', 'status', 'created_at', 'updated_at', 'created_by', 'updated_by'];
+const NOT_ASKED = [
+    'id', 'family_id', 'status', 'created_at', 'updated_at', 'created_by', 'updated_by',
+    // Written by the bank connection, never by the person.
+    'bank_account_key', 'bank_account_uid', 'bank_connection_id',
+];
 
 /**
  * The fields the canvas marks as required although their column is nullable:

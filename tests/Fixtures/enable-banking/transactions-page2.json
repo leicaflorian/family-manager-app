@@ -1,6 +1,27 @@
 {
-  "transactions": [
-    {"entry_reference": null, "transaction_id": "tx-2", "transaction_amount": {"currency": "EUR", "amount": "1850.00"}, "credit_debit_indicator": "CRDT", "status": "BOOK", "booking_date": "2026-11-10", "value_date": "2026-11-10", "creditor": {"name": "Maria Bianchi"}, "debtor": {"name": "ACME SRL"}, "remittance_information": ["STIPENDIO NOVEMBRE"]},
-    {"entry_reference": "ref-3", "transaction_id": null, "transaction_amount": {"currency": "EUR", "amount": "12.50"}, "credit_debit_indicator": "DBIT", "status": "PDNG", "booking_date": null, "value_date": null, "creditor": {"name": "EDISON ENERGIA SPA"}, "remittance_information": ["EDISON ENERGIA SPA"]}
-  ]
+    "transactions": [
+        {
+            "entry_reference": null,
+            "transaction_id": "tx-2",
+            "transaction_amount": { "currency": "EUR", "amount": "1850.00" },
+            "credit_debit_indicator": "CRDT",
+            "status": "BOOK",
+            "booking_date": "2026-11-10",
+            "value_date": "2026-11-10",
+            "creditor": { "name": "Maria Bianchi" },
+            "debtor": { "name": "ACME SRL" },
+            "remittance_information": ["STIPENDIO NOVEMBRE"]
+        },
+        {
+            "entry_reference": "ref-3",
+            "transaction_id": null,
+            "transaction_amount": { "currency": "EUR", "amount": "12.50" },
+            "credit_debit_indicator": "DBIT",
+            "status": "PDNG",
+            "booking_date": null,
+            "value_date": null,
+            "creditor": { "name": "EDISON ENERGIA SPA" },
+            "remittance_information": ["EDISON ENERGIA SPA"]
+        }
+    ]
 }

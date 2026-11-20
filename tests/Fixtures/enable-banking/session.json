@@ -1,10 +1,29 @@
 {
-  "session_id": "5f3c1b3a-3a1e-4c7e-8d52-0d1b2f6a9e10",
-  "accounts": [
-    {"account_id": {"iban": "IT60X0542811101000000124821"}, "uid": "a1b2c3d4-0000-4000-8000-000000000001", "identification_hash": "hash-conto-corrente", "identification_hashes": ["hash-conto-corrente"], "name": "Conto Arancio", "product": "Conto corrente", "currency": "EUR", "usage": "PRIV", "cash_account_type": "CACC"},
-    {"account_id": {"other": {"identification": "1234"}}, "uid": "a1b2c3d4-0000-4000-8000-000000000002", "identification_hash": "hash-carta", "name": null, "product": "Carta prepagata", "currency": "EUR", "usage": "PRIV", "cash_account_type": "CARD"}
-  ],
-  "aspsp": {"name": "Intesa Sanpaolo", "country": "IT"},
-  "psu_type": "personal",
-  "access": {"valid_until": "2027-05-19T10:00:00.000000+00:00"}
+    "session_id": "5f3c1b3a-3a1e-4c7e-8d52-0d1b2f6a9e10",
+    "accounts": [
+        {
+            "account_id": { "iban": "IT60X0542811101000000124821" },
+            "uid": "a1b2c3d4-0000-4000-8000-000000000001",
+            "identification_hash": "hash-conto-corrente",
+            "identification_hashes": ["hash-conto-corrente"],
+            "name": "Conto Arancio",
+            "product": "Conto corrente",
+            "currency": "EUR",
+            "usage": "PRIV",
+            "cash_account_type": "CACC"
+        },
+        {
+            "account_id": { "other": { "identification": "1234" } },
+            "uid": "a1b2c3d4-0000-4000-8000-000000000002",
+            "identification_hash": "hash-carta",
+            "name": null,
+            "product": "Carta prepagata",
+            "currency": "EUR",
+            "usage": "PRIV",
+            "cash_account_type": "CARD"
+        }
+    ],
+    "aspsp": { "name": "Intesa Sanpaolo", "country": "IT" },
+    "psu_type": "personal",
+    "access": { "valid_until": "2027-05-19T10:00:00.000000+00:00" }
 }
