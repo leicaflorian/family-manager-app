@@ -5,6 +5,7 @@ import {
     formatDateTime,
     formatShortDateTime,
     formatEuro,
+    formatMoney,
     formatDayTitle,
     formatLongDate,
     formatSize,
@@ -18,6 +19,14 @@ describe('formatEuro', () => {
         expect(formatEuro(84.2)).toBe('84,20 €');
         expect(formatEuro(1234.5)).toBe('1.234,50 €');
         expect(formatEuro(0)).toBe('0,00 €');
+    });
+});
+
+describe('formatMoney', () => {
+    it('writes another currency the Italian way, with its code, and euros with the sign', () => {
+        expect(formatMoney(-1234.5, 'USD')).toBe('-1.234,50 USD');
+        expect(formatMoney(12, 'CHF')).toBe('12,00 CHF');
+        expect(formatMoney(1234.5, 'EUR')).toBe('1.234,50 €');
     });
 });
 

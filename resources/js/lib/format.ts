@@ -18,12 +18,19 @@ const euro = new Intl.NumberFormat('it-IT', {
  * @returns the amount as text, for example `1.234,50 €`
  */
 export function formatEuro(amount: number): string {
-    // it-IT does not group thousands below 10,000: the grouping is forced.
-    // Non-breaking spaces become normal spaces, so the texts can be compared.
-    return euro
-        .format(amount)
-        .replace(/^(-?\d)(\d{3}),/, '$1.$2,')
-        .replace(/\s/g, ' ');
+    return italianGrouping(euro.format(amount));
+}
+
+/**
+ * Fixes a number written by it-IT: it does not group thousands below 10,000,
+ * so the grouping is forced, and non-breaking spaces become normal spaces, so
+ * the texts can be compared.
+ *
+ * @param text - the number as Intl wrote it
+ * @returns the number with the thousands grouped and plain spaces
+ */
+function italianGrouping(text: string): string {
+    return text.replace(/^(-?\d)(\d{3}),/, '$1.$2,').replace(/\s/g, ' ');
 }
 
 /**
@@ -39,14 +46,12 @@ export function formatMoney(amount: number, currency: string): string {
         return formatEuro(amount);
     }
 
-    return new Intl.NumberFormat('it-IT', {
+    const number = new Intl.NumberFormat('it-IT', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-    })
-        .format(amount)
-        .replace(/^(-?\d)(\d{3}),/, '$1.$2,')
-        .replace(/\s/g, ' ')
-        .concat(` ${currency}`);
+    }).format(amount);
+
+    return `${italianGrouping(number)} ${currency}`;
 }
 
 /** Writes a size with one decimal at most, with the comma. */
