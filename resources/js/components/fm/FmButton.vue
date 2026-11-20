@@ -10,6 +10,8 @@
  * - The text is a verb, informal (*Save*, *Choose a file*).
  * - Size: 44 px; 52 px in the panels from below. `compact` is the pair of buttons
  *   under a row of the Agenda: on the phone they share the line, on the computer 40 px.
+ *   `rowAction` is a button under a row of *From the bank* on the phone: its own
+ *   width, 44 px, the body-sm text and 10 px corners.
  *
  * @group basics
  */
@@ -44,6 +46,7 @@ const {
     plain = false,
     muted = false,
     compact = false,
+    rowAction = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red), neutral (white with a grey edge). */
     variant?: ButtonVariant;
@@ -80,6 +83,11 @@ const {
      * the sides; on the computer its own width, 40 px with 14 px at the sides.
      */
     compact?: boolean;
+    /**
+     * A button under a row of *From the bank* on the phone: its own width, as
+     * tall as a control, in the body-sm text, 10 px at the sides and 10 px corners.
+     */
+    rowAction?: boolean;
 }>();
 
 defineEmits<{
@@ -116,6 +124,7 @@ const classes = computed((): string =>
         styles[variant],
         compact &&
             'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label lg:h-10 lg:flex-none lg:px-3.5',
+        rowAction && 'h-control gap-1.5 rounded-md px-2.5 text-body-sm',
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
         label &&

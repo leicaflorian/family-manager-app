@@ -418,7 +418,14 @@ function add(): void {
                         dayOf(row)
                     }}</span>
                     <div :class="wide ? 'contents' : 'flex items-start gap-3'">
-                        <span class="flex min-w-0 grow flex-col gap-1">
+                        <span
+                            :class="
+                                cn(
+                                    'flex min-w-0 grow flex-col',
+                                    wide ? 'gap-1' : 'gap-0.5',
+                                )
+                            "
+                        >
                             <span class="text-body-sm wrap-anywhere text-ink">{{
                                 row.text
                             }}</span>
@@ -546,7 +553,7 @@ function add(): void {
                             <template v-if="sortable(row)">
                                 <FmButton
                                     variant="neutral"
-                                    compact
+                                    row-action
                                     :href="createUrl(row)"
                                     >{{
                                         row.amount > 0
@@ -556,7 +563,7 @@ function add(): void {
                                 >
                                 <FmButton
                                     variant="neutral"
-                                    compact
+                                    row-action
                                     @click="openAssign(row)"
                                     >{{ assignLabel(row) }}</FmButton
                                 >

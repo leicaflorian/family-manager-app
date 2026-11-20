@@ -353,6 +353,21 @@ describe('Budget, From the bank, sorting', () => {
         ).toBeInTheDocument();
     });
 
+    it('draws the actions of a row on the phone at their own width, in the small text', () => {
+        renderPage(BankTransactions, props());
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        for (const action of [
+            within(row).getByRole('link', { name: 'Create the expense' }),
+            within(row).getByRole('button', {
+                name: 'It belongs to a planned expense',
+            }),
+        ]) {
+            expect(action).toHaveClass('text-body-sm', 'px-2.5', 'rounded-md');
+            expect(action).not.toHaveClass('flex-1', 'text-label');
+        }
+    });
+
     it('offers Create the income and the planned income to a credit', () => {
         renderPage(BankTransactions, props({ rows: [credit] }));
         const row = screen.getByText(/ROSSI GIULIA/).closest('li')!;
