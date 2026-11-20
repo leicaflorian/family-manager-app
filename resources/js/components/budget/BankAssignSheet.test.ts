@@ -2,7 +2,7 @@ import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { bankTransactions } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, settle } from '@/test/page';
 import BankAssignSheet from './BankAssignSheet.vue';
 
 const transaction = bankTransactions[1]!;
@@ -65,6 +65,7 @@ function open(
 describe('BankAssignSheet', () => {
     it('shows the transaction and the planned expenses with their due date and amount', async () => {
         open();
+        await settle();
 
         const dialog = screen.getByRole('dialog', {
             name: 'It belongs to a planned expense',
@@ -100,6 +101,7 @@ describe('BankAssignSheet', () => {
 
     it('narrows the list by name or organization while typing', async () => {
         open();
+        await settle();
 
         await userEvent.type(
             screen.getByRole('searchbox', { name: 'Search a planned expense' }),
@@ -130,6 +132,7 @@ describe('BankAssignSheet', () => {
 
     it('gives the planned expense chosen when Mark as paid is pressed', async () => {
         const view = open();
+        await settle();
 
         await userEvent.click(screen.getByRole('radio', { name: /Gas/ }));
         await userEvent.click(
@@ -144,6 +147,7 @@ describe('BankAssignSheet', () => {
             transaction: { ...transaction, amount: 35 },
             choices: [{ ...choices[0]!, kind: 'income' }],
         });
+        await settle();
 
         expect(
             screen.getByRole('dialog', {
@@ -157,6 +161,7 @@ describe('BankAssignSheet', () => {
 
     it('waits for the list while the page asks for it', async () => {
         open({ choices: undefined });
+        await settle();
 
         expect(screen.getByText('Loading…')).toBeInTheDocument();
         expect(
@@ -166,6 +171,7 @@ describe('BankAssignSheet', () => {
 
     it('shows the message of the server under the list', async () => {
         open({ error: 'This planned expense has no due dates to pay.' });
+        await settle();
 
         expect(screen.getByRole('alert')).toHaveTextContent(
             'This planned expense has no due dates to pay.',
@@ -174,6 +180,7 @@ describe('BankAssignSheet', () => {
 
     it('closes with Cancel', async () => {
         const view = open();
+        await settle();
 
         await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -182,6 +189,7 @@ describe('BankAssignSheet', () => {
 
     it('has the visible label of the board over a box with its own placeholder', async () => {
         open();
+        await settle();
 
         expect(
             screen.getByText('Search a planned expense', { selector: 'label' }),
