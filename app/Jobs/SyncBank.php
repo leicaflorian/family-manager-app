@@ -22,7 +22,8 @@ use Illuminate\Queue\Attributes\UniqueFor;
  */
 #[Tries(1)]
 #[UniqueFor(900)]
-#[Timeout(300)]
+// Shorter than `retry_after` (90 s) of the database queue, or a second worker would take the running job
+#[Timeout(80)]
 final class SyncBank implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
