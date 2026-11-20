@@ -42,8 +42,8 @@ final readonly class EnableBankingFeed implements BankFeed
      */
     public function isActive(): bool
     {
-        $id = (string) Config::get('bank_feed.enable_banking.app_id', '');
-        $path = (string) Config::get('bank_feed.enable_banking.key_path', '');
+        $id = EnableBankingToken::setting('app_id');
+        $path = EnableBankingToken::setting('key_path');
 
         return $id !== '' && $path !== '' && is_readable($path);
     }
@@ -67,10 +67,10 @@ final readonly class EnableBankingFeed implements BankFeed
             }
 
             $banks[] = new BankInstitution(
-                (string) $bank['name'],
-                (string) ($bank['country'] ?? $country),
+                $this->text($bank, 'name'),
+                $this->str($bank['country'] ?? null, $country),
                 is_string($bank['logo'] ?? null) ? $bank['logo'] : null,
-                (int) floor((int) ($bank['maximum_consent_validity'] ?? 0) / 86400),
+                (int) floor($this->num($bank['maximum_consent_validity'] ?? null) / 86400),
             );
         }
 
@@ -115,16 +115,16 @@ final readonly class EnableBankingFeed implements BankFeed
             $accounts[] = new BankAccount(
                 $this->text($account, 'uid'),
                 $this->text($account, 'identification_hash'),
-                (string) ($account['name'] ?? $account['product'] ?? ''),
+                $this->str($account['name'] ?? null, $this->str($account['product'] ?? null, '')),
                 is_string($iban) && strlen($iban) >= 4 ? substr($iban, -4) : null,
-                (string) ($account['currency'] ?? 'EUR'),
+                $this->str($account['currency'] ?? null, 'EUR'),
             );
         }
 
         return new BankSession(
             $this->text($body, 'session_id'),
-            CarbonImmutable::parse($this->text((array) ($body['access'] ?? []), 'valid_until')),
-            (string) Arr::get($body, 'aspsp.name', ''),
+            $this->parse($this->text((array) ($body['access'] ?? []), 'valid_until'), false),
+            $this->str(Arr::get($body, 'aspsp.name'), ''),
             $accounts,
         );
     }
@@ -207,12 +207,12 @@ final readonly class EnableBankingFeed implements BankFeed
             return $json;
         }
 
-        $error = (string) $response->json('error', '');
-        $message = (string) $response->json('message', 'The bank provider answered with an error.');
+        $error = $this->str($response->json('error'), '');
+        $message = $this->str($response->json('message'), 'The bank provider answered with an error.');
 
         throw match (true) {
             $response->status() === 429 || $error === 'ASPSP_RATE_LIMIT_EXCEEDED' => new BankLimitReached($message),
-            $response->status() === 401 || $response->status() === 403 || in_array($error, self::CONSENT_ENDED, true) => new BankConsentEnded($message),
+            in_array($error, self::CONSENT_ENDED, true) => new BankConsentEnded($message),
             default => new BankFeedFailed($message),
         };
     }
@@ -231,17 +231,17 @@ final readonly class EnableBankingFeed implements BankFeed
         $id = is_string($id) && $id !== '' ? $id : ($transaction['transaction_id'] ?? null);
 
         $lines = array_values(array_filter(
-            array_map(trim(...), array_map(strval(...), Arr::wrap($transaction['remittance_information'] ?? []))),
+            array_map(fn (mixed $line): string => trim($this->str($line, '')), Arr::wrap($transaction['remittance_information'] ?? [])),
             fn (string $line): bool => $line !== '' && $line !== $counterparty,
         ));
-        $amount = abs((float) Arr::get($transaction, 'transaction_amount.amount', 0));
+        $amount = abs($this->num(Arr::get($transaction, 'transaction_amount.amount')));
 
         return new BankEntry(
             is_string($id) && $id !== '' ? $id : null,
             $this->date($transaction['booking_date'] ?? null),
             $this->date($transaction['value_date'] ?? null),
             $debit ? -$amount : $amount,
-            (string) Arr::get($transaction, 'transaction_amount.currency', 'EUR'),
+            $this->str(Arr::get($transaction, 'transaction_amount.currency'), 'EUR'),
             implode(' ', array_filter([$counterparty, ...$lines])),
             $counterparty,
             ($transaction['status'] ?? null) === 'BOOK',
@@ -253,7 +253,26 @@ final readonly class EnableBankingFeed implements BankFeed
      */
     private function date(mixed $value): ?CarbonImmutable
     {
-        return is_string($value) && $value !== '' ? CarbonImmutable::parse($value, 'Europe/Rome')->startOfDay() : null;
+        return is_string($value) && $value !== '' ? $this->parse($value, true) : null;
+    }
+
+    /**
+     * Reads a date of the provider.
+     *
+     * @param  string  $value  the text of the date
+     * @param  bool  $day  true to keep only the day (Europe/Rome)
+     *
+     * @throws BankFeedFailed when it is not a date
+     */
+    private function parse(string $value, bool $day): CarbonImmutable
+    {
+        try {
+            $date = CarbonImmutable::parse($value, 'Europe/Rome');
+        } catch (\Throwable $e) {
+            throw new BankFeedFailed('The bank provider answered with a date that cannot be read.', 0, $e);
+        }
+
+        return $day ? $date->startOfDay() : $date;
     }
 
     /**
@@ -272,5 +291,21 @@ final readonly class EnableBankingFeed implements BankFeed
         }
 
         return $value;
+    }
+
+    /**
+     * A text of the provider, or the default when it is not text.
+     */
+    private function str(mixed $value, string $default): string
+    {
+        return is_string($value) && $value !== '' ? $value : $default;
+    }
+
+    /**
+     * A number of the provider (a number or a numeric text), 0 when it is neither.
+     */
+    private function num(mixed $value): float
+    {
+        return is_numeric($value) ? (float) $value : 0.0;
     }
 }

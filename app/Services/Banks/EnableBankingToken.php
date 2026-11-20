@@ -44,6 +44,18 @@ final class EnableBankingToken
     }
 
     /**
+     * A text setting of Enable Banking, empty when it is not set.
+     *
+     * @param  string  $key  the key under `bank_feed.enable_banking`
+     */
+    public static function setting(string $key): string
+    {
+        $value = Config::get('bank_feed.enable_banking.'.$key);
+
+        return is_string($value) ? $value : '';
+    }
+
+    /**
      * Builds and signs a token.
      *
      * @param  CarbonImmutable  $now  the issue time
@@ -52,14 +64,14 @@ final class EnableBankingToken
      */
     private function sign(CarbonImmutable $now): string
     {
-        $path = (string) Config::get('bank_feed.enable_banking.key_path', '');
+        $path = self::setting('key_path');
         $pem = $path !== '' && is_readable($path) ? file_get_contents($path) : false;
 
         if ($pem === false) {
             throw new BankFeedFailed('The key of the bank provider cannot be read.');
         }
 
-        $header = $this->encode(['typ' => 'JWT', 'alg' => 'RS256', 'kid' => (string) Config::get('bank_feed.enable_banking.app_id', '')]);
+        $header = $this->encode(['typ' => 'JWT', 'alg' => 'RS256', 'kid' => self::setting('app_id')]);
         $body = $this->encode([
             'iss' => 'enablebanking.com',
             'aud' => 'api.enablebanking.com',

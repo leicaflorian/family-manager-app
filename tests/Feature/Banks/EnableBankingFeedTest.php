@@ -9,6 +9,7 @@ use App\Services\Banks\EnableBankingFeed;
 use App\Support\Banks\BankInstitution;
 use App\Support\Banks\BankVisitor;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
@@ -27,6 +28,7 @@ function bankFeedNew(): EnableBankingFeed
     openssl_pkey_export($key, $private);
     $path = tempnam(sys_get_temp_dir(), 'eb-key');
     file_put_contents($path, $private);
+    $GLOBALS['bankFeedKeyFiles'][] = $path;
     config(['bank_feed.enable_banking.url' => 'https://api.test', 'bank_feed.enable_banking.app_id' => 'app-1', 'bank_feed.enable_banking.key_path' => $path]);
     Cache::flush();
 
@@ -34,6 +36,13 @@ function bankFeedNew(): EnableBankingFeed
 }
 
 beforeEach(fn () => Http::preventStrayRequests());
+
+afterEach(function (): void {
+    foreach ($GLOBALS['bankFeedKeyFiles'] ?? [] as $path) {
+        File::delete($path);
+    }
+    $GLOBALS['bankFeedKeyFiles'] = [];
+});
 
 it('lists the personal banks of Italy', function (): void {
     Http::fake(['api.test/aspsps*' => Http::response(bankFeedFixture('aspsps'))]);
@@ -152,11 +161,52 @@ it('treats an expired session as a consent ended', function (string $fixture, in
     bankFeedNew()->transactions('s', 'acc-1', CarbonImmutable::parse('2026-10-01'), CarbonImmutable::parse('2026-11-20'));
 })->with([['error-expired', 401], ['error-closed', 422]])->throws(BankConsentEnded::class);
 
-it('treats a forbidden answer as a consent ended', function (): void {
-    Http::fake(['api.test/*' => Http::response(['message' => 'no', 'code' => 403], 403)]);
+it('treats a 401 or 403 without a session code as a plain failure', function (array $body, int $status): void {
+    Http::fake(['api.test/*' => Http::response($body, $status)]);
+
+    try {
+        bankFeedNew()->transactions('s', 'acc-1', CarbonImmutable::parse('2026-10-01'), CarbonImmutable::parse('2026-11-20'));
+    } catch (BankFeedFailed $e) {
+        expect($e)->not->toBeInstanceOf(BankConsentEnded::class)->not->toBeInstanceOf(BankLimitReached::class);
+
+        return;
+    }
+
+    $this->fail('No exception');
+})->with([
+    'bad key' => [['message' => 'Invalid JWT', 'code' => 401, 'error' => 'UNAUTHORIZED_ACCESS'], 401],
+    'no code' => [['message' => 'no', 'code' => 403], 403],
+]);
+
+it('treats a connection error as a failure', function (): void {
+    Http::fake(['api.test/*' => fn () => throw new ConnectionException('timeout')]);
+
+    bankFeedNew()->institutions('IT');
+})->throws(BankFeedFailed::class);
+
+it('gives no provider id to an entry with neither reference nor id', function (): void {
+    Http::fake(['api.test/accounts/acc-1/transactions*' => Http::response(['transactions' => [
+        ['entry_reference' => null, 'transaction_id' => null, 'transaction_amount' => ['currency' => 'EUR', 'amount' => '5.00'], 'credit_debit_indicator' => 'DBIT', 'status' => 'BOOK', 'booking_date' => '2026-11-01'],
+    ]])]);
+
+    [$entry] = bankFeedNew()->transactions('s', 'acc-1', CarbonImmutable::parse('2026-10-01'), CarbonImmutable::parse('2026-11-20'));
+
+    expect($entry->providerId)->toBeNull();
+});
+
+it('fails on a bank without a name', function (): void {
+    Http::fake(['api.test/aspsps*' => Http::response(['aspsps' => [['country' => 'IT', 'psu_types' => ['personal']]]])]);
+
+    bankFeedNew()->institutions('IT');
+})->throws(BankFeedFailed::class);
+
+it('fails on a date that cannot be read', function (): void {
+    Http::fake(['api.test/accounts/acc-1/transactions*' => Http::response(['transactions' => [
+        ['transaction_id' => 'x', 'transaction_amount' => ['currency' => 'EUR', 'amount' => '5.00'], 'credit_debit_indicator' => 'DBIT', 'status' => 'BOOK', 'booking_date' => 'not a date'],
+    ]])]);
 
     bankFeedNew()->transactions('s', 'acc-1', CarbonImmutable::parse('2026-10-01'), CarbonImmutable::parse('2026-11-20'));
-})->throws(BankConsentEnded::class);
+})->throws(BankFeedFailed::class);
 
 it('treats a rate limit as a limit reached', function (int $status): void {
     Http::fake(['api.test/*' => Http::response(bankFeedFixture('error-rate-limit'), $status)]);
