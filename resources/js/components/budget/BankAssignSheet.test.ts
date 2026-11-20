@@ -82,10 +82,10 @@ describe('BankAssignSheet', () => {
             within(dialog).getByRole('radio', { name: /Luce/ }),
         ).toBeChecked();
         expect(
-            within(dialog).getByText('Edison Energia · Due on 05/11/2026'),
+            within(dialog).getByText('Edison Energia · due on 05/11/2026'),
         ).toBeInTheDocument();
         expect(
-            within(dialog).getByText('Enel Energia · Due on 30/10/2026, late'),
+            within(dialog).getByText('Enel Energia · due on 30/10/2026, late'),
         ).toBeInTheDocument();
         expect(
             within(dialog).getByText('Due on 15/11/2026'),
@@ -193,7 +193,9 @@ describe('BankAssignSheet', () => {
 
         expect(
             screen.getByText('Search a planned expense', { selector: 'label' }),
-        ).toBeInTheDocument();
+        ).toHaveClass('text-row');
+        // The name of a planned item in the list is 16 px semibold, as in the board
+        expect(screen.getByText('Luce')).toHaveClass('text-body-strong');
         expect(
             screen.getByRole('searchbox', { name: 'Search a planned expense' }),
         ).toHaveAttribute('placeholder', 'Search by name or organization');

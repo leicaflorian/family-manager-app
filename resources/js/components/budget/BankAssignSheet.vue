@@ -92,16 +92,29 @@ const selected = computed(
 );
 
 /**
- * The line under the name: who it is paid to and the due date, late or not.
+ * The line under the name: who it is paid to and the due date, late or not. The
+ * due date has its own words when it starts the line, so it starts with a capital.
  *
  * @param choice - the planned item
  */
 function detail(choice: App.Data.BankPlannedChoiceData): string {
-    const due = choice.late
-        ? trans('Due on :date, late', { date: date(choice.due_on) })
-        : trans('Due on :date', { date: date(choice.due_on) });
+    const values = { date: date(choice.due_on) };
 
-    return [choice.organization, due].filter(Boolean).join(' · ');
+    if (choice.organization) {
+        return choice.late
+            ? trans(':organization · due on :date, late', {
+                  ...values,
+                  organization: choice.organization,
+              })
+            : trans(':organization · due on :date', {
+                  ...values,
+                  organization: choice.organization,
+              });
+    }
+
+    return choice.late
+        ? trans('Due on :date, late', values)
+        : trans('Due on :date', values);
 }
 
 /** Gives the planned item chosen. */
@@ -146,7 +159,7 @@ function confirm(): void {
         </div>
 
         <div class="flex flex-col gap-1.5">
-            <label :for="searchId" class="text-label text-ink">{{
+            <label :for="searchId" class="text-row text-ink">{{
                 searchLabel
             }}</label>
             <FmSearchField
@@ -205,7 +218,9 @@ function confirm(): void {
                     "
                 />
                 <span class="flex min-w-0 grow flex-col gap-0.5">
-                    <span class="text-label text-ink">{{ choice.title }}</span>
+                    <span class="text-body-strong text-ink">{{
+                        choice.title
+                    }}</span>
                     <span class="text-meta text-ink-soft">{{
                         detail(choice)
                     }}</span>
