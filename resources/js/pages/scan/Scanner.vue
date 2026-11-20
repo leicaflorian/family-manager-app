@@ -1,9 +1,12 @@
 <script setup lang="ts">
 /**
- * *Scan the sheets*: the scanner of the house, driven from the computer through its agent. It has no board of its own:
- * it takes the layout of `Scansione-pc` (the sides in a column on the left, the side in large in the middle with
- * *Rotate* and *Improve*, the choices on the right). Put the sheets in the feeder and press *Scan*: they all go
- * through, front and back, and the blank sides are put aside by themselves. A side that went in crooked is
+ * *Scan the sheets*: the scanner of the house, driven from the computer through its agent, as the boards `Scanner-pc`
+ * and the other `Scanner-…` draw it: under the title a bar of what is done *On all the pages*, the sides in a column
+ * on the left (with the ones put aside at its foot), the side in large in the middle with *Rotate*, *Remove* and the
+ * reference lines, and on the right the choices, in two tabs once there are sides (*This page* with *Improve*, or the
+ * cards of a composed page, and *Scanner*), then the *Import options*, and at the bottom *Add sheets* and *Upload*,
+ * which asks first. A window too narrow is asked to widen (board `Scanner`). Put the sheets in the feeder and press
+ * *Scan*: they all go through, front and back, and the blank sides are put aside by themselves. A side that went in crooked is
  * straightened by a few degrees; with *On a single page* the cards are cut and put at their real size on one A4.
  * *Upload* makes one PDF of the sides that stay, in the order of the strip (or one per side), sends it to *To sort*
  * as scanned and goes back there. The sides stay, and can be uploaded, also when the agent closes. A phone, a tablet
@@ -13,27 +16,34 @@
 import { Head, router } from '@inertiajs/vue3';
 import {
     CircleCheck,
+    Copy,
+    FileMinus,
     FileText,
+    Grid3x3,
     Hourglass,
     IdCard,
+    Maximize2,
     PowerOff,
     RotateCw,
     ScanLine,
-    Trash2,
-    Undo2,
     Upload,
     Wand,
 } from '@lucide/vue';
 import { transChoice, trans } from 'laravel-vue-i18n';
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
 import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
+import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import type { StripPage } from '@/components/fm/FmPageStrip.vue';
 import FmPageStrip from '@/components/fm/FmPageStrip.vue';
+import FmTooltip from '@/components/fm/FmTooltip.vue';
 import ScanStatus from '@/components/scan/ScanStatus.vue';
 import ScannerAgent from '@/components/scan/ScannerAgent.vue';
+import ScannerAsideSides from '@/components/scan/ScannerAsideSides.vue';
 import ScannerCardCrop from '@/components/scan/ScannerCardCrop.vue';
+import ScannerSettings from '@/components/scan/ScannerSettings.vue';
 import ScannerSheetParts from '@/components/scan/ScannerSheetParts.vue';
 import ScannerSideTools from '@/components/scan/ScannerSideTools.vue';
 import type { Side } from '@/composables/useScanner';
@@ -42,8 +52,7 @@ import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { desktopSystem } from '@/lib/devices';
 import { formatSize } from '@/lib/format';
-import type { Colour, Phase, ScannerState, Source } from '@/lib/scan/agent';
-import { colourName, sidesText, sourceName } from '@/lib/scan/choices';
+import type { Phase, ScannerState } from '@/lib/scan/agent';
 import { MAX_UPLOAD_BYTES } from '@/lib/scan/pages';
 import { cn } from '@/lib/utils';
 import { toSort } from '@/routes';
@@ -60,13 +69,15 @@ const system = desktopSystem();
 const origin = window.location.origin;
 const name = ref('');
 const grid = ref(false);
+/** The tab open among the choices, once there are sides. */
+const tab = ref<'page' | 'scanner'>('page');
+/** *Upload* asks first. */
+const asking = ref(false);
 /** The card of a composed page whose cut is being corrected: the page and the place of the card on it. */
 const cropping = ref<{ sheet: string; index: number } | null>(null);
 
 /** The size of the box of the side in large, in pixels. */
-const frame = computed(() =>
-    wide.value ? { width: 420, height: 580 } : { width: 250, height: 340 },
-);
+const FRAME = { width: 420, height: 580 } as const;
 
 /** How the scanner is, as the line above *Scan* says it. */
 const STATES: Record<ScannerState, () => string> = {
@@ -156,21 +167,61 @@ const scanLabel = computed((): string => {
 
     return fromGlass.value ? trans('Add a sheet') : trans('Add sheets');
 });
-const fitText = computed((): string | undefined =>
-    scanner.fit.value ? sidesText(scanner.fit.value) : undefined,
+/** The window is too narrow for the page: it asks to be widened, unless the scanner cannot be used from here at all. */
+const narrow = computed(
+    (): boolean => !wide.value && agentPhase.value !== 'unsupported',
 );
-const colourOptions = computed(() =>
-    scanner.colours.value.map((value: Colour) => ({
-        label: colourName(value),
-        value,
-    })),
+/** The choices of the scanner are there (an agent that knows them). */
+const choices = computed(
+    (): boolean => connected.value && scanner.choosing.value,
 );
-const sourceOptions = computed(() =>
-    scanner.sources.value.map((value: Source) => ({
-        label: sourceName(value),
-        value,
-    })),
+/** The bar *On all the pages*: when there is more than one page, or something to do to all of them. */
+const allBar = computed(
+    (): boolean =>
+        scanner.kept.value.length > 1 ||
+        scanner.loose.value.length > 1 ||
+        scanner.crooked.value.length > 0,
 );
+/** The line of how the scanner is: not when it is ready and there are sides already, as the board draws it. */
+const showState = computed(
+    (): boolean =>
+        connected.value &&
+        (!hasSides.value ||
+            scanner.scanning.value ||
+            scanner.scannerState.value !== 'ready'),
+);
+/** The question of *Upload*: «Shall I upload the 3 sides?». */
+const question = computed((): string =>
+    transChoice(
+        '{1} Shall I upload the side?|[2,*] Shall I upload the :count sides?',
+        scanner.kept.value.length,
+        { count: String(scanner.kept.value.length) },
+    ),
+);
+/** Under the question: what they become, and what stays out. */
+const details = computed((): string => {
+    const sides = scanner.kept.value.length;
+    const aside = scanner.aside.value.length;
+
+    return [
+        scanner.split.value
+            ? trans('They become :count PDFs in «To sort», one per side.', {
+                  count: String(sides),
+              })
+            : transChoice(
+                  '{1} It becomes a PDF in «To sort».|[2,*] They become a PDF in «To sort».',
+                  sides,
+              ),
+        aside > 0 &&
+            transChoice(
+                '{1} The side put aside stays out.|[2,*] The :count sides put aside stay out.',
+                aside,
+                { count: String(aside) },
+            ),
+    ]
+        .filter(Boolean)
+        .join(' ');
+});
 const outdated = computed((): boolean => scanner.outdated(release?.version));
 /** The state line takes the icon of how the scanner is. */
 const stateIcon = computed(() => {
@@ -255,7 +306,7 @@ function previewStyle(side: Side): Record<string, string> {
         side.rotation +
         (side.parts ? 0 : side.improvement.angle - side.applied.angle);
     const lying = side.rotation === 90 || side.rotation === 270;
-    const { width, height } = frame.value;
+    const { width, height } = FRAME;
 
     return {
         transform: `rotate(${turn}deg)`,
@@ -268,6 +319,12 @@ function previewStyle(side: Side): Record<string, string> {
 function retry(): void {
     router.reload({ only: ['agent_release'] });
     void scanner.connect(true);
+}
+
+/** *Upload* in the question: closes it and sends. */
+function confirmUpload(): void {
+    asking.value = false;
+    void upload();
 }
 
 /** *Upload*: sends the PDF, then goes back to *To sort*. */
@@ -283,77 +340,90 @@ async function upload(): Promise<void> {
 <template>
     <Head :title="$t('Scan the sheets')" />
 
-    <header
-        :class="
-            cn(
-                'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center',
-                wide
-                    ? 'h-16 border-b border-edge-soft bg-card px-8'
-                    : 'h-[52px] px-5 pt-3',
-            )
-        "
-    >
-        <FmButton
-            class="justify-self-start"
-            variant="text"
-            data-discard-changes
-            :href="toSort().url"
-            >{{ $t('Cancel') }}</FmButton
-        >
-        <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
-            {{ $t('Scan the sheets') }}
-        </h1>
-        <span class="justify-self-end text-body-sm text-ink-soft">{{
-            count
-        }}</span>
-    </header>
-
-    <ScannerAgent
-        v-if="agentPhase"
-        :phase="agentPhase"
-        :system="system"
-        :origin="origin"
-        :release="release"
-        :blocked="scanner.blocked.value"
-        :has-sides="hasSides"
-        @retry="retry"
-    />
-
-    <div
-        v-if="connected || hasSides"
-        :class="
-            cn(
-                'flex min-h-0 grow',
-                wide ? 'flex-row items-stretch' : 'flex-col',
-            )
-        "
-    >
-        <FmPageStrip
-            v-if="scanner.kept.value.length > 0"
-            :class="wide ? 'w-[150px] shrink-0 py-6' : 'justify-center'"
-            :orientation="wide ? 'column' : 'row'"
-            :pages="stripPages"
-            :selected="scanner.chosenId.value"
-            @select="scanner.choose"
-            @move="scanner.move"
-            @add="scanner.startScan"
-        />
-
-        <main
+    <!-- As tall as the window, as the board: the choices scroll on their own and Upload stays in sight -->
+    <div class="flex h-dvh flex-col overflow-hidden">
+        <header
             :class="
                 cn(
-                    'flex min-w-0 grow flex-col items-center gap-3.5',
-                    wide ? 'justify-center p-8' : 'px-5 pt-3 pb-4',
+                    'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center',
+                    wide
+                        ? 'h-16 border-b border-edge-soft bg-card px-8'
+                        : 'h-[52px] px-5 pt-3',
                 )
             "
         >
-            <div
-                v-if="scanner.kept.value.length > 0"
-                class="flex flex-wrap justify-center gap-2"
+            <FmButton
+                class="justify-self-start"
+                variant="text"
+                data-discard-changes
+                :href="toSort().url"
+                >{{ $t('Cancel') }}</FmButton
             >
+            <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
+                {{ $t('Scan the sheets') }}
+            </h1>
+            <span class="justify-self-end text-body-sm text-ink-soft">{{
+                narrow ? '' : count
+            }}</span>
+        </header>
+
+        <div v-if="narrow" class="flex grow items-center justify-center p-6">
+            <div
+                role="status"
+                :aria-label="$t('Widen the window')"
+                class="flex max-w-[300px] flex-col items-center gap-2.5 text-center"
+            >
+                <span
+                    class="flex size-16 items-center justify-center rounded-card bg-action-soft text-action"
+                >
+                    <FmIcon :icon="Maximize2" :size="32" />
+                </span>
+                <span class="text-stat text-ink">{{
+                    $t('Widen the window')
+                }}</span>
+                <span class="text-body-sm text-ink-soft">{{
+                    $t(
+                        'To use the scanner more room is needed: widen the browser window or make it full screen. The page arranges itself.',
+                    )
+                }}</span>
+            </div>
+        </div>
+
+        <template v-else>
+            <div
+                v-if="agentPhase"
+                :class="
+                    cn(
+                        'overflow-y-auto',
+                        hasSides ? 'max-h-[40%] shrink-0' : 'min-h-0 grow',
+                    )
+                "
+            >
+                <ScannerAgent
+                    :phase="agentPhase"
+                    :system="system"
+                    :origin="origin"
+                    :release="release"
+                    :blocked="scanner.blocked.value"
+                    :has-sides="hasSides"
+                    @retry="retry"
+                />
+            </div>
+
+            <div
+                v-if="(connected || hasSides) && allBar"
+                role="toolbar"
+                :aria-label="$t('All the pages')"
+                class="flex shrink-0 items-center gap-2 border-b border-edge-soft bg-card px-8 py-2.5"
+            >
+                <span class="mr-1 text-label text-ink-soft">{{
+                    $t('On all the pages')
+                }}</span>
+                <span class="grow" />
                 <FmButton
                     v-if="scanner.loose.value.length > 1"
                     variant="outline"
+                    compact
                     :icon="IdCard"
                     :disabled="scanner.sending.value"
                     @click="scanner.gatherLoose"
@@ -366,6 +436,7 @@ async function upload(): Promise<void> {
                 <FmButton
                     v-if="scanner.crooked.value.length > 0"
                     variant="outline"
+                    compact
                     :icon="Wand"
                     :disabled="scanner.sending.value"
                     @click="scanner.straightenAll"
@@ -373,474 +444,545 @@ async function upload(): Promise<void> {
                 >
                 <FmButton
                     variant="outline"
+                    compact
                     :icon="RotateCw"
                     :disabled="scanner.sending.value"
                     @click="scanner.rotateAll"
                     >{{ $t('Rotate all') }}</FmButton
                 >
-            </div>
-
-            <div
-                v-if="!scanner.chosen.value"
-                :class="
-                    cn(
-                        'flex shrink-0 flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-edge p-6 text-center',
-                        wide ? 'h-[580px] w-[420px]' : 'h-[340px] w-[250px]',
-                    )
-                "
-            >
-                <FmIcon :icon="FileText" :size="36" class="text-ink-soft" />
-                <span class="text-amount">{{ $t('No pages') }}</span>
-                <span class="text-body-sm text-ink-soft">{{
+                <FmButton
+                    v-if="scanner.chosen.value && scanner.kept.value.length > 1"
+                    variant="outline"
+                    compact
+                    :icon="Copy"
+                    aria-describedby="copy-improve-hint"
+                    :disabled="scanner.sending.value"
+                    @click="scanner.improveAll(scanner.chosen.value.id)"
+                    >{{ $t('Do the same to all the pages') }}</FmButton
+                >
+                <span id="copy-improve-hint" class="sr-only">{{
                     $t(
-                        'Put the sheets in the feeder of the scanner and press Start scanning: they all go through, front and back.',
+                        'Copies the light and the ink and Black and white of the chosen page to all the other pages; Straighten stays with each page',
                     )
                 }}</span>
             </div>
 
-            <template v-else>
+            <div
+                v-if="connected || hasSides"
+                class="flex min-h-0 grow flex-row items-stretch"
+            >
                 <div
-                    data-preview
-                    :class="
-                        cn(
-                            'relative flex shrink-0 items-center justify-center',
-                            wide
-                                ? 'h-[580px] w-[420px]'
-                                : 'h-[340px] w-[250px]',
-                        )
+                    v-if="
+                        scanner.kept.value.length > 0 ||
+                        scanner.aside.value.length > 0
                     "
+                    class="flex w-[150px] shrink-0 flex-col items-center gap-3 border-r border-edge-soft py-6"
                 >
-                    <div class="relative">
-                        <img
-                            v-if="scanner.chosen.value.url"
-                            :src="scanner.chosen.value.url"
-                            :alt="
-                                $t('Page :number', {
-                                    number: String(
-                                        scanner.kept.value.indexOf(
-                                            scanner.chosen.value,
-                                        ) + 1,
-                                    ),
-                                })
-                            "
-                            :style="previewStyle(scanner.chosen.value)"
-                            class="block rounded-card border border-edge-soft bg-card object-contain shadow-float"
+                    <FmPageStrip
+                        v-if="scanner.kept.value.length > 0"
+                        orientation="column"
+                        :pages="stripPages"
+                        :selected="scanner.chosenId.value"
+                        @select="scanner.choose"
+                        @move="scanner.move"
+                        @add="scanner.startScan"
+                    />
+                    <ScannerAsideSides
+                        v-if="scanner.aside.value.length > 0"
+                        class="mt-auto"
+                        :sides="scanner.aside.value"
+                        :disabled="scanner.sending.value"
+                        @put-back="scanner.putBack"
+                    />
+                </div>
+
+                <main
+                    class="flex min-w-0 grow flex-col items-center justify-center-safe gap-3.5 overflow-y-auto p-8"
+                >
+                    <div
+                        v-if="!scanner.chosen.value"
+                        class="flex h-[580px] w-[420px] shrink-0 flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-edge p-6 text-center"
+                    >
+                        <FmIcon
+                            :icon="FileText"
+                            :size="36"
+                            class="text-ink-soft"
                         />
+                        <span class="text-stat">{{ $t('No pages') }}</span>
+                        <span class="text-body-sm text-ink-soft">{{
+                            $t(
+                                'Put the sheets in the feeder of the scanner and press Start scanning: they all go through, front and back.',
+                            )
+                        }}</span>
+                    </div>
+
+                    <template v-else>
                         <div
-                            v-if="grid && !scanner.chosen.value.parts"
-                            aria-hidden="true"
-                            data-grid
-                            class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--color-action)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-action)_1px,transparent_1px)] bg-[size:10%_10%] opacity-40"
-                        />
-                        <template v-if="scanner.chosen.value.parts">
-                            <button
-                                v-for="(spot, index) in scanner.spotsOf(
-                                    scanner.chosen.value,
-                                )"
-                                :key="index"
-                                type="button"
-                                :aria-label="
-                                    $t('Correct the cut of side :number', {
-                                        number: String(index + 1),
-                                    })
-                                "
-                                class="absolute cursor-pointer rounded-tag border-2 border-dashed border-action/60 bg-transparent hover:bg-action/10"
-                                :style="spot"
-                                :disabled="scanner.sending.value"
-                                @click="
-                                    cropping = {
-                                        sheet: scanner.chosen.value.id,
-                                        index,
-                                    }
-                                "
+                            data-preview
+                            class="relative flex h-[580px] w-[420px] shrink-0 items-center justify-center"
+                        >
+                            <div class="relative">
+                                <img
+                                    v-if="scanner.chosen.value.url"
+                                    :src="scanner.chosen.value.url"
+                                    :alt="
+                                        $t('Page :number', {
+                                            number: String(
+                                                scanner.kept.value.indexOf(
+                                                    scanner.chosen.value,
+                                                ) + 1,
+                                            ),
+                                        })
+                                    "
+                                    :style="previewStyle(scanner.chosen.value)"
+                                    class="block rounded-card border border-edge-soft bg-card object-contain shadow-float"
+                                />
+                                <div
+                                    v-if="grid && !scanner.chosen.value.parts"
+                                    aria-hidden="true"
+                                    data-grid
+                                    class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--color-action)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-action)_1px,transparent_1px)] bg-[size:10%_10%] opacity-40"
+                                />
+                                <template v-if="scanner.chosen.value.parts">
+                                    <button
+                                        v-for="(spot, index) in scanner.spotsOf(
+                                            scanner.chosen.value,
+                                        )"
+                                        :key="index"
+                                        type="button"
+                                        :aria-label="
+                                            $t(
+                                                'Correct the cut of side :number',
+                                                {
+                                                    number: String(index + 1),
+                                                },
+                                            )
+                                        "
+                                        class="absolute cursor-pointer rounded-tag border-2 border-dashed border-action/60 bg-transparent hover:bg-action/10"
+                                        :style="spot"
+                                        :disabled="scanner.sending.value"
+                                        @click="
+                                            cropping = {
+                                                sheet: scanner.chosen.value.id,
+                                                index,
+                                            }
+                                        "
+                                    >
+                                        <span
+                                            class="absolute top-1 left-1 rounded-tag bg-action px-1.5 text-badge text-on-action"
+                                            >{{ index + 1 }}</span
+                                        >
+                                    </button>
+                                </template>
+                            </div>
+                            <span
+                                v-if="scanner.chosen.value.working"
+                                class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-tag bg-camera-bg px-2.5 py-1 text-caption whitespace-nowrap text-on-action"
+                                >{{ $t('Making the page…') }}</span
                             >
-                                <span
-                                    class="absolute top-1 left-1 rounded-tag bg-action px-1.5 text-badge text-on-action"
-                                    >{{ index + 1 }}</span
+                        </div>
+
+                        <div class="flex gap-2.5">
+                            <FmButton
+                                v-if="!scanner.chosen.value.parts"
+                                variant="outline"
+                                :icon="RotateCw"
+                                :disabled="scanner.sending.value"
+                                @click="scanner.rotate(scanner.chosen.value.id)"
+                                >{{ $t('Rotate') }}</FmButton
+                            >
+                            <FmTooltip
+                                :text="
+                                    $t(
+                                        'The page leaves the PDF and goes among the «Put aside», in the bar on the left: from there you can put it back.',
+                                    )
+                                "
+                                side="top"
+                            >
+                                <FmButton
+                                    variant="neutral"
+                                    :icon="FileMinus"
+                                    :label="$t('Remove this page')"
+                                    class="border! border-edge-soft! bg-card! hover:bg-canvas!"
+                                    :disabled="scanner.sending.value"
+                                    @click="
+                                        scanner.remove(scanner.chosen.value.id)
+                                    "
+                                />
+                            </FmTooltip>
+                            <FmTooltip
+                                v-if="!scanner.chosen.value.parts"
+                                :text="
+                                    $t(
+                                        'Reference lines: a grid over the page, to see whether it is straight while you straighten it. It does not end up in the PDF.',
+                                    )
+                                "
+                                side="top"
+                            >
+                                <FmButton
+                                    variant="neutral"
+                                    :icon="Grid3x3"
+                                    :label="$t('Reference lines')"
+                                    :aria-pressed="grid"
+                                    class="aria-pressed:bg-action-soft aria-pressed:text-action"
+                                    @click="grid = !grid"
+                                />
+                            </FmTooltip>
+                        </div>
+                    </template>
+                </main>
+
+                <aside
+                    :aria-label="$t('The choices')"
+                    class="flex min-h-0 w-[380px] min-w-[300px] shrink flex-col border-l border-edge-soft bg-card"
+                >
+                    <div
+                        class="flex min-h-0 grow flex-col gap-[18px] overflow-y-auto p-7"
+                    >
+                        <FmNotice v-if="connected && outdated" tone="warning">
+                            {{
+                                $t(
+                                    'The agent installed is version :installed: there is :latest. The page works all the same.',
+                                    {
+                                        installed:
+                                            scanner.status.value?.version ?? '',
+                                        latest: release?.version ?? '',
+                                    },
+                                )
+                            }}
+                            <template
+                                v-if="scanner.status.value?.version === '1.0.0'"
+                            >
+                                {{
+                                    $t(
+                                        'Version 1.0.0 does not update itself: download the new version, choose Quit from the icon of the agent and open the new one. It is the last time it has to be done by hand.',
+                                    )
+                                }}
+                            </template>
+                            <template v-else>
+                                {{
+                                    $t(
+                                        'It updates itself: it downloads the new version and installs it when it closes, so you find it the next time it opens. There is nothing to do.',
+                                    )
+                                }}
+                            </template>
+                            <template
+                                v-if="
+                                    scanner.status.value?.version === '1.0.0' &&
+                                    system !== 'other'
+                                "
+                                #action
+                            >
+                                <FmButton
+                                    variant="text"
+                                    download
+                                    :href="agentDownload(system).url"
+                                    >{{ $t('Download') }}</FmButton
                                 >
-                            </button>
+                            </template>
+                        </FmNotice>
+
+                        <ScannerSettings
+                            v-if="choices && !hasSides"
+                            :scanner="scanner"
+                        />
+
+                        <TabsRoot
+                            v-else-if="hasSides"
+                            v-model="tab"
+                            class="flex flex-col gap-[18px]"
+                        >
+                            <TabsList
+                                v-if="choices"
+                                :aria-label="$t('The choices')"
+                                class="flex h-control shrink-0 gap-1 rounded-control bg-segment p-1"
+                            >
+                                <TabsTrigger
+                                    v-for="choice in [
+                                        {
+                                            value: 'page',
+                                            label: $t('This page'),
+                                        },
+                                        {
+                                            value: 'scanner',
+                                            label: $t('Scanner'),
+                                        },
+                                    ]"
+                                    :key="choice.value"
+                                    :value="choice.value"
+                                    class="flex-1 cursor-pointer rounded-[7px] border-0 bg-transparent px-2 text-body-sm text-ink-soft focus-visible:outline-2 focus-visible:outline-action data-[state=active]:bg-card data-[state=active]:text-label data-[state=active]:text-ink data-[state=active]:shadow-raised"
+                                    >{{ choice.label }}</TabsTrigger
+                                >
+                            </TabsList>
+                            <TabsContent
+                                value="page"
+                                class="flex flex-col gap-[18px]"
+                            >
+                                <template v-if="scanner.chosen.value">
+                                    <ScannerSheetParts
+                                        v-if="scanner.chosen.value.parts"
+                                        :sizes="
+                                            scanner.chosen.value.parts.map(
+                                                scanner.partSize,
+                                            )
+                                        "
+                                        :shrink="
+                                            scanner.shrinkOf(
+                                                scanner.chosen.value,
+                                            )
+                                        "
+                                        :round="
+                                            scanner.chosen.value.parts.every(
+                                                (part) => part.round,
+                                            )
+                                        "
+                                        :disabled="scanner.sending.value"
+                                        @crop="
+                                            (index) =>
+                                                (cropping = {
+                                                    sheet: scanner.chosen.value!
+                                                        .id,
+                                                    index,
+                                                })
+                                        "
+                                        @turn="
+                                            (index) =>
+                                                scanner.turnPart(
+                                                    scanner.chosen.value!.id,
+                                                    index,
+                                                )
+                                        "
+                                        @move="
+                                            (index, step) =>
+                                                scanner.movePart(
+                                                    scanner.chosen.value!.id,
+                                                    index,
+                                                    step,
+                                                )
+                                        "
+                                        @drop="
+                                            (index) =>
+                                                scanner.dropPart(
+                                                    scanner.chosen.value!.id,
+                                                    index,
+                                                )
+                                        "
+                                        @round="
+                                            (on) =>
+                                                scanner.setRound(
+                                                    scanner.chosen.value!.id,
+                                                    on,
+                                                )
+                                        "
+                                        @separate="
+                                            scanner.separate(
+                                                scanner.chosen.value.id,
+                                            )
+                                        "
+                                    />
+
+                                    <ScannerSideTools
+                                        :improvement="
+                                            scanner.chosen.value.improvement
+                                        "
+                                        :skew="scanner.chosen.value.skew"
+                                        :composed="
+                                            scanner.chosen.value.parts !== null
+                                        "
+                                        :disabled="scanner.sending.value"
+                                        @angle="
+                                            (degrees) =>
+                                                scanner.setAngle(
+                                                    scanner.chosen.value!.id,
+                                                    degrees,
+                                                )
+                                        "
+                                        @find="
+                                            scanner.findAngle(
+                                                scanner.chosen.value.id,
+                                            )
+                                        "
+                                        @enhance="
+                                            (value) =>
+                                                scanner.setEnhance(
+                                                    scanner.chosen.value!.id,
+                                                    value,
+                                                )
+                                        "
+                                        @grey="
+                                            (on) =>
+                                                scanner.setGrey(
+                                                    scanner.chosen.value!.id,
+                                                    on,
+                                                )
+                                        "
+                                    />
+                                </template>
+                            </TabsContent>
+                            <TabsContent v-if="choices" value="scanner">
+                                <ScannerSettings :scanner="scanner" next />
+                            </TabsContent>
+                        </TabsRoot>
+
+                        <template v-if="hasSides">
+                            <h2
+                                class="m-0 border-t border-edge-soft pt-[18px] text-amount"
+                            >
+                                {{ $t('Import options') }}
+                            </h2>
+                            <FormKit
+                                :classes="{ outer: 'mb-0!' }"
+                                v-model="name"
+                                type="text"
+                                name="name"
+                                :label="$t('Name of the document')"
+                                :placeholder="
+                                    $t('Optional: for example «home insurance»')
+                                "
+                                maxlength="200"
+                                :disabled="scanner.sending.value"
+                            />
+                            <div
+                                v-if="scanner.kept.value.length > 1"
+                                class="border-t border-edge-soft pt-[18px]"
+                            >
+                                <FormKit
+                                    :classes="{ outer: 'mb-0!' }"
+                                    v-model="scanner.onePerSide.value"
+                                    type="toggle"
+                                    name="one_per_side"
+                                    :label="$t('One PDF per side')"
+                                    :help="
+                                        $t(
+                                            'Each side becomes a document of its own: the AI reads each one, one reading per side.',
+                                        )
+                                    "
+                                    :disabled="scanner.sending.value"
+                                />
+                            </div>
                         </template>
                     </div>
-                    <span
-                        v-if="scanner.chosen.value.working"
-                        class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-tag bg-camera-bg px-2.5 py-1 text-caption whitespace-nowrap text-on-action"
-                        >{{ $t('Making the page…') }}</span
+
+                    <div
+                        class="flex shrink-0 flex-col gap-3 border-t border-edge-soft px-7 pt-4 pb-7"
                     >
-                </div>
-
-                <div class="flex gap-2.5">
-                    <FmButton
-                        v-if="!scanner.chosen.value.parts"
-                        variant="outline"
-                        :icon="RotateCw"
-                        :disabled="scanner.sending.value"
-                        @click="scanner.rotate(scanner.chosen.value.id)"
-                        >{{ $t('Rotate') }}</FmButton
-                    >
-                    <FmButton
-                        variant="outline"
-                        :icon="Trash2"
-                        :label="$t('Remove this page')"
-                        :disabled="scanner.sending.value"
-                        @click="scanner.remove(scanner.chosen.value.id)"
-                    />
-                </div>
-
-                <ScannerSheetParts
-                    v-if="scanner.chosen.value.parts"
-                    :sizes="scanner.chosen.value.parts.map(scanner.partSize)"
-                    :shrink="scanner.shrinkOf(scanner.chosen.value)"
-                    :round="
-                        scanner.chosen.value.parts.every((part) => part.round)
-                    "
-                    :disabled="scanner.sending.value"
-                    @crop="
-                        (index) =>
-                            (cropping = {
-                                sheet: scanner.chosen.value!.id,
-                                index,
-                            })
-                    "
-                    @turn="
-                        (index) =>
-                            scanner.turnPart(scanner.chosen.value!.id, index)
-                    "
-                    @move="
-                        (index, step) =>
-                            scanner.movePart(
-                                scanner.chosen.value!.id,
-                                index,
-                                step,
-                            )
-                    "
-                    @drop="
-                        (index) =>
-                            scanner.dropPart(scanner.chosen.value!.id, index)
-                    "
-                    @round="
-                        (on) => scanner.setRound(scanner.chosen.value!.id, on)
-                    "
-                    @separate="scanner.separate(scanner.chosen.value.id)"
-                />
-
-                <ScannerSideTools
-                    v-model:grid="grid"
-                    :improvement="scanner.chosen.value.improvement"
-                    :skew="scanner.chosen.value.skew"
-                    :composed="scanner.chosen.value.parts !== null"
-                    :many="scanner.kept.value.length > 1"
-                    :disabled="scanner.sending.value"
-                    @angle="
-                        (degrees) =>
-                            scanner.setAngle(scanner.chosen.value!.id, degrees)
-                    "
-                    @find="scanner.findAngle(scanner.chosen.value.id)"
-                    @enhance="
-                        (value) =>
-                            scanner.setEnhance(scanner.chosen.value!.id, value)
-                    "
-                    @grey="
-                        (on) => scanner.setGrey(scanner.chosen.value!.id, on)
-                    "
-                    @all="scanner.improveAll(scanner.chosen.value.id)"
-                />
-            </template>
-
-            <section
-                v-if="scanner.aside.value.length > 0"
-                class="flex w-full max-w-[420px] flex-col gap-2"
-            >
-                <h2 class="m-0 text-label text-ink-soft">
-                    {{ $t('Sides put aside: they do not go in the PDF') }}
-                </h2>
-                <ul class="m-0 flex list-none flex-wrap gap-3 p-0">
-                    <li
-                        v-for="side in scanner.aside.value"
-                        :key="side.id"
-                        class="flex w-[88px] flex-col items-center gap-1.5"
-                    >
-                        <img
-                            :src="side.url"
-                            :alt="$t('Side put aside')"
-                            class="h-[110px] w-[78px] rounded-tag border border-edge-soft bg-card object-contain"
-                        />
-                        <span class="text-caption text-ink-soft">{{
-                            side.aside === 'blank'
-                                ? $t('blank')
-                                : $t('taken away')
-                        }}</span>
-                        <FmButton
-                            variant="text"
-                            :icon="Undo2"
-                            :disabled="scanner.sending.value"
-                            @click="scanner.putBack(side.id)"
-                            >{{ $t('Put back') }}</FmButton
+                        <span
+                            v-if="scanner.kept.value.length > 0"
+                            class="text-body-sm text-ink-soft"
+                            data-weight
+                            >{{ weightText }}</span
                         >
-                    </li>
-                </ul>
-            </section>
-        </main>
 
-        <aside
-            :class="
-                cn(
-                    'flex flex-col gap-[18px] bg-card p-7',
-                    wide
-                        ? 'w-[380px] min-w-[300px] shrink border-l border-edge-soft'
-                        : 'border-t border-edge-soft',
-                )
-            "
-        >
-            <FmNotice v-if="connected && outdated" tone="warning">
-                {{
-                    $t(
-                        'The agent installed is version :installed: there is :latest. The page works all the same.',
-                        {
-                            installed: scanner.status.value?.version ?? '',
-                            latest: release?.version ?? '',
-                        },
-                    )
-                }}
-                <template v-if="scanner.status.value?.version === '1.0.0'">
-                    {{
-                        $t(
-                            'Version 1.0.0 does not update itself: download the new version, choose Quit from the icon of the agent and open the new one. It is the last time it has to be done by hand.',
-                        )
-                    }}
-                </template>
-                <template v-else>
-                    {{
-                        $t(
-                            'It updates itself: it downloads the new version and installs it when it closes, so you find it the next time it opens. There is nothing to do.',
-                        )
-                    }}
-                </template>
-                <template
-                    v-if="
-                        scanner.status.value?.version === '1.0.0' &&
-                        system !== 'other'
-                    "
-                    #action
-                >
-                    <FmButton
-                        variant="text"
-                        download
-                        :href="agentDownload(system).url"
-                        >{{ $t('Download') }}</FmButton
-                    >
-                </template>
-            </FmNotice>
+                        <span
+                            v-if="showState"
+                            class="flex items-center gap-2 text-body-sm text-ink-soft"
+                            role="status"
+                        >
+                            <FmIcon :icon="stateIcon" :size="18" />
+                            {{ stateText }}
+                        </span>
 
-            <template v-if="connected && scanner.choosing.value">
-                <FmNotice v-if="scanner.missingScanner.value" tone="warning">
-                    {{
-                        $t(
-                            ':name cannot be seen: it is off or not on the network.',
-                            {
-                                name: scanner.missingScanner.value,
-                            },
-                        )
-                    }}
-                </FmNotice>
+                        <FmNotice
+                            v-if="scanner.failure.value"
+                            :tone="
+                                scanner.failure.value.code === 'empty'
+                                    ? 'info'
+                                    : 'warning'
+                            "
+                        >
+                            {{ FAILURES[scanner.failure.value.code]?.() }}
+                            <template
+                                v-if="
+                                    scanner.failure.value.code === 'scanner' &&
+                                    scanner.failure.value.message
+                                "
+                            >
+                                ({{ scanner.failure.value.message }})
+                            </template>
+                            <template
+                                v-if="
+                                    scanner.failure.value.code !== 'empty' &&
+                                    hasSides
+                                "
+                            >
+                                {{
+                                    $t(
+                                        'The sides already scanned are still here.',
+                                    )
+                                }}
+                            </template>
+                        </FmNotice>
 
-                <FormKit
-                    type="dropdown"
-                    name="scanner"
-                    :label="$t('Scanner')"
-                    :model-value="scanner.scannerId.value"
-                    :options="scanner.scannerOptions.value"
-                    :placeholder="
-                        scanner.scanners.value.length
-                            ? $t('Choose the scanner')
-                            : $t('No scanner')
-                    "
-                    :disabled="
-                        scanner.scanning.value ||
-                        scanner.scanners.value.length === 0
-                    "
-                    @update:model-value="
-                        (value: unknown) =>
-                            scanner.chooseScanner(
-                                typeof value === 'string' ? value : null,
-                            )
-                    "
-                />
-                <template v-if="scanner.ready.value">
-                    <FormKit
-                        v-if="scanner.resolutionOptions.value.length > 0"
-                        type="dropdown"
-                        name="resolution"
-                        :label="$t('Resolution')"
-                        :model-value="scanner.resolution.value"
-                        :options="scanner.resolutionOptions.value"
-                        :help="fitText"
-                        :disabled="scanner.scanning.value"
-                        @update:model-value="
-                            (value: unknown) =>
-                                (scanner.resolution.value =
-                                    typeof value === 'number' ? value : null)
-                        "
-                    />
-                    <FormKit
-                        type="togglebuttons"
-                        enforced
-                        name="colour"
-                        :label="$t('Colour')"
-                        :model-value="scanner.colour.value"
-                        :options="colourOptions"
-                        :disabled="scanner.scanning.value"
-                        @update:model-value="
-                            (value: unknown) =>
-                                (scanner.colour.value = value as Colour)
-                        "
-                    />
-                    <FormKit
-                        v-if="scanner.sources.value.length > 1"
-                        type="togglebuttons"
-                        enforced
-                        name="source"
-                        :label="$t('Where from')"
-                        :model-value="scanner.source.value"
-                        :options="sourceOptions"
-                        :disabled="scanner.scanning.value"
-                        @update:model-value="
-                            (value: unknown) =>
-                                scanner.chooseSource(value as Source)
-                        "
-                    />
-                    <FormKit
-                        type="toggle"
-                        name="one_sheet"
-                        :label="$t('On a single page')"
-                        :help="
-                            $t(
-                                'Front and back of a card on one page, in colour and at high resolution',
-                            )
-                        "
-                        :model-value="scanner.oneSheet.value"
-                        :disabled="scanner.scanning.value"
-                        @update:model-value="
-                            (value: unknown) =>
-                                scanner.setOneSheet(value === true)
-                        "
-                    />
-                </template>
-            </template>
+                        <FmNotice v-if="scanner.tooLarge.value" tone="warning">
+                            {{
+                                scanner.split.value
+                                    ? $t(
+                                          'A side weighs :size: over :most the file cannot be read. Take that side away, or make it black and white.',
+                                          {
+                                              size: formatSize(
+                                                  scanner.heaviest.value,
+                                              ),
+                                              most: formatSize(
+                                                  MAX_UPLOAD_BYTES,
+                                              ),
+                                          },
+                                      )
+                                    : $t(
+                                          'The sides weigh :size: over :most the file cannot be read. Take some sides away, upload the document in two goes or make a PDF per side.',
+                                          {
+                                              size: formatSize(
+                                                  scanner.weight.value,
+                                              ),
+                                              most: formatSize(
+                                                  MAX_UPLOAD_BYTES,
+                                              ),
+                                          },
+                                      )
+                            }}
+                        </FmNotice>
+                        <FmNotice
+                            v-if="scanner.improveError.value"
+                            tone="warning"
+                        >
+                            {{ scanner.improveError.value }}
+                        </FmNotice>
 
-            <template v-if="hasSides">
-                <FormKit
-                    v-model="name"
-                    type="text"
-                    name="name"
-                    :label="$t('Name of the document')"
-                    :placeholder="$t('Optional: for example «home insurance»')"
-                    maxlength="200"
-                    :disabled="scanner.sending.value"
-                />
-                <FormKit
-                    v-if="scanner.kept.value.length > 1"
-                    v-model="scanner.onePerSide.value"
-                    type="toggle"
-                    name="one_per_side"
-                    :label="$t('One PDF per side')"
-                    :help="
-                        $t(
-                            'Each side becomes a document of its own: the AI reads each one, one reading per side.',
-                        )
-                    "
-                    :disabled="scanner.sending.value"
-                />
-                <span
-                    v-if="scanner.kept.value.length > 0"
-                    class="text-body-sm text-ink-soft"
-                    data-weight
-                    >{{ weightText }}</span
-                >
-            </template>
+                        <ScanStatus v-bind="status" @retry="upload" />
 
-            <span class="grow" />
+                        <FmButton
+                            v-if="connected"
+                            wide
+                            :variant="
+                                scanner.kept.value.length > 0
+                                    ? 'outline'
+                                    : 'solid'
+                            "
+                            :icon="ScanLine"
+                            :disabled="
+                                !scanner.canScan.value || scanner.scanning.value
+                            "
+                            @click="scanner.startScan"
+                            >{{ scanLabel }}</FmButton
+                        >
 
-            <span
-                v-if="connected"
-                class="flex items-center gap-2 text-body-sm text-ink-soft"
-                role="status"
-            >
-                <FmIcon :icon="stateIcon" :size="18" />
-                {{ stateText }}
-            </span>
-
-            <FmNotice
-                v-if="scanner.failure.value"
-                :tone="
-                    scanner.failure.value.code === 'empty' ? 'info' : 'warning'
-                "
-            >
-                {{ FAILURES[scanner.failure.value.code]?.() }}
-                <template
-                    v-if="
-                        scanner.failure.value.code === 'scanner' &&
-                        scanner.failure.value.message
-                    "
-                >
-                    ({{ scanner.failure.value.message }})
-                </template>
-                <template
-                    v-if="scanner.failure.value.code !== 'empty' && hasSides"
-                >
-                    {{ $t('The sides already scanned are still here.') }}
-                </template>
-            </FmNotice>
-
-            <FmButton
-                v-if="connected"
-                wide
-                :variant="scanner.kept.value.length > 0 ? 'outline' : 'solid'"
-                :icon="ScanLine"
-                :disabled="!scanner.canScan.value || scanner.scanning.value"
-                @click="scanner.startScan"
-                >{{ scanLabel }}</FmButton
-            >
-
-            <FmNotice v-if="scanner.tooLarge.value" tone="warning">
-                {{
-                    scanner.split.value
-                        ? $t(
-                              'A side weighs :size: over :most the file cannot be read. Take that side away, or make it black and white.',
-                              {
-                                  size: formatSize(scanner.heaviest.value),
-                                  most: formatSize(MAX_UPLOAD_BYTES),
-                              },
-                          )
-                        : $t(
-                              'The sides weigh :size: over :most the file cannot be read. Take some sides away, upload the document in two goes or make a PDF per side.',
-                              {
-                                  size: formatSize(scanner.weight.value),
-                                  most: formatSize(MAX_UPLOAD_BYTES),
-                              },
-                          )
-                }}
-            </FmNotice>
-            <FmNotice v-if="scanner.improveError.value" tone="warning">
-                {{ scanner.improveError.value }}
-            </FmNotice>
-
-            <ScanStatus v-bind="status" @retry="upload" />
-
-            <FmButton
-                v-if="hasSides"
-                wide
-                :icon="Upload"
-                :disabled="
-                    scanner.kept.value.length === 0 ||
-                    scanner.tooLarge.value ||
-                    scanner.scanning.value ||
-                    scanner.working.value ||
-                    scanner.sending.value
-                "
-                @click="upload"
-                >{{ $t('Upload') }}</FmButton
-            >
-        </aside>
+                        <FmButton
+                            v-if="hasSides"
+                            wide
+                            :icon="Upload"
+                            :disabled="
+                                scanner.kept.value.length === 0 ||
+                                scanner.tooLarge.value ||
+                                scanner.scanning.value ||
+                                scanner.working.value ||
+                                scanner.sending.value
+                            "
+                            @click="asking = true"
+                            >{{ $t('Upload') }}</FmButton
+                        >
+                    </div>
+                </aside>
+            </div>
+        </template>
     </div>
 
     <ScannerCardCrop
@@ -854,5 +996,14 @@ async function upload(): Promise<void> {
         :cut="cropped.part.cut"
         :round="cropped.part.round"
         @done="(cut) => scanner.setCut(cropping!.sheet, cropping!.index, cut)"
+    />
+
+    <FmConfirm
+        v-model:open="asking"
+        :question="question"
+        :text="details"
+        :confirm-label="$t('Upload')"
+        confirm-variant="solid"
+        @confirm="confirmUpload"
     />
 </template>

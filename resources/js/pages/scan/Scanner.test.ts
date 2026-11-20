@@ -81,6 +81,32 @@ function wide(on: boolean): void {
 const shown = (): string | null =>
     document.querySelector('[data-preview] img')?.getAttribute('src') ?? null;
 
+/** *Upload*, then *Upload* in the question that asks first. */
+async function uploadAll(): Promise<void> {
+    await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await fireEvent.click(
+        within(
+            await screen.findByRole('dialog', { name: /^Shall I upload/ }),
+        ).getByRole('button', { name: 'Upload' }),
+    );
+}
+
+/**
+ * Opens the sides put aside, from the button at the foot of the strip.
+ *
+ * @param count - how many the button says
+ * @returns the bubble with the sides
+ */
+async function openAside(count: number): Promise<HTMLElement> {
+    await fireEvent.click(
+        screen.getByRole('button', { name: `Sides put aside, ${count}` }),
+    );
+
+    return screen.findByRole('dialog', {
+        name: `Sides put aside, ${count}`,
+    });
+}
+
 beforeEach(() => {
     resetScanAgent();
     launched.asked = [];
@@ -360,10 +386,13 @@ describe('Scanner, a scan', () => {
 
         expect(await screen.findByText('2 pages')).toBeInTheDocument();
         expect(shown()).toBe('blob:sheet-1');
+        const aside = await openAside(1);
         expect(
-            screen.getByText('Sides put aside: they do not go in the PDF'),
+            within(aside).getByText(
+                'Sides put aside: they do not go in the PDF',
+            ),
         ).toBeInTheDocument();
-        expect(screen.getByAltText('Side put aside')).toHaveAttribute(
+        expect(within(aside).getByAltText('Side put aside')).toHaveAttribute(
             'src',
             'blob:blank',
         );
@@ -379,7 +408,11 @@ describe('Scanner, a scan', () => {
         );
         await screen.findByText('2 pages');
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Put back' }));
+        await fireEvent.click(
+            within(await openAside(1)).getByRole('button', {
+                name: 'Put back',
+            }),
+        );
 
         expect(await screen.findByText('3 pages')).toBeInTheDocument();
     });
@@ -397,7 +430,9 @@ describe('Scanner, a scan', () => {
 
         expect(await screen.findByText('1 page')).toBeInTheDocument();
         expect(shown()).toBe('blob:sheet-2');
-        expect(screen.getAllByAltText('Side put aside')).toHaveLength(2);
+        expect(
+            within(await openAside(2)).getAllByAltText('Side put aside'),
+        ).toHaveLength(2);
     });
 
     it('turns the page with Rotate only in the PDF: the picture is not made again', async () => {
@@ -419,7 +454,7 @@ describe('Scanner, a scan', () => {
         ).toContain('rotate(90deg)');
         expect(canvas.improvedJpeg).not.toHaveBeenCalled();
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        await uploadAll();
         await waitFor(() => expect(upload).toHaveBeenCalled());
         const pdf = (upload.mock.calls[0][0].data as FormData).get(
             'files[]',
@@ -523,6 +558,143 @@ describe('Scanner, a scan', () => {
     });
 });
 
+describe('Scanner, as the board draws it', () => {
+    /** A scan of two sheets, one blank side put aside. */
+    async function scanned(): Promise<void> {
+        await open();
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Start scanning' }),
+        );
+        await screen.findByText('2 pages');
+    }
+
+    it('asks to widen a narrow window instead of the choices', async () => {
+        wide(false);
+        renderPage(Scanner, { agent_release: release });
+
+        expect(
+            await screen.findByRole('status', { name: 'Widen the window' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Start scanning' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('still tells a phone that the scanner is used from a Mac or a PC', async () => {
+        wide(false);
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile',
+        );
+
+        renderPage(Scanner);
+
+        expect(
+            await screen.findByText(/used from a Mac or a Windows PC/),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Widen the window')).not.toBeInTheDocument();
+    });
+
+    it('puts what is done to all the pages in a bar under the title', async () => {
+        await scanned();
+
+        const bar = screen.getByRole('toolbar', { name: 'All the pages' });
+        expect(within(bar).getByText('On all the pages')).toBeInTheDocument();
+        expect(
+            within(bar).getByRole('button', { name: 'Rotate all' }),
+        ).toBeInTheDocument();
+        expect(
+            within(bar).getByRole('button', {
+                name: 'Do the same to all the pages',
+            }),
+        ).toHaveAccessibleDescription(
+            'Copies the light and the ink and Black and white of the chosen page to all the other pages; Straighten stays with each page',
+        );
+    });
+
+    it('keeps the choices of the page and of the scanner in two tabs', async () => {
+        await scanned();
+
+        expect(screen.getByRole('tab', { name: 'This page' })).toHaveAttribute(
+            'aria-selected',
+            'true',
+        );
+        expect(
+            screen.getByRole('slider', {
+                name: 'Improve the light and the ink',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Resolution' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('tab', { name: 'Scanner' }));
+
+        expect(
+            await screen.findByRole('button', { name: 'Resolution' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('They apply to the next sheets you add.'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { name: 'Import options' }),
+        ).toBeInTheDocument();
+    });
+
+    it('shows the reference lines from the key beside Rotate', async () => {
+        await scanned();
+
+        const lines = screen.getByRole('button', { name: 'Reference lines' });
+        expect(lines).toHaveAttribute('aria-pressed', 'false');
+
+        await fireEvent.click(lines);
+
+        expect(lines).toHaveAttribute('aria-pressed', 'true');
+        expect(document.querySelector('[data-grid]')).not.toBeNull();
+    });
+
+    it('asks before uploading and says what stays out, and Cancel sends nothing', async () => {
+        await scanned();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+        const question = await screen.findByRole('dialog', {
+            name: 'Shall I upload the 2 sides?',
+        });
+        expect(
+            within(question).getByText(
+                'They become a PDF in «To sort». The side put aside stays out.',
+            ),
+        ).toBeInTheDocument();
+
+        await fireEvent.click(
+            within(question).getByRole('button', { name: 'Cancel' }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: /^Shall I upload/ }),
+            ).not.toBeInTheDocument(),
+        );
+        expect(upload).not.toHaveBeenCalled();
+    });
+
+    it('says a PDF per side in the question', async () => {
+        await scanned();
+        await fireEvent.click(
+            screen.getByRole('switch', { name: 'One PDF per side' }),
+        );
+        await settle();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+        expect(
+            await screen.findByText(
+                'They become 2 PDFs in «To sort», one per side. The side put aside stays out.',
+            ),
+        ).toBeInTheDocument();
+    });
+});
+
 describe('Scanner, Upload', () => {
     /** A scan of two sheets, and the name written. */
     async function scanned(name = ''): Promise<void> {
@@ -544,7 +716,7 @@ describe('Scanner, Upload', () => {
     it('sends one PDF of the pages that stay, as the scanner’s, with the name, then empties the agent and goes back to To sort', async () => {
         await scanned('estratto conto');
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        await uploadAll();
 
         await waitFor(() => expect(visit).toHaveBeenCalledWith('/to-sort'));
         const data = upload.mock.calls[0][0].data as FormData;
@@ -559,7 +731,7 @@ describe('Scanner, Upload', () => {
     it('leaves the name out when none is written, so the server names it with the moment', async () => {
         await scanned();
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        await uploadAll();
 
         await waitFor(() => expect(upload).toHaveBeenCalled());
         expect((upload.mock.calls[0][0].data as FormData).has('name')).toBe(
@@ -581,7 +753,7 @@ describe('Scanner, Upload', () => {
             }),
         );
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        await uploadAll();
 
         expect(
             await screen.findByText(/The file is too large/),
@@ -623,12 +795,15 @@ describe('Scanner, with the agent closed', () => {
         expect(
             screen.getByRole('button', { name: 'Page 2' }),
         ).toBeInTheDocument();
-        expect(screen.getByAltText('Side put aside')).toBeInTheDocument();
         expect(
             screen.queryByRole('button', { name: 'Add sheets' }),
         ).not.toBeInTheDocument();
+        expect(
+            within(await openAside(1)).getByAltText('Side put aside'),
+        ).toBeInTheDocument();
+        await userEvent.keyboard('{Escape}');
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        await uploadAll();
 
         await waitFor(() => expect(visit).toHaveBeenCalledWith('/to-sort'));
     });
@@ -778,7 +953,7 @@ describe('Scanner, what leaves', () => {
             /^2 sides → 2 PDF · \d+ B$/,
         );
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+        await uploadAll();
 
         await waitFor(() => expect(visit).toHaveBeenCalledWith('/to-sort'));
         expect(upload).toHaveBeenCalledTimes(2);
