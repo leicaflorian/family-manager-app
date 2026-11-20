@@ -10,7 +10,7 @@
  * home scanner beside it instead, as a secondary card; any other computer has
  * only the zone.
  */
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { presetUrl } from '@/lib/documents';
 import type { DocumentLink } from '@/lib/documents';
 import { desktopSystem } from '@/lib/devices';
+import { canGoBack } from '@/lib/visitHistory';
 import { dashboard, toSort } from '@/routes';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
@@ -41,10 +42,27 @@ const toSortCount = useToSortCount();
 /** The card the person comes from. */
 const preset = computed(() => props.presetLinks[0]);
 
-/** Where the × goes: the card the person comes from, or the home page. */
+/** Where the × goes when no page of the app comes before: the card the person comes from, or the home page. */
 const closeUrl = computed(() =>
     preset.value ? presetUrl(preset.value) : dashboard().url,
 );
+
+/**
+ * The ×: back to the page of the app the person came from, as the Back of the top bar; with none before (a tab
+ * opened here) to `closeUrl`. A click with a modifier key opens the link as the browser does.
+ *
+ * @param event - the click
+ */
+function close(event: MouseEvent): void {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+    }
+
+    event.preventDefault();
+
+    if (canGoBack()) window.history.back();
+    else router.visit(closeUrl.value);
+}
 
 const {
     send,
@@ -101,14 +119,15 @@ usePageTrail(() => [
                         v-if="layout !== 'phone'"
                         :count="toSortCount"
                     />
-                    <Link
+                    <a
                         v-if="layout !== 'computer'"
                         :href="closeUrl"
                         :aria-label="$t('Close')"
                         class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
+                        @click="close"
                     >
                         <FmIcon :icon="X" :size="20" />
-                    </Link>
+                    </a>
                 </template>
             </FmTitle>
             <div v-if="layout === 'phone' && toSortCount > 0" class="flex">

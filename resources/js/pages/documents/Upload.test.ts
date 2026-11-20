@@ -12,11 +12,20 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     usePage: () => ({ url: '/upload', props: { ...shared } }),
 }));
 
+// Whether a page of the app comes before this one in the tab: here the test says it
+const trail = vi.hoisted(() => ({ canGoBack: vi.fn(() => false) }));
+
+vi.mock('@/lib/visitHistory', async (original) => ({
+    ...(await original<typeof import('@/lib/visitHistory')>()),
+    canGoBack: trail.canGoBack,
+}));
+
 /** The props of the server: only the card the person comes from. */
 const props = { presetLinks: [] };
 
 afterEach(() => {
     shared.to_sort_count = 0;
+    trail.canGoBack.mockReset().mockReturnValue(false);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -112,6 +121,20 @@ describe('Upload', () => {
             'href',
             '/dashboard',
         );
+    });
+
+    it('closes back to the page it came from when there is one', async () => {
+        trail.canGoBack.mockReturnValue(true);
+        const back = vi
+            .spyOn(window.history, 'back')
+            .mockImplementation(() => {});
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Upload, { ...props });
+
+        await fireEvent.click(screen.getByRole('link', { name: 'Close' }));
+
+        expect(back).toHaveBeenCalledTimes(1);
+        expect(visit).not.toHaveBeenCalled();
     });
 
     it('only takes the files: there is no form, the files are checked in Import', () => {
