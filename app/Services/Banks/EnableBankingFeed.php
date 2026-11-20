@@ -70,7 +70,7 @@ final readonly class EnableBankingFeed implements BankFeed
                 $this->text($bank, 'name'),
                 $this->str($bank['country'] ?? null, $country),
                 is_string($bank['logo'] ?? null) ? $bank['logo'] : null,
-                (int) floor($this->num($bank['maximum_consent_validity'] ?? null) / 86400),
+                $this->consentDays($bank['maximum_consent_validity'] ?? null),
             );
         }
 
@@ -117,7 +117,7 @@ final readonly class EnableBankingFeed implements BankFeed
                 $this->text($account, 'identification_hash'),
                 $this->str($account['name'] ?? null, $this->str($account['product'] ?? null, '')),
                 is_string($iban) && strlen($iban) >= 4 ? substr($iban, -4) : null,
-                $this->str($account['currency'] ?? null, 'EUR'),
+                $this->text($account, 'currency'),
             );
         }
 
@@ -234,14 +234,20 @@ final readonly class EnableBankingFeed implements BankFeed
             array_map(fn (mixed $line): string => trim($this->str($line, '')), Arr::wrap($transaction['remittance_information'] ?? [])),
             fn (string $line): bool => $line !== '' && $line !== $counterparty,
         ));
-        $amount = abs($this->num(Arr::get($transaction, 'transaction_amount.amount')));
+        $rawAmount = Arr::get($transaction, 'transaction_amount.amount');
+
+        if (! is_numeric($rawAmount)) {
+            throw new BankFeedFailed('The bank provider answered a transaction without an amount.');
+        }
+
+        $amount = abs((float) $rawAmount);
 
         return new BankEntry(
             is_string($id) && $id !== '' ? $id : null,
             $this->date($transaction['booking_date'] ?? null),
             $this->date($transaction['value_date'] ?? null),
             $debit ? -$amount : $amount,
-            $this->str(Arr::get($transaction, 'transaction_amount.currency'), 'EUR'),
+            $this->text((array) Arr::get($transaction, 'transaction_amount', []), 'currency'),
             implode(' ', array_filter([$counterparty, ...$lines])),
             $counterparty,
             ($transaction['status'] ?? null) === 'BOOK',
@@ -302,10 +308,13 @@ final readonly class EnableBankingFeed implements BankFeed
     }
 
     /**
-     * A number of the provider (a number or a numeric text), 0 when it is neither.
+     * The longest consent of a bank in days, from its seconds; the default of the config when the bank says nothing
+     * usable (one bank without it must not break the list).
      */
-    private function num(mixed $value): float
+    private function consentDays(mixed $seconds): int
     {
-        return is_numeric($value) ? (float) $value : 0.0;
+        $days = is_numeric($seconds) ? (int) floor((float) $seconds / 86400) : 0;
+
+        return $days > 0 ? $days : Config::integer('bank_feed.consent_days', 180);
     }
 }

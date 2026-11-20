@@ -7,6 +7,7 @@ use App\Exceptions\Banks\BankFeedFailed;
 use App\Exceptions\Banks\BankLimitReached;
 use App\Services\Banks\EnableBankingFeed;
 use App\Support\Banks\BankInstitution;
+use App\Support\Banks\BankSession;
 use App\Support\Banks\BankVisitor;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
@@ -248,4 +249,41 @@ it('is active only with an application id and a readable key', function (): void
     config(['bank_feed.enable_banking.key_path' => $path.'-missing']);
     expect(resolve(EnableBankingFeed::class)->isActive())->toBeFalse();
     File::delete($path);
+});
+
+it('fails on a transaction whose amount is missing or not a number', function (mixed $amount): void {
+    Http::fake(['api.test/accounts/acc-1/transactions*' => Http::response(['transactions' => [
+        ['transaction_id' => 'x', 'transaction_amount' => ['currency' => 'EUR', 'amount' => $amount], 'credit_debit_indicator' => 'DBIT', 'status' => 'BOOK'],
+    ]])]);
+
+    bankFeedNew()->transactions('s', 'acc-1', CarbonImmutable::parse('2026-10-01'), CarbonImmutable::parse('2026-11-20'));
+})->with([null, 'abc', ''])->throws(BankFeedFailed::class);
+
+it('fails on a transaction or an account without a currency', function (): void {
+    Http::fake([
+        'api.test/accounts/acc-1/transactions*' => Http::response(['transactions' => [
+            ['transaction_id' => 'x', 'transaction_amount' => ['amount' => '5.00'], 'credit_debit_indicator' => 'DBIT', 'status' => 'BOOK'],
+        ]]),
+        'api.test/sessions' => Http::response(['session_id' => 's', 'access' => ['valid_until' => '2027-05-19T10:00:00+00:00'], 'aspsp' => ['name' => 'B'], 'accounts' => [
+            ['uid' => 'u', 'identification_hash' => 'h', 'name' => 'Conto'],
+        ]]),
+    ]);
+    $feed = bankFeedNew();
+
+    expect(fn (): array => $feed->transactions('s', 'acc-1', CarbonImmutable::parse('2026-10-01'), CarbonImmutable::parse('2026-11-20')))->toThrow(BankFeedFailed::class)
+        ->and(fn (): BankSession => $feed->complete('code'))->toThrow(BankFeedFailed::class);
+});
+
+it('falls back to the consent days of the config for a bank without a usable length', function (): void {
+    config(['bank_feed.consent_days' => 180]);
+    Http::fake(['api.test/aspsps*' => Http::response(['aspsps' => [
+        ['name' => 'Senza', 'country' => 'IT', 'psu_types' => ['personal']],
+        ['name' => 'Zero', 'country' => 'IT', 'psu_types' => ['personal'], 'maximum_consent_validity' => 0],
+        ['name' => 'Breve', 'country' => 'IT', 'psu_types' => ['personal'], 'maximum_consent_validity' => 3600],
+        ['name' => 'Novanta', 'country' => 'IT', 'psu_types' => ['personal'], 'maximum_consent_validity' => 7776000],
+    ]])]);
+
+    $days = array_map(fn (BankInstitution $b): int => $b->maxConsentDays, bankFeedNew()->institutions('IT'));
+
+    expect($days)->toBe([180, 180, 180, 90]);
 });
