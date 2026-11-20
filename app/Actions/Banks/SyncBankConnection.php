@@ -86,7 +86,13 @@ final readonly class SyncBankConnection
             }
         } catch (BankConsentEnded) {
             $this->mark($connection, BankConnectionStatus::NeedsReconnect, 'The consent of the bank ended.');
-            $this->watch->ended($connection);
+
+            try {
+                $this->watch->ended($connection);
+            } catch (Throwable $failure) {
+                // Telling the admins must not turn a consent that ended into an error of the read
+                report($failure);
+            }
 
             return $new;
         } catch (BankLimitReached) {

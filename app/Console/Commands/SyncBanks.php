@@ -48,7 +48,12 @@ final class SyncBanks extends Command
         foreach ($families as $family) {
             try {
                 $queued += CurrentFamily::using($family->id, function () use ($family, $watch): int {
-                    $watch->handle(CarbonImmutable::now());
+                    try {
+                        $watch->handle(CarbonImmutable::now());
+                    } catch (Throwable $failure) {
+                        // The reads of the family go on even when the check of its consents fails
+                        report($failure);
+                    }
 
                     $connections = BankConnection::query()
                         ->whereIn('status', [BankConnectionStatus::Active, BankConnectionStatus::Error])

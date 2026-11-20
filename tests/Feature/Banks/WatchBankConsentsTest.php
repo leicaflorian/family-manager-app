@@ -17,6 +17,8 @@ use App\Models\User;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 
@@ -174,4 +176,54 @@ test('a consent that ended after the warning is not told again by the sync', fun
 
     expect(bankWatchNotices($this->admin))->toBeEmpty();
     Mail::assertNothingQueued();
+});
+
+test('a mail that cannot be queued does not stop the sync, and the notices are not written twice', function (): void {
+    $connection = bankWatchConnection(60);
+    $feed = new FakeBankFeed;
+    $feed->failsWith(new BankConsentEnded('revoked'));
+    app()->instance(BankFeed::class, $feed);
+    Mail::shouldReceive('to')->andThrow(new RuntimeException('queue down'));
+    Exceptions::fake();
+
+    foreach ([1, 2] as $_) {
+        CurrentFamily::using($this->family->id, fn (): int => resolve(SyncBankConnection::class)->handle($connection->refresh()));
+    }
+
+    expect(bankWatchNotices($this->admin))->toHaveCount(1)
+        ->and(bankWatchNotices($this->other))->toHaveCount(1)
+        ->and($connection->refresh()->status)->toBe(BankConnectionStatus::NeedsReconnect)
+        ->and($connection->expiry_notified_at)->not->toBeNull();
+    Exceptions::assertReported(RuntimeException::class);
+});
+
+test('a failure of the watcher does not escape the sync of a bank', function (): void {
+    $connection = bankWatchConnection(60);
+    $feed = new FakeBankFeed;
+    $feed->failsWith(new BankConsentEnded('revoked'));
+    app()->instance(BankFeed::class, $feed);
+    Event::listen('eloquent.creating: '.ReminderNotice::class, fn () => throw new RuntimeException('db down'));
+    Exceptions::fake();
+
+    $count = CurrentFamily::using($this->family->id, fn (): int => resolve(SyncBankConnection::class)->handle($connection));
+
+    expect($count)->toBe(0)
+        ->and($connection->refresh()->status)->toBe(BankConnectionStatus::NeedsReconnect)
+        ->and($connection->expiry_notified_at)->toBeNull();
+    Exceptions::assertReported(RuntimeException::class);
+});
+
+test('a failing check of one family does not stop the reads of that family nor of the others', function (): void {
+    Queue::fake([SyncBank::class]);
+    $first = bankWatchConnection(5);
+    $otherFamily = Family::factory()->create(['bank_feed_enabled' => true]);
+    $second = BankConnection::factory()->create(['family_id' => $otherFamily->id]);
+    Event::listen('eloquent.creating: '.ReminderNotice::class, fn () => throw new RuntimeException('db down'));
+    Exceptions::fake();
+
+    $this->artisan('banks:sync')->assertSuccessful();
+
+    Queue::assertPushed(SyncBank::class, fn (SyncBank $job): bool => $job->connectionId === $first->id);
+    Queue::assertPushed(SyncBank::class, fn (SyncBank $job): bool => $job->connectionId === $second->id);
+    Exceptions::assertReported(RuntimeException::class);
 });

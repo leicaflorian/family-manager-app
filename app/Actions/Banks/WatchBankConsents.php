@@ -11,7 +11,9 @@ use App\Models\BankConnection;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * Watches the consent of the banks of a family: a week before it ends, and when the bank takes it back, every `admin`
@@ -28,6 +30,7 @@ final readonly class WatchBankConsents
      */
     public function handle(CarbonImmutable $now): void
     {
+        // Also a connection in `Error` (the bank answers with errors): its consent is over all the same
         BankConnection::query()
             ->where('status', '!=', BankConnectionStatus::NeedsReconnect)
             ->whereNotNull('valid_until')->where('valid_until', '<=', $now)
@@ -37,7 +40,14 @@ final readonly class WatchBankConsents
             ->where('status', BankConnectionStatus::Active)->whereNull('expiry_notified_at')
             ->where('valid_until', '>', $now)->where('valid_until', '<=', $now->addDays(config()->integer('bank_feed.warn_days')))
             ->orderBy('id')->get()
-            ->each(fn (BankConnection $connection) => $this->tell($connection, false));
+            ->each(function (BankConnection $connection): void {
+                try {
+                    $this->tell($connection, false);
+                } catch (Throwable $failure) {
+                    // One connection that fails does not keep the others from being told
+                    report($failure);
+                }
+            });
     }
 
     /**
@@ -55,7 +65,9 @@ final readonly class WatchBankConsents
     }
 
     /**
-     * Writes the notice and queues the email for every `admin`, each in their language, and remembers it was done.
+     * Writes the notice of every `admin` and remembers it was done, all in one transaction, and only then queues the
+     * emails: a failure while writing leaves nothing behind (the next check tells again), and a failure of the queue
+     * cannot make the notices be written twice. An email that cannot be queued is reported and the others go on.
      *
      * @param  BankConnection  $connection  the connection
      * @param  bool  $ended  true when the bank took the consent back, false when it is about to expire
@@ -63,19 +75,32 @@ final readonly class WatchBankConsents
     private function tell(BankConnection $connection, bool $ended): void
     {
         $bank = $connection->institution_name;
-        $date = ($connection->valid_until ?? CarbonImmutable::now())->setTimezone('Europe/Rome')->format('d/m/Y');
+        // Only the warning has a date to say: a consent the bank took back has none
+        $date = $ended ? '' : ($connection->valid_until?->setTimezone('Europe/Rome')->format('d/m/Y') ?? '');
         $now = CarbonImmutable::now();
+        $admins = User::query()->where('family_id', $connection->family_id)->where('role', Role::Admin)->orderBy('id')->get();
 
-        User::query()->where('family_id', $connection->family_id)->where('role', Role::Admin)->orderBy('id')->get()
-            ->each(function (User $admin) use ($connection, $bank, $date, $ended, $now): void {
+        $mails = DB::transaction(function () use ($connection, $admins, $bank, $date, $ended, $now): array {
+            $mails = [];
+
+            foreach ($admins as $admin) {
                 $locale = $admin->locale ?? config()->string('app.locale');
                 $mail = new BankConsentExpiringMail($admin, $bank, $date, $ended);
-
                 ReminderNotice::query()->create(['user_id' => $admin->id, 'bank_connection_id' => $connection->id, 'sent_at' => $now, 'lines' => [$mail->sentence($locale)]]);
+                $mails[] = [$admin, $locale, $mail];
+            }
 
+            $connection->forceFill(['expiry_notified_at' => $now])->save();
+
+            return $mails;
+        });
+
+        foreach ($mails as [$admin, $locale, $mail]) {
+            try {
                 Mail::to($admin)->locale($locale)->queue($mail);
-            });
-
-        $connection->forceFill(['expiry_notified_at' => $now])->save();
+            } catch (Throwable $failure) {
+                report($failure);
+            }
+        }
     }
 }
