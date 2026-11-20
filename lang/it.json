@@ -2162,5 +2162,8 @@
     "The rule": "La regola",
     "Write again": "Scrivi di nuovo",
     "Use this rule": "Usa questa regola",
-    "Write the rule": "Scrivi la regola"
+    "Write the rule": "Scrivi la regola",
+    "Ignore": "Ignora",
+    "Put back among the movements": "Rimetti tra i movimenti",
+    "This movement is already sorted, so it cannot be ignored.": "Questo movimento è già smistato, quindi non si può ignorare."
 }

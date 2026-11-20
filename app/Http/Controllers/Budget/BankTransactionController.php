@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -110,6 +111,51 @@ final class BankTransactionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('The due date is to be paid again.')]);
 
         return to_route('budget.bank.index');
+    }
+
+    /**
+     * *Ignore*: puts a transaction nobody has to deal with aside (a transfer between the family's own accounts, say).
+     * The row is locked and checked again under the lock, because a rule or a settling may link it at the same moment.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
+     * @throws HttpException (422) if the transaction is linked to an expense or an income
+     */
+    public function ignore(BankTransaction $transaction): RedirectResponse
+    {
+        $this->ensureOn();
+        Gate::authorize('update', $transaction);
+
+        DB::transaction(function () use ($transaction): void {
+            $current = BankTransaction::query()->whereKey($transaction->id)->lockForUpdate()->firstOrFail();
+
+            if ($current->expense_id !== null || $current->income_id !== null) {
+                abort(422, __('This movement is already sorted, so it cannot be ignored.'));
+            }
+
+            $current->ignored_at ??= now();
+            $current->save();
+        });
+
+        return back(fallback: route('budget.bank.index'));
+    }
+
+    /**
+     * *Put back among the movements*: takes a transaction out of the ignored ones, so it is to sort again.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
+     */
+    public function restore(BankTransaction $transaction): RedirectResponse
+    {
+        $this->ensureOn();
+        Gate::authorize('update', $transaction);
+
+        DB::transaction(function () use ($transaction): void {
+            $current = BankTransaction::query()->whereKey($transaction->id)->lockForUpdate()->firstOrFail();
+            $current->ignored_at = null;
+            $current->save();
+        });
+
+        return back(fallback: route('budget.bank.index'));
     }
 
     /**

@@ -258,3 +258,72 @@ describe('Budget, From the bank', () => {
         expect(within(pending).getByText('Pending')).toBeInTheDocument();
     });
 });
+
+describe('Budget, From the bank, ignoring', () => {
+    it('ignores a transaction and the row goes', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(BankTransactions, props());
+        const row = screen
+            .getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            )
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'Ignore' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/ignore',
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            screen.queryByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            ),
+        ).not.toBeInTheDocument();
+    });
+
+    it('puts an ignored transaction back among the movements', async () => {
+        const del = vi
+            .spyOn(router, 'delete')
+            .mockImplementation((_url, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(
+            BankTransactions,
+            props({
+                show: 'ignored',
+                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            }),
+        );
+
+        expect(
+            screen.queryByRole('button', { name: 'Ignore' }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: 'Put back among the movements',
+            }),
+        );
+
+        expect(del).toHaveBeenCalledWith(
+            '/budget/bank/2/ignore',
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(screen.getByText('No ignored movement')).toBeInTheDocument();
+    });
+
+    it('offers no action to who cannot sort', () => {
+        renderPage(BankTransactions, props({ can_sort: false }));
+
+        expect(
+            screen.queryByRole('button', { name: 'Ignore' }),
+        ).not.toBeInTheDocument();
+    });
+});

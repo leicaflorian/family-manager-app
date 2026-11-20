@@ -5,10 +5,12 @@
  * transaction says so and waits for the bank to book it. *To sort* and *Ignored* are two filters of the same list;
  * *Update* reads the banks now (the server says how many movements are new) and under it comes the last read and
  * the hours of the automatic ones. A bank that has to be connected again has a strip with *Reconnect* for who can
- * change the banks. The row actions (create the expense, link a fixed expense, ignore) come with their own routes.
+ * change the banks. *Ignore* hides a transaction nobody has to deal with, and under *Ignored* each one has *Put back
+ * among the movements*; the row goes at once and the server writes it. The other row actions (create the expense, link a
+ * fixed expense) come with their own routes.
  */
 import { Head, router, WhenVisible } from '@inertiajs/vue3';
-import { Landmark, Plus, RefreshCw } from '@lucide/vue';
+import { EyeOff, Landmark, Plus, RefreshCw, RotateCcw } from '@lucide/vue';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -27,7 +29,12 @@ import { lastReadText } from '@/lib/banks';
 import { budgetTabs } from '@/lib/budgetTabs';
 import { listNames } from '@/lib/names';
 import { cn } from '@/lib/utils';
-import { index as bankIndex, sync } from '@/routes/budget/bank';
+import {
+    ignore,
+    index as bankIndex,
+    restore,
+    sync,
+} from '@/routes/budget/bank';
 import { create } from '@/routes/budget/movements';
 import { index as banksIndex } from '@/routes/banks';
 
@@ -105,6 +112,35 @@ function update(): void {
     );
 }
 
+/** The rows that were ignored or put back here: they leave the list at once, the next load no longer has them. */
+const gone = ref<number[]>([]);
+
+/** The rows shown: the ones loaded, without the ones that went. */
+const shown = computed(() =>
+    props.rows.filter((row) => !gone.value.includes(row.id)),
+);
+
+/**
+ * Hides a transaction (*Ignore*) or brings it back (*Put back*), without leaving the page: the row goes when the
+ * server has written it.
+ *
+ * @param row - the transaction
+ */
+function toggleIgnored(row: App.Data.BankTransactionData): void {
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => {
+            gone.value = [...gone.value, row.id];
+        },
+    };
+
+    if (row.ignored) {
+        router.delete(restore(row.id).url, options);
+    } else {
+        router.post(ignore(row.id).url, {}, options);
+    }
+}
+
 /** Adds an expense or an income by hand: its own page, which leads back here. */
 function add(): void {
     router.get(create.url({ query: { from: bankIndex().url } }));
@@ -178,7 +214,7 @@ function add(): void {
         </div>
 
         <FmEmpty
-            v-if="rows.length === 0"
+            v-if="shown.length === 0"
             :icon="Landmark"
             :title="
                 show === 'ignored'
@@ -202,7 +238,7 @@ function add(): void {
                 class="m-0 flex list-none flex-col divide-y divide-divider overflow-hidden rounded-card bg-card p-0 shadow-card"
             >
                 <li
-                    v-for="row in rows"
+                    v-for="row in shown"
                     :key="row.id"
                     :data-wide="wide ? '' : undefined"
                     :class="
@@ -249,8 +285,47 @@ function add(): void {
                             >{{ money(row.amount, row.currency) }}</span
                         >
                     </div>
-                    <!-- The room of the row actions (Tasks 15-17) -->
-                    <span v-if="wide" class="flex justify-end"></span>
+                    <span v-if="wide" class="flex justify-end">
+                        <template v-if="can_sort">
+                            <FmButton
+                                v-if="row.ignored"
+                                variant="neutral"
+                                :icon="RotateCcw"
+                                @click="toggleIgnored(row)"
+                                >{{
+                                    $t('Put back among the movements')
+                                }}</FmButton
+                            >
+                            <FmButton
+                                v-else
+                                variant="text"
+                                class="text-ink-soft"
+                                :icon="EyeOff"
+                                @click="toggleIgnored(row)"
+                                >{{ $t('Ignore') }}</FmButton
+                            >
+                        </template>
+                    </span>
+                    <div
+                        v-if="!wide && can_sort"
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <FmButton
+                            v-if="row.ignored"
+                            variant="neutral"
+                            :icon="RotateCcw"
+                            @click="toggleIgnored(row)"
+                            >{{ $t('Put back among the movements') }}</FmButton
+                        >
+                        <FmButton
+                            v-else
+                            :icon="EyeOff"
+                            :label="$t('Ignore')"
+                            plain
+                            muted
+                            @click="toggleIgnored(row)"
+                        />
+                    </div>
                     <div
                         v-if="!wide && row.pending"
                         class="flex flex-wrap items-center gap-2"
