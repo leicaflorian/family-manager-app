@@ -2,6 +2,14 @@
 
 All notable changes to Fameja.app.
 
+## [2.3.2] - 2026-11-21
+
+### iPhone and iPad
+- Formatted `public/manifest-ios.webmanifest` so the CI formatting check passes.
+
+### Tests
+- The sidebar test now fakes the visit of the link it clicks, so it no longer fails in the full CI run.
+
 ## [2.3.1] - 2026-11-20
 
 ### Layout and navigation
