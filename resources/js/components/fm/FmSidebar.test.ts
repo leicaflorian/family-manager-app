@@ -167,6 +167,10 @@ describe('FmSidebar', () => {
         );
         // the names do not wrap while the width changes
         expect(screen.getByText('Documents')).toHaveClass('whitespace-nowrap');
+        // the names beyond the collapsed width give the sections no horizontal scroll bar
+        expect(
+            screen.getByRole('navigation', { name: 'Sections' }),
+        ).toHaveClass('overflow-x-hidden', 'overflow-y-auto');
     });
 
     it('has Upload at the top and the sections, with the open one marked', () => {

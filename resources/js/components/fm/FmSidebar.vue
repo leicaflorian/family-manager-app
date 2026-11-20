@@ -332,7 +332,7 @@ function isPage(section: Section): boolean {
              they reach the edges of the sidebar, so the scroll bar sits on its border -->
         <nav
             :aria-label="$t('Sections')"
-            class="-mx-3.5 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-3.5"
+            class="-mx-3.5 flex min-h-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto px-3.5"
         >
             <div
                 v-for="(group, index) in groups"
