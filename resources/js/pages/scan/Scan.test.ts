@@ -8,6 +8,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import { COMPUTER_QUERY, TABLET_QUERY } from '@/composables/useLayoutMode';
 import { WIDE_QUERY } from '@/composables/useWideLayout';
 import { renderPage, settle } from '@/test/page';
 import Scan from './Scan.vue';
@@ -133,6 +134,18 @@ const shown = (): string | null =>
 function wide(on: boolean): void {
     vi.stubGlobal('matchMedia', (query: string) => ({
         matches: on && query === WIDE_QUERY,
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+    }));
+}
+
+/** A window of the given layout: the tablet with the columns side by side (from 900 px) or the computer. */
+function layout(kind: 'tablet' | 'computer'): void {
+    const matching = [WIDE_QUERY, TABLET_QUERY];
+    if (kind === 'computer') matching.push(COMPUTER_QUERY);
+    vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: matching.includes(query),
         media: query,
         addEventListener: () => {},
         removeEventListener: () => {},
@@ -714,7 +727,7 @@ describe('Scan', () => {
     });
 
     it('on the computer keeps the bar with Back, which goes back to the page it came from', async () => {
-        wide(true);
+        layout('computer');
         trail.canGoBack.mockReturnValue(true);
         const back = vi
             .spyOn(window.history, 'back')
@@ -730,7 +743,7 @@ describe('Scan', () => {
     });
 
     it('on the computer goes back to the page it came from after throwing the pages away', async () => {
-        wide(true);
+        layout('computer');
         trail.canGoBack.mockReturnValue(true);
         const back = vi
             .spyOn(window.history, 'back')
@@ -751,6 +764,18 @@ describe('Scan', () => {
 
         expect(back).toHaveBeenCalledTimes(1);
         expect(visit).not.toHaveBeenCalled();
+    });
+
+    it('on the tablet, also with the columns side by side, has To sort above the title, under the bar of the app', () => {
+        layout('tablet');
+        renderPage(Scan);
+
+        expect(
+            screen.getByRole('button', { name: 'To sort' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Back' }),
+        ).not.toBeInTheDocument();
     });
 
     it('keeps the bar on a linked phone, with nothing to go back with', () => {

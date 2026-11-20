@@ -41,6 +41,7 @@ import ScanStatus from '@/components/scan/ScanStatus.vue';
 import ScanWebcam from '@/components/scan/ScanWebcam.vue';
 import { useAppName } from '@/composables/useAppName';
 import { useInstall } from '@/composables/useInstall';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useScanUpload } from '@/composables/useScanUpload';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { canGoBack } from '@/lib/visitHistory';
@@ -98,6 +99,21 @@ type Page = ScanPage & {
 
 const page = usePage();
 const wide = useWideLayout();
+
+/** The layout of the window: the link back above the title on the phone and the tablet, the bar on the computer. */
+const mode = useLayoutMode();
+
+/**
+ * The size of the sheet in the middle. On the tablet with the columns it sits under the bar of the app and the
+ * title, so it shrinks with the window (same proportions) and *Upload* stays on screen.
+ */
+const previewSize = computed((): string => {
+    if (!wide.value) return cn('h-[340px] w-[250px]');
+
+    return mode.value === 'computer'
+        ? cn('h-[580px] w-[420px]')
+        : cn('aspect-[420/580] h-[min(580px,calc(100dvh-18rem))]');
+});
 const phone = isPhone();
 const webcam = useWebcam();
 const {
@@ -909,9 +925,10 @@ onBeforeUnmount(() => {
         @change="onFiles"
     />
 
-    <!-- On the phone, as Upload and Received mail: the link back above the big title. The bar stays on the
-         computer, and on a linked phone, which has nowhere to go back to. -->
-    <div v-if="!wide && !linked" class="shrink-0 px-5 pt-4">
+    <!-- On the phone and the tablet (under the bar of the app), as Upload and Received mail: the link back
+         above the big title. The bar stays on the computer, and on a linked phone, which has nowhere to go back
+         to. -->
+    <div v-if="mode !== 'computer' && !linked" class="shrink-0 px-5 pt-4">
         <FmTitle
             :title="$t('New document')"
             :back-label="$t('To sort')"
@@ -985,9 +1002,7 @@ onBeforeUnmount(() => {
                     :class="
                         cn(
                             'flex shrink-0 flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-edge p-6 text-center',
-                            wide
-                                ? 'h-[580px] w-[420px]'
-                                : 'h-[340px] w-[250px]',
+                            previewSize,
                         )
                     "
                 >
@@ -1017,9 +1032,7 @@ onBeforeUnmount(() => {
                     :class="
                         cn(
                             'relative flex shrink-0 items-center justify-center',
-                            wide
-                                ? 'h-[580px] w-[420px]'
-                                : 'h-[340px] w-[250px]',
+                            previewSize,
                         )
                     "
                 >

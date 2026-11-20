@@ -15,7 +15,9 @@
  * strip and the top bar) is in `--app-header`, for what the pages keep sticky
  * or fixed under it. *Report a problem or an idea*, chosen in the account menu
  * of the sidebar or in More of the phone, opens one panel kept here (the menu
- * of the tablet closes first).
+ * of the tablet closes first). `bare` puts the page straight under the top bar,
+ * without the centred column and its margins, for a page with its own columns and
+ * bars (*Scan* on the tablet, through `ScanLayout`).
  */
 import { router, usePage } from '@inertiajs/vue3';
 import { useElementSize } from '@vueuse/core';
@@ -47,6 +49,11 @@ import type { TrailPiece } from '@/lib/pageTrail';
 import { createTrailState, isSectionPage, TRAIL_KEY } from '@/lib/pageTrail';
 import { search } from '@/routes';
 import { leave } from '@/routes/visit';
+
+const { bare = false } = defineProps<{
+    /** The page goes straight under the top bar, without the column and its margins. */
+    bare?: boolean;
+}>();
 
 defineSlots<{
     /** The page. */
@@ -237,7 +244,11 @@ useSearchShortcut(focusSearch);
                     @load-notices="loadNotices"
                 />
             </div>
+            <main v-if="bare" class="flex min-h-0 grow flex-col">
+                <slot />
+            </main>
             <main
+                v-else
                 class="@container grow px-(--main-gutter) pt-4 pb-6 [--main-gutter:--spacing(5)] computer:pt-8 computer:pb-12 computer:[--main-gutter:--spacing(10)]"
             >
                 <div

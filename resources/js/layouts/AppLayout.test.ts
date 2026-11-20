@@ -137,6 +137,21 @@ describe('AppLayout', () => {
         ).toHaveLength(1);
     });
 
+    it('bare puts the page straight under the top bar, without the column and its margins', () => {
+        screenWidth(820);
+        render(AppLayout, {
+            props: { bare: true },
+            slots: { default: '<h1>New document</h1>' },
+        });
+
+        expect(
+            screen.getByRole('heading', { name: 'New document' }).parentElement,
+        ).toBe(screen.getByRole('main'));
+        expect(
+            screen.getByRole('button', { name: 'Menu' }),
+        ).toBeInTheDocument();
+    });
+
     it('on the tablet has the Menu button, and neither the bottom bar nor the sidebar', () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
