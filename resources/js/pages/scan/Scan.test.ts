@@ -637,13 +637,31 @@ describe('Scan', () => {
         expect(signal?.aborted).toBe(true);
     });
 
-    it('asks before throwing even one page away, then goes back to To sort', async () => {
+    it('on the phone has To sort above the title New document, and no Back', () => {
+        renderPage(Scan);
+
+        expect(
+            screen.getByRole('button', { name: 'To sort' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { name: 'New document' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Back' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('asks before throwing even one page away, then goes to To sort, also when a page came before', async () => {
+        trail.canGoBack.mockReturnValue(true);
+        const back = vi
+            .spyOn(window.history, 'back')
+            .mockImplementation(() => {});
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Scan);
         await choose(photo('one.jpg'));
         await screen.findByText('Cropped');
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'To sort' }));
 
         const question = await screen.findByRole('dialog', {
             name: 'Throw away 1 page?',
@@ -656,43 +674,18 @@ describe('Scan', () => {
             within(question).getByRole('button', { name: 'Throw away' }),
         );
         expect(visit).toHaveBeenCalledWith(expect.stringMatching(/\/to-sort$/));
+        expect(back).not.toHaveBeenCalled();
         // the pages stay on screen while the page changes: no empty page in between
         expect(screen.queryByText('No pages')).not.toBeInTheDocument();
     });
 
-    it('goes back to the page it came from, after throwing the pages away', async () => {
-        trail.canGoBack.mockReturnValue(true);
-        const back = vi
-            .spyOn(window.history, 'back')
-            .mockImplementation(() => {});
+    it('goes to To sort at once when the document is empty', async () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Scan);
-        await choose(photo('one.jpg'));
-        await screen.findByText('Cropped');
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-        await fireEvent.click(
-            within(
-                await screen.findByRole('dialog', {
-                    name: 'Throw away 1 page?',
-                }),
-            ).getByRole('button', { name: 'Throw away' }),
-        );
+        await fireEvent.click(screen.getByRole('button', { name: 'To sort' }));
 
-        expect(back).toHaveBeenCalledTimes(1);
-        expect(visit).not.toHaveBeenCalled();
-    });
-
-    it('goes back to the page it came from when there are no pages', async () => {
-        trail.canGoBack.mockReturnValue(true);
-        const back = vi
-            .spyOn(window.history, 'back')
-            .mockImplementation(() => {});
-        renderPage(Scan);
-
-        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-
-        expect(back).toHaveBeenCalledTimes(1);
+        expect(visit).toHaveBeenCalledWith(expect.stringMatching(/\/to-sort$/));
     });
 
     it('keeps the pages and stays with Keep', async () => {
@@ -703,7 +696,7 @@ describe('Scan', () => {
             expect(screen.getAllByText('3 pages')).not.toHaveLength(0),
         );
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'To sort' }));
         const question = await screen.findByRole('dialog', {
             name: 'Throw away 3 pages?',
         });
@@ -720,41 +713,28 @@ describe('Scan', () => {
         expect(visit).not.toHaveBeenCalled();
     });
 
-    it('has Back with the arrow at the top, not Cancel', () => {
+    it('on the computer keeps the bar with Back, which goes back to the page it came from', async () => {
+        wide(true);
+        trail.canGoBack.mockReturnValue(true);
+        const back = vi
+            .spyOn(window.history, 'back')
+            .mockImplementation(() => {});
         renderPage(Scan);
 
-        const back = screen.getByRole('button', { name: 'Back' });
-        expect(back.querySelector('svg')).not.toBeNull();
         expect(
-            screen.queryByRole('button', { name: 'Cancel' }),
+            screen.queryByRole('button', { name: 'To sort' }),
         ).not.toBeInTheDocument();
-    });
-
-    it('goes back to To sort when the document is empty, but a linked phone stays', async () => {
-        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
-        renderPage(Scan);
-
         await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-        expect(visit).toHaveBeenCalledWith(expect.stringMatching(/\/to-sort$/));
+
+        expect(back).toHaveBeenCalledTimes(1);
     });
 
-    it('lets a linked phone sign in with the password, and stay on the scan', async () => {
-        page.linked = true;
-        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
-        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
-        renderPage(Scan);
-
-        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-        expect(visit).not.toHaveBeenCalled();
-
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Sign in with the password' }),
-        );
-        expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/logout$/));
-    });
-
-    it('throws the pages of a linked phone away and stays on the scan', async () => {
-        page.linked = true;
+    it('on the computer goes back to the page it came from after throwing the pages away', async () => {
+        wide(true);
+        trail.canGoBack.mockReturnValue(true);
+        const back = vi
+            .spyOn(window.history, 'back')
+            .mockImplementation(() => {});
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Scan);
         await choose(photo('one.jpg'));
@@ -769,8 +749,34 @@ describe('Scan', () => {
             ).getByRole('button', { name: 'Throw away' }),
         );
 
-        expect(await screen.findByText('No pages')).toBeInTheDocument();
+        expect(back).toHaveBeenCalledTimes(1);
         expect(visit).not.toHaveBeenCalled();
+    });
+
+    it('keeps the bar on a linked phone, with nothing to go back with', () => {
+        page.linked = true;
+        renderPage(Scan);
+
+        expect(
+            screen.getByRole('heading', { name: 'New document' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Back' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'To sort' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('lets a linked phone sign in with the password, and stay on the scan', async () => {
+        page.linked = true;
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Scan);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Sign in with the password' }),
+        );
+        expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/logout$/));
     });
 
     it('uploads after the question, and says what arrived', async () => {

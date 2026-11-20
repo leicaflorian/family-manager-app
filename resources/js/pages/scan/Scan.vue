@@ -30,6 +30,7 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
 import type { StripPage } from '@/components/fm/FmPageStrip.vue';
 import FmPageStrip from '@/components/fm/FmPageStrip.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 import type {
     CropImprove,
     CropResult,
@@ -550,9 +551,20 @@ function closeWebcam(): void {
     webcamOpen.value = false;
 }
 
-/** *Back* at the top: with pages it asks first, even for one; with none the page is left. */
-function cancel(): void {
+/** Where leaving goes: back in the history (*Back* of the wide bar) or to *To sort* (the link above the title). */
+type LeaveTo = 'history' | 'toSort';
+
+/** Where the page goes once the question of throwing the pages away is answered. */
+const leaveTo = ref<LeaveTo>('history');
+
+/**
+ * *Back* of the wide bar and *‹ To sort* above the title: with pages it asks first, even for one; with none the
+ * page is left.
+ */
+function cancel(to: LeaveTo): void {
     if (upload.sending.value) return;
+
+    leaveTo.value = to;
 
     if (empty.value) {
         leave();
@@ -564,47 +576,22 @@ function cancel(): void {
 }
 
 /**
- * Goes back to the page of the app the scan was opened from, or to *To sort* when the tab opened on the scan; a
- * linked phone, which has nowhere else to go, stays.
+ * Goes to *To sort*, as the link above the title says, or back to the page of the app the scan was opened from
+ * (*To sort* when the tab opened on the scan). A linked phone has neither.
  */
 function leave(): void {
-    if (linked.value) return;
-
-    if (canGoBack()) window.history.back();
+    if (leaveTo.value === 'history' && canGoBack()) window.history.back();
     else router.visit(toSort().url);
 }
 
 /**
- * *Throw away* of the question of *Back*. The pages stay on screen until the page changes (they go when it
- * unmounts), so no empty page shows in between; a linked phone stays, with the page emptied.
+ * *Throw away* of the question of leaving. The pages stay on screen until the page changes (they go when it
+ * unmounts), so no empty page shows in between.
  */
 function discardAndLeave(): void {
-    if (linked.value) {
-        discardAll();
-
-        return;
-    }
-
     discardAsking.value = false;
     leaving.value = true;
     leave();
-}
-
-/** Every page goes, with *What it is*. */
-function discardAll(): void {
-    discardAsking.value = false;
-
-    for (const one of pages.value) {
-        forget(one);
-        stopStraightening(one.id);
-        straightener.forget(one.id);
-    }
-
-    doc.value = { pages: [], chosenId: null };
-    note.value = '';
-    oneSheet.value = false;
-    notice.value = null;
-    upload.reset();
 }
 
 /** The *Improve* asked of each page while *Crop* is open: only the last one asked is kept. */
@@ -922,7 +909,23 @@ onBeforeUnmount(() => {
         @change="onFiles"
     />
 
+    <!-- On the phone, as Upload and Received mail: the link back above the big title. The bar stays on the
+         computer, and on a linked phone, which has nowhere to go back to. -->
+    <div v-if="!wide && !linked" class="shrink-0 px-5 pt-4">
+        <FmTitle
+            :title="$t('New document')"
+            :back-label="$t('To sort')"
+            @back="cancel('toSort')"
+        >
+            <template #actions>
+                <span class="text-body-sm whitespace-nowrap text-ink-soft">{{
+                    count
+                }}</span>
+            </template>
+        </FmTitle>
+    </div>
     <header
+        v-else
         :class="
             cn(
                 'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center',
@@ -933,13 +936,15 @@ onBeforeUnmount(() => {
         "
     >
         <FmButton
+            v-if="!linked"
             class="-ml-3 justify-self-start"
             variant="text"
             :icon="ChevronLeft"
             :disabled="upload.sending.value"
-            @click="cancel"
+            @click="cancel('history')"
             >{{ $t('Back') }}</FmButton
         >
+        <span v-else />
         <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
             {{ $t('New document') }}
         </h1>
