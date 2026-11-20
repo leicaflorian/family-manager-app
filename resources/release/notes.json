@@ -1,5 +1,31 @@
 [
     {
+        "version": "2.3.1",
+        "date": "2026-11-20",
+        "notes": {
+            "it": [
+                "Sul tablet e sul computer il menu laterale è più comodo: sul computer resta sempre aperto, sul tablet si riduce alle icone e si apre sopra la pagina.",
+                "Il menu del tablet si può tenere aperto con «Tieni aperto il menu».",
+                "Sul tablet la barra in alto è più ordinata e il menu parte dalla barra della pagina.",
+                "Nella scansione ritagli in due passi: prima gli angoli, poi «Migliora» con un cursore da 0 a 100.",
+                "«Scansiona un foglio» apre subito la fotocamera.",
+                "Nella scansione e in «Da smistare» c'è la freccia ‹ per tornare indietro, e ti chiede conferma prima di buttare via le pagine.",
+                "In «Carica documenti», sul Mac o sul computer Windows, c'è una scheda per usare lo scanner di casa.",
+                "Sull'icona dell'iPhone e dell'iPad l'app si apre senza le barre di Safari e con una schermata di avvio con l'icona."
+            ],
+            "en": [
+                "The side menu is more comfortable on the tablet and the computer: on the computer it stays open, on the tablet it shrinks to the icons and opens over the page.",
+                "On the tablet you can keep the menu open with «Keep the menu open».",
+                "On the tablet the top bar is tidier and the menu starts from the bar of the page.",
+                "In the scan you crop in two steps: first the corners, then «Improve» with a slider from 0 to 100.",
+                "«Scan a sheet» opens the camera right away.",
+                "In the scan and in «To sort» there is a ‹ arrow to go back, and it asks before throwing pages away.",
+                "In «Upload documents», on a Mac or Windows computer, there is a card to use the scanner at home.",
+                "From the icon on iPhone and iPad the app opens without the Safari bars and with a start screen showing the icon."
+            ]
+        }
+    },
+    {
         "version": "2.3.0",
         "date": "2026-11-19",
         "notes": {

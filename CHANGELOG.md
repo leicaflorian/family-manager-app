@@ -2,6 +2,29 @@
 
 All notable changes to Fameja.app.
 
+## [2.3.1] - 2026-11-20
+
+### Layout and navigation
+- Layout modes: tablet from 768 to 1279 px, computer from 1280 px (`useLayoutMode()`).
+- Sidebar: always open on the computer; on the tablet it stays collapsed to the icons (76 px), opens over the page on hover or touch (closing when the page opens) and can be kept open with *Keep the menu open*; animated, icons stay still while it opens.
+- Top bar of the tablet: 20 px side margins; the menu starts with the bar of the page, with *Back* where the bar has *Menu*; square bar buttons live in `lib/topBar.ts`.
+- Bottom bar: the badge of the + button has a ring in the card colour.
+- `FmTitle` and `FmBackLink` accept a back without an address (a button that notifies the page).
+
+### Documents, scan and scanner
+- To sort / Upload / Scan: ‹ back link above the title instead of the ×; Upload and Scan go back to the page they came from, and ask before throwing pages away.
+- To sort: on the phone the + of the bar has *Take a photo* and *Choose a file*.
+- Upload: on a Mac or Windows computer, a card for the scanner beside the drop zone.
+- Scan: *Scan a sheet* of *Add* opens the camera at once (`?camera=1`); crop in two steps (corners, then *Improve* as a 0–100 slider on the cut sheet); on the tablet the app top bar stays over the photos.
+- Scanner page follows the boards *Scanner* and *Scanner-pc*: own scroll areas, settings and put-aside sides components.
+
+### PWA
+- iPhone and iPad get `manifest-ios.webmanifest` (scope `/`, no start address), so the home-screen app keeps the whole site without Safari bars.
+- Splash screens for 14 iPhones and 9 iPads (`apple-touch-startup-image`, light and dark, portrait and landscape), written by `SplashScreens` and drawn by `npm run splash-screens`.
+
+### Docs
+- Learnings: canvas artboard links and reka-ui popover names.
+
 ## [2.3.0] - 2026-11-19
 
 ### Owner panel
