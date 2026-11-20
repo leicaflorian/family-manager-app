@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Actions\Banks\SyncBankConnection;
+use App\Models\BankConnection;
+use App\Support\CurrentFamily;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Queue\Attributes\UniqueFor;
 
 /**
- * Reads the transactions of a bank connection. A shell for now: the reading arrives with the sync of the banks.
+ * Reads the transactions of a bank connection, inside its family (the queue has nobody signed in). One read per
+ * connection at a time, and one try: the next scheduled read starts again.
  */
-final class SyncBank implements ShouldQueue
+#[Tries(1)]
+#[UniqueFor(900)]
+final class SyncBank implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
@@ -22,10 +30,24 @@ final class SyncBank implements ShouldQueue
     public function __construct(public readonly int $connectionId, public readonly int $familyId) {}
 
     /**
-     * Only notes that the read was asked for: the reading itself arrives with the sync of the banks.
+     * One job per connection at a time.
      */
-    public function handle(): void
+    public function uniqueId(): string
     {
-        Log::debug('Bank read asked, not done yet.', ['connection' => $this->connectionId]);
+        return (string) $this->connectionId;
+    }
+
+    /**
+     * Reads the connection, if it is still there.
+     */
+    public function handle(SyncBankConnection $sync): void
+    {
+        CurrentFamily::using($this->familyId, function () use ($sync): void {
+            $connection = BankConnection::query()->find($this->connectionId);
+
+            if ($connection instanceof BankConnection) {
+                $sync->handle($connection);
+            }
+        });
     }
 }

@@ -26,6 +26,9 @@ final class FakeBankFeed implements BankFeed
 
     private int $calls = 0;
 
+    /** @var list<array{from: CarbonImmutable, to: CarbonImmutable}> the dates asked at every read */
+    private array $requests = [];
+
     /**
      * Every read of the transactions gives these entries, whatever the dates.
      *
@@ -57,6 +60,16 @@ final class FakeBankFeed implements BankFeed
     public function calls(): int
     {
         return $this->calls;
+    }
+
+    /**
+     * The first and last day asked at every read of the transactions, in order.
+     *
+     * @return list<array{from: CarbonImmutable, to: CarbonImmutable}>
+     */
+    public function requests(): array
+    {
+        return $this->requests;
     }
 
     /**
@@ -122,6 +135,7 @@ final class FakeBankFeed implements BankFeed
     public function transactions(string $session, string $accountUid, CarbonImmutable $from, CarbonImmutable $to, ?BankVisitor $visitor = null): array
     {
         $this->calls++;
+        $this->requests[] = ['from' => $from, 'to' => $to];
 
         if ($this->failure instanceof BankFeedFailed) {
             throw $this->failure;

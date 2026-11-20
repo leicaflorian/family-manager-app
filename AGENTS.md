@@ -98,6 +98,7 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 | `./vendor/bin/sail npm run og-image` | Ridisegna l'immagine delle anteprime dei link (`resources/design/og-image.svg` → `public/fameja-app-og-1200x630.png`) |
 | `./vendor/bin/sail artisan owner:create` | Crea un account del proprietario per il pannello `/admin` (nome, email, password con conferma) |
 | `./vendor/bin/sail artisan user:password <email>` | Imposta una password nuova per un account di una famiglia (la chiede due volte, almeno 10 caratteri; i telefoni collegati dell'account escono) |
+| `./vendor/bin/sail artisan banks:sync` | Mette in coda la lettura dei movimenti delle banche collegate (`--family=`); parte da sola alle 07:00, 13:00 e 19:00 (`bank_feed.sync_times`) solo con `BANK_FEED_PROVIDER` pieno |
 | `./vendor/bin/sail artisan mail-inbox:addresses` | Dà l'indirizzo per le bollette alle famiglie che non lo hanno |
 | `./vendor/bin/sail artisan mail-inbox:route` | Crea o aggiorna la regola di Mailgun del dominio verso l'app (solo alla tappa 4) |
 | `./release` | Fa una versione dal Mac, da `dev` (vedi *Pubblicazione*): unisce in `main`, fa scrivere changelog e note a Claude, chiede di confermare il numero, salva il database se ci sono migrazioni nuove, fa commit e tag e spinge |
