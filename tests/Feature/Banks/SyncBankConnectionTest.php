@@ -15,6 +15,7 @@ use App\Models\FinancialAccount;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankEntry;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 
 beforeEach(function (): void {
@@ -174,5 +175,29 @@ test('an unexpected error is reported and saved too, and nothing leaves the acti
             ->and($connection->refresh()->status)->toBe(BankConnectionStatus::Error)
             ->and($connection->last_error)->toBe('boom');
         Exceptions::assertReported(RuntimeException::class);
+    });
+});
+
+test('another read saving the same transaction at the same moment is no error of the bank', function (): void {
+    Exceptions::fake();
+
+    insideBianchi(function (): void {
+        [$connection, $account] = bankSyncSetup(['status' => BankConnectionStatus::Active, 'last_error' => null]);
+        $this->feed->gives([new BankEntry('a', CarbonImmutable::parse('2026-11-19'), null, -5.0, 'EUR', 'Coffee', null, true)]);
+        // The other read writes the same row between the check and the insert of this one
+        BankTransaction::creating(static function (BankTransaction $row) use ($account): void {
+            if (DB::table('bank_transactions')->where('provider_id', $row->provider_id)->doesntExist()) {
+                DB::table('bank_transactions')->insert([
+                    'family_id' => $account->family_id, 'financial_account_id' => $account->id, 'provider_id' => $row->provider_id,
+                    'amount' => '-5.00', 'currency' => 'EUR', 'text' => 'Coffee', 'status' => 'booked', 'booked_on' => '2026-11-19', 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        });
+
+        resolve(SyncBankConnection::class)->handle($connection);
+
+        expect($connection->refresh()->status)->toBe(BankConnectionStatus::Active)
+            ->and($connection->last_error)->toBeNull();
+        Exceptions::assertNothingReported();
     });
 });

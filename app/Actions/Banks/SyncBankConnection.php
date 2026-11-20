@@ -12,6 +12,7 @@ use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankVisitor;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -33,7 +34,7 @@ final readonly class SyncBankConnection
     /**
      * Reads the connection. An account with no transactions is read from `first_days` ago, the others from
      * `overlap_days` before the last read. A consent that ended asks the person to connect again, a limit of the bank
-     * changes nothing (the next read tries again), any other failure is reported and saved as the last error. The
+     * changes nothing (the next read tries again), as another read saving the same rows at the same moment does, any other failure is reported and saved as the last error. The
      * booked transactions saved before any of these, the 90 days of a first read included, go to the rules, the oldest
      * first.
      *
@@ -96,6 +97,10 @@ final readonly class SyncBankConnection
 
             return $new;
         } catch (BankLimitReached) {
+            return $new;
+        } catch (UniqueConstraintViolationException) {
+            // Another read of the same bank (a job and *Update* at the same moment) saved these rows first: nothing wrong
+            // with the bank, and what this read left the next one finds again
             return $new;
         } catch (Throwable $failure) {
             report($failure);

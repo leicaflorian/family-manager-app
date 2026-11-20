@@ -16,11 +16,15 @@ use Illuminate\Support\Facades\DB;
  */
 final class StoreBankEntries
 {
+    /** The longest key the column holds; a longer id of the bank is kept as its fingerprint. */
+    private const int KEY_LENGTH = 191;
+
     /**
      * Stores the entries of one read of an account. A booked entry is told apart by the id of the bank, or, when the
      * bank gives none, by day, amount and text plus its order among the identical entries of the same read (two
-     * identical coffees on the same day stay two). A booked entry already seen is left as it is. The pending entries
-     * of the account that are not linked to a payment are removed and written again from what the bank says now.
+     * identical coffees on the same day stay two); an id longer than the column is kept as its fingerprint (`key()`).
+     * A booked entry already seen is left as it is. The pending entries of the account that are not linked to a payment
+     * are removed and written again from what the bank says now.
      *
      * @param  BankConnection  $connection  the connection the read went through
      * @param  FinancialAccount  $account  the account that was read
@@ -40,7 +44,7 @@ final class StoreBankEntries
 
                 if ($entry->booked) {
                     // Keys carry a prefix so a numeric id never becomes an integer array key
-                    $booked['k'.(($entry->providerId !== null && $entry->providerId !== '') ? $entry->providerId : $hash.'#'.$order)] = $entry;
+                    $booked['k'.$this->key(($entry->providerId !== null && $entry->providerId !== '') ? $entry->providerId : $hash.'#'.$order)] = $entry;
                 } else {
                     $pending['kpending:'.$hash.'#'.$order] = $entry;
                 }
@@ -77,6 +81,17 @@ final class StoreBankEntries
 
             return $new;
         });
+    }
+
+    /**
+     * The key that tells a transaction apart in its account: the id of the bank as it is, or `h:` and its SHA-1 when it
+     * is longer than the column, so a long reference neither breaks the read nor is stored twice.
+     *
+     * @param  string  $id  the id of the bank, or the fingerprint of an entry without one
+     */
+    private function key(string $id): string
+    {
+        return strlen($id) > self::KEY_LENGTH ? 'h:'.sha1($id) : $id;
     }
 
     /**

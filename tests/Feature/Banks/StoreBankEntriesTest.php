@@ -154,3 +154,17 @@ test('a numeric id of the bank is stored and not stored twice', function (): voi
             ->and(BankTransaction::query()->sole()->provider_id)->toBe('1234567890');
     });
 });
+
+test('an id of the bank longer than the column is kept as its fingerprint, and found again at the next read', function (): void {
+    insideBianchi(function (): void {
+        $long = str_repeat('REF-0123456789-', 20);
+        [$connection, $account, $new] = bankStoreRun([bankStoreEntry($long, '2026-11-05', -72.40, 'SDD EDISON')]);
+
+        expect($new)->toHaveCount(1)
+            ->and($new[0]->provider_id)->toBe('h:'.sha1($long));
+
+        [, , $again] = bankStoreRun([bankStoreEntry($long, '2026-11-05', -72.40, 'SDD EDISON')], [$connection, $account]);
+        expect($again)->toBe([])
+            ->and(BankTransaction::query()->count())->toBe(1);
+    });
+});
