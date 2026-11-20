@@ -32,10 +32,17 @@ final readonly class BankInstitutions
     {
         $country = Config::string('bank_feed.country');
 
-        /** @var list<BankInstitution> $banks */
-        $banks = Cache::remember('bank-institutions:'.$country, now()->addHours(self::HOURS), fn (): array => $this->feed->institutions($country));
+        // Plain arrays: the cache does not rebuild classes (`serializable_classes` is false), so objects would come back broken
+        /** @var list<array{name: string, country: string, logo: string|null, max_consent_days: int}> $rows */
+        $rows = Cache::remember('bank-institutions:'.$country, now()->addHours(self::HOURS), fn (): array => array_map(
+            static fn (BankInstitution $bank): array => ['name' => $bank->name, 'country' => $bank->country, 'logo' => $bank->logo, 'max_consent_days' => $bank->maxConsentDays],
+            $this->feed->institutions($country),
+        ));
 
-        return $banks;
+        return array_map(
+            static fn (array $row): BankInstitution => new BankInstitution($row['name'], $row['country'], $row['logo'], $row['max_consent_days']),
+            $rows,
+        );
     }
 
     /**
