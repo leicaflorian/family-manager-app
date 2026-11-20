@@ -26,6 +26,29 @@ export function formatEuro(amount: number): string {
         .replace(/\s/g, ' ');
 }
 
+/**
+ * Writes an amount in any currency as the app writes euros: the Italian way, with the code of the currency
+ * (`-120,00 USD`); euros keep the `€` sign.
+ *
+ * @param amount - the amount, with its sign
+ * @param currency - the code of the currency, for example `USD`
+ * @returns the amount as text
+ */
+export function formatMoney(amount: number, currency: string): string {
+    if (currency === 'EUR') {
+        return formatEuro(amount);
+    }
+
+    return new Intl.NumberFormat('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })
+        .format(amount)
+        .replace(/^(-?\d)(\d{3}),/, '$1.$2,')
+        .replace(/\s/g, ' ')
+        .concat(` ${currency}`);
+}
+
 /** Writes a size with one decimal at most, with the comma. */
 const sizeNumber = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 });
 

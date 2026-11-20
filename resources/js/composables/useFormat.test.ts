@@ -15,4 +15,12 @@ describe('useFormat', () => {
         expect(euro(null)).toBe('');
         expect(date(null)).toBe('');
     });
+
+    it('writes an amount in another currency with its code, in euros as euros', () => {
+        const { money } = useFormat();
+
+        expect(money(-120, 'USD')).toBe('-120,00 USD');
+        expect(money(1234.5, 'USD')).toBe('1.234,50 USD');
+        expect(money(-72.4, 'EUR')).toBe('-72,40 €');
+    });
 });

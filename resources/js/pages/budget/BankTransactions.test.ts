@@ -10,7 +10,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { bankTransactions } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import BankTransactions from './BankTransactions.vue';
 
 const shared = vi.hoisted(() => ({
@@ -34,6 +34,7 @@ beforeEach(() => {
 afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     shared.bank_feed = { unsorted: 6 };
 });
 
@@ -228,5 +229,32 @@ describe('Budget, From the bank', () => {
 
         post.mock.calls[0]![2]!.onFinish?.({} as never);
         await vi.waitFor(() => expect(button).toBeEnabled());
+    });
+
+    it('keeps the day inside the line of the account on the phone', () => {
+        renderPage(BankTransactions, props());
+
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+        expect(row).not.toHaveAttribute('data-wide');
+        expect(
+            within(row).getByText('05/11/2026 · Conto BancoPosta ·· 3307'),
+        ).toBeInTheDocument();
+    });
+
+    it('puts the day in its own column on the wide layout, the account under the text', () => {
+        screenWidth(true);
+        renderPage(BankTransactions, props());
+
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+        expect(row).toHaveAttribute('data-wide');
+        expect(within(row).getByText('05/11/2026')).toBeInTheDocument();
+        expect(
+            within(row).getByText('Conto BancoPosta ·· 3307'),
+        ).toBeInTheDocument();
+        expect(within(row).getByText('-72,40 €')).toBeInTheDocument();
+        // A pending transaction keeps its mark and the day the bank gave
+        const pending = screen.getByText(/Q8 STAZIONE/).closest('li')!;
+        expect(within(pending).getByText('06/11/2026')).toBeInTheDocument();
+        expect(within(pending).getByText('Pending')).toBeInTheDocument();
     });
 });

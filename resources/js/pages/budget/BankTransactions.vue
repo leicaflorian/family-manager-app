@@ -21,6 +21,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTitleTools from '@/components/fm/FmTitleTools.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { lastReadText } from '@/lib/banks';
 import { budgetTabs } from '@/lib/budgetTabs';
@@ -51,7 +52,8 @@ const props = defineProps<{
 
 const mode = useLayoutMode();
 const bankFeed = useBankFeed();
-const { euro, date } = useFormat();
+const { money, date } = useFormat();
+const wide = useWideLayout();
 
 /** An update is running: the button waits, so a double tap does not read the banks twice. */
 const updating = ref(false);
@@ -70,20 +72,6 @@ const readLine = computed((): string => {
           })
         : trans('They arrive by themselves at :times', { times });
 });
-
-/**
- * The amount of a transaction as the bank wrote it: in euros the way the app writes them, in another currency with its code.
- *
- * @param row - the transaction
- */
-function amountText(row: App.Data.BankTransactionData): string {
-    return row.currency === 'EUR'
-        ? euro(row.amount)
-        : `${new Intl.NumberFormat('it-IT', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-          }).format(row.amount)} ${row.currency}`;
-}
 
 /** The day a row is shown with: the booked one, for a pending transaction the one the bank gave. */
 function dayOf(row: App.Data.BankTransactionData): string {
@@ -216,33 +204,55 @@ function add(): void {
                 <li
                     v-for="row in rows"
                     :key="row.id"
-                    class="flex flex-col gap-2.5 px-4 py-3.5"
+                    :data-wide="wide ? '' : undefined"
+                    :class="
+                        wide
+                            ? 'grid grid-cols-[56px_minmax(0,1fr)_104px_auto] items-center gap-4 px-5 py-3.5'
+                            : 'flex flex-col gap-2.5 px-4 py-3.5'
+                    "
                 >
-                    <div class="flex items-start gap-3">
-                        <span class="flex min-w-0 grow flex-col gap-0.5">
+                    <span v-if="wide" class="text-label text-ink">{{
+                        dayOf(row)
+                    }}</span>
+                    <div :class="wide ? 'contents' : 'flex items-start gap-3'">
+                        <span class="flex min-w-0 grow flex-col gap-1">
                             <span class="text-body-sm wrap-anywhere text-ink">{{
                                 row.text
                             }}</span>
-                            <span class="text-meta text-ink-soft"
-                                >{{ dayOf(row) }}
-                                {{
-                                    row.account ? `· ${row.account}` : ''
-                                }}</span
+                            <span class="text-meta text-ink-soft">{{
+                                wide
+                                    ? row.account
+                                    : `${dayOf(row)} ${row.account ? `· ${row.account}` : ''}`
+                            }}</span>
+                            <span
+                                v-if="wide && row.pending"
+                                class="flex flex-wrap items-center gap-2"
                             >
+                                <span
+                                    class="inline-flex self-start rounded-tag bg-warning-soft px-2 py-[3px] text-meta-strong whitespace-nowrap text-warning"
+                                    >{{ $t('Pending') }}</span
+                                >
+                                <span class="text-meta text-ink-soft">{{
+                                    $t('It is sorted when the bank books it')
+                                }}</span>
+                            </span>
                         </span>
                         <span
                             :class="
                                 cn(
                                     'shrink-0 text-amount whitespace-nowrap',
+                                    wide && 'text-right',
                                     row.pending && 'text-ink-soft',
                                     row.amount > 0 && 'text-paid',
                                 )
                             "
-                            >{{ amountText(row) }}</span
+                            >{{ money(row.amount, row.currency) }}</span
                         >
                     </div>
+                    <!-- The room of the row actions (Tasks 15-17) -->
+                    <span v-if="wide" class="flex justify-end"></span>
                     <div
-                        v-if="row.pending"
+                        v-if="!wide && row.pending"
                         class="flex flex-wrap items-center gap-2"
                     >
                         <span
