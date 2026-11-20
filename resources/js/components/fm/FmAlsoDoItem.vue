@@ -15,6 +15,7 @@ import type { LucideIcon } from '@lucide/vue';
 import { Check } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useHeightTransition } from '@/composables/useHeightTransition';
+import { tickBoxClass } from '@/lib/tick';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -65,14 +66,7 @@ const boxClass = computed(() =>
 );
 
 /** The classes of the square tick. */
-const tickClass = computed(() =>
-    cn(
-        'flex size-[22px] shrink-0 items-center justify-center rounded-sm peer-focus-visible:ring-2 peer-focus-visible:ring-action peer-focus-visible:ring-offset-2',
-        ticked.value
-            ? 'bg-action text-on-action'
-            : 'border-2 border-ink-faint bg-card',
-    ),
-);
+const tickClass = computed(() => tickBoxClass(ticked.value));
 
 /** The colour of the icon. */
 const iconClass = computed(() =>

@@ -159,6 +159,14 @@ test('it is throttled', function (): void {
     $this->postJson(route('budget.bank.rule'), ['examples' => ['SCUOLA'], 'kind' => 'expense'])->assertStatus(429);
 });
 
+test('the preview is throttled', function (): void {
+    foreach (range(1, 60) as $attempt) {
+        $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense']))->assertOk();
+    }
+
+    $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense']))->assertStatus(429);
+});
+
 test('the form of a planned expense carries the state of the bank and the example of rule_from', function (): void {
     $example = bankMatchEndpointsRow($this->marco, 5);
     $foreign = BankTransaction::factory()->create(['family_id' => Family::factory()->create()->id]);

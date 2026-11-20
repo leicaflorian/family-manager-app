@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 import {
     formatDate,
+    formatDayMonth,
     formatDateTime,
     formatShortDateTime,
     formatEuro,
@@ -113,5 +114,11 @@ describe('formatShortDateTime', () => {
         expect(formatShortDateTime('2026-10-14T07:58:00+02:00')).toBe(
             '14/10 · 07:58',
         );
+    });
+});
+
+describe('formatDayMonth', () => {
+    it('writes dd/mm from a date of the server', () => {
+        expect(formatDayMonth('2026-09-05')).toBe('05/09');
     });
 });

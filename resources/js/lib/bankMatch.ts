@@ -5,7 +5,7 @@
  */
 import { http } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { formatMoney } from '@/lib/format';
+import { formatDayMonth, formatMoney } from '@/lib/format';
 import { examples, matches, rule } from '@/routes/budget/bank';
 
 /** The direction of the form: an expense looks at outgoing transactions, an income at incoming ones. */
@@ -238,11 +238,10 @@ export async function writeRule(
  * @returns for example `05/09 72,10 €`
  */
 export function matchLine(row: App.Data.BankTransactionData): string {
-    const day = (row.booked_on ?? row.value_on ?? '').slice(0, 10);
-    const [, month, date] = day.split('-');
+    const day = row.booked_on ?? row.value_on;
     const amount = formatMoney(Math.abs(row.amount), row.currency);
 
-    return month && date ? `${date}/${month} ${amount}` : amount;
+    return day ? `${formatDayMonth(day)} ${amount}` : amount;
 }
 
 /**

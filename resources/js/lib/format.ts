@@ -101,6 +101,16 @@ export function formatDate(date: string | Date): string {
     return format(toDate(date), 'DD/MM/YYYY', 'it');
 }
 
+/**
+ * Writes a date as dd/mm, without the year.
+ *
+ * @param date - a date of the server or a `Date`
+ * @returns the date as text, for example `05/09`
+ */
+export function formatDayMonth(date: string | Date): string {
+    return format(toDate(date), 'DD/MM', 'it');
+}
+
 /** The day, month, year, hours and minutes of a moment, in the time of Rome. */
 const romeMoment = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Rome',

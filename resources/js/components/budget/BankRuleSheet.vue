@@ -7,7 +7,7 @@
  *
  * @group panels
  */
-import { CircleCheck, Regex } from '@lucide/vue';
+import { Check, CircleCheck, Regex } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
@@ -16,6 +16,7 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import { useFormat } from '@/composables/useFormat';
 import type { BankMatchKind, BankRuleResult } from '@/lib/bankMatch';
+import { tickBoxClass } from '@/lib/tick';
 import {
     BankMatchError,
     fetchExamples,
@@ -227,21 +228,14 @@ function detail(row: App.Data.BankTransactionData): string {
                     />
                     <span
                         aria-hidden="true"
-                        class="flex size-5.5 shrink-0 items-center justify-center rounded-md border-[1.5px] border-edge bg-card text-on-action peer-checked:border-action peer-checked:bg-action peer-focus-visible:ring-2 peer-focus-visible:ring-action"
+                        :class="tickBoxClass(chosen.includes(row.id))"
                     >
-                        <svg
+                        <FmIcon
                             v-if="chosen.includes(row.id)"
-                            viewBox="0 0 24 24"
-                            width="14"
-                            height="14"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="3"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M20 6 9 17l-5-5" />
-                        </svg>
+                            :icon="Check"
+                            :size="15"
+                            :stroke="3"
+                        />
                     </span>
                     <span class="flex min-w-0 grow flex-col gap-0.5">
                         <span class="text-body-sm wrap-anywhere text-ink">{{

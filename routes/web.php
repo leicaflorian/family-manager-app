@@ -186,7 +186,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
         Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
         Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1')->name('budget.bank.sync');
-        Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->name('budget.bank.matches');
+        Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1')->name('budget.bank.matches');
         Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
         Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1')->name('budget.bank.rule');
         Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');

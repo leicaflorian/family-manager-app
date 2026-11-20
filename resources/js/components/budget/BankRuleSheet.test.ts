@@ -64,7 +64,13 @@ describe('BankRuleSheet', () => {
         expect(server.request.mock.calls[0]![0].url).toContain('kind=expense');
         expect(server.request.mock.calls[0]![0].url).toContain('account_id=7');
 
+        expect(choice.nextElementSibling?.querySelector('svg')).toBeNull();
         await userEvent.click(choice);
+        expect(choice.nextElementSibling?.querySelector('svg')).not.toBeNull();
+        expect(choice.nextElementSibling).toHaveClass(
+            'bg-action',
+            'rounded-sm',
+        );
         await userEvent.click(
             within(dialog).getByRole('button', { name: 'Write the rule' }),
         );
