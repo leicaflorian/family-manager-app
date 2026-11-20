@@ -12,7 +12,6 @@ use App\Models\BankTransaction;
 use App\Models\FinancialAccount;
 use App\Models\User;
 use App\Services\Reminders\CardNotices;
-use App\Support\Banks\BankInstitution;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -131,7 +130,7 @@ test('the institutions come only when asked and are cached', function (): void {
     expect(Cache::has('bank-institutions:IT'))->toBeTrue();
 
     // A second ask is answered from the cache, not by the provider
-    Cache::put('bank-institutions:IT', [new BankInstitution('Poste', 'IT', 'https://logo.test/poste.png', 180)], 60);
+    Cache::put('bank-institutions:IT', [['name' => 'Poste', 'country' => 'IT', 'logo' => 'https://logo.test/poste.png', 'max_consent_days' => 180]], 60);
     $this->get(route('banks.index'), bankPagesAsk())
         ->assertJsonPath('props.institutions.0.name', 'Poste')
         ->assertJsonPath('props.institutions.0.logo', 'https://logo.test/poste.png');
