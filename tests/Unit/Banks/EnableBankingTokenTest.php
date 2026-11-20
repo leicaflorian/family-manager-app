@@ -62,3 +62,46 @@ it('keeps the token in the cache for 50 minutes', function (): void {
 
     File::delete($path);
 });
+
+it('reads a relative key path from the root of the app, wherever the process runs', function (): void {
+    ['path' => $temporary] = bankTokenKeyPair();
+    $name = 'storage/framework/testing/eb-key-'.bin2hex(random_bytes(4)).'.pem';
+    File::ensureDirectoryExists(dirname(base_path($name)));
+    File::move($temporary, base_path($name));
+    config(['bank_feed.enable_banking.key_path' => $name]);
+    Cache::flush();
+    $before = getcwd();
+    // PHP-FPM runs from public/, the worker from the root: a relative path must mean the same in both
+    chdir(public_path());
+
+    try {
+        expect(EnableBankingToken::keyPath())->toBe(base_path($name))
+            ->and((new EnableBankingToken)->make(CarbonImmutable::parse('2026-11-20 10:00:00', 'UTC')))->toContain('.');
+    } finally {
+        chdir((string) $before);
+        File::delete(base_path($name));
+    }
+});
+
+it('has no key path when the file is missing or not set', function (): void {
+    config(['bank_feed.enable_banking.key_path' => null]);
+    expect(EnableBankingToken::keyPath())->toBeNull();
+
+    config(['bank_feed.enable_banking.key_path' => '/nowhere/enable-banking.pem']);
+    expect(EnableBankingToken::keyPath())->toBeNull();
+});
+
+it('makes a new token when the application id changes', function (): void {
+    ['path' => $path] = bankTokenKeyPair();
+    Cache::flush();
+    $now = CarbonImmutable::parse('2026-11-20 10:00:00', 'UTC');
+
+    $first = (new EnableBankingToken)->make($now);
+    config(['bank_feed.enable_banking.app_id' => 'app-456']);
+    $second = (new EnableBankingToken)->make($now->addMinutes(5));
+
+    expect(json_decode(bankTokenPart(explode('.', $second)[0]), true)['kid'])->toBe('app-456')
+        ->and($second)->not->toBe($first);
+
+    File::delete($path);
+});

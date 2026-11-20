@@ -42,10 +42,7 @@ final readonly class EnableBankingFeed implements BankFeed
      */
     public function isActive(): bool
     {
-        $id = EnableBankingToken::setting('app_id');
-        $path = EnableBankingToken::setting('key_path');
-
-        return $id !== '' && $path !== '' && is_readable($path);
+        return EnableBankingToken::setting('app_id') !== '' && EnableBankingToken::keyPath() !== null;
     }
 
     /**

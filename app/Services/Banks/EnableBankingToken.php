@@ -30,7 +30,9 @@ final class EnableBankingToken
      */
     public function make(CarbonImmutable $now): string
     {
-        $cached = Cache::get(self::CACHE_KEY);
+        // The key of the cache follows the application and its key, so a rotated one never reuses an old token
+        $cacheKey = self::CACHE_KEY.':'.sha1(self::setting('app_id').'|'.self::setting('key_path'));
+        $cached = Cache::get($cacheKey);
 
         if (is_array($cached) && is_string($cached['token'] ?? null) && is_int($cached['at'] ?? null)
             && $now->getTimestamp() - $cached['at'] < self::KEPT && $now->getTimestamp() >= $cached['at']) {
@@ -38,7 +40,7 @@ final class EnableBankingToken
         }
 
         $token = $this->sign($now);
-        Cache::put(self::CACHE_KEY, ['token' => $token, 'at' => $now->getTimestamp()], self::LIFETIME);
+        Cache::put($cacheKey, ['token' => $token, 'at' => $now->getTimestamp()], self::LIFETIME);
 
         return $token;
     }
@@ -56,6 +58,23 @@ final class EnableBankingToken
     }
 
     /**
+     * The private key of the application as a full path, when it is set and can be read. A relative path counts from
+     * the root of the app: PHP-FPM runs from `public/` and the worker from the root, and both must find the same file.
+     */
+    public static function keyPath(): ?string
+    {
+        $path = self::setting('key_path');
+
+        if ($path === '') {
+            return null;
+        }
+
+        $full = str_starts_with($path, '/') ? $path : base_path($path);
+
+        return is_readable($full) ? $full : null;
+    }
+
+    /**
      * Builds and signs a token.
      *
      * @param  CarbonImmutable  $now  the issue time
@@ -64,8 +83,8 @@ final class EnableBankingToken
      */
     private function sign(CarbonImmutable $now): string
     {
-        $path = self::setting('key_path');
-        $pem = $path !== '' && is_readable($path) ? file_get_contents($path) : false;
+        $path = self::keyPath();
+        $pem = $path !== null ? file_get_contents($path) : false;
 
         if ($pem === false) {
             throw new BankFeedFailed('The key of the bank provider cannot be read.');
