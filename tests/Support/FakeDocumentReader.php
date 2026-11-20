@@ -57,13 +57,6 @@ final class FakeDocumentReader implements DocumentReader
     /** The rules asked so far. */
     private int $rules = 0;
 
-    /**
-     * The example texts of the last rule asked.
-     *
-     * @var list<string>
-     */
-    private array $ruleExamples = [];
-
     /** The screenings asked so far. */
     private int $screenings = 0;
 
@@ -192,16 +185,6 @@ final class FakeDocumentReader implements DocumentReader
     }
 
     /**
-     * The example texts that went with the last request for a rule.
-     *
-     * @return list<string>
-     */
-    public function ruleExamples(): array
-    {
-        return $this->ruleExamples;
-    }
-
-    /**
      * Whether the reading is on: true unless `off()` was called.
      */
     public function isActive(): bool
@@ -279,7 +262,7 @@ final class FakeDocumentReader implements DocumentReader
 
     /**
      * Counts the request, then gives the suggestion of `suggestsRule()` or throws the error of `fails()`. As the real
-     * one, it records the call (Gemini 3.8 Flash, 200 tokens in and 30 out) as a `bank_rule` of the account signed in.
+     * one, it records the call (Gemini 3.8 Flash, 200 tokens in and 30 out) as a `bank_rule` of the account signed in, unless the error is one with no answer (`ReadingFailed::$paid` false).
      *
      * @param  list<string>  $examples  the texts of the transactions
      * @param  string  $locale  the language of the explanation
@@ -289,14 +272,19 @@ final class FakeDocumentReader implements DocumentReader
     public function bankRule(array $examples, string $locale): BankRuleSuggestion
     {
         $this->rules++;
-        $this->ruleExamples = $examples;
-
-        if ($this->failure instanceof ReadingFailed) {
-            throw $this->failure;
-        }
 
         $userId = Auth::guard('web')->id();
-        (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 200, 30, 0, ReadingPurpose::BankRule, $userId === null ? null : (int) $userId);
+
+        // as the real reader, an answer that was paid for is recorded before it is found unusable
+        $failure = $this->failure;
+
+        if (! $failure instanceof ReadingFailed || $failure->paid) {
+            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 200, 30, 0, ReadingPurpose::BankRule, $userId === null ? null : (int) $userId);
+        }
+
+        if ($failure instanceof ReadingFailed) {
+            throw $failure;
+        }
 
         return $this->rule;
     }

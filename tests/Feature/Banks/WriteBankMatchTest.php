@@ -6,6 +6,7 @@ use App\Actions\Banks\WriteBankMatch;
 use App\Contracts\DocumentReader;
 use App\Data\Banks\BankRuleSuggestion;
 use App\Enums\ReadingPurpose;
+use App\Exceptions\Reading\ReadingFailed;
 use App\Models\AiReading;
 use App\Models\Family;
 use App\Models\Person;
@@ -135,4 +136,59 @@ test('nothing but the example texts is sent', function (): void {
             && ! str_contains($body, 'Bellandi');
     });
     expect($suggestion->pattern)->toBe('ADDEBITO.*ENEL ENERGIA')->and($suggestion->explanation)->toBe('Riconosce gli addebiti di Enel Energia.');
+});
+
+test('a rule that matches the first example but not the second falls back too', function (): void {
+    [$family] = bankWriteSetup('ENEL');
+
+    $suggestion = bankWriteRun($family, ['Addebito Enel', 'Pagamento Hera']);
+
+    expect($suggestion->pattern)->toBe('ADDEBITO.*ENEL');
+});
+
+test('examples without usable words are refused and nothing is asked', function (array $examples): void {
+    [$family, $reader] = bankWriteSetup('ENEL');
+    $message = null;
+
+    try {
+        bankWriteRun($family, $examples);
+    } catch (ValidationException $e) {
+        $message = $e->validator->errors()->first('examples');
+    }
+
+    expect($message)->toBe('In questi testi non ci sono parole per riconoscere il pagamento. Scrivi la regola a mano.')
+        ->and($reader->rules())->toBe(0)
+        ->and(AiReading::query()->withoutGlobalScopes()->count())->toBe(0);
+})->with([
+    'numbers only' => [['12345 9876']],
+    'short words only' => [['DA 12 AL']],
+    'nothing' => [[]],
+    'blank texts' => [['   ', '']],
+]);
+
+test('a first example without words refuses even when the model wrote a rule', function (): void {
+    [$family] = bankWriteSetup('ENEL');
+
+    expect(fn (): BankRuleSuggestion => bankWriteRun($family, ['12345 9876', 'Addebito Enel']))->toThrow(ValidationException::class);
+});
+
+test('an answer that was paid but is unusable falls back to the first example', function (ReadingFailed $failure): void {
+    [$family, $reader] = bankWriteSetup('ENEL');
+    $reader->fails($failure);
+
+    $suggestion = bankWriteRun($family, ['Addebito Enel Energia']);
+
+    expect($suggestion->pattern)->toBe('ADDEBITO.*ENEL.*ENERGIA')
+        ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankRule);
+})->with([
+    'not valid' => fn (): ReadingFailed => ReadingFailed::invalidAnswer(),
+    'cut short' => fn (): ReadingFailed => ReadingFailed::cutShort(),
+]);
+
+test('a failure with no answer is thrown and costs nothing', function (): void {
+    [$family, $reader] = bankWriteSetup('ENEL');
+    $reader->fails(ReadingFailed::unreachable(new RuntimeException('down')));
+
+    expect(fn (): BankRuleSuggestion => bankWriteRun($family, ['Addebito Enel']))->toThrow(ReadingFailed::class)
+        ->and(AiReading::query()->withoutGlobalScopes()->count())->toBe(0);
 });

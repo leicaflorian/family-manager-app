@@ -17,8 +17,9 @@ final class ReadingFailed extends RuntimeException
      * @param  string  $key  what to show, as an English key of `lang/it.json`
      * @param  bool  $retry  true when the failure may pass (overload, network), false when trying again changes nothing
      * @param  \Throwable|null  $previous  the error underneath
+     * @param  bool  $paid  true when the service did answer (the call is billed) but the answer cannot be used
      */
-    public function __construct(public readonly string $key, public readonly bool $retry = false, ?\Throwable $previous = null)
+    public function __construct(public readonly string $key, public readonly bool $retry = false, ?\Throwable $previous = null, public readonly bool $paid = false)
     {
         parent::__construct(__($key), 0, $previous);
     }
@@ -28,7 +29,7 @@ final class ReadingFailed extends RuntimeException
      */
     public static function emptyAnswer(): self
     {
-        return new self('The answer of the model is empty.');
+        return new self('The answer of the model is empty.', paid: true);
     }
 
     /**
@@ -36,7 +37,7 @@ final class ReadingFailed extends RuntimeException
      */
     public static function invalidAnswer(?\Throwable $previous = null): self
     {
-        return new self('The answer of the model is not valid.', previous: $previous);
+        return new self('The answer of the model is not valid.', previous: $previous, paid: true);
     }
 
     /**
@@ -44,7 +45,7 @@ final class ReadingFailed extends RuntimeException
      */
     public static function refused(): self
     {
-        return new self('The model refused to read the document.');
+        return new self('The model refused to read the document.', paid: true);
     }
 
     /**
@@ -52,7 +53,7 @@ final class ReadingFailed extends RuntimeException
      */
     public static function cutShort(): self
     {
-        return new self('The answer of the model was cut short.');
+        return new self('The answer of the model was cut short.', paid: true);
     }
 
     /**

@@ -29,8 +29,8 @@ final readonly class WriteBankMatch
      * @param  list<string>  $examples  the texts of the transactions, as the bank gave them
      * @param  string  $locale  the language of the explanation (`it` or `en`)
      *
-     * @throws ValidationException when the reading is off or the month is used up
-     * @throws ReadingFailed when the service gives no answer
+     * @throws ValidationException when the reading is off or the month is used up, or the first example has no words to make a rule of
+     * @throws ReadingFailed when the service gives no answer at all (an answer that comes but is unusable gives the words of the first example)
      */
     public function handle(array $examples, string $locale): BankRuleSuggestion
     {
@@ -41,13 +41,21 @@ final readonly class WriteBankMatch
         }
 
         $texts = array_values(array_filter(array_map(BankMatch::normalize(...), $examples), static fn (string $text): bool => $text !== ''));
-        $suggestion = $this->reader->bankRule($texts, $locale);
+        $fallback = $this->fallback($texts[0] ?? '', $locale);
 
-        if ($this->recognisesAll($suggestion->pattern, $texts)) {
-            return $suggestion;
+        // no words to recognise the payment by: nothing is asked, so nothing is paid
+        if (! $fallback instanceof BankRuleSuggestion) {
+            throw ValidationException::withMessages(['examples' => __('These texts have no words to recognize the payment by. Write the rule by hand.', [], $locale)]);
         }
 
-        return $this->fallback($texts[0] ?? '', $locale);
+        try {
+            $suggestion = $this->reader->bankRule($texts, $locale);
+        } catch (ReadingFailed $failed) {
+            // the answer came (and was paid for) but cannot be used: a new call would pay twice
+            return $failed->paid ? $fallback : throw $failed;
+        }
+
+        return $this->recognisesAll($suggestion->pattern, $texts) ? $suggestion : $fallback;
     }
 
     /**
@@ -66,14 +74,20 @@ final readonly class WriteBankMatch
     }
 
     /**
-     * The rule made of the words of a text, with a sentence that lists them.
+     * The rule made of the words of a text, with a sentence that lists them; null when it would not be a safe rule
+     * that finds the text.
      *
      * @param  string  $text  the first example
      * @param  string  $locale  the language of the sentence
      */
-    private function fallback(string $text, string $locale): BankRuleSuggestion
+    private function fallback(string $text, string $locale): ?BankRuleSuggestion
     {
         $pattern = BankMatch::fromText($text);
+
+        if (! $this->recognisesAll($pattern, [$text])) {
+            return null;
+        }
+
         $words = stripslashes(str_replace('.*', ' ', $pattern));
 
         return new BankRuleSuggestion($pattern, __('Recognizes the transactions with these words: :words', ['words' => $words], $locale));
