@@ -17,8 +17,10 @@ use App\Services\Deadlines;
 use App\Support\Deadline;
 use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Settles a due date with a bank transaction: links it to the payment somebody already recorded, or records the
@@ -49,7 +51,10 @@ final readonly class SettleFromBank
      * 3. Otherwise the payment of that due date, for the amount of the bank, on the day it was booked and on its
      *    account, with the fee of the planned expense when it is smaller than the amount; the transaction is linked
      *    to it (`$by`) and everyone in the family gets a notice.
-     * 4. A due date found paid while writing is linked to its payment in the same way. No exception leaves.
+     * 4. A due date found paid while writing is linked to its payment in the same way; one skipped meanwhile leaves the
+     *    transaction to sort. No exception leaves.
+     *
+     * A transaction declined by *It was not this one* is settled only for `Assigned`: the person chose it.
      *
      * @param  BankTransaction  $transaction  The transaction of the bank.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
@@ -59,7 +64,10 @@ final readonly class SettleFromBank
     public function handle(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, BankMatchSource $by): Expense|Income|null
     {
         return DB::transaction(function () use ($transaction, $planned, $by): Expense|Income|null {
-            $current = BankTransaction::query()->unsorted()->whereNull('declined_at')->whereKey($transaction->id)->lockForUpdate()->first();
+            // A person who assigns it settles it even after *It was not this one*; a rule never takes it again
+            $current = BankTransaction::query()->unsorted()
+                ->when($by !== BankMatchSource::Assigned, static fn (Builder $query): Builder => $query->whereNull('declined_at'))
+                ->whereKey($transaction->id)->lockForUpdate()->first();
 
             if (! $current instanceof BankTransaction || ! $current->booked_on instanceof CarbonImmutable) {
                 return null;
@@ -84,10 +92,15 @@ final readonly class SettleFromBank
             }
 
             try {
-                $payment = $this->pay($current, $planned, $deadline);
-            } catch (ValidationException) {
-                // Paid by somebody who did not wait for the lock: only the payment rolled back, the lock is still held
-                return $this->linkPaid($current, $this->deadlines->find($planned, $deadline->occurrence->originalDate));
+                try {
+                    $payment = $this->pay($current, $planned, $deadline);
+                } catch (ValidationException) {
+                    // Paid by somebody who did not wait for the lock: only the payment rolled back, the lock is still held
+                    return $this->linkPaid($current, $this->deadlines->find($planned, $deadline->occurrence->originalDate));
+                }
+            } catch (NotFoundHttpException) {
+                // The due date went away meanwhile (the planned item was changed): nothing to pay or link, the transaction stays to sort
+                return null;
             }
 
             $this->link($current, $payment, $by);

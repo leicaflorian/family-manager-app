@@ -327,3 +327,203 @@ describe('Budget, From the bank, ignoring', () => {
         ).not.toBeInTheDocument();
     });
 });
+
+describe('Budget, From the bank, sorting', () => {
+    const credit: App.Data.BankTransactionData = {
+        ...bankTransactions[1]!,
+        id: 9,
+        text: 'BONIFICO A VOSTRO FAVORE DA ROSSI GIULIA',
+        amount: 35,
+    };
+
+    it('offers Create the expense and the planned expense to a booked payment', () => {
+        renderPage(BankTransactions, props());
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        expect(
+            within(row).getByRole('link', { name: 'Create the expense' }),
+        ).toHaveAttribute('href', '/budget/movements/create?bank=2');
+        expect(
+            within(row).getByRole('button', {
+                name: 'It belongs to a planned expense',
+            }),
+        ).toBeInTheDocument();
+    });
+
+    it('offers Create the income and the planned income to a credit', () => {
+        renderPage(BankTransactions, props({ rows: [credit] }));
+        const row = screen.getByText(/ROSSI GIULIA/).closest('li')!;
+
+        expect(
+            within(row).getByRole('link', { name: 'Create the income' }),
+        ).toHaveAttribute('href', '/budget/movements/create?bank=9');
+        expect(
+            within(row).getByRole('button', {
+                name: 'It belongs to a planned income',
+            }),
+        ).toBeInTheDocument();
+    });
+
+    it('offers nothing to a pending transaction, one in another currency, one put aside or to who cannot sort', () => {
+        renderPage(
+            BankTransactions,
+            props({ rows: [bankTransactions[0]!, bankTransactions[2]!] }),
+        );
+        expect(
+            screen.queryByRole('link', { name: /Create the/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: /It belongs to/ }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('offers nothing under Ignored or to who cannot sort', () => {
+        const { unmount } = renderPage(
+            BankTransactions,
+            props({
+                show: 'ignored',
+                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            }),
+        );
+        expect(
+            screen.queryByRole('link', { name: /Create the/ }),
+        ).not.toBeInTheDocument();
+        unmount();
+
+        renderPage(BankTransactions, props({ can_sort: false }));
+        expect(
+            screen.queryByRole('link', { name: /Create the/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: /It belongs to/ }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('puts the actions in the column of the row on the wide layout', () => {
+        screenWidth(1280);
+        renderPage(BankTransactions, props());
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        expect(
+            within(row).getByRole('link', { name: 'Create the expense' }),
+        ).toBeInTheDocument();
+        expect(
+            within(row).getByRole('button', {
+                name: 'It belongs to a planned expense',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            within(row).getByRole('button', { name: 'Ignore' }),
+        ).toBeInTheDocument();
+    });
+
+    it('asks for the planned expenses when the sheet opens and pays the one chosen', async () => {
+        const reload = vi
+            .spyOn(router, 'reload')
+            .mockImplementation((options) => {
+                options?.onSuccess?.({} as never);
+            });
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        const choices: App.Data.BankPlannedChoiceData[] = [
+            {
+                kind: 'expense',
+                id: 5,
+                title: 'Luce',
+                organization: 'Edison Energia',
+                due_on: '2026-11-05',
+                late: false,
+                amount: 72,
+                estimated: true,
+            },
+            {
+                kind: 'expense',
+                id: 6,
+                title: 'Gas',
+                organization: null,
+                due_on: '2026-10-30',
+                late: true,
+                amount: 84.2,
+                estimated: true,
+            },
+        ];
+        renderPage(BankTransactions, props({ planned_options: choices }));
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to a planned expense',
+            }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: { assign: 2 },
+                only: ['planned_options'],
+                preserveUrl: true,
+            }),
+        );
+        const dialog = await screen.findByRole('dialog', {
+            name: 'It belongs to a planned expense',
+        });
+        await userEvent.click(
+            within(dialog).getByRole('radio', { name: /Gas/ }),
+        );
+        await userEvent.click(
+            within(dialog).getByRole('button', { name: 'Mark as paid' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/assign',
+            { kind: 'expense', planned_id: 6 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(screen.queryByText(/EDISON ENERGIA/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the sheet and shows the message when the server refuses', async () => {
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({} as never);
+        });
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onError?.({
+                planned_id: 'This planned expense has no due dates to pay.',
+            });
+        });
+        renderPage(
+            BankTransactions,
+            props({
+                planned_options: [
+                    {
+                        kind: 'expense',
+                        id: 5,
+                        title: 'Luce',
+                        organization: null,
+                        due_on: '2026-11-05',
+                        late: false,
+                        amount: 72,
+                        estimated: false,
+                    },
+                ],
+            }),
+        );
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to a planned expense',
+            }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Mark as paid' }),
+        );
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'This planned expense has no due dates to pay.',
+        );
+        expect(screen.getAllByText(/EDISON ENERGIA/).length).toBeGreaterThan(1);
+    });
+});

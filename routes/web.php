@@ -189,6 +189,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
         Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
         Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
+        Route::post('budget/bank/{transaction}/assign', [BankTransactionController::class, 'assign'])->name('budget.bank.assign')->whereNumber('transaction');
         Route::post('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'ignore'])->name('budget.bank.ignore')->whereNumber('transaction');
         Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
         Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');

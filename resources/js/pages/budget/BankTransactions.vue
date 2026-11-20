@@ -6,11 +6,20 @@
  * *Update* reads the banks now (the server says how many movements are new) and under it comes the last read and
  * the hours of the automatic ones. A bank that has to be connected again has a strip with *Reconnect* for who can
  * change the banks. *Ignore* hides a transaction nobody has to deal with, and under *Ignored* each one has *Put back
- * among the movements*; the row goes at once and the server writes it. The other row actions (create the expense, link a
- * fixed expense) come with their own routes.
+ * among the movements*; the row goes at once and the server writes it. A booked transaction in euros also has
+ * *Create the expense* (or the income: the form of a new movement that starts from it) and *It belongs to a planned
+ * expense* (or income), which opens a panel with the planned items that have a due date to pay: the closest due date is
+ * paid and the row goes.
  */
 import { Head, router, WhenVisible } from '@inertiajs/vue3';
-import { EyeOff, Landmark, Plus, RefreshCw, RotateCcw } from '@lucide/vue';
+import {
+    EyeOff,
+    Landmark,
+    Plus,
+    RefreshCw,
+    Repeat,
+    RotateCcw,
+} from '@lucide/vue';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -21,6 +30,7 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTitleTools from '@/components/fm/FmTitleTools.vue';
+import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
@@ -30,6 +40,7 @@ import { budgetTabs } from '@/lib/budgetTabs';
 import { listNames } from '@/lib/names';
 import { cn } from '@/lib/utils';
 import {
+    assign,
     ignore,
     index as bankIndex,
     restore,
@@ -55,6 +66,8 @@ const props = defineProps<{
     last_synced_at: string | null;
     /** The hours of the day the banks are read by themselves. */
     sync_hours: number[];
+    /** The planned items the transaction of `?assign=` can pay, only sent when the panel asks for them. */
+    planned_options?: App.Data.BankPlannedChoiceData[];
 }>();
 
 const mode = useLayoutMode();
@@ -139,6 +152,114 @@ function toggleIgnored(row: App.Data.BankTransactionData): void {
     } else {
         router.post(ignore(row.id).url, {}, options);
     }
+}
+
+/** The transaction the panel *It belongs to a planned expense* is open for, null while it is closed. */
+const assigning = ref<App.Data.BankTransactionData | null>(null);
+
+/** The panel is open. */
+const assignOpen = computed({
+    get: () => assigning.value !== null,
+    set: (value: boolean) => {
+        if (!value) {
+            assigning.value = null;
+        }
+    },
+});
+
+/** What the server said when it refused the planned item. */
+const assignError = ref<string | null>(null);
+
+/** The planned item is being sent. */
+const assignProcessing = ref(false);
+
+/** The transaction `planned_options` was loaded for: the list of another one is not shown while the right one comes. */
+const optionsFor = ref<number | null>(null);
+
+/**
+ * Whether the row can be sorted here: booked, in euros, not put aside, and the person may sort.
+ *
+ * @param row - the transaction
+ */
+function sortable(row: App.Data.BankTransactionData): boolean {
+    return (
+        props.can_sort && !row.ignored && !row.pending && row.currency === 'EUR'
+    );
+}
+
+/**
+ * The label of the button that opens the panel of the planned items.
+ *
+ * @param row - the transaction
+ */
+function assignLabel(row: App.Data.BankTransactionData): string {
+    return row.amount > 0
+        ? trans('It belongs to a planned income')
+        : trans('It belongs to a planned expense');
+}
+
+/**
+ * The form of a new expense or income that starts from the transaction.
+ *
+ * @param row - the transaction
+ */
+function createUrl(row: App.Data.BankTransactionData): string {
+    return create.url({ query: { bank: row.id } });
+}
+
+/**
+ * Opens the panel for a transaction and asks the page for the planned items it can pay.
+ *
+ * @param row - the transaction
+ */
+function openAssign(row: App.Data.BankTransactionData): void {
+    assignError.value = null;
+    assigning.value = row;
+    optionsFor.value = null;
+    router.reload({
+        data: { assign: row.id },
+        only: ['planned_options'],
+        preserveUrl: true,
+        onSuccess: () => {
+            optionsFor.value = row.id;
+        },
+    });
+}
+
+/**
+ * Sends the planned item chosen: the closest due date is paid and the row goes.
+ *
+ * @param choice - the planned item
+ */
+function assignTo(choice: App.Data.BankPlannedChoiceData): void {
+    const row = assigning.value;
+
+    if (row === null) {
+        return;
+    }
+
+    router.post(
+        assign(row.id).url,
+        { kind: choice.kind, planned_id: choice.id },
+        {
+            preserveScroll: true,
+            onStart: () => {
+                assignError.value = null;
+                assignProcessing.value = true;
+            },
+            onSuccess: () => {
+                gone.value = [...gone.value, row.id];
+                assigning.value = null;
+            },
+            onError: (messages) => {
+                assignError.value =
+                    messages.planned_id ?? Object.values(messages)[0] ?? null;
+            },
+            onFinish: () => {
+                assignProcessing.value = false;
+            },
+        },
+    );
 }
 
 /** Adds an expense or an income by hand: its own page, which leads back here. */
@@ -296,14 +417,36 @@ function add(): void {
                                     $t('Put back among the movements')
                                 }}</FmButton
                             >
-                            <FmButton
+                            <span
                                 v-else
-                                variant="text"
-                                class="text-ink-soft"
-                                :icon="EyeOff"
-                                @click="toggleIgnored(row)"
-                                >{{ $t('Ignore') }}</FmButton
+                                class="flex flex-nowrap items-center gap-2"
                             >
+                                <template v-if="sortable(row)">
+                                    <FmButton
+                                        variant="outline"
+                                        :icon="Plus"
+                                        :href="createUrl(row)"
+                                        >{{
+                                            row.amount > 0
+                                                ? $t('Create the income')
+                                                : $t('Create the expense')
+                                        }}</FmButton
+                                    >
+                                    <FmButton
+                                        variant="outline"
+                                        :icon="Repeat"
+                                        @click="openAssign(row)"
+                                        >{{ assignLabel(row) }}</FmButton
+                                    >
+                                </template>
+                                <FmButton
+                                    variant="text"
+                                    class="text-ink-soft"
+                                    :icon="EyeOff"
+                                    @click="toggleIgnored(row)"
+                                    >{{ $t('Ignore') }}</FmButton
+                                >
+                            </span>
                         </template>
                     </span>
                     <div
@@ -317,14 +460,32 @@ function add(): void {
                             @click="toggleIgnored(row)"
                             >{{ $t('Put back among the movements') }}</FmButton
                         >
-                        <FmButton
-                            v-else
-                            :icon="EyeOff"
-                            :label="$t('Ignore')"
-                            plain
-                            muted
-                            @click="toggleIgnored(row)"
-                        />
+                        <template v-else>
+                            <template v-if="sortable(row)">
+                                <FmButton
+                                    variant="outline"
+                                    :href="createUrl(row)"
+                                    >{{
+                                        row.amount > 0
+                                            ? $t('Create the income')
+                                            : $t('Create the expense')
+                                    }}</FmButton
+                                >
+                                <FmButton
+                                    variant="outline"
+                                    @click="openAssign(row)"
+                                    >{{ assignLabel(row) }}</FmButton
+                                >
+                            </template>
+                            <FmButton
+                                class="ml-auto"
+                                :icon="EyeOff"
+                                :label="$t('Ignore')"
+                                plain
+                                muted
+                                @click="toggleIgnored(row)"
+                            />
+                        </template>
                     </div>
                     <div
                         v-if="!wide && row.pending"
@@ -362,5 +523,19 @@ function add(): void {
                 }}
             </p>
         </template>
+
+        <BankAssignSheet
+            v-if="assigning"
+            v-model:open="assignOpen"
+            :transaction="assigning"
+            :choices="
+                optionsFor === assigning.id
+                    ? (planned_options ?? [])
+                    : undefined
+            "
+            :error="assignError"
+            :processing="assignProcessing"
+            @assign="assignTo"
+        />
     </div>
 </template>

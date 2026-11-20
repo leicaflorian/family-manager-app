@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Budget;
 
+use App\Actions\Banks\LinkBankMovement;
 use App\Actions\Budget\DeleteMovement;
 use App\Actions\Budget\SaveMovement;
 use App\Actions\Documents\LinkDocuments;
 use App\Data\MovementData;
 use App\Data\MovementFiltersData;
 use App\Data\OptionData;
+use App\Enums\BankMatchSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\MovementIndexRequest;
 use App\Http\Requests\Budget\SaveMovementRequest;
+use App\Models\BankTransaction;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
@@ -20,6 +23,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Services\Banks\BankFeedAvailability;
 use App\Services\BudgetFormOptions;
 use App\Services\FileStore;
 use App\Services\LinkableDocuments;
@@ -72,13 +76,16 @@ final class MovementController extends Controller
     /**
      * *New expense or income*: the empty form, the one of `?kind=&planned=` for a planned item, or the expense of the
      * card of `?card=type:id` (*Add expense* of a card), with the category of its type. A card of another family is
-     * ignored.
+     * ignored. With `?bank=<id>` (*Create the expense* of *From the bank*) it starts from that transaction: its sign
+     * says expense or income, and the day, the amount, the account and the title come from it; one of another family
+     * or not to sort any more is ignored.
      *
      * @throws NotFoundHttpException if the kind is not `expense` or `income` or the planned item is not of the family
      */
     public function create(Request $request, #[CurrentUser] User $user): Response
     {
-        $kind = match ($request->query('kind', 'expense')) {
+        $bank = $this->bankTransaction($request->query('bank'));
+        $kind = $bank?->kind() ?? match ($request->query('kind', 'expense')) {
             'expense' => 'expense',
             'income' => 'income',
             default => throw new NotFoundHttpException,
@@ -95,13 +102,17 @@ final class MovementController extends Controller
             'start' => [
                 'kind' => $kind,
                 'planned_id' => $planned === null ? null : (string) $planned->id,
-                'date' => $today->toDateString(),
+                'date' => $bank?->booked_on?->toDateString() ?? $today->toDateString(),
                 'card' => $card === null ? null : PresetLink::key($card['type'], $card['id']),
                 'category_id' => $category === null ? null : (string) $category,
+                'bank_transaction_id' => $bank?->id,
+                'title' => $bank instanceof BankTransaction ? filled($bank->counterparty) ? $bank->counterparty : $bank->text : (null),
+                'amount' => $bank instanceof BankTransaction ? round(abs((float) $bank->amount), 2) : null,
+                'financial_account_id' => $bank instanceof BankTransaction ? (string) $bank->financial_account_id : null,
             ],
             'occurrences' => fn (): array => $this->occurrences($request, $kind, $today, null, $planned),
             'options' => BudgetFormOptions::forMovement(),
-            'back' => LocalPath::of($request->query('from')),
+            'back' => LocalPath::of($request->query('from')) ?? ($bank instanceof BankTransaction ? route('budget.bank.index', absolute: false) : null),
             ...$this->linkable->props($request, []),
             'canDeleteDocuments' => $user->can('deleteAny', Document::class),
         ]);
@@ -112,14 +123,21 @@ final class MovementController extends Controller
      * opens with the movement as the link of each; otherwise it goes back to the card of *Add expense* (`back_to_card`),
      * to the page the form came from (`from`) or to the month of the movement.
      */
-    public function store(SaveMovementRequest $request, SaveMovement $save, LinkDocuments $links, FileStore $store): RedirectResponse
+    public function store(SaveMovementRequest $request, SaveMovement $save, LinkDocuments $links, FileStore $store, LinkBankMovement $linkBank): RedirectResponse
     {
         // Looked up first: a document of another family answers 404 before anything is saved
         $link = $request->documentsToLink();
+        $bankId = $request->bankTransactionId();
 
-        $movement = DB::transaction(function () use ($request, $save, $links, $link): Expense|Income {
+        $movement = DB::transaction(function () use ($request, $save, $links, $link, $linkBank, $bankId): Expense|Income {
+            // The bank row is the first thing the transaction locks, before the planned item the movement may settle
+            $bank = $bankId === null ? null : $linkBank->lock($bankId);
             $movement = $save->handle($request->kind(), $request->columns());
             $links->handle($movement, $link, new Collection);
+
+            if ($bank instanceof BankTransaction) {
+                $linkBank->handle($bank, $movement, BankMatchSource::Created);
+            }
 
             return $movement;
         });
@@ -209,6 +227,11 @@ final class MovementController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved.')]);
 
+        // Made from a bank transaction: it left the list, so the person goes back to it
+        if ($request->bankTransactionId() !== null) {
+            return to_route('budget.bank.index');
+        }
+
         if ($request->boolean('back_to_card') && $movement instanceof Expense && $movement->card_type !== null && $movement->card_id !== null) {
             return to_route('cards.show', ['type' => $movement->card_type, 'id' => $movement->card_id]);
         }
@@ -218,6 +241,20 @@ final class MovementController extends Controller
         return $back === null
             ? to_route('budget.movements.index', ['month' => $movement->date?->format('Y-m')])
             : redirect($back);
+    }
+
+    /**
+     * The transaction `?bank=` points to: one of the family that is still to sort, while the link to the bank is on.
+     *
+     * @param  mixed  $id  the value of the address
+     */
+    private function bankTransaction(mixed $id): ?BankTransaction
+    {
+        if (! BankFeedAvailability::on() || ! is_string($id) || preg_match('/^\d{1,18}$/', $id) !== 1) {
+            return null;
+        }
+
+        return BankTransaction::query()->unsorted()->find((int) $id);
     }
 
     /**

@@ -5,14 +5,26 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Banks\RefreshBanks;
+use App\Actions\Banks\SettleFromBank;
 use App\Actions\Banks\UndoBankPayment;
+use App\Data\BankPlannedChoiceData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
+use App\Enums\BankMatchSource;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Banks\AssignBankTransactionRequest;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
+use App\Models\Expense;
+use App\Models\Income;
+use App\Models\PlannedExpense;
+use App\Models\PlannedIncome;
 use App\Services\Banks\BankFeedAvailability;
+use App\Services\Banks\BankMatcher;
 use App\Support\Banks\BankVisitor;
+use App\Support\Deadline;
+use App\Support\PaymentTitle;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -67,9 +80,46 @@ final class BankTransactionController extends Controller
             // When a bank was last read (`yyyy-mm-ddThh:mm`, Rome) and at which hours of the day they are read by themselves
             'last_synced_at' => fn (): ?string => BankConnection::query()->whereNotNull('last_synced_at')->latest('last_synced_at')->first()?->last_synced_at?->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             'sync_hours' => array_map(static fn (mixed $time): int => (int) (is_string($time) ? $time : 0), array_values(Config::array('bank_feed.sync_times'))),
+            // The planned items the sheet *It belongs to a planned expense* offers for the transaction of `?assign=`, asked when it opens
+            'planned_options' => Inertia::optional(fn (): array => $this->plannedOptions($request->query('assign'))),
             'can_sort' => Gate::allows('create', BankTransaction::class),
             'can_change_banks' => Gate::allows('create', BankConnection::class),
         ]);
+    }
+
+    /**
+     * *It belongs to a planned expense*: the person says which planned item the transaction pays. The closest open due
+     * date it has is paid, as a rule would pay it. An admin who can change the planned item and finds it without a rule
+     * goes on to its form, with the sheet that writes the rule open from this transaction; everyone else stays here.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the planned item is not of the family
+     * @throws ValidationException (`planned_id`) when the planned item has no due date to pay
+     */
+    public function assign(AssignBankTransactionRequest $request, SettleFromBank $settle): RedirectResponse
+    {
+        $transaction = $request->transaction();
+        $planned = $request->planned();
+        $payment = $settle->handle($transaction, $planned, BankMatchSource::Assigned);
+
+        if (! $payment instanceof Expense && ! $payment instanceof Income) {
+            // Linked, put aside or declared pending meanwhile: it is not in the list any more, nothing to pay twice
+            if (! BankTransaction::query()->unsorted()->whereKey($transaction->id)->exists()) {
+                return to_route('budget.bank.index');
+            }
+
+            throw ValidationException::withMessages(['planned_id' => $planned instanceof PlannedExpense
+                ? __('This planned expense has no due dates to pay.')
+                : __('This planned income has no due dates to pay.')]);
+        }
+
+        $title = $payment->occurrence_date === null ? $payment->title : PaymentTitle::for($planned->displayTitle(), $payment->occurrence_date);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Paid: :title', ['title' => $title])]);
+
+        if (blank($planned->bank_match) && Gate::allows('update', $planned)) {
+            return to_route('budget.planned.edit', ['kind' => $planned instanceof PlannedExpense ? 'expense' : 'income', 'id' => $planned->id, 'rule_from' => $transaction->id]);
+        }
+
+        return to_route('budget.bank.index');
     }
 
     /**
@@ -180,6 +230,39 @@ final class BankTransactionController extends Controller
             ->skip(($page - 1) * self::PER_PAGE)
             ->take(self::PER_PAGE + 1)
             ->get();
+    }
+
+    /**
+     * The planned expenses (or incomes, for a credit) that have not ended and that the transaction can pay now: each
+     * with the open due date it would settle, as the matcher chooses it, in alphabetical order. Another family's or a
+     * missing transaction gives none.
+     *
+     * @param  mixed  $id  `?assign=`, the transaction
+     * @return list<BankPlannedChoiceData>
+     */
+    private function plannedOptions(mixed $id): array
+    {
+        $transaction = is_string($id) && ctype_digit($id) ? BankTransaction::query()->unsorted()->find((int) $id) : null;
+
+        if (! $transaction instanceof BankTransaction || $transaction->booked_on === null) {
+            return [];
+        }
+
+        $day = $transaction->booked_on->toDateString();
+        $today = CarbonImmutable::today('Europe/Rome');
+        $matcher = resolve(BankMatcher::class);
+        $query = $transaction->kind() === 'expense' ? PlannedExpense::query() : PlannedIncome::query();
+        $options = [];
+
+        foreach ($query->with('organization')->where(static fn (Builder $query): Builder => $query->whereNull('end_date')->orWhere('end_date', '>=', $day))->orderBy('title')->get() as $planned) {
+            $deadline = $matcher->deadline($transaction, $planned);
+
+            if ($deadline instanceof Deadline && ! $deadline->isPaid() && ! $deadline->isSkipped()) {
+                $options[] = BankPlannedChoiceData::fromDeadline($planned, $deadline, $today);
+            }
+        }
+
+        return $options;
     }
 
     /**

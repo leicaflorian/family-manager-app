@@ -21,6 +21,7 @@ use App\Services\Banks\BankFeedAvailability;
 use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Services\PlannedSummaries;
+use App\Support\Banks\BankMatch;
 use App\Support\Deadline;
 use App\Support\LocalPath;
 use App\Support\PlannedKind;
@@ -179,6 +180,13 @@ final class PlannedController extends Controller
     private function form(Request $request, string $kind, ?PlannedRowData $planned, array $values): Response
     {
         $bankOn = BankFeedAvailability::on();
+        $ai = $bankOn && resolve(DocumentReader::class)->isActive();
+        $example = $bankOn ? $this->ruleExample($request->query('rule_from')) : null;
+
+        // Without the reading the AI cannot write the rule: the field starts from the words of the transaction
+        if ($example instanceof BankTransactionData && ! $ai && blank($values['bank_match'] ?? null)) {
+            $values['bank_match'] = BankMatch::fromText($example->text);
+        }
 
         return Inertia::render('budget/EditPlanned', [
             'kind' => $kind,
@@ -186,8 +194,8 @@ final class PlannedController extends Controller
             'values' => $values,
             'options' => BudgetFormOptions::for($kind),
             // The field *How it shows in the bank* needs the link on; the AI button, the reading too
-            'bank' => ['on' => $bankOn, 'ai' => $bankOn && resolve(DocumentReader::class)->isActive()],
-            'rule_example' => $bankOn ? $this->ruleExample($request->query('rule_from')) : null,
+            'bank' => ['on' => $bankOn, 'ai' => $ai],
+            'rule_example' => $example,
         ]);
     }
 

@@ -317,3 +317,37 @@ test('everyone in the family gets a bell notice, with the second line only when 
             ->and($marco[2]->lines)->toBe(["72,40\u{A0}€ dal Conto BancoPosta"]);
     });
 });
+
+test('a person who assigns a declined transaction settles it, a rule still does not', function (): void {
+    insideBianchi(function (): void {
+        $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
+        $transaction = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05', ['declined_at' => '2026-11-05 08:00:00']);
+
+        expect(resolve(SettleFromBank::class)->handle($transaction, $luce, BankMatchSource::Rule))->toBeNull()
+            ->and(resolve(SettleFromBank::class)->handle($transaction, $luce, BankMatchSource::Assigned))->toBeInstanceOf(Expense::class)
+            ->and($transaction->refresh()->matched_by)->toBe(BankMatchSource::Assigned);
+    });
+});
+
+test('a due date that is paid and moved away while the settling starts leaves the transaction to sort without an error', function (): void {
+    insideBianchi(function (): void {
+        $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-11-05');
+        $transaction = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
+        $done = (object) ['done' => false];
+
+        // Right before the payment writes, somebody pays the due date and moves the start of the planned item: the due date is not found any more
+        DB::connection()->beforeStartingTransaction(function (Connection $connection) use ($luce, $done): void {
+            if ($done->done || $connection->transactionLevel() < 2) {
+                return;
+            }
+
+            $done->done = true;
+            Expense::factory()->create(['family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'occurrence_date' => '2026-11-05', 'amount' => 72.0, 'date' => '2026-11-05']);
+            $luce->forceFill(['start_date' => '2027-01-05'])->save();
+        });
+
+        expect(resolve(SettleFromBank::class)->handle($transaction, $luce, BankMatchSource::Assigned))->toBeNull()
+            ->and($done->done)->toBeTrue()
+            ->and($transaction->refresh()->expense_id)->toBeNull();
+    });
+});

@@ -102,12 +102,18 @@ const initialOccurrence = movement
 /** The fields of the form. */
 const values = reactive({
     kind: movement?.kind ?? start.kind,
-    title: movement?.title ?? '',
+    title: movement?.title ?? start.title ?? '',
     date: movement?.date ?? start.date,
     // The form speaks in cost + commission; what is stored is the total
-    amount: formatAmount(withoutFee(movement?.amount, movement?.fee_amount)),
+    amount: formatAmount(
+        movement
+            ? withoutFee(movement.amount, movement.fee_amount)
+            : start.amount,
+    ),
     fee_amount: formatAmount(movement?.fee_amount),
-    financial_account_id: text(movement?.account_id),
+    financial_account_id: movement
+        ? text(movement.account_id)
+        : (start.financial_account_id ?? ''),
     category_id: movement
         ? text(movement.category_id)
         : (start.category_id ?? ''),
@@ -341,6 +347,10 @@ function save(): void {
         occurrence_date: values.occurrence_date || null,
         // From *Add expense* of a card, the server opens the card again
         ...(!movement && start.card ? { back_to_card: true } : {}),
+        // Made from a transaction of *From the bank*: the server links it
+        ...(!movement && start.bank_transaction_id
+            ? { bank_transaction_id: start.bank_transaction_id }
+            : {}),
         ...(expense.value
             ? {
                   fee_amount: parseAmount(values.fee_amount),
@@ -452,6 +462,14 @@ defineExpose({ fileErrors });
                 :confirm-label="$t('It was not this one')"
             />
         </div>
+
+        <p
+            v-if="problems.bank_transaction_id"
+            role="alert"
+            class="m-0 text-body-sm text-overdue"
+        >
+            {{ problems.bank_transaction_id }}
+        </p>
 
         <fieldset
             :disabled="readonly"

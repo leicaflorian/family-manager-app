@@ -115,6 +115,16 @@ readonly name: string,
 readonly country: string,
 readonly logo: string | null,
 };
+export type BankPlannedChoiceData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly organization: string | null,
+readonly due_on: string,
+readonly late: boolean,
+readonly amount: number,
+readonly estimated: boolean,
+};
 export type BankTransactionData = {
 readonly id: number,
 readonly booked_on: string | null,
