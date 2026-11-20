@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\ExceptionType;
 use App\Enums\IntervalUnit;
+use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
@@ -90,10 +91,12 @@ test('a transaction in another currency matches nothing', function (): void {
     });
 });
 
-test('a rule tied to another account does not match', function (): void {
+test('a rule tied to another linked account does not match', function (): void {
     insideBianchi(function (): void {
-        $other = FinancialAccount::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id]);
-        $transaction = bankMatcherTransaction('EDISON', '-84.20', '2026-11-05');
+        $familyId = Family::query()->where('name', 'Bianchi')->sole()->id;
+        $other = FinancialAccount::factory()->create(['family_id' => $familyId, 'bank_connection_id' => BankConnection::factory()->create(['family_id' => $familyId])->id]);
+        $linked = FinancialAccount::factory()->create(['family_id' => $familyId, 'bank_connection_id' => BankConnection::factory()->create(['family_id' => $familyId])->id]);
+        $transaction = bankMatcherTransaction('EDISON', '-84.20', '2026-11-05', ['financial_account_id' => $linked->id]);
         $tied = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05', ['financial_account_id' => $other->id]);
         $matcher = resolve(BankMatcher::class);
 
@@ -101,6 +104,18 @@ test('a rule tied to another account does not match', function (): void {
 
         $tied->update(['financial_account_id' => $transaction->financial_account_id]);
         expect($matcher->planned($transaction)?->is($tied))->toBeTrue();
+    });
+});
+
+test('a rule on an account not linked to a bank matches the transactions of every linked account', function (): void {
+    insideBianchi(function (): void {
+        $familyId = Family::query()->where('name', 'Bianchi')->sole()->id;
+        $default = FinancialAccount::factory()->create(['family_id' => $familyId, 'name' => 'Conto BPER']);
+        $linked = FinancialAccount::factory()->create(['family_id' => $familyId, 'bank_connection_id' => BankConnection::factory()->create(['family_id' => $familyId])->id]);
+        $luce = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05', ['financial_account_id' => $default->id]);
+        $transaction = bankMatcherTransaction('EDISON', '-84.20', '2026-11-05', ['financial_account_id' => $linked->id]);
+
+        expect(resolve(BankMatcher::class)->planned($transaction)?->is($luce))->toBeTrue();
     });
 });
 

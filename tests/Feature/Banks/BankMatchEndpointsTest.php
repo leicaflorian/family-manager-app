@@ -7,6 +7,7 @@ use App\Data\Banks\BankRuleSuggestion;
 use App\Enums\BankTransactionStatus;
 use App\Enums\Role;
 use App\Exceptions\Reading\ReadingFailed;
+use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
@@ -68,14 +69,22 @@ test('the preview counts the booked transactions of the last 90 days in the righ
     $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'income']))->assertOk()->assertJsonPath('count', 1);
 });
 
-test('a rule tied to an account looks only at that account', function (): void {
-    $first = bankMatchEndpointsRow($this->marco, 5);
-    $other = insideFamilyOf($this->marco, fn (): FinancialAccount => FinancialAccount::factory()->create(['family_id' => $this->marco->family_id]));
+test('a rule tied to a linked account looks only at that account, one on an account not linked at every account', function (): void {
+    [$first, $other] = insideFamilyOf($this->marco, fn (): array => array_map(
+        fn (): FinancialAccount => FinancialAccount::factory()->create([
+            'family_id' => $this->marco->family_id,
+            'bank_connection_id' => BankConnection::factory()->create(['family_id' => $this->marco->family_id])->id,
+        ]),
+        [1, 2],
+    ));
+    $unlinked = insideFamilyOf($this->marco, fn (): FinancialAccount => FinancialAccount::factory()->create(['family_id' => $this->marco->family_id]));
+    bankMatchEndpointsRow($this->marco, 5, ['financial_account_id' => $first->id]);
     bankMatchEndpointsRow($this->marco, 6, ['financial_account_id' => $other->id]);
 
     $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense']))->assertJsonPath('count', 2);
     $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense', 'account_id' => $other->id]))->assertJsonPath('count', 1);
-    $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense', 'account_id' => $first->financial_account_id]))->assertJsonPath('count', 1);
+    $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense', 'account_id' => $first->id]))->assertJsonPath('count', 1);
+    $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense', 'account_id' => $unlinked->id]))->assertJsonPath('count', 2);
 });
 
 test('a broken rule answers 422 with the message', function (): void {

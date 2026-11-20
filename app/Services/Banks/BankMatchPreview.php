@@ -8,6 +8,8 @@ use App\Data\BankTransactionData;
 use App\Enums\BankTransactionStatus;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\RuleAccount;
+use App\Support\DefaultAccount;
 use Carbon\CarbonImmutable;
 
 /**
@@ -30,19 +32,21 @@ final class BankMatchPreview
      *
      * @param  string  $pattern  the rule, a PCRE pattern without delimiters
      * @param  string  $kind  `expense` looks at outgoing transactions, `income` at incoming ones
-     * @param  int|null  $accountId  the account to look at, null for every account of the family
+     * @param  int|null  $accountId  the account of the form, null for the default account; one not linked to a bank looks at every account
      * @return array{count: int, rows: list<BankTransactionData>}
      */
     public static function for(string $pattern, string $kind, ?int $accountId): array
     {
         $since = CarbonImmutable::today('Europe/Rome')->subDays(self::DAYS);
+        // An empty account in the form is the default account once saved (`SavePlanned`), so look where the save will
+        $account = RuleAccount::of($accountId ?? DefaultAccount::id());
 
         $found = BankTransaction::query()
             ->with('financialAccount')
             ->where('status', BankTransactionStatus::Booked)
             ->where('booked_on', '>=', $since)
             ->where('amount', $kind === 'income' ? '>' : '<', 0)
-            ->when($accountId !== null, static fn ($query) => $query->where('financial_account_id', $accountId))
+            ->when($account !== null, static fn ($query) => $query->where('financial_account_id', $account))
             ->latest('booked_on')
             ->orderByDesc('id')
             ->limit(self::LIMIT)

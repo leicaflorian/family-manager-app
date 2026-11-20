@@ -50,7 +50,7 @@ class BankMatchRequest extends FormRequest
     }
 
     /**
-     * The account the form has chosen; null looks at every linked account of the family.
+     * The account the form has chosen; null is the default account, as the save fills it.
      */
     public function accountId(): ?int
     {

@@ -10,6 +10,7 @@ use App\Models\PlannedIncome;
 use App\Services\Deadlines;
 use App\Services\Occurrences;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\RuleAccount;
 use App\Support\Deadline;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
@@ -28,7 +29,8 @@ final readonly class BankMatcher
 
     /**
      * The planned item the transaction pays: among the planned expenses (for money out) or incomes (for money in)
-     * that have a rule, have not ended before the day, are free or on the same account and whose rule matches the text,
+     * that have a rule, have not ended before the day, read the account of the transaction (`RuleAccount`) and whose rule
+     * matches the text,
      * the only one, or the one whose planned amount (amount plus fee) is closest to the amount of the transaction.
      * Two at the same distance give none.
      *
@@ -48,9 +50,9 @@ final readonly class BankMatcher
             ->whereNotNull('bank_match')
             ->where('bank_match', '!=', '')
             ->where(static fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $day))
-            ->where(static fn ($query) => $query->whereNull('financial_account_id')->orWhere('financial_account_id', $transaction->financial_account_id))
             ->get()
-            ->filter(static fn (PlannedExpense|PlannedIncome $planned): bool => BankMatch::matches((string) $planned->bank_match, (string) $transaction->text))
+            ->filter(static fn (PlannedExpense|PlannedIncome $planned): bool => BankMatch::matches((string) $planned->bank_match, (string) $transaction->text)
+                && RuleAccount::reads($planned->financial_account_id, $transaction->financial_account_id))
             ->values();
 
         if ($candidates->count() <= 1) {

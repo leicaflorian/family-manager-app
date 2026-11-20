@@ -8,14 +8,17 @@ use App\Actions\Budget\SavePlanned;
 use App\Contracts\BankFeed;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
+use App\Enums\FinancialAccountStatus;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\PlannedExpense;
+use App\Services\Banks\BankMatchPreview;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankEntry;
+use App\Support\DefaultAccount;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Exceptions;
@@ -181,6 +184,44 @@ test('a new planned expense with a rule pays its open due dates', function (): v
 
         expect($transaction->refresh()->expense_id)->not->toBeNull()
             ->and($transaction->expense?->planned_expense_id)->toBe($luce->id);
+    });
+});
+
+test('a rule on the default account, not linked to a bank, pays the transactions of a linked account as the preview counts them', function (): void {
+    insideBianchi(function (): void {
+        [, $linked] = bankMatchingConnection();
+        $default = DefaultAccount::model() ?? FinancialAccount::factory()->create([
+            'family_id' => $linked->family_id, 'name' => 'Conto BPER', 'is_default' => true, 'status' => FinancialAccountStatus::Active,
+        ]);
+        expect($default->bank_connection_id)->toBeNull();
+        bankMatchingTransaction('ADDEBITO SDD EDISON ENERGIA FATT. 10', '-68.90', '2026-10-06', ['financial_account_id' => $linked->id]);
+        bankMatchingTransaction('ADDEBITO SDD EDISON ENERGIA FATT. 11', '-72.40', '2026-11-05', ['financial_account_id' => $linked->id]);
+
+        // The form sends no account: the preview looks where the save will put the planned expense
+        $preview = BankMatchPreview::for('SDD.*EDISON', 'expense', null);
+        $luce = resolve(SavePlanned::class)->handle('expense', [
+            'title' => 'Luce', 'amount' => 72, 'start_date' => '2026-01-05', 'is_recurring' => true, 'interval' => 1,
+            'interval_unit' => 'month', 'is_estimated' => false, 'bank_match' => 'SDD.*EDISON', 'financial_account_id' => null,
+        ]);
+
+        expect($luce->financial_account_id)->toBe($default->id)
+            ->and($preview['count'])->toBe(2)
+            ->and(Expense::query()->where('planned_expense_id', $luce->id)->count())->toBe($preview['count']);
+    });
+});
+
+test('a rule on a linked account never pays a transaction of another linked account, and the preview agrees', function (): void {
+    insideBianchi(function (): void {
+        [, $linked] = bankMatchingConnection();
+        [, $other] = bankMatchingConnection();
+        bankMatchingTransaction('ADDEBITO SDD EDISON ENERGIA', '-72.40', '2026-11-05', ['financial_account_id' => $other->id]);
+        $luce = bankMatchingLuce(['bank_match' => null, 'financial_account_id' => $linked->id]);
+
+        $preview = BankMatchPreview::for('SDD.*EDISON', 'expense', $linked->id);
+        resolve(SavePlanned::class)->handle('expense', ['bank_match' => 'SDD.*EDISON'], $luce);
+
+        expect($preview['count'])->toBe(0)
+            ->and(Expense::query()->where('planned_expense_id', $luce->id)->count())->toBe(0);
     });
 });
 

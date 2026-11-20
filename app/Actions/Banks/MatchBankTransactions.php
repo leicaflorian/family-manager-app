@@ -10,6 +10,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankMatcher;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\RuleAccount;
 use Carbon\CarbonImmutable;
 use Throwable;
 
@@ -49,7 +50,7 @@ final readonly class MatchBankTransactions
 
     /**
      * Settles the transactions still to sort and not declined of the last days of a first read (90) that the rule of
-     * the planned item recognises, the oldest first, so a rule written after the payments pays the due dates left open.
+     * the planned item recognises on the accounts it reads (`RuleAccount`), the oldest first, so a rule written after the payments pays the due dates left open.
      * A transaction whose rule picks another planned item (closer in amount) is left to that one. A failure is
      * reported and never leaves: the planned item is already saved.
      *
@@ -65,12 +66,13 @@ final readonly class MatchBankTransactions
         }
 
         $since = CarbonImmutable::now('Europe/Rome')->startOfDay()->subDays(config()->integer('bank_feed.first_days'));
+        $account = RuleAccount::of($planned->financial_account_id);
         $transactions = $this->safely(static fn () => BankTransaction::query()
             ->unsorted()
             ->whereNull('declined_at')
             ->where('amount', $planned instanceof PlannedExpense ? '<' : '>', 0)
             ->where('booked_on', '>=', $since->toDateString())
-            ->when($planned->financial_account_id !== null, static fn ($query) => $query->where('financial_account_id', $planned->financial_account_id))
+            ->when($account !== null, static fn ($query) => $query->where('financial_account_id', $account))
             ->oldest('booked_on')
             ->oldest('id')
             ->get()
