@@ -1,6 +1,7 @@
+import { router } from '@inertiajs/vue3';
 import { render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import FmSidebar from './FmSidebar.vue';
 import { areaCounts } from '@/test/fixtures';
 import type { Section } from './navigation';
@@ -129,13 +130,17 @@ describe('FmSidebar', () => {
             },
         });
         const aside = screen.getByRole('complementary');
+        // the page itself is not under test: without an Inertia app a real visit throws after the test
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         // a touch fires mouseenter and focus, but never mouseleave
         await userEvent.click(screen.getByRole('link', { name: 'Agenda' }));
         expect(aside).toHaveClass('w-[260px]');
+        expect(visit).toHaveBeenCalledOnce();
 
         await sidebar.rerender({ active: 'agenda', path: '/agenda' });
 
         expect(aside).toHaveClass('w-[76px]');
+        visit.mockRestore();
     });
 
     it('keeps the icons still while it opens and collapses: same margins, left aligned, the names only fade', async () => {
