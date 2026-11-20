@@ -63,7 +63,7 @@ final readonly class UndoBankPayment
     private function plannedOf(BankTransaction $transaction): ?array
     {
         $current = BankTransaction::query()->with(['expense', 'income'])->find($transaction->id);
-        $payment = $current?->expense ?? $current?->income;
+        $payment = $current === null ? null : ($current->expense ?? $current->income);
         $id = $payment === null ? null : $this->plannedId($payment);
 
         if ($id === null) {

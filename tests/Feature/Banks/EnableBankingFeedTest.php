@@ -296,13 +296,13 @@ it('never carries the session into a failure of revoke', function (mixed $answer
         $this->fail('revoke() should fail');
     } catch (BankFeedFailed $failure) {
         $texts = [];
-        for ($error = $failure; $error !== null; $error = $error->getPrevious()) {
+        for ($error = $failure; $error instanceof Throwable; $error = $error->getPrevious()) {
             $texts[] = $error->getMessage();
         }
 
         expect(implode(' ', $texts))->not->toContain('sess-secret-1');
     }
 })->with([
-    'no answer' => [fn () => fn () => throw new ConnectionException('cURL error 28 for https://api.test/sessions/sess-secret-1')],
+    'no answer' => [fn (): Closure => fn () => throw new ConnectionException('cURL error 28 for https://api.test/sessions/sess-secret-1')],
     'an error' => [fn () => Http::response(['error' => 'X', 'message' => 'Session sess-secret-1 is busy'], 500)],
 ]);
