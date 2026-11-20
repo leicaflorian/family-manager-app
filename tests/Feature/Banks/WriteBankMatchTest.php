@@ -172,17 +172,17 @@ test('a first example without words refuses even when the model wrote a rule', f
     expect(fn (): BankRuleSuggestion => bankWriteRun($family, ['12345 9876', 'Addebito Enel']))->toThrow(ValidationException::class);
 });
 
-test('an answer that was paid but is unusable falls back to the first example', function (ReadingFailed $failure): void {
+test('an answer that was paid but is unusable falls back to the first example', function (string $factory): void {
     [$family, $reader] = bankWriteSetup('ENEL');
-    $reader->fails($failure);
+    $reader->fails(ReadingFailed::{$factory}());
 
     $suggestion = bankWriteRun($family, ['Addebito Enel Energia']);
 
     expect($suggestion->pattern)->toBe('ADDEBITO.*ENEL.*ENERGIA')
         ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankRule);
 })->with([
-    'not valid' => fn (): ReadingFailed => ReadingFailed::invalidAnswer(),
-    'cut short' => fn (): ReadingFailed => ReadingFailed::cutShort(),
+    'not valid' => 'invalidAnswer',
+    'cut short' => 'cutShort',
 ]);
 
 test('a failure with no answer is thrown and costs nothing', function (): void {
