@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Contracts\DocumentReader;
 use App\Enums\BankMatchSource;
+use App\Enums\BankTransactionStatus;
 use App\Enums\Role;
 use App\Models\BankTransaction;
 use App\Models\Expense;
@@ -250,7 +251,8 @@ test('assigning pays the closest open due date of the chosen planned expense', f
     $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
 
     $this->actingAs($this->laura)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id])
-        ->assertRedirect(route('budget.bank.index'));
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('toast.message', 'Paid: Luce November 2026');
 
     insideBianchi(function () use ($transaction, $luce): void {
         $expense = Expense::query()->where('planned_expense_id', $luce->id)->sole();
@@ -274,7 +276,8 @@ test('assigning a credit pays a planned income and an income of a debit is refus
     $this->actingAs($this->marco)->postJson(route('budget.bank.assign', $debit), ['kind' => 'income', 'planned_id' => $salary->id])->assertStatus(422)->assertJsonValidationErrors('kind');
 
     Date::setTestNow(CarbonImmutable::parse('2026-11-28 07:00', 'Europe/Rome'));
-    $this->post(route('budget.bank.assign', $credit), ['kind' => 'income', 'planned_id' => $salary->id])->assertRedirect();
+    $this->post(route('budget.bank.assign', $credit), ['kind' => 'income', 'planned_id' => $salary->id])->assertRedirect()
+        ->assertInertiaFlash('toast.message', 'Arrived: Stipendio November 2026');
 
     insideBianchi(function () use ($credit, $salary): void {
         $income = Income::query()->where('planned_income_id', $salary->id)->sole();
@@ -282,6 +285,29 @@ test('assigning a credit pays a planned income and an income of a debit is refus
         expect($credit->refresh()->income_id)->toBe($income->id)
             ->and($credit->matched_by)->toBe(BankMatchSource::Assigned);
     });
+});
+
+test('assigning to a due date already paid by hand links the payment and says so', function (): void {
+    $luce = bankSortPlanned('Luce');
+    $paid = insideBianchi(fn (): Expense => Expense::factory()->create([
+        'family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'occurrence_date' => '2026-11-05',
+        'date' => '2026-11-04', 'amount' => 72.40, 'title' => 'Luce November 2026',
+    ]));
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-04', 'value_on' => '2026-11-04']);
+
+    $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id])
+        ->assertRedirect()
+        ->assertInertiaFlash('toast.message', 'Already paid, now linked: Luce November 2026');
+
+    expect(insideBianchi(fn (): ?int => $transaction->refresh()->expense_id))->toBe($paid->id);
+});
+
+test('a pending transaction cannot be ignored', function (): void {
+    $transaction = bankSortOne(['status' => BankTransactionStatus::Pending, 'booked_on' => null]);
+
+    $this->actingAs($this->marco)->post("/budget/bank/{$transaction->id}/ignore")->assertStatus(422);
+
+    insideBianchi(fn (): Expectation => expect($transaction->refresh()->ignored_at)->toBeNull());
 });
 
 test('assigning to a planned expense without open due dates is refused', function (): void {

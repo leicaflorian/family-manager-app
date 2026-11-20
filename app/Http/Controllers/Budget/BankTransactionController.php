@@ -11,6 +11,7 @@ use App\Data\BankPlannedChoiceData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
+use App\Enums\BankTransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\AssignBankTransactionRequest;
 use App\Models\BankConnection;
@@ -125,7 +126,13 @@ final class BankTransactionController extends Controller
         }
 
         $title = $payment->occurrence_date === null ? $payment->title : PaymentTitle::for($planned->displayTitle(), $payment->occurrence_date);
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Paid: :title', ['title' => $title])]);
+        // A payment that was already there (paid by hand) is only linked; an income arrives, it is not paid
+        $message = match (true) {
+            ! $payment->wasRecentlyCreated => $payment instanceof Income ? 'Already arrived, now linked: :title' : 'Already paid, now linked: :title',
+            $payment instanceof Income => 'Arrived: :title',
+            default => 'Paid: :title',
+        };
+        Inertia::flash('toast', ['type' => 'success', 'message' => __($message, ['title' => $title])]);
 
         if (blank($planned->bank_match) && Gate::allows('update', $planned)) {
             return to_route('budget.planned.edit', ['kind' => $planned instanceof PlannedExpense ? 'expense' : 'income', 'id' => $planned->id, 'rule_from' => $transaction->id]);
@@ -180,7 +187,7 @@ final class BankTransactionController extends Controller
      * The row is locked and checked again under the lock, because a rule or a settling may link it at the same moment.
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
-     * @throws HttpException (422) if the transaction is linked to an expense or an income
+     * @throws HttpException (422) if the transaction is linked to an expense or an income, or still pending
      */
     public function ignore(BankTransaction $transaction): RedirectResponse
     {
@@ -192,6 +199,11 @@ final class BankTransactionController extends Controller
 
             if ($current->expense_id !== null || $current->income_id !== null) {
                 abort(422, __('This movement is already sorted, so it cannot be ignored.'));
+            }
+
+            // The next read rewrites a pending row from scratch, so putting it aside would be lost
+            if ($current->status === BankTransactionStatus::Pending) {
+                abort(422, __('This movement is still pending at the bank, so it cannot be ignored yet.'));
             }
 
             $current->ignored_at ??= now();

@@ -2188,5 +2188,9 @@
     "Search by name or organization": "Cerca per nome o ente",
     "It comes back every month: create a planned expense?": "Torna ogni mese: crea una spesa fissa?",
     "It comes back every month: create a planned income?": "Torna ogni mese: crea un'entrata fissa?",
-    "at :hour": "alle :hour"
+    "at :hour": "alle :hour",
+    "Arrived: :title": "Arrivata: :title",
+    "Already paid, now linked: :title": "Era già pagata, ora è collegata: :title",
+    "Already arrived, now linked: :title": "Era già arrivata, ora è collegata: :title",
+    "This movement is still pending at the bank, so it cannot be ignored yet.": "Questo movimento è ancora in attesa in banca, quindi non si può ancora ignorare."
 }
