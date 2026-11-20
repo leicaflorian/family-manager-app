@@ -22,7 +22,9 @@ use App\Models\PlannedIncome;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankMatcher;
 use App\Services\Banks\RecurringBankTexts;
+use App\Support\Banks\BankTransactionId;
 use App\Support\Banks\BankVisitor;
+use App\Support\Banks\SyncHours;
 use App\Support\Deadline;
 use App\Support\PaymentTitle;
 use Carbon\CarbonImmutable;
@@ -30,7 +32,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -88,7 +89,7 @@ final class BankTransactionController extends Controller
                 ->all(),
             // When a bank was last read (`yyyy-mm-ddThh:mm`, Rome) and at which hours of the day they are read by themselves
             'last_synced_at' => fn (): ?string => BankConnection::query()->whereNotNull('last_synced_at')->latest('last_synced_at')->first()?->last_synced_at?->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
-            'sync_hours' => array_map(static fn (mixed $time): int => (int) (is_string($time) ? $time : 0), array_values(Config::array('bank_feed.sync_times'))),
+            'sync_hours' => SyncHours::all(),
             // The planned items the sheet *It belongs to a planned expense* offers for the transaction of `?assign=`, asked when it opens
             'planned_options' => Inertia::optional(fn (): array => $this->plannedOptions($request->query('assign'))),
             'can_sort' => Gate::allows('create', BankTransaction::class),
@@ -253,7 +254,8 @@ final class BankTransactionController extends Controller
      */
     private function plannedOptions(mixed $id): array
     {
-        $transaction = is_string($id) && ctype_digit($id) ? BankTransaction::query()->unsorted()->find((int) $id) : null;
+        $id = BankTransactionId::parse($id);
+        $transaction = $id !== null ? BankTransaction::query()->unsorted()->find($id) : null;
 
         if (! $transaction instanceof BankTransaction || $transaction->booked_on === null) {
             return [];

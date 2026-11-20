@@ -18,6 +18,7 @@ use App\Models\FinancialAccount;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankInstitutions;
 use App\Support\Banks\BankVisitor;
+use App\Support\Banks\SyncHours;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -51,7 +52,7 @@ final class BankController extends Controller
                 ->map(BankConnectionData::fromConnection(...))
                 ->all(),
             'can_change' => Gate::allows('create', BankConnection::class),
-            'sync_hours' => array_map(static fn (mixed $time): int => (int) (is_string($time) ? $time : 0), array_values(Config::array('bank_feed.sync_times'))),
+            'sync_hours' => SyncHours::all(),
             'consent_days' => Config::integer('bank_feed.consent_days'),
             'institutions' => Inertia::optional(fn (): ?array => $this->institutions($banks)),
         ]);

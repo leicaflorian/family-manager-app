@@ -28,6 +28,7 @@ use App\Services\BudgetFormOptions;
 use App\Services\FileStore;
 use App\Services\LinkableDocuments;
 use App\Services\Movements;
+use App\Support\Banks\BankTransactionId;
 use App\Support\ImportPage;
 use App\Support\LocalPath;
 use App\Support\PlannedKind;
@@ -250,11 +251,13 @@ final class MovementController extends Controller
      */
     private function bankTransaction(mixed $id): ?BankTransaction
     {
-        if (! BankFeedAvailability::on() || ! is_string($id) || preg_match('/^\d{1,18}$/', $id) !== 1) {
+        $id = BankTransactionId::parse($id);
+
+        if (! BankFeedAvailability::on() || $id === null) {
             return null;
         }
 
-        return BankTransaction::query()->unsorted()->find((int) $id);
+        return BankTransaction::query()->unsorted()->find($id);
     }
 
     /**

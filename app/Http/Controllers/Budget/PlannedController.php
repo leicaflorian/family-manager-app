@@ -23,6 +23,7 @@ use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Services\PlannedSummaries;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\BankTransactionId;
 use App\Support\Deadline;
 use App\Support\LocalPath;
 use App\Support\PlannedKind;
@@ -209,7 +210,7 @@ final class PlannedController extends Controller
      */
     private function ruleExample(mixed $id): ?BankTransactionData
     {
-        $id = $this->transactionId($id);
+        $id = BankTransactionId::parse($id);
 
         if ($id === null) {
             return null;
@@ -231,7 +232,7 @@ final class PlannedController extends Controller
      */
     private function recurringValues(mixed $id, string $kind): array
     {
-        $id = BankFeedAvailability::on() ? $this->transactionId($id) : null;
+        $id = BankFeedAvailability::on() ? BankTransactionId::parse($id) : null;
 
         if ($id === null) {
             return [];
@@ -246,15 +247,5 @@ final class PlannedController extends Controller
         $chain = resolve(RecurringBankTexts::class)->chain($transaction);
 
         return $chain === null ? [] : PlannedPreset::fromBank($transaction, $chain);
-    }
-
-    /**
-     * The id of a bank transaction in the address: a whole number of at most 18 digits, else null.
-     *
-     * @param  mixed  $id  the value of the address
-     */
-    private function transactionId(mixed $id): ?int
-    {
-        return is_string($id) && preg_match('/^\d{1,18}$/', $id) === 1 ? (int) $id : null;
     }
 }
