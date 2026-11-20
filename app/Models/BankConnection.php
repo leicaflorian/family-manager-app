@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use App\Enums\BankConnectionStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\BankConnectionFactory;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -105,9 +105,8 @@ final class BankConnection extends FamilyModel
     {
         // Written by the query, not by `save()`: saving compares the new value with the old one, decrypting it, and an
         // old session that cannot be decrypted any more (the `APP_KEY` changed) is exactly when it has to be replaced.
-        // The row is already in hand, so the family scope is lifted and the family of the row is checked instead: the sync
-        // runs without a signed-in family.
-        self::query()->withoutGlobalScopes()->whereKey($this->getKey())->where('family_id', $this->family_id)->update([
+        // Goes through the family scope: callers run inside the family (an account, or `CurrentFamily::using()`).
+        self::query()->whereKey($this->getKey())->update([
             'session' => Crypt::encryptString($session),
             'valid_until' => $validUntil,
             'updated_at' => now(),

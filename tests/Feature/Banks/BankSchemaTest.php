@@ -45,6 +45,7 @@ test('the kind follows the sign of the amount', function (): void {
 
 test('the session is stored encrypted and read back', function (): void {
     $connection = BankConnection::factory()->create();
+    CurrentFamily::set($connection->family_id);
 
     expect($connection->sessionId())->toBeNull();
 
@@ -79,4 +80,13 @@ test('old unlinked transactions are prunable, linked ones never', function (): v
     $ids = (new BankTransaction)->prunable()->pluck('id')->all();
 
     expect($ids)->toBe([$stale->id])->not->toContain($linked->id, $recent->id);
+});
+
+test('writing a session from inside another family does not touch the row', function (): void {
+    $connection = BankConnection::factory()->create();
+    $other = Family::factory()->create();
+
+    CurrentFamily::using($other->id, fn () => $connection->writeSession('x', CarbonImmutable::parse('2027-01-15')));
+
+    expect(DB::table('bank_connections')->where('id', $connection->id)->value('session'))->toBeNull();
 });

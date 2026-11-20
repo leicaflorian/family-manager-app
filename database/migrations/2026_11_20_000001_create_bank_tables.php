@@ -76,8 +76,9 @@ return new class extends Migration
         });
 
         Schema::table('reminder_notices', function (Blueprint $table): void {
-            Columns::optional($table, 'bank_transaction_id', 'bank_transactions');
-            Columns::optional($table, 'bank_connection_id', 'bank_connections');
+            // Cascade, not null: a notice with every link empty would be read as the notice of the mail limit.
+            $table->foreignId('bank_transaction_id')->nullable()->constrained('bank_transactions')->cascadeOnDelete();
+            $table->foreignId('bank_connection_id')->nullable()->constrained('bank_connections')->cascadeOnDelete();
         });
     }
 
