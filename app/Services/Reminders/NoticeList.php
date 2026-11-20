@@ -6,7 +6,10 @@ namespace App\Services\Reminders;
 
 use App\Data\AgendaData;
 use App\Data\ReminderNoticeData;
+use App\Enums\Area;
 use App\Enums\ReminderStatus;
+use App\Models\BankTransaction;
+use App\Models\Expense;
 use App\Models\ReceivedMail;
 use App\Models\Reminder;
 use App\Models\ReminderNotice;
@@ -108,8 +111,8 @@ final readonly class NoticeList
     }
 
     /**
-     * What a row of a notice reads with it: the reminder and its card, or the mail without its text (it can be more
-     * than a megabyte) and the organization of its sender.
+     * What a row of a notice reads with it: the reminder and its card, the mail without its text (it can be more
+     * than a megabyte) and the organization of its sender, or the bank transaction and the payment it is linked to.
      *
      * @return array<int|string, string|Closure>
      */
@@ -119,6 +122,8 @@ final readonly class NoticeList
             'reminder.link',
             'mail' => static fn (BelongsTo $query): BelongsTo => $query->select(ReceivedMail::SUMMARY_COLUMNS),
             'mail.organization',
+            'bankTransaction.expense',
+            'bankTransaction.income',
         ];
     }
 
@@ -138,7 +143,7 @@ final readonly class NoticeList
     /**
      * The rows of some notices, with the things they refer to read together.
      *
-     * @param  Collection<int, ReminderNotice>  $notices  the notices, with `reminder.link` and `mail.organization` loaded
+     * @param  Collection<int, ReminderNotice>  $notices  the notices, with the relations of `relations()` loaded
      * @param  CarbonImmutable  $today  today in Rome
      * @return list<ReminderNoticeData>
      */
@@ -149,6 +154,10 @@ final readonly class NoticeList
         return array_values($notices->map(function (ReminderNotice $notice) use ($today): ReminderNoticeData {
             $reminder = $notice->reminder;
             $dueDate = $notice->due_date;
+
+            if ($notice->bankTransaction instanceof BankTransaction) {
+                return $this->bankRow($notice, $notice->bankTransaction);
+            }
 
             if (! $reminder instanceof Reminder || ! $dueDate instanceof CarbonImmutable) {
                 return $this->mailRow($notice);
@@ -201,6 +210,37 @@ final readonly class NoticeList
             read: $notice->read_at !== null,
             state: null,
             href: $mail instanceof ReceivedMail ? route('mail.show', $mail) : route('mail-settings.edit'),
+        );
+    }
+
+    /**
+     * The row of a payment the bank settled: «Paid by the bank · Luce novembre 2026» (for an income «Arrived in the
+     * bank · …»), the first line of the notice under it, leading to the payment. When the payment is gone (*It was not
+     * this one*), it is named by the text of the bank and leads to the transactions of the bank.
+     *
+     * @param  ReminderNotice  $notice  the notice
+     * @param  BankTransaction  $transaction  its transaction, with `expense` and `income` loaded
+     */
+    private function bankRow(ReminderNotice $notice, BankTransaction $transaction): ReminderNoticeData
+    {
+        $payment = $transaction->movement();
+        $first = ($notice->lines ?? [])[0] ?? null;
+        $title = $payment->title ?? $transaction->text;
+
+        return new ReminderNoticeData(
+            id: $notice->id,
+            title: $transaction->kind() === 'expense'
+                ? __('Paid by the bank · :title', ['title' => $title])
+                : __('Arrived in the bank · :title', ['title' => $title]),
+            subject: null,
+            area: Area::Banks->value,
+            due_text: is_string($first) ? $first : '',
+            sent_at: $notice->sent_at->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
+            read: $notice->read_at !== null,
+            state: null,
+            href: $payment === null
+                ? route('budget.bank.index')
+                : route('budget.movements.show', ['kind' => $payment instanceof Expense ? 'expense' : 'income', 'id' => $payment->id]),
         );
     }
 }

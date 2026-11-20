@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A notice of the bell: one reminder (or one received mail), for one account, on the day the morning round sent it (`reminder_notices`).
+ * A notice of the bell: one reminder (or one received mail, or one payment of the bank), for one account, on the day the morning round sent it (`reminder_notices`).
  *
  * @property int $id
  * @property int $family_id
@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<array-key, mixed>|null $lines
  * @property int|null $bank_transaction_id
  * @property int|null $bank_connection_id
+ * @property-read BankTransaction|null $bankTransaction
  * @property-read Family $family
  * @property-read ReceivedMail|null $mail
  * @property-read Reminder|null $reminder
@@ -45,7 +46,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['reminder_id', 'user_id', 'due_date', 'offset', 'sent_at', 'read_at', 'received_mail_id', 'lines'])]
+#[Fillable(['reminder_id', 'user_id', 'due_date', 'offset', 'sent_at', 'read_at', 'received_mail_id', 'lines', 'bank_transaction_id'])]
 final class ReminderNotice extends FamilyModel
 {
     /** @use HasFactory<ReminderNoticeFactory> */
@@ -95,6 +96,16 @@ final class ReminderNotice extends FamilyModel
     public function mail(): BelongsTo
     {
         return $this->belongsTo(ReceivedMail::class, 'received_mail_id');
+    }
+
+    /**
+     * The bank transaction the notice is about, for a payment the bank settled.
+     *
+     * @return BelongsTo<BankTransaction, $this>
+     */
+    public function bankTransaction(): BelongsTo
+    {
+        return $this->belongsTo(BankTransaction::class);
     }
 
     /**

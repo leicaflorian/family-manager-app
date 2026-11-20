@@ -2124,5 +2124,9 @@
     "Its movements do not arrive any more.": "I suoi movimenti non arrivano più.",
     "{0} No new movements.|{1} :count new movement.|[2,*] :count new movements.": "{0} Nessun movimento nuovo.|{1} :count movimento nuovo.|[2,*] :count movimenti nuovi.",
     "The bank is connected, but it gave no account we can read.": "La banca è collegata, ma non ci ha dato nessun conto da leggere.",
-    "We cannot load the list of banks right now. Try again in a moment.": "Non riusciamo a caricare l'elenco delle banche. Riprova tra poco."
+    "We cannot load the list of banks right now. Try again in a moment.": "Non riusciamo a caricare l'elenco delle banche. Riprova tra poco.",
+    ":amount from :account": ":amount dal :account",
+    ":amount instead of :planned": ":amount invece di :planned",
+    "Paid by the bank · :title": "Pagata dalla banca · :title",
+    "Arrived in the bank · :title": "Arrivato in banca · :title"
 }

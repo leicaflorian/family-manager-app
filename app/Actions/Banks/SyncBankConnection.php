@@ -16,21 +16,25 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Reads the transactions of every account of a bank connection and saves them. Runs inside the family of the
- * connection. No error of the bank leaves it: it becomes the status of the connection.
+ * Reads the transactions of every account of a bank connection, saves them and lets the rules of the planned items pay
+ * with the new booked ones. Runs inside the family of the connection. No error of the bank leaves it: it becomes the
+ * status of the connection.
  */
 final readonly class SyncBankConnection
 {
     /**
      * @param  BankFeed  $feed  the link to the bank
      * @param  StoreBankEntries  $store  saves what the bank gives
+     * @param  MatchBankTransactions  $match  pays the due dates the new transactions settle
      */
-    public function __construct(private BankFeed $feed, private StoreBankEntries $store) {}
+    public function __construct(private BankFeed $feed, private StoreBankEntries $store, private MatchBankTransactions $match) {}
 
     /**
      * Reads the connection. An account with no transactions is read from `first_days` ago, the others from
      * `overlap_days` before the last read. A consent that ended asks the person to connect again, a limit of the bank
-     * changes nothing (the next read tries again), any other failure is reported and saved as the last error.
+     * changes nothing (the next read tries again), any other failure is reported and saved as the last error. The
+     * booked transactions saved before any of these, the 90 days of a first read included, go to the rules, the oldest
+     * first.
      *
      * @param  BankConnection  $connection  the connection to read
      * @param  BankVisitor|null  $visitor  who is looking, when a person asked for the read
@@ -38,16 +42,36 @@ final readonly class SyncBankConnection
      */
     public function handle(BankConnection $connection, ?BankVisitor $visitor = null): int
     {
+        $fresh = $this->read($connection, $visitor);
+
+        // The oldest first, as a person would sort them: a late due date is paid by the first transaction after it
+        $this->match->handle(collect($fresh)->sortBy([
+            static fn (BankTransaction $a, BankTransaction $b): int => $a->booked_on?->toDateString() <=> $b->booked_on?->toDateString(),
+            static fn (BankTransaction $a, BankTransaction $b): int => $a->id <=> $b->id,
+        ])->values()->all());
+
+        return count($fresh);
+    }
+
+    /**
+     * Reads every account of the connection and saves what the bank gives, changing the status of the connection.
+     *
+     * @param  BankConnection  $connection  the connection to read
+     * @param  BankVisitor|null  $visitor  who is looking, when a person asked for the read
+     * @return list<BankTransaction> the booked transactions that are new, in the order they were saved
+     */
+    private function read(BankConnection $connection, ?BankVisitor $visitor): array
+    {
         $session = $connection->sessionId();
 
         if ($session === null) {
             $this->mark($connection, BankConnectionStatus::NeedsReconnect, 'The session of the bank cannot be read.');
 
-            return 0;
+            return [];
         }
 
         $today = CarbonImmutable::now('Europe/Rome')->startOfDay();
-        $new = 0;
+        $new = [];
 
         try {
             foreach ($connection->accounts()->whereNotNull('bank_account_uid')->orderBy('id')->get() as $account) {
@@ -57,7 +81,7 @@ final readonly class SyncBankConnection
                     : $today->subDays(config()->integer('bank_feed.first_days'));
 
                 $entries = $this->feed->transactions($session, (string) $account->bank_account_uid, $from, $today, $visitor);
-                $new += count($this->store->handle($connection, $account, $entries));
+                $new = [...$new, ...$this->store->handle($connection, $account, $entries)];
             }
         } catch (BankConsentEnded) {
             $this->mark($connection, BankConnectionStatus::NeedsReconnect, 'The consent of the bank ended.');
