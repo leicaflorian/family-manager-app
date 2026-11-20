@@ -423,6 +423,17 @@ describe('Movement', () => {
             ).toBeInTheDocument();
         });
 
+        it('says the bank recorded it without a day when the bank gave none', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, bank: { ...bank, booked_on: null } },
+            });
+
+            expect(
+                screen.getByText('Recorded by the bank'),
+            ).toBeInTheDocument();
+        });
+
         it('shows nothing without the bank', () => {
             renderPage(Movement, {
                 ...props,

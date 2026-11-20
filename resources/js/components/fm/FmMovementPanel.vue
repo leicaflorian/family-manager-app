@@ -183,12 +183,13 @@ const showOccurrences = computed(
         values.planned_id === loadedFor.value,
 );
 
-/** The title of the panel. */
+/** Writes a day as `15/10/2026`. */
 const { date: formatDate } = useFormat();
 
 /** The confirmation of *It was not this one* is open. */
 const undoing = ref(false);
 
+/** The title of the panel. */
 const heading = computed(
     () => movement?.title ?? trans('New expense or income'),
 );
@@ -424,9 +425,11 @@ defineExpose({ fileErrors });
                     class="shrink-0 text-banks-text"
                 />
                 {{
-                    $t('Recorded by the bank on :date', {
-                        date: formatDate(movement.bank.booked_on),
-                    })
+                    movement.bank.booked_on
+                        ? $t('Recorded by the bank on :date', {
+                              date: formatDate(movement.bank.booked_on),
+                          })
+                        : $t('Recorded by the bank')
                 }}
             </span>
             <span class="text-meta break-words text-ink-soft"
