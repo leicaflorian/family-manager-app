@@ -111,6 +111,14 @@ function focusLeft(event: FocusEvent): void {
         aside.contains(event.relatedTarget);
 }
 
+// A new page collapses it: a touch on a section opens it (mouseenter and focus) and never leaves it
+watch(
+    () => path,
+    (): void => {
+        pointerLeft();
+    },
+);
+
 // The classes of the page are merged with the sidebar's (the layout makes it sticky, as tall as the window)
 defineOptions({ inheritAttrs: false });
 

@@ -116,6 +116,28 @@ describe('FmSidebar', () => {
         expect(screen.getByText('Every day')).toHaveClass('opacity-0');
     });
 
+    it('collapsed closes again when a touch on a section opens its page, though no pointer left it', async () => {
+        const sidebar = render(FmSidebar, {
+            props: {
+                active: 'documents',
+                path: '/documents',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                collapsed: true,
+            },
+        });
+        const aside = screen.getByRole('complementary');
+        // a touch fires mouseenter and focus, but never mouseleave
+        await userEvent.click(screen.getByRole('link', { name: 'Agenda' }));
+        expect(aside).toHaveClass('w-[260px]');
+
+        await sidebar.rerender({ active: 'agenda', path: '/agenda' });
+
+        expect(aside).toHaveClass('w-[76px]');
+    });
+
     it('keeps the icons still while it opens and collapses: same margins, left aligned, the names only fade', async () => {
         const sidebar = render(FmSidebar, {
             props: {
