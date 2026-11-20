@@ -1,5 +1,17 @@
 [
     {
+        "version": "2.3.3",
+        "date": "2026-11-21",
+        "notes": {
+            "it": [
+                "Nessuna novità da vedere in questa versione: abbiamo solo sistemato dei controlli interni per pubblicare gli aggiornamenti in modo più sicuro."
+            ],
+            "en": [
+                "Nothing new to see in this version: we only improved some internal checks so updates are published more safely."
+            ]
+        }
+    },
+    {
         "version": "2.3.2",
         "date": "2026-11-21",
         "notes": {

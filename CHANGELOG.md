@@ -2,6 +2,13 @@
 
 All notable changes to Fameja.app.
 
+## [2.3.3] - 2026-11-21
+
+### Release tooling
+- `./release` now runs the CI checks (Pint, PHPStan, Rector, types, `vp check` and all of Vitest) on `dev` before merging into `main`. PHPStan and Rector run in a throwaway container, away from the shared `/tmp` cache of the worktrees.
+- `notes.json`, written by PHP, is excluded from Oxfmt.
+- Removed the two `unbound-method` warnings in the `FmBackLink` and `FmTitle` tests that stopped `vp check`.
+
 ## [2.3.2] - 2026-11-21
 
 ### iPhone and iPad
