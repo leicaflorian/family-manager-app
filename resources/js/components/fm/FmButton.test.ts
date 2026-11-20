@@ -191,9 +191,24 @@ describe('FmButton', () => {
             slots: { default: 'Create the expense' },
         });
 
-        const button = screen.getByRole('button', { name: 'Create the expense' });
-        expect(button).toHaveClass('h-control', 'text-body-sm', 'px-2.5', 'rounded-md', 'gap-1.5', 'border-edge-soft');
-        expect(button).not.toHaveClass('text-body', 'px-5', 'flex-1', 'w-full', 'rounded-control');
+        const button = screen.getByRole('button', {
+            name: 'Create the expense',
+        });
+        expect(button).toHaveClass(
+            'h-control',
+            'text-body-sm',
+            'px-2.5',
+            'rounded-md',
+            'gap-1.5',
+            'border-edge-soft',
+        );
+        expect(button).not.toHaveClass(
+            'text-body',
+            'px-5',
+            'flex-1',
+            'w-full',
+            'rounded-control',
+        );
     });
 
     it('is blue in the solid variant', () => {

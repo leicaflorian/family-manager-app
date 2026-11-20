@@ -426,7 +426,10 @@ describe('Movement', () => {
         it('says the bank recorded it without a day when the bank gave none', () => {
             renderPage(Movement, {
                 ...props,
-                movement: { ...danceMovement, bank: { ...bank, booked_on: null } },
+                movement: {
+                    ...danceMovement,
+                    bank: { ...bank, booked_on: null },
+                },
             });
 
             expect(

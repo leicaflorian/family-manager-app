@@ -135,11 +135,20 @@ describe('FmTabs', () => {
             },
         });
 
-        const tab = screen.getByRole('link', { name: 'From the bank, 6 to sort' });
+        const tab = screen.getByRole('link', {
+            name: 'From the bank, 6 to sort',
+        });
         const badge = screen.getByText('6');
         expect(tab).toContainElement(badge);
         expect(badge).toHaveAttribute('aria-hidden', 'true');
-        expect(badge).toHaveClass('bg-action', 'text-on-action', 'h-5', 'min-w-5', 'rounded-full', 'text-badge');
+        expect(badge).toHaveClass(
+            'bg-action',
+            'text-on-action',
+            'h-5',
+            'min-w-5',
+            'rounded-full',
+            'text-badge',
+        );
         expect(badge).not.toHaveClass('bg-overdue');
     });
 
