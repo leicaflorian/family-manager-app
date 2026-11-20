@@ -178,6 +178,23 @@ describe('AppLayout', () => {
         );
     });
 
+    it('on the tablet closes the menu with Back, in place of the Menu button', async () => {
+        screenWidth(820);
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+        const menu = await screen.findByRole('dialog', { name: 'Menu' });
+
+        await userEvent.click(
+            within(menu).getByRole('button', { name: 'Back' }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Menu' }),
+            ).not.toBeInTheDocument(),
+        );
+    });
+
     it('on the tablet closes the menu also for a visit to the page already open', async () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });

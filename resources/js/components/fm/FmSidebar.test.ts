@@ -31,6 +31,36 @@ function areaList() {
 }
 
 describe('FmSidebar', () => {
+    it('as the menu of the tablet starts with the bar of the page: Back, the logo and the family', async () => {
+        const sidebar = render(FmSidebar, {
+            props: {
+                active: 'home',
+                path: '/dashboard',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                menu: true,
+            },
+        });
+
+        const back = screen.getByRole('button', { name: 'Back' });
+        // the same box as the top bar, so the logo does not move when the menu opens
+        expect(back.parentElement).toHaveClass('h-topbar', 'px-5', 'gap-3.5');
+        expect(back.parentElement).toHaveTextContent('Fameja.app');
+        expect(back.parentElement).toHaveTextContent('Bianchi family');
+
+        await userEvent.click(back);
+
+        expect(sidebar.emitted('close')).toHaveLength(1);
+    });
+
+    it('as the sidebar of the computer has no Back', () => {
+        bar('home');
+
+        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    });
+
     it('has Upload at the top and the sections, with the open one marked', () => {
         bar('documents');
 

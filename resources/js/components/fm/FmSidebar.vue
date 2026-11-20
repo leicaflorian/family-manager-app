@@ -8,11 +8,13 @@
  * the bottom *My account*, which opens Settings, *Report a problem or an idea*
  * (it emits `report`: the layout opens the panel) and Log out. When the sections do not fit
  * the window, only they scroll: the logo, Upload and *My account* stay in place.
+ * As the menu of the tablet (`menu`) it starts with the bar of the page, the same box as the top bar, with Back
+ * (it emits `close`) where the bar has Menu: opening the menu leaves the logo where it was.
  *
  * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
-import { ChevronDown, ChevronUp, LogOut, Plus } from '@lucide/vue';
+import { ArrowLeft, ChevronDown, ChevronUp, LogOut, Plus } from '@lucide/vue';
 import {
     DropdownMenuContent,
     DropdownMenuItem,
@@ -31,6 +33,7 @@ import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
 import { cn } from '@/lib/utils';
+import { squareButton } from '@/lib/topBar';
 import FmLogo from './FmLogo.vue';
 import type { NavigationItem, NavigationItems, Section } from './navigation';
 
@@ -45,6 +48,7 @@ const {
     family,
     user,
     uploadCount = 0,
+    menu = false,
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -60,11 +64,15 @@ const {
     user: string;
     /** The files waiting to be sorted: the number in the pill of *To sort*; nothing at zero, 99+ above 99. */
     uploadCount?: number;
+    /** The sidebar is the menu of the tablet: it starts with the bar of the page and Back. */
+    menu?: boolean;
 }>();
 
 const emit = defineEmits<{
     /** *Report a problem or an idea* was chosen: the layout opens its panel. */
     report: [];
+    /** Back of the menu of the tablet was chosen: the layout closes the menu. */
+    close: [];
 }>();
 
 // The classes of the page are merged with the sidebar's (the menu of the tablet makes it `w-full`)
@@ -81,6 +89,7 @@ const attrs = useAttrs();
 function rootClass(): string {
     return cn(
         'flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5',
+        menu && 'pt-0',
         attrs.class as ClassValue,
     );
 }
@@ -197,13 +206,33 @@ function isPage(section: Section): boolean {
 
 <template>
     <aside v-bind="otherAttrs()" :class="rootClass()">
-        <div class="flex shrink-0 items-center gap-2.5 px-2 pt-1 pb-4">
-            <FmLogo :size="36" />
-            <span class="flex flex-col">
-                <span class="text-amount">{{ appName }}</span>
-                <span class="text-meta text-ink-soft">{{
-                    $t(':family family', { family })
-                }}</span>
+        <!-- As the menu of the tablet: the box of the top bar, across the whole menu, 20 px above Upload -->
+        <div
+            :class="
+                menu
+                    ? '-mx-3.5 mb-3.5 flex h-topbar shrink-0 items-center gap-3.5 border-b border-edge-soft bg-canvas px-5'
+                    : 'flex shrink-0 items-center px-2 pt-1 pb-4'
+            "
+        >
+            <button
+                v-if="menu"
+                type="button"
+                :aria-label="$t('Back')"
+                :title="$t('Back')"
+                :class="squareButton"
+                class="cursor-pointer"
+                @click="emit('close')"
+            >
+                <FmIcon :icon="ArrowLeft" :size="22" />
+            </button>
+            <span class="flex items-center gap-2.5">
+                <FmLogo :size="36" />
+                <span class="flex flex-col">
+                    <span class="text-amount text-ink">{{ appName }}</span>
+                    <span class="text-meta text-ink-soft">{{
+                        $t(':family family', { family })
+                    }}</span>
+                </span>
             </span>
         </div>
 

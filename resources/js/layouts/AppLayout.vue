@@ -281,7 +281,9 @@ useSearchShortcut(focusSearch);
                         :family="family"
                         :user="user"
                         :upload-count="toSort"
+                        menu
                         @report="openFeedback"
+                        @close="menuOpen = false"
                     />
                 </DialogContent>
             </DialogPortal>

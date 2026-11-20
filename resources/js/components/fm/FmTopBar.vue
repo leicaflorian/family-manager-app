@@ -26,7 +26,7 @@ import { useLeavePage } from '@/composables/useLeavePage';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
 import { countBadge } from '@/lib/badge';
 import type { TrailPiece } from '@/lib/pageTrail';
-import { cn } from '@/lib/utils';
+import { squareButton } from '@/lib/topBar';
 import { canGoBack } from '@/lib/visitHistory';
 import { search } from '@/routes';
 import type { BellNotices } from '@/lib/notices';
@@ -182,11 +182,6 @@ const menuLabel = computed((): string =>
               uploadCount,
           )
         : trans('Menu'),
-);
-
-/** The square buttons of the bar: Back, the menu and the bell. */
-const squareButton = cn(
-    'relative flex size-11 shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-ink',
 );
 
 /** Puts the cursor in the search box: the shortcut ⌘K of the layout calls it. */
