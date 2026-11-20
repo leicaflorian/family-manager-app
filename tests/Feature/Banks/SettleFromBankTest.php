@@ -183,7 +183,7 @@ test('a payment already recorded by hand is linked, not doubled', function (): v
     });
 });
 
-test('a due date paid in the meantime leaves no second expense and no exception', function (): void {
+test('a due date paid in the meantime is linked, with no second expense and no exception', function (): void {
     insideBianchi(function (): void {
         $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-11-05');
         $transaction = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
@@ -191,17 +191,46 @@ test('a due date paid in the meantime leaves no second expense and no exception'
         expect($planned?->is($luce))->toBeTrue();
 
         // Somebody records the payment by hand, with another amount, after the rule chose Luce
-        resolve(RecordPayment::class)->handle(resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-11-05')), CarbonImmutable::parse('2026-11-04'), 70.0, null, null);
+        $byHand = resolve(RecordPayment::class)->handle(resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-11-05')), CarbonImmutable::parse('2026-11-04'), 70.0, null, null);
 
-        expect(bankSettleRun($transaction, $planned))->toBeNull()
+        expect(bankSettleRun($transaction, $planned)?->is($byHand))->toBeTrue()
             ->and(Expense::query()->where('planned_expense_id', $luce->id)->count())->toBe(1)
-            ->and($transaction->refresh()->expense_id)->toBeNull()
-            ->and($transaction->matched_by)->toBeNull();
+            ->and($transaction->refresh()->expense_id)->toBe($byHand->id)
+            ->and($transaction->matched_by)->toBe(BankMatchSource::Duplicate)
+            ->and(ReminderNotice::query()->count())->toBe(0);
     });
 });
 
-test('a payment written meanwhile without the lock is linked when it is the same, or leaves the transaction unsorted', function (float $byHand, bool $linked): void {
-    insideBianchi(function () use ($byHand, $linked): void {
+test('November paid by hand with another amount is linked, and the open March is not paid with its debit', function (): void {
+    insideBianchi(function (): void {
+        $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
+        $byHand = resolve(RecordPayment::class)->handle(resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-11-05')), CarbonImmutable::parse('2026-11-05'), 72.0, null, null);
+        $transaction = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-06');
+
+        expect(bankSettleRun($transaction, $luce)?->is($byHand))->toBeTrue()
+            ->and(Expense::query()->where('planned_expense_id', $luce->id)->count())->toBe(1)
+            ->and($transaction->refresh()->matched_by)->toBe(BankMatchSource::Duplicate)
+            ->and(resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-03-05'))->isPaid())->toBeFalse()
+            ->and(ReminderNotice::query()->count())->toBe(0);
+    });
+});
+
+test('a paid due date whose payment already has a bank transaction leaves the transaction unsorted', function (): void {
+    insideBianchi(function (): void {
+        $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
+        $first = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
+        bankSettleRun($first, $luce);
+        $second = bankSettleTransaction('SDD EDISON ENERGIA RETTIFICA', '-12.00', '2026-11-08');
+
+        expect(bankSettleRun($second, $luce))->toBeNull()
+            ->and($second->refresh()->expense_id)->toBeNull()
+            ->and($second->matched_by)->toBeNull()
+            ->and(Expense::query()->where('planned_expense_id', $luce->id)->count())->toBe(1);
+    });
+});
+
+test('a payment written meanwhile without the lock is linked, whatever its amount', function (float $byHand): void {
+    insideBianchi(function () use ($byHand): void {
         $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-11-05');
         $transaction = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
         $paid = (object) ['done' => false];
@@ -224,13 +253,13 @@ test('a payment written meanwhile without the lock is linked when it is the same
 
         expect($paid->done)->toBeTrue()
             ->and(Expense::query()->where('planned_expense_id', $luce->id)->count())->toBe(1)
-            ->and($transaction->refresh()->expense_id !== null)->toBe($linked)
-            ->and($result !== null)->toBe($linked)
+            ->and($transaction->refresh()->matched_by)->toBe(BankMatchSource::Duplicate)
+            ->and($result?->is(Expense::query()->where('planned_expense_id', $luce->id)->sole()))->toBeTrue()
             ->and(ReminderNotice::query()->count())->toBe(0);
     });
 })->with([
-    'with the same amount' => [72.40, true],
-    'with another amount' => [70.00, false],
+    'with the same amount' => [72.40],
+    'with another amount' => [70.00],
 ]);
 
 test('a transaction settled twice in a row pays once', function (): void {

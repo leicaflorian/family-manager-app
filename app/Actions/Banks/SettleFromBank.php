@@ -13,6 +13,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankDuplicates;
 use App\Services\Banks\BankMatcher;
+use App\Services\Deadlines;
 use App\Support\Deadline;
 use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
@@ -29,6 +30,7 @@ final readonly class SettleFromBank
     public function __construct(
         private BankDuplicates $duplicates,
         private BankMatcher $matcher,
+        private Deadlines $deadlines,
         private RecordPayment $recordPayment,
         private NotifyBankPayment $notify,
     ) {}
@@ -41,12 +43,13 @@ final readonly class SettleFromBank
      *
      * 1. A payment of the planned item already recorded with the same amount within a few days: the transaction is
      *    linked to it (`duplicate`), without a notice.
-     * 2. Otherwise the due date it settles; with none the transaction stays to sort.
+     * 2. Otherwise the due date it settles; with none the transaction stays to sort. When that due date is already paid
+     *    (the closest within reach, paid by hand with another amount), the transaction is linked to its payment
+     *    (`duplicate`, no notice), or stays to sort when another bank transaction has it: it never pays another month.
      * 3. Otherwise the payment of that due date, for the amount of the bank, on the day it was booked and on its
      *    account, with the fee of the planned expense when it is smaller than the amount; the transaction is linked
      *    to it (`$by`) and everyone in the family gets a notice.
-     * 4. A due date found paid while writing looks once more for the payment to link to; with none the transaction
-     *    stays to sort. No exception leaves.
+     * 4. A due date found paid while writing is linked to its payment in the same way. No exception leaves.
      *
      * @param  BankTransaction  $transaction  The transaction of the bank.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
@@ -76,13 +79,15 @@ final readonly class SettleFromBank
                 return null;
             }
 
+            if ($deadline->isPaid()) {
+                return $this->linkPaid($current, $deadline);
+            }
+
             try {
                 $payment = $this->pay($current, $planned, $deadline);
             } catch (ValidationException) {
                 // Paid by somebody who did not wait for the lock: only the payment rolled back, the lock is still held
-                $existing = $this->duplicates->find($current, $planned);
-
-                return $existing === null ? null : $this->link($current, $existing, BankMatchSource::Duplicate);
+                return $this->linkPaid($current, $this->deadlines->find($planned, $deadline->occurrence->originalDate));
             }
 
             $this->link($current, $payment, $by);
@@ -115,6 +120,22 @@ final readonly class SettleFromBank
             null,
             $fee > 0 && round($fee * 100) < round($amount * 100) ? $fee : null,
         );
+    }
+
+    /**
+     * Links the transaction to the payment of a paid due date, when no other bank transaction has it.
+     *
+     * @param  BankTransaction  $transaction  The transaction, locked.
+     * @param  Deadline  $deadline  The due date, paid.
+     * @return Expense|Income|null the payment, or null when the transaction stays to sort
+     */
+    private function linkPaid(BankTransaction $transaction, Deadline $deadline): Expense|Income|null
+    {
+        $payment = $deadline->payment;
+
+        return $payment !== null && $this->duplicates->isFree($payment, $transaction)
+            ? $this->link($transaction, $payment, BankMatchSource::Duplicate)
+            : null;
     }
 
     /**

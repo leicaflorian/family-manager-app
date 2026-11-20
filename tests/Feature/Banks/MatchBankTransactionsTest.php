@@ -6,6 +6,7 @@ use App\Actions\Banks\MatchBankTransactions;
 use App\Actions\Banks\SyncBankConnection;
 use App\Actions\Budget\SavePlanned;
 use App\Contracts\BankFeed;
+use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
@@ -17,6 +18,7 @@ use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankEntry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Exceptions;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-05 07:00', 'Europe/Rome'));
@@ -191,4 +193,27 @@ test('a foreign currency transaction pays nothing', function (): void {
             ->and(resolve(MatchBankTransactions::class)->forPlanned($luce))->toBe(0)
             ->and(Expense::query()->count())->toBe(0);
     });
+});
+
+test('a failure while matching is reported and never leaves the read of the bank nor the save of a rule', function (): void {
+    Exceptions::fake();
+
+    insideBianchi(function (): void {
+        [$connection] = bankMatchingConnection();
+        $luce = bankMatchingLuce(['bank_match' => null]);
+        bankMatchingTransaction('ADDEBITO SDD EDISON ENERGIA', '-72.40', '2026-11-05');
+        // The matcher reads the planned items: a database error there
+        PlannedExpense::retrieved(static fn () => throw new RuntimeException('The database went away.'));
+        $this->feed->gives([new BankEntry('a', CarbonImmutable::parse('2026-11-05'), null, -72.40, 'EUR', 'ADDEBITO SDD EDISON ENERGIA', null, true)]);
+
+        expect(resolve(SyncBankConnection::class)->handle($connection))->toBe(1)
+            ->and($connection->refresh()->status)->toBe(BankConnectionStatus::Active);
+
+        $saved = resolve(SavePlanned::class)->handle('expense', ['bank_match' => 'SDD.*EDISON'], $luce);
+
+        expect($saved->bank_match)->toBe('SDD.*EDISON')
+            ->and(Expense::query()->count())->toBe(0);
+    });
+
+    Exceptions::assertReported(RuntimeException::class);
 });

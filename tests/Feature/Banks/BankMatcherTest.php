@@ -164,12 +164,24 @@ test('a skipped due date is never picked', function (): void {
     });
 });
 
-test('no open due date gives none', function (): void {
+test('the closest due date within reach is given even when paid, never an older open month', function (): void {
+    insideBianchi(function (): void {
+        $luce = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05');
+        $byHand = Expense::factory()->create(['family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'occurrence_date' => '2026-11-05', 'date' => '2026-11-05', 'amount' => 84.0]);
+
+        $deadline = resolve(BankMatcher::class)->deadline(bankMatcherTransaction('EDISON', '-84.20', '2026-11-06'), $luce);
+
+        expect($deadline?->occurrence->originalDate->toDateString())->toBe('2026-11-05')
+            ->and($deadline?->payment?->is($byHand))->toBeTrue();
+    });
+});
+
+test('no due date within reach and none late gives none', function (): void {
     insideBianchi(function (): void {
         $luce = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-11-05', ['end_date' => '2026-11-30']);
         Expense::factory()->create(['family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'occurrence_date' => '2026-11-05', 'date' => '2026-11-05']);
 
-        expect(resolve(BankMatcher::class)->deadline(bankMatcherTransaction('EDISON', '-84.20', '2026-11-06'), $luce))->toBeNull();
+        expect(resolve(BankMatcher::class)->deadline(bankMatcherTransaction('EDISON', '-84.20', '2026-11-25'), $luce))->toBeNull();
     });
 });
 

@@ -73,9 +73,11 @@ final readonly class BankMatcher
     }
 
     /**
-     * The due date the transaction settles: the unpaid one closest to the day of the transaction within half a period
-     * (at most 45 days; a day more than half is out), else the oldest late one before the day, else none. A skipped due
-     * date is never taken. A planned item that does not repeat has only one due date, at any distance.
+     * The due date the transaction settles: the one closest to the day of the transaction within half a period (at most
+     * 45 days; a day more than half is out), paid or not; only when none is within reach, the oldest late one before
+     * the day, else none. A paid one comes with its payment: the transaction belongs to it and must not pay an older
+     * month (spec 6.6). A skipped due date is never taken. A planned item that does not repeat has only one due date, at
+     * any distance, and only while it is unpaid.
      *
      * @param  BankTransaction  $transaction  The transaction.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
@@ -96,8 +98,10 @@ final readonly class BankMatcher
 
         // Half a period, cut to whole days: 15 for a month, 3 for a week
         $reach = min(self::MAX_REACH, (int) floor($this->occurrences->stepDays($schedule) / 2));
-        $open = $this->deadlines->unpaidUntil([$planned], $day->addDays($reach), $day);
-        $near = array_values(array_filter($open, fn (Deadline $deadline): bool => abs($this->days($deadline, $day)) <= $reach));
+        $near = array_values(array_filter(
+            $this->deadlines->between([$planned], $day->subDays($reach), $day->addDays($reach)),
+            fn (Deadline $deadline): bool => abs($this->days($deadline, $day)) <= $reach,
+        ));
 
         // The list is in order of date, so on a tie the earlier due date stays first
         usort($near, fn (Deadline $a, Deadline $b): int => abs($this->days($a, $day)) <=> abs($this->days($b, $day)));
@@ -106,7 +110,10 @@ final readonly class BankMatcher
             return $near[0];
         }
 
-        return array_find($open, static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() < $day->toDateString());
+        return array_find(
+            $this->deadlines->unpaidUntil([$planned], $day, $day),
+            static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() < $day->toDateString(),
+        );
     }
 
     /**

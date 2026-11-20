@@ -23,7 +23,7 @@ final readonly class MatchBankTransactions
 
     /**
      * Settles every transaction still to sort and not declined with the planned item whose rule recognises it. A
-     * transaction that fails is reported and left to sort, and the others go on.
+     * transaction that fails (also while it is checked or matched) is reported and left to sort, and the others go on.
      *
      * @param  iterable<BankTransaction>  $transactions  The transactions, in the order to settle them.
      * @return int how many paid or were linked to a payment
@@ -33,13 +33,13 @@ final readonly class MatchBankTransactions
         $settled = 0;
 
         foreach ($transactions as $transaction) {
-            if (! $this->isOpen($transaction)) {
-                continue;
-            }
+            $paid = $this->safely(function () use ($transaction): bool {
+                $planned = $this->isOpen($transaction) ? $this->matcher->planned($transaction) : null;
 
-            $planned = $this->matcher->planned($transaction);
+                return $planned !== null && $this->settle->handle($transaction, $planned, BankMatchSource::Rule) !== null;
+            });
 
-            if ($planned !== null && $this->settle($transaction, $planned)) {
+            if ($paid) {
                 $settled++;
             }
         }
@@ -50,7 +50,8 @@ final readonly class MatchBankTransactions
     /**
      * Settles the transactions still to sort and not declined of the last days of a first read (90) that the rule of
      * the planned item recognises, the oldest first, so a rule written after the payments pays the due dates left open.
-     * A transaction whose rule picks another planned item (closer in amount) is left to that one.
+     * A transaction whose rule picks another planned item (closer in amount) is left to that one. A failure is
+     * reported and never leaves: the planned item is already saved.
      *
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item, with its rule saved.
      * @return int how many paid or were linked to a payment
@@ -64,7 +65,7 @@ final readonly class MatchBankTransactions
         }
 
         $since = CarbonImmutable::now('Europe/Rome')->startOfDay()->subDays(config()->integer('bank_feed.first_days'));
-        $transactions = BankTransaction::query()
+        $transactions = $this->safely(static fn () => BankTransaction::query()
             ->unsorted()
             ->whereNull('declined_at')
             ->where('amount', $planned instanceof PlannedExpense ? '<' : '>', 0)
@@ -73,12 +74,16 @@ final readonly class MatchBankTransactions
             ->oldest('booked_on')
             ->oldest('id')
             ->get()
-            ->filter(static fn (BankTransaction $transaction): bool => BankMatch::matches($rule, $transaction->text));
+            ->filter(static fn (BankTransaction $transaction): bool => BankMatch::matches($rule, $transaction->text))
+            ->all(), []);
 
         $settled = 0;
 
         foreach ($transactions as $transaction) {
-            if ($this->matcher->planned($transaction)?->is($planned) === true && $this->settle($transaction, $planned)) {
+            $paid = $this->safely(fn (): bool => $this->matcher->planned($transaction)?->is($planned) === true
+                && $this->settle->handle($transaction, $planned, BankMatchSource::Rule) !== null);
+
+            if ($paid) {
                 $settled++;
             }
         }
@@ -97,20 +102,23 @@ final readonly class MatchBankTransactions
     }
 
     /**
-     * Settles one transaction with the rule; a failure is reported and the transaction stays to sort.
+     * Runs a piece of the matching; a failure (a database error, a broken rule) is reported and gives the fallback, so
+     * it never stops the read of a bank nor the save of a planned item, and a transaction that failed stays to sort.
      *
-     * @param  BankTransaction  $transaction  The transaction.
-     * @param  PlannedExpense|PlannedIncome  $planned  The planned item its rule recognises.
-     * @return bool whether it paid or was linked to a payment
+     * @template T
+     *
+     * @param  callable(): T  $work  The work.
+     * @param  T  $fallback  What a failure gives.
+     * @return T
      */
-    private function settle(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned): bool
+    private function safely(callable $work, mixed $fallback = false): mixed
     {
         try {
-            return $this->settle->handle($transaction, $planned, BankMatchSource::Rule) !== null;
+            return $work();
         } catch (Throwable $failure) {
             report($failure);
 
-            return false;
+            return $fallback;
         }
     }
 }

@@ -13,7 +13,7 @@ use Carbon\CarbonImmutable;
 
 /**
  * Finds the expense or income somebody already recorded by hand for a payment that the bank now reports, so the bank
- * transaction links to it instead of creating a second one.
+ * transaction links to it instead of creating a second one, and tells whether a payment is still free to link.
  */
 final class BankDuplicates
 {
@@ -37,7 +37,7 @@ final class BankDuplicates
 
         $cents = (int) round(abs((float) $transaction->amount) * 100);
         $isExpense = $planned instanceof PlannedExpense;
-        $column = $isExpense ? 'expense_id' : 'income_id';
+        $column = $this->column($isExpense);
         $query = $isExpense
             ? Expense::query()->where('planned_expense_id', $planned->id)
             : Income::query()->where('planned_income_id', $planned->id);
@@ -52,5 +52,29 @@ final class BankDuplicates
             ->first();
 
         return $found;
+    }
+
+    /**
+     * Whether a payment is free for the bank transaction: not linked to another bank transaction.
+     *
+     * @param  Expense|Income  $payment  The payment.
+     * @param  BankTransaction  $transaction  The bank transaction that would link to it.
+     */
+    public function isFree(Expense|Income $payment, BankTransaction $transaction): bool
+    {
+        return ! BankTransaction::query()
+            ->whereKeyNot($transaction->id)
+            ->where($this->column($payment instanceof Expense), $payment->id)
+            ->exists();
+    }
+
+    /**
+     * The column of a bank transaction that links it to an expense or to an income.
+     *
+     * @param  bool  $expense  Whether the payment is an expense.
+     */
+    private function column(bool $expense): string
+    {
+        return $expense ? 'expense_id' : 'income_id';
     }
 }
