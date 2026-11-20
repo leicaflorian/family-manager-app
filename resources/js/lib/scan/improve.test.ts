@@ -6,7 +6,6 @@ import {
     angleText,
     enhance,
     grey,
-    improve,
     improveSide,
     isPlain,
     sameImprovement,
@@ -128,24 +127,13 @@ describe('grey', () => {
     });
 });
 
-describe('improve', () => {
+describe('IMPROVE_DEFAULTS', () => {
     it('has the defaults of the owner', () => {
         expect(IMPROVE_DEFAULTS).toEqual({
-            enhance: true,
+            enhance: 50,
             grey: true,
             dewarp: false,
         });
-    });
-
-    it('does nothing when nothing is asked', () => {
-        const source = shadowed();
-        expect(improve(source, { enhance: false, grey: false })).toBe(source);
-    });
-
-    it('enhances then greys', () => {
-        const out = improve(shadowed(), { enhance: true, grey: true });
-        expect(out.data[0]).toBe(out.data[1]);
-        expect(out.data[1]).toBe(out.data[2]);
     });
 });
 

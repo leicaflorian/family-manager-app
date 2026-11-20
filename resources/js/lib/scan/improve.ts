@@ -4,9 +4,12 @@
 // old extensions of Directus (`phone-scan/public/crop.js` and `document-reader/.../scan/improve.ts`).
 import type { Pixels } from './crop';
 
-/** What is switched on at the start (decision 5 of the plan): Improve and Black and white on, Straighten off. */
+/**
+ * What a photo of the phone starts with (decision 5 of the plan): *Improve* at 50, which is the strength the phone
+ * always had, *Black and white* on, *Straighten* off.
+ */
 export const IMPROVE_DEFAULTS = {
-    enhance: true,
+    enhance: 50,
     grey: true,
     dewarp: false,
 } as const;
@@ -420,23 +423,6 @@ export function grey(image: Pixels): Pixels {
         out[i + 3] = 255;
     }
     return { data: out, width, height };
-}
-
-/**
- * A picture with what was asked for it: first the light is evened out, then the colours go.
- *
- * @param image the picture
- * @param options which of Improve (`enhance`, with its `strength`, 1 by default) and Black and white (`grey`) to apply
- * @returns the same picture when nothing is asked, otherwise a new one
- */
-export function improve(
-    image: Pixels,
-    options: { enhance: boolean; grey: boolean; strength?: number },
-): Pixels {
-    let picture = image;
-    if (options.enhance) picture = enhance(picture, options.strength ?? 1);
-    if (options.grey) picture = grey(picture);
-    return picture;
 }
 
 /**

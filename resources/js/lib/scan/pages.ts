@@ -31,7 +31,8 @@ export type ScanPage = {
     /** Where the sheet is on the photo, from 0 to 1, or null while it was not found or set. */
     corners: Corners | null;
     turns: Turns;
-    improve: { enhance: boolean; grey: boolean; dewarp: boolean };
+    /** *Improve* from 0 to 100 (50 is the strength the phone always had), *Black and white* and *Straighten*. */
+    improve: { enhance: number; grey: boolean; dewarp: boolean };
     /** The photo has been cut out: `jpeg` is the finished side, with the turns and the improvements in it. */
     cut: boolean;
     jpeg: Blob | null;

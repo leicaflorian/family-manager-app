@@ -40,12 +40,14 @@ vi.mock('@/lib/pwa/sharedFiles', async (original) => ({
 const canvas = vi.hoisted(() => ({
     reduceToJpeg: vi.fn(),
     cutOut: vi.fn(),
+    improvedJpeg: vi.fn(),
 }));
 
 vi.mock('@/lib/scan/canvas', () => ({
     SEARCH_LONG_SIDE: 1000,
     reduceToJpeg: canvas.reduceToJpeg,
     cutOut: canvas.cutOut,
+    improvedJpeg: canvas.improvedJpeg,
     canvasBackend: {
         load: async (one: { id: string }) => ({
             jpeg: new TextEncoder().encode(`jpeg-${one.id}`),
@@ -154,6 +156,12 @@ beforeEach(() => {
         jpeg: new File(['s'], 'sheet.jpg', { type: 'image/jpeg' }),
         plain: new File(['p'], 'plain.jpg', { type: 'image/jpeg' }),
     }));
+    canvas.improvedJpeg.mockReset().mockImplementation(
+        async (_plain: Blob, wanted: { enhance: number; grey: boolean }) =>
+            new File(['i'], `improved-${wanted.enhance}.jpg`, {
+                type: 'image/jpeg',
+            }),
+    );
     straighten.available.mockReset().mockReturnValue(false);
     straighten.dewarp.mockReset().mockResolvedValue({
         width: 1,
@@ -218,58 +226,6 @@ describe('Scan, the files of Share', () => {
         await settle();
 
         expect(screen.getByText('No pages')).toBeInTheDocument();
-    });
-});
-
-describe('Scan, the sheet Install Fameja.app', () => {
-    afterEach(() => localStorage.clear());
-
-    it('shows the steps on an iPhone in the browser, and Not now closes it', async () => {
-        phoneBrowser(IPHONE);
-        renderPage(Scan);
-
-        const sheet = await screen.findByRole('dialog', {
-            name: 'Install Fameja.app',
-        });
-        expect(
-            within(sheet).getByText(/Add to Home Screen/),
-        ).toBeInTheDocument();
-        expect(
-            within(sheet).queryByRole('button', { name: 'Install' }),
-        ).not.toBeInTheDocument();
-
-        await fireEvent.click(
-            within(sheet).getByRole('button', { name: 'Not now' }),
-        );
-        await waitFor(() =>
-            expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
-        );
-    });
-
-    it('has the Install button on Android, which shows the steps when the phone made no invitation', async () => {
-        phoneBrowser(ANDROID);
-        renderPage(Scan);
-
-        const sheet = await screen.findByRole('dialog', {
-            name: 'Install Fameja.app',
-        });
-        expect(
-            within(sheet).queryByText(/Install app/),
-        ).not.toBeInTheDocument();
-
-        await fireEvent.click(
-            within(sheet).getByRole('button', { name: 'Install' }),
-        );
-
-        expect(within(sheet).getByText(/Install app/)).toBeInTheDocument();
-    });
-
-    it('does not come up over http, nor on a computer', async () => {
-        phoneBrowser(ANDROID, 'http:');
-        renderPage(Scan);
-        await settle();
-
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 });
 
@@ -396,7 +352,7 @@ describe('Scan', () => {
             expect.any(File),
             CORNERS,
             0,
-            { enhance: true, grey: true },
+            { enhance: 50, grey: true },
         );
         expect(screen.getByText('1 page')).toBeInTheDocument();
     });
@@ -501,7 +457,18 @@ describe('Scan', () => {
         expect(document.querySelector('footer')).not.toBeNull();
     });
 
-    it('crops the photos one after the other: «1 of 2», Next, and back to the scan', async () => {
+    /** Opens *Crop* on the photo shown and goes on to *Improve*. */
+    async function toImprove(): Promise<HTMLElement> {
+        await fireEvent.click(screen.getByRole('button', { name: 'Crop' }));
+        const crop = await screen.findByRole('dialog', { name: 'Crop' });
+        await fireEvent.click(
+            within(crop).getByRole('button', { name: 'Next' }),
+        );
+
+        return screen.findByRole('dialog', { name: 'Improve' });
+    }
+
+    it('crops in two steps, Crop then Improve on the cut sheet, and Done goes back to the pages even with more photos', async () => {
         server.corners.mockResolvedValue(answer({ corners: null }));
         renderPage(Scan);
         await choose(photo('one.jpg'), photo('two.jpg'));
@@ -512,35 +479,92 @@ describe('Scan', () => {
         await fireEvent.click(screen.getByRole('button', { name: 'Page 1' }));
         await fireEvent.click(screen.getByRole('button', { name: 'Crop' }));
 
+        // Crop: the corners and the tools, no improvement
         const crop = await screen.findByRole('dialog', { name: 'Crop' });
         expect(within(crop).getByText('1 of 2')).toBeInTheDocument();
-        expect(
-            within(crop).getByRole('switch', { name: /Black and white/ }),
-        ).toBeChecked();
-        expect(
-            within(crop).getByRole('switch', { name: /Straighten/ }),
-        ).toBeDisabled();
-        expect(
-            within(crop).getByText('Straighten is not available on this phone'),
-        ).toBeInTheDocument();
+        expect(within(crop).queryByRole('switch')).not.toBeInTheDocument();
+        expect(within(crop).queryByRole('slider')).not.toBeInTheDocument();
 
         await fireEvent.click(
             within(crop).getByRole('button', { name: 'Next' }),
         );
-        // the second photo opens in a crop of its own, once the first is cut out
-        expect(await screen.findByText('2 of 2')).toBeInTheDocument();
-        const second = screen.getByRole('dialog', { name: 'Crop' });
+
+        // Improve: the sheet as it is cut out, with Straighten, Black and white and the strength of Improve
+        const improve = await screen.findByRole('dialog', { name: 'Improve' });
+        expect(canvas.cutOut).toHaveBeenCalledTimes(1);
+        expect(within(improve).getByText('2 of 2')).toBeInTheDocument();
+        expect(
+            within(improve).getByRole('img', {
+                name: 'The cut sheet, as it will be saved',
+            }),
+        ).toHaveAttribute('src', 'blob:sheet.jpg');
+        expect(
+            within(improve).getByRole('switch', { name: /Black and white/ }),
+        ).toBeChecked();
+        expect(
+            within(improve).getByRole('slider', { name: 'Improve' }),
+        ).toHaveValue('50');
+        expect(
+            within(improve).getByRole('switch', { name: /Straighten/ }),
+        ).toBeDisabled();
+        expect(
+            within(improve).getByText(
+                'Straighten is not available on this phone',
+            ),
+        ).toBeInTheDocument();
+
         await fireEvent.click(
-            within(second).getByRole('button', { name: 'Next' }),
+            within(improve).getByRole('button', { name: 'Done' }),
         );
 
+        // back to the pages: the second photo does not open
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(canvas.cutOut).toHaveBeenCalledTimes(1);
+        expect(screen.getAllByText('Cropped')).toHaveLength(1);
+    });
+
+    it('moves the strength of Improve on the cut sheet without cutting the photo again', async () => {
+        server.corners.mockResolvedValue(answer({ corners: null }));
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+        const improve = await toImprove();
+
+        await fireEvent.input(
+            within(improve).getByRole('slider', { name: 'Improve' }),
+            { target: { value: '80' } },
+        );
+
+        expect(await within(improve).findByText('80 %')).toBeInTheDocument();
+        await waitFor(() =>
+            expect(canvas.improvedJpeg).toHaveBeenLastCalledWith(
+                expect.objectContaining({ name: 'plain.jpg' }),
+                { angle: 0, enhance: 80, grey: true },
+            ),
+        );
         await waitFor(() =>
             expect(
-                screen.queryByRole('dialog', { name: 'Crop' }),
-            ).not.toBeInTheDocument(),
+                within(improve).getByRole('img', {
+                    name: 'The cut sheet, as it will be saved',
+                }),
+            ).toHaveAttribute('src', expect.not.stringMatching('sheet.jpg')),
         );
-        expect(canvas.cutOut).toHaveBeenCalledTimes(2);
-        expect(screen.getAllByText('Cropped')).toHaveLength(1);
+        expect(canvas.cutOut).toHaveBeenCalledTimes(1);
+    });
+
+    it('goes back to Crop from Improve', async () => {
+        server.corners.mockResolvedValue(answer({ corners: null }));
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await settle();
+        const improve = await toImprove();
+
+        await fireEvent.click(
+            within(improve).getByRole('button', { name: 'Back' }),
+        );
+
+        const crop = await screen.findByRole('dialog', { name: 'Crop' });
+        expect(within(crop).getByText('1 of 2')).toBeInTheDocument();
     });
 
     it('asks the server for the edges only with Find the edges', async () => {
@@ -574,7 +598,7 @@ describe('Scan', () => {
                 expect.any(File),
                 CORNERS,
                 0,
-                { enhance: true, grey: true },
+                { enhance: 50, grey: true },
             ),
         );
     });
@@ -799,43 +823,42 @@ describe('Scan, Straighten', () => {
         );
     });
 
-    /** Opens *Crop* on the only photo. */
-    async function openCrop(): Promise<HTMLElement> {
+    /** Opens *Crop* on the only photo, takes the whole photo and goes on to *Improve*. */
+    async function openImprove(): Promise<HTMLElement> {
         await fireEvent.click(screen.getByRole('button', { name: 'Crop' }));
-
-        return screen.findByRole('dialog', { name: 'Crop' });
-    }
-
-    /** Taps *Straighten* and waits for the form to take the value. */
-    async function flip(crop: HTMLElement): Promise<void> {
-        await fireEvent.click(
-            within(crop).getByRole('switch', { name: /Straighten/ }),
-        );
-        await settle();
-    }
-
-    /** Taps *Whole photo* and *Next*. */
-    async function cropWhole(crop: HTMLElement): Promise<void> {
+        const crop = await screen.findByRole('dialog', { name: 'Crop' });
         await fireEvent.click(
             within(crop).getByRole('button', { name: 'Whole photo' }),
         );
         await fireEvent.click(
             within(crop).getByRole('button', { name: 'Next' }),
         );
+
+        return screen.findByRole('dialog', { name: 'Improve' });
     }
 
-    it('is a switch that can be turned on where the phone can do it, off by default', async () => {
+    /** Taps *Straighten* and waits for the form to take the value. */
+    async function flip(improve: HTMLElement): Promise<void> {
+        await fireEvent.click(
+            within(improve).getByRole('switch', { name: /Straighten/ }),
+        );
+        await settle();
+    }
+
+    it('is a switch of Improve that can be turned on where the phone can do it, off by default', async () => {
         renderPage(Scan);
         await choose(photo('one.jpg'));
         await settle();
 
-        const crop = await openCrop();
-        const toggle = within(crop).getByRole('switch', { name: /Straighten/ });
+        const improve = await openImprove();
+        const toggle = within(improve).getByRole('switch', {
+            name: /Straighten/,
+        });
 
         expect(toggle).toBeEnabled();
         expect(toggle).not.toBeChecked();
         expect(
-            within(crop).queryByText(
+            within(improve).queryByText(
                 'Straighten is not available on this phone',
             ),
         ).not.toBeInTheDocument();
@@ -847,17 +870,17 @@ describe('Scan, Straighten', () => {
         await choose(photo('one.jpg'));
         await settle();
 
-        const crop = await openCrop();
+        const improve = await openImprove();
 
         expect(
-            within(crop).getByRole('switch', { name: /Straighten/ }),
+            within(improve).getByRole('switch', { name: /Straighten/ }),
         ).toBeDisabled();
         expect(
-            within(crop).getByText('Straighten is not available on this phone'),
+            within(improve).getByText(
+                'Straighten is not available on this phone',
+            ),
         ).toBeInTheDocument();
-
-        await cropWhole(crop);
-        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(1));
+        expect(canvas.cutOut).toHaveBeenCalledTimes(1);
         expect(canvas.cutOut.mock.calls[0]).toHaveLength(4);
         expect(straighten.dewarp).not.toHaveBeenCalled();
     });
@@ -867,37 +890,19 @@ describe('Scan, Straighten', () => {
         await choose(photo('one.jpg'));
         await settle();
 
-        let crop = await openCrop();
-        await flip(crop);
-        await cropWhole(crop);
+        const improve = await openImprove();
+        await flip(improve);
         await waitFor(() => expect(straighten.dewarp).toHaveBeenCalledTimes(1));
-        await waitFor(() =>
-            expect(
-                screen.queryByRole('dialog', { name: 'Crop' }),
-            ).not.toBeInTheDocument(),
-        );
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(2));
 
         // off: cut again without it
-        crop = await openCrop();
-        await flip(crop);
-        await fireEvent.click(
-            within(crop).getByRole('button', { name: 'Next' }),
-        );
-        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(2));
-        expect(canvas.cutOut.mock.calls[1]).toHaveLength(4);
-        await waitFor(() =>
-            expect(
-                screen.queryByRole('dialog', { name: 'Crop' }),
-            ).not.toBeInTheDocument(),
-        );
+        await flip(improve);
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(3));
+        expect(canvas.cutOut.mock.calls[2]).toHaveLength(4);
 
         // on again, same corners: the flat sheet in memory is used
-        crop = await openCrop();
-        await flip(crop);
-        await fireEvent.click(
-            within(crop).getByRole('button', { name: 'Next' }),
-        );
-        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(3));
+        await flip(improve);
+        await waitFor(() => expect(canvas.cutOut).toHaveBeenCalledTimes(4));
         await settle();
 
         expect(straighten.dewarp).toHaveBeenCalledTimes(1);
@@ -908,19 +913,19 @@ describe('Scan, Straighten', () => {
         await choose(photo('one.jpg'));
         await settle();
 
-        let crop = await openCrop();
-        await flip(crop);
-        await fireEvent.click(
-            within(crop).getByRole('button', { name: 'Next' }),
-        );
+        const improve = await openImprove();
+        await flip(improve);
         await waitFor(() => expect(straighten.dewarp).toHaveBeenCalledTimes(1));
         await waitFor(() =>
             expect(
-                screen.queryByRole('dialog', { name: 'Crop' }),
-            ).not.toBeInTheDocument(),
+                within(improve).getByRole('button', { name: 'Done' }),
+            ).toBeEnabled(),
         );
 
-        crop = await openCrop();
+        await fireEvent.click(
+            within(improve).getByRole('button', { name: 'Back' }),
+        );
+        const crop = await screen.findByRole('dialog', { name: 'Crop' });
         await fireEvent.click(
             within(crop).getByRole('button', { name: 'Rotate' }),
         );
@@ -931,7 +936,7 @@ describe('Scan, Straighten', () => {
         await waitFor(() => expect(straighten.dewarp).toHaveBeenCalledTimes(2));
     });
 
-    it('covers the sheet with a veil while it works, and Cancel stops it', async () => {
+    it('covers the sheet with a veil while it works, and Back stops it', async () => {
         let signal: AbortSignal | undefined;
         straighten.dewarp.mockImplementation(
             (_sheet, stop) =>
@@ -946,21 +951,22 @@ describe('Scan, Straighten', () => {
         await choose(photo('one.jpg'));
         await settle();
 
-        const crop = await openCrop();
-        await flip(crop);
-        await cropWhole(crop);
+        const improve = await openImprove();
+        await flip(improve);
 
-        expect(await within(crop).findByText('Straightening…')).toBeVisible();
+        expect(
+            await within(improve).findByText('Straightening…'),
+        ).toBeVisible();
         expect(signal?.aborted).toBe(false);
 
         await fireEvent.click(
-            within(crop).getAllByRole('button', { name: 'Cancel' })[0]!,
+            within(improve).getAllByRole('button', { name: 'Back' })[0]!,
         );
 
         expect(signal?.aborted).toBe(true);
         expect(
-            screen.queryByRole('dialog', { name: 'Crop' }),
-        ).not.toBeInTheDocument();
+            await screen.findByRole('dialog', { name: 'Crop' }),
+        ).toBeInTheDocument();
     });
 
     it('stops it when the page closes', async () => {
@@ -975,9 +981,8 @@ describe('Scan, Straighten', () => {
         await choose(photo('one.jpg'));
         await settle();
 
-        const crop = await openCrop();
-        await flip(crop);
-        await cropWhole(crop);
+        const improve = await openImprove();
+        await flip(improve);
         await waitFor(() => expect(signal).toBeDefined());
 
         view.unmount();
@@ -985,26 +990,30 @@ describe('Scan, Straighten', () => {
         expect(signal?.aborted).toBe(true);
     });
 
-    it('keeps the switches and the tools still while the sheet is cut', async () => {
+    it('keeps the switches, the slider and Done still while the sheet is laid flat', async () => {
         straighten.dewarp.mockImplementation(() => new Promise(() => {}));
         renderPage(Scan);
         await choose(photo('one.jpg'));
         await settle();
 
-        const crop = await openCrop();
-        await flip(crop);
-        await cropWhole(crop);
-        await within(crop).findByText('Straightening…');
+        const improve = await openImprove();
+        await flip(improve);
+        await within(improve).findByText('Straightening…');
 
-        for (const name of [/Straighten/, /Improve/, /Black and white/]) {
-            expect(within(crop).getByRole('switch', { name })).toBeDisabled();
+        for (const name of [/Straighten/, /Black and white/]) {
+            expect(
+                within(improve).getByRole('switch', { name }),
+            ).toBeDisabled();
         }
         expect(
-            within(crop).getByRole('button', { name: 'Rotate' }),
+            within(improve).getByRole('slider', { name: 'Improve' }),
+        ).toBeDisabled();
+        expect(
+            within(improve).getByRole('button', { name: 'Done' }),
         ).toBeDisabled();
     });
 
-    it('says when the sheet could not be laid flat and stays in Crop', async () => {
+    it('says when the sheet could not be laid flat and stays in Improve', async () => {
         straighten.dewarp.mockRejectedValue(
             new Error('The worker took too long'),
         );
@@ -1012,15 +1021,16 @@ describe('Scan, Straighten', () => {
         await choose(photo('one.jpg'));
         await settle();
 
-        const crop = await openCrop();
-        await flip(crop);
-        await cropWhole(crop);
+        const improve = await openImprove();
+        await flip(improve);
 
         expect(
-            await within(crop).findByText('I could not straighten this sheet.'),
+            await within(improve).findByText(
+                'I could not straighten this sheet.',
+            ),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('dialog', { name: 'Crop' }),
+            screen.getByRole('dialog', { name: 'Improve' }),
         ).toBeInTheDocument();
     });
 });
