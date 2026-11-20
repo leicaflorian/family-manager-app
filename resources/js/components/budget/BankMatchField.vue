@@ -9,6 +9,7 @@
  * @group forms
  */
 import { CircleCheck, Sparkles } from '@lucide/vue';
+import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
@@ -48,10 +49,23 @@ const { result, error: broken } = useBankMatchPreview({
     accountId: () => accountId,
 });
 
+/**
+ * The message of a rule that does not work, with the way out added only when it exists: the server says the rule does
+ * not work, and the button to write it with the AI is there only while the reading is on.
+ *
+ * @param text - what the server said
+ * @returns the text, with the hint about the AI when it is on and the text is the one of a rule that does not work
+ */
+function withHint(text: string | undefined): string | undefined {
+    return ai && text === trans('This rule does not work.')
+        ? `${text} ${trans('Try writing it with the AI.')}`
+        : text;
+}
+
 /** What is said under the field: the movements, none, or the reason the rule does not work. */
 const line = computed(() => {
     if (broken.value !== null) {
-        return { tone: 'danger' as const, text: broken.value };
+        return { tone: 'danger' as const, text: withHint(broken.value) };
     }
 
     if (result.value === null) {
@@ -90,7 +104,7 @@ function use(pattern: string): void {
                 name="bank_match"
                 autocomplete="off"
                 outer-class="min-w-0 flex-1"
-                :errors="errors(error)"
+                :errors="errors(withHint(error))"
                 :help="undefined"
                 aria-describedby="bank_match_help"
             />

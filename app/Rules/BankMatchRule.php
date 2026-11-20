@@ -22,7 +22,7 @@ final readonly class BankMatchRule implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! is_string($value) || ! BankMatch::valid($value)) {
-            $fail('This rule does not work. Try writing it with the AI.')->translate();
+            $fail('This rule does not work.')->translate();
         }
     }
 }

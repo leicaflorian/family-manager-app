@@ -404,7 +404,7 @@ it('a planned expense and a planned income save their bank rule', function (): v
 it('a broken rule is refused with its message', function (): void {
     $this->actingAs($this->marco)
         ->post('/budget/planned/expense', savePlannedValues(['bank_match' => '(a+)+$']))
-        ->assertSessionHasErrors(['bank_match' => 'This rule does not work. Try writing it with the AI.']);
+        ->assertSessionHasErrors(['bank_match' => 'This rule does not work.']);
 
     expect(insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Palestra')->count()))->toBe(0);
 });

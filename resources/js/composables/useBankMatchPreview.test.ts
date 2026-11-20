@@ -116,9 +116,7 @@ describe('useBankMatchPreview', () => {
                     status: 422,
                     data: {
                         errors: {
-                            pattern: [
-                                'This rule does not work. Try writing it with the AI.',
-                            ],
+                            pattern: ['This rule does not work.'],
                         },
                     },
                 },
@@ -127,9 +125,7 @@ describe('useBankMatchPreview', () => {
         const { text, preview } = start('.*');
         await vi.advanceTimersByTimeAsync(500);
 
-        expect(preview.error.value).toBe(
-            'This rule does not work. Try writing it with the AI.',
-        );
+        expect(preview.error.value).toBe('This rule does not work.');
         expect(preview.result.value).toBeNull();
 
         request.mockResolvedValue(ok(1));

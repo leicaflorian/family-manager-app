@@ -81,7 +81,7 @@ test('a rule tied to an account looks only at that account', function (): void {
 test('a broken rule answers 422 with the message', function (): void {
     $this->getJson(route('budget.bank.matches', ['pattern' => '.*', 'kind' => 'expense']))
         ->assertUnprocessable()
-        ->assertJsonPath('errors.pattern.0', 'This rule does not work. Try writing it with the AI.');
+        ->assertJsonPath('errors.pattern.0', 'This rule does not work.');
     $this->getJson(route('budget.bank.matches', ['pattern' => '(unclosed', 'kind' => 'expense']))->assertUnprocessable();
 });
 

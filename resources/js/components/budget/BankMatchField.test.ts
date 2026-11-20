@@ -76,9 +76,7 @@ describe('BankMatchField', () => {
                 status: 422,
                 body: {
                     errors: {
-                        pattern: [
-                            'This rule does not work. Try writing it with the AI.',
-                        ],
+                        pattern: ['This rule does not work.'],
                     },
                 },
             },
@@ -97,6 +95,29 @@ describe('BankMatchField', () => {
                 { timeout: 2000 },
             ),
         ).toBeInTheDocument();
+    });
+
+    it('suggests the AI for a rule that does not work only when the reading is on', async () => {
+        server = fakeBankServer({
+            '/budget/bank/matches': {
+                status: 422,
+                body: { errors: { pattern: ['This rule does not work.'] } },
+            },
+        });
+        const off = renderPage(BankMatchField, {
+            modelValue: '.*',
+            kind: 'expense',
+            accountId: null,
+            ai: false,
+        });
+
+        expect(
+            await screen.findByText('This rule does not work.', undefined, {
+                timeout: 2000,
+            }),
+        ).toBeInTheDocument();
+        expect(screen.queryByText(/Try writing it with the AI/)).toBeNull();
+        off.unmount();
     });
 
     it('has the AI button only when the reading is on', () => {
