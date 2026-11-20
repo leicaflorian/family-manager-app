@@ -103,6 +103,8 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 | `./vendor/bin/sail artisan mail-inbox:route` | Crea o aggiorna la regola di Mailgun del dominio verso l'app (solo alla tappa 4) |
 | `./release` | Fa una versione dal Mac, da `dev` (vedi *Pubblicazione*): unisce in `main`, fa scrivere changelog e note a Claude, chiede di confermare il numero, salva il database se ci sono migrazioni nuove, fa commit e tag e spinge |
 
+Prima di ogni commit l'hook `.githooks/pre-commit` lancia nel container di Sail `vp check` (formattazione e Oxlint, dove anche un avviso ferma: `denyWarnings`) sui file JS, TS, Vue, JSON e CSS in stage, quelli di `public/` compresi, e `pint --test` sui PHP in stage; non corregge niente, si ferma e dice il comando. Si accende una volta per clone con `git config core.hooksPath .githooks` (vale anche nei worktree) e vuole Sail acceso; `git commit --no-verify` lo salta, solo se il proprietario lo chiede. Un test di Vitest conta per il codice d'uscita, non per «passed»: un errore non gestito dopo un test (per esempio un `Link` di Inertia cliccato senza `router.visit` finto) fa uscire con 1 e ferma la CI.
+
 Dopo ogni task, prima del commit, solo su quello che si è toccato: i test PHP e Vitest dei file toccati e di quelli che li usano, PHPStan, Rector, Pint, tipi e lint senza errori. Le suite intere e la build le fa la CI (regola del proprietario, 15/11/2026).
 
 - Lo starter kit usa Vite+ (`vp`): build, lint (Oxlint), formattazione (Oxfmt) e test (Vitest) sono suoi, configurati in `vite.config.ts`.
