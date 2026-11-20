@@ -38,6 +38,7 @@ import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { lastReadText, readTimes } from '@/lib/banks';
+import { formatDayMonth, todayInRome } from '@/lib/format';
 import { budgetTabs } from '@/lib/budgetTabs';
 import { cn } from '@/lib/utils';
 import {
@@ -99,7 +100,12 @@ const readLine = computed((): string => {
 
 /** The day a row is shown with: the booked one, for a pending transaction the one the bank gave. */
 function dayOf(row: App.Data.BankTransactionData): string {
-    return date(row.booked_on ?? row.value_on);
+    const day = row.booked_on ?? row.value_on;
+
+    // As the boards: «06/11», with the year only for a day that is not of this year
+    return day && day.slice(0, 4) === todayInRome().slice(0, 4)
+        ? formatDayMonth(day)
+        : date(day);
 }
 
 /** What the next block of the list asks for, in the address of the page. */
@@ -478,7 +484,8 @@ function add(): void {
                             >
                                 <template v-if="sortable(row)">
                                     <FmButton
-                                        variant="outline"
+                                        variant="neutral"
+                                        compact
                                         :icon="Plus"
                                         :href="createUrl(row)"
                                         >{{
@@ -488,14 +495,17 @@ function add(): void {
                                         }}</FmButton
                                     >
                                     <FmButton
-                                        variant="outline"
+                                        variant="neutral"
+                                        compact
                                         :icon="Repeat"
                                         @click="openAssign(row)"
                                         >{{ assignLabel(row) }}</FmButton
                                     >
                                 </template>
                                 <FmButton
+                                    v-if="!row.pending"
                                     variant="text"
+                                    compact
                                     class="text-ink-soft"
                                     :icon="EyeOff"
                                     @click="toggleIgnored(row)"
@@ -520,7 +530,9 @@ function add(): void {
                         />
                     </Link>
                     <div
-                        v-if="!wide && can_sort"
+                        v-if="
+                            !wide && can_sort && (row.ignored || !row.pending)
+                        "
                         class="flex flex-wrap items-center gap-2"
                     >
                         <FmButton
@@ -533,7 +545,8 @@ function add(): void {
                         <template v-else>
                             <template v-if="sortable(row)">
                                 <FmButton
-                                    variant="outline"
+                                    variant="neutral"
+                                    compact
                                     :href="createUrl(row)"
                                     >{{
                                         row.amount > 0
@@ -542,12 +555,14 @@ function add(): void {
                                     }}</FmButton
                                 >
                                 <FmButton
-                                    variant="outline"
+                                    variant="neutral"
+                                    compact
                                     @click="openAssign(row)"
                                     >{{ assignLabel(row) }}</FmButton
                                 >
                             </template>
                             <FmButton
+                                v-if="!row.pending"
                                 class="ml-auto"
                                 :icon="EyeOff"
                                 :label="$t('Ignore')"

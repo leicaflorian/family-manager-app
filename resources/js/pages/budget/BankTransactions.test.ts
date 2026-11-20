@@ -64,7 +64,7 @@ describe('Budget, From the bank', () => {
             )
             .closest('li')!;
         expect(
-            within(row).getByText('05/11/2026 · Conto BancoPosta ·· 3307'),
+            within(row).getByText('05/11 · Conto BancoPosta ·· 3307'),
         ).toBeInTheDocument();
         expect(within(row).getByText('-72,40 €')).toBeInTheDocument();
     });
@@ -80,7 +80,7 @@ describe('Budget, From the bank', () => {
             within(row).getByText('It is sorted when the bank books it'),
         ).toBeInTheDocument();
         expect(
-            within(row).getByText('06/11/2026 · Conto BancoPosta ·· 3307'),
+            within(row).getByText('06/11 · Conto BancoPosta ·· 3307'),
         ).toBeInTheDocument();
         expect(
             within(
@@ -110,7 +110,9 @@ describe('Budget, From the bank', () => {
 
         renderPage(BankTransactions, props({ last_synced_at: null }));
         expect(
-            screen.getByText('They arrive by themselves at 7, at 13, and at 19'),
+            screen.getByText(
+                'They arrive by themselves at 7, at 13, and at 19',
+            ),
         ).toBeInTheDocument();
     });
 
@@ -238,7 +240,7 @@ describe('Budget, From the bank', () => {
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
         expect(row).not.toHaveAttribute('data-wide');
         expect(
-            within(row).getByText('05/11/2026 · Conto BancoPosta ·· 3307'),
+            within(row).getByText('05/11 · Conto BancoPosta ·· 3307'),
         ).toBeInTheDocument();
     });
 
@@ -248,14 +250,14 @@ describe('Budget, From the bank', () => {
 
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
         expect(row).toHaveAttribute('data-wide');
-        expect(within(row).getByText('05/11/2026')).toBeInTheDocument();
+        expect(within(row).getByText('05/11')).toBeInTheDocument();
         expect(
             within(row).getByText('Conto BancoPosta ·· 3307'),
         ).toBeInTheDocument();
         expect(within(row).getByText('-72,40 €')).toBeInTheDocument();
         // A pending transaction keeps its mark and the day the bank gave
         const pending = screen.getByText(/Q8 STAZIONE/).closest('li')!;
-        expect(within(pending).getByText('06/11/2026')).toBeInTheDocument();
+        expect(within(pending).getByText('06/11')).toBeInTheDocument();
         expect(within(pending).getByText('Pending')).toBeInTheDocument();
     });
 });
@@ -363,6 +365,28 @@ describe('Budget, From the bank, sorting', () => {
                 name: 'It belongs to a planned income',
             }),
         ).toBeInTheDocument();
+    });
+
+    it('writes the year only for a day that is not of this year', () => {
+        renderPage(
+            BankTransactions,
+            props({
+                rows: [{ ...bankTransactions[1]!, booked_on: '2025-12-31' }],
+            }),
+        );
+
+        expect(
+            screen.getByText('31/12/2025 · Conto BancoPosta ·· 3307'),
+        ).toBeInTheDocument();
+    });
+
+    it('does not offer to ignore a pending transaction, in either layout', () => {
+        renderPage(BankTransactions, props());
+        const pending = screen.getByText(/Q8 STAZIONE/).closest('li')!;
+
+        expect(
+            within(pending).queryByRole('button', { name: 'Ignore' }),
+        ).not.toBeInTheDocument();
     });
 
     it('offers nothing to a pending transaction, one in another currency, one put aside or to who cannot sort', () => {
