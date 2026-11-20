@@ -55,7 +55,7 @@ describe('FmTitle', () => {
     });
 
     it('with the name of the page but no address has a button back above the title, and tells the page', async () => {
-        const { emitted } = renderPage(FmTitle, {
+        const view = renderPage(FmTitle, {
             title: 'New document',
             backLabel: 'To sort',
         });
@@ -68,6 +68,6 @@ describe('FmTitle', () => {
         ).toBeTruthy();
         await fireEvent.click(back);
 
-        expect(emitted('back')).toHaveLength(1);
+        expect(view.emitted().back).toHaveLength(1);
     });
 });

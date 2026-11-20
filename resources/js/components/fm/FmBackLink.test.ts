@@ -32,11 +32,11 @@ describe('FmBackLink', () => {
     });
 
     it('without an address is a button that tells the page, which decides where to go', async () => {
-        const { emitted } = renderPage(FmBackLink, { label: 'To sort' });
+        const view = renderPage(FmBackLink, { label: 'To sort' });
 
         await fireEvent.click(screen.getByRole('button', { name: 'To sort' }));
 
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
-        expect(emitted('click')).toHaveLength(1);
+        expect(view.emitted().click).toHaveLength(1);
     });
 });
