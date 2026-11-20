@@ -61,6 +61,82 @@ describe('FmSidebar', () => {
         expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
     });
 
+    it('on the computer has the button that collapses it, at the right of the logo', async () => {
+        const sidebar = render(FmSidebar, {
+            props: {
+                active: 'home',
+                path: '/dashboard',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                collapsible: true,
+            },
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Collapse the menu' }),
+        );
+
+        expect(sidebar.emitted('update:collapsed')).toEqual([[true]]);
+    });
+
+    it('has no button to collapse it without collapsible: the menu of the tablet', () => {
+        bar('home');
+
+        expect(
+            screen.queryByRole('button', { name: 'Collapse the menu' }),
+        ).toBeNull();
+    });
+
+    it('collapsed keeps only the icons, with the names for who cannot see them', async () => {
+        const sidebar = render(FmSidebar, {
+            props: {
+                active: 'documents',
+                path: '/documents',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                uploadCount: 4,
+                collapsible: true,
+                collapsed: true,
+            },
+        });
+
+        const aside = screen.getByRole('complementary');
+        expect(aside).toHaveClass('w-[76px]');
+        expect(aside).not.toHaveClass('w-[260px]');
+        expect(screen.getByRole('link', { name: 'Upload' })).toHaveAttribute(
+            'title',
+            'Upload',
+        );
+        const documents = screen.getByRole('link', { name: 'Documents' });
+        expect(documents).toHaveAttribute('aria-current', 'page');
+        expect(documents).toHaveAttribute('title', 'Documents');
+        expect(screen.getByRole('link', { name: 'To sort 4' })).toBeVisible();
+        // the groups keep their names, the lines between them are only drawn
+        expect(
+            screen.getByRole('group', { name: 'Every day' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Every day')).toHaveClass('sr-only');
+        expect(screen.getByText('Fameja.app').parentElement).toHaveClass(
+            'sr-only',
+        );
+        expect(
+            screen.queryByRole('button', { name: 'Show the areas' }),
+        ).toBeNull();
+        expect(
+            screen.getByRole('button', { name: /Marco Bianchi/ }),
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Expand the menu' }),
+        );
+
+        expect(sidebar.emitted('update:collapsed')).toEqual([[false]]);
+    });
+
     it('has Upload at the top and the sections, with the open one marked', () => {
         bar('documents');
 

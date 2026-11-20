@@ -193,6 +193,23 @@ describe('AppLayout', () => {
         );
     });
 
+    it('on the computer collapses the sidebar to the icons, and remembers it', async () => {
+        const first = render(AppLayout, {
+            slots: { default: '<h1>Documents</h1>' },
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Collapse the menu' }),
+        );
+
+        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
+        first.unmount();
+
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
+        localStorage.clear();
+    });
+
     it('on the tablet closes the menu with Back, in place of the Menu button', async () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });

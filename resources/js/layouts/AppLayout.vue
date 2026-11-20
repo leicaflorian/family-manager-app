@@ -45,6 +45,7 @@ import { useLeavePage } from '@/composables/useLeavePage';
 import { useNewVersion } from '@/composables/useNewVersion';
 import { SEARCH_PAGE_FIELD } from '@/composables/useSearchBox';
 import { useSearchShortcut } from '@/composables/useSearchShortcut';
+import { useSidebarCollapsed } from '@/composables/useSidebarCollapsed';
 import type { TrailPiece } from '@/lib/pageTrail';
 import { createTrailState, isSectionPage, TRAIL_KEY } from '@/lib/pageTrail';
 import { search } from '@/routes';
@@ -107,6 +108,9 @@ const query = computed((): string =>
 
 /** The menu of the tablet is open. */
 const menuOpen = ref(false);
+
+/** The sidebar of the computer is collapsed to its icons, as this browser remembers. */
+const sidebarCollapsed = useSidebarCollapsed();
 
 /** The panel *Report a problem or an idea* is open. */
 const feedbackOpen = ref(false);
@@ -204,7 +208,9 @@ useSearchShortcut(focusSearch);
     >
         <FmSidebar
             v-if="mode === 'computer'"
+            v-model:collapsed="sidebarCollapsed"
             class="sticky top-0 h-dvh"
+            collapsible
             :active="active"
             :path="path"
             :items="items"

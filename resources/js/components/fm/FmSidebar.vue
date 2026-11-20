@@ -10,11 +10,22 @@
  * the window, only they scroll: the logo, Upload and *My account* stay in place.
  * As the menu of the tablet (`menu`) it starts with the bar of the page, the same box as the top bar, with Back
  * (it emits `close`) where the bar has Menu: opening the menu leaves the logo where it was.
+ * On the computer (`collapsible`) a button at the right of the logo collapses it to 76 px (`v-model:collapsed`):
+ * only the icons stay, with the names on hover and for screen readers, lines in place of the names of the
+ * groups, no list of the areas, the avatar alone at the bottom, and under the logo the button that expands it.
  *
  * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronDown, ChevronUp, LogOut, Plus } from '@lucide/vue';
+import {
+    ArrowLeft,
+    ChevronDown,
+    ChevronUp,
+    LogOut,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Plus,
+} from '@lucide/vue';
 import {
     DropdownMenuContent,
     DropdownMenuItem,
@@ -49,6 +60,8 @@ const {
     user,
     uploadCount = 0,
     menu = false,
+    collapsible = false,
+    collapsed = false,
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -66,6 +79,10 @@ const {
     uploadCount?: number;
     /** The sidebar is the menu of the tablet: it starts with the bar of the page and Back. */
     menu?: boolean;
+    /** The sidebar of the computer: it has the button that collapses it to the icons. */
+    collapsible?: boolean;
+    /** Collapsed to the icons, 76 px wide; only with `collapsible`. */
+    collapsed?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -73,7 +90,12 @@ const emit = defineEmits<{
     report: [];
     /** Back of the menu of the tablet was chosen: the layout closes the menu. */
     close: [];
+    /** The button of the logo was chosen: collapse (true) or expand (false) the sidebar. */
+    'update:collapsed': [collapsed: boolean];
 }>();
+
+/** Whether only the icons are shown. */
+const small = computed((): boolean => collapsible && collapsed);
 
 // The classes of the page are merged with the sidebar's (the menu of the tablet makes it `w-full`)
 defineOptions({ inheritAttrs: false });
@@ -90,6 +112,7 @@ function rootClass(): string {
     return cn(
         'flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5',
         menu && 'pt-0',
+        small.value && 'w-[76px] px-3',
         attrs.class as ClassValue,
     );
 }
@@ -211,7 +234,9 @@ function isPage(section: Section): boolean {
             :class="
                 menu
                     ? '-mx-3.5 mb-3.5 flex h-topbar shrink-0 items-center gap-3.5 border-b border-edge-soft bg-canvas px-5'
-                    : 'flex shrink-0 items-center px-2 pt-1 pb-4'
+                    : small
+                      ? 'flex shrink-0 flex-col items-center gap-2.5 pt-1 pb-4'
+                      : 'flex shrink-0 items-center px-2 pt-1 pb-4'
             "
         >
             <button
@@ -225,30 +250,45 @@ function isPage(section: Section): boolean {
             >
                 <FmIcon :icon="ArrowLeft" :size="22" />
             </button>
-            <span class="flex items-center gap-2.5">
+            <span class="flex grow items-center gap-2.5">
                 <FmLogo :size="36" />
-                <span class="flex flex-col">
+                <span :class="small ? 'sr-only' : 'flex flex-col'">
                     <span class="text-amount text-ink">{{ appName }}</span>
                     <span class="text-meta text-ink-soft">{{
                         $t(':family family', { family })
                     }}</span>
                 </span>
             </span>
+            <button
+                v-if="collapsible"
+                type="button"
+                :aria-label="small ? $t('Expand the menu') : $t('Collapse the menu')"
+                :title="small ? $t('Expand the menu') : $t('Collapse the menu')"
+                class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-tag text-ink-soft hover:bg-canvas hover:text-ink"
+                @click="emit('update:collapsed', !small)"
+            >
+                <FmIcon
+                    :icon="small ? PanelLeftOpen : PanelLeftClose"
+                    :size="20"
+                />
+            </button>
         </div>
 
         <Link
             :href="items.upload"
+            :title="small ? $t('Upload') : undefined"
             class="mb-3.5 flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md bg-action text-body text-on-action no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
-            {{ $t('Upload') }}
+            <span :class="small && 'sr-only'">{{ $t('Upload') }}</span>
         </Link>
 
         <!-- Only the sections scroll, when the open areas make them taller than the window;
              they reach the edges of the sidebar, so the scroll bar sits on its border -->
         <nav
             :aria-label="$t('Sections')"
-            class="-mx-3.5 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-3.5"
+            class="flex min-h-0 flex-col gap-0.5 overflow-y-auto"
+            :class="small ? '-mx-3 px-3' : '-mx-3.5 px-3.5'"
         >
             <div
                 v-for="(group, index) in groups"
@@ -262,10 +302,22 @@ function isPage(section: Section): boolean {
                 <span
                     v-if="group.label"
                     :id="`sidebar-group-${group.key}`"
-                    class="block px-3 pb-1 text-meta-strong text-ink-soft"
-                    :class="index === 1 ? 'pt-2.5' : 'pt-4.5'"
+                    :class="
+                        small
+                            ? 'sr-only'
+                            : [
+                                  'block px-3 pb-1 text-meta-strong text-ink-soft',
+                                  index === 1 ? 'pt-2.5' : 'pt-4.5',
+                              ]
+                    "
                     >{{ group.label }}</span
                 >
+                <!-- Collapsed, a line takes the place of the name of the group -->
+                <span
+                    v-if="group.label && small"
+                    aria-hidden="true"
+                    class="mx-1.5 my-[9px] h-px bg-divider"
+                />
                 <template v-for="item in group.items" :key="item.section">
                     <div class="relative flex items-center">
                         <Link
@@ -273,14 +325,16 @@ function isPage(section: Section): boolean {
                             :aria-current="
                                 isPage(item.section) ? 'page' : undefined
                             "
-                            class="flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
+                            :title="small ? item.label : undefined"
+                            class="relative flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
                             :class="[
+                                small && 'justify-center',
                                 isPage(item.section)
                                     ? 'bg-action-soft text-label text-action-dark'
                                     : item.section === active
                                       ? 'text-label text-action-dark hover:bg-canvas'
                                       : 'text-ink hover:bg-canvas',
-                                item.section === 'areas' && 'pr-12',
+                                item.section === 'areas' && !small && 'pr-12',
                             ]"
                         >
                             <FmIcon
@@ -292,7 +346,9 @@ function isPage(section: Section): boolean {
                                         : 'text-ink-soft'
                                 "
                             />
-                            <span class="grow">{{ item.label }}</span>
+                            <span :class="small ? 'sr-only' : 'grow'">{{
+                                item.label
+                            }}</span>
                             <template
                                 v-if="
                                     item.section === 'toSort' && uploadCount > 0
@@ -302,12 +358,16 @@ function isPage(section: Section): boolean {
                                 {{ ' ' }}
                                 <span
                                     class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
+                                    :class="
+                                        small &&
+                                        'absolute top-px right-px border-2 border-card'
+                                    "
                                     >{{ countBadge(uploadCount) }}</span
                                 >
                             </template>
                         </Link>
                         <button
-                            v-if="item.section === 'areas'"
+                            v-if="item.section === 'areas' && !small"
                             type="button"
                             :aria-label="$t('Show the areas')"
                             :aria-expanded="open"
@@ -321,7 +381,10 @@ function isPage(section: Section): boolean {
                             />
                         </button>
                     </div>
-                    <div v-if="item.section === 'areas'" v-auto-animate>
+                    <div
+                        v-if="item.section === 'areas' && !small"
+                        v-auto-animate
+                    >
                         <ul
                             v-if="open"
                             id="sidebar-areas"
@@ -368,19 +431,22 @@ function isPage(section: Section): boolean {
         <div class="mt-auto shrink-0 border-t border-divider pt-2">
             <DropdownMenuRoot>
                 <DropdownMenuTrigger
+                    :title="small ? user : undefined"
                     class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"
+                    :class="small && 'justify-center'"
                 >
                     <span
                         class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-action-soft text-label text-action-dark"
                         >{{ getInitials(user) }}</span
                     >
-                    <span class="flex grow flex-col">
+                    <span :class="small ? 'sr-only' : 'flex grow flex-col'">
                         <span class="text-label">{{ user }}</span>
                         <span class="text-caption text-ink-soft">{{
                             $t('My account')
                         }}</span>
                     </span>
                     <FmIcon
+                        v-if="!small"
                         :icon="ChevronDown"
                         :size="18"
                         class="text-ink-soft"
