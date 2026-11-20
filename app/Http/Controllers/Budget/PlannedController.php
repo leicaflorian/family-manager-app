@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Budget\SavePlanned;
+use App\Contracts\DocumentReader;
+use App\Data\BankTransactionData;
 use App\Data\DeadlineData;
 use App\Data\PlannedFiltersData;
 use App\Data\PlannedRowData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\PlannedIndexRequest;
 use App\Http\Requests\Budget\SavePlannedRequest;
+use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Services\Banks\BankFeedAvailability;
 use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Services\PlannedSummaries;
@@ -65,7 +69,7 @@ final class PlannedController extends Controller
         // The card of an income is its employment
         $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card')) : PlannedPreset::incomeFromQuery($request->query('card'));
 
-        return $this->form($kind, null, [...PlannedPreset::defaults($kind), ...$preset]);
+        return $this->form($request, $kind, null, [...PlannedPreset::defaults($kind), ...$preset]);
     }
 
     /**
@@ -128,12 +132,12 @@ final class PlannedController extends Controller
      *
      * @throws NotFoundHttpException if the kind is unknown or the planned item is not of the family
      */
-    public function edit(string $kind, string $id): Response
+    public function edit(Request $request, string $kind, string $id): Response
     {
         $planned = PlannedKind::find($kind, $id);
         Gate::authorize('update', $planned);
 
-        return $this->form($kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned));
+        return $this->form($request, $kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned));
     }
 
     /**
@@ -167,17 +171,40 @@ final class PlannedController extends Controller
     /**
      * The form, new (`$planned` null) or changed.
      *
+     * @param  Request  $request  the request, for `?rule_from=` (the transaction the rule is written from)
      * @param  string  $kind  `expense` or `income`
      * @param  PlannedRowData|null  $planned  the planned item to change, null for a new one
      * @param  array<string, mixed>  $values  the starting values of the fields
      */
-    private function form(string $kind, ?PlannedRowData $planned, array $values): Response
+    private function form(Request $request, string $kind, ?PlannedRowData $planned, array $values): Response
     {
+        $bankOn = BankFeedAvailability::on();
+
         return Inertia::render('budget/EditPlanned', [
             'kind' => $kind,
             'planned' => $planned,
             'values' => $values,
             'options' => BudgetFormOptions::for($kind),
+            // The field *How it shows in the bank* needs the link on; the AI button, the reading too
+            'bank' => ['on' => $bankOn, 'ai' => $bankOn && resolve(DocumentReader::class)->isActive()],
+            'rule_example' => $bankOn ? $this->ruleExample($request->query('rule_from')) : null,
         ]);
+    }
+
+    /**
+     * The transaction `?rule_from=` points to, for the sheet that writes the rule from it; null when it is missing,
+     * not a number or not of the family (the form opens all the same).
+     *
+     * @param  mixed  $id  the value of the address
+     */
+    private function ruleExample(mixed $id): ?BankTransactionData
+    {
+        if (! is_string($id) || preg_match('/^\d{1,18}$/', $id) !== 1) {
+            return null;
+        }
+
+        $transaction = BankTransaction::query()->with('financialAccount')->find((int) $id);
+
+        return $transaction instanceof BankTransaction ? BankTransactionData::fromTransaction($transaction) : null;
     }
 }
