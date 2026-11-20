@@ -124,6 +124,16 @@ final readonly class FamilyFigures
     }
 
     /**
+     * How many banks a family has linked: a count of `bank_connections`, never the transactions.
+     *
+     * @param  int  $familyId  the family
+     */
+    public function bankConnections(int $familyId): int
+    {
+        return DB::table('bank_connections')->where('family_id', $familyId)->count();
+    }
+
+    /**
      * A count or a sum from the database as an integer.
      *
      * @param  mixed  $value  what the database gave back

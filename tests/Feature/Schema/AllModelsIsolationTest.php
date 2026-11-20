@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\AiReading;
+use App\Models\BankConnection;
+use App\Models\BankTransaction;
 use App\Models\Belonging;
 use App\Models\Document;
 use App\Models\DocumentCategory;
@@ -54,6 +56,7 @@ dataset('family models', [
     PlannedIncomeException::class, Income::class, Document::class,
     ReminderGroup::class, Reminder::class, ReminderNotice::class, FamilySetting::class, Invitation::class,
     AiReading::class, ReceivedMail::class, LinkedDevice::class, FeedbackReport::class,
+    BankConnection::class, BankTransaction::class,
 ]);
 
 test('a row of family A is not found from family B', function (string $class): void {

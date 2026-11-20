@@ -41,6 +41,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property string|null $card_type
  * @property int|null $card_id
  * @property string|null $notes
+ * @property string|null $bank_match The text that marks the payments of the bank that settle this item
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at

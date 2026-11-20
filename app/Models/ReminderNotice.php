@@ -30,6 +30,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $updated_at
  * @property int|null $received_mail_id
  * @property array<array-key, mixed>|null $lines
+ * @property int|null $bank_transaction_id
+ * @property int|null $bank_connection_id
  * @property-read Family $family
  * @property-read ReceivedMail|null $mail
  * @property-read Reminder|null $reminder

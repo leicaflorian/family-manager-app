@@ -1023,6 +1023,9 @@ readonly groups: App.Data.Search.SearchGroupData[],
 namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
+export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
+export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
+export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended';
 export type Channel = 'app' | 'email' | 'both';
@@ -1052,7 +1055,7 @@ export type MaintenanceTarget = 'home' | 'belonging' | 'vehicle';
 export type MaintenanceType = 'service' | 'inspection' | 'repair' | 'boiler_service' | 'other';
 export type NoticeTone = 'info' | 'warning' | 'danger';
 export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'employer' | 'public_office' | 'school' | 'healthcare' | 'shop' | 'other';
-export type OwnerActionType = 'suspended' | 'reactivated' | 'deletion_scheduled' | 'deletion_cancelled' | 'visit_started' | 'visit_ended' | 'reading_limit_changed';
+export type OwnerActionType = 'family_created' | 'suspended' | 'reactivated' | 'deletion_scheduled' | 'deletion_cancelled' | 'visit_started' | 'visit_ended' | 'reading_limit_changed' | 'bank_feed_changed';
 export type PersonRole = 'parent' | 'child' | 'other';
 export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
