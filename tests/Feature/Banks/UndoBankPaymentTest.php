@@ -18,6 +18,7 @@ use App\Services\Banks\BankMatcher;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
@@ -153,4 +154,22 @@ test('a movement without the bank has none', function (): void {
 
     $this->actingAs($this->marco)->get("/budget/movements/expense/{$expense->id}")
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('movement.bank', null));
+});
+
+test('undoing locks the bank row and then the planned item before any plain read', function (): void {
+    [, $transaction] = bankUndoSettled();
+
+    DB::enableQueryLog();
+    $this->actingAs($this->marco)->delete("/budget/bank/{$transaction->id}/payment")->assertRedirect(route('budget.bank.index'));
+    $queries = array_column(DB::getQueryLog(), 'query');
+    $start = array_find_key($queries, static fn (string $sql): bool => str_contains($sql, 'from `bank_transactions`') && str_contains($sql, 'for update'));
+    $inside = array_slice($queries, (int) $start);
+    $plannedLock = array_find_key($inside, static fn (string $sql): bool => str_contains($sql, 'from `planned_expenses`') && str_contains($sql, 'for update'));
+
+    expect($start)->not->toBeNull()
+        ->and($plannedLock)->not->toBeNull()
+        ->and(array_values(array_filter(
+            array_slice($inside, 1, max(0, (int) $plannedLock - 1)),
+            static fn (string $sql): bool => str_starts_with(strtolower(ltrim($sql)), 'select') && ! str_contains($sql, 'for update'),
+        )))->toBe([]);
 });

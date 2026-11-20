@@ -11,7 +11,6 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
-use App\Support\PlannedKind;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -27,26 +26,26 @@ final readonly class UndoBankPayment
 
     /**
      * Undoes the payment in one transaction. The bank transaction is locked first and the planned item right after,
-     * in the same order as `SettleFromBank`, so an undo and a settling wait for each other.
+     * in the same order as `SettleFromBank`, so an undo and a settling wait for each other. Which planned item to lock
+     * is read before the transaction starts, so no plain read comes before the locks (MySQL fixes the snapshot at the
+     * first one); the payment is read after them and must still settle that planned item.
      *
      * @param  BankTransaction  $transaction  The transaction linked to the payment.
      *
-     * @throws HttpException (422) if the transaction is not linked, or was linked as a duplicate or created by hand
+     * @throws HttpException (422) if the transaction is not linked, was linked as a duplicate or created by hand, or its payment moved to another planned item meanwhile
      */
     public function handle(BankTransaction $transaction): void
     {
-        DB::transaction(function () use ($transaction): void {
+        $planned = $this->plannedOf($transaction);
+
+        DB::transaction(function () use ($transaction, $planned): void {
             $current = BankTransaction::query()->whereKey($transaction->id)->lockForUpdate()->first();
+            $locked = $planned === null ? null : $planned[0]::query()->lockForUpdate()->find($planned[1]);
             $payment = $current?->expense_id !== null ? $current->expense : $current?->income;
 
-            if (! $current instanceof BankTransaction || $payment === null || ! in_array($current->matched_by, [BankMatchSource::Rule, BankMatchSource::Assigned], true)) {
+            if (! $current instanceof BankTransaction || $payment === null || ! in_array($current->matched_by, [BankMatchSource::Rule, BankMatchSource::Assigned], true)
+                || $this->plannedId($payment) !== $locked?->id) {
                 abort(422, __('This payment was not recorded by the bank, so it cannot be undone from here.'));
-            }
-
-            $planned = $this->planned($payment);
-
-            if ($planned !== null) {
-                PlannedKind::lock($planned);
             }
 
             $current->forceFill(['expense_id' => null, 'income_id' => null, 'matched_by' => null, 'declined_at' => now()])->save();
@@ -55,14 +54,32 @@ final readonly class UndoBankPayment
     }
 
     /**
-     * The planned item the payment settles, if any.
+     * The class and id of the planned item the payment of the transaction settles, read as it is now; null when the
+     * transaction pays nothing or a payment of no planned item.
+     *
+     * @param  BankTransaction  $transaction  The transaction.
+     * @return array{class-string<PlannedExpense>|class-string<PlannedIncome>, int}|null
+     */
+    private function plannedOf(BankTransaction $transaction): ?array
+    {
+        $current = BankTransaction::query()->with(['expense', 'income'])->find($transaction->id);
+        $payment = $current?->expense ?? $current?->income;
+        $id = $payment === null ? null : $this->plannedId($payment);
+
+        if ($id === null) {
+            return null;
+        }
+
+        return [$payment instanceof Expense ? PlannedExpense::class : PlannedIncome::class, $id];
+    }
+
+    /**
+     * The id of the planned item a payment settles, if any.
      *
      * @param  Expense|Income  $payment  The payment.
      */
-    private function planned(Expense|Income $payment): PlannedExpense|PlannedIncome|null
+    private function plannedId(Expense|Income $payment): ?int
     {
-        return $payment instanceof Expense
-            ? PlannedExpense::query()->find($payment->planned_expense_id)
-            : PlannedIncome::query()->find($payment->planned_income_id);
+        return $payment instanceof Expense ? $payment->planned_expense_id : $payment->planned_income_id;
     }
 }
