@@ -12,6 +12,7 @@ import { Head, router } from '@inertiajs/vue3';
 import {
     ChevronRight,
     Landmark,
+    LinkIcon,
     Plus,
     RefreshCw,
     Unplug,
@@ -264,7 +265,7 @@ usePageTrail(() => [
                         >
                         <span
                             v-else-if="connection.status === 'error'"
-                            class="inline-flex self-start rounded-tag bg-overdue/10 px-2 py-[3px] text-meta-strong whitespace-nowrap text-overdue"
+                            class="inline-flex self-start rounded-tag bg-overdue-soft px-2 py-[3px] text-meta-strong whitespace-nowrap text-overdue"
                             >{{ $t('Not working') }}</span
                         >
                         <span
@@ -304,7 +305,7 @@ usePageTrail(() => [
                 >
                     <FmButton
                         v-if="connection.status !== 'active'"
-                        :icon="RefreshCw"
+                        :icon="LinkIcon"
                         :disabled="busy"
                         @click="connect(connection.institution)"
                         >{{ $t('Reconnect') }}</FmButton

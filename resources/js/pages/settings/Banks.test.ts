@@ -102,7 +102,7 @@ describe('Settings, Linked banks', () => {
         };
         renderPage(Banks, props({ connections: [broken] }));
 
-        expect(screen.getByText('Not working')).toBeInTheDocument();
+        expect(screen.getByText('Not working')).toHaveClass('bg-overdue-soft');
         expect(
             screen.getByText('We could not read this bank. We will try again.'),
         ).toBeInTheDocument();
@@ -200,6 +200,12 @@ describe('Settings, Linked banks', () => {
         expect(
             screen.getAllByRole('button', { name: 'Reconnect' }),
         ).toHaveLength(1);
+        // The link icon of the boards, not the arrows of Update
+        expect(
+            screen
+                .getByRole('button', { name: 'Reconnect' })
+                .querySelector('.lucide-link'),
+        ).not.toBeNull();
         await userEvent.click(
             screen.getByRole('button', { name: 'Reconnect' }),
         );
