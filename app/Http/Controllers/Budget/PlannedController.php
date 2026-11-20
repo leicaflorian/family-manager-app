@@ -209,11 +209,13 @@ final class PlannedController extends Controller
      */
     private function ruleExample(mixed $id): ?BankTransactionData
     {
-        if (! is_string($id) || preg_match('/^\d{1,18}$/', $id) !== 1) {
+        $id = $this->transactionId($id);
+
+        if ($id === null) {
             return null;
         }
 
-        $transaction = BankTransaction::query()->with('financialAccount')->find((int) $id);
+        $transaction = BankTransaction::query()->with('financialAccount')->find($id);
 
         return $transaction instanceof BankTransaction ? BankTransactionData::fromTransaction($transaction) : null;
     }
@@ -229,11 +231,13 @@ final class PlannedController extends Controller
      */
     private function recurringValues(mixed $id, string $kind): array
     {
-        if (! BankFeedAvailability::on() || ! is_string($id) || preg_match('/^\d{1,18}$/', $id) !== 1) {
+        $id = BankFeedAvailability::on() ? $this->transactionId($id) : null;
+
+        if ($id === null) {
             return [];
         }
 
-        $transaction = BankTransaction::query()->unsorted()->find((int) $id);
+        $transaction = BankTransaction::query()->unsorted()->find($id);
 
         if (! $transaction instanceof BankTransaction || $transaction->kind() !== $kind) {
             return [];
@@ -242,5 +246,15 @@ final class PlannedController extends Controller
         $chain = resolve(RecurringBankTexts::class)->chain($transaction);
 
         return $chain === null ? [] : PlannedPreset::fromBank($transaction, $chain);
+    }
+
+    /**
+     * The id of a bank transaction in the address: a whole number of at most 18 digits, else null.
+     *
+     * @param  mixed  $id  the value of the address
+     */
+    private function transactionId(mixed $id): ?int
+    {
+        return is_string($id) && preg_match('/^\d{1,18}$/', $id) === 1 ? (int) $id : null;
     }
 }

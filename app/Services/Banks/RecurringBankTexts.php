@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Banks;
 
+use App\Enums\BankTransactionStatus;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankMatch;
 use Carbon\CarbonImmutable;
@@ -34,21 +35,15 @@ final class RecurringBankTexts
     private ?array $groups = null;
 
     /**
-     * The signatures of the transactions that come back every month, to compare with `BankMatch::signature()` of a row.
+     * Whether the text of a transaction comes back every month on its account and in its direction: the same key
+     * `chain()` uses, so a row that says yes always has a run to start the planned form from.
      *
-     * @return list<string>
+     * @param  BankTransaction  $transaction  A transaction of the family.
      */
-    public function signatures(): array
+    public function recurs(BankTransaction $transaction): bool
     {
-        $signatures = [];
-
-        foreach ($this->groups() as $transactions) {
-            if ($this->chains($transactions) !== []) {
-                $signatures[] = BankMatch::signature($transactions[0]->text);
-            }
-        }
-
-        return array_values(array_unique($signatures));
+        return $transaction->status === BankTransactionStatus::Booked
+            && $this->chain($transaction) !== null;
     }
 
     /**
@@ -129,6 +124,7 @@ final class RecurringBankTexts
             $byMonth[$this->month($transaction)][] = $transaction;
         }
 
+        // The days a saved planned item can still pay: the matcher's reach of a first read (`bank_feed.first_days`)
         $reach = CarbonImmutable::today('Europe/Rome')->subDays(Config::integer('bank_feed.first_days'))->toDateString();
         $chains = [];
 

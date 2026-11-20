@@ -306,3 +306,24 @@ it('marks the rows whose text comes back every month and lets only who can plan 
     $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('can_plan', false));
 });
+
+it('marks a row recurring only where the planned form can start from it', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    $second = insideFamilyOf($this->marco, fn (): int => FinancialAccount::factory()->create(['family_id' => $this->marco->family_id, 'bank_connection_id' => $connection->id, 'bank_account_uid' => 'uid-second', 'name' => 'Conto Secondo', 'last_four_digits' => '1111'])->id);
+
+    foreach (['2026-09-12', '2026-10-12', '2026-11-12'] as $day) {
+        bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => $day, 'amount' => '-13.99']);
+    }
+    // The same text as a credit, and on a second account: no run of three months there
+    bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => '2026-11-14', 'amount' => '13.99']);
+    bankTransactionPagesRow($connection, ['financial_account_id' => $second, 'text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => '2026-11-15', 'amount' => '-13.99']);
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('rows.0.account', 'Conto Secondo ·· 1111')
+        ->where('rows.0.recurring', false)
+        ->where('rows.1.amount', 13.99)
+        ->where('rows.1.recurring', false)
+        ->where('rows.2.recurring', true)
+        ->where('rows.3.recurring', true)
+        ->where('rows.4.recurring', true));
+});

@@ -11,7 +11,6 @@ use App\Data\BankPlannedChoiceData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
-use App\Enums\BankTransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\AssignBankTransactionRequest;
 use App\Models\BankConnection;
@@ -23,7 +22,6 @@ use App\Models\PlannedIncome;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankMatcher;
 use App\Services\Banks\RecurringBankTexts;
-use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankVisitor;
 use App\Support\Deadline;
 use App\Support\PaymentTitle;
@@ -73,13 +71,10 @@ final class BankTransactionController extends Controller
             'show' => $ignored ? 'ignored' : 'unsorted',
             'rows' => Inertia::merge(function () use ($rows, $ignored): array {
                 // One read of the last months for the whole page, none for the ignored ones
-                $signatures = $ignored ? [] : resolve(RecurringBankTexts::class)->signatures();
+                $texts = resolve(RecurringBankTexts::class);
 
                 return $rows()->take(self::PER_PAGE)
-                    ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction(
-                        $transaction,
-                        $transaction->status === BankTransactionStatus::Booked && in_array(BankMatch::signature($transaction->text), $signatures, true),
-                    ))
+                    ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction($transaction, ! $ignored && $texts->recurs($transaction)))
                     ->values()
                     ->all();
             })->matchOn('id'),
