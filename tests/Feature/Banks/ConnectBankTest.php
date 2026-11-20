@@ -342,3 +342,15 @@ test('a session that cannot be read is no reason to keep the connection', functi
 
     expect(BankConnection::query()->count())->toBe(0);
 });
+
+test('the end of the consent the bank gives in UTC is kept as the same moment', function (): void {
+    $end = CarbonImmutable::parse('2027-05-20 10:00:00', 'UTC');
+    $connection = insideFamilyOf($this->marco, function () use ($end): BankConnection {
+        $connection = BankConnection::factory()->create(['family_id' => $this->marco->family_id]);
+        $connection->writeSession('session', $end);
+
+        return $connection->refresh();
+    });
+
+    expect($connection->valid_until?->getTimestamp())->toBe($end->getTimestamp());
+});

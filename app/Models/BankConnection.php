@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 
 /**
@@ -108,7 +109,8 @@ final class BankConnection extends FamilyModel
         // Goes through the family scope: callers run inside the family (an account, or `CurrentFamily::using()`).
         self::query()->whereKey($this->getKey())->update([
             'session' => Crypt::encryptString($session),
-            'valid_until' => $validUntil,
+            // The bank gives UTC; the column holds the time of the app, as every date the model reads back
+            'valid_until' => $validUntil->setTimezone(Config::string('app.timezone')),
             'updated_at' => now(),
         ]);
         $this->refresh();

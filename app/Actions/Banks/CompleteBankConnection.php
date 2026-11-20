@@ -51,11 +51,11 @@ final readonly class CompleteBankConnection
             [
                 'institution_country' => Config::string('bank_feed.country'),
                 'status' => BankConnectionStatus::Active,
-                'valid_until' => $session->validUntil,
                 'last_error' => null,
                 'expiry_notified_at' => null,
             ],
         );
+        // The session writes the end of the consent too, in the time of the app
         $connection->writeSession($session->id, $session->validUntil);
         $this->link->handle($connection, $session->accounts);
 
