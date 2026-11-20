@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\SettleFromBank;
 use App\Contracts\BankFeed;
+use App\Enums\BankMatchSource;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
+use App\Models\PlannedExpense;
 use App\Services\Banks\FakeBankFeed;
+use App\Support\Banks\BankMatch;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {
@@ -68,4 +72,46 @@ test('an account tied to the bank without its key, as the trial seeder leaves it
     expect(FinancialAccount::query()->count())->toBe(1)
         ->and($account->refresh()->bank_account_key)->toBe('fake-account-key')
         ->and(BankTransaction::query()->count())->toBe($count);
+});
+
+test('a transaction refused with Not this one and one put aside stay so after disconnecting and connecting again', function (): void {
+    reconnectConnect();
+    [$planned, $refused, $aside] = insideFamilyOf($this->marco, function (): array {
+        $rows = BankTransaction::query()->where('status', 'booked')->where('amount', '<', 0)->orderBy('id')->take(2)->get();
+        $refused = $rows[0];
+        $planned = PlannedExpense::factory()->create([
+            'family_id' => $this->marco->family_id, 'title' => 'Luce', 'bank_match' => BankMatch::fromText((string) $refused->text),
+            'amount' => abs((float) $refused->amount), 'fee_amount' => null, 'start_date' => $refused->booked_on?->toDateString(),
+            'financial_account_id' => null,
+        ]);
+        resolve(SettleFromBank::class)->handle($refused, $planned, BankMatchSource::Rule);
+        $rows[1]->forceFill(['ignored_at' => now()])->save();
+
+        return [$planned, $refused->refresh(), $rows[1]];
+    });
+    expect($refused->expense_id)->not->toBeNull();
+    $this->delete("/budget/bank/{$refused->id}/payment")->assertRedirect();
+    $count = BankTransaction::query()->count();
+
+    $this->delete(route('banks.destroy', BankConnection::query()->sole()));
+    reconnectConnect();
+
+    expect(BankTransaction::query()->count())->toBe($count)
+        ->and(BankTransaction::query()->where('provider_id', $refused->provider_id)->sole()->declined_at)->not->toBeNull()
+        ->and(BankTransaction::query()->where('provider_id', $aside->provider_id)->sole()->ignored_at)->not->toBeNull()
+        ->and(Expense::query()->where('planned_expense_id', $planned->id)->count())->toBe(0);
+});
+
+test('a refused transaction kept after disconnecting is still removed after twelve months', function (): void {
+    reconnectConnect();
+    $row = BankTransaction::query()->where('status', 'booked')->orderBy('id')->firstOrFail();
+    $row->forceFill(['declined_at' => now(), 'booked_on' => now()->subMonths(13)->toDateString()])->save();
+    $this->delete(route('banks.destroy', BankConnection::query()->sole()));
+
+    $kept = BankTransaction::query()->find($row->id);
+    expect($kept)->not->toBeNull()
+        ->and($kept?->bank_connection_id)->toBeNull();
+
+    $this->artisan('model:prune', ['--model' => [BankTransaction::class]]);
+    expect(BankTransaction::query()->withoutGlobalScopes()->find($row->id))->toBeNull();
 });
