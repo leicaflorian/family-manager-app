@@ -11,8 +11,9 @@
  * As the menu of the tablet (`menu`) it starts with the bar of the page, the same box as the top bar, with Back
  * (it emits `close`) where the bar has Menu: opening the menu leaves the logo where it was.
  * On the computer (`collapsible`) a button at the right of the logo collapses it to 76 px (`v-model:collapsed`):
- * only the icons stay, with the names on hover and for screen readers, lines in place of the names of the
- * groups, no list of the areas, the avatar alone at the bottom, and under the logo the button that expands it.
+ * only the icons stay, with the names for screen readers, lines in place of the names of the groups, no list of
+ * the areas and the avatar alone at the bottom. Passing over it (or moving the focus into it) opens it whole over
+ * the page, which does not move, and there the button of the logo keeps it open.
  *
  * @group navigation
  */
@@ -95,7 +96,61 @@ const emit = defineEmits<{
 }>();
 
 /** Whether only the icons are shown. */
-const small = computed((): boolean => collapsible && collapsed);
+const small = computed(
+    (): boolean => collapsible && collapsed && !peeking.value,
+);
+
+/** The pointer is over the collapsed sidebar. */
+const pointerOver = ref(false);
+
+/** The focus is inside the collapsed sidebar, for who moves with the keyboard. */
+const focusInside = ref(false);
+
+/** The menu of *My account* is open: the sidebar stays open under it. */
+const accountOpen = ref(false);
+
+/** Whether the collapsed sidebar is open over the page. */
+const peeking = computed(
+    (): boolean => pointerOver.value || focusInside.value || accountOpen.value,
+);
+
+/** Whether the sidebar is collapsed but open over the page right now. */
+const floating = computed(
+    (): boolean => collapsible && collapsed && peeking.value,
+);
+
+/**
+ * The pointer leaves the sidebar: it closes, also when a click left the focus inside it.
+ */
+function pointerLeft(): void {
+    pointerOver.value = false;
+    focusInside.value = false;
+}
+
+/**
+ * Follows the focus leaving the sidebar: it closes only when the focus goes outside it.
+ *
+ * @param event - the focusout of the sidebar
+ */
+function focusLeft(event: FocusEvent): void {
+    const aside = event.currentTarget as HTMLElement;
+    focusInside.value =
+        event.relatedTarget instanceof Node &&
+        aside.contains(event.relatedTarget);
+}
+
+/**
+ * The button of the logo: collapses the open sidebar, or keeps open the one that is open over the page.
+ * After collapsing it closes at once, even with the pointer still over it.
+ */
+function toggleCollapsed(): void {
+    if (!collapsed) {
+        pointerOver.value = false;
+        focusInside.value = false;
+    }
+
+    emit('update:collapsed', !collapsed);
+}
 
 // The classes of the page are merged with the sidebar's (the menu of the tablet makes it `w-full`)
 defineOptions({ inheritAttrs: false });
@@ -113,6 +168,8 @@ function rootClass(): string {
         'flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5',
         menu && 'pt-0',
         small.value && 'w-[76px] px-3',
+        // 260 px wide but 76 px in the row of the page: it covers the page instead of pushing it
+        floating.value && 'z-40 -mr-[184px] shadow-menu',
         attrs.class as ClassValue,
     );
 }
@@ -228,7 +285,14 @@ function isPage(section: Section): boolean {
 </script>
 
 <template>
-    <aside v-bind="otherAttrs()" :class="rootClass()">
+    <aside
+        v-bind="otherAttrs()"
+        :class="rootClass()"
+        @mouseenter="pointerOver = collapsible && collapsed"
+        @mouseleave="pointerLeft"
+        @focusin="focusInside = collapsible && collapsed"
+        @focusout="focusLeft"
+    >
         <!-- As the menu of the tablet: the box of the top bar, across the whole menu, 20 px above Upload -->
         <div
             :class="
@@ -260,15 +324,23 @@ function isPage(section: Section): boolean {
                 </span>
             </span>
             <button
-                v-if="collapsible"
+                v-if="collapsible && !small"
                 type="button"
-                :aria-label="small ? $t('Expand the menu') : $t('Collapse the menu')"
-                :title="small ? $t('Expand the menu') : $t('Collapse the menu')"
+                :aria-label="
+                    floating
+                        ? $t('Keep the menu open')
+                        : $t('Collapse the menu')
+                "
+                :title="
+                    floating
+                        ? $t('Keep the menu open')
+                        : $t('Collapse the menu')
+                "
                 class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-tag text-ink-soft hover:bg-canvas hover:text-ink"
-                @click="emit('update:collapsed', !small)"
+                @click="toggleCollapsed"
             >
                 <FmIcon
-                    :icon="small ? PanelLeftOpen : PanelLeftClose"
+                    :icon="floating ? PanelLeftOpen : PanelLeftClose"
                     :size="20"
                 />
             </button>
@@ -429,7 +501,7 @@ function isPage(section: Section): boolean {
 
         <!-- At the bottom when there is room, right under the sections when they scroll -->
         <div class="mt-auto shrink-0 border-t border-divider pt-2">
-            <DropdownMenuRoot>
+            <DropdownMenuRoot v-model:open="accountOpen">
                 <DropdownMenuTrigger
                     :title="small ? user : undefined"
                     class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"

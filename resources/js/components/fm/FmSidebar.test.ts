@@ -89,8 +89,8 @@ describe('FmSidebar', () => {
         ).toBeNull();
     });
 
-    it('collapsed keeps only the icons, with the names for who cannot see them', async () => {
-        const sidebar = render(FmSidebar, {
+    it('collapsed keeps only the icons, with the names for who cannot see them', () => {
+        render(FmSidebar, {
             props: {
                 active: 'documents',
                 path: '/documents',
@@ -130,11 +130,43 @@ describe('FmSidebar', () => {
             screen.getByRole('button', { name: /Marco Bianchi/ }),
         ).toBeInTheDocument();
 
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Expand the menu' }),
-        );
+        // no button under the logo: the sidebar opens by passing over it
+        expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
+    });
 
+    it('collapsed opens over the page while the pointer is on it, and can stay open', async () => {
+        const sidebar = render(FmSidebar, {
+            props: {
+                active: 'documents',
+                path: '/documents',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                collapsible: true,
+                collapsed: true,
+            },
+        });
+        const aside = screen.getByRole('complementary');
+
+        await userEvent.hover(aside);
+
+        // 260 px wide, but still 76 px in the row: it covers the page instead of pushing it
+        expect(aside).toHaveClass('w-[260px]', '-mr-[184px]');
+        expect(screen.getByText('Every day')).not.toHaveClass('sr-only');
+        expect(
+            screen.getByRole('button', { name: 'Show the areas' }),
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Keep the menu open' }),
+        );
         expect(sidebar.emitted('update:collapsed')).toEqual([[false]]);
+
+        await userEvent.unhover(aside);
+
+        expect(aside).toHaveClass('w-[76px]');
+        expect(screen.getByText('Every day')).toHaveClass('sr-only');
     });
 
     it('has Upload at the top and the sections, with the open one marked', () => {
