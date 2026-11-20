@@ -4,15 +4,24 @@
  * connect again, not working), the accounts read through it and when its transactions were read last. An
  * administrator opens *Connect a bank*, the panel with the search and the list of banks (asked to the server only
  * when the panel opens); a member sees the list without buttons. While a bank waits for its first read the page
- * asks for the state again by itself. Choosing a bank, *Reconnect*, *Disconnect* and *Update* come with their routes.
+ * asks for the state again by itself. Choosing a bank, and *Reconnect* on a bank that ended, send the person to the
+ * bank's own website (the server answers with the address); *Disconnect* asks first. *Update* comes with its route.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { ChevronRight, Landmark, Plus, Wallet } from '@lucide/vue';
+import {
+    ChevronRight,
+    Landmark,
+    Plus,
+    RefreshCw,
+    Unplug,
+    Wallet,
+} from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
+import FmConfirmDelete from '@/components/fm/FmConfirmDelete.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
@@ -24,27 +33,38 @@ import { useAppName } from '@/composables/useAppName';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { lastReadText } from '@/lib/banks';
+import { listNames } from '@/lib/names';
 import { formatDate } from '@/lib/format';
 import { plainText } from '@/lib/text';
 import { settings as settingsIndex } from '@/routes';
+import { destroy, store } from '@/routes/banks';
 
-const { connections, can_change, institutions } = defineProps<{
-    /** The banks the family linked. */
-    connections: App.Data.BankConnectionData[];
-    /** Whether who looks can link and unlink banks (an administrator). */
-    can_change: boolean;
-    /**
-     * The banks that can be linked: missing until the panel asks for them, `null` when the provider did not answer.
-     */
-    institutions?: App.Data.BankInstitutionData[] | null;
-}>();
-
-/** The longest the consent of a bank lasts, as the text under the list says it. */
-const CONSENT_DAYS = 180;
+const { connections, can_change, sync_hours, consent_days, institutions } =
+    defineProps<{
+        /** The banks the family linked. */
+        connections: App.Data.BankConnectionData[];
+        /** Whether who looks can link and unlink banks (an administrator). */
+        can_change: boolean;
+        /** The hours of the day the banks are read, as the server schedules them. */
+        sync_hours: number[];
+        /** The days the permission of a bank lasts at most. */
+        consent_days: number;
+        /**
+         * The banks that can be linked: missing until the panel asks for them, `null` when the provider did not answer.
+         */
+        institutions?: App.Data.BankInstitutionData[] | null;
+    }>();
 
 const appName = useAppName();
 const open = ref(false);
 const query = ref('');
+/** The bank the person is asked to disconnect, or null while no question is open. */
+const disconnecting = ref<App.Data.BankConnectionData | null>(null);
+
+/** The hours of the reads written as a sentence: «7, 13 and 19». */
+const times = computed((): string =>
+    listNames(sync_hours.map((hour) => String(hour))),
+);
 
 // A bank waiting for its first read: ask only for the connections, so the panel and what is written stay as they are
 useReadingPoll(
@@ -74,6 +94,26 @@ watch(open, (isOpen) => {
             loadInstitutions();
         }
     }
+});
+
+/**
+ * Sends the person to the website of a bank to give the permission: the server answers with its address and the
+ * browser goes there, to come back to this page.
+ *
+ * @param institution - the name of the bank
+ */
+function connect(institution: string): void {
+    router.post(store().url, { institution }, { preserveScroll: true });
+}
+
+/** Closes the question about disconnecting, with or without disconnecting. */
+const askOpen = computed({
+    get: (): boolean => disconnecting.value !== null,
+    set: (value: boolean): void => {
+        if (!value) {
+            disconnecting.value = null;
+        }
+    },
 });
 
 /**
@@ -130,7 +170,9 @@ usePageTrail(() => [
             <FmTitle
                 :title="$t('Linked banks')"
                 :subtitle="
-                    $t('The transactions arrive by themselves at 7, 13 and 19')
+                    $t('The transactions arrive by themselves at :times', {
+                        times,
+                    })
                 "
                 :back="settingsIndex().url"
                 :back-label="$t('Settings')"
@@ -157,6 +199,11 @@ usePageTrail(() => [
                 $t('Connect a bank')
             }}</FmButton>
         </FmEmpty>
+        <FmNotice v-if="connections.length === 0 && !can_change">{{
+            $t(
+                'Only who manages the family connects and disconnects the banks.',
+            )
+        }}</FmNotice>
 
         <template v-else>
             <FmCard v-for="connection in connections" :key="connection.id">
@@ -207,6 +254,24 @@ usePageTrail(() => [
                         />{{ account }}
                     </li>
                 </ul>
+                <div
+                    v-if="can_change"
+                    class="flex flex-wrap gap-2.5 border-t border-divider pt-3.5"
+                >
+                    <FmButton
+                        v-if="connection.status !== 'active'"
+                        :icon="RefreshCw"
+                        @click="connect(connection.institution)"
+                        >{{ $t('Reconnect') }}</FmButton
+                    >
+                    <FmButton
+                        variant="text"
+                        :icon="Unplug"
+                        class="text-overdue"
+                        @click="disconnecting = connection"
+                        >{{ $t('Disconnect') }}</FmButton
+                    >
+                </div>
             </FmCard>
 
             <FmNotice v-if="!can_change">{{
@@ -219,7 +284,7 @@ usePageTrail(() => [
         <span class="text-meta text-ink-soft">{{
             $t(
                 ':app reads only the transactions: it cannot make payments and does not see your bank password. The permission lasts up to :days days, then you renew it.',
-                { app: appName, days: String(CONSENT_DAYS) },
+                { app: appName, days: String(consent_days) },
             )
         }}</span>
 
@@ -268,6 +333,7 @@ usePageTrail(() => [
                             <button
                                 type="button"
                                 class="flex w-full items-center gap-3 border-0 bg-transparent px-3.5 py-3 text-left text-inherit"
+                                @click="connect(bank.name)"
                             >
                                 <BankMark
                                     :name="bank.name"
@@ -286,14 +352,30 @@ usePageTrail(() => [
                         </li>
                     </ul>
                     <span class="text-meta text-ink-soft">{{
-                        `${$tChoice(
-                            '{0} No banks of :total|{1} 1 bank of :total|[2,*] :count banks of :total',
+                        $tChoice(
+                            '{0} No banks of :total. Not finding yours? It cannot be connected for now.|{1} 1 bank of :total. Not finding yours? It cannot be connected for now.|[2,*] :count banks of :total. Not finding yours? It cannot be connected for now.',
                             found.length,
                             { total: String(institutions.length) },
-                        )}. ${$t('Not finding yours? It cannot be connected for now.')}`
+                        )
                     }}</span>
                 </template>
             </div>
         </FmBottomSheet>
+
+        <FmConfirmDelete
+            v-if="disconnecting !== null"
+            v-model:open="askOpen"
+            :url="destroy(disconnecting.id).url"
+            :question="
+                $t('Disconnect :bank?', { bank: disconnecting.institution })
+            "
+            :text="
+                $t(
+                    ':app stops reading its transactions. The ones that pay an expense or an income stay, the others are deleted.',
+                    { app: appName },
+                )
+            "
+            :confirm-label="$t('Disconnect')"
+        />
     </FmSettingsPage>
 </template>

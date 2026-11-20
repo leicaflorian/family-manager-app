@@ -94,6 +94,8 @@ it('lists the connections of the family only', function (): void {
         ->where('connections.0.last_synced_at', '2026-11-20T13:00')
         ->where('connections.0.accounts', ['Conto BancoPosta ·· 3307'])
         ->where('connections.0.syncing', false)
+        ->where('sync_hours', [7, 13, 19])
+        ->where('consent_days', 180)
         ->missing('institutions'));
 });
 
@@ -168,6 +170,13 @@ test('the settings tell whether the family can link banks', function (): void {
     bankPagesConnection($this->marco);
     $this->get(route('settings'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('bankCount', 1));
+});
+
+test('the settings do not count the banks while the feed is off', function (): void {
+    bankPagesConnection($this->marco);
+    $this->marco->family->forceFill(['bank_feed_enabled' => false])->save();
+
+    $this->get(route('settings'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('bankCount', 0));
 });
 
 test('an account not linked shows the notice to link it, a linked one does not', function (): void {

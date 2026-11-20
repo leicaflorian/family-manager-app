@@ -231,6 +231,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
         Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
         Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
+        Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
+        Route::get('settings/banks/callback', [BankController::class, 'callback'])->name('banks.callback');
+        Route::delete('settings/banks/{connection}', [BankController::class, 'destroy'])->name('banks.destroy');
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::get('settings/areas', [AreaSettingsController::class, 'edit'])->name('settings.areas.edit');

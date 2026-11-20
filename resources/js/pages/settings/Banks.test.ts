@@ -25,7 +25,13 @@ afterEach(() => {
 
 /** The props of the page as the controller sends them: no list of banks until the panel asks. */
 function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
-    return { connections: bankConnections, can_change: true, ...extra };
+    return {
+        connections: bankConnections,
+        can_change: true,
+        sync_hours: [7, 13, 19],
+        consent_days: 180,
+        ...extra,
+    };
 }
 
 describe('Settings, Linked banks', () => {
@@ -47,7 +53,7 @@ describe('Settings, Linked banks', () => {
         ).toBeInTheDocument();
         expect(
             screen.getByText(
-                'The transactions arrive by themselves at 7, 13 and 19',
+                'The transactions arrive by themselves at 7, 13, and 19',
             ),
         ).toBeInTheDocument();
         expect(screen.getByText('BancoPosta')).toBeInTheDocument();
@@ -109,6 +115,112 @@ describe('Settings, Linked banks', () => {
         expect(
             screen.getAllByRole('button', { name: 'Connect a bank' }),
         ).toHaveLength(1);
+    });
+
+    it('writes the read times and the consent length it is given', () => {
+        renderPage(Banks, props({ sync_hours: [6, 18], consent_days: 90 }));
+
+        expect(
+            screen.getByText(
+                'The transactions arrive by themselves at 6 and 18',
+            ),
+        ).toBeInTheDocument();
+        expect(screen.getByText(/lasts up to 90 days/)).toBeInTheDocument();
+    });
+
+    it('tells a member with no bank who connects them', () => {
+        renderPage(Banks, props({ connections: [], can_change: false }));
+
+        expect(screen.getByText('No bank connected')).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'Only who manages the family connects and disconnects the banks.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Connect a bank' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('sends the chosen bank to the server to be taken to it', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation(() => undefined);
+        vi.spyOn(router, 'reload').mockImplementation(() => undefined);
+        renderPage(Banks, props({ institutions: bankInstitutions }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Connect a bank' }),
+        );
+        await userEvent.click(
+            within(
+                screen.getByRole('dialog', { name: 'Connect a bank' }),
+            ).getByRole('button', { name: 'Intesa Sanpaolo' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/settings/banks',
+            { institution: 'Intesa Sanpaolo' },
+            expect.anything(),
+        );
+    });
+
+    it('connects again the bank that ended, with its own name', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation(() => undefined);
+        renderPage(Banks, props());
+
+        expect(
+            screen.getAllByRole('button', { name: 'Reconnect' }),
+        ).toHaveLength(1);
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Reconnect' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/settings/banks',
+            { institution: 'Buddy Bank' },
+            expect.anything(),
+        );
+    });
+
+    it('asks before disconnecting a bank, then deletes it', async () => {
+        const destroy = vi
+            .spyOn(router, 'delete')
+            .mockImplementation(() => undefined);
+        renderPage(Banks, props());
+
+        await userEvent.click(
+            screen.getAllByRole('button', { name: 'Disconnect' })[0]!,
+        );
+        const dialog = screen.getByRole('dialog', {
+            name: 'Disconnect BancoPosta?',
+        });
+        expect(destroy).not.toHaveBeenCalled();
+        expect(
+            within(dialog).getByText(/stops reading its transactions/),
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+            within(dialog).getByRole('button', { name: 'Disconnect' }),
+        );
+
+        expect(destroy).toHaveBeenCalledWith(
+            '/settings/banks/1',
+            expect.anything(),
+        );
+    });
+
+    it('gives a member no button to reconnect or disconnect', () => {
+        renderPage(Banks, props({ can_change: false }));
+
+        expect(
+            screen.queryByRole('button', { name: 'Reconnect' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Disconnect' }),
+        ).not.toBeInTheDocument();
     });
 
     it('gives a member the list without a button and says who can change it', () => {

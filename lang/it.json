@@ -2077,7 +2077,6 @@
     "The transactions arrive by themselves and the fixed expenses recognised are marked paid.": "I movimenti arrivano da soli e le spese fisse riconosciute si segnano pagate.",
     "Receive the transactions by themselves": "Ricevi i movimenti da soli",
     "{1} :count bank linked|[2,*] :count banks linked": "{1} :count banca collegata|[2,*] :count banche collegate",
-    "The transactions arrive by themselves at 7, 13 and 19": "I movimenti arrivano da soli alle 7, alle 13 e alle 19",
     "Connected until :date": "Collegata fino al :date",
     "Connected": "Collegata",
     "Last update today at :time": "Ultimo aggiornamento oggi alle :time",
@@ -2096,6 +2095,16 @@
     "Loading the banks…": "Carico le banche…",
     "We could not load the banks. Try again in a moment.": "Non riusciamo a caricare le banche. Riprova tra poco.",
     "Search your bank": "Cerca la tua banca",
-    "{0} No banks of :total|{1} 1 bank of :total|[2,*] :count banks of :total": "{0} Nessuna banca su :total|{1} 1 banca su :total|[2,*] :count banche su :total",
-    "Not finding yours? It cannot be connected for now.": "Non trovi la tua? Per ora non si può collegare."
+    "The transactions arrive by themselves at :times": "I movimenti arrivano da soli alle :times",
+    "{0} No banks of :total. Not finding yours? It cannot be connected for now.|{1} 1 bank of :total. Not finding yours? It cannot be connected for now.|[2,*] :count banks of :total. Not finding yours? It cannot be connected for now.": "{0} Nessuna banca su :total. Non trovi la tua? Per ora non si può collegare.|{1} 1 banca su :total. Non trovi la tua? Per ora non si può collegare.|[2,*] :count banche su :total. Non trovi la tua? Per ora non si può collegare.",
+    "Reconnect": "Ricollega",
+    "Disconnect": "Scollega",
+    "Disconnect :bank?": "Scollegare :bank?",
+    ":app stops reading its transactions. The ones that pay an expense or an income stay, the others are deleted.": ":app smette di leggere i suoi movimenti. Quelli che pagano una spesa o un'entrata restano, gli altri si cancellano.",
+    ":account connected.": ":account collegato.",
+    ":count accounts connected.": ":count conti collegati.",
+    "Bank disconnected.": "Banca scollegata.",
+    "The connection did not work. Try again.": "Il collegamento non è riuscito. Riprova.",
+    "Account :bank": "Conto :bank",
+    "Choose a bank from the list.": "Scegli una banca dall'elenco."
 }
