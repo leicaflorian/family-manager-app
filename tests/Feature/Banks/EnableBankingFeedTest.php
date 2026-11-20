@@ -287,3 +287,22 @@ it('falls back to the consent days of the config for a bank without a usable len
 
     expect($days)->toBe([180, 180, 180, 90]);
 });
+
+it('never carries the session into a failure of revoke', function (mixed $answer): void {
+    Http::fake(['api.test/sessions/*' => $answer]);
+
+    try {
+        bankFeedNew()->revoke('sess-secret-1');
+        $this->fail('revoke() should fail');
+    } catch (BankFeedFailed $failure) {
+        $texts = [];
+        for ($error = $failure; $error !== null; $error = $error->getPrevious()) {
+            $texts[] = $error->getMessage();
+        }
+
+        expect(implode(' ', $texts))->not->toContain('sess-secret-1');
+    }
+})->with([
+    'no answer' => [fn () => fn () => throw new ConnectionException('cURL error 28 for https://api.test/sessions/sess-secret-1')],
+    'an error' => [fn () => Http::response(['error' => 'X', 'message' => 'Session sess-secret-1 is busy'], 500)],
+]);

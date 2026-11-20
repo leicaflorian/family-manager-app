@@ -167,13 +167,18 @@ final readonly class EnableBankingFeed implements BankFeed
     }
 
     /**
-     * Closes the consent.
+     * Closes the consent. A failure says only its kind: the address and the answer of the provider carry the session,
+     * which is never logged.
      *
      * @throws BankFeedFailed
      */
     public function revoke(string $session): void
     {
-        $this->send(fn (PendingRequest $http): Response => $http->delete('/sessions/'.rawurlencode($session)));
+        try {
+            $this->send(fn (PendingRequest $http): Response => $http->delete('/sessions/'.rawurlencode($session)));
+        } catch (BankFeedFailed $failure) {
+            throw new BankFeedFailed('The bank provider did not close the consent ('.class_basename($failure->getPrevious() ?? $failure).').');
+        }
     }
 
     /**
