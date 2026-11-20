@@ -403,11 +403,12 @@ test('a new movement from the bank finds and locks its planned item before readi
     $inside = array_slice($queries, (int) $start);
     $firstPlanned = array_find_key($inside, static fn (string $sql): bool => str_contains($sql, 'from `planned_expenses`'));
 
-    // From the lock of the bank row on, the first read of the planned item is the locking one, and no read of the
-    // payments comes before it: the snapshot of the transaction starts after the lock
+    // From the lock of the bank row on, the first read of the planned item is the locking one, and no plain read of
+    // any table comes between the two locks: the snapshot of the transaction starts after them
+    $between = array_slice($inside, 1, max(0, (int) $firstPlanned - 1));
     expect($start)->not->toBeNull()
         ->and($inside[$firstPlanned])->toContain('for update')
-        ->and(array_filter(array_slice($inside, 0, $firstPlanned), static fn (string $sql): bool => str_contains($sql, 'from `expenses`')))->toBe([]);
+        ->and(array_values(array_filter($between, static fn (string $sql): bool => str_starts_with(strtolower(ltrim($sql)), 'select') && ! str_contains($sql, 'for update'))))->toBe([]);
 });
 
 test('a due date paid while the movement from the bank starts saving gives the error, no second expense and the transaction still to sort', function (): void {
