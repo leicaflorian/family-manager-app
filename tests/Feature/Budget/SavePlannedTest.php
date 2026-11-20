@@ -386,3 +386,25 @@ it('never gives a commission to a planned income', function (): void {
 
     expect($income->getAttributes())->not->toHaveKey('fee_amount');
 });
+
+it('a planned expense and a planned income save their bank rule', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->post('/budget/planned/expense', savePlannedValues(['bank_match' => 'PALESTRA.*SRL']))->assertRedirect();
+    expect(savePlannedOf('Palestra')->bank_match)->toBe('PALESTRA.*SRL');
+
+    $this->post('/budget/planned/income', savePlannedValues(['title' => 'Stipendio', 'type' => 'salary', 'bank_match' => 'STIPENDIO']))->assertRedirect();
+    $income = insideBianchi(fn (): PlannedIncome => PlannedIncome::query()->where('title', 'Stipendio')->sole());
+    expect($income->bank_match)->toBe('STIPENDIO');
+
+    $this->get('/budget/planned/expense/'.savePlannedOf('Palestra')->id.'/edit')
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.bank_match', 'PALESTRA.*SRL'));
+});
+
+it('a broken rule is refused with its message', function (): void {
+    $this->actingAs($this->marco)
+        ->post('/budget/planned/expense', savePlannedValues(['bank_match' => '(a+)+$']))
+        ->assertSessionHasErrors(['bank_match' => 'This rule does not work. Try writing it with the AI.']);
+
+    expect(insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Palestra')->count()))->toBe(0);
+});

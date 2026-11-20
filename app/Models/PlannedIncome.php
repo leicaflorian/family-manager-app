@@ -56,7 +56,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'amount', 'type', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'organization_id', 'person_id', 'financial_account_id', 'employment_id', 'notes'])]
+#[Fillable(['title', 'amount', 'type', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'organization_id', 'person_id', 'financial_account_id', 'employment_id', 'notes', 'bank_match'])]
 final class PlannedIncome extends FamilyModel
 {
     /** @use HasFactory<PlannedIncomeFactory> */

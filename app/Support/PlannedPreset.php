@@ -48,6 +48,7 @@ final class PlannedPreset
             'organization_id' => null,
             'financial_account_id' => null,
             'person_id' => null,
+            'bank_match' => null,
             ...$kind === 'expense' ? ['fee_amount' => null, 'category_id' => null, 'card' => null] : ['type' => 'salary', 'employment_id' => null],
         ];
     }
@@ -73,6 +74,7 @@ final class PlannedPreset
             'organization_id' => $planned->organization_id,
             'financial_account_id' => $planned->financial_account_id,
             'person_id' => $planned->person_id,
+            'bank_match' => $planned->bank_match,
         ];
 
         if ($planned instanceof PlannedIncome) {

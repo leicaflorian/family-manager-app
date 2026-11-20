@@ -64,7 +64,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'amount', 'fee_amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'notes'])]
+#[Fillable(['title', 'amount', 'fee_amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'notes', 'bank_match'])]
 #[ObservedBy([LoanPlanObserver::class, PlannedExpenseObserver::class])]
 final class PlannedExpense extends FamilyModel
 {

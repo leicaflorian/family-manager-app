@@ -715,6 +715,7 @@ export const danceRow: App.Data.PlannedRowData = {
     color: '#E5A50A',
     ended: false,
     fee: 0,
+    bank_match: null,
 };
 
 /** The gas bill: an estimate, for the whole family, with the card of the supply. */
@@ -945,6 +946,7 @@ export const newPlannedValues = {
     organization_id: null,
     financial_account_id: null,
     person_id: null,
+    bank_match: null,
     category_id: null,
     card: null,
 };
