@@ -2,10 +2,12 @@
 # Releases Family Manager from dev: merges dev into main, asks Claude for the changelog, the notes
 # and the bump, lets the owner confirm with `php artisan app:release`, dumps the production database
 # when there are new migrations, then commits, tags and pushes main and brings dev up to date.
+# Before touching anything it runs the checks of the CI on dev (static without the build, Vitest),
+# so a release does not stop in GitHub Actions after the push.
 # Anything that fails before the push puts main, the tags and the branch back as they were.
 #
 # Usage: ./release   (from dev, clean tree, Sail running)
-# Overrides (for tests): RELEASE_CLAUDE, RELEASE_ARTISAN, RELEASE_SSH, RELEASE_REMOTE.
+# Overrides (for tests): RELEASE_CLAUDE, RELEASE_ARTISAN, RELEASE_SSH, RELEASE_REMOTE, RELEASE_CHECKS.
 # Runs on the bash 3.2 of macOS.
 set -euo pipefail
 
@@ -16,6 +18,7 @@ SSH_CMD=${RELEASE_SSH:-ssh family-manager-prod}
 REMOTE=${RELEASE_REMOTE:-origin}
 read -r -a ARTISAN <<< "$ARTISAN_CMD"
 read -r -a SSH <<< "$SSH_CMD"
+CHECKS_CMD=${RELEASE_CHECKS:-}
 
 HANDOFF=storage/app/release
 RELEASE_FILES=(VERSION CHANGELOG.md resources/release/notes.json)
@@ -87,6 +90,32 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
+# Runs one check, named for the owner; stops the release when it fails.
+check() {
+    local name=$1
+    shift
+    step "  $name"
+    "$@" < /dev/null || fail "the checks failed ($name): fix them on dev, push, and run ./release again."
+}
+
+# PHPStan and Rector in a throwaway container: their cache in /tmp of the Sail container is shared with
+# the worktrees, and a cache built in another worktree stops them. A fresh /tmp is what the CI sees.
+fresh() {
+    docker run --rm --entrypoint "" -u "$(id -u)" -v "$PWD":/var/www/html -w /var/www/html \
+        sail-8.5/family-manager-app "$@"
+}
+
+# The checks of the CI (.github/workflows/ci.yml, jobs static and vitest). The build and Pest stay in
+# the CI: they are the slowest and fail far less often.
+run_checks() {
+    check Pint ./vendor/bin/sail pint --test
+    check PHPStan fresh php vendor/bin/phpstan analyse --no-progress
+    check Rector fresh php vendor/bin/rector --dry-run --no-progress-bar
+    check Types ./vendor/bin/sail npm run types
+    check "Format and lint" ./vendor/bin/sail npm run check
+    check Vitest ./vendor/bin/sail npx vp test run
+}
+
 # The command run on the droplet: dumps family_manager_app from the MySQL container, gzips it and
 # prints the file path, only when the dump is complete. @FILE@ is replaced with the backup name.
 # The password is expanded by the shell inside the container, never on the Mac or the droplet.
@@ -123,6 +152,15 @@ LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' main 2> /dev/null || true
 if [ -n "$LAST_TAG" ] && [ -z "$(git rev-list --no-merges "$LAST_TAG..dev")" ]; then
     echo "Nothing to release since $LAST_TAG."
     exit 0
+fi
+
+# 1b. The checks of the CI, still on dev: nothing to restore when one fails.
+step "Running the checks of the CI"
+if [ -n "$CHECKS_CMD" ]; then
+    read -r -a CHECK <<< "$CHECKS_CMD"
+    "${CHECK[@]}" || fail "the checks failed: fix them on dev, push, and run ./release again."
+else
+    run_checks
 fi
 
 # 2. Merge dev into main.

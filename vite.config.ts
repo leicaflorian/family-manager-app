@@ -115,6 +115,8 @@ export default defineConfig({
             // Copied from Claude Design and read by `npm run tokens`, which writes the CSS as it is: no formatting
             'resources/design/**',
             'resources/css/tokens.css',
+            // Written by `php artisan app:release` with the JSON of PHP, which keeps every array open
+            'resources/release/notes.json',
         ],
         sortTailwindcss: {
             functions: ['clsx', 'cn', 'cva'],
