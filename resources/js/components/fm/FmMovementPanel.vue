@@ -12,14 +12,18 @@
  * expense or income, which starts with the choice between the two. Choosing a
  * planned expense or income, or a card (also the one *Add expense* of a card
  * starts with), fills the fields still empty from it. On the computer the
- * page has the title, so the form has no heading of its own there.
+ * page has the title, so the form has no heading of its own there. A movement
+ * the bank recorded says so under the heading, with the text of the bank and
+ * *It was not this one*, as the board *Movimento* draws it.
  *
  * @group panels
  */
 import { router } from '@inertiajs/vue3';
+import { Landmark, Undo2 } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref, toRef, watch } from 'vue';
+import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { useCardChoice } from '@/composables/useCardChoice';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -38,6 +42,7 @@ import {
 import { cn } from '@/lib/utils';
 import { destroy, store, update } from '@/routes/budget/movements';
 import FmButton from './FmButton.vue';
+import FmConfirmDelete from './FmConfirmDelete.vue';
 import FmDeleteButton from './FmDeleteButton.vue';
 
 /** The organization field, beside the account for an income and beside the category for an expense. */
@@ -173,6 +178,11 @@ const showOccurrences = computed(
 );
 
 /** The title of the panel. */
+const { date: formatDate } = useFormat();
+
+/** The confirmation of *It was not this one* is open. */
+const undoing = ref(false);
+
 const heading = computed(
     () => movement?.title ?? trans('New expense or income'),
 );
@@ -392,6 +402,56 @@ defineExpose({ fileErrors });
             />
         </DefineOrganization>
         <h2 v-if="!wide" class="m-0 text-stat">{{ heading }}</h2>
+
+        <div
+            v-if="movement?.bank"
+            class="flex flex-col gap-1.5 rounded-lg bg-banks-soft px-3.5 py-3"
+        >
+            <span class="flex items-center gap-2.5 text-label text-ink">
+                <Landmark
+                    aria-hidden="true"
+                    :size="20"
+                    class="shrink-0 text-banks-text"
+                />
+                {{
+                    $t('Recorded by the bank on :date', {
+                        date: formatDate(movement.bank.booked_on),
+                    })
+                }}
+            </span>
+            <span class="text-meta break-words text-ink-soft"
+                >{{ movement.bank.text
+                }}<template v-if="movement.bank.account">
+                    · {{ movement.bank.account }}</template
+                ></span
+            >
+            <button
+                v-if="movement.bank.undo_url"
+                type="button"
+                class="-ml-0.5 inline-flex h-touch cursor-pointer items-center gap-2 self-start border-0 bg-transparent p-0 text-body text-overdue"
+                @click="undoing = true"
+            >
+                <Undo2 aria-hidden="true" :size="20" />{{
+                    $t('It was not this one')
+                }}
+            </button>
+            <FmConfirmDelete
+                v-if="movement.bank.undo_url"
+                v-model:open="undoing"
+                :url="movement.bank.undo_url"
+                :question="$t('Take back this payment?')"
+                :text="
+                    movement.kind === 'income'
+                        ? $t(
+                              'The income is removed and the due date is to be paid again.',
+                          )
+                        : $t(
+                              'The expense is removed and the due date is to be paid again.',
+                          )
+                "
+                :confirm-label="$t('It was not this one')"
+            />
+        </div>
 
         <fieldset
             :disabled="readonly"

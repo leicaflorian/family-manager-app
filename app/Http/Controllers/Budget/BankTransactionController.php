@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Banks\RefreshBanks;
+use App\Actions\Banks\UndoBankPayment;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
 use App\Http\Controllers\Controller;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -86,6 +88,28 @@ final class BankTransactionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => RefreshBanks::message($new)]);
 
         return back(fallback: route('budget.bank.index'));
+    }
+
+    /**
+     * *It was not this one*: takes back the payment the bank recorded (only who can delete it, an `admin`). The
+     * movement goes, the due date is to pay again and the transaction is back in the list.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
+     * @throws HttpException (422) if the payment was not recorded by the bank
+     */
+    public function undo(BankTransaction $transaction, UndoBankPayment $undo): RedirectResponse
+    {
+        $this->ensureOn();
+        $payment = $transaction->expense ?? $transaction->income;
+
+        if ($payment !== null) {
+            Gate::authorize('delete', $payment);
+        }
+
+        $undo->handle($transaction);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('The due date is to be paid again.')]);
+
+        return to_route('budget.bank.index');
     }
 
     /**

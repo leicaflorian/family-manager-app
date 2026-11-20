@@ -844,6 +844,7 @@ export const danceMovement: App.Data.MovementData = {
     documents: [],
     can_edit: true,
     can_delete: true,
+    bank: null,
 };
 
 /** The page of the dance lessons: the year, the next four due dates, the exceptions, the data and the payments. */

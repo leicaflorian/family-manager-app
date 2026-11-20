@@ -2128,5 +2128,12 @@
     ":amount from :account": ":amount dal :account",
     ":amount instead of :planned": ":amount invece di :planned",
     "Paid by the bank · :title": "Pagata dalla banca · :title",
-    "Arrived in the bank · :title": "Arrivato in banca · :title"
+    "Arrived in the bank · :title": "Arrivato in banca · :title",
+    "The due date is to be paid again.": "La scadenza è di nuovo da pagare.",
+    "This payment was not recorded by the bank, so it cannot be undone from here.": "Questo pagamento non è stato registrato dalla banca, quindi da qui non si può annullare.",
+    "Recorded by the bank on :date": "Registrata dalla banca il :date",
+    "It was not this one": "Non era questa",
+    "Take back this payment?": "Togliere questo pagamento?",
+    "The expense is removed and the due date is to be paid again.": "La spesa viene tolta e la scadenza torna da pagare.",
+    "The income is removed and the due date is to be paid again.": "L'entrata viene tolta e la scadenza torna da pagare."
 }

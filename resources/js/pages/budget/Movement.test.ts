@@ -401,4 +401,105 @@ describe('Movement', () => {
             ).not.toBeInTheDocument();
         });
     });
+    describe('recorded by the bank', () => {
+        const bank: App.Data.MovementBankData = {
+            booked_on: '2026-11-05',
+            text: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA',
+            account: 'Conto BancoPosta ·· 3307',
+            undo_url: '/budget/bank/9/payment',
+        };
+
+        it('says the bank recorded it, with the text of the bank', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, bank },
+            });
+
+            expect(
+                screen.getByText('Recorded by the bank on 05/11/2026'),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByText(/ADDEBITO DIRETTO SDD EDISON ENERGIA SPA/),
+            ).toBeInTheDocument();
+        });
+
+        it('shows nothing without the bank', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, bank: null },
+            });
+
+            expect(
+                screen.queryByText(/Recorded by the bank/),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'It was not this one' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('has no button without the undo', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: { ...bank, undo_url: null },
+                },
+            });
+
+            expect(
+                screen.getByText(/Recorded by the bank/),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'It was not this one' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('asks before taking the payment back, then sends the delete', async () => {
+            const spy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, bank },
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'It was not this one' }),
+            );
+            const dialog = await screen.findByRole('dialog');
+
+            expect(
+                within(dialog).getByText(
+                    'The expense is removed and the due date is to be paid again.',
+                ),
+            ).toBeInTheDocument();
+            expect(spy).not.toHaveBeenCalled();
+
+            await userEvent.click(
+                within(dialog).getByRole('button', {
+                    name: 'It was not this one',
+                }),
+            );
+
+            expect(spy).toHaveBeenCalledWith(
+                '/budget/bank/9/payment',
+                expect.anything(),
+            );
+        });
+
+        it('says the income for an income', async () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, kind: 'income', bank },
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'It was not this one' }),
+            );
+
+            expect(
+                await screen.findByText(
+                    'The income is removed and the due date is to be paid again.',
+                ),
+            ).toBeInTheDocument();
+        });
+    });
 });

@@ -472,6 +472,12 @@ readonly expenses: number,
 readonly payments: number,
 readonly balance: number,
 };
+export type MovementBankData = {
+readonly booked_on: string | null,
+readonly text: string,
+readonly account: string | null,
+readonly undo_url: string | null,
+};
 export type MovementData = {
 readonly kind: string,
 readonly id: number,
@@ -496,6 +502,7 @@ readonly employment_id: number | null,
 readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+readonly bank: App.Data.MovementBankData | null,
 };
 export type MovementFiltersData = {
 readonly search: string | null,
