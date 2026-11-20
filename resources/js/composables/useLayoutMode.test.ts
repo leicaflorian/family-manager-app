@@ -32,7 +32,7 @@ describe('useLayoutMode', () => {
     it('writes the two conditions in one place', () => {
         expect(TABLET_QUERY).toBe('(min-width: 768px) and (min-height: 560px)');
         expect(COMPUTER_QUERY).toBe(
-            '(min-width: 1024px) and (min-height: 560px)',
+            '(min-width: 1280px) and (min-height: 560px)',
         );
     });
 
@@ -41,12 +41,15 @@ describe('useLayoutMode', () => {
         expect(mountWith().mode.value).toBe('phone');
     });
 
-    it('is tablet between 768 and 1023 pixels', () => {
+    it('is tablet between 768 and 1279 pixels', () => {
         screenWidth(820);
+        expect(mountWith().mode.value).toBe('tablet');
+
+        screenWidth(1279);
         expect(mountWith().mode.value).toBe('tablet');
     });
 
-    it('is computer from 1024 pixels', () => {
+    it('is computer from 1280 pixels', () => {
         screenWidth(1280);
         expect(mountWith().mode.value).toBe('computer');
     });
@@ -116,13 +119,13 @@ function mountComputer(): boolean {
 }
 
 describe('useComputerLayout', () => {
-    it('is the computer from 1024 pixels', () => {
+    it('is the computer from 1280 pixels', () => {
         screenWidth(1280);
         expect(mountComputer()).toBe(true);
     });
 
     it('is not the computer on a tablet or a phone', () => {
-        screenWidth(820);
+        screenWidth(1100);
         expect(mountComputer()).toBe(false);
 
         screenWidth(390);

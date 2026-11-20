@@ -59,7 +59,7 @@ describe('ScanLayout', () => {
         render(ScanLayout, { slots: { default: '<h1>New document</h1>' } });
 
         expect(
-            screen.getByRole('button', { name: 'Menu' }),
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('heading', { name: 'New document' }),
@@ -78,7 +78,7 @@ describe('ScanLayout', () => {
         render(ScanLayout, { slots: { default: '<h1>New document</h1>' } });
 
         expect(
-            screen.queryByRole('button', { name: 'Menu' }),
+            screen.queryByRole('combobox', { name: 'Search in Fameja.app' }),
         ).not.toBeInTheDocument();
     });
 

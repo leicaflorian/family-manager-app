@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The bottom bar of the phone (below 1024 px): Home, Budget, the + of Add in
+ * The bottom bar of the phone (below 768 px): Home, Budget, the + of Add in
  * the middle, Areas and More. The + opens the panel *Add*: To sort (only when
  * files wait, with their number), then Upload a file, Scan a sheet, New expense
  * and New task. More opens a panel with Agenda, Documents, Family,
