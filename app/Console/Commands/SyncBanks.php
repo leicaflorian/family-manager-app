@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Actions\Banks\WatchBankConsents;
 use App\Enums\BankConnectionStatus;
 use App\Jobs\SyncBank;
 use App\Models\BankConnection;
 use App\Models\Family;
 use App\Support\CurrentFamily;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -23,9 +25,9 @@ use Throwable;
 final class SyncBanks extends Command
 {
     /**
-     * Queues the reads. A family that fails is reported and skipped, so it does not stop the others.
+     * Queues the reads, after the consents of each family were checked. A family that fails is reported and skipped, so it does not stop the others.
      */
-    public function handle(): int
+    public function handle(WatchBankConsents $watch): int
     {
         $option = $this->option('family');
         $only = is_scalar($option) ? (string) $option : '';
@@ -45,7 +47,9 @@ final class SyncBanks extends Command
 
         foreach ($families as $family) {
             try {
-                $queued += CurrentFamily::using($family->id, function () use ($family): int {
+                $queued += CurrentFamily::using($family->id, function () use ($family, $watch): int {
+                    $watch->handle(CarbonImmutable::now());
+
                     $connections = BankConnection::query()
                         ->whereIn('status', [BankConnectionStatus::Active, BankConnectionStatus::Error])
                         ->orderBy('id')->get(['id']);

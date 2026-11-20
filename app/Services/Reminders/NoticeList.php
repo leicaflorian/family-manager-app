@@ -8,6 +8,7 @@ use App\Data\AgendaData;
 use App\Data\ReminderNoticeData;
 use App\Enums\Area;
 use App\Enums\ReminderStatus;
+use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\ReceivedMail;
@@ -124,6 +125,7 @@ final readonly class NoticeList
             'mail.organization',
             'bankTransaction.expense',
             'bankTransaction.income',
+            'bankConnection',
         ];
     }
 
@@ -157,6 +159,10 @@ final readonly class NoticeList
 
             if ($notice->bankTransaction instanceof BankTransaction) {
                 return $this->bankRow($notice, $notice->bankTransaction);
+            }
+
+            if ($notice->bankConnection instanceof BankConnection) {
+                return $this->consentRow($notice, $notice->bankConnection);
             }
 
             if (! $reminder instanceof Reminder || ! $dueDate instanceof CarbonImmutable) {
@@ -241,6 +247,30 @@ final readonly class NoticeList
             href: $payment === null
                 ? route('budget.bank.index')
                 : route('budget.movements.show', ['kind' => $payment instanceof Expense ? 'expense' : 'income', 'id' => $payment->id]),
+        );
+    }
+
+    /**
+     * The row of a bank whose consent ends or was taken back: «Bank to connect again · BancoPosta», the first line of
+     * the notice under it, leading to the banks.
+     *
+     * @param  ReminderNotice  $notice  the notice
+     * @param  BankConnection  $connection  its connection
+     */
+    private function consentRow(ReminderNotice $notice, BankConnection $connection): ReminderNoticeData
+    {
+        $first = ($notice->lines ?? [])[0] ?? null;
+
+        return new ReminderNoticeData(
+            id: $notice->id,
+            title: __('Bank to connect again · :bank', ['bank' => $connection->institution_name]),
+            subject: null,
+            area: Area::Banks->value,
+            due_text: is_string($first) ? $first : '',
+            sent_at: $notice->sent_at->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
+            read: $notice->read_at !== null,
+            state: null,
+            href: route('banks.index'),
         );
     }
 }

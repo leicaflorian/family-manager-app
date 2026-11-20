@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<array-key, mixed>|null $lines
  * @property int|null $bank_transaction_id
  * @property int|null $bank_connection_id
+ * @property-read BankConnection|null $bankConnection
  * @property-read BankTransaction|null $bankTransaction
  * @property-read Family $family
  * @property-read ReceivedMail|null $mail
@@ -46,7 +47,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['reminder_id', 'user_id', 'due_date', 'offset', 'sent_at', 'read_at', 'received_mail_id', 'lines', 'bank_transaction_id'])]
+#[Fillable(['reminder_id', 'user_id', 'due_date', 'offset', 'sent_at', 'read_at', 'received_mail_id', 'lines', 'bank_transaction_id', 'bank_connection_id'])]
 final class ReminderNotice extends FamilyModel
 {
     /** @use HasFactory<ReminderNoticeFactory> */
@@ -96,6 +97,16 @@ final class ReminderNotice extends FamilyModel
     public function mail(): BelongsTo
     {
         return $this->belongsTo(ReceivedMail::class, 'received_mail_id');
+    }
+
+    /**
+     * The bank connection the notice is about, for a consent that ends.
+     *
+     * @return BelongsTo<BankConnection, $this>
+     */
+    public function bankConnection(): BelongsTo
+    {
+        return $this->belongsTo(BankConnection::class);
     }
 
     /**

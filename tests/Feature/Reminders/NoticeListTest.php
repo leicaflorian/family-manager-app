@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Mail\NotifyMailLimit;
 use App\Enums\BankMatchSource;
+use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
@@ -237,6 +238,31 @@ test('the notice of a payment of the bank that is gone leads to the transactions
 
     expect($row['title'])->toBe('Paid by the bank · ADDEBITO SDD EDISON ENERGIA')
         ->and($row['href'])->toBe(route('budget.bank.index'));
+});
+
+test('the notice of a consent that ends names the bank and leads to the banks', function (): void {
+    $notice = insideFamilyOf($this->admin, function (): ReminderNotice {
+        $connection = BankConnection::factory()->create(['family_id' => $this->admin->family_id, 'institution_name' => 'BancoPosta']);
+
+        return ReminderNotice::factory()->create([
+            'family_id' => $this->admin->family_id,
+            'user_id' => $this->admin->id,
+            'reminder_id' => null,
+            'due_date' => null,
+            'offset' => null,
+            'bank_connection_id' => $connection->id,
+            'lines' => ['BancoPosta has removed the link. Connect it again to keep receiving the transactions.'],
+            'sent_at' => CarbonImmutable::parse('2026-10-25 07:00', 'Europe/Rome'),
+        ]);
+    });
+
+    $row = bellRows($this->admin)[0];
+
+    expect($row['id'])->toBe($notice->id)
+        ->and($row['title'])->toBe('Bank to connect again · BancoPosta')
+        ->and($row['area'])->toBe('banks')
+        ->and($row['due_text'])->toBe('BancoPosta has removed the link. Connect it again to keep receiving the transactions.')
+        ->and($row['href'])->toBe(route('banks.index'));
 });
 
 test('the mail limit notice is still sent once a day', function (): void {

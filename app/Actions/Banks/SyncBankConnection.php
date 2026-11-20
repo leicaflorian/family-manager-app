@@ -26,8 +26,9 @@ final readonly class SyncBankConnection
      * @param  BankFeed  $feed  the link to the bank
      * @param  StoreBankEntries  $store  saves what the bank gives
      * @param  MatchBankTransactions  $match  pays the due dates the new transactions settle
+     * @param  WatchBankConsents  $watch  tells the admins when the bank took the consent back
      */
-    public function __construct(private BankFeed $feed, private StoreBankEntries $store, private MatchBankTransactions $match) {}
+    public function __construct(private BankFeed $feed, private StoreBankEntries $store, private MatchBankTransactions $match, private WatchBankConsents $watch) {}
 
     /**
      * Reads the connection. An account with no transactions is read from `first_days` ago, the others from
@@ -85,6 +86,7 @@ final readonly class SyncBankConnection
             }
         } catch (BankConsentEnded) {
             $this->mark($connection, BankConnectionStatus::NeedsReconnect, 'The consent of the bank ended.');
+            $this->watch->ended($connection);
 
             return $new;
         } catch (BankLimitReached) {

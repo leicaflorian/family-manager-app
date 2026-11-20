@@ -2135,5 +2135,12 @@
     "It was not this one": "Non era questa",
     "Take back this payment?": "Togliere questo pagamento?",
     "The expense is removed and the due date is to be paid again.": "La spesa viene tolta e la scadenza torna da pagare.",
-    "The income is removed and the due date is to be paid again.": "L'entrata viene tolta e la scadenza torna da pagare."
+    "The income is removed and the due date is to be paid again.": "L'entrata viene tolta e la scadenza torna da pagare.",
+    "The link with :bank ends on :date. Connect it again to keep receiving the transactions.": "Il collegamento con :bank scade il :date. Ricollegalo per continuare a ricevere i movimenti.",
+    ":bank has removed the link. Connect it again to keep receiving the transactions.": ":bank ha tolto il collegamento. Ricollegalo per continuare a ricevere i movimenti.",
+    "Bank to connect again · :bank": "Banca da ricollegare · :bank",
+    "Connect :bank again": "Ricollega :bank",
+    "Connect again": "Ricollega",
+    "We are writing to you because you are an admin of the family and the bank link is yours to keep.": "Ti scriviamo perché sei un amministratore della famiglia e il collegamento con la banca è tra le cose che segui.",
+    "It takes a minute: you choose the bank and say yes, as the first time.": "Ci vuole un minuto: scegli la banca e dai il consenso, come la prima volta."
 }
