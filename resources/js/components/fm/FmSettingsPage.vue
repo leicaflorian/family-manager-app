@@ -15,6 +15,7 @@ import {
     Bell,
     CalendarSync,
     FolderTree,
+    Landmark,
     LayoutGrid,
     LifeBuoy,
     Mail,
@@ -24,8 +25,10 @@ import {
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, provide } from 'vue';
+import { useBankFeed } from '@/composables/useBankFeed';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { edit as account } from '@/routes/account';
+import { index as banks } from '@/routes/banks';
 import { edit as calendar } from '@/routes/calendar';
 import { index as categories } from '@/routes/categories';
 import { index as expenseCategories } from '@/routes/expense-categories';
@@ -42,6 +45,7 @@ type SettingsSection =
     | 'account'
     | 'notices'
     | 'mail'
+    | 'banks'
     | 'calendar'
     | 'categories'
     | 'expense-categories'
@@ -62,6 +66,9 @@ defineSlots<{
 }>();
 
 const wide = useWideLayout();
+
+/** The link to the bank: its section is in the list only while the family has it on. */
+const bankFeed = useBankFeed();
 
 provide(SECTION_TITLE, wide);
 
@@ -108,6 +115,16 @@ const groups = computed(
                     icon: Mail,
                     href: mail().url,
                 },
+                ...(bankFeed.value === null
+                    ? []
+                    : [
+                          {
+                              key: 'banks' as const,
+                              label: trans('Linked banks'),
+                              icon: Landmark,
+                              href: banks().url,
+                          },
+                      ]),
                 {
                     key: 'categories',
                     label: trans('Document categories'),

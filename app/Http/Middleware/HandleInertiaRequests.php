@@ -6,9 +6,11 @@ namespace App\Http\Middleware;
 
 use App\Data\FamilyData;
 use App\Enums\Theme;
+use App\Models\BankTransaction;
 use App\Models\File;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Services\Banks\BankFeedAvailability;
 use App\Services\CardSummaries;
 use App\Services\Reminders\NoticeList;
 use Carbon\CarbonImmutable;
@@ -74,6 +76,8 @@ class HandleInertiaRequests extends Middleware
                 : ['unread' => [], 'seen' => []]),
             // The number on *Upload*: the files waiting for their document, the copies left out
             'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
+            // The link to the bank: null while it is off for the family, otherwise what is still to sort (the badge of the menu)
+            'bank_feed' => fn (): ?array => $request->user() instanceof User && BankFeedAvailability::on() ? ['unsorted' => BankTransaction::query()->unsorted()->count()] : null,
             'locale' => app()->getLocale(),
             // The name of the account the owner looks as during a visit (*Enter as…*), for the strip of the layout
             'impersonating' => LimitVisit::isOpen($request) && $request->user() instanceof User ? $request->user()->name : null,

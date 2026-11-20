@@ -101,6 +101,20 @@ export type AreaSettingsData = {
 readonly areas: App.Data.AreaSettingData[],
 readonly can_change: boolean,
 };
+export type BankConnectionData = {
+readonly id: number,
+readonly institution: string,
+readonly status: App.Enums.BankConnectionStatus,
+readonly valid_until: string | null,
+readonly last_synced_at: string | null,
+readonly accounts: string[],
+readonly syncing: boolean,
+};
+export type BankInstitutionData = {
+readonly name: string,
+readonly country: string,
+readonly logo: string | null,
+};
 export type CalendarSettingsData = {
 readonly on: boolean,
 readonly url: string | null,

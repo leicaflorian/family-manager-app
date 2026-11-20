@@ -1,0 +1,207 @@
+import { router } from '@inertiajs/vue3';
+import userEvent from '@testing-library/user-event';
+import { screen, within } from '@testing-library/vue';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
+import { bankConnections, bankInstitutions } from '@/test/fixtures';
+import { renderPage, withTrail } from '@/test/page';
+import Banks from './Banks.vue';
+
+beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T14:30:00Z'));
+});
+
+afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+});
+
+/** The props of the page as the controller sends them: no list of banks until the panel asks. */
+function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
+    return { connections: bankConnections, can_change: true, ...extra };
+}
+
+describe('Settings, Linked banks', () => {
+    it('writes the trail Settings > Linked banks into the top bar', () => {
+        const { state, provide } = withTrail();
+        renderPage(Banks, props(), provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Settings', href: '/settings' },
+            { label: 'Linked banks' },
+        ]);
+    });
+
+    it('lists the banks with their state, their accounts and the last read', () => {
+        renderPage(Banks, props());
+
+        expect(
+            screen.getByRole('heading', { name: 'Linked banks' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'The transactions arrive by themselves at 7, 13 and 19',
+            ),
+        ).toBeInTheDocument();
+        expect(screen.getByText('BancoPosta')).toBeInTheDocument();
+        expect(
+            screen.getByText('Connected until 18/05/2027'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Last update today at 13:00'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Conto BancoPosta ·· 3307'),
+        ).toBeInTheDocument();
+
+        expect(screen.getByText('Buddy Bank')).toBeInTheDocument();
+        expect(screen.getByText('To connect again')).toBeInTheDocument();
+        expect(
+            screen.getByText('The connection ended on 12/11/2026'),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Conto Buddy ·· 7730')).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                /it cannot make payments and does not see your bank password/,
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('says a bank is being read while its first read is not done', () => {
+        const pending: App.Data.BankConnectionData = {
+            ...bankConnections[0]!,
+            last_synced_at: null,
+            valid_until: null,
+            syncing: true,
+        };
+        renderPage(Banks, props({ connections: [pending] }));
+
+        expect(
+            screen.getByText('Reading the transactions…'),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Connected')).toBeInTheDocument();
+    });
+
+    it('says when a bank does not work', () => {
+        const broken: App.Data.BankConnectionData = {
+            ...bankConnections[0]!,
+            status: 'error',
+        };
+        renderPage(Banks, props({ connections: [broken] }));
+
+        expect(screen.getByText('Not working')).toBeInTheDocument();
+        expect(
+            screen.getByText('We could not read this bank. We will try again.'),
+        ).toBeInTheDocument();
+    });
+
+    it('invites to connect the first bank when there is none', () => {
+        renderPage(Banks, props({ connections: [] }));
+
+        expect(screen.getByText('No bank connected')).toBeInTheDocument();
+        expect(
+            screen.getAllByRole('button', { name: 'Connect a bank' }),
+        ).toHaveLength(1);
+    });
+
+    it('gives a member the list without a button and says who can change it', () => {
+        renderPage(Banks, props({ can_change: false }));
+
+        expect(screen.getByText('BancoPosta')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Connect a bank' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'Only who manages the family connects and disconnects the banks.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('asks for the banks when the panel opens, and shows them', async () => {
+        const reload = vi
+            .spyOn(router, 'reload')
+            .mockImplementation(() => undefined);
+        const view = renderPage(Banks, props());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Connect a bank' }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['institutions'],
+                preserveUrl: true,
+            }),
+        );
+        expect(screen.getByText('Loading the banks…')).toBeInTheDocument();
+
+        await view.rerender(props({ institutions: bankInstitutions }));
+
+        expect(
+            screen.getByRole('button', { name: 'Intesa Sanpaolo' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText(/4 banks of 4/)).toBeInTheDocument();
+    });
+
+    it('searches the banks as the person types, without accents or capitals', async () => {
+        vi.spyOn(router, 'reload').mockImplementation(() => undefined);
+        renderPage(Banks, props({ institutions: bankInstitutions }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Connect a bank' }),
+        );
+        const dialog = screen.getByRole('dialog', { name: 'Connect a bank' });
+        await userEvent.type(
+            within(dialog).getByRole('searchbox', { name: 'Search your bank' }),
+            'POST',
+        );
+
+        expect(
+            within(dialog).getByRole('button', { name: 'BancoPosta' }),
+        ).toBeInTheDocument();
+        expect(
+            within(dialog).getByRole('button', { name: 'Postepay' }),
+        ).toBeInTheDocument();
+        expect(
+            within(dialog).queryByRole('button', { name: 'UniCredit' }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(dialog).getByText(
+                '2 banks of 4. Not finding yours? It cannot be connected for now.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('says when the list of banks could not be read, and asks again', async () => {
+        const reload = vi
+            .spyOn(router, 'reload')
+            .mockImplementation(() => undefined);
+        renderPage(Banks, props({ institutions: null }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Connect a bank' }),
+        );
+        expect(
+            screen.getByText(
+                'We could not load the banks. Try again in a moment.',
+            ),
+        ).toBeInTheDocument();
+
+        reload.mockClear();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Try again' }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({ only: ['institutions'] }),
+        );
+    });
+});

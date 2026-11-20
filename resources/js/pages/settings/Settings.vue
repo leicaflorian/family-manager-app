@@ -4,6 +4,7 @@
  * to the whole family, and *The app* with the version and what is new in it. In the
  * wide layout the sections stand beside every page of the settings, so the index
  * opens *My account* in its place. The other items of the board (bills, subscription) come with their stages.
+ * *Linked banks* is there only while the link to the bank is on for the family.
  */
 import { Head, router } from '@inertiajs/vue3';
 import {
@@ -11,6 +12,7 @@ import {
     CalendarDays,
     FolderTree,
     Inbox,
+    Landmark,
     LayoutGrid,
     LifeBuoy,
     Sparkles,
@@ -22,10 +24,12 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { watch } from 'vue';
+import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { edit } from '@/routes/account';
 import { edit as calendar } from '@/routes/calendar';
+import { index as banks } from '@/routes/banks';
 import { index } from '@/routes/categories';
 import { index as expenseCategories } from '@/routes/expense-categories';
 import { edit as mailSettings } from '@/routes/mail-settings';
@@ -40,6 +44,7 @@ const {
     mainExpenseCategories,
     areaCount,
     hiddenAreas,
+    bankCount,
     release,
     releasedOn,
 } = defineProps<{
@@ -53,6 +58,8 @@ const {
     areaCount: number;
     /** How many areas the family hid. */
     hiddenAreas: number;
+    /** How many banks the family linked. */
+    bankCount: number;
     /** The version that runs (`dev` in development). */
     release: string;
     /** The day the version came out (`yyyy-mm-dd`), or `null` without notes for it. */
@@ -62,6 +69,9 @@ const {
 const { date } = useFormat();
 
 const wide = useWideLayout();
+
+/** The link to the bank: its row is there only while the family has it on. */
+const bankFeed = useBankFeed();
 
 // In the wide layout the index would only repeat the sections beside the pages:
 // it gives its place in the history to My account, so Back does not come here.
@@ -141,6 +151,27 @@ watch(
                         class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
                     >
                         <FmIcon :icon="Inbox" :size="22" />
+                    </span>
+                </template>
+            </FmRow>
+            <FmRow
+                v-if="bankFeed !== null"
+                :title="$t('Linked banks')"
+                :subtitle="
+                    bankCount > 0
+                        ? $tChoice(
+                              '{1} :count bank linked|[2,*] :count banks linked',
+                              bankCount,
+                          )
+                        : $t('Receive the transactions by themselves')
+                "
+                :href="banks().url"
+            >
+                <template #before>
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="Landmark" :size="22" />
                     </span>
                 </template>
             </FmRow>

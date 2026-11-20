@@ -1971,3 +1971,33 @@ export const areaSettings: App.Data.AreaSettingsData = {
     })),
     can_change: true,
 };
+
+/** The banks the Bianchis linked, as *Linked banks* receives them: one that reads, one to link again. */
+export const bankConnections: App.Data.BankConnectionData[] = [
+    {
+        id: 1,
+        institution: 'BancoPosta',
+        status: 'active',
+        valid_until: '2027-05-18',
+        last_synced_at: '2026-11-20T13:00',
+        accounts: ['Conto BancoPosta ·· 3307'],
+        syncing: false,
+    },
+    {
+        id: 2,
+        institution: 'Buddy Bank',
+        status: 'needs_reconnect',
+        valid_until: '2026-11-12',
+        last_synced_at: null,
+        accounts: ['Conto Buddy ·· 7730'],
+        syncing: false,
+    },
+];
+
+/** Some of the banks the provider lists, as the panel *Connect a bank* receives them. */
+export const bankInstitutions: App.Data.BankInstitutionData[] = [
+    { name: 'BancoPosta', country: 'IT', logo: null },
+    { name: 'Postepay', country: 'IT', logo: null },
+    { name: 'Intesa Sanpaolo', country: 'IT', logo: null },
+    { name: 'UniCredit', country: 'IT', logo: null },
+];

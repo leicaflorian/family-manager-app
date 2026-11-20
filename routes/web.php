@@ -45,6 +45,7 @@ use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\ScanShareController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceWorkerController;
+use App\Http\Controllers\Settings\BankController;
 use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
@@ -229,6 +230,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
         Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
         Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
+        Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::get('settings/areas', [AreaSettingsController::class, 'edit'])->name('settings.areas.edit');
