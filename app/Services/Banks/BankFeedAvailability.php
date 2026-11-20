@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Banks;
 
+use App\Contracts\BankFeed;
 use App\Models\Family;
 use App\Support\CurrentFamily;
-use Illuminate\Support\Facades\Config;
 
 /**
- * Whether the link to the bank is on: a provider is set up and the owner turned it on for the current family.
+ * Whether the link to the bank is on: the bound provider is active and the owner turned it on for the current family.
  */
 final class BankFeedAvailability
 {
@@ -18,7 +18,7 @@ final class BankFeedAvailability
      */
     public static function on(): bool
     {
-        if (Config::string('bank_feed.provider', '') === '') {
+        if (! resolve(BankFeed::class)->isActive()) {
             return false;
         }
 

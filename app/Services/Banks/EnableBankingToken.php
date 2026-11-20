@@ -1,0 +1,94 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Banks;
+
+use App\Exceptions\Banks\BankFeedFailed;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
+
+/**
+ * The JWT Enable Banking wants in the `Authorization` header: RS256, signed with the private key of the application,
+ * valid one hour and kept 50 minutes so one token serves many calls.
+ */
+final class EnableBankingToken
+{
+    private const string CACHE_KEY = 'bank_feed.enable_banking.token';
+
+    private const int LIFETIME = 3600;
+
+    private const int KEPT = 3000;
+
+    /**
+     * The token for the moment given: the cached one while it is under 50 minutes old, else a new one.
+     *
+     * @param  CarbonImmutable  $now  the moment of the call
+     *
+     * @throws BankFeedFailed when the key cannot be read or signs nothing
+     */
+    public function make(CarbonImmutable $now): string
+    {
+        $cached = Cache::get(self::CACHE_KEY);
+
+        if (is_array($cached) && is_string($cached['token'] ?? null) && is_int($cached['at'] ?? null)
+            && $now->getTimestamp() - $cached['at'] < self::KEPT && $now->getTimestamp() >= $cached['at']) {
+            return $cached['token'];
+        }
+
+        $token = $this->sign($now);
+        Cache::put(self::CACHE_KEY, ['token' => $token, 'at' => $now->getTimestamp()], self::LIFETIME);
+
+        return $token;
+    }
+
+    /**
+     * Builds and signs a token.
+     *
+     * @param  CarbonImmutable  $now  the issue time
+     *
+     * @throws BankFeedFailed
+     */
+    private function sign(CarbonImmutable $now): string
+    {
+        $path = (string) Config::get('bank_feed.enable_banking.key_path', '');
+        $pem = $path !== '' && is_readable($path) ? file_get_contents($path) : false;
+
+        if ($pem === false) {
+            throw new BankFeedFailed('The key of the bank provider cannot be read.');
+        }
+
+        $header = $this->encode(['typ' => 'JWT', 'alg' => 'RS256', 'kid' => (string) Config::get('bank_feed.enable_banking.app_id', '')]);
+        $body = $this->encode([
+            'iss' => 'enablebanking.com',
+            'aud' => 'api.enablebanking.com',
+            'iat' => $now->getTimestamp(),
+            'exp' => $now->getTimestamp() + self::LIFETIME,
+        ]);
+
+        if (! openssl_sign($header.'.'.$body, $signature, $pem, OPENSSL_ALGO_SHA256)) {
+            throw new BankFeedFailed('The key of the bank provider cannot sign.');
+        }
+
+        return $header.'.'.$body.'.'.$this->base64($signature);
+    }
+
+    /**
+     * The base64url of a JSON object.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function encode(array $data): string
+    {
+        return $this->base64(json_encode($data, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * The base64url, without padding, of a string.
+     */
+    private function base64(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+}
