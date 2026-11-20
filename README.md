@@ -102,7 +102,7 @@ Mailgun calls `POST mail/mailgun` (see `AGENTS.md`). Without Mailgun, on a local
 
 ## Link to the bank
 
-The Bianchis have the link to the bank on, with a trial bank («Banca di prova») on the *Conto BPER* and its transactions already saved (`database/seeders/bank/transactions.json`). To try it in the app put `BANK_FEED_PROVIDER=fake` in `.env`: *Settings → Linked banks* connects the trial bank in one step, *Budget → From the bank* lists its transactions and *Update* reads them again. With the line empty the link is off for everyone and none of these pages exists. The fake never calls a bank and never runs in production.
+The Bianchis have the link to the bank on, with a trial bank («Banca di prova») on the *Conto BPER* and its transactions already saved (`database/seeders/bank/transactions.json`). To try it in the app put `BANK_FEED_PROVIDER=fake` in `.env`: *Settings → Linked banks* connects the trial bank in one step, *Budget → From the bank* lists its transactions and *Update* reads them again. With the line empty the link is off for everyone and none of these pages exists. The fake never calls a bank and never runs in production. In the owner's panel the link is turned on family by family (*Link to the bank* on the family); `./vendor/bin/sail artisan banks:sync --family=<id>` queues the read of one family (the queue service runs it), and without `--family` every family that has it on.
 
 ## Commands
 
