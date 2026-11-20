@@ -140,15 +140,15 @@ describe('ToSort on the phone', () => {
         expect(screen.getByText('5 files waiting')).toBeInTheDocument();
     });
 
-    it('offers Take a photo and Choose a file', () => {
+    it('has no Take a photo nor Choose a file: the + of the bar at the bottom has them', () => {
         renderPage(ToSort, page);
 
         expect(
-            screen.getByRole('link', { name: 'Take a photo' }),
-        ).toHaveAttribute('href', '/scan');
+            screen.queryByRole('link', { name: 'Take a photo' }),
+        ).not.toBeInTheDocument();
         expect(
-            screen.getByRole('link', { name: 'Choose a file' }),
-        ).toHaveAttribute('href', '/upload');
+            screen.queryByRole('link', { name: 'Choose a file' }),
+        ).not.toBeInTheDocument();
     });
 
     it('shows the filters as chips that are links, All current, and a filter with none is not a link', () => {
