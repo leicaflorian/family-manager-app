@@ -185,10 +185,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             });
 
         Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
-        Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1')->name('budget.bank.sync');
-        Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1')->name('budget.bank.matches');
+        Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('budget.bank.sync');
+        Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
         Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
-        Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1')->name('budget.bank.rule');
+        Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
         Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
 
         Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
@@ -242,7 +242,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
         Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
         Route::get('settings/banks/callback', [BankController::class, 'callback'])->name('banks.callback');
-        Route::post('settings/banks/{connection}/sync', [BankController::class, 'sync'])->middleware('throttle:6,1')->name('banks.sync');
+        Route::post('settings/banks/{connection}/sync', [BankController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('banks.sync');
         Route::delete('settings/banks/{connection}', [BankController::class, 'destroy'])->name('banks.destroy');
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
