@@ -351,3 +351,15 @@ test('a due date that is paid and moved away while the settling starts leaves th
             ->and($transaction->refresh()->expense_id)->toBeNull();
     });
 });
+
+test('who assigns the transaction gets no bell notice, the others do', function (): void {
+    $this->actingAs($this->marco);
+
+    insideBianchi(function (): void {
+        $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
+        resolve(SettleFromBank::class)->handle(bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05'), $luce, BankMatchSource::Assigned);
+
+        expect(ReminderNotice::query()->where('user_id', $this->marco->id)->count())->toBe(0)
+            ->and(ReminderNotice::query()->where('user_id', $this->laura->id)->count())->toBe(1);
+    });
+});

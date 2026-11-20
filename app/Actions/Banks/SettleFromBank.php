@@ -18,6 +18,7 @@ use App\Support\Deadline;
 use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -104,7 +105,9 @@ final readonly class SettleFromBank
             }
 
             $this->link($current, $payment, $by);
-            $this->notify->handle($current, $payment, $deadline);
+            // Who assigned it by hand knows already; a rule tells everyone
+            $assigner = $by === BankMatchSource::Assigned ? Auth::guard('web')->id() : null;
+            $this->notify->handle($current, $payment, $deadline, is_numeric($assigner) ? (int) $assigner : null);
 
             return $payment;
         });

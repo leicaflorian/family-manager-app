@@ -15,7 +15,7 @@ use App\Support\Translated;
 
 /**
  * Tells everyone in the family that the bank paid a due date: a notice of the bell for each account, both roles,
- * about the bank transaction. The lines are written in the language of each account.
+ * about the bank transaction, except the person who assigned it (they already know). The lines are written in the language of each account.
  */
 final readonly class NotifyBankPayment
 {
@@ -26,15 +26,16 @@ final readonly class NotifyBankPayment
      * @param  BankTransaction  $transaction  The transaction of the bank that paid.
      * @param  Expense|Income  $payment  The payment it is linked to.
      * @param  Deadline  $deadline  The due date it settled.
+     * @param  int|null  $except  The account that assigned the transaction, which gets no notice.
      */
-    public function handle(BankTransaction $transaction, Expense|Income $payment, Deadline $deadline): void
+    public function handle(BankTransaction $transaction, Expense|Income $payment, Deadline $deadline, ?int $except = null): void
     {
         $amount = abs((float) $transaction->amount);
         $planned = $deadline->occurrence->amount;
         $account = $transaction->financialAccount->name ?? $payment->financialAccount->name ?? '';
         $far = ! $deadline->occurrence->estimated && $this->isFar($amount, $planned);
 
-        User::query()->where('family_id', $transaction->family_id)->orderBy('id')->get()
+        User::query()->where('family_id', $transaction->family_id)->when($except !== null, static fn ($query) => $query->whereKeyNot($except))->orderBy('id')->get()
             ->each(function (User $user) use ($transaction, $amount, $planned, $account, $far): void {
                 $locale = $user->locale ?? config()->string('app.locale');
                 $lines = [Translated::text(':amount from :account', ['amount' => Money::euro($amount), 'account' => $account], $locale)];
