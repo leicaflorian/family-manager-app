@@ -379,7 +379,7 @@ describe('Budget, From the bank, sorting', () => {
     });
 
     it('offers nothing under Ignored or to who cannot sort', () => {
-        const { unmount } = renderPage(
+        const view = renderPage(
             BankTransactions,
             props({
                 show: 'ignored',
@@ -389,7 +389,7 @@ describe('Budget, From the bank, sorting', () => {
         expect(
             screen.queryByRole('link', { name: /Create the/ }),
         ).not.toBeInTheDocument();
-        unmount();
+        view.unmount();
 
         renderPage(BankTransactions, props({ can_sort: false }));
         expect(
@@ -565,14 +565,11 @@ describe('Budget, From the bank, a text that comes back every month', () => {
 
     it('is not offered on the wide layout either to who cannot plan, nor on a pending or ignored one', () => {
         screenWidth(1280);
-        const { unmount } = renderPage(
-            BankTransactions,
-            props({ rows: [netflix] }),
-        );
+        const view = renderPage(BankTransactions, props({ rows: [netflix] }));
         expect(
             screen.getByRole('link', { name: /It comes back every month/ }),
         ).toBeInTheDocument();
-        unmount();
+        view.unmount();
 
         for (const extra of [
             { can_plan: false },

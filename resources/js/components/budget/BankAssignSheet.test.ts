@@ -64,7 +64,7 @@ function open(
 
 describe('BankAssignSheet', () => {
     it('shows the transaction and the planned expenses with their due date and amount', async () => {
-        await open();
+        open();
 
         const dialog = screen.getByRole('dialog', {
             name: 'It belongs to a planned expense',
@@ -99,7 +99,7 @@ describe('BankAssignSheet', () => {
     });
 
     it('narrows the list by name or organization while typing', async () => {
-        await open();
+        open();
 
         await userEvent.type(
             screen.getByRole('searchbox', { name: 'Search a planned expense' }),
@@ -129,18 +129,18 @@ describe('BankAssignSheet', () => {
     });
 
     it('gives the planned expense chosen when Mark as paid is pressed', async () => {
-        const { emitted } = await open();
+        const view = open();
 
         await userEvent.click(screen.getByRole('radio', { name: /Gas/ }));
         await userEvent.click(
             screen.getByRole('button', { name: 'Mark as paid' }),
         );
 
-        expect(emitted().assign).toEqual([[choices[1]]]);
+        expect(view.emitted().assign).toEqual([[choices[1]]]);
     });
 
     it('speaks of an income for a credit', async () => {
-        await open({
+        open({
             transaction: { ...transaction, amount: 35 },
             choices: [{ ...choices[0]!, kind: 'income' }],
         });
@@ -156,7 +156,7 @@ describe('BankAssignSheet', () => {
     });
 
     it('waits for the list while the page asks for it', async () => {
-        await open({ choices: undefined });
+        open({ choices: undefined });
 
         expect(screen.getByText('Loading…')).toBeInTheDocument();
         expect(
@@ -165,7 +165,7 @@ describe('BankAssignSheet', () => {
     });
 
     it('shows the message of the server under the list', async () => {
-        await open({ error: 'This planned expense has no due dates to pay.' });
+        open({ error: 'This planned expense has no due dates to pay.' });
 
         expect(screen.getByRole('alert')).toHaveTextContent(
             'This planned expense has no due dates to pay.',
@@ -173,15 +173,15 @@ describe('BankAssignSheet', () => {
     });
 
     it('closes with Cancel', async () => {
-        const { emitted } = await open();
+        const view = open();
 
         await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-        expect(emitted()['update:open']).toEqual([[false]]);
+        expect(view.emitted()['update:open']).toEqual([[false]]);
     });
 
     it('has the visible label of the board over a box with its own placeholder', async () => {
-        await open();
+        open();
 
         expect(
             screen.getByText('Search a planned expense', { selector: 'label' }),
