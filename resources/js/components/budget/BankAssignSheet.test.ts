@@ -179,4 +179,15 @@ describe('BankAssignSheet', () => {
 
         expect(emitted()['update:open']).toEqual([[false]]);
     });
+
+    it('has the visible label of the board over a box with its own placeholder', async () => {
+        await open();
+
+        expect(
+            screen.getByText('Search a planned expense', { selector: 'label' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('searchbox', { name: 'Search a planned expense' }),
+        ).toHaveAttribute('placeholder', 'Search by name or organization');
+    });
 });

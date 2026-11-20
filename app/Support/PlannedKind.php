@@ -35,6 +35,26 @@ final class PlannedKind
     }
 
     /**
+     * Finds a planned item and locks its row in one locking read, so that no plain read comes before the lock: inside
+     * a transaction the snapshot starts after the lock, and sees the payment another transaction committed while this
+     * one waited. Like `find()`, an id of another family or unknown is a 404.
+     *
+     * @param  string  $kind  `expense` or `income`
+     * @param  string  $id  the id of the planned item
+     *
+     * @throws NotFoundHttpException if the kind is not `expense` or `income`
+     * @throws ModelNotFoundException if no planned item of the family has that id (Laravel answers 404)
+     */
+    public static function findAndLock(string $kind, string $id): PlannedExpense|PlannedIncome
+    {
+        return match ($kind) {
+            'expense' => PlannedExpense::query()->lockForUpdate()->findOrFail($id),
+            'income' => PlannedIncome::query()->lockForUpdate()->findOrFail($id),
+            default => throw new NotFoundHttpException,
+        };
+    }
+
+    /**
      * Locks the row of a planned item until the transaction ends, so that two payments of the same due date
      * wait for each other and the second one sees the first. It must be the first query of the transaction:
      * MySQL takes the snapshot of a transaction at its first plain read, and a read before the lock would not see

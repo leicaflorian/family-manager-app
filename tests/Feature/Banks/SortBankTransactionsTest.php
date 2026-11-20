@@ -14,7 +14,9 @@ use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Support\Banks\BankMatch;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use Pest\Expectation;
 use Tests\Support\FakeDocumentReader;
@@ -387,4 +389,45 @@ test('the planned form starts from the text of the transaction when the reading 
     app()->instance(DocumentReader::class, new FakeDocumentReader);
     $this->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $transaction->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('values.bank_match', null));
+});
+
+test('a new movement from the bank finds and locks its planned item before reading anything of it', function (): void {
+    $luce = bankSortPlanned('Luce');
+    $transaction = bankSortOne(['amount' => '-72.40']);
+
+    DB::enableQueryLog();
+    $this->actingAs($this->marco)->post(route('budget.movements.store'), bankSortBody($transaction, ['planned_id' => $luce->id, 'occurrence_date' => '2026-11-05']))->assertRedirect(route('budget.bank.index'));
+    $queries = array_column(DB::getQueryLog(), 'query');
+    // The save transaction starts with the lock of the bank row; the validation of the request ran before it
+    $start = array_find_key($queries, static fn (string $sql): bool => str_contains($sql, 'from `bank_transactions`') && str_contains($sql, 'for update'));
+    $inside = array_slice($queries, (int) $start);
+    $firstPlanned = array_find_key($inside, static fn (string $sql): bool => str_contains($sql, 'from `planned_expenses`'));
+
+    // From the lock of the bank row on, the first read of the planned item is the locking one, and no read of the
+    // payments comes before it: the snapshot of the transaction starts after the lock
+    expect($start)->not->toBeNull()
+        ->and($inside[$firstPlanned])->toContain('for update')
+        ->and(array_filter(array_slice($inside, 0, $firstPlanned), static fn (string $sql): bool => str_contains($sql, 'from `expenses`')))->toBe([]);
+});
+
+test('a due date paid while the movement from the bank starts saving gives the error, no second expense and the transaction still to sort', function (): void {
+    $luce = bankSortPlanned('Luce');
+    $transaction = bankSortOne(['amount' => '-72.40']);
+    $paid = (object) ['done' => false];
+
+    // Somebody pays the due date right before the save transaction starts, after the request was validated
+    DB::connection()->beforeStartingTransaction(function (Connection $connection) use ($luce, $paid): void {
+        if ($paid->done || $connection->transactionLevel() < 1) {
+            return;
+        }
+
+        $paid->done = true;
+        Expense::factory()->create(['family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'occurrence_date' => '2026-11-05', 'amount' => 72.0, 'date' => '2026-11-05']);
+    });
+
+    $this->actingAs($this->marco)->post(route('budget.movements.store'), bankSortBody($transaction, ['planned_id' => $luce->id, 'occurrence_date' => '2026-11-05']))->assertSessionHasErrors('occurrence_date');
+
+    expect($paid->done)->toBeTrue()
+        ->and(insideBianchi(fn (): int => Expense::query()->where('planned_expense_id', $luce->id)->count()))->toBe(1)
+        ->and($transaction->refresh()->expense_id)->toBeNull();
 });

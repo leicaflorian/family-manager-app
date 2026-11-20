@@ -122,6 +122,21 @@ final class BankTransaction extends FamilyModel
     }
 
     /**
+     * Links the transaction to the expense or income it belongs to and saves it. The caller has the row locked.
+     *
+     * @param  Expense|Income  $movement  The movement.
+     * @param  BankMatchSource  $by  How the link came.
+     */
+    public function linkTo(Expense|Income $movement, BankMatchSource $by): void
+    {
+        $this->forceFill([
+            'expense_id' => $movement instanceof Expense ? $movement->id : null,
+            'income_id' => $movement instanceof Income ? $movement->id : null,
+            'matched_by' => $by,
+        ])->save();
+    }
+
+    /**
      * The connection it was read through.
      *
      * @return BelongsTo<BankConnection, $this>

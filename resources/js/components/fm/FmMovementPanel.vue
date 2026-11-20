@@ -480,6 +480,7 @@ defineExpose({ fileErrors });
                 v-model="values.kind"
                 type="togglebuttons"
                 enforced
+                :disabled="!!start.bank_transaction_id"
                 :label="$t('It is')"
                 name="kind"
                 :options="[

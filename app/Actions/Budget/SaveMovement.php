@@ -41,13 +41,12 @@ final readonly class SaveMovement
     public function handle(string $kind, array $columns, Expense|Income|null $movement = null): Expense|Income
     {
         // The request checked the due date, but a payment can have arrived since: with the planned item locked,
-        // read it again, as RecordPayment does. The planned item is found before the transaction, so the lock comes first in it.
-        $planned = $this->planned($kind, $columns, $movement);
+        // read it again, as RecordPayment does. The planned item is found and locked in one locking read, the first
+        // read of it: the caller may already be inside a transaction, and a plain read before the lock would fix the snapshot.
+        $plannedId = $this->plannedId($columns, $movement);
 
-        return DB::transaction(function () use ($kind, $columns, $movement, $planned): Expense|Income {
-            if ($planned instanceof PlannedExpense || $planned instanceof PlannedIncome) {
-                PlannedKind::lock($planned);
-            }
+        return DB::transaction(function () use ($kind, $columns, $movement, $plannedId): Expense|Income {
+            $planned = $plannedId === null ? null : PlannedKind::findAndLock($kind, (string) $plannedId);
 
             $columns = $this->complete($kind, $columns, $movement, $planned);
             $this->assertOpen($kind, $columns, $movement);
@@ -67,18 +66,16 @@ final readonly class SaveMovement
     }
 
     /**
-     * The planned item the movement will belong to: the one sent, else the one it has.
+     * The id of the planned item the movement will belong to: the one sent, else the one it has.
      *
-     * @param  string  $kind  `expense` or `income`
      * @param  array<string, mixed>  $columns  what the form sent
      * @param  Expense|Income|null  $movement  the movement being changed
      */
-    private function planned(string $kind, array $columns, Expense|Income|null $movement): PlannedExpense|PlannedIncome|null
+    private function plannedId(array $columns, Expense|Income|null $movement): ?int
     {
         $current = $movement instanceof Expense ? $movement->planned_expense_id : $movement?->planned_income_id;
-        $plannedId = array_key_exists('planned_id', $columns) ? $this->id($columns['planned_id']) : $current;
 
-        return $plannedId === null ? null : PlannedKind::find($kind, (string) $plannedId);
+        return array_key_exists('planned_id', $columns) ? $this->id($columns['planned_id']) : $current;
     }
 
     /**
@@ -112,7 +109,7 @@ final readonly class SaveMovement
      * @param  string  $kind  `expense` or `income`
      * @param  array<string, mixed>  $columns  what the form sent
      * @param  Expense|Income|null  $movement  the movement being changed
-     * @param  PlannedExpense|PlannedIncome|null  $planned  the planned item it will belong to, from `planned()`
+     * @param  PlannedExpense|PlannedIncome|null  $planned  the planned item it will belong to, found and locked by `handle()`
      * @return array<string, mixed>
      */
     private function complete(string $kind, array $columns, Expense|Income|null $movement, PlannedExpense|PlannedIncome|null $planned): array

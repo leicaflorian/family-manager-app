@@ -120,6 +120,25 @@ describe('FmMovementPanel', () => {
         });
     });
 
+    it('keeps the kind of a movement made from the bank, whose sign says it', () => {
+        renderPage(FmMovementPanel, {
+            ...props,
+            start: {
+                ...start,
+                title: 'Luce',
+                amount: 72.4,
+                bank_transaction_id: 12,
+            },
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'An income' }),
+        ).toBeDisabled();
+        expect(
+            screen.getByRole('button', { name: 'An expense' }),
+        ).toBeDisabled();
+    });
+
     it('sends no bank transaction when it starts from none', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(FmMovementPanel, props);

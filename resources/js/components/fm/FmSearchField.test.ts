@@ -5,6 +5,24 @@ import { nextTick, ref } from 'vue';
 import FmSearchField from './FmSearchField.vue';
 
 describe('FmSearchField', () => {
+    it('can show another placeholder than its label, which stays the name', () => {
+        render(FmSearchField, {
+            props: {
+                label: 'Search a planned expense',
+                placeholder: 'Search by name or organization',
+                modelValue: '',
+            },
+        });
+
+        const box = screen.getByRole('searchbox', {
+            name: 'Search a planned expense',
+        });
+        expect(box).toHaveAttribute(
+            'placeholder',
+            'Search by name or organization',
+        );
+    });
+
     it('puts the input id on the input, not on the label around it', () => {
         render(FmSearchField, {
             props: {

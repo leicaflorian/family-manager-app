@@ -10,7 +10,7 @@
  */
 import { Landmark } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -43,6 +43,16 @@ const emit = defineEmits<{
 const open = defineModel<boolean>('open', { default: false });
 
 const { money, date } = useFormat();
+
+/** The id of the search box, for the visible label over it. */
+const searchId = useId();
+
+/** What the box searches, as the visible label and the name of the box. */
+const searchLabel = computed(() =>
+    income.value
+        ? trans('Search a planned income')
+        : trans('Search a planned expense'),
+);
 
 /** The text in the search box. */
 const search = ref('');
@@ -135,14 +145,17 @@ function confirm(): void {
             }}</span>
         </div>
 
-        <FmSearchField
-            v-model="search"
-            :label="
-                income
-                    ? $t('Search a planned income')
-                    : $t('Search a planned expense')
-            "
-        />
+        <div class="flex flex-col gap-1.5">
+            <label :for="searchId" class="text-label text-ink">{{
+                searchLabel
+            }}</label>
+            <FmSearchField
+                v-model="search"
+                :input-id="searchId"
+                :label="searchLabel"
+                :placeholder="$t('Search by name or organization')"
+            />
+        </div>
 
         <p
             v-if="choices === undefined"

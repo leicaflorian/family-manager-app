@@ -160,11 +160,7 @@ final readonly class SettleFromBank
      */
     private function link(BankTransaction $transaction, Expense|Income $payment, BankMatchSource $by): Expense|Income
     {
-        $transaction->forceFill([
-            'expense_id' => $payment instanceof Expense ? $payment->id : null,
-            'income_id' => $payment instanceof Income ? $payment->id : null,
-            'matched_by' => $by,
-        ])->save();
+        $transaction->linkTo($payment, $by);
 
         return $payment;
     }

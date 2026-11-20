@@ -51,10 +51,6 @@ final readonly class LinkBankMovement
             throw ValidationException::withMessages(['bank_transaction_id' => __('This movement from the bank is not to sort any more.')]);
         }
 
-        $current->forceFill([
-            'expense_id' => $movement instanceof Expense ? $movement->id : null,
-            'income_id' => $movement instanceof Income ? $movement->id : null,
-            'matched_by' => $by,
-        ])->save();
+        $current->linkTo($movement, $by);
     }
 }
