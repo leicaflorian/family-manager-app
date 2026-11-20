@@ -4,7 +4,7 @@
  * sort*, as the boards `Scansione` and `Scansione-pc` draw it, without the bar of the sections. Each photo shows at
  * once with *Preparing the photo…*, is brought to 2000 px, and a 1000 px copy goes to the server for the corners
  * of the sheet: when they come back the photo shows cut out, with *Cropped*. *Crop* has two steps, the corners and then
- * *Improve* on the cut sheet, and goes back to the pages. *Upload* asks first, sends the files with the progress and empties the page for the next
+ * *Improve* on the cut sheet, and goes back to the pages. *Back* with pages asks before throwing them away. *Upload* asks first, sends the files with the progress and empties the page for the next
  * document; a session that has ended is entered again with the linked phone without losing the pages. Pages not
  * uploaded yet are changes not saved: the app asks before leaving them. A linked phone, which sees only this page,
  * can sign out to *Sign in with the password*. Opened with `?shared=1` (*Share* on Android) the files the service worker
@@ -42,6 +42,7 @@ import { useAppName } from '@/composables/useAppName';
 import { useInstall } from '@/composables/useInstall';
 import { useScanUpload } from '@/composables/useScanUpload';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { canGoBack } from '@/lib/visitHistory';
 import { useWebcam } from '@/composables/useWebcam';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { isPhone } from '@/lib/devices';
@@ -194,11 +195,17 @@ const status = computed(() => ({
     progressText: upload.progressText.value,
 }));
 
-// Pages not uploaded yet are lost if the page changes: the app asks first
-useUnsavedChanges(() => ({
-    pages: pages.value.map((one) => one.id),
-    note: note.value,
-}));
+/** *Throw away* of *Back* was chosen: the page is being left, and the pages go with it. */
+const leaving = ref(false);
+
+// Pages not uploaded yet are lost if the page changes: the app asks first, unless *Back* already asked
+useUnsavedChanges(
+    () => ({
+        pages: pages.value.map((one) => one.id),
+        note: note.value,
+    }),
+    { active: () => !leaving.value },
+);
 
 /** A new id for a page. */
 let lastId = 0;
@@ -543,24 +550,44 @@ function closeWebcam(): void {
     webcamOpen.value = false;
 }
 
-/** *Back* at the top: with one page it goes at once, more ask first; with none the page is left. */
+/** *Back* at the top: with pages it asks first, even for one; with none the page is left. */
 function cancel(): void {
     if (upload.sending.value) return;
 
     if (empty.value) {
-        // a linked phone has nowhere else to go
-        if (!linked.value) router.visit(toSort().url);
-
-        return;
-    }
-
-    if (pages.value.length < 2) {
-        discardAll();
+        leave();
 
         return;
     }
 
     discardAsking.value = true;
+}
+
+/**
+ * Goes back to the page of the app the scan was opened from, or to *To sort* when the tab opened on the scan; a
+ * linked phone, which has nowhere else to go, stays.
+ */
+function leave(): void {
+    if (linked.value) return;
+
+    if (canGoBack()) window.history.back();
+    else router.visit(toSort().url);
+}
+
+/**
+ * *Throw away* of the question of *Back*. The pages stay on screen until the page changes (they go when it
+ * unmounts), so no empty page shows in between; a linked phone stays, with the page emptied.
+ */
+function discardAndLeave(): void {
+    if (linked.value) {
+        discardAll();
+
+        return;
+    }
+
+    discardAsking.value = false;
+    leaving.value = true;
+    leave();
 }
 
 /** Every page goes, with *What it is*. */
@@ -1258,6 +1285,6 @@ onBeforeUnmount(() => {
         :text="$t('What was not uploaded is lost.')"
         :confirm-label="$t('Throw away')"
         :cancel-label="$t('Keep')"
-        @confirm="discardAll"
+        @confirm="discardAndLeave"
     />
 </template>

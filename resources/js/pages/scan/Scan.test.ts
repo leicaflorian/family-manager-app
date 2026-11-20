@@ -36,6 +36,14 @@ vi.mock('@/lib/pwa/sharedFiles', async (original) => ({
     takeShared: shared.take,
 }));
 
+// Whether a page of the app comes before the scan in this tab: here the test says it
+const trail = vi.hoisted(() => ({ canGoBack: vi.fn(() => false) }));
+
+vi.mock('@/lib/visitHistory', async (original) => ({
+    ...(await original<typeof import('@/lib/visitHistory')>()),
+    canGoBack: trail.canGoBack,
+}));
+
 // The work on the pixels needs a real canvas: here each step gives a named file, so the test sees which one is shown
 const canvas = vi.hoisted(() => ({
     reduceToJpeg: vi.fn(),
@@ -134,6 +142,7 @@ function wide(on: boolean): void {
 beforeEach(() => {
     page.linked = false;
     page.url = '/scan';
+    trail.canGoBack.mockReset().mockReturnValue(false);
     shared.take.mockReset().mockResolvedValue([]);
     wide(false);
     let urls = 0;
@@ -628,30 +637,87 @@ describe('Scan', () => {
         expect(signal?.aborted).toBe(true);
     });
 
-    it('throws one page away at once, and asks for three', async () => {
+    it('asks before throwing even one page away, then goes back to To sort', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Scan);
         await choose(photo('one.jpg'));
         await screen.findByText('Cropped');
 
         await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-        expect(await screen.findByText('No pages')).toBeInTheDocument();
-
-        await choose(photo('a.jpg'), photo('b.jpg'), photo('c.jpg'));
-        await waitFor(() =>
-            expect(screen.getAllByText('3 pages')).not.toHaveLength(0),
-        );
-        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
         const question = await screen.findByRole('dialog', {
-            name: 'Throw away 3 pages?',
+            name: 'Throw away 1 page?',
         });
+        expect(visit).not.toHaveBeenCalled();
         const keep = within(question).getByRole('button', { name: 'Keep' });
         await waitFor(() => expect(keep).toHaveFocus());
 
         await fireEvent.click(
             within(question).getByRole('button', { name: 'Throw away' }),
         );
-        expect(await screen.findByText('No pages')).toBeInTheDocument();
+        expect(visit).toHaveBeenCalledWith(expect.stringMatching(/\/to-sort$/));
+        // the pages stay on screen while the page changes: no empty page in between
+        expect(screen.queryByText('No pages')).not.toBeInTheDocument();
+    });
+
+    it('goes back to the page it came from, after throwing the pages away', async () => {
+        trail.canGoBack.mockReturnValue(true);
+        const back = vi
+            .spyOn(window.history, 'back')
+            .mockImplementation(() => {});
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await screen.findByText('Cropped');
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        await fireEvent.click(
+            within(
+                await screen.findByRole('dialog', {
+                    name: 'Throw away 1 page?',
+                }),
+            ).getByRole('button', { name: 'Throw away' }),
+        );
+
+        expect(back).toHaveBeenCalledTimes(1);
+        expect(visit).not.toHaveBeenCalled();
+    });
+
+    it('goes back to the page it came from when there are no pages', async () => {
+        trail.canGoBack.mockReturnValue(true);
+        const back = vi
+            .spyOn(window.history, 'back')
+            .mockImplementation(() => {});
+        renderPage(Scan);
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+        expect(back).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the pages and stays with Keep', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Scan);
+        await choose(photo('a.jpg'), photo('b.jpg'), photo('c.jpg'));
+        await waitFor(() =>
+            expect(screen.getAllByText('3 pages')).not.toHaveLength(0),
+        );
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        const question = await screen.findByRole('dialog', {
+            name: 'Throw away 3 pages?',
+        });
+        await fireEvent.click(
+            within(question).getByRole('button', { name: 'Keep' }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Throw away 3 pages?' }),
+            ).not.toBeInTheDocument(),
+        );
+        expect(screen.getAllByText('3 pages')).not.toHaveLength(0);
+        expect(visit).not.toHaveBeenCalled();
     });
 
     it('has Back with the arrow at the top, not Cancel', () => {
@@ -685,6 +751,26 @@ describe('Scan', () => {
             screen.getByRole('button', { name: 'Sign in with the password' }),
         );
         expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/logout$/));
+    });
+
+    it('throws the pages of a linked phone away and stays on the scan', async () => {
+        page.linked = true;
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Scan);
+        await choose(photo('one.jpg'));
+        await screen.findByText('Cropped');
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+        await fireEvent.click(
+            within(
+                await screen.findByRole('dialog', {
+                    name: 'Throw away 1 page?',
+                }),
+            ).getByRole('button', { name: 'Throw away' }),
+        );
+
+        expect(await screen.findByText('No pages')).toBeInTheDocument();
+        expect(visit).not.toHaveBeenCalled();
     });
 
     it('uploads after the question, and says what arrived', async () => {
