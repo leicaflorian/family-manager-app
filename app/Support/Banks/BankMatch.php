@@ -22,6 +22,12 @@ final class BankMatch
     /** The words that a signature keeps are at least this long. */
     private const int MIN_WORD = 3;
 
+    /** The most stress texts `valid()` tries. */
+    private const int PROBES = 20;
+
+    /** Unrelated texts that no useful rule matches all of. */
+    private const array SAMPLES = ['X', '12345', 'PAGAMENTO POS ESSELUNGA'];
+
     /** How many words `fromText()` keeps. */
     private const int WORDS = 4;
 
@@ -47,10 +53,40 @@ final class BankMatch
             return false;
         }
 
-        $empty = self::run($pattern, '');
-        $stress = self::run($pattern, str_repeat('A', 500).'!');
+        // A rule that finds itself in the empty text or in unrelated samples would settle every transaction
+        if (self::run($pattern, '') !== false) {
+            return false;
+        }
 
-        return $empty === false && $stress !== null;
+        $found = array_filter(self::SAMPLES, static fn (string $sample): bool => self::run($pattern, $sample) === true);
+
+        if (count($found) === count(self::SAMPLES)) {
+            return false;
+        }
+
+        // The engine must not give up on a long text of the characters the rule is made of
+        foreach (self::stressTexts($pattern) as $stress) {
+            if (self::run($pattern, $stress, true) === null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The long texts that try to make the rule backtrack: one for `A`, `0` and a space, and one for each distinct
+     * letter or digit the rule contains (at most twenty in all), each followed by `!`.
+     *
+     * @param  string  $pattern  the rule, without delimiters
+     * @return list<string>
+     */
+    private static function stressTexts(string $pattern): array
+    {
+        preg_match_all('/[A-Za-z0-9]/', Str::upper($pattern), $letters);
+        $chars = array_slice(array_values(array_unique(['A', '0', ' ', ...$letters[0]])), 0, self::PROBES);
+
+        return array_map(static fn (string $char): string => str_repeat($char, 500).'!', $chars);
     }
 
     /**
@@ -97,18 +133,21 @@ final class BankMatch
      *
      * @param  string  $pattern  the rule, without delimiters
      * @param  string  $text  the text, already normalised
+     * @param  bool  $stress  turn off the engine's shortcuts (a required character that is missing from the text ends the search at once), so a rule that backtracks really does
      * @return bool|null whether it was found, null when the rule does not compile or the engine gave up
      */
-    private static function run(string $pattern, string $text): ?bool
+    private static function run(string $pattern, string $text, bool $stress = false): ?bool
     {
         // A tilde is the delimiter: escape the ones the rule does not already escape
-        $escaped = (string) preg_replace_callback('/\\\\.|~/su', static fn (array $found): string => $found[0] === '~' ? '\~' : $found[0], $pattern);
+        // Accents are dropped from the rule as from the text; no upper case, it would turn \d into \D
+        // Accents are dropped from the rule as from the text; no upper case, it would turn \d into \D
+        $escaped = (string) preg_replace_callback('/\\\\.|~/su', static fn (array $found): string => $found[0] === '~' ? '\~' : $found[0], Str::ascii($pattern));
 
         $backtrack = ini_set('pcre.backtrack_limit', self::BACKTRACK_LIMIT);
         $jit = ini_set('pcre.jit', '0');
 
         try {
-            $found = @preg_match('~'.$escaped.'~iu', $text);
+            $found = @preg_match('~'.($stress ? '(*NO_START_OPT)' : '').$escaped.'~iu', $text);
 
             return $found === false || preg_last_error() !== PREG_NO_ERROR ? null : $found === 1;
         } finally {

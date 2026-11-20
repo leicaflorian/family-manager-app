@@ -21,6 +21,13 @@ it('refuses a rule that is empty, matches everything, is broken, is slow or is t
     'unclosed group' => '(',
     'optional only' => 'a*',
     'catastrophic backtracking' => '(a+)+$',
+    'catastrophic on b' => '(b+)+$',
+    'catastrophic star' => '(x*)*y',
+    'catastrophic digits' => '(\\d+)+$',
+    'any character' => '.',
+    'anything' => '[\\s\\S]',
+    'word or not' => '\\w|\\W',
+    'trailing backslash' => 'abc\\',
     'too long' => fn (): string => str_repeat('a', 201),
 ]);
 
@@ -44,4 +51,21 @@ it('builds from a text a rule that matches its own text', function (): void {
     expect($rule)->toBe('PAGAMENTO.*POS.*ESSELUNGA.*MILANO')
         ->and(BankMatch::valid($rule))->toBeTrue()
         ->and(BankMatch::matches($rule, $text))->toBeTrue();
+});
+
+it('keeps a normal rule valid', function (): void {
+    expect(BankMatch::valid('sdd.*edison'))->toBeTrue();
+});
+
+it('accepts accents in the rule', function (): void {
+    expect(BankMatch::matches('Energià', 'Edison Energia SpA'))->toBeTrue();
+});
+
+it('puts the engine settings back after checking a rule', function (): void {
+    $backtrack = ini_get('pcre.backtrack_limit');
+    $jit = ini_get('pcre.jit');
+
+    expect(BankMatch::valid('(a+)+$'))->toBeFalse()
+        ->and(ini_get('pcre.backtrack_limit'))->toBe($backtrack)
+        ->and(ini_get('pcre.jit'))->toBe($jit);
 });
