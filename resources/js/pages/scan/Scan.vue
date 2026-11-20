@@ -13,6 +13,7 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import {
     Camera,
+    ChevronLeft,
     Crop as CropIcon,
     FileText,
     FolderOpen,
@@ -529,7 +530,7 @@ function closeWebcam(): void {
     webcamOpen.value = false;
 }
 
-/** *Cancel* of the document: one page goes at once, more ask first; with none the page is left. */
+/** *Back* at the top: with one page it goes at once, more ask first; with none the page is left. */
 function cancel(): void {
     if (upload.sending.value) return;
 
@@ -793,14 +794,14 @@ onBeforeUnmount(() => {
             )
         "
     >
-        <button
-            type="button"
-            class="justify-self-start border-0 bg-transparent p-0 text-body-strong text-action disabled:text-ink-soft"
+        <FmButton
+            class="-ml-3 justify-self-start"
+            variant="text"
+            :icon="ChevronLeft"
             :disabled="upload.sending.value"
             @click="cancel"
+            >{{ $t('Back') }}</FmButton
         >
-            {{ $t('Cancel') }}
-        </button>
         <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
             {{ $t('New document') }}
         </h1>

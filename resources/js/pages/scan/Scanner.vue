@@ -17,6 +17,7 @@ import { Head, router } from '@inertiajs/vue3';
 import {
     CircleCheck,
     Copy,
+    ChevronLeft,
     FileMinus,
     FileText,
     Grid3x3,
@@ -353,11 +354,12 @@ async function upload(): Promise<void> {
             "
         >
             <FmButton
-                class="justify-self-start"
+                class="-ml-3 justify-self-start"
                 variant="text"
+                :icon="ChevronLeft"
                 data-discard-changes
                 :href="toSort().url"
-                >{{ $t('Cancel') }}</FmButton
+                >{{ $t('Back') }}</FmButton
             >
             <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
                 {{ $t('Scan the sheets') }}

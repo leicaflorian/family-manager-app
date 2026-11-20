@@ -559,6 +559,17 @@ describe('Scanner, a scan', () => {
 });
 
 describe('Scanner, as the board draws it', () => {
+    it('has Back with the arrow at the top, to To sort', async () => {
+        await open();
+
+        const back = screen.getByRole('link', { name: 'Back' });
+        expect(back).toHaveAttribute('href', '/to-sort');
+        expect(back.querySelector('svg')).not.toBeNull();
+        expect(
+            screen.queryByRole('link', { name: 'Cancel' }),
+        ).not.toBeInTheDocument();
+    });
+
     /** A scan of two sheets, one blank side put aside. */
     async function scanned(): Promise<void> {
         await open();

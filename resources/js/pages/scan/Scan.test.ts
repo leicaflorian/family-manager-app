@@ -520,14 +520,14 @@ describe('Scan', () => {
         await choose(photo('one.jpg'));
         await screen.findByText('Cropped');
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
         expect(await screen.findByText('No pages')).toBeInTheDocument();
 
         await choose(photo('a.jpg'), photo('b.jpg'), photo('c.jpg'));
         await waitFor(() =>
             expect(screen.getAllByText('3 pages')).not.toHaveLength(0),
         );
-        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
         const question = await screen.findByRole('dialog', {
             name: 'Throw away 3 pages?',
@@ -541,11 +541,21 @@ describe('Scan', () => {
         expect(await screen.findByText('No pages')).toBeInTheDocument();
     });
 
+    it('has Back with the arrow at the top, not Cancel', () => {
+        renderPage(Scan);
+
+        const back = screen.getByRole('button', { name: 'Back' });
+        expect(back.querySelector('svg')).not.toBeNull();
+        expect(
+            screen.queryByRole('button', { name: 'Cancel' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('goes back to To sort when the document is empty, but a linked phone stays', async () => {
         const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
         renderPage(Scan);
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
         expect(visit).toHaveBeenCalledWith(expect.stringMatching(/\/to-sort$/));
     });
 
@@ -555,7 +565,7 @@ describe('Scan', () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Scan);
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
         expect(visit).not.toHaveBeenCalled();
 
         await fireEvent.click(
