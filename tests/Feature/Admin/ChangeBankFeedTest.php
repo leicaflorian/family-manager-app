@@ -21,7 +21,7 @@ test('the owner turns the bank feed on and the log has a line', function (): voi
         ->assertHasNoActionErrors();
 
     expect($family->fresh()?->bank_feed_enabled)->toBeTrue()
-        ->and(OwnerAction::query()->where('family_id', $family->id)->where('action', OwnerActionType::BankFeedChanged)->count())->toBe(1);
+        ->and(OwnerAction::query()->where('family_id', $family->id)->where('action', OwnerActionType::BankFeedOn)->count())->toBe(1);
 });
 
 test('the same value writes no line', function (): void {
@@ -29,5 +29,13 @@ test('the same value writes no line', function (): void {
 
     resolve(ChangeBankFeed::class)->handle($family, false);
 
-    expect(OwnerAction::query()->where('action', OwnerActionType::BankFeedChanged)->count())->toBe(0);
+    expect(OwnerAction::query()->whereIn('action', [OwnerActionType::BankFeedOn, OwnerActionType::BankFeedOff])->count())->toBe(0);
+});
+
+test('turning the bank feed off says so in the log', function (): void {
+    $family = Family::factory()->create(['bank_feed_enabled' => true]);
+
+    resolve(ChangeBankFeed::class)->handle($family, false);
+
+    expect(OwnerAction::query()->where('family_id', $family->id)->sole()->action)->toBe(OwnerActionType::BankFeedOff);
 });

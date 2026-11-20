@@ -25,7 +25,9 @@ final readonly class SavePlanned
     public function __construct(private FillOccurrenceDates $occurrenceDates, private MatchBankTransactions $matchBank) {}
 
     /**
-     * Creates the planned item, or changes the one given.
+     * Creates the planned item, or changes the one given. A caller that sends a rule (`bank_match`) must not call this
+     * inside a transaction of its own: the paying it starts after the save locks its rows and must read what is
+     * committed, and inside an open transaction it would pay from a snapshot taken before the locks.
      *
      * @param  string  $kind  `expense` or `income`
      * @param  array<string, mixed>  $columns  the columns to write

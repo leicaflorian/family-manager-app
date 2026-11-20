@@ -21,5 +21,6 @@ enum OwnerActionType: string
     case VisitStarted = 'visit_started';
     case VisitEnded = 'visit_ended';
     case ReadingLimitChanged = 'reading_limit_changed';
-    case BankFeedChanged = 'bank_feed_changed';
+    case BankFeedOn = 'bank_feed_on';
+    case BankFeedOff = 'bank_feed_off';
 }

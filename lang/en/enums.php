@@ -222,7 +222,8 @@ return [
         'deletion_cancelled' => 'Deletion cancelled',
         'visit_started' => 'Visit started',
         'visit_ended' => 'Visit ended',
-        'bank_feed_changed' => 'Bank link changed',
+        'bank_feed_on' => 'Bank link turned on',
+        'bank_feed_off' => 'Bank link turned off',
         'reading_limit_changed' => 'Reading limit changed',
     ],
     'call_outcome' => [

@@ -9,7 +9,8 @@ use App\Models\Family;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Turns the link to the bank on or off for one family; the log gets a line only when the value changes.
+ * Turns the link to the bank on or off for one family; the log gets a line, *on* or *off*, only when the value
+ * changes.
  */
 final readonly class ChangeBankFeed
 {
@@ -32,7 +33,7 @@ final readonly class ChangeBankFeed
 
         DB::transaction(function () use ($family, $enabled): void {
             $family->forceFill(['bank_feed_enabled' => $enabled])->save();
-            $this->log->handle(OwnerActionType::BankFeedChanged, $family);
+            $this->log->handle($enabled ? OwnerActionType::BankFeedOn : OwnerActionType::BankFeedOff, $family);
         });
     }
 }

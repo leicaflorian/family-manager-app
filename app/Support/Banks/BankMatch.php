@@ -134,7 +134,6 @@ final class BankMatch
     {
         // A tilde is the delimiter: escape the ones the rule does not already escape
         // Accents are dropped from the rule as from the text; no upper case, it would turn \d into \D
-        // Accents are dropped from the rule as from the text; no upper case, it would turn \d into \D
         $escaped = (string) preg_replace_callback('/\\\\.|~/su', static fn (array $found): string => $found[0] === '~' ? '\~' : $found[0], Str::ascii($pattern));
 
         $backtrack = ini_set('pcre.backtrack_limit', self::BACKTRACK_LIMIT);

@@ -222,7 +222,8 @@ return [
         'deletion_cancelled' => 'Eliminazione annullata',
         'visit_started' => 'Visita iniziata',
         'visit_ended' => 'Visita finita',
-        'bank_feed_changed' => 'Collegamento alla banca cambiato',
+        'bank_feed_on' => 'Collegamento alla banca acceso',
+        'bank_feed_off' => 'Collegamento alla banca spento',
         'reading_limit_changed' => 'Limite di letture cambiato',
     ],
     'call_outcome' => [
