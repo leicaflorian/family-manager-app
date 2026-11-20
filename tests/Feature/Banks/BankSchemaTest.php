@@ -90,3 +90,11 @@ test('writing a session from inside another family does not touch the row', func
 
     expect(DB::table('bank_connections')->where('id', $connection->id)->value('session'))->toBeNull();
 });
+
+test('many connections can be made in one process, in one family too', function (): void {
+    $family = Family::factory()->create();
+
+    BankConnection::factory()->count(8)->for($family)->create();
+
+    expect(BankConnection::query()->withoutGlobalScopes()->where('family_id', $family->id)->count())->toBe(8);
+});

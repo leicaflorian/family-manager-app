@@ -8,6 +8,7 @@ use App\Enums\BankConnectionStatus;
 use App\Models\BankConnection;
 use App\Models\Family;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<BankConnection>
@@ -24,7 +25,7 @@ final class BankConnectionFactory extends Factory
         return [
             'family_id' => Family::factory(),
             'provider' => 'fake',
-            'institution_name' => fake()->unique()->randomElement(['Intesa Sanpaolo', 'UniCredit', 'BPER Banca', 'Fineco', 'Banco BPM']),
+            'institution_name' => 'Banca '.fake()->company().' '.Str::random(6),
             'institution_country' => 'IT',
             'status' => BankConnectionStatus::Active,
         ];
