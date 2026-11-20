@@ -171,6 +171,7 @@ return [
         'mail_notice' => 'Mail notice',
         'mail_file' => 'Mail attachment',
         'crop' => 'Crop',
+        'bank_rule' => 'Bank rule',
     ],
     'reading_status' => [
         'queued' => 'Queued',

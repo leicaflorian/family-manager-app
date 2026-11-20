@@ -171,6 +171,7 @@ return [
         'mail_notice' => 'Avviso dalla posta',
         'mail_file' => 'Allegato della posta',
         'crop' => 'Ritaglio',
+        'bank_rule' => 'Regola della banca',
     ],
     'reading_status' => [
         'queued' => 'In coda',

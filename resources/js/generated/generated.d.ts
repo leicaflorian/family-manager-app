@@ -825,6 +825,12 @@ count: number,
 }[],
 readonly can_delete_many: boolean,
 };
+namespace Banks {
+export type BankRuleSuggestion = {
+readonly pattern: string,
+readonly explanation: string,
+};
+}
 namespace Mail {
 export type MailScreeningAnswer = {
 readonly verdict: unknown,
@@ -1092,7 +1098,7 @@ export type NoticeTone = 'info' | 'warning' | 'danger';
 export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'employer' | 'public_office' | 'school' | 'healthcare' | 'shop' | 'other';
 export type OwnerActionType = 'family_created' | 'suspended' | 'reactivated' | 'deletion_scheduled' | 'deletion_cancelled' | 'visit_started' | 'visit_ended' | 'reading_limit_changed' | 'bank_feed_changed';
 export type PersonRole = 'parent' | 'child' | 'other';
-export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop';
+export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop' | 'bank_rule';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance' | 'card';
 export type ReleaseBump = 'major' | 'minor' | 'patch';

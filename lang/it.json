@@ -2142,5 +2142,6 @@
     "Connect :bank again": "Ricollega :bank",
     "Connect again": "Ricollega",
     "We are writing to you because you are an admin of the family and the bank link is yours to keep.": "Ti scriviamo perché sei un amministratore della famiglia e il collegamento con la banca è tra le cose che segui.",
-    "It takes a minute: you choose the bank and say yes, as the first time.": "Ci vuole un minuto: scegli la banca e dai il consenso, come la prima volta."
+    "It takes a minute: you choose the bank and say yes, as the first time.": "Ci vuole un minuto: scegli la banca e dai il consenso, come la prima volta.",
+    "Recognizes the transactions with these words: :words": "Riconosce i movimenti con queste parole: :words"
 }

@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Ai\Agents\BankRuleAgent;
 use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
+use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
@@ -364,4 +366,37 @@ test('a corners call that the service cuts is a failure and is still recorded', 
 
     expect($failed?->getMessage())->toBe('The answer of the model was cut short.')
         ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::Crop);
+});
+
+test('gemini writes the rule of a bank payment and the call is recorded as a bank_rule of the account', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-bank-rule'))]);
+    $family = Family::factory()->create();
+    $user = User::factory()->for($family)->create();
+    $this->actingAs($user);
+
+    $suggestion = CurrentFamily::using($family->id, fn (): BankRuleSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankRule(['ADDEBITO ENEL ENERGIA'], 'it'));
+
+    Http::assertSent(function (Request $request): bool {
+        $content = $request['input'][0]['content'];
+
+        return $request['system_instruction'] === BankRuleAgent::SYSTEM
+            && $request['response_format']['schema']['required'] === ['pattern', 'explanation']
+            && $content === [['type' => 'text', 'text' => BankRuleAgent::request(['ADDEBITO ENEL ENERGIA'], 'it')]];
+    });
+    $row = AiReading::query()->withoutGlobalScopes()->sole();
+    expect($suggestion->pattern)->toBe('ADDEBITO.*ENEL ENERGIA')
+        ->and($row->purpose)->toBe(ReadingPurpose::BankRule)
+        ->and($row->user_id)->toBe($user->id)
+        ->and($row->file_id)->toBeNull()
+        ->and($row->input_tokens)->toBe(180);
+});
+
+test('a bank rule that the service cuts is a failure and is still recorded', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-truncated'))]);
+    $family = Family::factory()->create();
+
+    $failed = CurrentFamily::using($family->id, fn (): ?ReadingFailed => aiFailure(fn (): BankRuleSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankRule(['X'], 'it')));
+
+    expect($failed?->getMessage())->toBe('The answer of the model was cut short.')
+        ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankRule);
 });

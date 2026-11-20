@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Reading;
 
 use App\Actions\Mail\RecordMailFilterCall;
+use App\Ai\Agents\BankRuleAgent;
 use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\DocumentReaderAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
+use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
@@ -187,9 +189,48 @@ final readonly class AiDocumentReader implements DocumentReader
     }
 
     /**
+     * Asks the model to write the rule of a bank payment from the texts of some of its transactions. The call is
+     * recorded right after the answer, before the answer is checked, as a `bank_rule` of the account signed in.
+     * Called only when `isActive()` is true.
+     *
+     * @param  list<string>  $examples  the texts of the transactions, already normalised
+     * @param  string  $locale  the language of the explanation (`it` or `en`)
+     *
+     * @throws ReadingFailed when the service does not answer or gives no rule
+     * @throws LogicException when the reading is off
+     */
+    public function bankRule(array $examples, string $locale): BankRuleSuggestion
+    {
+        if (! $this->isActive()) {
+            throw new LogicException('The reading is off: call bankRule() only when isActive() is true.');
+        }
+
+        $provider = Config::string('document_reader.provider');
+        $model = Config::string('document_reader.model');
+
+        $response = $this->ask(new BankRuleAgent($model), BankRuleAgent::request($examples, $locale), [], $provider, $model);
+
+        // the call is paid even when refused, cut or crooked: it is written first
+        $this->recorder->handle(
+            $provider,
+            filled($response->meta->model) ? $response->meta->model : $model,
+            $response->usage->inputTokens,
+            $response->usage->outputTokens,
+            $response->usage->cacheReadInputTokens ?? 0,
+            ReadingPurpose::BankRule,
+            Auth::guard('web')->id() === null ? null : (int) Auth::guard('web')->id(),
+        );
+
+        $this->assertComplete($response);
+
+        return BankRuleAgent::parse($response instanceof StructuredAgentResponse && $response->structured !== [] ? $response->structured : $response->text)
+            ?? throw ReadingFailed::invalidAnswer();
+    }
+
+    /**
      * Sends the request, with the errors of the service as failures of the reading.
      *
-     * @param  DocumentReaderAgent|MailScreeningAgent|CornersAgent  $agent  the model and its options
+     * @param  DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent  $agent  the model and its options
      * @param  string  $message  the text of the message
      * @param  list<Base64Document|Base64Image>  $attachments  the file, unless it is a text
      * @param  string  $provider  the service
@@ -197,7 +238,7 @@ final readonly class AiDocumentReader implements DocumentReader
      *
      * @throws ReadingFailed when the service does not answer
      */
-    private function ask(DocumentReaderAgent|MailScreeningAgent|CornersAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
+    private function ask(DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
     {
         try {
             return $agent->prompt($message, attachments: $attachments, provider: $provider, model: $model);
