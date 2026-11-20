@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Ties the accounts a bank shares to the accounts of the family: the one already tied by the same key, else one not
- * tied yet with the same last four digits, else a new one. Runs inside the family of the connection.
+ * tied yet (or tied to this bank without a key) with the same last four digits, else a new one. Runs inside the family of the connection.
  */
 final class LinkBankAccounts
 {
@@ -30,7 +30,7 @@ final class LinkBankAccounts
         $linked = [];
 
         foreach ($accounts as $account) {
-            $mine = $this->find($account, $linked) ?? $this->create($connection);
+            $mine = $this->find($connection, $account, $linked) ?? $this->create($connection);
 
             $mine->forceFill([
                 'bank_connection_id' => $connection->id,
@@ -55,10 +55,11 @@ final class LinkBankAccounts
     /**
      * The account of the family an account of the bank is, if there is one.
      *
+     * @param  BankConnection  $connection  the connection
      * @param  BankAccount  $account  the account of the bank
      * @param  list<FinancialAccount>  $taken  the accounts already tied in this round
      */
-    private function find(BankAccount $account, array $taken): ?FinancialAccount
+    private function find(BankConnection $connection, BankAccount $account, array $taken): ?FinancialAccount
     {
         $ids = array_map(static fn (FinancialAccount $taken): int => $taken->id, $taken);
 
@@ -70,7 +71,9 @@ final class LinkBankAccounts
 
         return FinancialAccount::query()
             ->where('status', FinancialAccountStatus::Active)
-            ->whereNull('bank_connection_id')
+            // Free, or already of this bank but without its key (tied before the key was kept): the same account
+            ->where(static fn ($query) => $query->whereNull('bank_connection_id')
+                ->orWhere(static fn ($tied) => $tied->where('bank_connection_id', $connection->id)->whereNull('bank_account_key')))
             ->where('last_four_digits', $account->lastFour)
             ->whereNotIn('id', $ids)
             ->orderBy('id')

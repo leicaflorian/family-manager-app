@@ -490,7 +490,7 @@ final class BianchiFamilySeeder extends Seeder
 
         $account = FinancialAccount::query()->where('name', 'Conto BPER')->sole();
         // Not mass assignable: only the link to the bank sets them
-        $account->forceFill(['bank_connection_id' => $connection->id, 'bank_account_uid' => 'fake-account'])->save();
+        $account->forceFill(['bank_connection_id' => $connection->id, 'bank_account_key' => 'fake-account-key', 'bank_account_uid' => 'fake-account'])->save();
 
         $today = CarbonImmutable::now('Europe/Rome')->startOfDay();
         $entries = (new FakeBankFeed)->transactions('fake-session', 'fake-account', $today->subDays(config()->integer('bank_feed.first_days')), $today);
