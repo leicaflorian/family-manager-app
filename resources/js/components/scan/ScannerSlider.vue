@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * A slider of *Scan the sheets*, for what is moved by eye on the side in large: the few degrees of *Straighten*, the
- * strength of *Improve*, the angle of a cut. The name and the value on one line, the slider under them, and with
- * `nudge` two buttons beside it that move it by that much. A native range: it is a control of the page, not a field
+ * strength of *Improve*, the angle of a cut. The name and the value on one line (with what the slot `actions` puts
+ * after the value, as *Reset*), the slider under them, and with `nudge` two buttons beside it that move it by that much. A native range: it is a control of the page, not a field
  * of a form, and it is reached with the keyboard and read by the screen readers as a slider.
  */
 import { RotateCcw, RotateCw } from '@lucide/vue';
@@ -31,6 +31,11 @@ const {
     disabled?: boolean;
 }>();
 
+defineSlots<{
+    /** Beside the value, as *Reset* of *Straighten*. */
+    actions?: () => unknown;
+}>();
+
 /** The value. */
 const value = defineModel<number>({ required: true });
 
@@ -49,9 +54,14 @@ function move(by: number): void {
 
 <template>
     <div class="flex flex-col gap-1.5">
-        <div class="flex items-baseline justify-between gap-3 text-body-sm">
-            <span class="font-bold">{{ label }}</span>
-            <span class="text-ink-soft tabular-nums">{{ valueText }}</span>
+        <div class="flex items-baseline justify-between gap-3">
+            <span class="text-label">{{ label }}</span>
+            <span class="flex items-baseline gap-2.5">
+                <span class="text-body-sm text-ink-soft tabular-nums">{{
+                    valueText
+                }}</span>
+                <slot name="actions" />
+            </span>
         </div>
         <div class="flex items-center gap-2">
             <FmButton

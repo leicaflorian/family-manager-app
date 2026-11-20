@@ -1,13 +1,17 @@
 <script setup lang="ts">
 /**
- * The sidebar of the computer (from 1024 px), and the content of the menu that
- * the Menu button of the tablet opens from the left: the logo and the family,
- * Upload (which only uploads), Home and the sections in three groups: *Incoming* (*To sort*, with the files
- * waiting in a blue pill, nothing at zero, and *Received mail*), *Every day* (Agenda, Budget) and
- * *Archive* (Areas, with the areas under it, Documents, Family), and at
- * the bottom *My account*, which opens Settings, *Report a problem or an idea*
- * (it emits `report`: the layout opens the panel) and Log out. When the sections do not fit
- * the window, only they scroll: the logo, Upload and *My account* stay in place.
+ * The sidebar of the tablet and of the computer: the bar of its head (the same box as the top bar, white) with the
+ * logo and the family; Upload (which only uploads), Home and the
+ * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
+ * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, with the areas under it, Documents, Family),
+ * and at the bottom *My account*, which opens Settings, *Report a problem or an idea* (it emits `report`: the layout
+ * opens the panel) and Log out. When the sections do not fit the window, only they scroll: the head, Upload and
+ * *My account* stay in place.
+ * Collapsed (`collapsed`, always on the tablet) it is 76 px wide: the logo alone in the head, only the icons with
+ * their names for screen readers, lines in place of the names of the groups, no list of the areas and the avatar
+ * alone at the bottom; it opens over the page while the pointer or the focus is on it. The computer, with room for
+ * it, always has it open: there is no button to collapse it. The button that opens it in a panel is in the top bar,
+ * before the trail (`FmTopBar`).
  *
  * @group navigation
  */
@@ -45,6 +49,7 @@ const {
     family,
     user,
     uploadCount = 0,
+    collapsed = false,
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -60,6 +65,8 @@ const {
     user: string;
     /** The files waiting to be sorted: the number in the pill of *To sort*; nothing at zero, 99+ above 99. */
     uploadCount?: number;
+    /** Collapsed to the icons, 76 px wide. */
+    collapsed?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -67,7 +74,52 @@ const emit = defineEmits<{
     report: [];
 }>();
 
-// The classes of the page are merged with the sidebar's (the menu of the tablet makes it `w-full`)
+/** The pointer is over the collapsed sidebar. */
+const pointerOver = ref(false);
+
+/** The focus is inside the collapsed sidebar, for who moves with the keyboard. */
+const focusInside = ref(false);
+
+/** The menu of *My account* is open: the sidebar stays open under it. */
+const accountOpen = ref(false);
+
+/** Whether the collapsed sidebar is open over the page. */
+const floating = computed(
+    (): boolean =>
+        collapsed &&
+        (pointerOver.value || focusInside.value || accountOpen.value),
+);
+
+/** Whether only the icons are shown. */
+const small = computed((): boolean => collapsed && !floating.value);
+
+/** The pointer leaves the sidebar: it collapses again, also when a click left the focus inside it. */
+function pointerLeft(): void {
+    pointerOver.value = false;
+    focusInside.value = false;
+}
+
+/**
+ * Follows the focus leaving the sidebar: it collapses only when the focus goes outside it.
+ *
+ * @param event - the focusout of the sidebar
+ */
+function focusLeft(event: FocusEvent): void {
+    const aside = event.currentTarget as HTMLElement;
+    focusInside.value =
+        event.relatedTarget instanceof Node &&
+        aside.contains(event.relatedTarget);
+}
+
+// A new page collapses it: a touch on a section opens it (mouseenter and focus) and never leaves it
+watch(
+    () => path,
+    (): void => {
+        pointerLeft();
+    },
+);
+
+// The classes of the page are merged with the sidebar's (the layout makes it sticky, as tall as the window)
 defineOptions({ inheritAttrs: false });
 
 const attrs = useAttrs();
@@ -80,7 +132,10 @@ const attrs = useAttrs();
  */
 function rootClass(): string {
     return cn(
-        'flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5',
+        'flex w-[260px] shrink-0 flex-col gap-1.5 overflow-x-hidden border-r border-edge-soft bg-card px-3.5 pb-5 transition-[width,margin] duration-200 ease-out motion-reduce:transition-none',
+        small.value && 'w-[76px]',
+        // 260 px wide but 76 px in the row of the page: it covers the page instead of pushing it
+        floating.value && 'z-40 -mr-[184px] shadow-menu',
         attrs.class as ClassValue,
     );
 }
@@ -196,30 +251,53 @@ function isPage(section: Section): boolean {
 </script>
 
 <template>
-    <aside v-bind="otherAttrs()" :class="rootClass()">
-        <div class="flex shrink-0 items-center gap-2.5 px-2 pt-1 pb-4">
-            <FmLogo :size="36" />
-            <span class="flex flex-col">
-                <span class="text-amount">{{ appName }}</span>
-                <span class="text-meta text-ink-soft">{{
-                    $t(':family family', { family })
-                }}</span>
+    <aside
+        v-bind="otherAttrs()"
+        :class="rootClass()"
+        @mouseenter="pointerOver = collapsed"
+        @mouseleave="pointerLeft"
+        @focusin="focusInside = collapsed"
+        @focusout="focusLeft"
+    >
+        <!-- The box of the top bar, across the whole sidebar, 20 px above Upload: the logo stays 20 px from the edge, open or collapsed -->
+        <div
+            class="-mx-3.5 mb-3.5 flex h-topbar shrink-0 items-center border-b border-edge-soft bg-card pr-4 pl-5"
+        >
+            <span class="flex min-w-0 grow items-center gap-2.5">
+                <FmLogo :size="36" />
+                <span
+                    class="flex min-w-0 grow flex-col transition-opacity duration-200 motion-reduce:transition-none"
+                    :class="small && 'opacity-0'"
+                >
+                    <span class="text-amount whitespace-nowrap text-ink">{{
+                        appName
+                    }}</span>
+                    <span class="text-meta whitespace-nowrap text-ink-soft">{{
+                        $t(':family family', { family })
+                    }}</span>
+                </span>
             </span>
         </div>
 
         <Link
             :href="items.upload"
-            class="mb-3.5 flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md bg-action text-body text-on-action no-underline hover:bg-action-dark"
+            :title="small ? $t('Upload') : undefined"
+            class="mb-3.5 flex h-control-md shrink-0 items-center justify-center rounded-md bg-action text-body text-on-action no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
-            {{ $t('Upload') }}
+            <!-- The name shrinks with the button, so the + slides to the middle instead of jumping -->
+            <span
+                class="overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 motion-reduce:transition-none"
+                :class="small ? 'ml-0 max-w-0 opacity-0' : 'ml-2 max-w-40'"
+                >{{ $t('Upload') }}</span
+            >
         </Link>
 
         <!-- Only the sections scroll, when the open areas make them taller than the window;
              they reach the edges of the sidebar, so the scroll bar sits on its border -->
         <nav
             :aria-label="$t('Sections')"
-            class="-mx-3.5 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-3.5"
+            class="-mx-3.5 flex min-h-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto px-3.5"
         >
             <div
                 v-for="(group, index) in groups"
@@ -230,13 +308,23 @@ function isPage(section: Section): boolean {
                 "
                 class="flex flex-col gap-0.5"
             >
-                <span
-                    v-if="group.label"
-                    :id="`sidebar-group-${group.key}`"
-                    class="block px-3 pb-1 text-meta-strong text-ink-soft"
-                    :class="index === 1 ? 'pt-2.5' : 'pt-4.5'"
-                    >{{ group.label }}</span
-                >
+                <!-- Collapsed, a line takes the place of the name of the group, which keeps its height: nothing moves -->
+                <div v-if="group.label" class="relative">
+                    <span
+                        :id="`sidebar-group-${group.key}`"
+                        class="block px-3 pb-1 text-meta-strong whitespace-nowrap text-ink-soft transition-opacity duration-200 motion-reduce:transition-none"
+                        :class="[
+                            index === 1 ? 'pt-2.5' : 'pt-4.5',
+                            small && 'opacity-0',
+                        ]"
+                        >{{ group.label }}</span
+                    >
+                    <span
+                        aria-hidden="true"
+                        class="absolute inset-x-1.5 bottom-[11px] h-px bg-divider opacity-0 transition-opacity duration-200 motion-reduce:transition-none"
+                        :class="small && 'opacity-100'"
+                    />
+                </div>
                 <template v-for="item in group.items" :key="item.section">
                     <div class="relative flex items-center">
                         <Link
@@ -244,14 +332,15 @@ function isPage(section: Section): boolean {
                             :aria-current="
                                 isPage(item.section) ? 'page' : undefined
                             "
-                            class="flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
+                            :title="small ? item.label : undefined"
+                            class="relative flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
                             :class="[
                                 isPage(item.section)
                                     ? 'bg-action-soft text-label text-action-dark'
                                     : item.section === active
                                       ? 'text-label text-action-dark hover:bg-canvas'
                                       : 'text-ink hover:bg-canvas',
-                                item.section === 'areas' && 'pr-12',
+                                item.section === 'areas' && !small && 'pr-12',
                             ]"
                         >
                             <FmIcon
@@ -263,7 +352,11 @@ function isPage(section: Section): boolean {
                                         : 'text-ink-soft'
                                 "
                             />
-                            <span class="grow">{{ item.label }}</span>
+                            <span
+                                class="grow whitespace-nowrap transition-opacity duration-200 motion-reduce:transition-none"
+                                :class="small && 'opacity-0'"
+                                >{{ item.label }}</span
+                            >
                             <template
                                 v-if="
                                     item.section === 'toSort' && uploadCount > 0
@@ -273,12 +366,16 @@ function isPage(section: Section): boolean {
                                 {{ ' ' }}
                                 <span
                                     class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
+                                    :class="
+                                        small &&
+                                        'absolute top-px right-px border-2 border-card'
+                                    "
                                     >{{ countBadge(uploadCount) }}</span
                                 >
                             </template>
                         </Link>
                         <button
-                            v-if="item.section === 'areas'"
+                            v-if="item.section === 'areas' && !small"
                             type="button"
                             :aria-label="$t('Show the areas')"
                             :aria-expanded="open"
@@ -292,9 +389,10 @@ function isPage(section: Section): boolean {
                             />
                         </button>
                     </div>
+                    <!-- The box stays also collapsed, with its gap: only the list goes, so nothing under it moves -->
                     <div v-if="item.section === 'areas'" v-auto-animate>
                         <ul
-                            v-if="open"
+                            v-if="open && !small"
                             id="sidebar-areas"
                             :aria-label="item.label"
                             class="my-0.5 ml-[21px] flex flex-col gap-0.5 border-l border-divider pl-1.5"
@@ -337,21 +435,28 @@ function isPage(section: Section): boolean {
 
         <!-- At the bottom when there is room, right under the sections when they scroll -->
         <div class="mt-auto shrink-0 border-t border-divider pt-2">
-            <DropdownMenuRoot>
+            <DropdownMenuRoot v-model:open="accountOpen">
                 <DropdownMenuTrigger
+                    :title="small ? user : undefined"
                     class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"
                 >
                     <span
                         class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-action-soft text-label text-action-dark"
                         >{{ getInitials(user) }}</span
                     >
-                    <span class="flex grow flex-col">
-                        <span class="text-label">{{ user }}</span>
+                    <span
+                        class="flex grow flex-col transition-opacity duration-200 motion-reduce:transition-none"
+                        :class="small && 'opacity-0'"
+                    >
+                        <span class="text-label whitespace-nowrap">{{
+                            user
+                        }}</span>
                         <span class="text-caption text-ink-soft">{{
                             $t('My account')
                         }}</span>
                     </span>
                     <FmIcon
+                        v-if="!small"
                         :icon="ChevronDown"
                         :size="18"
                         class="text-ink-soft"

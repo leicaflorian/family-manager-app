@@ -2,8 +2,9 @@
 /**
  * The layout of the pages of the app for who is signed in, in the three
  * layouts of `useLayoutMode()`: on the phone the bottom bar; on the tablet the
- * top bar, whose Menu button opens the sidebar in a panel from the left; on
- * the computer the sidebar and, over the page, the top bar with Back and the
+ * sidebar collapsed to its icons and the top bar, whose *Expand the menu* opens
+ * the sidebar in a panel from the left; on the computer, with room for it, the
+ * sidebar always open. On both, over the page, the top bar with Back and the
  * trail. The marked section comes from the address of the page; the trail is
  * the name of the section on the page of a section, otherwise the pieces the
  * page writes with `usePageTrail`. While a form has changes not saved, it asks
@@ -15,7 +16,9 @@
  * strip and the top bar) is in `--app-header`, for what the pages keep sticky
  * or fixed under it. *Report a problem or an idea*, chosen in the account menu
  * of the sidebar or in More of the phone, opens one panel kept here (the menu
- * of the tablet closes first).
+ * of the tablet closes first). `bare` puts the page straight under the top bar,
+ * without the centred column and its margins, for a page with its own columns and
+ * bars (*Scan* on the tablet, through `ScanLayout`).
  */
 import { router, usePage } from '@inertiajs/vue3';
 import { useElementSize } from '@vueuse/core';
@@ -47,6 +50,11 @@ import type { TrailPiece } from '@/lib/pageTrail';
 import { createTrailState, isSectionPage, TRAIL_KEY } from '@/lib/pageTrail';
 import { search } from '@/routes';
 import { leave } from '@/routes/visit';
+
+const { bare = false } = defineProps<{
+    /** The page goes straight under the top bar, without the column and its margins. */
+    bare?: boolean;
+}>();
 
 defineSlots<{
     /** The page. */
@@ -98,8 +106,11 @@ const query = computed((): string =>
         : '',
 );
 
-/** The menu of the tablet is open. */
+/** The sidebar of the tablet is open over the page. */
 const menuOpen = ref(false);
+
+/** Whether the sidebar in the page is collapsed: on the tablet, which opens it over the page; the computer has room for it open. */
+const collapsed = computed((): boolean => mode.value === 'tablet');
 
 /** The panel *Report a problem or an idea* is open. */
 const feedbackOpen = ref(false);
@@ -196,8 +207,9 @@ useSearchShortcut(focusSearch);
         :style="{ '--app-header': appHeader }"
     >
         <FmSidebar
-            v-if="mode === 'computer'"
+            v-if="mode !== 'phone'"
             class="sticky top-0 h-dvh"
+            :collapsed="collapsed"
             :active="active"
             :path="path"
             :items="items"
@@ -227,17 +239,19 @@ useSearchShortcut(focusSearch);
                     :mode="mode"
                     :trail="trail"
                     :section="sectionPage"
-                    :family="family"
-                    :upload-count="toSort"
+                    :collapsed="collapsed"
                     :unread-notices="unreadNotices"
                     :notices="notices"
                     :query="query"
-                    :menu-open="menuOpen"
-                    @open-menu="menuOpen = true"
+                    @expand="menuOpen = true"
                     @load-notices="loadNotices"
                 />
             </div>
+            <main v-if="bare" class="flex min-h-0 grow flex-col">
+                <slot />
+            </main>
             <main
+                v-else
                 class="@container grow px-(--main-gutter) pt-4 pb-6 [--main-gutter:--spacing(5)] computer:pt-8 computer:pb-12 computer:[--main-gutter:--spacing(10)]"
             >
                 <div
@@ -269,11 +283,11 @@ useSearchShortcut(focusSearch);
                     id="app-menu"
                     data-no-screenshot
                     :aria-describedby="undefined"
-                    class="fixed inset-y-0 left-0 z-50 flex w-[280px] bg-card shadow-dialog outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left motion-reduce:animate-none"
+                    class="fixed inset-y-0 left-0 z-50 flex bg-card shadow-dialog outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left motion-reduce:animate-none"
                 >
                     <DialogTitle class="sr-only">{{ $t('Menu') }}</DialogTitle>
                     <FmSidebar
-                        class="h-full w-full overflow-y-auto"
+                        class="h-full overflow-y-auto"
                         :active="active"
                         :path="path"
                         :items="items"

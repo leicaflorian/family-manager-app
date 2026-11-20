@@ -39,12 +39,13 @@ describe('addManifestLink', () => {
         expect(link?.getAttribute('href')).toBe('/manifest.webmanifest');
     });
 
-    it('adds nothing on an iPhone: Safari gets the headers of Apple only', () => {
+    it('adds the manifest of iPhone and iPad, with the whole site as its scope and no start address', () => {
         vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(IPHONE);
 
         addManifestLink();
 
-        expect(document.head.querySelector('link[rel="manifest"]')).toBeNull();
+        const link = document.head.querySelector('link[rel="manifest"]');
+        expect(link?.getAttribute('href')).toBe('/manifest-ios.webmanifest');
     });
 
     it('adds it once', () => {

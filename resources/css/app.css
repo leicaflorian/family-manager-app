@@ -24,7 +24,7 @@
  * not-wide: and not-computer: are the opposite.
  */
 @custom-variant wide (@media (min-width: 900px) and (min-height: 560px));
-@custom-variant computer (@media (min-width: 1024px) and (min-height: 560px));
+@custom-variant computer (@media (min-width: 1280px) and (min-height: 560px));
 
 /* Widest the content of a page gets, in the middle of AppLayout's main */
 @theme static {

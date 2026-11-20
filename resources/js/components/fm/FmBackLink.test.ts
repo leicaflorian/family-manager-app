@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/vue';
+import { fireEvent, screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { renderPage, screenWidth } from '@/test/page';
 import FmBackLink from './FmBackLink.vue';
@@ -29,5 +29,14 @@ describe('FmBackLink', () => {
         renderPage(FmBackLink, { href: '/areas/home', label: 'Home' });
 
         expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument();
+    });
+
+    it('without an address is a button that tells the page, which decides where to go', async () => {
+        const { emitted } = renderPage(FmBackLink, { label: 'To sort' });
+
+        await fireEvent.click(screen.getByRole('button', { name: 'To sort' }));
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(emitted('click')).toHaveLength(1);
     });
 });

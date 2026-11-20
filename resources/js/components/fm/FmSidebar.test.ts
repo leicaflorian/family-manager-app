@@ -31,6 +31,157 @@ function areaList() {
 }
 
 describe('FmSidebar', () => {
+    it('starts with the bar of the page: the logo and the family, without a button to collapse it', () => {
+        bar('home');
+
+        const head = screen.getByText('Fameja.app').closest('.h-topbar');
+        // the same box as the top bar, white as the sidebar
+        expect(head).toHaveClass('border-b', 'bg-card');
+        expect(head).toHaveTextContent('Bianchi family');
+        expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    });
+
+    it('collapsed keeps the logo and the icons, with the names for who cannot see them', async () => {
+        render(FmSidebar, {
+            props: {
+                active: 'documents',
+                path: '/documents',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                uploadCount: 4,
+                collapsed: true,
+            },
+        });
+
+        const aside = screen.getByRole('complementary');
+        expect(aside).toHaveClass('w-[76px]');
+        expect(aside).not.toHaveClass('w-[260px]');
+        expect(screen.getByRole('link', { name: 'Upload' })).toHaveAttribute(
+            'title',
+            'Upload',
+        );
+        const documents = screen.getByRole('link', { name: 'Documents' });
+        expect(documents).toHaveAttribute('aria-current', 'page');
+        expect(documents).toHaveAttribute('title', 'Documents');
+        expect(screen.getByRole('link', { name: 'To sort 4' })).toBeVisible();
+        // the groups keep their names, the lines between them are only drawn
+        expect(
+            screen.getByRole('group', { name: 'Every day' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Every day')).toHaveClass('opacity-0');
+        expect(screen.getByText('Fameja.app').parentElement).toHaveClass(
+            'opacity-0',
+        );
+        expect(
+            screen.queryByRole('button', { name: 'Show the areas' }),
+        ).toBeNull();
+        expect(
+            screen.getByRole('button', { name: /Marco Bianchi/ }),
+        ).toBeInTheDocument();
+        // the button that expands it is in the top bar, before the trail
+        expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
+    });
+
+    it('collapsed opens over the page while the pointer is on it', async () => {
+        render(FmSidebar, {
+            props: {
+                active: 'documents',
+                path: '/documents',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                collapsed: true,
+            },
+        });
+        const aside = screen.getByRole('complementary');
+
+        await userEvent.hover(aside);
+
+        // 260 px wide, but still 76 px in the row: it covers the page instead of pushing it
+        expect(aside).toHaveClass('w-[260px]', '-mr-[184px]');
+        expect(screen.getByText('Every day')).not.toHaveClass('opacity-0');
+        expect(
+            screen.getByRole('button', { name: 'Show the areas' }),
+        ).toBeInTheDocument();
+
+        expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
+
+        await userEvent.unhover(aside);
+
+        expect(aside).toHaveClass('w-[76px]');
+        expect(screen.getByText('Every day')).toHaveClass('opacity-0');
+    });
+
+    it('collapsed closes again when a touch on a section opens its page, though no pointer left it', async () => {
+        const sidebar = render(FmSidebar, {
+            props: {
+                active: 'documents',
+                path: '/documents',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                collapsed: true,
+            },
+        });
+        const aside = screen.getByRole('complementary');
+        // a touch fires mouseenter and focus, but never mouseleave
+        await userEvent.click(screen.getByRole('link', { name: 'Agenda' }));
+        expect(aside).toHaveClass('w-[260px]');
+
+        await sidebar.rerender({ active: 'agenda', path: '/agenda' });
+
+        expect(aside).toHaveClass('w-[76px]');
+    });
+
+    it('keeps the icons still while it opens and collapses: same margins, left aligned, the names only fade', async () => {
+        const sidebar = render(FmSidebar, {
+            props: {
+                active: 'home',
+                path: '/dashboard',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+            },
+        });
+        const aside = screen.getByRole('complementary');
+        const documents = screen.getByRole('link', { name: 'Documents' });
+        const groupName = screen.getByText('Every day');
+        const before = groupName.className;
+        expect(aside).toHaveClass('px-3.5');
+
+        await sidebar.rerender({ collapsed: true });
+
+        expect(aside).toHaveClass('px-3.5');
+        expect(documents).not.toHaveClass('justify-center');
+        expect(screen.getByText('Documents')).toHaveClass('opacity-0');
+        expect(screen.getByText('Upload')).toHaveClass('opacity-0');
+        // the name of the group keeps its height: only the text fades
+        expect(groupName.className.replace(' opacity-0', '')).toBe(before);
+    });
+
+    it('slides between open and collapsed, unless the system asks for less motion', () => {
+        bar('home');
+
+        const aside = screen.getByRole('complementary');
+        expect(aside).toHaveClass(
+            'transition-[width,margin]',
+            'motion-reduce:transition-none',
+            'overflow-x-hidden',
+        );
+        // the names do not wrap while the width changes
+        expect(screen.getByText('Documents')).toHaveClass('whitespace-nowrap');
+        // the names beyond the collapsed width give the sections no horizontal scroll bar
+        expect(
+            screen.getByRole('navigation', { name: 'Sections' }),
+        ).toHaveClass('overflow-x-hidden', 'overflow-y-auto');
+    });
+
     it('has Upload at the top and the sections, with the open one marked', () => {
         bar('documents');
 

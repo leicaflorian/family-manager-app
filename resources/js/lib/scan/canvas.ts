@@ -23,13 +23,7 @@ import {
     sheetCanvas,
 } from './card';
 import type { Card, Cut } from './card';
-import {
-    improve,
-    improveSide,
-    isPlain,
-    SKEW_LONG_SIDE,
-    skewOf,
-} from './improve';
+import { improveSide, isPlain, SKEW_LONG_SIDE, skewOf } from './improve';
 import type { Improvement } from './improve';
 import type { Backend, PageImage, ScanPage, SheetPlan } from './pages';
 
@@ -165,7 +159,7 @@ export async function reduceToJpeg(
  * @param file - the photo as the phone gave it
  * @param corners - the corners on the photo turned by `turns`
  * @param turns - quarters of a turn the photo is shown with
- * @param options - which improvements to apply
+ * @param options - *Improve*, from 0 to 100 (50 is the strength of the phone), and *Black and white*
  * @param straighten - *Straighten*: lays the cut sheet flat before the improvements (never the whole photo); absent when off
  * @returns the finished side (`jpeg`) and the side before the improvements (`plain`), shown while it is held
  * @throws if the browser cannot draw the photo, or `straighten` fails
@@ -174,7 +168,7 @@ export async function cutOut(
     file: Blob,
     corners: Corners,
     turns: Turns,
-    options: { enhance: boolean; grey: boolean },
+    options: { enhance: number; grey: boolean },
     straighten?: (sheet: Pixels) => Promise<Pixels>,
 ): Promise<{ jpeg: Blob; plain: Blob }> {
     const cut = warp(
@@ -184,7 +178,7 @@ export async function cutOut(
     );
     const sheet = straighten ? await straighten(cut) : cut;
     const plain = await toJpeg(sheet);
-    const finished = improve(sheet, options);
+    const finished = improveSide(sheet, { angle: 0, ...options });
 
     return {
         jpeg: finished === sheet ? plain : await toJpeg(finished),

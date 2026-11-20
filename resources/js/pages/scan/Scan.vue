@@ -3,8 +3,8 @@
  * *Scan*: the pages of a document photographed with the phone (or the webcam of a computer) and uploaded to *To
  * sort*, as the boards `Scansione` and `Scansione-pc` draw it, without the bar of the sections. Each photo shows at
  * once with *Preparing the photo…*, is brought to 2000 px, and a 1000 px copy goes to the server for the corners
- * of the sheet: when they come back the photo shows cut out, with *Cropped*. *Crop* opens the photos one after the
- * other («1 of 2»). *Upload* asks first, sends the files with the progress and empties the page for the next
+ * of the sheet: when they come back the photo shows cut out, with *Cropped*. *Crop* has two steps, the corners and then
+ * *Improve* on the cut sheet, and goes back to the pages. *Back* with pages asks before throwing them away. *Upload* asks first, sends the files with the progress and empties the page for the next
  * document; a session that has ended is entered again with the linked phone without losing the pages. Pages not
  * uploaded yet are changes not saved: the app asks before leaving them. A linked phone, which sees only this page,
  * can sign out to *Sign in with the password*. Opened with `?shared=1` (*Share* on Android) the files the service worker
@@ -13,6 +13,7 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import {
     Camera,
+    ChevronLeft,
     Crop as CropIcon,
     FileText,
     FolderOpen,
@@ -29,19 +30,31 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
 import type { StripPage } from '@/components/fm/FmPageStrip.vue';
 import FmPageStrip from '@/components/fm/FmPageStrip.vue';
-import type { CropResult } from '@/components/scan/ScanCrop.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
+import type {
+    CropImprove,
+    CropResult,
+    CropStep,
+} from '@/components/scan/ScanCrop.vue';
 import ScanCrop from '@/components/scan/ScanCrop.vue';
 import ScanStatus from '@/components/scan/ScanStatus.vue';
 import ScanWebcam from '@/components/scan/ScanWebcam.vue';
 import { useAppName } from '@/composables/useAppName';
 import { useInstall } from '@/composables/useInstall';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useScanUpload } from '@/composables/useScanUpload';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { canGoBack } from '@/lib/visitHistory';
 import { useWebcam } from '@/composables/useWebcam';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { isPhone } from '@/lib/devices';
 import { takeShared } from '@/lib/pwa/sharedFiles';
-import { SEARCH_LONG_SIDE, cutOut, reduceToJpeg } from '@/lib/scan/canvas';
+import {
+    SEARCH_LONG_SIDE,
+    cutOut,
+    improvedJpeg,
+    reduceToJpeg,
+} from '@/lib/scan/canvas';
 import type { Corners, Turns } from '@/lib/scan/crop';
 import { LONG_SIDE, WHOLE } from '@/lib/scan/crop';
 import { IMPROVE_DEFAULTS } from '@/lib/scan/improve';
@@ -59,7 +72,7 @@ import {
 import { ScanRequestError, findCorners } from '@/lib/scan/server';
 import { straightener } from '@/lib/scan/straighten';
 import { cn } from '@/lib/utils';
-import { logout, toSort } from '@/routes';
+import { logout, scan, toSort } from '@/routes';
 
 /** The name of the app, for the texts that say it. */
 const appName = useAppName();
@@ -78,12 +91,29 @@ type Page = ScanPage & {
     /** The addresses of the sheet cut out, finished and before the improvements. */
     sheetUrl: string | null;
     plainUrl: string | null;
+    /** The sheet cut out before the improvements: *Improve* of *Crop* starts from it, without cutting again. */
+    plain: Blob | null;
     /** The photo is being reduced. */
     preparing: boolean;
 };
 
 const page = usePage();
 const wide = useWideLayout();
+
+/** The layout of the window: the link back above the title on the phone and the tablet, the bar on the computer. */
+const mode = useLayoutMode();
+
+/**
+ * The size of the sheet in the middle. On the tablet with the columns it sits under the bar of the app and the
+ * title, so it shrinks with the window (same proportions) and *Upload* stays on screen.
+ */
+const previewSize = computed((): string => {
+    if (!wide.value) return cn('h-[340px] w-[250px]');
+
+    return mode.value === 'computer'
+        ? cn('h-[580px] w-[420px]')
+        : cn('aspect-[420/580] h-[min(580px,calc(100dvh-18rem))]');
+});
 const phone = isPhone();
 const webcam = useWebcam();
 const {
@@ -107,10 +137,10 @@ const peeking = ref(false);
 const typing = ref(false);
 const discardAsking = ref(false);
 const webcamOpen = ref(false);
-/** *Crop*: the photos it goes through, the one open, and the cutting under way. */
+/** *Crop*: the photo open, its step, and the cutting under way. */
 const crop = ref<{
-    ids: string[];
-    index: number;
+    id: string;
+    step: CropStep;
     busy: boolean;
     problem: string | null;
 } | null>(null);
@@ -182,11 +212,17 @@ const status = computed(() => ({
     progressText: upload.progressText.value,
 }));
 
-// Pages not uploaded yet are lost if the page changes: the app asks first
-useUnsavedChanges(() => ({
-    pages: pages.value.map((one) => one.id),
-    note: note.value,
-}));
+/** *Throw away* of *Back* was chosen: the page is being left, and the pages go with it. */
+const leaving = ref(false);
+
+// Pages not uploaded yet are lost if the page changes: the app asks first, unless *Back* already asked
+useUnsavedChanges(
+    () => ({
+        pages: pages.value.map((one) => one.id),
+        note: note.value,
+    }),
+    { active: () => !leaving.value },
+);
 
 /** A new id for a page. */
 let lastId = 0;
@@ -308,6 +344,7 @@ function addFiles(files: File[]): void {
             photoUrl: photo ? URL.createObjectURL(file) : null,
             sheetUrl: null,
             plainUrl: null,
+            plain: null,
             preparing: photo,
         });
     }
@@ -425,7 +462,7 @@ async function cut(
     id: string,
     corners: Corners,
     turns: Turns,
-    improve: { enhance: boolean; grey: boolean; dewarp?: boolean },
+    improve: { enhance: number; grey: boolean; dewarp?: boolean },
     automatic = false,
 ): Promise<void> {
     const one = find(id);
@@ -479,6 +516,7 @@ async function cut(
         jpeg,
         sheetUrl: URL.createObjectURL(jpeg),
         plainUrl: plain === jpeg ? null : URL.createObjectURL(plain),
+        plain,
     });
 }
 
@@ -529,19 +567,23 @@ function closeWebcam(): void {
     webcamOpen.value = false;
 }
 
-/** *Cancel* of the document: one page goes at once, more ask first; with none the page is left. */
-function cancel(): void {
+/** Where leaving goes: back in the history (*Back* of the wide bar) or to *To sort* (the link above the title). */
+type LeaveTo = 'history' | 'toSort';
+
+/** Where the page goes once the question of throwing the pages away is answered. */
+const leaveTo = ref<LeaveTo>('history');
+
+/**
+ * *Back* of the wide bar and *‹ To sort* above the title: with pages it asks first, even for one; with none the
+ * page is left.
+ */
+function cancel(to: LeaveTo): void {
     if (upload.sending.value) return;
 
+    leaveTo.value = to;
+
     if (empty.value) {
-        // a linked phone has nowhere else to go
-        if (!linked.value) router.visit(toSort().url);
-
-        return;
-    }
-
-    if (pages.value.length < 2) {
-        discardAll();
+        leave();
 
         return;
     }
@@ -549,61 +591,61 @@ function cancel(): void {
     discardAsking.value = true;
 }
 
-/** Every page goes, with *What it is*. */
-function discardAll(): void {
-    discardAsking.value = false;
-
-    for (const one of pages.value) {
-        forget(one);
-        stopStraightening(one.id);
-        straightener.forget(one.id);
-    }
-
-    doc.value = { pages: [], chosenId: null };
-    note.value = '';
-    oneSheet.value = false;
-    notice.value = null;
-    upload.reset();
+/**
+ * Goes to *To sort*, as the link above the title says, or back to the page of the app the scan was opened from
+ * (*To sort* when the tab opened on the scan). A linked phone has neither.
+ */
+function leave(): void {
+    if (leaveTo.value === 'history' && canGoBack()) window.history.back();
+    else router.visit(toSort().url);
 }
 
 /**
- * Opens *Crop* on a photo; «1 of N» counts the photos of the document that are ready.
+ * *Throw away* of the question of leaving. The pages stay on screen until the page changes (they go when it
+ * unmounts), so no empty page shows in between.
+ */
+function discardAndLeave(): void {
+    discardAsking.value = false;
+    leaving.value = true;
+    leave();
+}
+
+/** The *Improve* asked of each page while *Crop* is open: only the last one asked is kept. */
+const improveRequests = new Map<string, number>();
+
+/**
+ * Opens *Crop* on a photo that is ready, at its first step.
  *
- * @param id - the photo to start from
+ * @param id - the photo
  */
 function openCrop(id: string): void {
-    const ids = pages.value
-        .filter((one) => one.kind === 'photo' && one.photo !== null)
-        .map((one) => one.id);
-    const index = ids.indexOf(id);
+    const one = find(id);
 
-    if (index < 0) return;
+    if (!one || one.kind !== 'photo' || one.photo === null) return;
 
     // *Edit the edges* on a photo whose straightening is still under way stops it
     stopStraightening(id);
-    crop.value = { ids, index, busy: false, problem: null };
+    crop.value = { id, step: 'crop', busy: false, problem: null };
 }
 
 /** The photo open in *Crop*. */
 const cropping = computed((): Page | null => {
     const open = crop.value;
 
-    return open ? (find(open.ids[open.index] ?? '') ?? null) : null;
+    return open ? (find(open.id) ?? null) : null;
 });
 
 /** *Cancel* in *Crop*: stops a *Straighten* under way and closes. */
 function cancelCrop(): void {
     const open = crop.value;
 
-    if (open) {
-        for (const id of open.ids) stopStraightening(id);
-    }
+    if (open) stopStraightening(open.id);
 
     crop.value = null;
 }
 
 /**
- * Whether a crop asks for what the page already has: the sheet is not cut again.
+ * Whether the corners asked are those the sheet was already cut with: it is not cut again.
  *
  * @param one - the page
  * @param result - what *Next* asks for
@@ -613,17 +655,54 @@ function sameCrop(one: Page, result: CropResult): boolean {
     return (
         one.cut &&
         one.turns === result.turns &&
-        one.improve.enhance === result.improve.enhance &&
-        one.improve.grey === result.improve.grey &&
-        one.improve.dewarp === result.improve.dewarp &&
         JSON.stringify(one.corners) === JSON.stringify(result.corners)
     );
 }
 
 /**
- * *Next* in *Crop*: cuts the sheet out, then opens the next photo, or goes back to the scan after the last.
+ * Cuts the photo open in *Crop* again, with the improvements asked: the veil covers it while it works.
  *
- * @param result - the corners, the turns and the improvements
+ * @param open - *Crop* as it is
+ * @param one - the photo
+ * @param corners - where the sheet is
+ * @param turns - quarters of a turn
+ * @param improve - the improvements
+ * @returns whether the sheet was cut
+ */
+async function cutInCrop(
+    open: NonNullable<typeof crop.value>,
+    one: Page,
+    corners: Corners,
+    turns: Turns,
+    improve: CropImprove,
+): Promise<boolean> {
+    open.busy = true;
+    open.problem = null;
+
+    try {
+        await cut(one.id, corners, turns, improve);
+
+        return true;
+    } catch (caught) {
+        // *Cancel* or *Back* stopped the straightening: nobody reads an answer
+        if (caught instanceof DOMException && caught.name === 'AbortError') {
+            return false;
+        }
+
+        open.problem = improve.dewarp
+            ? trans('I could not straighten this sheet.')
+            : trans('I could not crop this photo.');
+
+        return false;
+    } finally {
+        open.busy = false;
+    }
+}
+
+/**
+ * *Next* in *Crop*: cuts the sheet out with the corners asked, then opens *Improve* on it.
+ *
+ * @param result - the corners and the turns
  */
 async function cropNext(result: CropResult): Promise<void> {
     const open = crop.value;
@@ -631,39 +710,82 @@ async function cropNext(result: CropResult): Promise<void> {
 
     if (!open || !one || open.busy) return;
 
-    if (!sameCrop(one, result)) {
-        open.busy = true;
-        open.problem = null;
-
-        try {
-            await cut(one.id, result.corners, result.turns, result.improve);
-        } catch (caught) {
-            // *Cancel* stopped the straightening: nobody reads an answer
-            if (
-                caught instanceof DOMException &&
-                caught.name === 'AbortError'
-            ) {
-                return;
-            }
-
-            open.problem = result.improve.dewarp
-                ? trans('I could not straighten this sheet.')
-                : trans('I could not crop this photo.');
-
-            return;
-        } finally {
-            open.busy = false;
-        }
+    if (
+        !sameCrop(one, result) &&
+        !(await cutInCrop(open, one, result.corners, result.turns, one.improve))
+    ) {
+        return;
     }
 
-    if (crop.value !== open) return;
+    if (crop.value === open) open.step = 'improve';
+}
 
-    if (open.index + 1 < open.ids.length) {
-        open.index++;
-        doc.value = selectPage(doc.value, open.ids[open.index] ?? '');
-    } else {
-        crop.value = null;
+/**
+ * A change in *Improve*: *Straighten* cuts the sheet again (the model lays it flat), the strength of *Improve* and
+ * *Black and white* are done again on the sheet already cut, and only the last change asked is kept.
+ *
+ * @param value - the improvements asked
+ */
+async function cropImprove(value: CropImprove): Promise<void> {
+    const open = crop.value;
+    const one = cropping.value;
+
+    if (!open || !one || !one.corners) return;
+
+    if (value.dewarp !== one.improve.dewarp || !one.plain) {
+        await cutInCrop(open, one, one.corners, one.turns, value);
+
+        return;
     }
+
+    const request = (improveRequests.get(one.id) ?? 0) + 1;
+    improveRequests.set(one.id, request);
+    let jpeg: Blob;
+
+    try {
+        jpeg = await improvedJpeg(one.plain, {
+            angle: 0,
+            enhance: value.enhance,
+            grey: value.grey,
+        });
+    } catch {
+        if (crop.value === open)
+            open.problem = trans('I could not crop this photo.');
+
+        return;
+    }
+
+    const now = find(one.id);
+
+    if (!now || request !== improveRequests.get(one.id)) return;
+
+    if (now.sheetUrl) URL.revokeObjectURL(now.sheetUrl);
+
+    update(one.id, {
+        improve: { ...value },
+        jpeg,
+        sheetUrl: URL.createObjectURL(jpeg),
+        plainUrl:
+            jpeg === now.plain
+                ? now.plainUrl
+                : (now.plainUrl ?? URL.createObjectURL(now.plain ?? jpeg)),
+    });
+}
+
+/** *Back* in *Improve*: a *Straighten* under way stops, and the corners open again. */
+function cropBack(): void {
+    const open = crop.value;
+
+    if (!open) return;
+
+    stopStraightening(open.id);
+    open.problem = null;
+    open.step = 'crop';
+}
+
+/** *Done* in *Improve*: back to the pages, also when the document has more photos. */
+function cropDone(): void {
+    crop.value = null;
 }
 
 /**
@@ -718,7 +840,24 @@ async function addShared(): Promise<void> {
     globalThis.history.replaceState(globalThis.history.state, '', '/scan');
 }
 
-onMounted(() => void addShared());
+/**
+ * *Scan a sheet* of *Add* opens this page with `?camera=1`: the camera opens at once. Android lets a page do it right
+ * after the tap; Safari on the iPhone blocks it without a word, and the page waits for *Take a picture* as always. The
+ * address goes back to `/scan`, so a reload or *Back* does not open it again.
+ */
+function openCameraAsked(): void {
+    if (!new URLSearchParams(page.url.split('?')[1] ?? '').has('camera'))
+        return;
+
+    // Inertia writes the address after the page is mounted, so history.replaceState would be undone
+    router.replace({ url: scan().url, preserveState: true });
+    void takePicture();
+}
+
+onMounted(() => {
+    void addShared();
+    openCameraAsked();
+});
 
 // the original shown while holding belongs to one page
 watch(
@@ -748,12 +887,15 @@ onBeforeUnmount(() => {
         :corners="cropping.corners"
         :turns="cropping.turns"
         :improve="cropping.improve"
-        :position="crop.index + 1"
-        :count="crop.ids.length"
+        :sheet="cropping.sheetUrl"
+        :step="crop.step"
         :wide="wide"
         :busy="crop.busy"
         :problem="crop.problem"
         @next="cropNext"
+        @improve="cropImprove"
+        @back="cropBack"
+        @done="cropDone"
         @cancel="cancelCrop"
     />
 
@@ -783,7 +925,24 @@ onBeforeUnmount(() => {
         @change="onFiles"
     />
 
+    <!-- On the phone and the tablet (under the bar of the app), as Upload and Received mail: the link back
+         above the big title. The bar stays on the computer, and on a linked phone, which has nowhere to go back
+         to. -->
+    <div v-if="mode !== 'computer' && !linked" class="shrink-0 px-5 pt-4">
+        <FmTitle
+            :title="$t('New document')"
+            :back-label="$t('To sort')"
+            @back="cancel('toSort')"
+        >
+            <template #actions>
+                <span class="text-body-sm whitespace-nowrap text-ink-soft">{{
+                    count
+                }}</span>
+            </template>
+        </FmTitle>
+    </div>
     <header
+        v-else
         :class="
             cn(
                 'grid shrink-0 grid-cols-[1fr_auto_1fr] items-center',
@@ -793,14 +952,16 @@ onBeforeUnmount(() => {
             )
         "
     >
-        <button
-            type="button"
-            class="justify-self-start border-0 bg-transparent p-0 text-body-strong text-action disabled:text-ink-soft"
+        <FmButton
+            v-if="!linked"
+            class="-ml-3 justify-self-start"
+            variant="text"
+            :icon="ChevronLeft"
             :disabled="upload.sending.value"
-            @click="cancel"
+            @click="cancel('history')"
+            >{{ $t('Back') }}</FmButton
         >
-            {{ $t('Cancel') }}
-        </button>
+        <span v-else />
         <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
             {{ $t('New document') }}
         </h1>
@@ -841,9 +1002,7 @@ onBeforeUnmount(() => {
                     :class="
                         cn(
                             'flex shrink-0 flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-edge p-6 text-center',
-                            wide
-                                ? 'h-[580px] w-[420px]'
-                                : 'h-[340px] w-[250px]',
+                            previewSize,
                         )
                     "
                 >
@@ -873,9 +1032,7 @@ onBeforeUnmount(() => {
                     :class="
                         cn(
                             'relative flex shrink-0 items-center justify-center',
-                            wide
-                                ? 'h-[580px] w-[420px]'
-                                : 'h-[340px] w-[250px]',
+                            previewSize,
                         )
                     "
                 >
@@ -1146,6 +1303,6 @@ onBeforeUnmount(() => {
         :text="$t('What was not uploaded is lost.')"
         :confirm-label="$t('Throw away')"
         :cancel-label="$t('Keep')"
-        @confirm="discardAll"
+        @confirm="discardAndLeave"
     />
 </template>

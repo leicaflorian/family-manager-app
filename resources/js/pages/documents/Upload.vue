@@ -4,26 +4,26 @@
  * each) are chosen or dragged here and sent. The server keeps them waiting,
  * starts their reading and opens *Import more files* with them, where each is
  * checked and filed as a document: this page only takes the files. The card
- * the upload starts from travels with them. The × goes back to that card, or
- * to the home page. The phone and the tablet offer *Take a photo of a sheet*
- * beside the drop zone (above it on the phone); the computer has only the zone.
+ * the upload starts from travels with them. On the phone and the tablet *‹ To
+ * sort* above the title leads back, as on *Received mail*. The phone and the tablet offer *Take a photo of a sheet*
+ * beside the drop zone (above it on the phone); a Mac or a Windows PC offers the
+ * home scanner beside it instead, as a secondary card; any other computer has
+ * only the zone.
  */
-import { Head, Link } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import PhotoSheetCard from '@/components/documents/PhotoSheetCard.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import { useToSortCount } from '@/composables/useToSortCount';
 import { cn } from '@/lib/utils';
-import { presetUrl } from '@/lib/documents';
 import type { DocumentLink } from '@/lib/documents';
-import { dashboard, toSort } from '@/routes';
+import { desktopSystem } from '@/lib/devices';
+import { toSort } from '@/routes';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
 
@@ -38,11 +38,6 @@ const toSortCount = useToSortCount();
 /** The card the person comes from. */
 const preset = computed(() => props.presetLinks[0]);
 
-/** Where the × goes: the card the person comes from, or the home page. */
-const closeUrl = computed(() =>
-    preset.value ? presetUrl(preset.value) : dashboard().url,
-);
-
 const {
     send,
     processing,
@@ -50,6 +45,15 @@ const {
 } = useFileUpload(() => preset.value);
 
 const layout = useLayoutMode();
+
+/** The card beside the drop zone: the photo on the phone and the tablet, the home scanner on a computer it is built for. */
+const sideCard = computed((): 'photo' | 'scanner' | null => {
+    if (layout.value !== 'computer') {
+        return 'photo';
+    }
+
+    return desktopSystem() === 'other' ? null : 'scanner';
+});
 
 /** The wording of the drop zone on the phone, for its gallery and files. */
 type PhoneWording = {
@@ -83,20 +87,16 @@ usePageTrail(() => [
     <div class="flex flex-col gap-6">
         <!-- On the phone the link to the files to sort has its own row under the title, as the board Carica -->
         <div class="flex flex-col gap-3">
-            <FmTitle :title="$t('Upload a document')">
+            <FmTitle
+                :title="$t('Upload a document')"
+                :back="toSort().url"
+                :back-label="$t('To sort')"
+            >
                 <template #actions>
                     <FmToSortLink
                         v-if="layout !== 'phone'"
                         :count="toSortCount"
                     />
-                    <Link
-                        v-if="layout !== 'computer'"
-                        :href="closeUrl"
-                        :aria-label="$t('Close')"
-                        class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                    >
-                        <FmIcon :icon="X" :size="20" />
-                    </Link>
                 </template>
             </FmTitle>
             <div v-if="layout === 'phone' && toSortCount > 0" class="flex">
@@ -113,15 +113,16 @@ usePageTrail(() => [
         <div
             :class="
                 cn(
-                    layout === 'tablet'
+                    layout === 'tablet' || sideCard === 'scanner'
                         ? 'grid min-h-[420px] grid-cols-[1fr_2fr] gap-4'
                         : 'flex flex-col gap-4',
                 )
             "
         >
             <PhotoSheetCard
-                v-if="layout !== 'computer'"
+                v-if="sideCard"
                 :stacked="layout === 'tablet'"
+                :scanner="sideCard === 'scanner'"
             />
             <FmFileDrop
                 v-bind="phoneWording"

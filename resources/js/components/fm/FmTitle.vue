@@ -4,7 +4,8 @@
  * the sentence below and, on the right and centred on them, the actions of the
  * page. Above it, the link back to the page it comes from, with that page's
  * name, always 20 px above the title like on the pages of a person and an
- * organization. Inside a frame with its own title on top (`SECTION_TITLE`, the
+ * organization; with the name but no address it is a button that emits `back`, for
+ * a page that asks before leaving. Inside a frame with its own title on top (`SECTION_TITLE`, the
  * settings in the wide layout) it is the title of a section: an `h2`, smaller,
  * without the link back.
  *
@@ -25,6 +26,11 @@ const { title, subtitle, back, backLabel } = defineProps<{
     backLabel?: string;
 }>();
 
+defineEmits<{
+    /** The button back was pressed (only with `backLabel` and no `back`). */
+    back: [];
+}>();
+
 defineSlots<{
     /** The buttons on the right of the title, as `FmActions`. */
     actions?: () => unknown;
@@ -43,9 +49,10 @@ const section = inject(SECTION_TITLE, ref(false));
          narrower than the screen. -->
     <div class="@container/title flex flex-col gap-5">
         <FmBackLink
-            v-if="back && backLabel && !section"
+            v-if="backLabel && !section"
             :href="back"
             :label="backLabel"
+            @click="$emit('back')"
         />
         <!-- The actions never go below the title: they take the room the title
              leaves, at least 40 % of the row, and put in the ⋯ what does not fit.

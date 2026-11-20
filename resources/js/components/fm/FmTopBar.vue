@@ -3,11 +3,11 @@
  * The bar on top of every page of the tablet and of the computer, 68 px high
  * and sticky, with a 1 px line under it, as the card *Barra in alto* draws it.
  *
- * On the computer it starts with Back (only on an inner page, when a page of
- * the app comes before or the trail has a page above) and the trail
- * (`FmTrail`). On the tablet it starts with the button of the menu, with the
- * files to sort on a blue badge, then the logo with the name of the family;
- * there is no Back and no trail. On the right, in both, the search of the
+ * The same on the tablet (20 px at the sides) and on the computer (40 px): with the
+ * sidebar collapsed it starts with the button that expands it (it emits `expand`;
+ * the tablet always has the sidebar collapsed), then Back (only on an inner page,
+ * when a page of the app comes before or the trail has a page above) and the
+ * trail (`FmTrail`); the logo and the family are in the sidebar. On the right the search of the
  * whole app (300 px, 420 px while it has the focus or some text, with the menu
  * of the first results under it; Enter opens the *Search* page) and the bell,
  * whose panel opens 8 px under the line. The bar stays across the visits:
@@ -18,68 +18,56 @@
  * @group navigation
  */
 import { router } from '@inertiajs/vue3';
-import { ArrowLeft, Menu } from '@lucide/vue';
-import { trans, transChoice } from 'laravel-vue-i18n';
+import { ArrowLeft, PanelLeftOpen } from '@lucide/vue';
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { useAppName } from '@/composables/useAppName';
 import { useLeavePage } from '@/composables/useLeavePage';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
-import { countBadge } from '@/lib/badge';
 import type { TrailPiece } from '@/lib/pageTrail';
-import { cn } from '@/lib/utils';
+import { squareButton } from '@/lib/topBar';
 import { canGoBack } from '@/lib/visitHistory';
 import { search } from '@/routes';
 import type { BellNotices } from '@/lib/notices';
 import FmBell from './FmBell.vue';
 import FmIcon from './FmIcon.vue';
-import FmLogo from './FmLogo.vue';
 import FmSearchField from './FmSearchField.vue';
 import FmSearchMenu from './FmSearchMenu.vue';
 import FmTrail from './FmTrail.vue';
 
-/** The name of the app, for the wordmark. */
+/** The name of the app, for the name of the search box. */
 const appName = useAppName();
 
 const {
     mode,
     trail,
     section,
-    family,
-    uploadCount = 0,
     unreadNotices,
     notices,
     query = '',
-    menuOpen = false,
+    collapsed = false,
 } = defineProps<{
-    /** The layout of the window: the tablet has the menu button, the computer Back and the trail. */
+    /** The layout of the window: only the margins change, 20 px on the tablet and 40 px on the computer. */
     mode: 'tablet' | 'computer';
     /** The pieces of the trail; the last one is the open page. */
     trail: TrailPiece[];
     /** The open page is the page of a section: no Back. */
     section: boolean;
-    /** The name of the family, under the logo on the tablet. */
-    family: string;
-    /** How many files wait in *To sort*, on the badge of the menu button. */
-    uploadCount?: number;
     /** How many notices the account has not seen yet, for the dot of the bell. */
     unreadNotices: number;
     /** The notices of the bell; missing until the bell asks for them. */
     notices?: BellNotices;
     /** The text to put in the box, on the *Search* page. */
     query?: string;
-    /** The menu of the tablet is open. */
-    menuOpen?: boolean;
+    /** The sidebar is collapsed: the bar starts with the button that expands it. */
+    collapsed?: boolean;
 }>();
 
 const emit = defineEmits<{
-    /** The menu button of the tablet was pressed. */
-    openMenu: [];
+    /** *Expand the menu* was pressed: the layout expands the sidebar. */
+    expand: [];
     /** The bell opened: the layout loads the notices. */
     loadNotices: [];
 }>();
-
-/** The id of the menu of the tablet, which the menu button opens. */
-const MENU_ID = 'app-menu';
 
 /** The text in the search box. */
 const text = ref(query);
@@ -135,18 +123,14 @@ const parentHref = computed(
 );
 
 /**
- * Whether Back is shown: on an inner page of the computer, when it can go
+ * Whether Back is shown: on an inner page, when it can go
  * back in the history or up in the trail. `canGoBack()` reads a reactive
  * depth, so the template that calls this renders again after each visit.
  *
  * @returns true when Back is shown
  */
 function showBack(): boolean {
-    return (
-        mode === 'computer' &&
-        !section &&
-        (canGoBack() || parentHref.value !== undefined)
-    );
+    return !section && (canGoBack() || parentHref.value !== undefined);
 }
 
 /**
@@ -174,21 +158,6 @@ function back(event: MouseEvent): void {
     }
 }
 
-/** The name of the menu button, with the files to sort. */
-const menuLabel = computed((): string =>
-    uploadCount > 0
-        ? transChoice(
-              '{1} Menu, :count file to sort|[2,*] Menu, :count files to sort',
-              uploadCount,
-          )
-        : trans('Menu'),
-);
-
-/** The square buttons of the bar: Back, the menu and the bell. */
-const squareButton = cn(
-    'relative flex size-11 shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-ink',
-);
-
 /** Puts the cursor in the search box: the shortcut ⌘K of the layout calls it. */
 function focusSearch(): void {
     field.value?.focus();
@@ -200,16 +169,23 @@ defineExpose({ focusSearch });
 <template>
     <header
         class="sticky top-0 z-30 h-topbar border-b border-edge-soft bg-canvas"
-        :class="mode === 'computer' ? 'px-10' : 'px-8'"
+        :class="mode === 'computer' ? 'px-10' : 'px-5'"
     >
         <div
-            class="mx-auto flex h-full max-w-(--main-width) items-center"
-            :class="mode === 'computer' ? 'gap-3' : 'gap-3.5'"
+            class="mx-auto flex h-full max-w-(--main-width) items-center gap-3"
         >
-            <div
-                v-if="mode === 'computer'"
-                class="flex min-w-0 grow items-center gap-3"
-            >
+            <div class="flex min-w-0 grow items-center gap-3">
+                <button
+                    v-if="collapsed"
+                    type="button"
+                    :aria-label="$t('Expand the menu')"
+                    :title="$t('Expand the menu')"
+                    :class="squareButton"
+                    class="cursor-pointer hover:bg-canvas"
+                    @click="emit('expand')"
+                >
+                    <FmIcon :icon="PanelLeftOpen" :size="22" />
+                </button>
                 <component
                     :is="parentHref ? 'a' : 'button'"
                     v-if="showBack()"
@@ -224,35 +200,6 @@ defineExpose({ focusSearch });
                 </component>
                 <FmTrail :pieces="trail" />
             </div>
-            <template v-else>
-                <button
-                    type="button"
-                    :aria-label="menuLabel"
-                    :aria-expanded="menuOpen"
-                    :aria-controls="MENU_ID"
-                    :class="squareButton"
-                    class="cursor-pointer"
-                    @click="emit('openMenu')"
-                >
-                    <FmIcon :icon="Menu" :size="22" />
-                    <span
-                        v-if="uploadCount > 0"
-                        aria-hidden="true"
-                        class="absolute -top-1.5 -right-1.5 flex h-[22px] min-w-[22px] items-center justify-center rounded-full border-2 border-canvas bg-action px-1.5 text-tiny text-on-action"
-                        >{{ countBadge(uploadCount) }}</span
-                    >
-                </button>
-                <span class="flex items-center gap-2.5">
-                    <FmLogo :size="36" />
-                    <span class="flex flex-col">
-                        <span class="text-amount text-ink">{{ appName }}</span>
-                        <span class="text-meta text-ink-soft">{{
-                            $t(':family family', { family })
-                        }}</span>
-                    </span>
-                </span>
-                <span class="grow" />
-            </template>
             <div
                 class="relative max-w-full min-w-60 transition-[width] duration-200 motion-reduce:transition-none"
                 :class="focused || text !== '' ? 'w-105' : 'w-75'"

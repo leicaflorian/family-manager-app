@@ -8,11 +8,11 @@ export type LayoutMode = 'phone' | 'tablet' | 'computer';
 export const TABLET_QUERY = '(min-width: 768px) and (min-height: 560px)';
 
 /** The window of the computer layout. Written only here. */
-export const COMPUTER_QUERY = '(min-width: 1024px) and (min-height: 560px)';
+export const COMPUTER_QUERY = '(min-width: 1280px) and (min-height: 560px)';
 
 /**
- * The layout of the window: phone (below 768 px wide or below 560 px tall), tablet (768 to 1023 px) or
- * computer (from 1024 px), kept right while the window changes. The only place that writes these
+ * The layout of the window: phone (below 768 px wide or below 560 px tall), tablet (768 to 1279 px) or
+ * computer (from 1280 px), kept right while the window changes. The only place that writes these
  * conditions: every page or component that changes with the layout asks `useLayoutMode()`, never
  * `matchMedia` or `min-[…]:` classes. The columns inside a page stay with `useWideLayout()`.
  *

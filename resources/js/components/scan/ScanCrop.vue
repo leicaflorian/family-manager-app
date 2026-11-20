@@ -1,12 +1,13 @@
 <script setup lang="ts">
 /**
- * *Crop* of the scan, dark as the boards `Ritaglia` and `Ritaglia-pc`: the photo with the four corners to move,
- * *Whole photo*, *Rotate*, *Find the edges* (the only way it asks the server, at a tap) and the choices of
- * *Improve*. On the phone the choices sit under the tools (decision 13 of the plan); on the computer they are in
- * the column on the right with *Cancel* and *Next*. «1 of 2» counts the photos of the document: *Next* goes on
- * to the next one, the last one goes back to the scan (decision 4). *Straighten* lays the cut sheet flat when *Next* is tapped
- * (off at the start, and disabled with its reason where the phone cannot run it); while it works a veil with a spinner
- * covers the photo, and *Cancel* stops it.
+ * *Crop* of the scan, dark, in two steps as the boards `Ritaglia`, `Ritaglia-2`, `Ritaglia-pc` and `Ritaglia-2-pc`
+ * draw them. *Crop* (1 of 2): the photo with the four corners to move, *Whole photo*, *Rotate* and *Find the edges*
+ * (the only way it asks the server, at a tap); *Next* hands the corners to the page, which cuts the sheet out.
+ * *Improve* (2 of 2): the sheet as it is cut out and saved, with *Straighten*, *Black and white* and the strength of
+ * *Improve* from 0 to 100; each change goes to the page, which shows it on the sheet. *Back* goes back to the corners,
+ * *Done* back to the pages. On the phone the choices sit under the photo; on the computer they are in the column on
+ * the right. *Straighten* lays the cut sheet flat (off at the start, and disabled with its reason where the phone
+ * cannot run it); while it works a veil with a spinner covers the sheet, and *Cancel* or *Back* stops it.
  */
 import { LoaderCircle, Maximize, RotateCw, ScanSearch } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -14,18 +15,24 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCropStage from '@/components/fm/FmCropStage.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import ScannerSlider from '@/components/scan/ScannerSlider.vue';
 import { SEARCH_LONG_SIDE, reduceToJpeg } from '@/lib/scan/canvas';
 import type { Corners, Turns } from '@/lib/scan/crop';
 import { WHOLE, isSheet, turnCorners } from '@/lib/scan/crop';
 import { isDewarpAvailable } from '@/lib/scan/dewarp';
 import { CORNERS_TIMEOUT, findCorners } from '@/lib/scan/server';
 
-/** What *Next* hands to the page: the sheet to cut out. */
+/** What *Next* of *Crop* hands to the page: where the sheet is. */
 export type CropResult = {
     corners: Corners;
     turns: Turns;
-    improve: { enhance: boolean; grey: boolean; dewarp: boolean };
 };
+
+/** *Improve* from 0 to 100, *Black and white* and *Straighten*, as the photo has them. */
+export type CropImprove = { enhance: number; grey: boolean; dewarp: boolean };
+
+/** The step open: the corners, or the improvements on the cut sheet. */
+export type CropStep = 'crop' | 'improve';
 
 const props = defineProps<{
     /** The address of the photo, as it was taken (the stage turns it). */
@@ -36,33 +43,39 @@ const props = defineProps<{
     corners: Corners | null;
     /** Quarters of a turn the photo was given. */
     turns: Turns;
-    /** *Improve*, *Black and white* and *Straighten*, as they are for the photo. */
-    improve: { enhance: boolean; grey: boolean; dewarp: boolean };
-    /** Which photo of the document this is, from 1. */
-    position: number;
-    /** How many photos the document has. */
-    count: number;
+    /** The improvements, as they are for the photo. */
+    improve: CropImprove;
+    /** The address of the sheet cut out, with its improvements, shown in *Improve*. */
+    sheet: string | null;
+    /** The step open. */
+    step: CropStep;
     /** The layout of the computer, with the column on the right. */
     wide: boolean;
-    /** The page is cutting the sheet out: *Next* waits. */
+    /** The page is cutting the sheet out: *Next* and *Done* wait. */
     busy: boolean;
     /** What went wrong while cutting, from the page. */
     problem: string | null;
 }>();
 
 const emit = defineEmits<{
-    /** *Next* (or *Done*): the sheet to cut out of this photo. */
+    /** *Next* of *Crop*: the sheet to cut out of this photo. */
     next: [result: CropResult];
-    /** *Cancel*: the photo stays as it was. */
+    /** A change in *Improve*, to show on the sheet. */
+    improve: [value: CropImprove];
+    /** *Back* of *Improve*: back to the corners. */
+    back: [];
+    /** *Done* of *Improve*: back to the pages. */
+    done: [];
+    /** *Cancel* of *Crop*: the photo stays as it was. */
     cancel: [];
 }>();
 
 const corners = ref<Corners>(props.corners ?? WHOLE);
 const turns = ref<Turns>(props.turns);
-const enhance = ref(props.improve.enhance);
-const grey = ref(props.improve.grey);
 /** Whether this phone can run *Straighten* (a worker and WebAssembly). */
 const canStraighten = isDewarpAvailable();
+const enhance = ref(props.improve.enhance);
+const grey = ref(props.improve.grey);
 const dewarp = ref(props.improve.dewarp && canStraighten);
 /** A handle was moved, or *Whole photo* chosen: corners that arrive late do not replace them. */
 const touched = ref(false);
@@ -79,15 +92,31 @@ watch(
     },
 );
 
-const last = computed((): boolean => props.position >= props.count);
+/** *Improve* opens on what the photo has: a *Straighten* stopped with *Back* is not kept. */
+watch(
+    () => props.step,
+    (step) => {
+        if (step !== 'improve') return;
+
+        enhance.value = props.improve.enhance;
+        grey.value = props.improve.grey;
+        dewarp.value = props.improve.dewarp && canStraighten;
+    },
+);
+
+const cropping = computed((): boolean => props.step === 'crop');
 const title = computed((): string =>
-    props.wide ? trans('Crop and improve') : trans('Crop'),
+    cropping.value ? trans('Crop') : trans('Improve'),
 );
-/** On the computer the last photo ends with *Done*, as the board; on the phone it is always *Next*. */
-const nextLabel = computed((): string =>
-    props.wide && last.value ? trans('Done') : trans('Next'),
+const stepText = computed((): string =>
+    trans(':number of :count', {
+        number: cropping.value ? '1' : '2',
+        count: '2',
+    }),
 );
-const note = computed((): string | null => props.problem ?? message.value);
+const note = computed((): string | null =>
+    cropping.value ? (props.problem ?? message.value) : props.problem,
+);
 
 /**
  * A handle was moved.
@@ -172,15 +201,45 @@ function next(): void {
         return;
     }
 
-    emit('next', {
-        corners: corners.value,
-        turns: turns.value,
-        improve: {
-            enhance: enhance.value,
-            grey: grey.value,
-            dewarp: dewarp.value,
-        },
-    });
+    emit('next', { corners: corners.value, turns: turns.value });
+}
+
+/**
+ * A choice of *Improve* changed: it goes to the page when it is really new (FormKit gives the value back when it mounts).
+ *
+ * @param change - the choice and its value
+ */
+function choose(change: Partial<CropImprove>): void {
+    const wanted: CropImprove = {
+        enhance: change.enhance ?? enhance.value,
+        grey: change.grey ?? grey.value,
+        dewarp: change.dewarp ?? dewarp.value,
+    };
+
+    if (
+        wanted.enhance === enhance.value &&
+        wanted.grey === grey.value &&
+        wanted.dewarp === dewarp.value
+    ) {
+        return;
+    }
+
+    enhance.value = wanted.enhance;
+    grey.value = wanted.grey;
+    dewarp.value = wanted.dewarp;
+    emit('improve', wanted);
+}
+
+/** *Cancel* in *Crop*, *Back* in *Improve*. */
+function leave(): void {
+    if (cropping.value) emit('cancel');
+    else emit('back');
+}
+
+/** *Next* in *Crop*, *Done* in *Improve*. */
+function forward(): void {
+    if (cropping.value) next();
+    else if (!props.busy) emit('done');
 }
 </script>
 
@@ -200,26 +259,21 @@ function next(): void {
             <button
                 type="button"
                 class="justify-self-start border-0 bg-transparent p-0 text-body-strong text-ink"
-                @click="emit('cancel')"
+                @click="leave"
             >
-                {{ $t('Cancel') }}
+                {{ cropping ? $t('Cancel') : $t('Back') }}
             </button>
             <h1 class="m-0 flex flex-col items-center text-section">
                 <span id="crop-title">{{ title }}</span>
-                <span class="text-caption text-ink-soft">{{
-                    $t(':number of :count', {
-                        number: String(position),
-                        count: String(count),
-                    })
-                }}</span>
+                <span class="text-caption text-ink-soft">{{ stepText }}</span>
             </h1>
             <button
                 type="button"
                 class="justify-self-end border-0 bg-transparent p-0 text-amount text-action disabled:text-ink-soft"
                 :disabled="busy"
-                @click="next"
+                @click="forward"
             >
-                {{ nextLabel }}
+                {{ cropping ? $t('Next') : $t('Done') }}
             </button>
         </header>
 
@@ -227,7 +281,7 @@ function next(): void {
             class="relative flex min-h-0 min-w-0 grow flex-col items-center justify-center gap-4"
             :class="wide ? 'p-10' : 'px-5 py-3'"
         >
-            <!-- The veil: the model works on the cut sheet; Cancel (outside the veil) stops it -->
+            <!-- The veil: the model works on the cut sheet; Cancel or Back (outside the veil) stops it -->
             <div
                 v-if="busy && dewarp"
                 role="status"
@@ -237,6 +291,7 @@ function next(): void {
                 {{ $t('Straightening…') }}
             </div>
             <FmCropStage
+                v-if="cropping"
                 class="w-full"
                 :class="wide ? 'max-w-[560px]' : 'max-w-[350px]'"
                 fit
@@ -245,6 +300,13 @@ function next(): void {
                 :turns="turns"
                 editing
                 @update:corners="move"
+            />
+            <img
+                v-else-if="sheet"
+                :src="sheet"
+                :alt="$t('The cut sheet, as it will be saved')"
+                class="block max-h-full w-full rounded-sm bg-card object-contain shadow-raised"
+                :class="wide ? 'max-w-[440px]' : 'max-w-[300px]'"
             />
         </div>
 
@@ -262,16 +324,15 @@ function next(): void {
                     <h1 id="crop-title" class="m-0 text-stat-lg">
                         {{ title }}
                     </h1>
-                    <span v-if="count > 1" class="text-body-sm text-ink-soft">{{
-                        $t(':number of :count', {
-                            number: String(position),
-                            count: String(count),
-                        })
+                    <span class="text-body-sm text-ink-soft">{{
+                        stepText
                     }}</span>
                 </div>
-                <span class="text-meta-strong text-ink-soft uppercase">{{
-                    $t('Cropping')
-                }}</span>
+                <span
+                    v-if="cropping"
+                    class="text-meta-strong text-ink-soft uppercase"
+                    >{{ $t('Cropping') }}</span
+                >
             </template>
 
             <p
@@ -284,6 +345,7 @@ function next(): void {
             </p>
 
             <div
+                v-if="cropping"
                 class="flex gap-2.5"
                 :class="wide ? 'flex-wrap' : 'justify-center gap-6'"
             >
@@ -315,18 +377,11 @@ function next(): void {
                 </button>
             </div>
 
-            <span v-if="wide" class="h-px bg-camera-raised" />
-            <span
-                v-if="wide"
-                class="text-meta-strong text-ink-soft uppercase"
-                >{{ $t('Improve') }}</span
-            >
-
-            <div class="flex flex-col gap-1.5">
+            <div v-else class="flex flex-col gap-1.5">
                 <FormKit
-                    v-model="dewarp"
                     type="toggle"
                     name="dewarp"
+                    :model-value="dewarp"
                     :disabled="busy || !canStraighten"
                     :label="$t('Straighten')"
                     :help="
@@ -334,33 +389,48 @@ function next(): void {
                             ? $t('Lays a folded sheet flat')
                             : $t('Straighten is not available on this phone')
                     "
+                    @update:model-value="
+                        (value: unknown) => choose({ dewarp: value === true })
+                    "
                 />
                 <FormKit
-                    v-model="enhance"
-                    type="toggle"
-                    name="enhance"
-                    :disabled="busy"
-                    :label="$t('Improve')"
-                    :help="$t('Brightens the paper, darkens the text')"
-                />
-                <FormKit
-                    v-model="grey"
                     type="toggle"
                     name="grey"
+                    :model-value="grey"
                     :disabled="busy"
                     :label="$t('Black and white')"
                     :help="$t('Takes the colours away')"
+                    @update:model-value="
+                        (value: unknown) => choose({ grey: value === true })
+                    "
                 />
+                <div class="flex flex-col gap-1.5 py-1.5">
+                    <ScannerSlider
+                        :model-value="enhance"
+                        :label="$t('Improve')"
+                        :value-text="`${enhance} %`"
+                        :min="0"
+                        :max="100"
+                        :step="5"
+                        :disabled="busy"
+                        @update:model-value="choose({ enhance: $event })"
+                    />
+                    <span class="text-meta text-ink-soft">{{
+                        $t(
+                            'Lightens the paper, darkens the text. All the way left the photo stays as it is; past halfway, more contrast.',
+                        )
+                    }}</span>
+                </div>
             </div>
 
             <template v-if="wide">
                 <span class="grow" />
                 <div class="flex justify-end gap-2.5">
-                    <FmButton variant="text" @click="emit('cancel')">{{
-                        $t('Cancel')
+                    <FmButton variant="text" @click="leave">{{
+                        cropping ? $t('Cancel') : $t('Back')
                     }}</FmButton>
-                    <FmButton :disabled="busy" @click="next">{{
-                        nextLabel
+                    <FmButton :disabled="busy" @click="forward">{{
+                        cropping ? $t('Next') : $t('Done')
                     }}</FmButton>
                 </div>
             </template>

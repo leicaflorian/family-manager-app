@@ -5,7 +5,7 @@
  * list. The page behind stays usable, so choosing another row changes what the
  * panel shows. It closes with Esc (unless a menu inside it is open) and with
  * the × the page puts in its content. It floats 16 px under the sticky top of
- * the layout (`--app-header`). Used by *Documents* between 1024 and 1439 px.
+ * the layout (`--app-header`). Used by *Documents* between 1280 and 1439 px.
  *
  * @group panels
  */

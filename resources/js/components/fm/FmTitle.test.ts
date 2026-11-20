@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/vue';
+import { fireEvent, render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import { renderPage } from '@/test/page';
 import FmTitle from './FmTitle.vue';
@@ -52,5 +52,22 @@ describe('FmTitle', () => {
         renderPage(FmTitle, { title: 'Documents' });
 
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+
+    it('with the name of the page but no address has a button back above the title, and tells the page', async () => {
+        const { emitted } = renderPage(FmTitle, {
+            title: 'New document',
+            backLabel: 'To sort',
+        });
+
+        const back = screen.getByRole('button', { name: 'To sort' });
+        expect(
+            back.compareDocumentPosition(
+                screen.getByRole('heading', { name: 'New document' }),
+            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        await fireEvent.click(back);
+
+        expect(emitted('back')).toHaveLength(1);
     });
 });
