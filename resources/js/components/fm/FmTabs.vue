@@ -5,7 +5,9 @@
  * page is marked, and a tab can show a number after its name, and one with nothing behind it can be shown soft and without a link (`disabled`). They are lines
  * under the names (`underline`) or, as in the Agenda, a grey pill with the open
  * tab in white (`pill`). A number of things late (`countLabel`) is a red badge,
- * as the *Agenda* shows the late ones beside *To do*. A tab with an `icon`
+ * as the *Agenda* shows the late ones beside *To do*; a number of things to look
+ * at (`countInfo`, with `countLabel`) is a blue one, as *From the bank* shows the
+ * movements to sort. A tab with an `icon`
  * shows only the icon, in a square, and its name is for screen readers and the
  * tooltip: the toggle «List / Calendar» of the Agenda.
  *
@@ -30,6 +32,11 @@ export type Tab = {
      * name the tab with it for screen readers («To do, 3 late»).
      */
     countLabel?: string;
+    /**
+     * With `countLabel`: the number is of things to look at, not late, and the
+     * badge is blue (`--action`) instead of red.
+     */
+    countInfo?: boolean;
     /** The tab is the one of the open page. */
     current: boolean;
     /** An icon: the tab shows only it (18 px, in a square), and `label` becomes its name and tooltip. */
@@ -125,7 +132,14 @@ function tabClasses(marked: boolean, disabled = false, icon = false): string {
                 <span
                     v-if="tab.count !== undefined && tab.countLabel"
                     aria-hidden="true"
-                    class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-overdue px-1.5 text-badge text-on-hero"
+                    :class="
+                        cn(
+                            'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-badge',
+                            tab.countInfo
+                                ? 'bg-action text-on-action'
+                                : 'bg-overdue text-on-hero',
+                        )
+                    "
                     >{{ tab.count }}</span
                 >
                 <span

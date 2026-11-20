@@ -118,6 +118,31 @@ describe('FmTabs', () => {
         expect(badge).toHaveClass('bg-overdue');
     });
 
+    it('shows a number to look at as a blue badge, with its words for screen readers', () => {
+        render(FmTabs, {
+            props: {
+                label: 'Budget',
+                tabs: [
+                    {
+                        label: 'From the bank',
+                        href: '/budget/bank',
+                        count: 6,
+                        countLabel: 'From the bank, 6 to sort',
+                        countInfo: true,
+                        current: true,
+                    },
+                ],
+            },
+        });
+
+        const tab = screen.getByRole('link', { name: 'From the bank, 6 to sort' });
+        const badge = screen.getByText('6');
+        expect(tab).toContainElement(badge);
+        expect(badge).toHaveAttribute('aria-hidden', 'true');
+        expect(badge).toHaveClass('bg-action', 'text-on-action', 'h-5', 'min-w-5', 'rounded-full', 'text-badge');
+        expect(badge).not.toHaveClass('bg-overdue');
+    });
+
     it('shows only the icon of a tab with one, named for screen readers', () => {
         render(FmTabs, {
             props: {

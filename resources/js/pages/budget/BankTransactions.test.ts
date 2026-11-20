@@ -206,7 +206,9 @@ describe('Budget, From the bank', () => {
 
         const tabs = screen.getByRole('navigation', { name: 'Budget' });
         expect(
-            within(tabs).getByRole('link', { name: /From the bank\s*6/ }),
+            within(tabs).getByRole('link', {
+                name: 'From the bank, 6 to sort',
+            }),
         ).toHaveAttribute('aria-current', 'page');
     });
 

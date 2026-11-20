@@ -35,6 +35,8 @@ describe('budgetTabs', () => {
         expect(tabs[3]).toMatchObject({
             label: 'From the bank',
             count: 6,
+            countLabel: 'From the bank, 6 to sort',
+            countInfo: true,
             current: true,
         });
     });
