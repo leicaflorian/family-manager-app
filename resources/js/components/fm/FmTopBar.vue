@@ -200,7 +200,7 @@ defineExpose({ focusSearch });
 <template>
     <header
         class="sticky top-0 z-30 h-topbar border-b border-edge-soft bg-canvas"
-        :class="mode === 'computer' ? 'px-10' : 'px-8'"
+        :class="mode === 'computer' ? 'px-10' : 'px-5'"
     >
         <div
             class="mx-auto flex h-full max-w-(--main-width) items-center"

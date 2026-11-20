@@ -255,7 +255,8 @@ describe('FmTopBar', () => {
         expect(screen.getByText('Bianchi family')).toBeInTheDocument();
         expect(screen.queryByRole('navigation')).toBeNull();
         expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
-        expect(screen.getByRole('banner')).toHaveClass('px-8');
+        // the same 20 px as the page under it (main-gutter of AppLayout)
+        expect(screen.getByRole('banner')).toHaveClass('px-5');
 
         await userEvent.click(menu);
 
