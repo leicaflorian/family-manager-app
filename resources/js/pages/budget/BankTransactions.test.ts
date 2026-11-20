@@ -46,6 +46,7 @@ function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
         next: null,
         banks_to_reconnect: [],
         can_sort: true,
+        can_plan: true,
         can_change_banks: true,
         last_synced_at: '2026-11-20T13:00',
         sync_hours: [7, 13, 19],
@@ -525,5 +526,72 @@ describe('Budget, From the bank, sorting', () => {
             'This planned expense has no due dates to pay.',
         );
         expect(screen.getAllByText(/EDISON ENERGIA/).length).toBeGreaterThan(1);
+    });
+});
+
+describe('Budget, From the bank, a text that comes back every month', () => {
+    const netflix: App.Data.BankTransactionData = {
+        ...bankTransactions[1]!,
+        id: 7,
+        text: 'ADDEBITO DIRETTO SDD NETFLIX INTERNATIONAL BV',
+        counterparty: 'Netflix',
+        amount: -13.99,
+        recurring: true,
+    };
+
+    it('offers a planned expense that starts from the transaction', () => {
+        renderPage(BankTransactions, props({ rows: [netflix] }));
+        const row = screen.getByText(/NETFLIX/).closest('li')!;
+
+        expect(
+            within(row).getByRole('link', {
+                name: 'It comes back every month: create a planned expense?',
+            }),
+        ).toHaveAttribute('href', '/budget/planned/expense/create?bank=7');
+    });
+
+    it('opens a planned income for a credit', () => {
+        renderPage(
+            BankTransactions,
+            props({ rows: [{ ...netflix, amount: 35 }] }),
+        );
+
+        expect(
+            screen.getByRole('link', {
+                name: 'It comes back every month: create a planned income?',
+            }),
+        ).toHaveAttribute('href', '/budget/planned/income/create?bank=7');
+    });
+
+    it('is not offered on the wide layout either to who cannot plan, nor on a pending or ignored one', () => {
+        screenWidth(1280);
+        const { unmount } = renderPage(
+            BankTransactions,
+            props({ rows: [netflix] }),
+        );
+        expect(
+            screen.getByRole('link', { name: /It comes back every month/ }),
+        ).toBeInTheDocument();
+        unmount();
+
+        for (const extra of [
+            { can_plan: false },
+            { rows: [{ ...netflix, pending: true, booked_on: null }] },
+            { rows: [{ ...netflix, ignored: true }], show: 'ignored' },
+            { rows: [{ ...netflix, currency: 'USD' }] },
+            { rows: [{ ...netflix, recurring: false }] },
+            { can_sort: false },
+        ]) {
+            const rendered = renderPage(
+                BankTransactions,
+                props({ rows: [netflix], ...extra }),
+            );
+            expect(
+                screen.queryByRole('link', {
+                    name: /It comes back every month/,
+                }),
+            ).not.toBeInTheDocument();
+            rendered.unmount();
+        }
     });
 });

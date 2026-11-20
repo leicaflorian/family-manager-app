@@ -2184,5 +2184,7 @@
     "No planned income found.": "Nessuna entrata fissa trovata.",
     "Planned expenses": "Spese fisse",
     "Planned incomes": "Entrate fisse",
-    "Search by name or organization": "Cerca per nome o ente"
+    "Search by name or organization": "Cerca per nome o ente",
+    "It comes back every month: create a planned expense?": "Torna ogni mese: crea una spesa fissa?",
+    "It comes back every month: create a planned income?": "Torna ogni mese: crea un'entrata fissa?"
 }

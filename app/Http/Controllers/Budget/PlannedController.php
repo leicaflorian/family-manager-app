@@ -18,6 +18,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Services\Banks\BankFeedAvailability;
+use App\Services\Banks\RecurringBankTexts;
 use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Services\PlannedSummaries;
@@ -59,7 +60,8 @@ final class PlannedController extends Controller
     }
 
     /**
-     * *New planned expense*: the empty form, or filled in from the card of `?card=type:id` (for an income, its employment).
+     * *New planned expense*: the empty form, filled in from the card of `?card=type:id` (for an income, its employment)
+     * or from the bank transaction of `?bank=` whose text comes back every month (*It comes back every month* of *From the bank*).
      *
      * @throws NotFoundHttpException if the kind is not `expense` or `income`
      */
@@ -70,7 +72,7 @@ final class PlannedController extends Controller
         // The card of an income is its employment
         $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card')) : PlannedPreset::incomeFromQuery($request->query('card'));
 
-        return $this->form($request, $kind, null, [...PlannedPreset::defaults($kind), ...$preset]);
+        return $this->form($request, $kind, null, [...PlannedPreset::defaults($kind), ...$preset, ...$this->recurringValues($request->query('bank'), $kind)]);
     }
 
     /**
@@ -214,5 +216,31 @@ final class PlannedController extends Controller
         $transaction = BankTransaction::query()->with('financialAccount')->find((int) $id);
 
         return $transaction instanceof BankTransaction ? BankTransactionData::fromTransaction($transaction) : null;
+    }
+
+    /**
+     * The starting values the transaction of `?bank=` gives: the ones of its text that comes back every month, for the
+     * kind its sign says. Nothing when the link to the bank is off or the transaction is missing, not of the family,
+     * not to sort any more, the other direction or not recurring (the form opens empty all the same).
+     *
+     * @param  mixed  $id  the value of the address
+     * @param  string  $kind  `expense` or `income`
+     * @return array<string, mixed>
+     */
+    private function recurringValues(mixed $id, string $kind): array
+    {
+        if (! BankFeedAvailability::on() || ! is_string($id) || preg_match('/^\d{1,18}$/', $id) !== 1) {
+            return [];
+        }
+
+        $transaction = BankTransaction::query()->unsorted()->find((int) $id);
+
+        if (! $transaction instanceof BankTransaction || $transaction->kind() !== $kind) {
+            return [];
+        }
+
+        $chain = resolve(RecurringBankTexts::class)->chain($transaction);
+
+        return $chain === null ? [] : PlannedPreset::fromBank($transaction, $chain);
     }
 }

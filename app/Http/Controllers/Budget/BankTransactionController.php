@@ -11,6 +11,7 @@ use App\Data\BankPlannedChoiceData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
+use App\Enums\BankTransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\AssignBankTransactionRequest;
 use App\Models\BankConnection;
@@ -21,6 +22,8 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankMatcher;
+use App\Services\Banks\RecurringBankTexts;
+use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankVisitor;
 use App\Support\Deadline;
 use App\Support\PaymentTitle;
@@ -68,7 +71,18 @@ final class BankTransactionController extends Controller
 
         return Inertia::render('budget/BankTransactions', [
             'show' => $ignored ? 'ignored' : 'unsorted',
-            'rows' => Inertia::merge(fn (): array => $rows()->take(self::PER_PAGE)->map(BankTransactionData::fromTransaction(...))->values()->all())->matchOn('id'),
+            'rows' => Inertia::merge(function () use ($rows, $ignored): array {
+                // One read of the last months for the whole page, none for the ignored ones
+                $signatures = $ignored ? [] : resolve(RecurringBankTexts::class)->signatures();
+
+                return $rows()->take(self::PER_PAGE)
+                    ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction(
+                        $transaction,
+                        $transaction->status === BankTransactionStatus::Booked && in_array(BankMatch::signature($transaction->text), $signatures, true),
+                    ))
+                    ->values()
+                    ->all();
+            })->matchOn('id'),
             'next' => fn (): ?int => $rows()->count() > self::PER_PAGE ? $page + 1 : null,
             'banks_to_reconnect' => fn (): array => BankConnection::query()
                 ->where('status', BankConnectionStatus::NeedsReconnect)
@@ -83,6 +97,8 @@ final class BankTransactionController extends Controller
             // The planned items the sheet *It belongs to a planned expense* offers for the transaction of `?assign=`, asked when it opens
             'planned_options' => Inertia::optional(fn (): array => $this->plannedOptions($request->query('assign'))),
             'can_sort' => Gate::allows('create', BankTransaction::class),
+            // «It comes back every month: create a planned expense?» is offered only to who can create one
+            'can_plan' => Gate::allows('create', PlannedExpense::class) && Gate::allows('create', PlannedIncome::class),
             'can_change_banks' => Gate::allows('create', BankConnection::class),
         ]);
     }

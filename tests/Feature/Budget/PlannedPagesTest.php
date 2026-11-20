@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Models\BankTransaction;
 use App\Models\Employment;
 use App\Models\Enrollment;
+use App\Models\Expense;
 use App\Models\Family;
+use App\Models\FinancialAccount;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
 use App\Models\PlannedExpense;
@@ -13,10 +16,12 @@ use App\Models\PlannedIncome;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
+use App\Support\Banks\BankMatch;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
 use Inertia\Testing\AssertableInertia;
@@ -290,4 +295,101 @@ it('never presets a new planned income with an employment of another family', fu
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('values.employment_id', null)
             ->where('values.person_id', null));
+});
+
+/**
+ * Turns the bank link on for the Bianchi and gives them three booked Netflix payments, one a month, on one account.
+ *
+ * @param  list<string>  $amounts  the three amounts, oldest first
+ * @return list<BankTransaction> the three transactions, oldest first
+ */
+function bankPlannedPagesNetflix(array $amounts = ['-13.99', '-13.99', '-15.99']): array
+{
+    config(['bank_feed.provider' => 'fake']);
+
+    return insideBianchi(function () use ($amounts): array {
+        $family = Family::query()->where('name', 'Bianchi')->sole();
+        $family->forceFill(['bank_feed_enabled' => true])->save();
+        $account = FinancialAccount::factory()->create(['family_id' => $family->id, 'name' => 'Conto BancoPosta']);
+        $rows = [];
+
+        foreach (['2026-08-12', '2026-09-12', '2026-10-12'] as $index => $day) {
+            $rows[] = BankTransaction::factory()->create([
+                'family_id' => $family->id,
+                'financial_account_id' => $account->id,
+                'text' => 'ADDEBITO DIRETTO SDD NETFLIX INTERNATIONAL BV '.($index + 1),
+                'counterparty' => 'Netflix International',
+                'booked_on' => $day,
+                'value_on' => $day,
+                'amount' => $amounts[$index],
+            ]);
+        }
+
+        return $rows;
+    });
+}
+
+it('the planned form starts from the bank transaction with a rule that matches it', function (): void {
+    [$first, , $last] = bankPlannedPagesNetflix();
+
+    $this->actingAs($this->marco)
+        ->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $last->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('budget/EditPlanned')
+            ->where('values.title', 'Netflix International')
+            ->where('values.amount', 15.99)
+            ->where('values.is_estimated', true)
+            ->where('values.start_date', '2026-08-12')
+            ->where('values.is_recurring', true)
+            ->where('values.interval', 1)
+            ->where('values.interval_unit', 'month')
+            ->where('values.financial_account_id', (string) $first->financial_account_id)
+            ->where('values.bank_match', BankMatch::fromText($last->text)));
+
+    // The same amount every month: not estimated, and the title is the text when there is no counterparty
+    foreach (insideBianchi(fn () => BankTransaction::query()->get()) as $row) {
+        $row->forceFill(['amount' => '-13.99', 'counterparty' => null])->save();
+    }
+    $this->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $last->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('values.title', $last->text)
+            ->where('values.amount', 13.99)
+            ->where('values.is_estimated', false));
+});
+
+it('the planned form of a transaction that does not come back every month is empty', function (): void {
+    [$first, , $last] = bankPlannedPagesNetflix();
+    $alone = insideBianchi(fn (): BankTransaction => BankTransaction::factory()->create(['family_id' => $first->family_id, 'text' => 'BAR CENTRALE', 'booked_on' => '2026-10-20']));
+    $foreign = BankTransaction::factory()->create(['family_id' => Family::factory()->create()->id]);
+    $this->actingAs($this->marco);
+
+    foreach ([$alone->id, $foreign->id, 'abc', '999999'] as $id) {
+        $this->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $id]))->assertOk()
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', '')->where('values.bank_match', null));
+    }
+
+    // An outgoing payment does not start a planned income
+    $this->get(route('budget.planned.create', ['kind' => 'income', 'bank' => $last->id]))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', '')->where('values.bank_match', null));
+
+    $first->family->forceFill(['bank_feed_enabled' => false])->save();
+    $this->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $last->id]))->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', ''));
+});
+
+it('saving that planned expense pays the three due dates with the three transactions', function (): void {
+    $rows = bankPlannedPagesNetflix();
+    $values = $this->actingAs($this->marco)
+        ->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $rows[2]->id]))
+        ->viewData('page')['props']['values'];
+
+    $this->post('/budget/planned/expense', Arr::only($values, ['title', 'amount', 'is_estimated', 'start_date', 'is_recurring', 'interval', 'interval_unit', 'financial_account_id', 'bank_match']))
+        ->assertRedirect();
+
+    $planned = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Netflix International')->sole());
+    $payments = insideBianchi(fn () => Expense::query()->where('planned_expense_id', $planned->id)->oldest('occurrence_date')->get());
+
+    expect($payments->map(fn ($payment): ?string => $payment->occurrence_date?->toDateString())->all())->toBe(['2026-08-12', '2026-09-12', '2026-10-12'])
+        ->and($payments->map(fn ($payment): string => (string) $payment->amount)->all())->toBe(['13.99', '13.99', '15.99'])
+        ->and(insideBianchi(fn () => BankTransaction::query()->whereKey(array_map(fn (BankTransaction $row): int => $row->id, $rows))->whereNull('expense_id')->count()))->toBe(0);
 });

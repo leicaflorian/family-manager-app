@@ -26,7 +26,7 @@ final class BankTransactionData extends Data
      * @param  string|null  $account  the account, as «Account name ·· 1234»
      * @param  bool  $pending  the bank has not booked it yet
      * @param  bool  $ignored  the person put it aside
-     * @param  bool  $recurring  it comes back every month (the rule that finds it arrives later: always false for now)
+     * @param  bool  $recurring  its text comes back every month, so a planned expense can be offered (only for a booked, unsorted one)
      */
     public function __construct(
         public readonly int $id,
@@ -46,8 +46,9 @@ final class BankTransactionData extends Data
      * The data of a transaction of the current family.
      *
      * @param  BankTransaction  $transaction  the transaction, with its account loaded
+     * @param  bool  $recurring  its text comes back every month
      */
-    public static function fromTransaction(BankTransaction $transaction): self
+    public static function fromTransaction(BankTransaction $transaction, bool $recurring = false): self
     {
         $account = $transaction->financialAccount;
 
@@ -62,7 +63,7 @@ final class BankTransactionData extends Data
             $account->last_four_digits === null ? $account->name : $account->name.' ·· '.$account->last_four_digits,
             $transaction->status === BankTransactionStatus::Pending,
             $transaction->ignored_at !== null,
-            false,
+            $recurring,
         );
     }
 }

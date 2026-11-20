@@ -282,3 +282,27 @@ test('the bank list not being available says so, not that the bank is wrong', fu
     $this->post(route('banks.store'), ['institution' => 'Banca di prova'])
         ->assertSessionHasErrors(['institution' => 'We cannot load the list of banks right now. Try again in a moment.']);
 });
+
+it('marks the rows whose text comes back every month and lets only who can plan offer the planned expense', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+
+    foreach (['2026-09-12', '2026-10-12', '2026-11-12'] as $day) {
+        bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => $day, 'amount' => '-13.99']);
+    }
+    bankTransactionPagesRow($connection, ['text' => 'BAR CENTRALE', 'booked_on' => '2026-11-13']);
+    bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => null, 'value_on' => '2026-11-14', 'status' => BankTransactionStatus::Pending, 'amount' => '-13.99']);
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('can_plan', true)
+        ->where('rows.0.text', 'ADDEBITO SDD NETFLIX')
+        ->where('rows.0.recurring', false)
+        ->where('rows.1.text', 'BAR CENTRALE')
+        ->where('rows.1.recurring', false)
+        ->where('rows.2.recurring', true)
+        ->where('rows.3.recurring', true)
+        ->where('rows.4.recurring', true));
+
+    bankTransactionPagesMember($this->marco);
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('can_plan', false));
+});

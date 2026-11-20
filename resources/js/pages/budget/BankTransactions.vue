@@ -9,10 +9,12 @@
  * among the movements*; the row goes at once and the server writes it. A booked transaction in euros also has
  * *Create the expense* (or the income: the form of a new movement that starts from it) and *It belongs to a planned
  * expense* (or income), which opens a panel with the planned items that have a due date to pay: the closest due date is
- * paid and the row goes.
+ * paid and the row goes. A transaction whose text came back three months in a row also offers *It comes back every
+ * month: create a planned expense?*, the form of a new planned item that starts from it.
  */
-import { Head, router, WhenVisible } from '@inertiajs/vue3';
+import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
 import {
+    ChevronRight,
     EyeOff,
     Landmark,
     Plus,
@@ -47,6 +49,7 @@ import {
     sync,
 } from '@/routes/budget/bank';
 import { create } from '@/routes/budget/movements';
+import { create as createPlanned } from '@/routes/budget/planned';
 import { index as banksIndex } from '@/routes/banks';
 
 const props = defineProps<{
@@ -60,6 +63,8 @@ const props = defineProps<{
     banks_to_reconnect: string[];
     /** Whether who looks can sort the transactions (every account of the family). */
     can_sort: boolean;
+    /** Whether who looks can create a planned expense or income (an administrator). */
+    can_plan: boolean;
     /** Whether who looks can connect the banks again (an administrator). */
     can_change_banks: boolean;
     /** When a bank was read last (`yyyy-mm-ddThh:mm`, Rome); null before the first read. */
@@ -185,6 +190,42 @@ function sortable(row: App.Data.BankTransactionData): boolean {
     return (
         props.can_sort && !row.ignored && !row.pending && row.currency === 'EUR'
     );
+}
+
+/**
+ * Whether the row offers «it comes back every month»: its text does, it can be sorted and the person can plan.
+ *
+ * @param row - the transaction
+ */
+function recurs(row: App.Data.BankTransactionData): boolean {
+    return row.recurring && props.can_plan && sortable(row);
+}
+
+/** The look of the offer to create a planned expense, as the boards draw it. */
+const recurClass = cn(
+    'flex items-center gap-2 rounded-md bg-action-soft px-3 py-2 text-label text-action-dark',
+);
+
+/**
+ * The words of the offer for a payment or a credit.
+ *
+ * @param row - the transaction
+ */
+function recurLabel(row: App.Data.BankTransactionData): string {
+    return row.amount > 0
+        ? trans('It comes back every month: create a planned income?')
+        : trans('It comes back every month: create a planned expense?');
+}
+
+/**
+ * The form of a new planned expense (or income) that starts from the transaction and the months before it.
+ *
+ * @param row - the transaction
+ */
+function recurUrl(row: App.Data.BankTransactionData): string {
+    return createPlanned.url(row.amount > 0 ? 'income' : 'expense', {
+        query: { bank: row.id },
+    });
 }
 
 /**
@@ -381,6 +422,21 @@ function add(): void {
                                     ? row.account
                                     : `${dayOf(row)} ${row.account ? `· ${row.account}` : ''}`
                             }}</span>
+                            <Link
+                                v-if="wide && recurs(row)"
+                                :href="recurUrl(row)"
+                                :class="cn(recurClass, 'min-h-9 self-start')"
+                            >
+                                <Repeat
+                                    aria-hidden="true"
+                                    class="size-[18px]"
+                                />
+                                {{ recurLabel(row) }}
+                                <ChevronRight
+                                    aria-hidden="true"
+                                    class="size-[18px]"
+                                />
+                            </Link>
                             <span
                                 v-if="wide && row.pending"
                                 class="flex flex-wrap items-center gap-2"
@@ -449,6 +505,21 @@ function add(): void {
                             </span>
                         </template>
                     </span>
+                    <Link
+                        v-if="!wide && recurs(row)"
+                        :href="recurUrl(row)"
+                        :class="cn(recurClass, 'min-h-11')"
+                    >
+                        <Repeat
+                            aria-hidden="true"
+                            class="size-[18px] shrink-0"
+                        />
+                        <span class="grow">{{ recurLabel(row) }}</span>
+                        <ChevronRight
+                            aria-hidden="true"
+                            class="size-[18px] shrink-0"
+                        />
+                    </Link>
                     <div
                         v-if="!wide && can_sort"
                         class="flex flex-wrap items-center gap-2"
