@@ -46,7 +46,11 @@ describe('FmBottomBar', () => {
         const sheet = screen.getByRole('dialog', { name: 'Add' });
         const rows: [string, string, string][] = [
             ['Upload a file', 'PDF or photos from the phone', '/upload'],
-            ['Scan a sheet', 'Photograph a sheet with the camera', '/scan'],
+            [
+                'Scan a sheet',
+                'Photograph a sheet with the camera',
+                '/scan?camera=1',
+            ],
             [
                 'New expense',
                 'An expense already made, without a document',

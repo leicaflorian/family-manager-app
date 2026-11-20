@@ -60,7 +60,7 @@ import {
 import { ScanRequestError, findCorners } from '@/lib/scan/server';
 import { straightener } from '@/lib/scan/straighten';
 import { cn } from '@/lib/utils';
-import { logout, toSort } from '@/routes';
+import { logout, scan, toSort } from '@/routes';
 
 /** The name of the app, for the texts that say it. */
 const appName = useAppName();
@@ -719,7 +719,24 @@ async function addShared(): Promise<void> {
     globalThis.history.replaceState(globalThis.history.state, '', '/scan');
 }
 
-onMounted(() => void addShared());
+/**
+ * *Scan a sheet* of *Add* opens this page with `?camera=1`: the camera opens at once. Android lets a page do it right
+ * after the tap; Safari on the iPhone blocks it without a word, and the page waits for *Take a picture* as always. The
+ * address goes back to `/scan`, so a reload or *Back* does not open it again.
+ */
+function openCameraAsked(): void {
+    if (!new URLSearchParams(page.url.split('?')[1] ?? '').has('camera'))
+        return;
+
+    // Inertia writes the address after the page is mounted, so history.replaceState would be undone
+    router.replace({ url: scan().url, preserveState: true });
+    void takePicture();
+}
+
+onMounted(() => {
+    void addShared();
+    openCameraAsked();
+});
 
 // the original shown while holding belongs to one page
 watch(

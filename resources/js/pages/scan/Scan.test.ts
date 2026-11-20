@@ -273,6 +273,95 @@ describe('Scan, the sheet Install Fameja.app', () => {
     });
 });
 
+describe('Scan, opened from Add with ?camera=1', () => {
+    it('opens the camera of the phone at once, and takes ?camera=1 off the address', async () => {
+        page.url = '/scan?camera=1';
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ANDROID);
+        const click = vi
+            .spyOn(HTMLInputElement.prototype, 'click')
+            .mockImplementation(() => {});
+        const replace = vi
+            .spyOn(router, 'replace')
+            .mockImplementation(() => {});
+
+        renderPage(Scan);
+        await settle();
+
+        expect(click).toHaveBeenCalledOnce();
+        expect(click.mock.contexts[0]).toHaveAttribute(
+            'capture',
+            'environment',
+        );
+        expect(replace).toHaveBeenCalledWith(
+            expect.objectContaining({ url: '/scan', preserveState: true }),
+        );
+    });
+
+    it('waits for Take a picture without ?camera=1', async () => {
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ANDROID);
+        const click = vi
+            .spyOn(HTMLInputElement.prototype, 'click')
+            .mockImplementation(() => {});
+
+        renderPage(Scan);
+        await settle();
+
+        expect(click).not.toHaveBeenCalled();
+    });
+});
+
+describe('Scan, the sheet Install Fameja.app', () => {
+    afterEach(() => localStorage.clear());
+
+    it('shows the steps on an iPhone in the browser, and Not now closes it', async () => {
+        phoneBrowser(IPHONE);
+        renderPage(Scan);
+
+        const sheet = await screen.findByRole('dialog', {
+            name: 'Install Fameja.app',
+        });
+        expect(
+            within(sheet).getByText(/Add to Home Screen/),
+        ).toBeInTheDocument();
+        expect(
+            within(sheet).queryByRole('button', { name: 'Install' }),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Not now' }),
+        );
+        await waitFor(() =>
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+        );
+    });
+
+    it('has the Install button on Android, which shows the steps when the phone made no invitation', async () => {
+        phoneBrowser(ANDROID);
+        renderPage(Scan);
+
+        const sheet = await screen.findByRole('dialog', {
+            name: 'Install Fameja.app',
+        });
+        expect(
+            within(sheet).queryByText(/Install app/),
+        ).not.toBeInTheDocument();
+
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Install' }),
+        );
+
+        expect(within(sheet).getByText(/Install app/)).toBeInTheDocument();
+    });
+
+    it('does not come up over http, nor on a computer', async () => {
+        phoneBrowser(ANDROID, 'http:');
+        renderPage(Scan);
+        await settle();
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+});
+
 describe('Scan', () => {
     it('starts empty, with the phone and the camera', () => {
         renderPage(Scan);
