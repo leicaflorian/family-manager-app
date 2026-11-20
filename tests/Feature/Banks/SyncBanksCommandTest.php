@@ -11,6 +11,7 @@ use App\Models\FinancialAccount;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
+use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Support\Facades\Queue;
 
 /**
@@ -70,4 +71,35 @@ test('the job reads the bank inside its family', function (): void {
     dispatch_sync(new SyncBank($connection->id, $connection->family_id));
 
     expect($feed->calls())->toBe(1);
+});
+
+test('the job is unique per connection and waits long enough for a first read', function (): void {
+    $job = new SyncBank(7, 1);
+
+    expect($job->uniqueId())->toBe('7')
+        ->and((new ReflectionClass($job))->getAttributes(Timeout::class)[0]->newInstance()->timeout)->toBe(300);
+});
+
+test('the job does nothing when the family, the feed or the connection changed since it was queued', function (): void {
+    $feed = (new FakeBankFeed)->gives([]);
+    app()->instance(BankFeed::class, $feed);
+    $setup = function (array $family, BankConnectionStatus $status = BankConnectionStatus::Active): BankConnection {
+        $connection = bankCommandConnection($family, $status);
+        CurrentFamily::using($connection->family_id, function () use ($connection): void {
+            $connection->writeSession('s', CarbonImmutable::now()->addDays(10));
+            FinancialAccount::factory()->create(['family_id' => $connection->family_id, 'bank_connection_id' => $connection->id, 'bank_account_uid' => 'u']);
+        });
+
+        return $connection;
+    };
+
+    foreach ([
+        $setup(['bank_feed_enabled' => false]),
+        $setup(['bank_feed_enabled' => true, 'suspended_at' => now()]),
+        $setup(['bank_feed_enabled' => true], BankConnectionStatus::NeedsReconnect),
+    ] as $connection) {
+        dispatch_sync(new SyncBank($connection->id, $connection->family_id));
+    }
+
+    expect($feed->calls())->toBe(0);
 });

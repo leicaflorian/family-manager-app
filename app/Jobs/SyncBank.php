@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Actions\Banks\SyncBankConnection;
+use App\Enums\BankConnectionStatus;
 use App\Models\BankConnection;
+use App\Models\Family;
 use App\Support\CurrentFamily;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\Attributes\UniqueFor;
 
@@ -19,6 +22,7 @@ use Illuminate\Queue\Attributes\UniqueFor;
  */
 #[Tries(1)]
 #[UniqueFor(900)]
+#[Timeout(300)]
 final class SyncBank implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
@@ -45,7 +49,11 @@ final class SyncBank implements ShouldBeUnique, ShouldQueue
         CurrentFamily::using($this->familyId, function () use ($sync): void {
             $connection = BankConnection::query()->find($this->connectionId);
 
-            if ($connection instanceof BankConnection) {
+            // The family may have been blocked or turned off, or the bank disconnected, since the read was queued
+            $family = Family::query()->find($this->familyId);
+            $readable = $family instanceof Family && $family->bank_feed_enabled && ! $family->isBlocked();
+
+            if ($readable && $connection instanceof BankConnection && in_array($connection->status, [BankConnectionStatus::Active, BankConnectionStatus::Error], true)) {
                 $sync->handle($connection);
             }
         });

@@ -7,13 +7,13 @@ namespace App\Actions\Banks;
 use App\Contracts\BankFeed;
 use App\Enums\BankConnectionStatus;
 use App\Exceptions\Banks\BankConsentEnded;
-use App\Exceptions\Banks\BankFeedFailed;
 use App\Exceptions\Banks\BankLimitReached;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankVisitor;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Reads the transactions of every account of a bank connection and saves them. Runs inside the family of the
@@ -65,7 +65,7 @@ final readonly class SyncBankConnection
             return $new;
         } catch (BankLimitReached) {
             return $new;
-        } catch (BankFeedFailed $failure) {
+        } catch (Throwable $failure) {
             report($failure);
             $this->mark($connection, BankConnectionStatus::Error, Str::limit($failure->getMessage(), 250));
 

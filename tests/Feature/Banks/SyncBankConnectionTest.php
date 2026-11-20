@@ -159,3 +159,20 @@ test('a failure is reported and saved as the last error', function (): void {
         Exceptions::assertReported(BankFeedFailed::class);
     });
 });
+
+test('an unexpected error is reported and saved too, and nothing leaves the action', function (): void {
+    insideBianchi(function (): void {
+        [$connection] = bankSyncSetup();
+        $feed = Mockery::mock(BankFeed::class);
+        $feed->shouldReceive('transactions')->andThrow(new RuntimeException('boom'));
+        app()->instance(BankFeed::class, $feed);
+        Exceptions::fake();
+
+        $count = resolve(SyncBankConnection::class)->handle($connection);
+
+        expect($count)->toBe(0)
+            ->and($connection->refresh()->status)->toBe(BankConnectionStatus::Error)
+            ->and($connection->last_error)->toBe('boom');
+        Exceptions::assertReported(RuntimeException::class);
+    });
+});

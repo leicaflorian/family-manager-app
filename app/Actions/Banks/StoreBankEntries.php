@@ -39,9 +39,10 @@ final class StoreBankEntries
                 $order = $seen[$hash] = ($seen[$hash] ?? -1) + 1;
 
                 if ($entry->booked) {
-                    $booked[($entry->providerId !== null && $entry->providerId !== '') ? $entry->providerId : $hash.'#'.$order] = $entry;
+                    // Keys carry a prefix so a numeric id never becomes an integer array key
+                    $booked['k'.(($entry->providerId !== null && $entry->providerId !== '') ? $entry->providerId : $hash.'#'.$order)] = $entry;
                 } else {
-                    $pending['pending:'.$hash.'#'.$order] = $entry;
+                    $pending['kpending:'.$hash.'#'.$order] = $entry;
                 }
             }
 
@@ -55,21 +56,22 @@ final class StoreBankEntries
 
             $known = BankTransaction::query()
                 ->where('financial_account_id', $account->id)
-                ->whereIn('provider_id', [...array_keys($booked), ...array_keys($pending)])
+                ->whereIn('provider_id', array_map(static fn (string $key): string => substr($key, 1), [...array_keys($booked), ...array_keys($pending)]))
                 ->pluck('provider_id')
+                ->map(static fn (mixed $id): string => 'k'.(is_scalar($id) ? (string) $id : ''))
                 ->flip();
 
             $new = [];
 
             foreach ($pending as $key => $entry) {
                 if (! $known->has($key)) {
-                    $this->create($connection, $account, $key, $entry);
+                    $this->create($connection, $account, substr($key, 1), $entry);
                 }
             }
 
             foreach ($booked as $key => $entry) {
                 if (! $known->has($key)) {
-                    $new[] = $this->create($connection, $account, $key, $entry);
+                    $new[] = $this->create($connection, $account, substr($key, 1), $entry);
                 }
             }
 

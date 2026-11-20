@@ -141,3 +141,16 @@ test('an entry in another currency is stored with its currency', function (): vo
         expect(BankTransaction::query()->sole()->currency)->toBe('USD');
     });
 });
+
+test('a numeric id of the bank is stored and not stored twice', function (): void {
+    insideBianchi(function (): void {
+        $entry = bankStoreEntry('1234567890', '2026-11-10', -10.0, 'Numeric');
+
+        [$connection, $account, $first] = bankStoreRun([$entry]);
+        [, , $second] = bankStoreRun([$entry], [$connection, $account]);
+
+        expect($first)->toHaveCount(1)
+            ->and($second)->toBe([])
+            ->and(BankTransaction::query()->sole()->provider_id)->toBe('1234567890');
+    });
+});
