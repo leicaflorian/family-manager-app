@@ -12,20 +12,11 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     usePage: () => ({ url: '/upload', props: { ...shared } }),
 }));
 
-// Whether a page of the app comes before this one in the tab: here the test says it
-const trail = vi.hoisted(() => ({ canGoBack: vi.fn(() => false) }));
-
-vi.mock('@/lib/visitHistory', async (original) => ({
-    ...(await original<typeof import('@/lib/visitHistory')>()),
-    canGoBack: trail.canGoBack,
-}));
-
 /** The props of the server: only the card the person comes from. */
 const props = { presetLinks: [] };
 
 afterEach(() => {
     shared.to_sort_count = 0;
-    trail.canGoBack.mockReset().mockReturnValue(false);
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -105,38 +96,6 @@ describe('Upload', () => {
         );
     });
 
-    it('closes to the card it comes from, or to the home page', () => {
-        const result = renderPage(Upload, {
-            ...props,
-            presetLinks: [{ type: 'vehicle', id: 1 }],
-        });
-        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
-            'href',
-            '/cards/vehicle/1',
-        );
-        result.unmount();
-
-        renderPage(Upload, { ...props });
-        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
-            'href',
-            '/dashboard',
-        );
-    });
-
-    it('closes back to the page it came from when there is one', async () => {
-        trail.canGoBack.mockReturnValue(true);
-        const back = vi
-            .spyOn(window.history, 'back')
-            .mockImplementation(() => {});
-        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
-        renderPage(Upload, { ...props });
-
-        await fireEvent.click(screen.getByRole('link', { name: 'Close' }));
-
-        expect(back).toHaveBeenCalledTimes(1);
-        expect(visit).not.toHaveBeenCalled();
-    });
-
     it('only takes the files: there is no form, the files are checked in Import', () => {
         renderPage(Upload, { ...props });
 
@@ -172,10 +131,9 @@ describe('Upload by layout', () => {
         expect(
             screen.queryByText('Drag the files here, or choose them'),
         ).not.toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Close' })).toBeInTheDocument();
     });
 
-    it('on the phone puts the link to the files to sort on its own row under the title, and on the tablet beside the ×', () => {
+    it('on the phone puts the link to the files to sort on its own row under the title, and on the tablet beside it', () => {
         shared.to_sort_count = 5;
         for (const [width, below] of [
             [390, true],
@@ -185,13 +143,11 @@ describe('Upload by layout', () => {
             const view = renderPage(Upload, { ...props });
 
             const link = screen.getByRole('link', { name: '5 files to sort' });
-            const close = screen.getByRole('link', { name: 'Close' });
-            expect(
-                Boolean(
-                    close.compareDocumentPosition(link) &
-                    Node.DOCUMENT_POSITION_FOLLOWING,
-                ),
-            ).toBe(below);
+            // the block of the title holds the link back, the title and its actions: on the phone the link is below it
+            const block = screen.getByRole('link', {
+                name: 'To sort',
+            }).parentElement;
+            expect(block?.contains(link)).toBe(!below);
             expect(
                 screen
                     .getByRole('heading', { name: 'Upload a document' })
@@ -215,18 +171,14 @@ describe('Upload by layout', () => {
         expect(
             screen.getByText('PDF, JPG, PNG or HEIC, up to 25 MB each'),
         ).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Close' })).toBeInTheDocument();
     });
 
-    it('on the computer has no photo card and no close button', () => {
+    it('on the computer has no photo card', () => {
         screenWidth(1280);
         renderPage(Upload, { ...props });
 
         expect(
             screen.queryByRole('link', { name: /Take a photo of a sheet/ }),
-        ).not.toBeInTheDocument();
-        expect(
-            screen.queryByRole('link', { name: 'Close' }),
         ).not.toBeInTheDocument();
         expect(
             screen.getByText('Drag the files here, or choose them'),
@@ -299,7 +251,7 @@ describe('Upload on the computer', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('has no close button beside the title on the computer, and has it on the tablet and the phone', () => {
+    it('goes back to To sort with the link above the title on the tablet and the phone, as the received mail, and has no ×', () => {
         for (const [width, shown] of [
             [1280, false],
             [820, true],
@@ -308,9 +260,12 @@ describe('Upload on the computer', () => {
             screenWidth(width);
             const view = renderPage(Upload, { ...props });
 
-            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
-                shown,
-            );
+            const back = screen.queryByRole('link', { name: 'To sort' });
+            expect(back !== null).toBe(shown);
+            if (back) expect(back).toHaveAttribute('href', '/to-sort');
+            expect(
+                screen.queryByRole('link', { name: 'Close' }),
+            ).not.toBeInTheDocument();
             view.unmount();
         }
     });

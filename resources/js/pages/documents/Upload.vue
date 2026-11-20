@@ -4,30 +4,26 @@
  * each) are chosen or dragged here and sent. The server keeps them waiting,
  * starts their reading and opens *Import more files* with them, where each is
  * checked and filed as a document: this page only takes the files. The card
- * the upload starts from travels with them. The × goes back to that card, or
- * to the home page. The phone and the tablet offer *Take a photo of a sheet*
+ * the upload starts from travels with them. On the phone and the tablet *‹ To
+ * sort* above the title leads back, as on *Received mail*. The phone and the tablet offer *Take a photo of a sheet*
  * beside the drop zone (above it on the phone); a Mac or a Windows PC offers the
  * home scanner beside it instead, as a secondary card; any other computer has
  * only the zone.
  */
-import { Head, router } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import PhotoSheetCard from '@/components/documents/PhotoSheetCard.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmToSortLink from '@/components/fm/FmToSortLink.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
 import { useToSortCount } from '@/composables/useToSortCount';
 import { cn } from '@/lib/utils';
-import { presetUrl } from '@/lib/documents';
 import type { DocumentLink } from '@/lib/documents';
 import { desktopSystem } from '@/lib/devices';
-import { canGoBack } from '@/lib/visitHistory';
-import { dashboard, toSort } from '@/routes';
+import { toSort } from '@/routes';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
 
@@ -41,28 +37,6 @@ const toSortCount = useToSortCount();
 
 /** The card the person comes from. */
 const preset = computed(() => props.presetLinks[0]);
-
-/** Where the × goes when no page of the app comes before: the card the person comes from, or the home page. */
-const closeUrl = computed(() =>
-    preset.value ? presetUrl(preset.value) : dashboard().url,
-);
-
-/**
- * The ×: back to the page of the app the person came from, as the Back of the top bar; with none before (a tab
- * opened here) to `closeUrl`. A click with a modifier key opens the link as the browser does.
- *
- * @param event - the click
- */
-function close(event: MouseEvent): void {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-        return;
-    }
-
-    event.preventDefault();
-
-    if (canGoBack()) window.history.back();
-    else router.visit(closeUrl.value);
-}
 
 const {
     send,
@@ -113,21 +87,16 @@ usePageTrail(() => [
     <div class="flex flex-col gap-6">
         <!-- On the phone the link to the files to sort has its own row under the title, as the board Carica -->
         <div class="flex flex-col gap-3">
-            <FmTitle :title="$t('Upload a document')">
+            <FmTitle
+                :title="$t('Upload a document')"
+                :back="toSort().url"
+                :back-label="$t('To sort')"
+            >
                 <template #actions>
                     <FmToSortLink
                         v-if="layout !== 'phone'"
                         :count="toSortCount"
                     />
-                    <a
-                        v-if="layout !== 'computer'"
-                        :href="closeUrl"
-                        :aria-label="$t('Close')"
-                        class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                        @click="close"
-                    >
-                        <FmIcon :icon="X" :size="20" />
-                    </a>
                 </template>
             </FmTitle>
             <div v-if="layout === 'phone' && toSortCount > 0" class="flex">
