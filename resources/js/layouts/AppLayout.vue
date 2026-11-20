@@ -106,11 +106,30 @@ const query = computed((): string =>
         : '',
 );
 
-/** The menu of the tablet is open. */
+/** The sidebar of the tablet is open over the page. */
 const menuOpen = ref(false);
 
 /** The sidebar of the computer is collapsed to its icons, as this browser remembers. */
 const sidebarCollapsed = useSidebarCollapsed();
+
+/** Whether the sidebar in the page is collapsed: always on the tablet, which opens it over the page. */
+const collapsed = computed(
+    (): boolean => mode.value === 'tablet' || sidebarCollapsed.value,
+);
+
+/**
+ * Collapses or expands the sidebar: on the computer it stays so (and the browser remembers it), on the tablet
+ * expanding opens it over the page and collapsing closes it.
+ *
+ * @param value - true to collapse it
+ */
+function setCollapsed(value: boolean): void {
+    if (mode.value === 'tablet') {
+        menuOpen.value = !value;
+    } else {
+        sidebarCollapsed.value = value;
+    }
+}
 
 /** The panel *Report a problem or an idea* is open. */
 const feedbackOpen = ref(false);
@@ -207,10 +226,9 @@ useSearchShortcut(focusSearch);
         :style="{ '--app-header': appHeader }"
     >
         <FmSidebar
-            v-if="mode === 'computer'"
-            v-model:collapsed="sidebarCollapsed"
+            v-if="mode !== 'phone'"
             class="sticky top-0 h-dvh"
-            collapsible
+            :collapsed="collapsed"
             :active="active"
             :path="path"
             :items="items"
@@ -219,6 +237,7 @@ useSearchShortcut(focusSearch);
             :user="user"
             :upload-count="toSort"
             @report="openFeedback"
+            @update:collapsed="setCollapsed"
         />
         <div class="flex min-w-0 grow flex-col">
             <div ref="header" class="sticky top-0 z-30">
@@ -240,13 +259,11 @@ useSearchShortcut(focusSearch);
                     :mode="mode"
                     :trail="trail"
                     :section="sectionPage"
-                    :family="family"
-                    :upload-count="toSort"
+                    :collapsed="collapsed"
                     :unread-notices="unreadNotices"
                     :notices="notices"
                     :query="query"
-                    :menu-open="menuOpen"
-                    @open-menu="menuOpen = true"
+                    @expand="setCollapsed(false)"
                     @load-notices="loadNotices"
                 />
             </div>
@@ -286,11 +303,11 @@ useSearchShortcut(focusSearch);
                     id="app-menu"
                     data-no-screenshot
                     :aria-describedby="undefined"
-                    class="fixed inset-y-0 left-0 z-50 flex w-[280px] bg-card shadow-dialog outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left motion-reduce:animate-none"
+                    class="fixed inset-y-0 left-0 z-50 flex bg-card shadow-dialog outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left motion-reduce:animate-none"
                 >
                     <DialogTitle class="sr-only">{{ $t('Menu') }}</DialogTitle>
                     <FmSidebar
-                        class="h-full w-full overflow-y-auto"
+                        class="h-full overflow-y-auto"
                         :active="active"
                         :path="path"
                         :items="items"
@@ -298,9 +315,8 @@ useSearchShortcut(focusSearch);
                         :family="family"
                         :user="user"
                         :upload-count="toSort"
-                        menu
                         @report="openFeedback"
-                        @close="menuOpen = false"
+                        @update:collapsed="menuOpen = false"
                     />
                 </DialogContent>
             </DialogPortal>

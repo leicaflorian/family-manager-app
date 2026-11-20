@@ -31,65 +31,28 @@ function areaList() {
 }
 
 describe('FmSidebar', () => {
-    it('as the menu of the tablet starts with the bar of the page: Back, the logo and the family', async () => {
-        const sidebar = render(FmSidebar, {
-            props: {
-                active: 'home',
-                path: '/dashboard',
-                items: navigationItems(),
-                areas: areaCounts,
-                family: 'Bianchi',
-                user: 'Marco Bianchi',
-                menu: true,
-            },
+    it('starts with the bar of the page: the logo and the family, and at the right the button that collapses it', async () => {
+        const sidebar = bar('home');
+
+        const collapse = screen.getByRole('button', {
+            name: 'Collapse the menu',
         });
-
-        const back = screen.getByRole('button', { name: 'Back' });
-        // the same box as the top bar, so the logo does not move when the menu opens
-        expect(back.parentElement).toHaveClass('h-topbar', 'px-5', 'gap-3.5');
-        expect(back.parentElement).toHaveTextContent('Fameja.app');
-        expect(back.parentElement).toHaveTextContent('Bianchi family');
-
-        await userEvent.click(back);
-
-        expect(sidebar.emitted('close')).toHaveLength(1);
-    });
-
-    it('as the sidebar of the computer has no Back', () => {
-        bar('home');
-
-        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
-    });
-
-    it('on the computer has the button that collapses it, at the right of the logo', async () => {
-        const sidebar = render(FmSidebar, {
-            props: {
-                active: 'home',
-                path: '/dashboard',
-                items: navigationItems(),
-                areas: areaCounts,
-                family: 'Bianchi',
-                user: 'Marco Bianchi',
-                collapsible: true,
-            },
-        });
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Collapse the menu' }),
+        // the same box as the top bar, white as the sidebar
+        expect(collapse.parentElement).toHaveClass(
+            'h-topbar',
+            'border-b',
+            'bg-card',
         );
+        expect(collapse.parentElement).toHaveTextContent('Fameja.app');
+        expect(collapse.parentElement).toHaveTextContent('Bianchi family');
+        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+
+        await userEvent.click(collapse);
 
         expect(sidebar.emitted('update:collapsed')).toEqual([[true]]);
     });
 
-    it('has no button to collapse it without collapsible: the menu of the tablet', () => {
-        bar('home');
-
-        expect(
-            screen.queryByRole('button', { name: 'Collapse the menu' }),
-        ).toBeNull();
-    });
-
-    it('collapsed keeps only the icons, with the names for who cannot see them', () => {
+    it('collapsed keeps the logo and the icons, with the names for who cannot see them', async () => {
         render(FmSidebar, {
             props: {
                 active: 'documents',
@@ -99,7 +62,6 @@ describe('FmSidebar', () => {
                 family: 'Bianchi',
                 user: 'Marco Bianchi',
                 uploadCount: 4,
-                collapsible: true,
                 collapsed: true,
             },
         });
@@ -129,44 +91,25 @@ describe('FmSidebar', () => {
         expect(
             screen.getByRole('button', { name: /Marco Bianchi/ }),
         ).toBeInTheDocument();
-
-        // no button under the logo: the sidebar opens by passing over it
+        // the button that expands it is in the top bar, before the trail
         expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
+
+        // passing over it does not open it any more
+        await userEvent.hover(aside);
+        expect(aside).toHaveClass('w-[76px]');
     });
 
-    it('collapsed opens over the page while the pointer is on it, and can stay open', async () => {
-        const sidebar = render(FmSidebar, {
-            props: {
-                active: 'documents',
-                path: '/documents',
-                items: navigationItems(),
-                areas: areaCounts,
-                family: 'Bianchi',
-                user: 'Marco Bianchi',
-                collapsible: true,
-                collapsed: true,
-            },
-        });
+    it('slides between open and collapsed, unless the system asks for less motion', () => {
+        bar('home');
+
         const aside = screen.getByRole('complementary');
-
-        await userEvent.hover(aside);
-
-        // 260 px wide, but still 76 px in the row: it covers the page instead of pushing it
-        expect(aside).toHaveClass('w-[260px]', '-mr-[184px]');
-        expect(screen.getByText('Every day')).not.toHaveClass('sr-only');
-        expect(
-            screen.getByRole('button', { name: 'Show the areas' }),
-        ).toBeInTheDocument();
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Keep the menu open' }),
+        expect(aside).toHaveClass(
+            'transition-[width,padding]',
+            'motion-reduce:transition-none',
+            'overflow-x-hidden',
         );
-        expect(sidebar.emitted('update:collapsed')).toEqual([[false]]);
-
-        await userEvent.unhover(aside);
-
-        expect(aside).toHaveClass('w-[76px]');
-        expect(screen.getByText('Every day')).toHaveClass('sr-only');
+        // the names do not wrap while the width changes
+        expect(screen.getByText('Documents')).toHaveClass('whitespace-nowrap');
     });
 
     it('has Upload at the top and the sections, with the open one marked', () => {

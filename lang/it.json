@@ -1804,7 +1804,6 @@
     "Something to remember, with the date": "Una cosa da ricordare, con la data",
     "{1} :label, :count file|[2,*] :label, :count files": "{1} :label, :count file|[2,*] :label, :count file",
     "Menu": "Menu",
-    "{1} Menu, :count file to sort|[2,*] Menu, :count files to sort": "{1} Menu, :count file da smistare|[2,*] Menu, :count file da smistare",
     "From the gallery or the phone's files. PDF, JPG, PNG or HEIC, up to 25 MB each": "Dalla galleria o dai file del telefono. PDF, JPG, PNG o HEIC, fino a 25 MB l'uno",
     "Drag the files here, or": "Trascina qui i file, oppure",
     "choose from the computer": "scegli dal computer",
@@ -2088,5 +2087,5 @@
     "The cut sheet, as it will be saved": "Il foglio ritagliato, come verrà salvato",
     "Lightens the paper, darkens the text. All the way left the photo stays as it is; past halfway, more contrast.": "Schiarisce la carta, scurisce il testo. Tutto a sinistra la foto resta com'è; oltre metà, più contrasto.",
     "Collapse the menu": "Riduci il menu",
-    "Keep the menu open": "Tieni aperto il menu"
+    "Expand the menu": "Allarga il menu"
 }

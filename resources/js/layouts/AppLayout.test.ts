@@ -97,6 +97,7 @@ describe('AppLayout', () => {
         page.component = 'Documents/Index';
         page.url = '/documents?person=3';
         page.toSort = 0;
+        localStorage.clear();
     });
 
     it('tells the pages how high its sticky top is: the top bar, nothing on the phone', () => {
@@ -148,41 +149,43 @@ describe('AppLayout', () => {
             screen.getByRole('heading', { name: 'New document' }).parentElement,
         ).toBe(screen.getByRole('main'));
         expect(
-            screen.getByRole('button', { name: 'Menu' }),
+            screen.getByRole('button', { name: 'Expand the menu' }),
         ).toBeInTheDocument();
     });
 
-    it('on the tablet has the Menu button, and neither the bottom bar nor the sidebar', () => {
+    it('on the tablet keeps the sidebar collapsed, with Expand in the top bar and no bottom bar', () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
 
-        expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute(
-            'aria-expanded',
-            'false',
+        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
+        expect(screen.getByRole('link', { name: 'Documents' })).toHaveAttribute(
+            'aria-current',
+            'page',
         );
+        expect(
+            screen.getByRole('button', { name: 'Expand the menu' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Collapse the menu' }),
+        ).toBeNull();
         expect(
             screen.queryByRole('button', { name: 'More' }),
         ).not.toBeInTheDocument();
-        expect(
-            screen.queryByRole('navigation', { name: 'Sections' }),
-        ).not.toBeInTheDocument();
     });
 
-    it('on the tablet opens the menu with the items of the sidebar, and a visit closes it', async () => {
+    it('on the tablet opens the sidebar over the page, and a visit closes it', async () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
 
-        await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Expand the menu' }),
+        );
 
         const menu = await screen.findByRole('dialog', { name: 'Menu' });
-        expect(menu).toHaveAttribute('id', 'app-menu');
         expect(
             within(menu).getByRole('link', { name: 'Documents' }),
         ).toHaveAttribute('aria-current', 'page');
-        expect(
-            // The open dialog hides the rest of the page from screen readers
-            screen.getByRole('button', { name: 'Menu', hidden: true }),
-        ).toHaveAttribute('aria-expanded', 'true');
+        expect(within(menu).getByText('Bianchi family')).toBeVisible();
 
         visited();
 
@@ -193,31 +196,16 @@ describe('AppLayout', () => {
         );
     });
 
-    it('on the computer collapses the sidebar to the icons, and remembers it', async () => {
-        const first = render(AppLayout, {
-            slots: { default: '<h1>Documents</h1>' },
-        });
-
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Collapse the menu' }),
-        );
-
-        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
-        first.unmount();
-
-        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
-        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
-        localStorage.clear();
-    });
-
-    it('on the tablet closes the menu with Back, in place of the Menu button', async () => {
+    it('on the tablet collapses the open sidebar with its button', async () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
-        await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Expand the menu' }),
+        );
         const menu = await screen.findByRole('dialog', { name: 'Menu' });
 
         await userEvent.click(
-            within(menu).getByRole('button', { name: 'Back' }),
+            within(menu).getByRole('button', { name: 'Collapse the menu' }),
         );
 
         await waitFor(() =>
@@ -227,10 +215,12 @@ describe('AppLayout', () => {
         );
     });
 
-    it('on the tablet closes the menu also for a visit to the page already open', async () => {
+    it('on the tablet closes the sidebar also for a visit to the page already open', async () => {
         screenWidth(820);
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
-        await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Expand the menu' }),
+        );
         await screen.findByRole('dialog', { name: 'Menu' });
 
         // the same address fires no navigate: only the start of the visit
@@ -252,6 +242,31 @@ describe('AppLayout', () => {
                 screen.queryByRole('dialog', { name: 'Menu' }),
             ).not.toBeInTheDocument(),
         );
+    });
+
+    it('on the computer collapses the sidebar to the icons, expands it from the top bar, and remembers it', async () => {
+        const first = render(AppLayout, {
+            slots: { default: '<h1>Documents</h1>' },
+        });
+        expect(
+            screen.queryByRole('button', { name: 'Expand the menu' }),
+        ).toBeNull();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Collapse the menu' }),
+        );
+
+        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
+        first.unmount();
+
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        expect(screen.getByRole('complementary')).toHaveClass('w-[76px]');
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Expand the menu' }),
+        );
+
+        expect(screen.getByRole('complementary')).toHaveClass('w-[260px]');
     });
 
     it('on the computer has the sidebar and the trail, with the section of the page', () => {

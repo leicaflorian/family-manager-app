@@ -1,30 +1,25 @@
 <script setup lang="ts">
 /**
- * The sidebar of the computer (from 1024 px), and the content of the menu that
- * the Menu button of the tablet opens from the left: the logo and the family,
- * Upload (which only uploads), Home and the sections in three groups: *Incoming* (*To sort*, with the files
- * waiting in a blue pill, nothing at zero, and *Received mail*), *Every day* (Agenda, Budget) and
- * *Archive* (Areas, with the areas under it, Documents, Family), and at
- * the bottom *My account*, which opens Settings, *Report a problem or an idea*
- * (it emits `report`: the layout opens the panel) and Log out. When the sections do not fit
- * the window, only they scroll: the logo, Upload and *My account* stay in place.
- * As the menu of the tablet (`menu`) it starts with the bar of the page, the same box as the top bar, with Back
- * (it emits `close`) where the bar has Menu: opening the menu leaves the logo where it was.
- * On the computer (`collapsible`) a button at the right of the logo collapses it to 76 px (`v-model:collapsed`):
- * only the icons stay, with the names for screen readers, lines in place of the names of the groups, no list of
- * the areas and the avatar alone at the bottom. Passing over it (or moving the focus into it) opens it whole over
- * the page, which does not move, and there the button of the logo keeps it open.
+ * The sidebar of the tablet and of the computer: the bar of its head (the same box as the top bar, white) with the
+ * logo and the family, and at the right the button that collapses it; Upload (which only uploads), Home and the
+ * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
+ * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, with the areas under it, Documents, Family),
+ * and at the bottom *My account*, which opens Settings, *Report a problem or an idea* (it emits `report`: the layout
+ * opens the panel) and Log out. When the sections do not fit the window, only they scroll: the head, Upload and
+ * *My account* stay in place.
+ * Collapsed (`v-model:collapsed`) it is 76 px wide: the logo alone in the head, only the icons with their names on
+ * hover and for screen readers, lines in place of the names of the groups, no list of the areas and the avatar alone
+ * at the bottom. The button that expands it is in the top bar, before the trail (`FmTopBar`). The tablet always has
+ * it collapsed, and opens it over the page.
  *
  * @group navigation
  */
 import { Link } from '@inertiajs/vue3';
 import {
-    ArrowLeft,
     ChevronDown,
     ChevronUp,
     LogOut,
     PanelLeftClose,
-    PanelLeftOpen,
     Plus,
 } from '@lucide/vue';
 import {
@@ -60,8 +55,6 @@ const {
     family,
     user,
     uploadCount = 0,
-    menu = false,
-    collapsible = false,
     collapsed = false,
 } = defineProps<{
     /** The section of the page that is open. */
@@ -78,81 +71,18 @@ const {
     user: string;
     /** The files waiting to be sorted: the number in the pill of *To sort*; nothing at zero, 99+ above 99. */
     uploadCount?: number;
-    /** The sidebar is the menu of the tablet: it starts with the bar of the page and Back. */
-    menu?: boolean;
-    /** The sidebar of the computer: it has the button that collapses it to the icons. */
-    collapsible?: boolean;
-    /** Collapsed to the icons, 76 px wide; only with `collapsible`. */
+    /** Collapsed to the icons, 76 px wide. */
     collapsed?: boolean;
 }>();
 
 const emit = defineEmits<{
     /** *Report a problem or an idea* was chosen: the layout opens its panel. */
     report: [];
-    /** Back of the menu of the tablet was chosen: the layout closes the menu. */
-    close: [];
-    /** The button of the logo was chosen: collapse (true) or expand (false) the sidebar. */
+    /** The button of the head was chosen: collapse the sidebar (expanding it is the top bar's button). */
     'update:collapsed': [collapsed: boolean];
 }>();
 
-/** Whether only the icons are shown. */
-const small = computed(
-    (): boolean => collapsible && collapsed && !peeking.value,
-);
-
-/** The pointer is over the collapsed sidebar. */
-const pointerOver = ref(false);
-
-/** The focus is inside the collapsed sidebar, for who moves with the keyboard. */
-const focusInside = ref(false);
-
-/** The menu of *My account* is open: the sidebar stays open under it. */
-const accountOpen = ref(false);
-
-/** Whether the collapsed sidebar is open over the page. */
-const peeking = computed(
-    (): boolean => pointerOver.value || focusInside.value || accountOpen.value,
-);
-
-/** Whether the sidebar is collapsed but open over the page right now. */
-const floating = computed(
-    (): boolean => collapsible && collapsed && peeking.value,
-);
-
-/**
- * The pointer leaves the sidebar: it closes, also when a click left the focus inside it.
- */
-function pointerLeft(): void {
-    pointerOver.value = false;
-    focusInside.value = false;
-}
-
-/**
- * Follows the focus leaving the sidebar: it closes only when the focus goes outside it.
- *
- * @param event - the focusout of the sidebar
- */
-function focusLeft(event: FocusEvent): void {
-    const aside = event.currentTarget as HTMLElement;
-    focusInside.value =
-        event.relatedTarget instanceof Node &&
-        aside.contains(event.relatedTarget);
-}
-
-/**
- * The button of the logo: collapses the open sidebar, or keeps open the one that is open over the page.
- * After collapsing it closes at once, even with the pointer still over it.
- */
-function toggleCollapsed(): void {
-    if (!collapsed) {
-        pointerOver.value = false;
-        focusInside.value = false;
-    }
-
-    emit('update:collapsed', !collapsed);
-}
-
-// The classes of the page are merged with the sidebar's (the menu of the tablet makes it `w-full`)
+// The classes of the page are merged with the sidebar's (the layout makes it sticky, as tall as the window)
 defineOptions({ inheritAttrs: false });
 
 const attrs = useAttrs();
@@ -165,11 +95,8 @@ const attrs = useAttrs();
  */
 function rootClass(): string {
     return cn(
-        'flex w-[260px] shrink-0 flex-col gap-1.5 border-r border-edge-soft bg-card px-3.5 py-5',
-        menu && 'pt-0',
-        small.value && 'w-[76px] px-3',
-        // 260 px wide but 76 px in the row of the page: it covers the page instead of pushing it
-        floating.value && 'z-40 -mr-[184px] shadow-menu',
+        'flex w-[260px] shrink-0 flex-col gap-1.5 overflow-x-hidden border-r border-edge-soft bg-card px-3.5 pb-5 transition-[width,padding] duration-200 ease-out motion-reduce:transition-none',
+        collapsed && 'w-[76px] px-3',
         attrs.class as ClassValue,
     );
 }
@@ -285,74 +212,49 @@ function isPage(section: Section): boolean {
 </script>
 
 <template>
-    <aside
-        v-bind="otherAttrs()"
-        :class="rootClass()"
-        @mouseenter="pointerOver = collapsible && collapsed"
-        @mouseleave="pointerLeft"
-        @focusin="focusInside = collapsible && collapsed"
-        @focusout="focusLeft"
-    >
-        <!-- As the menu of the tablet: the box of the top bar, across the whole menu, 20 px above Upload -->
+    <aside v-bind="otherAttrs()" :class="rootClass()">
+        <!-- The box of the top bar, across the whole sidebar, 20 px above Upload: the logo stays 20 px from the edge, open or collapsed -->
         <div
+            class="mb-3.5 flex h-topbar shrink-0 items-center border-b border-edge-soft bg-card"
             :class="
-                menu
-                    ? '-mx-3.5 mb-3.5 flex h-topbar shrink-0 items-center gap-3.5 border-b border-edge-soft bg-canvas px-5'
-                    : small
-                      ? 'flex shrink-0 flex-col items-center gap-2.5 pt-1 pb-4'
-                      : 'flex shrink-0 items-center px-2 pt-1 pb-4'
+                collapsed ? '-mx-3 justify-center' : '-mx-3.5 gap-2.5 pr-4 pl-5'
             "
         >
-            <button
-                v-if="menu"
-                type="button"
-                :aria-label="$t('Back')"
-                :title="$t('Back')"
-                :class="squareButton"
-                class="cursor-pointer"
-                @click="emit('close')"
-            >
-                <FmIcon :icon="ArrowLeft" :size="22" />
-            </button>
-            <span class="flex grow items-center gap-2.5">
+            <span class="flex min-w-0 grow items-center justify-center gap-2.5">
                 <FmLogo :size="36" />
-                <span :class="small ? 'sr-only' : 'flex flex-col'">
-                    <span class="text-amount text-ink">{{ appName }}</span>
-                    <span class="text-meta text-ink-soft">{{
+                <span
+                    :class="
+                        collapsed ? 'sr-only' : 'flex min-w-0 grow flex-col'
+                    "
+                >
+                    <span class="text-amount whitespace-nowrap text-ink">{{
+                        appName
+                    }}</span>
+                    <span class="text-meta whitespace-nowrap text-ink-soft">{{
                         $t(':family family', { family })
                     }}</span>
                 </span>
             </span>
             <button
-                v-if="collapsible && !small"
+                v-if="!collapsed"
                 type="button"
-                :aria-label="
-                    floating
-                        ? $t('Keep the menu open')
-                        : $t('Collapse the menu')
-                "
-                :title="
-                    floating
-                        ? $t('Keep the menu open')
-                        : $t('Collapse the menu')
-                "
-                class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-tag text-ink-soft hover:bg-canvas hover:text-ink"
-                @click="toggleCollapsed"
+                :aria-label="$t('Collapse the menu')"
+                :title="$t('Collapse the menu')"
+                :class="squareButton"
+                class="cursor-pointer hover:bg-canvas"
+                @click="emit('update:collapsed', true)"
             >
-                <FmIcon
-                    :icon="floating ? PanelLeftOpen : PanelLeftClose"
-                    :size="20"
-                />
+                <FmIcon :icon="PanelLeftClose" :size="22" />
             </button>
         </div>
 
         <Link
             :href="items.upload"
-            :title="small ? $t('Upload') : undefined"
+            :title="collapsed ? $t('Upload') : undefined"
             class="mb-3.5 flex h-control-md shrink-0 items-center justify-center gap-2 rounded-md bg-action text-body text-on-action no-underline hover:bg-action-dark"
         >
             <FmIcon :icon="Plus" :size="20" :stroke="2.5" />
-            <span :class="small && 'sr-only'">{{ $t('Upload') }}</span>
+            <span :class="collapsed && 'sr-only'">{{ $t('Upload') }}</span>
         </Link>
 
         <!-- Only the sections scroll, when the open areas make them taller than the window;
@@ -360,7 +262,7 @@ function isPage(section: Section): boolean {
         <nav
             :aria-label="$t('Sections')"
             class="flex min-h-0 flex-col gap-0.5 overflow-y-auto"
-            :class="small ? '-mx-3 px-3' : '-mx-3.5 px-3.5'"
+            :class="collapsed ? '-mx-3 px-3' : '-mx-3.5 px-3.5'"
         >
             <div
                 v-for="(group, index) in groups"
@@ -375,10 +277,10 @@ function isPage(section: Section): boolean {
                     v-if="group.label"
                     :id="`sidebar-group-${group.key}`"
                     :class="
-                        small
+                        collapsed
                             ? 'sr-only'
                             : [
-                                  'block px-3 pb-1 text-meta-strong text-ink-soft',
+                                  'block px-3 pb-1 text-meta-strong whitespace-nowrap text-ink-soft',
                                   index === 1 ? 'pt-2.5' : 'pt-4.5',
                               ]
                     "
@@ -386,7 +288,7 @@ function isPage(section: Section): boolean {
                 >
                 <!-- Collapsed, a line takes the place of the name of the group -->
                 <span
-                    v-if="group.label && small"
+                    v-if="group.label && collapsed"
                     aria-hidden="true"
                     class="mx-1.5 my-[9px] h-px bg-divider"
                 />
@@ -397,16 +299,18 @@ function isPage(section: Section): boolean {
                             :aria-current="
                                 isPage(item.section) ? 'page' : undefined
                             "
-                            :title="small ? item.label : undefined"
+                            :title="collapsed ? item.label : undefined"
                             class="relative flex h-touch grow items-center gap-3 rounded-lg px-3 text-body-sm no-underline"
                             :class="[
-                                small && 'justify-center',
+                                collapsed && 'justify-center',
                                 isPage(item.section)
                                     ? 'bg-action-soft text-label text-action-dark'
                                     : item.section === active
                                       ? 'text-label text-action-dark hover:bg-canvas'
                                       : 'text-ink hover:bg-canvas',
-                                item.section === 'areas' && !small && 'pr-12',
+                                item.section === 'areas' &&
+                                    !collapsed &&
+                                    'pr-12',
                             ]"
                         >
                             <FmIcon
@@ -418,9 +322,14 @@ function isPage(section: Section): boolean {
                                         : 'text-ink-soft'
                                 "
                             />
-                            <span :class="small ? 'sr-only' : 'grow'">{{
-                                item.label
-                            }}</span>
+                            <span
+                                :class="
+                                    collapsed
+                                        ? 'sr-only'
+                                        : 'grow whitespace-nowrap'
+                                "
+                                >{{ item.label }}</span
+                            >
                             <template
                                 v-if="
                                     item.section === 'toSort' && uploadCount > 0
@@ -431,7 +340,7 @@ function isPage(section: Section): boolean {
                                 <span
                                     class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
                                     :class="
-                                        small &&
+                                        collapsed &&
                                         'absolute top-px right-px border-2 border-card'
                                     "
                                     >{{ countBadge(uploadCount) }}</span
@@ -439,7 +348,7 @@ function isPage(section: Section): boolean {
                             </template>
                         </Link>
                         <button
-                            v-if="item.section === 'areas' && !small"
+                            v-if="item.section === 'areas' && !collapsed"
                             type="button"
                             :aria-label="$t('Show the areas')"
                             :aria-expanded="open"
@@ -454,7 +363,7 @@ function isPage(section: Section): boolean {
                         </button>
                     </div>
                     <div
-                        v-if="item.section === 'areas' && !small"
+                        v-if="item.section === 'areas' && !collapsed"
                         v-auto-animate
                     >
                         <ul
@@ -501,24 +410,26 @@ function isPage(section: Section): boolean {
 
         <!-- At the bottom when there is room, right under the sections when they scroll -->
         <div class="mt-auto shrink-0 border-t border-divider pt-2">
-            <DropdownMenuRoot v-model:open="accountOpen">
+            <DropdownMenuRoot>
                 <DropdownMenuTrigger
-                    :title="small ? user : undefined"
+                    :title="collapsed ? user : undefined"
                     class="flex min-h-13 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-canvas data-[state=open]:bg-canvas"
-                    :class="small && 'justify-center'"
+                    :class="collapsed && 'justify-center'"
                 >
                     <span
                         class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-action-soft text-label text-action-dark"
                         >{{ getInitials(user) }}</span
                     >
-                    <span :class="small ? 'sr-only' : 'flex grow flex-col'">
-                        <span class="text-label">{{ user }}</span>
+                    <span :class="collapsed ? 'sr-only' : 'flex grow flex-col'">
+                        <span class="text-label whitespace-nowrap">{{
+                            user
+                        }}</span>
                         <span class="text-caption text-ink-soft">{{
                             $t('My account')
                         }}</span>
                     </span>
                     <FmIcon
-                        v-if="!small"
+                        v-if="!collapsed"
                         :icon="ChevronDown"
                         :size="18"
                         class="text-ink-soft"
