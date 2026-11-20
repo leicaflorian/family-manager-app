@@ -10,7 +10,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { bankConnections, bankInstitutions } from '@/test/fixtures';
-import { renderPage, withTrail } from '@/test/page';
+import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Banks from './Banks.vue';
 
 beforeEach(() => {
@@ -53,7 +53,7 @@ describe('Settings, Linked banks', () => {
         ).toBeInTheDocument();
         expect(
             screen.getByText(
-                'The transactions arrive by themselves at 7, 13, and 19',
+                'The transactions arrive by themselves at 7, at 13, and at 19',
             ),
         ).toBeInTheDocument();
         expect(screen.getByText('BancoPosta')).toBeInTheDocument();
@@ -108,6 +108,32 @@ describe('Settings, Linked banks', () => {
         ).toBeInTheDocument();
     });
 
+    it('puts the button to connect under the title on a phone, in the row of the title on a computer', () => {
+        screenWidth(false);
+        const phone = renderPage(Banks, props());
+        const heading = screen.getByRole('heading', { name: 'Linked banks' });
+        const button = screen.getByRole('button', { name: 'Connect a bank' });
+        const row = heading.closest('[class*="justify-between"]')!;
+
+        expect(row).not.toContainElement(button);
+        expect(
+            heading.compareDocumentPosition(button) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        phone.unmount();
+
+        screenWidth(true);
+        renderPage(Banks, props());
+        const wide = screen
+            .getByRole('heading', { name: 'Linked banks' })
+            .closest('[class*="justify-between"]')!;
+
+        expect(wide).toContainElement(
+            screen.getByRole('button', { name: 'Connect a bank' }),
+        );
+        vi.unstubAllGlobals();
+    });
+
     it('invites to connect the first bank when there is none', () => {
         renderPage(Banks, props({ connections: [] }));
 
@@ -122,7 +148,7 @@ describe('Settings, Linked banks', () => {
 
         expect(
             screen.getByText(
-                'The transactions arrive by themselves at 6 and 18',
+                'The transactions arrive by themselves at 6 and at 18',
             ),
         ).toBeInTheDocument();
         expect(screen.getByText(/lasts up to 90 days/)).toBeInTheDocument();

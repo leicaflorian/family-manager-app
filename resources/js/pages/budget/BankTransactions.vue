@@ -37,9 +37,8 @@ import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { useLayoutMode } from '@/composables/useLayoutMode';
-import { lastReadText } from '@/lib/banks';
+import { lastReadText, readTimes } from '@/lib/banks';
 import { budgetTabs } from '@/lib/budgetTabs';
-import { listNames } from '@/lib/names';
 import { cn } from '@/lib/utils';
 import {
     assign,
@@ -88,14 +87,14 @@ const unsorted = computed((): number => bankFeed.value?.unsorted ?? 0);
 
 /** The line under the buttons: the last read and when the next ones come by themselves. */
 const readLine = computed((): string => {
-    const times = listNames(props.sync_hours.map((hour) => String(hour)));
+    const times = readTimes(props.sync_hours);
 
     return props.last_synced_at
-        ? trans(':update · they arrive by themselves at :times', {
+        ? trans(':update · they arrive by themselves :times', {
               update: lastReadText(props.last_synced_at),
               times,
           })
-        : trans('They arrive by themselves at :times', { times });
+        : trans('They arrive by themselves :times', { times });
 });
 
 /** The day a row is shown with: the booked one, for a pending transaction the one the bank gave. */

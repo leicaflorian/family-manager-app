@@ -104,13 +104,13 @@ describe('Budget, From the bank', () => {
 
         expect(
             screen.getByText(
-                'Last update today at 13:00 · they arrive by themselves at 7, 13, and 19',
+                'Last update today at 13:00 · they arrive by themselves at 7, at 13, and at 19',
             ),
         ).toBeInTheDocument();
 
         renderPage(BankTransactions, props({ last_synced_at: null }));
         expect(
-            screen.getByText('They arrive by themselves at 7, 13, and 19'),
+            screen.getByText('They arrive by themselves at 7, at 13, and at 19'),
         ).toBeInTheDocument();
     });
 

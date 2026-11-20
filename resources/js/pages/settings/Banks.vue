@@ -30,11 +30,11 @@ import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import BankMark from '@/components/banks/BankMark.vue';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { useAppName } from '@/composables/useAppName';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useReadingPoll } from '@/composables/useReadingPoll';
-import { lastReadText } from '@/lib/banks';
-import { listNames } from '@/lib/names';
+import { lastReadText, readTimes } from '@/lib/banks';
 import { formatDate } from '@/lib/format';
 import { plainText } from '@/lib/text';
 import { settings as settingsIndex } from '@/routes';
@@ -75,10 +75,11 @@ const visit = {
     },
 };
 
-/** The hours of the reads written as a sentence: «7, 13 and 19». */
-const times = computed((): string =>
-    listNames(sync_hours.map((hour) => String(hour))),
-);
+/** The hours of the reads written as a sentence: «at 7, at 13 and at 19». */
+const times = computed((): string => readTimes(sync_hours));
+
+/** Whether the page has the wide layout: the button to connect sits beside the title, else under it. */
+const wide = useWideLayout();
 
 // A bank waiting for its first read: ask only for the connections, so the panel and what is written stay as they are
 useReadingPoll(
@@ -198,22 +199,34 @@ usePageTrail(() => [
 
     <FmSettingsPage current="banks">
         <template #title>
-            <FmTitle
-                :title="$t('Linked banks')"
-                :subtitle="
-                    $t('The transactions arrive by themselves at :times', {
-                        times,
-                    })
-                "
-                :back="settingsIndex().url"
-                :back-label="$t('Settings')"
-            >
-                <template v-if="can_change && connections.length > 0" #actions>
-                    <FmButton :icon="Plus" @click="open = true">{{
-                        $t('Connect a bank')
-                    }}</FmButton>
-                </template>
-            </FmTitle>
+            <div class="flex flex-col gap-4">
+                <FmTitle
+                    :title="$t('Linked banks')"
+                    :subtitle="
+                        $t('The transactions arrive by themselves :times', {
+                            times,
+                        })
+                    "
+                    :back="settingsIndex().url"
+                    :back-label="$t('Settings')"
+                >
+                    <template
+                        v-if="wide && can_change && connections.length > 0"
+                        #actions
+                    >
+                        <FmButton :icon="Plus" @click="open = true">{{
+                            $t('Connect a bank')
+                        }}</FmButton>
+                    </template>
+                </FmTitle>
+                <FmButton
+                    v-if="!wide && can_change && connections.length > 0"
+                    :icon="Plus"
+                    class="self-start"
+                    @click="open = true"
+                    >{{ $t('Connect a bank') }}</FmButton
+                >
+            </div>
         </template>
 
         <FmEmpty

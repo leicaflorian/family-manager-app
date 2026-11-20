@@ -1,5 +1,6 @@
 import { trans } from 'laravel-vue-i18n';
 import { formatDate, todayInRome } from '@/lib/format';
+import { listNames } from '@/lib/names';
 
 /**
  * The letters of the tile of a bank without a logo: the first of the first two words, or of the first two humps
@@ -41,4 +42,17 @@ export function lastReadText(moment: string, now: Date = new Date()): string {
               date: formatDate(day),
               time,
           });
+}
+
+/**
+ * The hours the banks are read, as a sentence with an «at» for each: «at 7, at 13 and at 19» («alle 7, alle 13 e
+ * alle 19»).
+ *
+ * @param hours - the hours of the day, as the server schedules them
+ * @returns the hours written in the language of the page
+ */
+export function readTimes(hours: number[]): string {
+    return listNames(
+        hours.map((hour) => trans('at :hour', { hour: String(hour) })),
+    );
 }
