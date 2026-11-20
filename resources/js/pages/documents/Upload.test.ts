@@ -223,6 +223,59 @@ describe('Upload by layout', () => {
 });
 
 describe('Upload on the computer', () => {
+    it('on a Mac or a Windows PC offers the home scanner beside the drop zone', () => {
+        for (const agent of [
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        ]) {
+            screenWidth(1280);
+            vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(agent);
+            const view = renderPage(Upload, { ...props });
+
+            expect(
+                screen.getByRole('link', {
+                    name: /Scan the sheets with the scanner/,
+                }),
+            ).toHaveAttribute('href', '/scanner');
+            expect(
+                screen.getByText('Drag the files here, or choose them'),
+            ).toBeInTheDocument();
+            view.unmount();
+            vi.restoreAllMocks();
+        }
+    });
+
+    it('on a computer the scanner agent is not built for has only the drop zone', () => {
+        screenWidth(1280);
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
+        );
+        renderPage(Upload, { ...props });
+
+        expect(
+            screen.queryByRole('link', {
+                name: /Scan the sheets with the scanner/,
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('on the tablet keeps the photo and does not offer the scanner', () => {
+        screenWidth(820);
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        );
+        renderPage(Upload, { ...props });
+
+        expect(
+            screen.getByRole('link', { name: /Take a photo of a sheet/ }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', {
+                name: /Scan the sheets with the scanner/,
+            }),
+        ).not.toBeInTheDocument();
+    });
+
     it('has no close button beside the title on the computer, and has it on the tablet and the phone', () => {
         for (const [width, shown] of [
             [1280, false],

@@ -2082,5 +2082,7 @@
     "{1} Shall I upload the side?|[2,*] Shall I upload the :count sides?": "{1} Carico la facciata?|[2,*] Carico le :count facciate?",
     "They become :count PDFs in «To sort», one per side.": "Diventano :count PDF in «Da smistare», uno per facciata.",
     "{1} It becomes a PDF in «To sort».|[2,*] They become a PDF in «To sort».": "{1} Diventa un PDF in «Da smistare».|[2,*] Diventano un PDF in «Da smistare».",
-    "{1} The side put aside stays out.|[2,*] The :count sides put aside stay out.": "{1} La facciata messa da parte resta fuori.|[2,*] Le :count facciate messe da parte restano fuori."
+    "{1} The side put aside stays out.|[2,*] The :count sides put aside stay out.": "{1} La facciata messa da parte resta fuori.|[2,*] Le :count facciate messe da parte restano fuori.",
+    "Scan the sheets with the scanner": "Scansiona i fogli",
+    "Front and back of all the sheets, then you find them in To sort": "Fronte e retro di tutti i fogli, poi li trovi in Da smistare"
 }

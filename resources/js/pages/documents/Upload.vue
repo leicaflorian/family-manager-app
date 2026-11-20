@@ -6,7 +6,9 @@
  * checked and filed as a document: this page only takes the files. The card
  * the upload starts from travels with them. The × goes back to that card, or
  * to the home page. The phone and the tablet offer *Take a photo of a sheet*
- * beside the drop zone (above it on the phone); the computer has only the zone.
+ * beside the drop zone (above it on the phone); a Mac or a Windows PC offers the
+ * home scanner beside it instead, as a secondary card; any other computer has
+ * only the zone.
  */
 import { Head, Link } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
@@ -23,6 +25,7 @@ import { useToSortCount } from '@/composables/useToSortCount';
 import { cn } from '@/lib/utils';
 import { presetUrl } from '@/lib/documents';
 import type { DocumentLink } from '@/lib/documents';
+import { desktopSystem } from '@/lib/devices';
 import { dashboard, toSort } from '@/routes';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
@@ -50,6 +53,15 @@ const {
 } = useFileUpload(() => preset.value);
 
 const layout = useLayoutMode();
+
+/** The card beside the drop zone: the photo on the phone and the tablet, the home scanner on a computer it is built for. */
+const sideCard = computed((): 'photo' | 'scanner' | null => {
+    if (layout.value !== 'computer') {
+        return 'photo';
+    }
+
+    return desktopSystem() === 'other' ? null : 'scanner';
+});
 
 /** The wording of the drop zone on the phone, for its gallery and files. */
 type PhoneWording = {
@@ -113,15 +125,16 @@ usePageTrail(() => [
         <div
             :class="
                 cn(
-                    layout === 'tablet'
+                    layout === 'tablet' || sideCard === 'scanner'
                         ? 'grid min-h-[420px] grid-cols-[1fr_2fr] gap-4'
                         : 'flex flex-col gap-4',
                 )
             "
         >
             <PhotoSheetCard
-                v-if="layout !== 'computer'"
+                v-if="sideCard"
                 :stacked="layout === 'tablet'"
+                :scanner="sideCard === 'scanner'"
             />
             <FmFileDrop
                 v-bind="phoneWording"
