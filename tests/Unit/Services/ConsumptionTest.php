@@ -9,7 +9,6 @@ use App\Enums\UtilityType;
 use App\Models\Document;
 use App\Models\UtilityConsumption;
 use App\Services\Consumption;
-use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -255,9 +254,9 @@ function consumptionTestSentence(Collection $rows, string $today = '2026-10-10',
 
 it('says the price went up when the consumption did not', function (): void {
     expect(consumptionTestSentence(consumptionTestFlat([100, 40])))
-        ->toBe('In September you paid the most for electricity this year: '.Money::euro(0.40).' per kWh against an average of '.Money::euro(0.31).'. Your consumption did not go up: the price changed.')
+        ->toBe("In September you paid the most for electricity this year: 0,40\u{a0}€ per kWh against an average of 0,31\u{a0}€. Your consumption did not go up: the price changed.")
         ->and(consumptionTestSentence(consumptionTestFlat([100, 40]), locale: 'it'))
-        ->toBe('A settembre hai pagato la luce più cara dell\'anno: '.Money::euro(0.40).' a kWh contro una media di '.Money::euro(0.31).'. Il consumo non è salito: è cambiato il prezzo.')
+        ->toBe("A settembre hai pagato la luce più cara dell'anno: 0,40\u{a0}€ a kWh contro una media di 0,31\u{a0}€. Il consumo non è salito: è cambiato il prezzo.")
         ->and(consumptionTestSentence(consumptionTestFlat([100, 40]), locale: 'it', type: UtilityType::Water))
         ->toStartWith('A settembre hai pagato l\'acqua più cara dell\'anno');
 });
@@ -287,4 +286,17 @@ it('follows the rules in their order', function (): void {
     expect(consumptionTestSentence(consumptionTestFlat([100, 40], [22, 23])))->toStartWith('In September you paid the most')
         ->and(consumptionTestSentence(consumptionTestFlat([120, 36], [22, 23])))->toStartWith('In September you used')
         ->and(consumptionTestSentence(consumptionTestFlat(estimated: [22, 23]), today: '2026-12-15'))->toStartWith('The last two bills are estimated.');
+});
+
+it('quotes in the sentence the same average as the figures, with a bill without an amount in a month', function (): void {
+    // a hand-written row without an amount beside the priced bill of August: only the priced bills make the average
+    $rows = consumptionTestFlat([100, 40])->push(consumptionTestRow('2026-08-01', '2026-08-31', 400, null, id: 99));
+    $from = CarbonImmutable::parse('2025-10-01');
+    $to = CarbonImmutable::parse('2026-09-01');
+
+    $average = consumptionTestService()->figures($rows, $from, $to)->averagePrice;
+
+    expect($average)->toBe(0.3083)
+        ->and(consumptionTestSentence($rows))
+        ->toBe("In September you paid the most for electricity this year: 0,40\u{a0}€ per kWh against an average of 0,31\u{a0}€. Your consumption did not go up: the price changed.");
 });

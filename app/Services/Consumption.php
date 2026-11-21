@@ -213,7 +213,12 @@ final class Consumption
 
         if ($complete instanceof ConsumptionMonthData && $complete->quantity !== null) {
             $date = CarbonImmutable::parse($complete->month.'-01')->settings(['locale' => $locale]);
-            $average = $this->monthsAverage($months);
+            // The same average as the «On average» figure: the priced bills over the months shown
+            $shares = $this->shares($rows);
+            $average = $this->averagePrice(array_map(
+                fn (ConsumptionMonthData $month): array => $this->summary($shares, CarbonImmutable::parse($month->month.'-01')),
+                $months,
+            ));
             $previous = $complete->previousQuantity;
 
             if ($complete->price !== null && $average !== null && $complete->price >= $average * self::DEARER && $previous !== null && $complete->quantity <= $previous * self::STEADY) {
@@ -468,27 +473,6 @@ final class Consumption
         $cents = array_sum(array_column($summaries, 'pricedCents'));
 
         return $milli > 0 ? round(($cents / 100) / ($milli / 1000), 4) : null;
-    }
-
-    /**
-     * The average price of the months shown, from their rounded figures.
-     *
-     * @param  list<ConsumptionMonthData>  $months  the months
-     * @return float|null euro per unit, null without consumption
-     */
-    private function monthsAverage(array $months): ?float
-    {
-        $amount = 0.0;
-        $quantity = 0.0;
-
-        foreach ($months as $month) {
-            if ($month->price !== null && $month->amount !== null && $month->quantity !== null) {
-                $amount += $month->amount;
-                $quantity += $month->quantity;
-            }
-        }
-
-        return $quantity > 0 ? $amount / $quantity : null;
     }
 
     /**
