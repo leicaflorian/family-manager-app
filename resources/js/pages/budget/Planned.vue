@@ -125,7 +125,7 @@ const showLabel = computed(() =>
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmTitle
-            :title="$t('Planned expenses and incomes')"
+            :title="$t('Budget')"
             :subtitle="
                 $t(
                     'The expenses and incomes that repeat, by due date. Home and the Agenda take their due dates from here.',

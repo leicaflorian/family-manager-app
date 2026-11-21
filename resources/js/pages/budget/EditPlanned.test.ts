@@ -40,7 +40,7 @@ describe('Edit a planned expense', () => {
 
         expect(created.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses and incomes', href: '/budget/planned' },
+            { label: 'Recurring', href: '/budget/planned' },
             { label: 'New planned expense' },
         ]);
         first.unmount();
@@ -54,7 +54,7 @@ describe('Edit a planned expense', () => {
 
         expect(changed.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses and incomes', href: '/budget/planned' },
+            { label: 'Recurring', href: '/budget/planned' },
             { label: 'Retta danza', href: '/budget/planned/expense/4' },
             { label: 'Edit Retta danza' },
         ]);

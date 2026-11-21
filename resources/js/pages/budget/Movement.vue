@@ -85,6 +85,12 @@ const title = computed(() => movement?.title ?? trans('New expense or income'));
 
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
+    {
+        label: trans('Movements'),
+        href: movementsUrl({
+            month: (movement?.date ?? start.date).slice(0, 7),
+        }),
+    },
     { label: title.value },
 ]);
 

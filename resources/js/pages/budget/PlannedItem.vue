@@ -77,7 +77,7 @@ const income = computed(() => row.value.kind === 'income');
 
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
-    { label: trans('Planned expenses and incomes'), href: index().url },
+    { label: trans('Recurring'), href: index().url },
     { label: row.value.title },
 ]);
 

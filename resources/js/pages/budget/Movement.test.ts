@@ -60,6 +60,7 @@ describe('Movement', () => {
 
         expect(saved.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
+            { label: 'Movements', href: '/budget/movements?month=2026-10' },
             { label: 'Retta di novembre' },
         ]);
         first.unmount();
@@ -69,8 +70,39 @@ describe('Movement', () => {
 
         expect(created.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
+            { label: 'Movements', href: '/budget/movements?month=2026-10' },
             { label: 'New expense or income' },
         ]);
+    });
+
+    it('keeps the trail through the month when the expense starts from a card', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            Movement,
+            {
+                ...newExpense,
+                start: { ...newExpense.start, card: 'health_event:2' },
+            },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Movements', href: '/budget/movements?month=2026-10' },
+            { label: 'New expense or income' },
+        ]);
+    });
+
+    it("sends Cancel to the server's back", async () => {
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Movement, {
+            ...props,
+            back: '/budget/comparison?month=2026-10',
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(get).toHaveBeenCalledWith('/budget/comparison?month=2026-10');
     });
 
     it('shows the movement', () => {

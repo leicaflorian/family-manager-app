@@ -73,7 +73,7 @@ describe('Planned expenses', () => {
 
         expect(
             screen.getByRole('heading', {
-                name: 'Planned expenses and incomes',
+                name: 'Budget',
                 level: 1,
             }),
         ).toBeInTheDocument();

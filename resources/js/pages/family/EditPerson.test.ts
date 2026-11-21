@@ -43,6 +43,7 @@ describe('Edit a person', () => {
 
         expect(created.state.pieces.value).toEqual([
             { label: 'Family', href: '/family' },
+            { label: 'People', href: '/family/people' },
             { label: 'New person' },
         ]);
         first.unmount();
@@ -56,6 +57,7 @@ describe('Edit a person', () => {
 
         expect(changed.state.pieces.value).toEqual([
             { label: 'Family', href: '/family' },
+            { label: 'People', href: '/family/people' },
             { label: 'Giulia Bianchi', href: '/family/people/3' },
             { label: 'Edit Giulia' },
         ]);

@@ -188,6 +188,7 @@ const actions = computed((): Action[] => [
 
 usePageTrail(() => [
     { label: trans('Family'), href: family().url },
+    { label: trans('People'), href: index().url },
     { label: name.value },
 ]);
 </script>

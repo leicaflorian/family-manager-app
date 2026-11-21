@@ -96,7 +96,7 @@ const back = computed(() =>
 
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
-    { label: trans('Planned expenses and incomes'), href: index().url },
+    { label: trans('Recurring'), href: index().url },
     ...(planned ? [{ label: planned.title, href: back.value }] : []),
     { label: heading.value },
 ]);

@@ -44,13 +44,13 @@ afterEach(() => {
 });
 
 describe('A planned expense', () => {
-    it('writes the trail Budget > Planned expenses and incomes > planned expense into the top bar', () => {
+    it('writes the trail Budget > Recurring > planned expense into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(PlannedItem, props, provide);
 
         expect(state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses and incomes', href: '/budget/planned' },
+            { label: 'Recurring', href: '/budget/planned' },
             { label: 'Retta danza' },
         ]);
     });

@@ -95,6 +95,7 @@ describe('A person', () => {
 
         expect(state.pieces.value).toEqual([
             { label: 'Family', href: '/family' },
+            { label: 'People', href: '/family/people' },
             { label: 'Giulia Bianchi' },
         ]);
     });
