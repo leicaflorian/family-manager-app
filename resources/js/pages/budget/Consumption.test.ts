@@ -81,6 +81,12 @@ describe('Consumption', () => {
         expect(
             within(types).getByRole('link', { name: 'Electricity' }),
         ).toHaveAttribute('aria-current', 'page');
+        // Each kind has its icon beside the name: a bolt, a flame
+        expect(
+            within(types)
+                .getAllByRole('link')
+                .map((link) => link.querySelector('svg')?.classList[1]),
+        ).toEqual(['lucide-zap', 'lucide-flame']);
 
         await userEvent.click(within(types).getByRole('link', { name: 'Gas' }));
 

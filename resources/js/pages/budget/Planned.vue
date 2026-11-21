@@ -64,10 +64,13 @@ const bankFeed = useBankFeed();
 const page = usePage();
 const mode = useLayoutMode();
 
-/** The card that leads to *Usage*: on the phone, when the family has an electricity, gas or water utility. */
+/**
+ * The card that leads to *Usage*: on the phone and on the tablet, when the family has an electricity, gas or
+ * water utility. The computer has it in the sidebar, always open.
+ */
 const usageCard = computed(
     (): boolean =>
-        mode.value === 'phone' && (page.props.has_consumption ?? false),
+        mode.value !== 'computer' && (page.props.has_consumption ?? false),
 );
 
 /** The panel of the filters, on the phone. */

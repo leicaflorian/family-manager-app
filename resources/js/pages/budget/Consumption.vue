@@ -17,7 +17,6 @@ import {
     ArrowDown,
     ArrowUp,
     Check,
-    ChevronDown,
     CircleAlert,
     Droplet,
     FileText,
@@ -97,12 +96,22 @@ const unit = computed((): string => unitLabel(props.consumption.utility.unit));
 const hasBills = computed((): boolean => props.consumption.bills.length > 0);
 
 /** The icon of the utility shown, for the page without bills. */
-const typeIcon = computed(
-    (): LucideIcon =>
-        ({ gas: Flame, water: Droplet })[
-            props.consumption.utility.type as 'gas' | 'water'
-        ] ?? Zap,
+const typeIcon = computed((): LucideIcon =>
+    iconOf(props.consumption.utility.type),
 );
+
+/**
+ * The icon of a kind of utility: a flame for gas, a drop for water, a bolt for electricity.
+ *
+ * @param type - the kind of utility
+ * @returns its icon
+ */
+function iconOf(type: string): LucideIcon {
+    return (
+        ({ gas: Flame, water: Droplet } as Record<string, LucideIcon>)[type] ??
+        Zap
+    );
+}
 
 /**
  * The address of the page with other choices; the ones left out are not in it.
@@ -129,6 +138,7 @@ const typeTabs = computed(() =>
     props.consumption.types.map((type) => ({
         label: type.label,
         href: pageUrl({ utility: type.utility }),
+        lead: iconOf(type.type),
         current: type.type === props.consumption.utility.type,
     })),
 );
@@ -658,13 +668,9 @@ const emptyText = computed((): string =>
                 />
                 <div
                     v-if="consumption.utilities.length > 1"
-                    class="self-start px-1"
+                    class="min-w-0 self-start"
                 >
-                    <FmMenu
-                        text
-                        :icon="ChevronDown"
-                        :label="consumption.utility.title"
-                    >
+                    <FmMenu choice :label="consumption.utility.title">
                         <FmMenuItem
                             v-for="utility in consumption.utilities"
                             :key="utility.id"
@@ -704,14 +710,11 @@ const emptyText = computed((): string =>
                     :max="consumption.next ?? consumption.to"
                     @change="goTo"
                 />
-                <button
+                <FmSectionLink
                     v-if="consumption.next !== null"
-                    type="button"
-                    class="cursor-pointer border-0 bg-transparent p-0 text-row text-action hover:text-action-dark"
                     @click="goTo(null)"
+                    >{{ $t('Today') }}</FmSectionLink
                 >
-                    {{ $t('Today') }}
-                </button>
             </div>
         </div>
 

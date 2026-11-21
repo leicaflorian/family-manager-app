@@ -122,6 +122,18 @@ describe('Planned expenses', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('leads to the use also on the tablet, where the sidebar is collapsed', () => {
+        shared.has_consumption = true;
+        screenWidth(820);
+        renderPage(Planned, props);
+
+        expect(
+            screen.getByRole('link', {
+                name: /Electricity, gas and water use/,
+            }),
+        ).toHaveAttribute('href', '/budget/consumption');
+    });
+
     it('leaves the way to the use to the sidebar on the computer', () => {
         shared.has_consumption = true;
         screenWidth(true);

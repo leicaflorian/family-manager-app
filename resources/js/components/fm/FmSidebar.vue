@@ -3,8 +3,8 @@
  * The sidebar of the tablet and of the computer: the bar of its head (the same box as the top bar, white) with the
  * logo and the family; Upload (which only uploads), Home and the
  * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
- * *Received mail*), *Every day* (Agenda, Budget, with *Usage* under it when the family has a utility with
- * consumption) and *Archive* (Areas, with the areas under it, Documents, Family),
+ * *Received mail*), *Every day* (Agenda, Budget, with *Planned and spent* under it and *Usage* too when the family
+ * has a utility with consumption; while one of them is the page, Budget is drawn plain) and *Archive* (Areas, with the areas under it, Documents, Family),
  * and at the bottom *My account*, which opens Settings, *Report a problem or an idea* (it emits `report`: the layout
  * opens the panel) and Log out. When the sections do not fit the window, only they scroll: the head, Upload and
  * *My account* stay in place.
@@ -32,7 +32,7 @@ import { useAppName } from '@/composables/useAppName';
 import { getInitials } from '@/composables/useInitials';
 import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
-import { consumption } from '@/routes/budget';
+import { comparison, consumption } from '@/routes/budget';
 import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
@@ -247,20 +247,62 @@ watch(
 /** The address of *Usage*, under *Budget*. */
 const consumptionUrl = consumption().url;
 
-/** Whether the page is *Usage*, so *Budget* itself is not the page. */
+/** The address of *Planned and spent*, under *Budget*. */
+const comparisonUrl = comparison().url;
+
+/** Whether the page is *Usage*. */
 const onConsumption = computed((): boolean => path === consumptionUrl);
+
+/** Whether the page is *Planned and spent*. */
+const onComparison = computed((): boolean => path === comparisonUrl);
+
+/** Whether one of the pages under *Budget* is open, so *Budget* is drawn plain. */
+const onBudgetChild = computed(
+    (): boolean => onConsumption.value || onComparison.value,
+);
+
+/** The pages under *Budget*: *Planned and spent*, and *Usage* when the family has a utility with consumption. */
+const budgetChildren = computed(
+    (): { label: string; href: string; current: boolean }[] => [
+        {
+            label: trans('Planned and spent'),
+            href: comparisonUrl,
+            current: onComparison.value,
+        },
+        ...(hasConsumption
+            ? [
+                  {
+                      label: trans('Usage'),
+                      href: consumptionUrl,
+                      current: onConsumption.value,
+                  },
+              ]
+            : []),
+    ],
+);
+
+/**
+ * Whether a section is drawn as the one of the page, in blue: not *Budget*
+ * while one of the pages under it is open.
+ *
+ * @param section - the section of the item
+ * @returns true for the section of the page
+ */
+function isActive(section: Section): boolean {
+    return section === active && !(section === 'budget' && onBudgetChild.value);
+}
 
 /**
  * Whether a section is the page that is open.
  *
  * @param section - the section of the item
- * @returns true for the open section, unless one of its areas or *Usage* is the page
+ * @returns true for the open section, unless one of its areas or a page under *Budget* is the page
  */
 function isPage(section: Section): boolean {
     return (
         section === active &&
         !(section === 'areas' && onAreaLink.value) &&
-        !(section === 'budget' && onConsumption.value)
+        !(section === 'budget' && onBudgetChild.value)
     );
 }
 </script>
@@ -352,7 +394,7 @@ function isPage(section: Section): boolean {
                             :class="[
                                 isPage(item.section)
                                     ? 'bg-action-soft text-label text-action-dark'
-                                    : item.section === active
+                                    : isActive(item.section)
                                       ? 'text-label text-action-dark hover:bg-canvas'
                                       : 'text-ink hover:bg-canvas',
                                 item.section === 'areas' && !small && 'pr-12',
@@ -362,7 +404,7 @@ function isPage(section: Section): boolean {
                                 :icon="item.icon"
                                 :size="22"
                                 :class="
-                                    item.section === active
+                                    isActive(item.section)
                                         ? ''
                                         : 'text-ink-soft'
                                 "
@@ -405,26 +447,26 @@ function isPage(section: Section): boolean {
                         </button>
                     </div>
                     <div
-                        v-if="
-                            item.section === 'budget' &&
-                            hasConsumption &&
-                            !small
-                        "
+                        v-if="item.section === 'budget' && !small"
                         role="group"
                         :aria-label="$t('In the Budget')"
-                        class="my-0.5 ml-[21px] flex flex-col gap-0.5 border-l border-divider pl-1.5"
+                        class="mt-0 mb-1.5 ml-[23px] flex flex-col gap-px border-l-[1.5px] border-edge-soft pl-2.5"
                     >
                         <Link
-                            :href="consumptionUrl"
-                            :aria-current="onConsumption ? 'page' : undefined"
-                            class="flex h-9 items-center rounded-md px-2.5 text-body-sm no-underline"
+                            v-for="child in budgetChildren"
+                            :key="child.href"
+                            :href="child.href"
+                            :aria-current="child.current ? 'page' : undefined"
+                            class="flex min-h-[34px] items-center rounded-md px-2.5 text-body-sm no-underline"
                             :class="
-                                onConsumption
+                                child.current
                                     ? 'bg-action-soft text-label text-action-dark'
                                     : 'text-ink hover:bg-canvas'
                             "
                         >
-                            <span class="grow truncate">{{ $t('Usage') }}</span>
+                            <span class="min-w-0 grow truncate">{{
+                                child.label
+                            }}</span>
                         </Link>
                     </div>
                     <!-- The box stays also collapsed, with its gap: only the list goes, so nothing under it moves -->
