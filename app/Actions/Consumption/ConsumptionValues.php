@@ -18,7 +18,7 @@ final readonly class ConsumptionValues
      * @param  float|null  $amount  the total of the bill
      * @param  bool  $isEstimated  whether the bill is based on an estimate
      * @param  bool  $hasAdjustments  whether the bill carries an adjustment
-     * @param  float|null  $energyAmount  the energy part of the bill
+     * @param  float|null  $energyAmount  the sale of energy or gas alone (null for water)
      * @param  float|null  $f1  the quantity in band F1
      * @param  float|null  $f2  the quantity in band F2
      * @param  float|null  $f3  the quantity in band F3

@@ -19,7 +19,7 @@ final readonly class ConsumptionReading
      * @param  float|null  $totalAmount  the total to pay, in euro
      * @param  bool|null  $estimated  whether the consumption is estimated or on account
      * @param  bool|null  $adjusted  whether the bill recalculates periods already billed
-     * @param  float|null  $energyAmount  euro for the energy (or gas, or water consumption) alone
+     * @param  float|null  $energyAmount  euro for the sale of electricity or gas alone (consumption and fixed part of the sale); null for water
      * @param  float|null  $f1  kWh of the first band, electricity only
      * @param  float|null  $f2  kWh of the second band
      * @param  float|null  $f3  kWh of the third band
