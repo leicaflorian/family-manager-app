@@ -72,16 +72,13 @@ describe('A planned expense', () => {
         ).toBeInTheDocument();
     });
 
-    it('leads to the form with Edit, and back to the list', () => {
+    it('leads to the form with Edit', () => {
         renderPage(PlannedItem, props);
 
         expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
             'href',
             '/budget/planned/expense/4/edit',
         );
-        expect(
-            screen.getByRole('link', { name: 'Planned expenses and incomes' }),
-        ).toHaveAttribute('href', '/budget/planned');
     });
 
     it('lists the next due dates with where each stands', () => {

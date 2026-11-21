@@ -198,7 +198,7 @@ describe('Changes not saved', () => {
 });
 
 describe('EditOrganization on the computer', () => {
-    it('has no back link and no close button above the title on the computer, and both on the tablet and the phone', () => {
+    it('has no close button above the title on the computer, and has it on the tablet and the phone', () => {
         for (const [width, shown] of [
             [1280, false],
             [820, true],
@@ -213,9 +213,6 @@ describe('EditOrganization on the computer', () => {
             expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
                 shown,
             );
-            expect(
-                screen.queryByRole('link', { name: 'Organizations' }) !== null,
-            ).toBe(shown);
             view.unmount();
         }
     });

@@ -21,7 +21,7 @@ describe('A document', () => {
         ]);
     });
 
-    it('shows the title, the way back to Documents and the document', () => {
+    it('shows the title and the document', () => {
         renderPage(Document, { document: documentDetail });
 
         expect(
@@ -30,10 +30,6 @@ describe('A document', () => {
                 level: 1,
             }),
         ).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Documents' })).toHaveAttribute(
-            'href',
-            '/documents',
-        );
         expect(
             screen.getByText('Laura - Comune di Bologna'),
         ).toBeInTheDocument();

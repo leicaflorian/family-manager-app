@@ -51,9 +51,6 @@ describe('Payments of a card', () => {
             screen.getByRole('heading', { name: 'Bills paid', level: 1 }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('link', { name: /Luce - Edison/ }),
-        ).toHaveAttribute('href', '/cards/utility/3');
-        expect(
             screen.getByText('per bill, 72,00 € planned'),
         ).toBeInTheDocument();
         expect(screen.getByText('3 bills')).toBeInTheDocument();

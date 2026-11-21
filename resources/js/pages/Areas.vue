@@ -36,8 +36,6 @@ const { groups, types, canCreate } = defineProps<{
     canCreate: boolean;
 }>();
 
-/** The layout: the magnifier and the bell beside the title are only on the phone. */
-
 /** The text in the search box. */
 const query = ref('');
 

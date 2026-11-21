@@ -69,7 +69,6 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
     movement: App.Data.MovementData;
 }>();
 
-/** The layout: the magnifier and the bell beside the title are only on the phone. */
 const { euro } = useFormat();
 const bankFeed = useBankFeed();
 

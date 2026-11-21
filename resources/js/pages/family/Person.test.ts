@@ -16,7 +16,7 @@ import {
     plumberReminder,
 } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
-import { renderPage, screenWidth, withTrail } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Person from './Person.vue';
 
 const links: App.Data.LinkGroupData[] = [
@@ -106,20 +106,6 @@ describe('A person', () => {
 
     afterEach(() => {
         vi.useRealTimers();
-    });
-
-    it.each([
-        [390, true],
-        [820, true],
-        [1280, false],
-    ])('at %i px draws the link back to People: %s', (width, drawn) => {
-        screenWidth(width);
-        renderGiulia();
-
-        expect(screen.queryByRole('link', { name: 'People' }) !== null).toBe(
-            drawn,
-        );
-        vi.unstubAllGlobals();
     });
 
     it('shows the person, her documents and her records', () => {

@@ -73,14 +73,10 @@ describe('Movement', () => {
         ]);
     });
 
-    it('shows the movement and a link back to the month it belongs to', () => {
+    it('shows the movement', () => {
         renderPage(Movement, props);
 
         expect(screen.getByLabelText('Title')).toHaveValue('Retta di novembre');
-        expect(screen.getByRole('link', { name: 'Movements' })).toHaveAttribute(
-            'href',
-            '/budget/movements?month=2026-10',
-        );
     });
 
     it('opens an empty form for a new expense or income', () => {
@@ -97,13 +93,9 @@ describe('Movement', () => {
         expect(
             screen.getByRole('button', { name: 'An expense' }),
         ).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Movements' })).toHaveAttribute(
-            'href',
-            '/budget/movements?month=2026-10',
-        );
     });
 
-    it('starts a new expense from a card, with its category, goes back to the card and asks to come back to it', async () => {
+    it('starts a new expense from a card, with its category, and asks to come back to it', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Movement, {
@@ -115,11 +107,6 @@ describe('Movement', () => {
             },
         });
 
-        expect(
-            screen.getByRole('link', {
-                name: 'Health event · Visite di Giulia',
-            }),
-        ).toHaveAttribute('href', '/cards/health_event/2');
         expect(
             screen.getByRole('combobox', { name: 'Health event (optional)' }),
         ).toHaveValue('Health event · Visite di Giulia');
@@ -305,7 +292,7 @@ describe('Movement', () => {
         ).not.toBeInTheDocument();
     });
 
-    describe('documents and back link', () => {
+    describe('documents', () => {
         it('shows the Documents column with Link and the documents of the movement', () => {
             renderPage(Movement, {
                 ...props,
@@ -376,17 +363,6 @@ describe('Movement', () => {
             await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
             expect(post.mock.calls[0]![1]).toMatchObject({ files: [file] });
-        });
-
-        it('goes back to the page given by the server', () => {
-            renderPage(Movement, {
-                ...props,
-                back: '/budget/movements?month=2026-09',
-            });
-
-            expect(
-                screen.getByRole('link', { name: 'Movements' }),
-            ).toHaveAttribute('href', '/budget/movements?month=2026-09');
         });
 
         it('has the page title as the heading on the computer, with the form without its own', () => {

@@ -513,14 +513,10 @@ describe('Search', () => {
         expect(box()).toHaveValue('Panda');
     });
 
-    it('on the tablet, has the link to the Home above the title', () => {
+    it('on the tablet, has the title and no Back button of its own', () => {
         screenWidth(820);
         renderPage(Search, { results: panda });
 
-        expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute(
-            'href',
-            '/dashboard',
-        );
         expect(
             screen.queryByRole('button', { name: 'Back' }),
         ).not.toBeInTheDocument();
@@ -532,7 +528,7 @@ describe('Search', () => {
         ).toBeVisible();
     });
 
-    it('on the computer, has no link to the Home above the title: the top bar has Back', () => {
+    it('on the computer, has the title and no link to the Home above it', () => {
         wide(true);
         renderPage(Search, { results: panda });
 

@@ -545,7 +545,7 @@ describe('EditCard on the computer', () => {
         area_label: 'Insurance',
     };
 
-    it('has no back link and no close button above the title on the computer, and both on the tablet and the phone', () => {
+    it('has no close button above the title on the computer, and has it on the tablet and the phone', () => {
         for (const [width, shown] of [
             [1280, false],
             [820, true],
@@ -562,9 +562,6 @@ describe('EditCard on the computer', () => {
             expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
                 shown,
             );
-            expect(
-                screen.queryByRole('link', { name: 'Insurance' }) !== null,
-            ).toBe(shown);
             view.unmount();
         }
     });

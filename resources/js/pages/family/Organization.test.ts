@@ -1,9 +1,9 @@
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import { describe, expect, it } from 'vite-plus/test';
 import { healthCard, organizationDetail } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
-import { renderPage, screenWidth, withTrail } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Organization from './Organization.vue';
 
 const links: App.Data.LinkGroupData[] = [
@@ -34,24 +34,6 @@ describe('An organization', () => {
             { label: 'Organizations', href: '/family/organizations' },
             { label: 'Edison' },
         ]);
-    });
-
-    it.each([
-        [390, true],
-        [820, true],
-        [1280, false],
-    ])('at %i px draws the link back to Organizations: %s', (width, drawn) => {
-        screenWidth(width);
-        renderPage(Organization, {
-            organization: organizationDetail,
-            links,
-            documents: [bill],
-        });
-
-        expect(
-            screen.queryByRole('link', { name: 'Organizations' }) !== null,
-        ).toBe(drawn);
-        vi.unstubAllGlobals();
     });
 
     it('shows its contacts, its records and its documents', () => {
