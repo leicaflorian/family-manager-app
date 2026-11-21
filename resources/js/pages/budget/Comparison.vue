@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * *Planned and spent*: a month of expenses against the plan. At the top what
+ * *Planned and spent*, a page of the Budget (reached from the sidebar, or from *Recurring* on the phone): a month of expenses against the plan. At the top what
  * was planned, what was spent so far and (on the computer) what came in; then,
  * by main category, the bar of the spending with a mark where the plan reaches;
  * the chart of the last six months; and, on the computer, the due dates of the
@@ -11,9 +11,9 @@ import { Head, router } from '@inertiajs/vue3';
 import { ChartNoAxesColumn } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
-import { useComputerLayout } from '@/composables/useLayoutMode';
+import { createReusableTemplate } from '@vueuse/core';
+import { useWideLayout } from '@/composables/useWideLayout';
 import FmBarChart from '@/components/fm/FmBarChart.vue';
-import FmTabs from '@/components/fm/FmTabs.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCategoryBar from '@/components/fm/FmCategoryBar.vue';
 import FmDeadlineRow from '@/components/fm/FmDeadlineRow.vue';
@@ -22,9 +22,9 @@ import FmMonthSwitch from '@/components/fm/FmMonthSwitch.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { comparisonComment, deadlineUrls, longMonth } from '@/lib/budget';
-import { useBankFeed } from '@/composables/useBankFeed';
-import { budgetTabs } from '@/lib/budgetTabs';
+import { usePageTrail } from '@/composables/usePageTrail';
 import { cn } from '@/lib/utils';
+import { budget } from '@/routes';
 import { comparison as comparisonRoute } from '@/routes/budget';
 
 const props = defineProps<{
@@ -32,9 +32,17 @@ const props = defineProps<{
     comparison: App.Data.ComparisonData;
 }>();
 
-const desktop = useComputerLayout();
+const wide = useWideLayout();
+const [DefineCategories, ReuseCategories] = createReusableTemplate();
+const [DefineChart, ReuseChart] = createReusableTemplate();
+const [DefineUnpaid, ReuseUnpaid] = createReusableTemplate();
+const [DefineNote, ReuseNote] = createReusableTemplate();
 const { euro } = useFormat();
-const bankFeed = useBankFeed();
+
+usePageTrail(() => [
+    { label: trans('Budget'), href: budget().url },
+    { label: trans('Planned and spent') },
+]);
 
 /** What the spending is next to the plan, for example «185,10 € less». */
 const difference = computed(() =>
@@ -77,7 +85,7 @@ function go(month: string): void {
 
 /** The classes of a number at the top. */
 const tile = cn(
-    'flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4',
+    'flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card wide:p-4',
 );
 </script>
 
@@ -85,23 +93,17 @@ const tile = cn(
     <Head :title="$t('Planned and spent')" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="$t('Budget')" />
-        <FmTabs
-            :tabs="budgetTabs('comparison', bankFeed)"
-            :label="$t('Budget')"
-        />
+        <FmTitle :title="$t('Planned and spent')" />
 
         <FmMonthSwitch :month="comparison.month" @change="go" />
         <p v-if="daysLeft" class="m-0 text-body-sm text-ink-soft">
             {{ daysLeft }}
         </p>
 
-        <div
-            :class="cn('grid gap-2.5', desktop ? 'grid-cols-3' : 'grid-cols-2')"
-        >
+        <div :class="cn('grid gap-2.5', wide ? 'grid-cols-3' : 'grid-cols-2')">
             <div :class="tile">
                 <span class="text-meta text-ink-soft">{{ $t('Planned') }}</span>
-                <span class="text-subtitle computer:text-stat">{{
+                <span class="text-subtitle wide:text-stat">{{
                     euro(comparison.planned)
                 }}</span>
                 <span class="text-meta text-ink-soft">{{ outgoing }}</span>
@@ -113,7 +115,7 @@ const tile = cn(
                 <span
                     :class="
                         cn(
-                            'text-subtitle computer:text-stat',
+                            'text-subtitle wide:text-stat',
                             comparison.spent > comparison.planned &&
                                 'text-overdue',
                         )
@@ -122,9 +124,9 @@ const tile = cn(
                 >
                 <span class="text-meta text-ink-soft">{{ difference }}</span>
             </div>
-            <div v-if="desktop" :class="tile">
+            <div v-if="wide" :class="tile">
                 <span class="text-meta text-ink-soft">{{ $t('Income') }}</span>
-                <span class="text-subtitle text-paid computer:text-stat">{{
+                <span class="text-subtitle text-paid wide:text-stat">{{
                     euro(comparison.incomes)
                 }}</span>
                 <span class="text-meta text-ink-soft">{{
@@ -135,12 +137,8 @@ const tile = cn(
             </div>
         </div>
 
-        <div class="flex flex-col gap-4">
-            <FmCard
-                :title="$t('By category')"
-                list
-                class="order-2 computer:order-1"
-            >
+        <DefineCategories>
+            <FmCard :title="$t('By category')" list>
                 <FmCategoryBar
                     v-for="category in comparison.categories"
                     :key="category.name"
@@ -150,6 +148,7 @@ const tile = cn(
                     :estimated="category.estimated"
                     :late-title="category.late_title"
                     :color="category.color"
+                    :wide="wide"
                 />
                 <FmEmpty
                     v-if="comparison.categories.length === 0"
@@ -157,19 +156,17 @@ const tile = cn(
                     :title="$t('Nothing planned or spent this month')"
                 />
             </FmCard>
-
-            <FmCard
-                :title="$t('Expenses, the last 6 months')"
-                class="order-1 computer:order-2"
-            >
+        </DefineCategories>
+        <DefineChart>
+            <FmCard :title="$t('Expenses, the last 6 months')">
                 <FmBarChart :months="comparison.months" />
             </FmCard>
-
+        </DefineChart>
+        <DefineUnpaid>
             <FmCard
-                v-if="desktop && comparison.unpaid.length > 0"
+                v-if="comparison.unpaid.length > 0"
                 :title="$t('Planned and not yet registered')"
                 list
-                class="order-3"
             >
                 <FmDeadlineRow
                     v-for="deadline in comparison.unpaid"
@@ -178,14 +175,33 @@ const tile = cn(
                     :href="deadlineUrls(deadline).show"
                 />
             </FmCard>
-
-            <p class="order-4 m-0 text-meta text-ink-soft">
+        </DefineUnpaid>
+        <DefineNote>
+            <p class="m-0 text-meta text-ink-soft">
                 {{
                     $t(
                         'The plan comes from the planned expenses, with their exceptions; what was spent is the expenses dated in the month, even the ones that were not planned.',
                     )
                 }}
             </p>
+        </DefineNote>
+
+        <!-- Wide: the categories on the left (3/5), the chart, what is not registered and the note on the right (2/5) -->
+        <div
+            v-if="wide"
+            class="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start gap-6"
+        >
+            <div class="flex min-w-0 flex-col gap-4"><ReuseCategories /></div>
+            <div class="flex min-w-0 flex-col gap-4">
+                <ReuseChart />
+                <ReuseUnpaid />
+                <ReuseNote />
+            </div>
+        </div>
+        <div v-else class="flex flex-col gap-4">
+            <ReuseChart />
+            <ReuseCategories />
+            <ReuseNote />
         </div>
     </div>
 </template>

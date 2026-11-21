@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { octoberComparison } from '@/test/fixtures';
-import { renderPage, screenWidth } from '@/test/page';
+import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Comparison from './Comparison.vue';
 
 const props = { comparison: octoberComparison };
@@ -167,11 +167,63 @@ describe('Comparison', () => {
         );
     });
 
-    it('has the tabs of the budget with this page marked', () => {
+    it('is a page under the Budget: its own title, the trail and no tabs', () => {
+        const { state, provide } = withTrail();
+        renderPage(Comparison, props, provide);
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Planned and spent' },
+        ]);
+        expect(
+            screen.getByRole('heading', {
+                level: 1,
+                name: 'Planned and spent',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'Movements' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('navigation', { name: 'Budget' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('wide: the categories on the left, the chart, the unregistered and the note on the right', () => {
+        screenWidth(true);
         renderPage(Comparison, props);
 
+        const categories = screen.getByRole('region', { name: 'By category' });
+        const chart = screen.getByRole('region', {
+            name: 'Expenses, the last 6 months',
+        });
+        const columns = categories.parentElement!;
+        expect(chart.parentElement).not.toBe(columns);
         expect(
-            screen.getByRole('link', { name: 'Planned and spent' }),
-        ).toHaveAttribute('aria-current', 'page');
+            chart.parentElement!.contains(
+                screen.getByRole('region', {
+                    name: 'Planned and not yet registered',
+                }),
+            ),
+        ).toBe(true);
+        expect(
+            chart.parentElement!.contains(
+                screen.getByText(/The plan comes from the planned expenses/),
+            ),
+        ).toBe(true);
+    });
+
+    it('on the phone: one column, the chart first', () => {
+        renderPage(Comparison, props);
+
+        const categories = screen.getByRole('region', { name: 'By category' });
+        const chart = screen.getByRole('region', {
+            name: 'Expenses, the last 6 months',
+        });
+        expect(chart.parentElement).toBe(categories.parentElement);
+        expect(
+            chart.compareDocumentPosition(categories) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
     });
 });

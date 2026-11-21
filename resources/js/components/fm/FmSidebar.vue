@@ -3,13 +3,15 @@
  * The sidebar of the tablet and of the computer: the bar of its head (the same box as the top bar, white) with the
  * logo and the family; Upload (which only uploads), Home and the
  * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
- * *Received mail*), *Every day* (Agenda, Budget, with *Planned and spent* under it and *Usage* too when the family
- * has a utility with consumption; while one of them is the page, Budget is drawn plain) and *Archive* (Areas, with the areas under it, Documents, Family),
+ * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, Documents, Family). Areas and Budget are accordions: a
+ * button with a chevron next to the link opens the list under it (the areas; *Planned and spent* and *Usage*, the
+ * latter when the family has a utility with consumption), and the list opens by itself while the page is one of
+ * theirs; while a page under Budget is the open one, Budget is drawn plain),
  * and at the bottom *My account*, which opens Settings, *Report a problem or an idea* (it emits `report`: the layout
  * opens the panel) and Log out. When the sections do not fit the window, only they scroll: the head, Upload and
  * *My account* stay in place.
  * Collapsed (`collapsed`, always on the tablet) it is 76 px wide: the logo alone in the head, only the icons with
- * their names for screen readers, lines in place of the names of the groups, no list of the areas and the avatar
+ * their names for screen readers, lines in place of the names of the groups, no chevrons, no lists under Areas and Budget, and the avatar
  * alone at the bottom; it opens over the page while the pointer or the focus is on it. The computer, with room for
  * it, always has it open: there is no button to collapse it. The button that opens it in a panel is in the top bar,
  * before the trail (`FmTopBar`).
@@ -27,6 +29,7 @@ import {
     DropdownMenuTrigger,
 } from 'reka-ui';
 import type { ClassValue } from 'clsx';
+import type { Ref } from 'vue';
 import { computed, ref, useAttrs, watch } from 'vue';
 import { useAppName } from '@/composables/useAppName';
 import { getInitials } from '@/composables/useInitials';
@@ -232,17 +235,29 @@ const onAreaLink = computed((): boolean =>
     areaLinks.value.some((link) => link.href === path),
 );
 
-/** Whether the list of the areas is open: it opens by itself inside Areas. */
-const open = ref(active === 'areas');
+/**
+ * An accordion list of the sidebar: closed by hand or open, and it opens by itself when the page enters its section.
+ *
+ * @param inside - whether the page is in the section of the list
+ * @returns whether the list is open, writable by the button
+ */
+function useAccordion(inside: () => boolean): Ref<boolean> {
+    const isOpen = ref(inside());
 
-watch(
-    () => active,
-    (section): void => {
-        if (section === 'areas') {
-            open.value = true;
+    watch(inside, (now): void => {
+        if (now) {
+            isOpen.value = true;
         }
-    },
-);
+    });
+
+    return isOpen;
+}
+
+/** Whether the list of the areas is open: it opens by itself inside Areas. */
+const open = useAccordion((): boolean => active === 'areas');
+
+/** Whether the list of the pages under *Budget* is open: it opens by itself on any page of the Budget. */
+const budgetOpen = useAccordion((): boolean => active === 'budget');
 
 /** The address of *Usage*, under *Budget*. */
 const consumptionUrl = consumption().url;
@@ -397,7 +412,10 @@ function isPage(section: Section): boolean {
                                     : isActive(item.section)
                                       ? 'text-label text-action-dark hover:bg-canvas'
                                       : 'text-ink hover:bg-canvas',
-                                item.section === 'areas' && !small && 'pr-12',
+                                (item.section === 'areas' ||
+                                    item.section === 'budget') &&
+                                    !small &&
+                                    'pr-12',
                             ]"
                         >
                             <FmIcon
@@ -445,29 +463,50 @@ function isPage(section: Section): boolean {
                                 :size="18"
                             />
                         </button>
-                    </div>
-                    <div
-                        v-if="item.section === 'budget' && !small"
-                        role="group"
-                        :aria-label="$t('In the Budget')"
-                        class="mt-0 mb-1.5 ml-[23px] flex flex-col gap-px border-l-[1.5px] border-edge-soft pl-2.5"
-                    >
-                        <Link
-                            v-for="child in budgetChildren"
-                            :key="child.href"
-                            :href="child.href"
-                            :aria-current="child.current ? 'page' : undefined"
-                            class="flex min-h-[34px] items-center rounded-md px-2.5 text-body-sm no-underline"
-                            :class="
-                                child.current
-                                    ? 'bg-action-soft text-label text-action-dark'
-                                    : 'text-ink hover:bg-canvas'
-                            "
+                        <button
+                            v-else-if="item.section === 'budget' && !small"
+                            type="button"
+                            :aria-label="$t('Show the budget pages')"
+                            :aria-expanded="budgetOpen"
+                            aria-controls="sidebar-budget"
+                            class="absolute right-1 flex size-9 items-center justify-center rounded-tag text-ink-soft hover:bg-card/70 hover:text-ink"
+                            @click="budgetOpen = !budgetOpen"
                         >
-                            <span class="min-w-0 grow truncate">{{
-                                child.label
-                            }}</span>
-                        </Link>
+                            <FmIcon
+                                :icon="budgetOpen ? ChevronUp : ChevronDown"
+                                :size="18"
+                            />
+                        </button>
+                    </div>
+                    <div v-if="item.section === 'budget'" v-auto-animate>
+                        <ul
+                            v-if="budgetOpen && !small"
+                            id="sidebar-budget"
+                            :aria-label="item.label"
+                            class="mt-0 mb-1.5 ml-[23px] flex flex-col gap-px border-l-[1.5px] border-edge-soft pl-2.5"
+                        >
+                            <li
+                                v-for="child in budgetChildren"
+                                :key="child.href"
+                            >
+                                <Link
+                                    :href="child.href"
+                                    :aria-current="
+                                        child.current ? 'page' : undefined
+                                    "
+                                    class="flex min-h-[34px] items-center rounded-md px-2.5 text-body-sm no-underline"
+                                    :class="
+                                        child.current
+                                            ? 'bg-action-soft text-label text-action-dark'
+                                            : 'text-ink hover:bg-canvas'
+                                    "
+                                >
+                                    <span class="min-w-0 grow truncate">{{
+                                        child.label
+                                    }}</span>
+                                </Link>
+                            </li>
+                        </ul>
                     </div>
                     <!-- The box stays also collapsed, with its gap: only the list goes, so nothing under it moves -->
                     <div v-if="item.section === 'areas'" v-auto-animate>

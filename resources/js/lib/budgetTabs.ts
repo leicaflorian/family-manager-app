@@ -1,13 +1,12 @@
 import { trans } from 'laravel-vue-i18n';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import type { BankFeedShare } from '@/composables/useBankFeed';
-import { comparison } from '@/routes/budget';
 import { index as bankTransactions } from '@/routes/budget/bank';
 import { index as movements } from '@/routes/budget/movements';
 import { index as plannedExpenses } from '@/routes/budget/planned';
 
 /** A page of the budget. */
-export type BudgetPage = 'movements' | 'comparison' | 'planned' | 'bank';
+export type BudgetPage = 'movements' | 'planned' | 'bank';
 
 /**
  * The tabs of the budget pages, shared by all so none builds its own. *From the bank* comes last, and only while the
@@ -29,11 +28,6 @@ export function budgetTabs(
         countLabel?: string;
     }[] = [
         { page: 'movements', label: trans('Movements'), href: movements().url },
-        {
-            page: 'comparison',
-            label: trans('Planned and spent'),
-            href: comparison().url,
-        },
         {
             page: 'planned',
             label: trans('Recurring'),

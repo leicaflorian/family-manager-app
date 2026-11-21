@@ -80,6 +80,9 @@ describe('FmSidebar', () => {
             screen.queryByRole('button', { name: 'Show the areas' }),
         ).toBeNull();
         expect(
+            screen.queryByRole('button', { name: 'Show the budget pages' }),
+        ).toBeNull();
+        expect(
             screen.getByRole('button', { name: /Marco Bianchi/ }),
         ).toBeInTheDocument();
         // the button that expands it is in the top bar, before the trail
@@ -273,7 +276,31 @@ describe('FmSidebar', () => {
         );
     });
 
-    it('has Planned and spent and Usage under Budget, the open one marked and Budget plain', () => {
+    it('keeps the pages under Budget closed outside the Budget, and opens them with the arrow', async () => {
+        bar('documents', '/documents');
+
+        const toggle = screen.getByRole('button', {
+            name: 'Show the budget pages',
+        });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(toggle).toHaveAttribute('aria-controls', 'sidebar-budget');
+        expect(
+            screen.queryByRole('list', { name: 'Budget' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(toggle);
+
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(
+            screen.getByRole('list', { name: 'Budget' }),
+        ).toBeInTheDocument();
+        await userEvent.click(toggle);
+        expect(
+            screen.queryByRole('list', { name: 'Budget' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('opens Planned and spent and Usage by itself on a page of the Budget, the open one marked and Budget plain', () => {
         render(FmSidebar, {
             props: {
                 active: 'budget',
@@ -286,17 +313,19 @@ describe('FmSidebar', () => {
             },
         });
 
-        const group = screen.getByRole('group', { name: 'In the Budget' });
         expect(
-            within(group)
+            screen.getByRole('button', { name: 'Show the budget pages' }),
+        ).toHaveAttribute('aria-expanded', 'true');
+        const list = screen.getByRole('list', { name: 'Budget' });
+        expect(
+            within(list)
                 .getAllByRole('link')
                 .map((link) => link.textContent?.trim()),
         ).toEqual(['Planned and spent', 'Usage']);
-        expect(group).toHaveClass('border-l-[1.5px]', 'border-edge-soft');
         expect(
-            within(group).getByRole('link', { name: 'Planned and spent' }),
+            within(list).getByRole('link', { name: 'Planned and spent' }),
         ).toHaveAttribute('href', '/budget/comparison');
-        const usage = within(group).getByRole('link', { name: 'Usage' });
+        const usage = within(list).getByRole('link', { name: 'Usage' });
         expect(usage).toHaveAttribute('href', '/budget/consumption');
         expect(usage).toHaveAttribute('aria-current', 'page');
         // A child is the page: Budget is drawn plain, in ink
@@ -304,6 +333,18 @@ describe('FmSidebar', () => {
         expect(budget).not.toHaveAttribute('aria-current');
         expect(budget).toHaveClass('text-ink');
         expect(budget).not.toHaveClass('text-action-dark');
+    });
+
+    it('opens the pages under Budget on Movements too, with Budget marked', () => {
+        bar('budget', '/budget/movements');
+
+        expect(
+            screen.getByRole('button', { name: 'Show the budget pages' }),
+        ).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
     });
 
     it('marks Planned and spent on its page', () => {
