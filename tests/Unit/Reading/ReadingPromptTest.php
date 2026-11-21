@@ -217,6 +217,13 @@ describe('consumption fields', function (): void {
         expect($properties['consumption_unit']->toArray()['enum'])->toBe(['kwh', 'smc', 'm3', null]);
     });
 
+    test('the energy amount is the sale of energy for electricity and gas, and null for water', function (): void {
+        expect(ReadingPrompt::CONSUMPTION_RULE)
+            ->toContain('spesa per la vendita di energia elettrica')
+            ->toContain('spesa per la vendita di gas naturale')
+            ->toContain('consumption_energy_amount is null for water');
+    });
+
     test('a unit outside the values becomes null and a good one stays', function (): void {
         expect(ReadingPrompt::parse('{"kind":"utility_bill","confidence":"high","consumption_unit":"kWh"}', readingContext())->consumption_unit)->toBeNull()
             ->and(ReadingPrompt::parse('{"kind":"utility_bill","confidence":"high","consumption_unit":"kwh","consumption_quantity":312.5}', readingContext())->consumption_unit)->toBe('kwh');

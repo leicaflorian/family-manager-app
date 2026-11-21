@@ -152,6 +152,25 @@ it('takes the unit from the type of the utility', function (): void {
     }, UtilityType::Water);
 });
 
+it('never stores an energy amount for water', function (): void {
+    saveConsumptionInFamily(function (Utility $utility): void {
+        $values = new ConsumptionValues(CarbonImmutable::parse('2026-09-01'), CarbonImmutable::parse('2026-09-30'), 12.0, 39.2, false, false, 117.71);
+        $row = resolve(SaveConsumption::class)->handle($utility, $values, ConsumptionSource::Reading)->refresh();
+
+        expect($row->energy_amount)->toBeNull()
+            ->and((float) $row->amount)->toBe(39.2);
+    }, UtilityType::Water);
+});
+
+it('keeps the energy amount for electricity', function (): void {
+    saveConsumptionInFamily(function (Utility $utility): void {
+        $values = new ConsumptionValues(CarbonImmutable::parse('2026-09-01'), CarbonImmutable::parse('2026-09-30'), 200.0, 70.0, false, false, 41.5);
+        $row = resolve(SaveConsumption::class)->handle($utility, $values, ConsumptionSource::Reading)->refresh();
+
+        expect((float) $row->energy_amount)->toBe(41.5);
+    });
+});
+
 it('writes every field of the values', function (): void {
     saveConsumptionInFamily(function (Utility $utility): void {
         $values = new ConsumptionValues(CarbonImmutable::parse('2026-09-01'), CarbonImmutable::parse('2026-09-30'), 300.0, 84.2, true, true, 60.5, 100.0, 120.0, 80.0);

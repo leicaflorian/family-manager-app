@@ -72,7 +72,7 @@ final class Extraction extends Data
      * @param  string|null  $consumption_unit  a value of `ConsumptionUnit`
      * @param  bool|null  $consumption_estimated  whether the consumption is estimated or on account
      * @param  bool|null  $consumption_adjusted  whether the bill recalculates periods already billed
-     * @param  float|null  $consumption_energy_amount  euro for the energy (or gas, or water consumption) alone
+     * @param  float|null  $consumption_energy_amount  euro for the sale of electricity or gas alone (consumption and fixed part of the sale); null for water
      * @param  float|null  $consumption_f1  kWh of the first band, electricity only
      * @param  float|null  $consumption_f2  kWh of the second band
      * @param  float|null  $consumption_f3  kWh of the third band

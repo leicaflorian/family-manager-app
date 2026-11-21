@@ -6,6 +6,7 @@ namespace App\Actions\Consumption;
 
 use App\Enums\ConsumptionSource;
 use App\Enums\ConsumptionUnit;
+use App\Enums\UtilityType;
 use App\Models\Document;
 use App\Models\Utility;
 use App\Models\UtilityConsumption;
@@ -59,7 +60,8 @@ final class SaveConsumption
         $row->quantity = $values->quantity;
         $row->unit = $unit;
         $row->amount = $values->amount;
-        $row->energy_amount = $values->energyAmount;
+        // Water bills rebill and refund estimated cubic metres, so no line is the consumption alone.
+        $row->energy_amount = $utility->type === UtilityType::Water ? null : $values->energyAmount;
         $row->quantity_f1 = $values->f1;
         $row->quantity_f2 = $values->f2;
         $row->quantity_f3 = $values->f3;
