@@ -225,15 +225,21 @@ describe('FmSidebar', () => {
         bar('home', '/', 0);
 
         const nav = screen.getByRole('navigation', { name: 'Sections' });
+        // The groups of sections, not the pages under Budget
         const groups = within(nav)
             .getAllByRole('group')
+            .filter((group) => group.hasAttribute('aria-labelledby'))
             .map((group) => [
                 document.getElementById(
                     group.getAttribute('aria-labelledby') ?? '',
                 )?.textContent,
                 within(group)
                     .getAllByRole('link')
-                    .filter((link) => !link.closest('ul'))
+                    .filter(
+                        (link) =>
+                            !link.closest('ul') &&
+                            link.closest('[role="group"]') === group,
+                    )
                     .map((link) => link.textContent?.trim()),
             ]);
         expect(groups).toEqual([
@@ -247,7 +253,7 @@ describe('FmSidebar', () => {
     });
 
     it('has Budget right after Agenda, marked on its pages', () => {
-        bar('budget', '/budget/comparison');
+        bar('budget', '/budget/planned');
 
         const nav = screen.getByRole('navigation', { name: 'Sections' });
         const names = within(nav)
@@ -265,6 +271,58 @@ describe('FmSidebar', () => {
             'aria-current',
             'page',
         );
+    });
+
+    it('has Planned and spent and Usage under Budget, the open one marked and Budget plain', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'budget',
+                path: '/budget/consumption',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                hasConsumption: true,
+            },
+        });
+
+        const group = screen.getByRole('group', { name: 'In the Budget' });
+        expect(
+            within(group)
+                .getAllByRole('link')
+                .map((link) => link.textContent?.trim()),
+        ).toEqual(['Planned and spent', 'Usage']);
+        expect(group).toHaveClass('border-l-[1.5px]', 'border-edge-soft');
+        expect(
+            within(group).getByRole('link', { name: 'Planned and spent' }),
+        ).toHaveAttribute('href', '/budget/comparison');
+        const usage = within(group).getByRole('link', { name: 'Usage' });
+        expect(usage).toHaveAttribute('href', '/budget/consumption');
+        expect(usage).toHaveAttribute('aria-current', 'page');
+        // A child is the page: Budget is drawn plain, in ink
+        const budget = screen.getByRole('link', { name: 'Budget' });
+        expect(budget).not.toHaveAttribute('aria-current');
+        expect(budget).toHaveClass('text-ink');
+        expect(budget).not.toHaveClass('text-action-dark');
+    });
+
+    it('marks Planned and spent on its page', () => {
+        bar('budget', '/budget/comparison');
+
+        expect(
+            screen.getByRole('link', { name: 'Planned and spent' }),
+        ).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('has no Usage without a utility with consumption', () => {
+        bar('budget', '/budget');
+
+        expect(
+            screen.queryByRole('link', { name: 'Usage' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'Planned and spent' }),
+        ).toBeInTheDocument();
     });
 
     it('opens Settings and Log out from My account at the bottom', async () => {

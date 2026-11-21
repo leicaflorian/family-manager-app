@@ -14,11 +14,12 @@ use App\Enums\RecordKind;
 use App\Enums\UtilityType;
 use App\Services\Reading\RecordDrafts;
 use App\Support\DocumentRules;
+use App\Support\Reading\ConsumptionCheck;
 use App\Support\Reading\ValidDate;
 
 /**
  * What the person chose for one file in *Import*, cleaned: the fields of the document, the boxes ticked in
- * *What I also do*, the corrections of the movement, the event and the cards, the ones picked by hand, "to pay",
+ * *What I also do*, the corrections of the movement, the event, the consumption and the cards, the ones picked by hand, "to pay",
  * the policy taken from another file and *Create the card*. An empty value clears a field, an invalid one is dropped
  * (the reading stays); an amount, a date or an event type emptied leave the read ones.
  *
@@ -45,6 +46,15 @@ final readonly class ImportChoices
     /** The fields of the event the person can correct: person, place and date are the document's. */
     private const array EVENT_FIELDS = ['title' => 'title', 'type' => 'health', 'outcome' => 'text', 'next_checkup_date' => 'date'];
 
+    /** The fields of the consumption the person can correct in its box. */
+    private const array CONSUMPTION_FIELDS = ['quantity' => 'quantity', 'period_start' => 'date', 'period_end' => 'date', 'is_estimated' => 'toggle'];
+
+    /**
+     * A coarse limit of the request on the quantity written in the box, the same for every type: the cap of the type
+     * (20,000, 5,000 or 1,000) is applied later by {@see ConsumptionCheck}, which blocks a quantity above it.
+     */
+    public const int MAX_QUANTITY = 99999;
+
     /** The columns of a card that are the document's: they are written in its form, not in the box. */
     public const array DOCUMENT_COLUMNS = ['date', 'person_id', 'organization_id'];
 
@@ -70,7 +80,7 @@ final readonly class ImportChoices
      * @param  bool  $movement  the box of the expense or income is ticked
      * @param  bool  $event  the box of the health event is ticked
      * @param  list<RecordKind>  $records  the boxes of the cards ticked
-     * @param  array{movement: array<string, mixed>, event: array<string, mixed>, records: array<string, array<string, mixed>>}  $overrides  the corrections, `records` by the value of `RecordKind`
+     * @param  array{movement: array<string, mixed>, event: array<string, mixed>, records: array<string, array<string, mixed>>, consumption?: array<string, mixed>}  $overrides  the corrections, `records` by the value of `RecordKind`
      * @param  array{movement: 'auto'|'new'|int, event: 'auto'|'new'|int, records: array<string, 'auto'|'new'|int>}  $targets  `auto` looks for the one already there, `new` creates one, an id is the one picked by hand
      * @param  bool|null  $due  "to pay" (true) or "already paid" (false); null is the automatic choice
      * @param  string  $policy  `auto`, `none` or the `key` of a policy giver
@@ -78,6 +88,7 @@ final readonly class ImportChoices
      * @param  array<string, mixed>  $cardOverrides  what was written in the box of the card of the document category, still to clean: its fields depend on the type of the card, known only with the proposal (`recordOverrides()`)
      * @param  string|false|null  $cardFor  the card type of the proposal the page showed when the person chose (null: no card); false when the page did not say
      * @param  list<int>  $replacePolicies  the old policies ticked under the box of the new policy, to cancel
+     * @param  bool|null  $consumption  the box *Record the consumption* is ticked; null when the page did not say, and the box follows the proposal
      */
     public function __construct(
         public array $document = [],
@@ -92,12 +103,13 @@ final readonly class ImportChoices
         public array $cardOverrides = [],
         public string|false|null $cardFor = false,
         public array $replacePolicies = [],
+        public ?bool $consumption = null,
     ) {}
 
     /**
      * The choices as the page sends them, cleaned.
      *
-     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy, create_card, card_type, replace_policies}`
+     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy, create_card, card_type, replace_policies, consumption}`
      */
     public static function fromArray(array $raw): self
     {
@@ -114,6 +126,7 @@ final readonly class ImportChoices
                 'movement' => self::clean(self::arrayOf($overrides['movement'] ?? null), self::MOVEMENT_FIELDS, ['amount', 'date']),
                 'event' => self::clean(self::arrayOf($overrides['event'] ?? null), self::EVENT_FIELDS, ['type']),
                 'records' => self::recordEdits(self::arrayOf($overrides['records'] ?? null)),
+                'consumption' => self::clean(self::arrayOf($overrides['consumption'] ?? null), self::CONSUMPTION_FIELDS, ['quantity', 'period_start', 'period_end', 'is_estimated']),
             ],
             targets: [
                 'movement' => self::target($targets['movement'] ?? null),
@@ -126,6 +139,7 @@ final readonly class ImportChoices
             cardOverrides: self::stringKeys(self::arrayOf($overrides['records'] ?? null)[RecordKind::Card->value] ?? null),
             cardFor: array_key_exists('card_type', $raw) ? (is_string($raw['card_type']) ? $raw['card_type'] : null) : false,
             replacePolicies: self::ids($raw['replace_policies'] ?? null),
+            consumption: self::bool($raw['consumption'] ?? null),
         );
     }
 
@@ -149,6 +163,7 @@ final readonly class ImportChoices
             cardOverrides: $this->cardOverrides,
             cardFor: $this->cardFor,
             replacePolicies: $this->replacePolicies,
+            consumption: $this->consumption,
         );
     }
 
@@ -177,6 +192,7 @@ final readonly class ImportChoices
             cardOverrides: $this->cardOverrides,
             cardFor: $this->cardFor,
             replacePolicies: $this->replacePolicies,
+            consumption: $this->consumption,
         );
     }
 
@@ -262,6 +278,16 @@ final readonly class ImportChoices
             FieldKind::Choice, FieldKind::Dropdown => self::CHOICE.$field->enum,
             FieldKind::Person, FieldKind::Organization, FieldKind::Card => 'id',
         };
+    }
+
+    /**
+     * The corrections of the consumption: `quantity`, `period_start`, `period_end`, `is_estimated`.
+     *
+     * @return array<string, mixed>
+     */
+    public function consumptionOverrides(): array
+    {
+        return $this->overrides['consumption'] ?? [];
     }
 
     /**
@@ -377,6 +403,7 @@ final readonly class ImportChoices
             'title', 'text' => is_string($value) && trim($value) !== '' && mb_strlen(trim($value)) <= self::MAX_TEXT ? trim($value) : null,
             'date' => is_string($value) ? ValidDate::of($value) : null,
             'id' => self::id($value),
+            'quantity' => is_numeric($value) && (float) $value > 0 && (float) $value <= self::MAX_QUANTITY ? round((float) $value, 3) : null,
             'price', 'fee' => is_numeric($value) && (float) $value >= 0 && (float) $value <= self::MAX_AMOUNT ? round((float) $value, 2) : null,
             'year' => self::id($value) !== null && self::id($value) > 1900 ? self::id($value) : null,
             'number' => is_int($value) || (is_string($value) && preg_match('/^-?\d+$/', $value) === 1) ? (int) $value : null,

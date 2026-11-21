@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Reading;
 
+use App\Enums\ReadingPurpose;
+use App\Models\AiReading;
 use Carbon\CarbonImmutable;
 
 /**
@@ -47,5 +49,23 @@ final class ReadingCost
         }
 
         return ($input * $price['input'] + $output * $price['output']) / 1_000_000;
+    }
+
+    /**
+     * The average cost in dollars of the current family's readings of a purpose, to tell the person what a reading
+     * will probably cost. It goes through the `AiReading` model, so it has the family scope: without a current family
+     * nothing is read and the default comes back.
+     *
+     * @param  ReadingPurpose  $purpose  what the readings were for
+     * @return float the average of `cost_usd`, or `0.008` when the family has no reading of that purpose with a cost
+     */
+    public static function averageFor(ReadingPurpose $purpose): float
+    {
+        $average = AiReading::query()
+            ->where('purpose', $purpose)
+            ->whereNotNull('cost_usd')
+            ->avg('cost_usd');
+
+        return is_numeric($average) ? (float) $average : 0.008;
     }
 }

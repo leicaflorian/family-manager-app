@@ -24,6 +24,7 @@ use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
+use App\Models\Utility;
 use App\Queries\DocumentRows;
 use App\Services\Reminders\CardNotices;
 use App\Support\Linkables;
@@ -52,7 +53,7 @@ final readonly class CardDetails
     /** How many documents a page of the card shows. */
     private const int DOCUMENTS_PER_PAGE = 5;
 
-    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices) {}
+    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices, private ConsumptionPage $consumption) {}
 
     /**
      * The detail of a card.
@@ -98,6 +99,7 @@ final readonly class CardDetails
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
             budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, static fn (int $number): string => $address($documentsPage, $number)) : null,
             status: $status,
+            consumption: $card instanceof Utility ? $this->consumption->lastYear($card, $today) : null,
         );
     }
 

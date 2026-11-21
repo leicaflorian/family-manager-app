@@ -13,6 +13,18 @@ import { danceRow, gasRow, netflixRow, salaryRow } from '@/test/fixtures';
 import { renderPage, screenWidth } from '@/test/page';
 import Planned from './Planned.vue';
 
+/** The shared props the page reads: whether the family has a utility with consumption. */
+const shared = vi.hoisted(() => ({ has_consumption: false }));
+
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({
+        url: '/budget/planned',
+        props: { name: 'Fameja.app', ...shared },
+    }),
+}));
+
 /** The filters as the server sends them when none is on. */
 const noFilters: App.Data.PlannedFiltersData = {
     search: null,
@@ -65,6 +77,7 @@ afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    shared.has_consumption = false;
 });
 
 describe('Planned expenses', () => {
@@ -87,6 +100,50 @@ describe('Planned expenses', () => {
         expect(
             screen.getByText('per month, 1 planned income'),
         ).toBeInTheDocument();
+    });
+
+    it('leads to the electricity, gas and water use on the phone, when the family has a utility with it', () => {
+        shared.has_consumption = true;
+        renderPage(Planned, props);
+
+        expect(
+            screen.getByRole('link', {
+                name: /Electricity, gas and water use/,
+            }),
+        ).toHaveAttribute('href', '/budget/consumption');
+    });
+
+    it('has no way to the use without a utility with it', () => {
+        renderPage(Planned, props);
+        expect(
+            screen.queryByRole('link', {
+                name: /Electricity, gas and water use/,
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('leads to the use also on the tablet, where the sidebar is collapsed', () => {
+        shared.has_consumption = true;
+        screenWidth(820);
+        renderPage(Planned, props);
+
+        expect(
+            screen.getByRole('link', {
+                name: /Electricity, gas and water use/,
+            }),
+        ).toHaveAttribute('href', '/budget/consumption');
+    });
+
+    it('leaves the way to the use to the sidebar on the computer', () => {
+        shared.has_consumption = true;
+        screenWidth(true);
+        renderPage(Planned, props);
+
+        expect(
+            screen.queryByRole('link', {
+                name: /Electricity, gas and water use/,
+            }),
+        ).not.toBeInTheDocument();
     });
 
     it('lists the two sections with their number and the row of Netflix', () => {

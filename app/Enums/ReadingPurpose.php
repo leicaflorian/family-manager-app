@@ -19,4 +19,5 @@ enum ReadingPurpose: string
     case MailFile = 'mail_file';
     case Crop = 'crop';
     case BankRule = 'bank_rule';
+    case Consumption = 'consumption';
 }

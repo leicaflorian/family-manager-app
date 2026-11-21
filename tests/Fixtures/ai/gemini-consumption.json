@@ -1,0 +1,32 @@
+{
+    "id": "v1_ChdpbnRlcmFjdGlvbi1jb25zdW1wdGlvbg",
+    "object": "interaction",
+    "model": "gemini-3.8-flash",
+    "status": "completed",
+    "created": "2026-10-25T18:04:12Z",
+    "updated": "2026-10-25T18:04:19Z",
+    "role": "model",
+    "steps": [
+        {
+            "type": "thought",
+            "signature": "Q2lRQlZLaHVkR2hwYm1jPQ==",
+            "summary": []
+        },
+        {
+            "type": "model_output",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "{\"is_bill\": true, \"period_start\": \"2026-08-01\", \"period_end\": \"2026-09-30\", \"consumption_quantity\": 312, \"consumption_unit\": \"kwh\", \"total_amount\": 96.4, \"consumption_estimated\": false, \"consumption_adjusted\": false, \"consumption_energy_amount\": null, \"consumption_f1\": null, \"consumption_f2\": null, \"consumption_f3\": null}"
+                }
+            ]
+        }
+    ],
+    "usage": {
+        "total_input_tokens": 1450,
+        "total_cached_tokens": 0,
+        "total_output_tokens": 70,
+        "total_thought_tokens": 30,
+        "total_tokens": 1550
+    }
+}

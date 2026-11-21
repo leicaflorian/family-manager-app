@@ -39,6 +39,7 @@ use App\Models\ReminderNotice;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\UtilityConsumption;
 use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Model;
 
@@ -56,7 +57,7 @@ dataset('family models', [
     PlannedIncomeException::class, Income::class, Document::class,
     ReminderGroup::class, Reminder::class, ReminderNotice::class, FamilySetting::class, Invitation::class,
     AiReading::class, ReceivedMail::class, LinkedDevice::class, FeedbackReport::class,
-    BankConnection::class, BankTransaction::class,
+    BankConnection::class, BankTransaction::class, UtilityConsumption::class,
 ]);
 
 test('a row of family A is not found from family B', function (string $class): void {

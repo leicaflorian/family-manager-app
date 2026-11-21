@@ -11,9 +11,10 @@ use Carbon\CarbonImmutable;
 use Throwable;
 
 /**
- * Writes in `ai_readings` an AI call that has no file, in the current family: by default the one that asked about a
- * mail (no account), or the one that looked for the edges of a sheet (`ReadingPurpose::Crop`, with the account). The
- * call is paid already: a row that cannot be written is reported and the answer stays.
+ * Writes in `ai_readings` an AI call, in the current family: by default the one that asked about a mail (no account,
+ * no file), the one that looked for the edges of a sheet (`ReadingPurpose::Crop`, with the account) or the one that read
+ * the consumption of a bill (`ReadingPurpose::Consumption`, with the file). The call is paid already: a row that cannot
+ * be written is reported and the answer stays.
  */
 final class RecordMailFilterCall
 {
@@ -25,22 +26,30 @@ final class RecordMailFilterCall
      * @param  int  $cacheReadTokens  the tokens read from the cache of the service
      * @param  ReadingPurpose  $purpose  what the call was for
      * @param  int|null  $userId  the account that made the call, if any
+     * @param  int|null  $fileId  the file that was read, if any
+     * @return AiReading the row written; when it could not be written (already reported) a row that does not exist, so
+     *                   check `exists` before relying on it
      */
-    public function handle(string $provider, string $model, int $inputTokens, int $outputTokens, int $cacheReadTokens, ReadingPurpose $purpose = ReadingPurpose::MailFilter, ?int $userId = null): void
+    public function handle(string $provider, string $model, int $inputTokens, int $outputTokens, int $cacheReadTokens, ReadingPurpose $purpose = ReadingPurpose::MailFilter, ?int $userId = null, ?int $fileId = null): AiReading
     {
+        $attributes = [
+            'user_id' => $userId,
+            'file_id' => $fileId,
+            'purpose' => $purpose,
+            'provider' => $provider,
+            'model' => $model,
+            'input_tokens' => $inputTokens,
+            'output_tokens' => $outputTokens,
+            'cache_read_tokens' => $cacheReadTokens,
+            'cost_usd' => ReadingCost::estimate($model, $inputTokens, $outputTokens, CarbonImmutable::now('Europe/Rome')),
+        ];
+
         try {
-            AiReading::query()->create([
-                'user_id' => $userId,
-                'purpose' => $purpose,
-                'provider' => $provider,
-                'model' => $model,
-                'input_tokens' => $inputTokens,
-                'output_tokens' => $outputTokens,
-                'cache_read_tokens' => $cacheReadTokens,
-                'cost_usd' => ReadingCost::estimate($model, $inputTokens, $outputTokens, CarbonImmutable::now('Europe/Rome')),
-            ]);
+            return AiReading::query()->create($attributes);
         } catch (Throwable $error) {
             report($error);
+
+            return new AiReading($attributes);
         }
     }
 }

@@ -12,6 +12,7 @@ use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\CardSummaries;
+use App\Services\ConsumptionPage;
 use App\Services\Reminders\NoticeList;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -78,6 +79,8 @@ class HandleInertiaRequests extends Middleware
             'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
             // The link to the bank: null while it is off for the family, otherwise what is still to sort (the badge of the menu)
             'bank_feed' => fn (): ?array => $request->user() instanceof User && BankFeedAvailability::on() ? ['unsorted' => BankTransaction::query()->unsorted()->count()] : null,
+            // Whether the family has an electricity, gas or water utility: the Consumption page exists only then
+            'has_consumption' => fn (): bool => $request->user() instanceof User && ConsumptionPage::available(),
             'locale' => app()->getLocale(),
             // The name of the account the owner looks as during a visit (*Enter as…*), for the strip of the layout
             'impersonating' => LimitVisit::isOpen($request) && $request->user() instanceof User ? $request->user()->name : null,

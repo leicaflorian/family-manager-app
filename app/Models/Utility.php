@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A utility: electricity, gas, water, internet, phone, waste tax, TV licence (`utilities`).
@@ -33,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read Collection<int, UtilityConsumption> $consumptions
+ * @property-read int|null $consumptions_count
  * @property-read Collection<int, Document> $documents
  * @property-read int|null $documents_count
  * @property-read Family $family
@@ -83,6 +86,16 @@ final class Utility extends FamilyModel
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /**
+     * The consumptions read from its bills or written by hand.
+     *
+     * @return HasMany<UtilityConsumption, $this>
+     */
+    public function consumptions(): HasMany
+    {
+        return $this->hasMany(UtilityConsumption::class);
     }
 
     /**

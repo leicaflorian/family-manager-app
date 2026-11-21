@@ -216,6 +216,12 @@ readonly can_delete: boolean,
 readonly can_delete_documents: boolean,
 readonly budget: App.Data.CardBudgetData | null,
 readonly status: App.Data.CardNumberData | null,
+readonly consumption: {
+quantity: number,
+unit: string,
+price: number | null,
+href: string,
+} | null,
 };
 export type CardFieldData = {
 readonly column: string,
@@ -841,6 +847,68 @@ readonly pattern: string,
 readonly explanation: string,
 };
 }
+namespace Consumption {
+export type ConsumptionBillData = {
+readonly id: number,
+readonly document_id: number | null,
+readonly period_start: string,
+readonly period_end: string,
+readonly quantity: number,
+readonly unit: string,
+readonly amount: number | null,
+readonly price: number | null,
+readonly paid: boolean,
+readonly is_estimated: boolean,
+readonly has_adjustments: boolean,
+readonly above_average: boolean,
+readonly check: boolean,
+readonly source: string,
+readonly can_update: boolean,
+readonly can_delete: boolean,
+};
+export type ConsumptionFiguresData = {
+readonly quantity: number,
+readonly previousQuantity: number | null,
+readonly coveredMonths: number,
+readonly amount: number,
+readonly bills: number,
+readonly toPay: number,
+readonly averagePrice: number | null,
+readonly dearestMonth: string | null,
+readonly dearestPrice: number | null,
+};
+export type ConsumptionMonthData = {
+readonly month: string,
+readonly quantity: number | null,
+readonly amount: number | null,
+readonly price: number | null,
+readonly previousQuantity: number | null,
+readonly previousAmount: number | null,
+readonly coverage: string,
+readonly coveredUntil: number | null,
+readonly estimated: boolean,
+readonly adjusted: boolean,
+readonly billIds: number[],
+};
+export type ConsumptionPageData = {
+readonly types: Array<{ type: App.Enums.UtilityType; label: string; utility: number }>,
+readonly utilities: Array<{ id: number; title: string; start: string | null; end: string | null }>,
+readonly utility: { id: number; title: string; type: App.Enums.UtilityType; unit: App.Enums.ConsumptionUnit; href: string },
+readonly from: string,
+readonly to: string,
+readonly previous: string | null,
+readonly next: string | null,
+readonly months: App.Data.Consumption.ConsumptionMonthData[],
+readonly figures: App.Data.Consumption.ConsumptionFiguresData,
+readonly sentence: string | null,
+readonly bills: App.Data.Consumption.ConsumptionBillData[],
+readonly month: string | null,
+readonly archive: { count: number; cost: number; left: number; running: boolean; done: number; total: number; can_read: boolean } | null,
+readonly toCheck: Array<{ document_id: number; title: string; date: string | null; reason: string }>,
+readonly canCreate: boolean,
+readonly canRead: boolean,
+};
+}
 namespace Mail {
 export type MailScreeningAnswer = {
 readonly verdict: unknown,
@@ -848,6 +916,26 @@ readonly reason: string | null,
 };
 }
 namespace Reading {
+export type ConsumptionProposalData = {
+readonly values: App.Data.Reading.ConsumptionValuesData,
+readonly suggested: boolean,
+readonly utility: {
+id: number,
+title: string,
+} | null,
+readonly blocked: string | null,
+readonly fill: string[],
+readonly complete: string[],
+readonly priceWarning: boolean,
+};
+export type ConsumptionValuesData = {
+readonly period_start: string | null,
+readonly period_end: string | null,
+readonly quantity: number | null,
+readonly unit: string,
+readonly amount: number | null,
+readonly is_estimated: boolean,
+};
 export type DocumentProposalData = {
 readonly title: string | null,
 readonly category_id: number | null,
@@ -913,6 +1001,14 @@ due_date: string | null,
 expiry_date: string | null,
 period_start: string | null,
 period_end: string | null,
+consumption_quantity: number | null,
+consumption_unit: string | null,
+consumption_estimated: boolean | null,
+consumption_adjusted: boolean | null,
+consumption_energy_amount: number | null,
+consumption_f1: number | null,
+consumption_f2: number | null,
+consumption_f3: number | null,
 supply_point_code: string | null,
 customer_code: string | null,
 iban_last_four: string | null,
@@ -1020,6 +1116,7 @@ many: boolean,
 readonly warnings: string[],
 readonly createCard: boolean,
 readonly cardType: string | null,
+readonly consumption: App.Data.Reading.ConsumptionProposalData | null,
 };
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,
@@ -1080,6 +1177,9 @@ export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended';
 export type Channel = 'app' | 'email' | 'both';
+export type ConsumptionOutcome = 'saved' | 'not_a_bill' | 'no_consumption' | 'wrong_unit' | 'out_of_range' | 'bad_period';
+export type ConsumptionSource = 'reading' | 'manual';
+export type ConsumptionUnit = 'kwh' | 'smc' | 'm3';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type DueMode = 'new' | 'existing' | 'exception';
 export type EmploymentStatus = 'active' | 'ended';
@@ -1108,7 +1208,7 @@ export type NoticeTone = 'info' | 'warning' | 'danger';
 export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'employer' | 'public_office' | 'school' | 'healthcare' | 'shop' | 'other';
 export type OwnerActionType = 'family_created' | 'suspended' | 'reactivated' | 'deletion_scheduled' | 'deletion_cancelled' | 'visit_started' | 'visit_ended' | 'reading_limit_changed' | 'bank_feed_on' | 'bank_feed_off';
 export type PersonRole = 'parent' | 'child' | 'other';
-export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop' | 'bank_rule';
+export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop' | 'bank_rule' | 'consumption';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance' | 'card';
 export type ReleaseBump = 'major' | 'minor' | 'patch';

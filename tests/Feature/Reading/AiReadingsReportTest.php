@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\ReadingPurpose;
 use App\Models\AiReading;
 use App\Models\Family;
 use Carbon\CarbonImmutable;
@@ -114,3 +115,18 @@ test('refuses a month that is not valid', function (string $month): void {
         ->expectsOutput('--month must be a month like 2026-10.')
         ->assertFailed();
 })->with(['2026-13', '2026-1', 'october', '2026-10-01', '2026-00']);
+
+test('counts the consumption readings of the bills of the archive with the others', function (): void {
+    reportReading($this->bianchi, '2026-10-03 10:00');
+    reportReading($this->bianchi, '2026-10-04 10:00', ['purpose' => ReadingPurpose::Consumption]);
+
+    $this->artisan('ai-readings:report', ['--month' => '2026-10'])
+        ->expectsTable(
+            ['Family', 'Readings', 'Input tokens', 'Output tokens', 'Cost'],
+            [
+                ['Bianchi', '2', '2000', '200', '0,0050 $'],
+                ['Total', '2', '2000', '200', '0,0050 $'],
+            ],
+        )
+        ->assertSuccessful();
+});

@@ -18,6 +18,7 @@ const Menu = defineComponent({
         text: { type: Boolean, default: false },
         outline: { type: Boolean, default: false },
         control: { type: Boolean, default: false },
+        choice: { type: Boolean, default: false },
         icon: { type: Function as PropType<LucideIcon>, default: undefined },
     },
     setup: (props) => () =>
@@ -30,6 +31,7 @@ const Menu = defineComponent({
                 text: props.text,
                 outline: props.outline,
                 control: props.control,
+                choice: props.choice,
                 icon: props.icon,
             },
             { default: () => h(FmMenuItem, null, () => 'Rename') },
@@ -129,6 +131,22 @@ describe('FmMenu', () => {
         expect(button).toHaveTextContent('Postpone');
         expect(button).toHaveClass('h-9', 'border-edge-soft', 'bg-card');
         expect(button.querySelector('.lucide-plus')).not.toBeNull();
+        await userEvent.click(button);
+        expect(
+            await screen.findByRole('menuitem', { name: 'Rename' }),
+        ).toBeInTheDocument();
+    });
+
+    it('as a choice, shows its label in ink and bold with a chevron after it', async () => {
+        renderPage(Menu, { label: 'Gas - Eni · Home', choice: true });
+
+        const button = screen.getByRole('button', { name: 'Gas - Eni · Home' });
+        expect(button).toHaveTextContent('Gas - Eni · Home');
+        expect(button).toHaveClass('text-label', 'text-ink', 'min-h-touch');
+        const chevron = button.querySelector('svg');
+        expect(chevron).toHaveClass('lucide-chevron-down', 'text-ink-soft');
+        // The chevron comes after the words
+        expect(button.lastElementChild).toBe(chevron);
         await userEvent.click(button);
         expect(
             await screen.findByRole('menuitem', { name: 'Rename' }),

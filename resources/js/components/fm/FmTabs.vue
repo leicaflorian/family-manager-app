@@ -9,7 +9,8 @@
  * at (`countInfo`, with `countLabel`) is a blue one, as *From the bank* shows the
  * movements to sort. A tab with an `icon`
  * shows only the icon, in a square, and its name is for screen readers and the
- * tooltip: the toggle «List / Calendar» of the Agenda.
+ * tooltip: the toggle «List / Calendar» of the Agenda. A tab with a `lead` icon
+ * shows it (18 px) before its name: the kinds of utility of *Usage* (Electricity, Gas, Water).
  *
  * @group navigation
  */
@@ -41,6 +42,8 @@ export type Tab = {
     current: boolean;
     /** An icon: the tab shows only it (18 px, in a square), and `label` becomes its name and tooltip. */
     icon?: LucideIcon;
+    /** An icon shown (18 px) before the name, which stays: the kinds of utility of *Usage*. */
+    lead?: LucideIcon;
     /** The tab cannot be chosen (no files for it): its name is shown without a link. */
     disabled?: boolean;
 };
@@ -69,8 +72,14 @@ const iconsOnly = computed(
  * @param marked - the tab is the one of the open page
  * @param disabled - the tab cannot be chosen: soft, with no hover
  * @param icon - the tab shows only an icon, in a fixed square
+ * @param lead - the tab shows an icon before its name, a little further from it
  */
-function tabClasses(marked: boolean, disabled = false, icon = false): string {
+function tabClasses(
+    marked: boolean,
+    disabled = false,
+    icon = false,
+    lead = false,
+): string {
     if (variant === 'pill') {
         return cn(
             // Equal tabs while they fit; a longer name widens its tab instead of going on two lines
@@ -78,6 +87,7 @@ function tabClasses(marked: boolean, disabled = false, icon = false): string {
                 ? 'size-9 shrink-0 lg:size-10'
                 : 'h-10 min-w-fit flex-1 px-2 whitespace-nowrap',
             'flex items-center justify-center gap-1 rounded-tag text-body-sm no-underline',
+            lead && 'gap-1.5',
             marked
                 ? 'bg-card text-label text-ink shadow-raised'
                 : cn(
@@ -115,8 +125,9 @@ function tabClasses(marked: boolean, disabled = false, icon = false): string {
             <span
                 v-if="tab.disabled && !tab.current"
                 aria-disabled="true"
-                :class="tabClasses(false, true)"
+                :class="tabClasses(false, true, false, !!tab.lead)"
             >
+                <FmIcon v-if="tab.lead" :icon="tab.lead" :size="18" />
                 {{ tab.label }}
                 <span v-if="tab.count !== undefined" class="font-semibold">{{
                     tab.count
@@ -128,9 +139,10 @@ function tabClasses(marked: boolean, disabled = false, icon = false): string {
                 :aria-current="tab.current ? 'page' : undefined"
                 :aria-label="tab.icon ? tab.label : tab.countLabel"
                 :title="tab.icon ? tab.label : undefined"
-                :class="tabClasses(tab.current, false, !!tab.icon)"
+                :class="tabClasses(tab.current, false, !!tab.icon, !!tab.lead)"
             >
                 <FmIcon v-if="tab.icon" :icon="tab.icon" :size="18" />
+                <FmIcon v-else-if="tab.lead" :icon="tab.lead" :size="18" />
                 {{ tab.icon ? '' : tab.label }}
                 <span
                     v-if="tab.count !== undefined && tab.countLabel"

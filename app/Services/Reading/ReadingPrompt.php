@@ -31,7 +31,7 @@ Rules:
 - fee_amount: only for payment_receipt, the fee charged for the payment ("commissione", "costo del servizio") in euro; null when there is none and for every other kind.
 - For a payment_receipt: the issuer is whoever was paid (the creditor, e.g. the municipality or the supplier), never the bank, Poste, PagoPA or the card circuit that carried the payment; issue_date is the day of the payment; due_date is null; iban_last_four is the IBAN of the account that paid; title comes from the reason of the payment ("causale", "oggetto del pagamento"); summary mentions the fee if there is one.
 - Dates in YYYY-MM-DD. issue_date: the document date (for a medical report, the date of the visit or exam). due_date: payment deadline ("scadenza"), only for payments. expiry_date: when the document itself stops being valid (identity document, warranty, certificate, policy end), not a payment deadline. The period of a service or subscription ("valido fino al", "periodo dal… al…", "rinnovo il") is not an expiry: for utility_bill, receipt, invoice, payment_receipt, payslip and road_tax expiry_date is null.
-- period_start / period_end: the period a bill or payslip refers to (for a payslip, first and last day of the paid month).
+TXT."\n".self::PERIOD_RULE."\n".self::CONSUMPTION_RULE."\n".<<<'TXT'
 - supply_point_code: POD (electricity, starts with IT) or PDR (gas, 14 digits). customer_code: "codice cliente". iban_last_four: last 4 characters of the IBAN the payment is debited to or credited to, if shown.
 - policy_number: insurance policy number. plate_number: vehicle plate (Italian format like AB123CD). tax_code: the "codice fiscale" of the person the document is about (employee on a payslip, patient on a medical document, holder of a policy or bill).
 - organization_id, expense_category_id, document_category_id, person_id: pick the id from the lists below, or null when nothing fits. Prefer the most specific category. person_id is the account holder, employee, patient or person the document is about.
@@ -45,6 +45,16 @@ Rules:
 - After the lists there can be what was written about the file when it was uploaded: its name and its description (who uploaded or sent it, when, and a note). Use it as a hint for what the paper does not say: who made the document or who it is about, what it is, the issuer, the title. What is printed on the document wins when they disagree. Whoever uploaded or sent the file is not necessarily the person the document is about. Names made by a device or an app ("Telefono 2026-10-25 12.17", "Scanner…", "IMG_1234") say nothing.
 - summary: one short sentence describing the document (e.g. "Bolletta gas bimestrale agosto-settembre 2026").
 - confidence: low if the document is hard to read or you are unsure what it is.
+TXT;
+
+    /** The rule of the period of a bill or payslip, shared with the short reading of the consumption. */
+    public const string PERIOD_RULE = <<<'TXT'
+- period_start / period_end: the period a bill or payslip refers to (for a payslip, first and last day of the paid month).
+TXT;
+
+    /** The rules of the consumption of a utility bill, shared with the short reading of the consumption. */
+    public const string CONSUMPTION_RULE = <<<'TXT'
+- consumption_*: only for a utility_bill of electricity, gas or water; for everything else all the consumption_* fields are null. consumption_quantity is the consumption billed in this bill for the period given by period_start and period_end: not the yearly consumption, not the meter reading, not the committed power. Gas in Smc (standard cubic metres, not the measured cubic metres), water in m3, electricity the total kWh, the sum of the bands. Copy it as printed; null when there is none (credit note, fixed fee only, an email without the bill), never guessed. consumption_unit is kwh, smc or m3. consumption_estimated is true for "stimato", "in acconto", "salvo conguaglio"; consumption_adjusted is true for "ricalcolo" or "conguaglio" of periods already billed. With more than one period, period_start is the first day and period_end the last day of the consumption billed. consumption_energy_amount is the spend for the energy alone (the "materia energia", the "materia gas", or the consumption part of the water bill) in euro; consumption_f1, consumption_f2 and consumption_f3 are the kWh of each band, electricity only, null when they are not printed.
 TXT;
 
     /** The fields of the schema that are dates (`YYYY-MM-DD`). */
@@ -85,8 +95,8 @@ TXT;
                 ),
                 in_array($field, self::DATES, true) => $schema->string()->format('date'),
                 in_array($field, self::INTEGERS, true) => $schema->integer(),
-                in_array($field, ['total_amount', 'fee_amount'], true) => $schema->number(),
-                $field === 'durable_good' => $schema->boolean(),
+                in_array($field, ['total_amount', 'fee_amount', 'consumption_quantity', 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'], true) => $schema->number(),
+                in_array($field, ['durable_good', 'consumption_estimated', 'consumption_adjusted'], true) => $schema->boolean(),
                 default => $schema->string(),
             };
 
