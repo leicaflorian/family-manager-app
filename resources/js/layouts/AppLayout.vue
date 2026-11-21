@@ -74,6 +74,9 @@ const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
 const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
+const hasConsumption = computed(
+    (): boolean => page.props.has_consumption ?? false,
+);
 const { unread: unreadNotices, notices, loadNotices } = useBellNotices();
 // A release while the page is open: a message with Reload, in the toaster below
 useNewVersion();
@@ -220,6 +223,7 @@ useSearchShortcut(focusSearch);
             :family="family"
             :user="user"
             :upload-count="toSort"
+            :has-consumption="hasConsumption"
             @report="openFeedback"
         />
         <div class="flex min-w-0 grow flex-col">
@@ -305,6 +309,7 @@ useSearchShortcut(focusSearch);
                         :family="family"
                         :user="user"
                         :upload-count="toSort"
+                        :has-consumption="hasConsumption"
                         @report="openFeedback"
                     />
                 </DialogContent>

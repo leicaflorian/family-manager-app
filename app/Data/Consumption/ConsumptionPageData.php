@@ -17,7 +17,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class ConsumptionPageData extends Data
 {
     /**
-     * @param  list<array{type: string, label: string}>  $types  the measured types the family has a utility of, electricity first
+     * @param  list<array{type: string, label: string, utility: int}>  $types  the measured types the family has a utility of, electricity first, each with the utility it opens (the first of its type, the active first)
      * @param  list<array{id: int, title: string, start: string|null, end: string|null}>  $utilities  the utilities of the same type as the one shown, the active first, titled «label · home», with their activation date and, for a utility no longer active, the end of its latest bill, `YYYY-MM-DD`
      * @param  array{id: int, title: string, type: string, unit: string, href: string}  $utility  the utility shown, titled «label · home», with the address of its card
      * @param  string  $from  the first month shown, `YYYY-MM`
@@ -34,7 +34,7 @@ final class ConsumptionPageData extends Data
      * @param  bool  $canCreate  whether the person can add a consumption by hand
      */
     public function __construct(
-        #[LiteralTypeScriptType('Array<{ type: App.Enums.UtilityType; label: string }>')]
+        #[LiteralTypeScriptType('Array<{ type: App.Enums.UtilityType; label: string; utility: number }>')]
         public readonly array $types,
         #[LiteralTypeScriptType('Array<{ id: number; title: string; start: string | null; end: string | null }>')]
         public readonly array $utilities,

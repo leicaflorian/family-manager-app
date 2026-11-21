@@ -7,10 +7,13 @@
  * by amount and by next due date: with a filter on, the averages give way to
  * the pills of the filters and a section left without rows is hidden. On the
  * computer the filters are a column on the left; on the phone they are in the
- * panel from below. A row always opens the page of its planned item.
+ * panel from below. A row always opens the page of its planned item. On the
+ * phone, when the family has an electricity, gas or water utility, a card under
+ * the averages leads to *Usage* (on the tablet and the computer it is in the
+ * sidebar).
  */
-import { Head } from '@inertiajs/vue3';
-import { Plus, Repeat, Search } from '@lucide/vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import { ChartColumn, Plus, Repeat, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
@@ -22,17 +25,21 @@ import FmFilterAside from '@/components/fm/FmFilterAside.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
 import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmFold from '@/components/fm/FmFold.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPlannedFilters from '@/components/fm/FmPlannedFilters.vue';
 import FmPlannedRow from '@/components/fm/FmPlannedRow.vue';
+import FmRow from '@/components/fm/FmRow.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useListFilters } from '@/composables/useListFilters';
 import { plannedUrl } from '@/lib/budget';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { budgetTabs } from '@/lib/budgetTabs';
 import { anyFilterOn, rangePills } from '@/lib/filters';
+import { consumption } from '@/routes/budget';
 import { create, show } from '@/routes/budget/planned';
 
 const props = defineProps<{
@@ -54,6 +61,14 @@ const props = defineProps<{
 
 const { euro } = useFormat();
 const bankFeed = useBankFeed();
+const page = usePage();
+const mode = useLayoutMode();
+
+/** The card that leads to *Usage*: on the phone, when the family has an electricity, gas or water utility. */
+const usageCard = computed(
+    (): boolean =>
+        mode.value === 'phone' && (page.props.has_consumption ?? false),
+);
 
 /** The panel of the filters, on the phone. */
 const filtersOpen = ref(false);
@@ -249,6 +264,25 @@ const showLabel = computed(() =>
                             }}</span>
                         </div>
                     </div>
+
+                    <FmCard v-if="usageCard && !filtering" list>
+                        <FmRow
+                            :title="$t('Electricity, gas and water use')"
+                            :subtitle="
+                                $t('How much you use and pay, month by month')
+                            "
+                            :href="consumption().url"
+                            arrow
+                        >
+                            <template #before>
+                                <span
+                                    class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-home-soft text-home-text"
+                                >
+                                    <FmIcon :icon="ChartColumn" :size="20" />
+                                </span>
+                            </template>
+                        </FmRow>
+                    </FmCard>
 
                     <FmEmpty
                         v-if="noMatch"

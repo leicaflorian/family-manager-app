@@ -267,6 +267,37 @@ describe('FmSidebar', () => {
         );
     });
 
+    it('has Usage under Budget when the family has a utility with consumption, marked on its page', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'budget',
+                path: '/budget/consumption',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                hasConsumption: true,
+            },
+        });
+
+        const group = screen.getByRole('group', { name: 'In the Budget' });
+        const usage = within(group).getByRole('link', { name: 'Usage' });
+        expect(usage).toHaveAttribute('href', '/budget/consumption');
+        expect(usage).toHaveAttribute('aria-current', 'page');
+        // Budget stays in bold, but the page is Usage
+        expect(
+            screen.getByRole('link', { name: 'Budget' }),
+        ).not.toHaveAttribute('aria-current');
+    });
+
+    it('has no Usage without a utility with consumption', () => {
+        bar('budget', '/budget');
+
+        expect(
+            screen.queryByRole('link', { name: 'Usage' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('opens Settings and Log out from My account at the bottom', async () => {
         bar('home');
 

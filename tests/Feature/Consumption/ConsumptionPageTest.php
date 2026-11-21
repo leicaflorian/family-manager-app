@@ -78,7 +78,12 @@ it('opens the electricity of the last 12 months with data when nothing is asked'
             ->where('consumption.month', null)
             ->has('consumption.months', 12)
             ->where('consumption.figures.quantity', 2711)
-            ->where('consumption.types', [['type' => 'electricity', 'label' => 'Luce'], ['type' => 'gas', 'label' => 'Gas'], ['type' => 'water', 'label' => 'Acqua']])
+            // Each type opens its first utility
+            ->where('consumption.types', [
+                ['type' => 'electricity', 'label' => 'Luce', 'utility' => consumptionPageUtility(UtilityType::Electricity)->id],
+                ['type' => 'gas', 'label' => 'Gas', 'utility' => consumptionPageUtility(UtilityType::Gas)->id],
+                ['type' => 'water', 'label' => 'Acqua', 'utility' => consumptionPageUtility(UtilityType::Water)->id],
+            ])
             ->where('consumption.utilities', [['id' => consumptionPageUtility(UtilityType::Electricity)->id, 'title' => 'Luce - Edison · Casa di via Roma', 'start' => null, 'end' => null]])
             ->has('consumption.bills', 12)
             ->where('consumption.bills.0.period_start', '2026-09-01')

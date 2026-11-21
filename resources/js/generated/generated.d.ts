@@ -885,7 +885,7 @@ readonly adjusted: boolean,
 readonly billIds: number[],
 };
 export type ConsumptionPageData = {
-readonly types: Array<{ type: App.Enums.UtilityType; label: string }>,
+readonly types: Array<{ type: App.Enums.UtilityType; label: string; utility: number }>,
 readonly utilities: Array<{ id: number; title: string; start: string | null; end: string | null }>,
 readonly utility: { id: number; title: string; type: App.Enums.UtilityType; unit: App.Enums.ConsumptionUnit; href: string },
 readonly from: string,

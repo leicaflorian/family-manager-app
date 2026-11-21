@@ -3,7 +3,8 @@
  * The sidebar of the tablet and of the computer: the bar of its head (the same box as the top bar, white) with the
  * logo and the family; Upload (which only uploads), Home and the
  * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
- * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, with the areas under it, Documents, Family),
+ * *Received mail*), *Every day* (Agenda, Budget, with *Usage* under it when the family has a utility with
+ * consumption) and *Archive* (Areas, with the areas under it, Documents, Family),
  * and at the bottom *My account*, which opens Settings, *Report a problem or an idea* (it emits `report`: the layout
  * opens the panel) and Log out. When the sections do not fit the window, only they scroll: the head, Upload and
  * *My account* stay in place.
@@ -31,6 +32,7 @@ import { useAppName } from '@/composables/useAppName';
 import { getInitials } from '@/composables/useInitials';
 import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
+import { consumption } from '@/routes/budget';
 import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
@@ -50,6 +52,7 @@ const {
     user,
     uploadCount = 0,
     collapsed = false,
+    hasConsumption = false,
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -67,6 +70,8 @@ const {
     uploadCount?: number;
     /** Collapsed to the icons, 76 px wide. */
     collapsed?: boolean;
+    /** The family has an electricity, gas or water utility: *Usage* shows under *Budget*. */
+    hasConsumption?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -239,14 +244,24 @@ watch(
     },
 );
 
+/** The address of *Usage*, under *Budget*. */
+const consumptionUrl = consumption().url;
+
+/** Whether the page is *Usage*, so *Budget* itself is not the page. */
+const onConsumption = computed((): boolean => path === consumptionUrl);
+
 /**
  * Whether a section is the page that is open.
  *
  * @param section - the section of the item
- * @returns true for the open section, unless one of its areas is the page
+ * @returns true for the open section, unless one of its areas or *Usage* is the page
  */
 function isPage(section: Section): boolean {
-    return section === active && !(section === 'areas' && onAreaLink.value);
+    return (
+        section === active &&
+        !(section === 'areas' && onAreaLink.value) &&
+        !(section === 'budget' && onConsumption.value)
+    );
 }
 </script>
 
@@ -388,6 +403,29 @@ function isPage(section: Section): boolean {
                                 :size="18"
                             />
                         </button>
+                    </div>
+                    <div
+                        v-if="
+                            item.section === 'budget' &&
+                            hasConsumption &&
+                            !small
+                        "
+                        role="group"
+                        :aria-label="$t('In the Budget')"
+                        class="my-0.5 ml-[21px] flex flex-col gap-0.5 border-l border-divider pl-1.5"
+                    >
+                        <Link
+                            :href="consumptionUrl"
+                            :aria-current="onConsumption ? 'page' : undefined"
+                            class="flex h-9 items-center rounded-md px-2.5 text-body-sm no-underline"
+                            :class="
+                                onConsumption
+                                    ? 'bg-action-soft text-label text-action-dark'
+                                    : 'text-ink hover:bg-canvas'
+                            "
+                        >
+                            <span class="grow truncate">{{ $t('Usage') }}</span>
+                        </Link>
                     </div>
                     <!-- The box stays also collapsed, with its gap: only the list goes, so nothing under it moves -->
                     <div v-if="item.section === 'areas'" v-auto-animate>

@@ -96,8 +96,7 @@ final readonly class ConsumptionPage
         $unit = ConsumptionUnit::forUtility($utility->type) ?? throw new NotFoundHttpException;
 
         return new ConsumptionPageData(
-            types: array_values($utilities->map(static fn (Utility $item): UtilityType => $item->type)->unique()->sortBy(static fn (UtilityType $type): int => (int) array_search($type, UtilityType::measured(), true))
-                ->map(static fn (UtilityType $type): array => ['type' => $type->value, 'label' => $type->label()])->all()),
+            types: $this->types($utilities),
             utilities: array_values($utilities->where('type', $utility->type)
                 ->map(fn (Utility $item): array => [
                     'id' => $item->id,
@@ -152,6 +151,21 @@ final readonly class ConsumptionPage
                 static fn (Utility $a, Utility $b): int => $a->id <=> $b->id,
             ])
             ->values();
+    }
+
+    /**
+     * The measured types the family has a utility of, electricity first, each with the utility its tab opens: the
+     * first of the type in the order of `utilities()`, so the active one before one that ended.
+     *
+     * @param  Collection<int, Utility>  $utilities  the measured utilities of the family, from `utilities()`
+     * @return list<array{type: string, label: string, utility: int}>
+     */
+    private function types(Collection $utilities): array
+    {
+        return array_values($utilities->unique(static fn (Utility $item): string => $item->type->value)
+            ->sortBy(static fn (Utility $item): int => (int) array_search($item->type, UtilityType::measured(), true))
+            ->map(static fn (Utility $item): array => ['type' => $item->type->value, 'label' => $item->type->label(), 'utility' => $item->id])
+            ->all());
     }
 
     /**
