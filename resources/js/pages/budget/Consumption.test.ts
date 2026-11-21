@@ -252,7 +252,7 @@ describe('Consumption', () => {
             '01/01 – 31/01/2026 · 290 kWh · 86,10 €',
         );
         expect(detail).toHaveTextContent('Bill paid');
-        // Correcting opens the panel of the consumption, which comes with the next step
+        // Correcting opens the panel of the consumption (see «the panel of a consumption» below)
         expect(
             within(detail).getByRole('button', {
                 name: 'Correct the consumption of Bill of January 2026',
@@ -467,5 +467,141 @@ describe('Consumption', () => {
 
         const detail = screen.getByRole('region', { name: 'January 2026' });
         expect(detail.parentElement).toHaveClass('sticky');
+    });
+
+    describe('the panel of a consumption', () => {
+        /** The months of a utility without consumption. */
+        const emptyMonths = consumptionPage.months.map((month) => ({
+            ...month,
+            quantity: null,
+            amount: null,
+            price: null,
+            coverage: 'none',
+            billIds: [],
+        }));
+
+        it('opens to correct the bill of the open month, from its ✎', async () => {
+            page({ month: '2026-01' });
+
+            await userEvent.click(
+                within(
+                    screen.getByRole('region', { name: 'January 2026' }),
+                ).getByRole('button', {
+                    name: 'Correct the consumption of Bill of January 2026',
+                }),
+            );
+
+            const dialog = await screen.findByRole('dialog', {
+                name: 'Correct the consumption',
+            });
+            expect(dialog).toHaveTextContent('Bill of January 2026');
+            expect(screen.getByLabelText('From')).toHaveValue('01/01/2026');
+            expect(screen.getByLabelText('To')).toHaveValue('31/01/2026');
+            expect(screen.getByLabelText('Consumption')).toHaveValue(290);
+        });
+
+        it('opens to correct a bill of the table, from the ✎ of its row', async () => {
+            screenWidth(true);
+            page();
+
+            const rows = within(
+                screen.getByRole('table', { name: 'Bill by bill' }),
+            )
+                .getAllByRole('row')
+                .slice(1);
+            await userEvent.click(
+                within(rows[0]!).getByRole('button', {
+                    name: 'Correct the consumption of Bill of September 2026',
+                }),
+            );
+
+            await screen.findByRole('dialog', {
+                name: 'Correct the consumption',
+            });
+            expect(screen.getByLabelText('From')).toHaveValue('01/09/2026');
+            expect(screen.getByLabelText('Consumption')).toHaveValue(205);
+        });
+
+        it('opens empty with Add a consumption, on a wide screen and on the phone', async () => {
+            screenWidth(true);
+            const wide = page({ month: '2026-01' });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Add a consumption' }),
+            );
+            expect(
+                await screen.findByRole('dialog', {
+                    name: 'Add a consumption',
+                }),
+            ).toBeInTheDocument();
+            expect(screen.getByLabelText('Consumption')).toHaveValue(null);
+            wide.unmount();
+
+            screenWidth(false);
+            page();
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Add a consumption' }),
+            );
+            expect(
+                await screen.findByRole('dialog', {
+                    name: 'Add a consumption',
+                }),
+            ).toBeInTheDocument();
+            expect(screen.getByLabelText('Consumption')).toHaveValue(null);
+        });
+
+        it('opens with the bill to check, from Write it', async () => {
+            page({
+                toCheck: [
+                    {
+                        document_id: 40,
+                        title: 'Bolletta gas 14/12/2025',
+                        date: '2025-12-14',
+                        reason: 'No consumption found',
+                    },
+                ],
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Write it' }),
+            );
+
+            const dialog = await screen.findByRole('dialog', {
+                name: 'Add a consumption',
+            });
+            expect(dialog).toHaveTextContent('Bolletta gas 14/12/2025');
+            expect(
+                within(dialog).getByRole('link', { name: 'View' }),
+            ).toHaveAttribute('href', '/documents/40');
+        });
+
+        it('opens empty with Add a consumption by hand, beside the bills to read and on the empty page', async () => {
+            const archive = page({ bills: [], months: emptyMonths });
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'Add a consumption by hand',
+                }),
+            );
+            expect(
+                await screen.findByRole('dialog', {
+                    name: 'Add a consumption',
+                }),
+            ).toBeInTheDocument();
+            archive.unmount();
+
+            page({ bills: [], months: emptyMonths, archive: null });
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'Add a consumption by hand',
+                }),
+            );
+            expect(
+                await screen.findByRole('dialog', {
+                    name: 'Add a consumption',
+                }),
+            ).toBeInTheDocument();
+            expect(screen.getByLabelText('Consumption')).toHaveValue(null);
+        });
     });
 });

@@ -53,6 +53,7 @@ use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\UtilityConsumptionController;
 use App\Http\Controllers\VersionController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\WelcomeLinkController;
@@ -197,6 +198,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
         Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
         Route::get('budget/consumption', [ConsumptionController::class, 'index'])->name('budget.consumption');
+        Route::middleware('throttle:30,1,consumption-save')->name('budget.consumption.')->group(function (): void {
+            Route::post('budget/consumption/{utility}/rows', [UtilityConsumptionController::class, 'store'])->name('store')->whereNumber('utility');
+            Route::put('budget/consumption/rows/{consumption}', [UtilityConsumptionController::class, 'update'])->name('update')->whereNumber('consumption');
+            Route::delete('budget/consumption/rows/{consumption}', [UtilityConsumptionController::class, 'destroy'])->name('destroy')->whereNumber('consumption');
+        });
 
         Route::get('budget/planned', [PlannedController::class, 'index'])->name('budget.planned.index');
         Route::prefix('budget/planned/{kind}')

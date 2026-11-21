@@ -24,6 +24,7 @@ const {
     compact = false,
     quiet = false,
     label,
+    preserveScroll = false,
 } = defineProps<{
     /** The address the deletion is sent to. */
     url: string;
@@ -39,6 +40,8 @@ const {
     quiet?: boolean;
     /** The name of the button, when it is not *Delete*: «Delete the copy». */
     label?: string;
+    /** After deleting, the page comes back where it was (a row deleted from a panel of a long page). */
+    preserveScroll?: boolean;
 }>();
 
 /** The panel that asks before deleting. */
@@ -67,5 +70,6 @@ defineOptions({ inheritAttrs: false });
         :question="question"
         :text="text"
         :confirm-label="confirmLabel"
+        :preserve-scroll="preserveScroll"
     />
 </template>

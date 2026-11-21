@@ -16,7 +16,7 @@ use Carbon\CarbonImmutable;
 final class ConsumptionCheck
 {
     /** The longest period of a bill, in days with both ends counted. */
-    private const int MAX_PERIOD_DAYS = 400;
+    public const int MAX_PERIOD_DAYS = 400;
 
     /**
      * The highest quantity of a bill for each unit: more is a misreading.
@@ -54,18 +54,39 @@ final class ConsumptionCheck
             return ConsumptionOutcome::WrongUnit;
         }
 
-        if (! is_finite($quantity) || $quantity <= 0 || $quantity > self::CAPS[$expected->value]) {
+        if (! is_finite($quantity) || $quantity <= 0 || $quantity > self::cap($expected)) {
             return ConsumptionOutcome::OutOfRange;
         }
 
         $first = ValidDate::carbon($start);
         $last = ValidDate::carbon($end);
 
-        if (! $first instanceof CarbonImmutable || ! $last instanceof CarbonImmutable || $first->greaterThan($last) || $first->diffInDays($last) + 1 > self::MAX_PERIOD_DAYS) {
+        if (! $first instanceof CarbonImmutable || ! $last instanceof CarbonImmutable || $first->greaterThan($last) || self::tooLong($first, $last)) {
             return ConsumptionOutcome::BadPeriod;
         }
 
         return ConsumptionOutcome::Saved;
+    }
+
+    /**
+     * The highest quantity a bill can have in this unit: more is a misreading, or a mistyping.
+     *
+     * @param  ConsumptionUnit  $unit  the unit of the consumption
+     */
+    public static function cap(ConsumptionUnit $unit): float
+    {
+        return self::CAPS[$unit->value];
+    }
+
+    /**
+     * Whether a period lasts more than a bill can, both ends counted.
+     *
+     * @param  CarbonImmutable  $first  its first day
+     * @param  CarbonImmutable  $last  its last day, not before the first
+     */
+    public static function tooLong(CarbonImmutable $first, CarbonImmutable $last): bool
+    {
+        return $first->diffInDays($last) + 1 > self::MAX_PERIOD_DAYS;
     }
 
     /**

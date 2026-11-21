@@ -2306,5 +2306,18 @@
     "When the electricity bill arrives I read consumption and period, together with the amount, and the chart starts from there.": "Quando arriva la bolletta della luce leggo consumo e periodo, insieme all'importo, e il grafico parte da lì.",
     "When the gas bill arrives I read consumption and period, together with the amount, and the chart starts from there.": "Quando arriva la bolletta del gas leggo consumo e periodo, insieme all'importo, e il grafico parte da lì.",
     "When the water bill arrives I read consumption and period, together with the amount, and the chart starts from there.": "Quando arriva la bolletta dell'acqua leggo consumo e periodo, insieme all'importo, e il grafico parte da lì.",
-    "We read consumption and period from the bills, together with the amount. The amount is the total of the bill, with transport, charges and VAT.": "Consumi e periodo li leggiamo dalle bollette, insieme all'importo. L'importo è il totale della bolletta, con trasporto, oneri e IVA."
+    "We read consumption and period from the bills, together with the amount. The amount is the total of the bill, with transport, charges and VAT.": "Consumi e periodo li leggiamo dalle bollette, insieme all'importo. L'importo è il totale della bolletta, con trasporto, oneri e IVA.",
+    "Correct the consumption": "Correggi il consumo",
+    "View": "Guarda",
+    "What this bill charges, not the yearly consumption nor the meter reading.": "Quello fatturato in questa bolletta, non il consumo annuo né la lettura del contatore.",
+    "The total of the bill, with transport, charges and VAT.": "Il totale della bolletta, con trasporto, oneri e IVA.",
+    "If you correct it, I won't read it again from the bill.": "Se lo correggi, non lo rileggo più dalla bolletta.",
+    "Delete this consumption?": "Eliminare questo consumo?",
+    "Its bill stays.": "La bolletta resta.",
+    "Delete the consumption": "Elimina il consumo",
+    ":utility · read from the bill": ":utility · letta dalla bolletta",
+    ":utility · written by hand": ":utility · scritto a mano",
+    "The period lasts at most :days days.": "Il periodo dura al massimo :days giorni.",
+    "Write a consumption other than zero.": "Scrivi un consumo diverso da zero.",
+    "Choose a bill of this utility.": "Scegli una bolletta di questa utenza."
 }

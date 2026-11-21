@@ -8,8 +8,8 @@
  * it the four figures, the sentence of the page, the bills one by one (a table on a wide screen) and the bills
  * read whose consumption could not be saved. On a wide screen the figures come first and the month is a column
  * on the right that stays in sight. Without consumption the page offers to read the bills already kept (when
- * there are some) or to upload one. Correcting or adding a consumption (✎, *Add a consumption*, *Write it*) are
- * drawn without an action yet, and *Read the bills* is off: their panel and their reading arrive with the next steps.
+ * there are some) or to upload one. ✎, *Add a consumption* and *Write it* open the panel of a consumption written by
+ * hand (`ConsumptionSheet`); *Read the bills* is off: its reading arrives with the next step.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
 import type { LucideIcon } from '@lucide/vue';
@@ -33,6 +33,7 @@ import {
 import { createReusableTemplate } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import ConsumptionSheet from '@/components/consumption/ConsumptionSheet.vue';
 import FmBarChart from '@/components/fm/FmBarChart.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -85,6 +86,29 @@ usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
     { label: trans('Usage') },
 ]);
+
+/** The panel of a consumption is open. */
+const sheetOpen = ref(false);
+
+/** What the panel shows: the bill to correct, or the bill to check whose consumption is written; neither to add one. */
+const sheetFor = ref<{
+    bill: App.Data.Consumption.ConsumptionBillData | null;
+    document: { id: number; title: string } | null;
+}>({ bill: null, document: null });
+
+/**
+ * Opens the panel of a consumption.
+ *
+ * @param bill - the bill to correct; null to add one
+ * @param document - the bill to check whose consumption is written, for a new one
+ */
+function openSheet(
+    bill: App.Data.Consumption.ConsumptionBillData | null,
+    document: { id: number; title: string } | null = null,
+): void {
+    sheetFor.value = { bill, document };
+    sheetOpen.value = true;
+}
 
 /** What the bars of the chart are: the consumption (the default) or the euros. */
 const view = ref<ConsumptionView>('quantity');
@@ -506,11 +530,16 @@ const emptyText = computed((): string =>
                         item.reason
                     }}</span>
                 </span>
-                <!-- Writing it opens the panel of the consumption with the next step: no action yet -->
                 <FmButton
                     v-if="consumption.canCreate"
                     variant="neutral"
                     compact
+                    @click="
+                        openSheet(null, {
+                            id: item.document_id,
+                            title: item.title,
+                        })
+                    "
                     >{{ $t('Write it') }}</FmButton
                 >
             </div>
@@ -626,7 +655,6 @@ const emptyText = computed((): string =>
                         >
                         <ReuseBadges :bill="bill" :paid="true" />
                     </span>
-                    <!-- Correcting opens its panel with the next step: no action yet -->
                     <FmButton
                         v-if="bill.can_update"
                         variant="text"
@@ -638,6 +666,7 @@ const emptyText = computed((): string =>
                         "
                         plain
                         muted
+                        @click="openSheet(bill)"
                     />
                 </div>
             </template>
@@ -647,10 +676,12 @@ const emptyText = computed((): string =>
     <div class="flex max-w-[1120px] flex-col gap-3.5 wide:gap-5">
         <FmTitle :title="$t('Usage')">
             <template v-if="wide && hasBills && consumption.canCreate" #actions>
-                <!-- Adding by hand opens its panel with the next step: no action yet -->
-                <FmButton variant="neutral" :icon="Plus">{{
-                    $t('Add a consumption')
-                }}</FmButton>
+                <FmButton
+                    variant="neutral"
+                    :icon="Plus"
+                    @click="openSheet(null)"
+                    >{{ $t('Add a consumption') }}</FmButton
+                >
             </template>
         </FmTitle>
 
@@ -786,10 +817,11 @@ const emptyText = computed((): string =>
                             v-if="!wide && consumption.canCreate"
                             #actions
                         >
-                            <!-- Adding by hand opens its panel with the next step: no action yet -->
-                            <FmSectionLink :icon="Plus">{{
-                                $t('Add a consumption')
-                            }}</FmSectionLink>
+                            <FmSectionLink
+                                :icon="Plus"
+                                @click="openSheet(null)"
+                                >{{ $t('Add a consumption') }}</FmSectionLink
+                            >
                         </template>
                         <table
                             v-if="wide"
@@ -890,7 +922,6 @@ const emptyText = computed((): string =>
                                         >
                                     </td>
                                     <td class="w-11 px-2 py-1 text-right">
-                                        <!-- Correcting opens its panel with the next step: no action yet -->
                                         <FmButton
                                             v-if="bill.can_update"
                                             variant="text"
@@ -904,6 +935,7 @@ const emptyText = computed((): string =>
                                             small
                                             plain
                                             muted
+                                            @click="openSheet(bill)"
                                         />
                                     </td>
                                 </tr>
@@ -1039,11 +1071,11 @@ const emptyText = computed((): string =>
                 <FmButton :icon="Sparkles" wide disabled>{{
                     $t('Read the bills')
                 }}</FmButton>
-                <!-- Adding by hand opens its panel with the next step: no action yet -->
                 <FmSectionLink
                     v-if="consumption.canCreate"
                     :icon="Plus"
                     class="self-center"
+                    @click="openSheet(null)"
                     >{{ $t('Add a consumption by hand') }}</FmSectionLink
                 >
             </section>
@@ -1057,13 +1089,22 @@ const emptyText = computed((): string =>
                 <FmButton :icon="Upload" :href="upload().url">{{
                     $t('Upload')
                 }}</FmButton>
-                <!-- Adding by hand opens its panel with the next step: no action yet -->
-                <FmSectionLink v-if="consumption.canCreate" :icon="Plus">{{
-                    $t('Add a consumption by hand')
-                }}</FmSectionLink>
+                <FmSectionLink
+                    v-if="consumption.canCreate"
+                    :icon="Plus"
+                    @click="openSheet(null)"
+                    >{{ $t('Add a consumption by hand') }}</FmSectionLink
+                >
             </FmEmpty>
 
             <ReuseToCheck />
         </template>
     </div>
+
+    <ConsumptionSheet
+        v-model:open="sheetOpen"
+        :utility="consumption.utility"
+        :bill="sheetFor.bill"
+        :document="sheetFor.document"
+    />
 </template>
