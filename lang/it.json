@@ -2220,5 +2220,7 @@
     "The cut sheet, as it will be saved": "Il foglio ritagliato, come verrà salvato",
     "Lightens the paper, darkens the text. All the way left the photo stays as it is; past halfway, more contrast.": "Schiarisce la carta, scurisce il testo. Tutto a sinistra la foto resta com'è; oltre metà, più contrasto.",
     "Expand the menu": "Allarga il menu",
-    "Copy the address :address": "Copia l'indirizzo :address"
+    "Copy the address :address": "Copia l'indirizzo :address",
+    "To record the consumption choose the utility above.": "Per segnare i consumi scegli l'utenza qui sopra.",
+    "To record the consumption write the quantity and the period in its box.": "Per segnare i consumi scrivi il consumo e il periodo nella sua casella."
 }

@@ -182,3 +182,29 @@ test('the old policies to cancel are positive ids, each once, and survive the or
         ->and(ImportChoices::fromArray(['replace_policies' => 'x'])->replacePolicies)->toBe([])
         ->and(ImportChoices::fromArray([])->replacePolicies)->toBe([]);
 });
+
+describe('consumption', function (): void {
+    test('the box is ticked, unticked, or follows the proposal when the page does not say', function (): void {
+        expect(ImportChoices::fromArray(['consumption' => true])->consumption)->toBeTrue()
+            ->and(ImportChoices::fromArray(['consumption' => '0'])->consumption)->toBeFalse()
+            ->and(ImportChoices::fromArray([])->consumption)->toBeNull();
+    });
+
+    test('the corrections take a positive quantity with three decimals, dates and the estimate; emptied, they leave the reading', function (): void {
+        expect(ImportChoices::fromArray(['overrides' => ['consumption' => [
+            'quantity' => '210.12345', 'period_start' => '2026-09-01', 'period_end' => '2026-02-30', 'is_estimated' => 'true', 'unit' => 'smc',
+        ]]])->consumptionOverrides())->toBe(['quantity' => 210.123, 'period_start' => '2026-09-01', 'is_estimated' => true])
+            ->and(ImportChoices::fromArray(['overrides' => ['consumption' => ['quantity' => 0, 'period_start' => '']]])->consumptionOverrides())->toBe([])
+            ->and(ImportChoices::fromArray(['overrides' => ['consumption' => ['quantity' => -4]]])->consumptionOverrides())->toBe([])
+            ->and(ImportChoices::fromArray([])->consumptionOverrides())->toBe([]);
+    });
+
+    test('the box and its corrections survive the movement picked and the organization filled', function (): void {
+        $choices = ImportChoices::fromArray(['consumption' => false, 'overrides' => ['consumption' => ['quantity' => 12]]]);
+
+        expect($choices->withMovementTarget(3)->consumption)->toBeFalse()
+            ->and($choices->withOrganization(5)->consumption)->toBeFalse()
+            ->and($choices->withMovementTarget(3)->consumptionOverrides())->toBe(['quantity' => 12.0])
+            ->and($choices->withOrganization(5)->consumptionOverrides())->toBe(['quantity' => 12.0]);
+    });
+});

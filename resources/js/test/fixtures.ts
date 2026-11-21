@@ -1892,6 +1892,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
     warnings: [],
     createCard: false,
     cardType: null,
+    consumption: null,
 };
 
 /**

@@ -848,6 +848,26 @@ readonly reason: string | null,
 };
 }
 namespace Reading {
+export type ConsumptionProposalData = {
+readonly values: App.Data.Reading.ConsumptionValuesData,
+readonly suggested: boolean,
+readonly utility: {
+id: number,
+title: string,
+} | null,
+readonly blocked: string | null,
+readonly fill: string[],
+readonly complete: string[],
+readonly priceWarning: boolean,
+};
+export type ConsumptionValuesData = {
+readonly period_start: string | null,
+readonly period_end: string | null,
+readonly quantity: number | null,
+readonly unit: string,
+readonly amount: number | null,
+readonly is_estimated: boolean,
+};
 export type DocumentProposalData = {
 readonly title: string | null,
 readonly category_id: number | null,
@@ -1028,6 +1048,7 @@ many: boolean,
 readonly warnings: string[],
 readonly createCard: boolean,
 readonly cardType: string | null,
+readonly consumption: App.Data.Reading.ConsumptionProposalData | null,
 };
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,

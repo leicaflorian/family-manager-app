@@ -10,7 +10,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * What a read file would do when confirmed, with the choices of the person: the document, the expense or income,
  * the health event, the missing cards and the policy it takes from another file, or, when it names no card, the
- * box to create one. Nothing is written.
+ * box to create one, and the consumption of a utility bill. Nothing is written.
  */
 #[TypeScript]
 final class ProposalData extends Data
@@ -25,6 +25,7 @@ final class ProposalData extends Data
      * @param  list<string>  $warnings  the codes on the paper that no card has and no box creates
      * @param  bool  $createCard  the paper names no card (no card to create or link, no health event): the box *Create the card* opens *New card* with the document linked after the import
      * @param  string|null  $cardType  the card of the document category chosen in *What kind it is* (its own, otherwise its main one's), which decides the boxes; null when the reading decides
+     * @param  ConsumptionProposalData|null  $consumption  the consumption of a bill of electricity, gas or water; null for any other paper
      */
     public function __construct(
         public readonly int $fileId,
@@ -36,6 +37,7 @@ final class ProposalData extends Data
         public readonly array $warnings,
         public readonly bool $createCard = false,
         public readonly ?string $cardType = null,
+        public readonly ?ConsumptionProposalData $consumption = null,
     ) {}
 
     /**
@@ -44,6 +46,6 @@ final class ProposalData extends Data
      */
     public function withoutCreateCard(): self
     {
-        return new self($this->fileId, $this->document, $this->movement, $this->event, $this->records, $this->policy, $this->warnings, cardType: $this->cardType);
+        return new self($this->fileId, $this->document, $this->movement, $this->event, $this->records, $this->policy, $this->warnings, cardType: $this->cardType, consumption: $this->consumption);
     }
 }

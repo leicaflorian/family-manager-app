@@ -9,7 +9,10 @@ use App\Actions\Budget\MovePlannedDocuments;
 use App\Actions\Budget\SaveMovement;
 use App\Actions\Budget\SavePlanned;
 use App\Actions\Cards\ReplacePolicy;
+use App\Actions\Consumption\ConsumptionValues;
+use App\Actions\Consumption\SaveConsumption;
 use App\Actions\Documents\FileDocument;
+use App\Data\Reading\ConsumptionProposalData;
 use App\Data\Reading\DueData;
 use App\Data\Reading\EventProposalData;
 use App\Data\Reading\Extraction;
@@ -21,6 +24,8 @@ use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
 use App\Data\ReplaceablePolicyData;
 use App\Enums\Area;
+use App\Enums\ConsumptionSource;
+use App\Enums\ConsumptionUnit;
 use App\Enums\DocumentStatus;
 use App\Enums\DueMode;
 use App\Enums\RecordKind;
@@ -31,6 +36,8 @@ use App\Models\HealthEvent;
 use App\Models\Income;
 use App\Models\InsurancePolicy;
 use App\Models\PlannedExpense;
+use App\Models\Utility;
+use App\Models\UtilityConsumption;
 use App\Services\Deadlines;
 use App\Services\FamilyAreas;
 use App\Services\Reading\ExpenseChanges;
@@ -62,6 +69,7 @@ use Throwable;
  * 2. the document, linked to them and to the policy taken from another file;
  * 3. the expense or income, or the expense to pay, or the payment of a due date;
  * 4. the health event;
+ * 4b. the consumption of a bill of electricity, gas or water, in the row of its utility ({@see SaveConsumption});
  * 5. the intervention, with the expense;
  * 6. the old policies the new policy replaces, ticked under its box ({@see ReplacePolicy}): after the movement, so a
  *    premium the file just planned for the new policy counts.
@@ -100,6 +108,7 @@ final readonly class ImportFile
      * @param  FamilyAreas  $areas  the areas the family hides, put back when a card is created in one
      * @param  ReplaceablePolicies  $replaceable  the old policies a new one can replace
      * @param  ReplacePolicy  $replacePolicy  cancels the old policies
+     * @param  SaveConsumption  $saveConsumption  the consumption of a utility bill
      */
     public function __construct(
         private Proposal $proposals,
@@ -115,6 +124,7 @@ final readonly class ImportFile
         private FamilyAreas $areas,
         private ReplaceablePolicies $replaceable,
         private ReplacePolicy $replacePolicy,
+        private SaveConsumption $saveConsumption,
     ) {}
 
     /**
@@ -180,6 +190,9 @@ final readonly class ImportFile
             : null;
         $expense = $movement instanceof Expense ? $movement : null;
         $event = $choices->event && $proposal->event instanceof EventProposalData ? $this->event($proposal->event, $document, $expense) : null;
+        if ($proposal->consumption instanceof ConsumptionProposalData && ($choices->consumption ?? $proposal->consumption->suggested)) {
+            $this->consumption($file, $proposal->consumption, $document);
+        }
         $after = $this->records->after($first->records, $choices->records, $before['ids'], $document, $expense);
         $this->replacePolicies($first, $choices, $before['records'][RecordKind::Policy->value] ?? null);
 
@@ -628,5 +641,50 @@ final readonly class ImportFile
         $event->documents()->syncWithoutDetaching([$document->id]);
 
         return $event;
+    }
+
+    /**
+     * Step 4b: the consumption of the bill, in the row of its utility: the one of the proposal, otherwise the first of
+     * electricity, gas or water the saved document is linked to (a utility created with the file). A reading never
+     * overwrites a row written by hand. What only the reading has (an adjustment, the energy part, the bands) is
+     * saved as read.
+     *
+     * @param  File  $file  the file, whose reading gives what the box does not show
+     * @param  ConsumptionProposalData  $proposed  the consumption side of the proposal
+     * @param  Document  $document  the document, the bill of the row
+     *
+     * @throws ValidationException if the consumption misses its utility, quantity or period
+     */
+    private function consumption(File $file, ConsumptionProposalData $proposed, Document $document): UtilityConsumption
+    {
+        $values = $proposed->values;
+        $utility = $proposed->utility === null ? null : Utility::query()->find($proposed->utility['id']);
+        $utility ??= $document->utilities()->orderBy('utilities.id')->get()
+            ->first(static fn (Utility $card): bool => ConsumptionUnit::forUtility($card->type) instanceof ConsumptionUnit);
+
+        // The proposal made again after the cards does not see a utility created with the file among the links the page
+        // sent, so the document decides whether it has one; what is missing in the box still stops the import
+        if (! $utility instanceof Utility) {
+            throw ValidationException::withMessages(['consumption' => Translated::text('To record the consumption choose the utility above.')]);
+        }
+
+        if ($values->quantity === null || $values->period_start === null || $values->period_end === null) {
+            throw ValidationException::withMessages(['consumption' => Translated::text('To record the consumption write the quantity and the period in its box.')]);
+        }
+
+        $x = Extraction::ofFile($file);
+
+        return $this->saveConsumption->handle($utility, new ConsumptionValues(
+            periodStart: CarbonImmutable::parse($values->period_start, 'Europe/Rome'),
+            periodEnd: CarbonImmutable::parse($values->period_end, 'Europe/Rome'),
+            quantity: $values->quantity,
+            amount: $values->amount,
+            isEstimated: $values->is_estimated,
+            hasAdjustments: $x->consumption_adjusted ?? false,
+            energyAmount: $x->consumption_energy_amount,
+            f1: $x->consumption_f1,
+            f2: $x->consumption_f2,
+            f3: $x->consumption_f3,
+        ), ConsumptionSource::Reading, $document);
     }
 }
