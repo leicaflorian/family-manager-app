@@ -42,6 +42,39 @@ function lastUrl(spy: ReturnType<typeof vi.spyOn>): string {
     return String(url);
 }
 
+/** The 12 months of the fixture without any bill. */
+const noBills = consumptionPage.months.map((month) => ({
+    ...month,
+    quantity: null,
+    amount: null,
+    price: null,
+    coverage: 'none' as const,
+    billIds: [],
+}));
+
+/**
+ * The bills of the archive, as the server sends them, changed where a test needs it.
+ *
+ * @param extra - the fields to change
+ * @returns the archive of the page data
+ */
+function archive(
+    extra: Partial<
+        NonNullable<App.Data.Consumption.ConsumptionPageData['archive']>
+    > = {},
+): NonNullable<App.Data.Consumption.ConsumptionPageData['archive']> {
+    return {
+        count: 2,
+        cost: 0.016,
+        left: 1000,
+        running: false,
+        done: 0,
+        total: 0,
+        can_read: true,
+        ...extra,
+    };
+}
+
 describe('Consumption', () => {
     it('tells the trail Budget › Usage and has no tabs of the Budget', () => {
         const { state, provide } = withTrail();
@@ -391,42 +424,126 @@ describe('Consumption', () => {
         expect(section).toHaveTextContent('No consumption found');
     });
 
-    it('offers to read the bills in place of the chart when there are bills but no consumption', () => {
+    it('offers to read the bills in place of the chart when there are bills but no consumption, and reads them', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         page({
             bills: [],
-            months: consumptionPage.months.map((month) => ({
-                ...month,
-                quantity: null,
-                amount: null,
-                price: null,
-                coverage: 'none',
-                billIds: [],
-            })),
-            archive: {
-                count: 14,
-                cost: 0.09,
-                left: 968,
-                running: false,
-                can_read: true,
-            },
+            months: noBills,
+            archive: archive({ count: 16, cost: 0.1, left: 968 }),
         });
 
         expect(
             screen.getByRole('heading', {
-                name: '14 bills without consumption',
+                name: '16 bills without consumption',
             }),
         ).toBeInTheDocument();
         expect(
             screen.getByText(
-                'I read them one by one and take consumption and period. Reading them costs about 0,09 $ (14 readings, you have 968 left this month).',
+                'I read them one by one and take consumption and period. Reading them costs about 0,10 $ (16 readings, you have 968 left this month).',
             ),
         ).toBeInTheDocument();
-        // Reading them comes with the next step
-        expect(
-            screen.getByRole('button', { name: 'Read the bills' }),
-        ).toBeDisabled();
         expect(screen.queryByText('kWh per month')).not.toBeInTheDocument();
         expect(screen.queryByText('Last 12 months')).not.toBeInTheDocument();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Read the bills' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/consumption/1/read',
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('offers to read the bills below the list when the 12 months have bills too', () => {
+        page();
+
+        const box = screen.getByRole('region', {
+            name: 'The bills without consumption',
+        });
+        expect(box).toHaveTextContent('2 bills without consumption');
+        expect(
+            screen
+                .getByRole('list', { name: 'Bill by bill' })
+                .compareDocumentPosition(box) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+            within(box).getByRole('button', { name: 'Read the bills' }),
+        ).toBeEnabled();
+    });
+
+    it('says how far the reading is while it runs, and asks the page again until it ends', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        const visit = visits();
+        page({
+            bills: [],
+            months: noBills,
+            archive: archive({
+                count: 5,
+                running: true,
+                done: 9,
+                total: 14,
+            }),
+        });
+
+        const status = screen.getByRole('status');
+        expect(status).toHaveTextContent('Reading the bills…');
+        expect(status).toHaveTextContent('9 of 14');
+        expect(status).toHaveTextContent(
+            'You can close the page: I carry on by myself and the chart fills up as I go.',
+        );
+        expect(
+            screen.queryByRole('button', { name: 'Read the bills' }),
+        ).not.toBeInTheDocument();
+
+        await vi.advanceTimersByTimeAsync(2000);
+        expect(visit).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                only: ['consumption'],
+                preserveUrl: true,
+            }),
+        );
+        vi.useRealTimers();
+    });
+
+    it('leaves only Add a consumption by hand while the reading cannot start', () => {
+        page({
+            bills: [],
+            months: noBills,
+            archive: archive({ can_read: false }),
+            canRead: false,
+        });
+
+        expect(
+            screen.getByRole('heading', {
+                name: '2 bills without consumption',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Read the bills' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Add a consumption by hand' }),
+        ).toBeInTheDocument();
+    });
+
+    it('does not offer to upload a bill while the reading cannot start', () => {
+        page({
+            bills: [],
+            months: noBills,
+            archive: null,
+            canRead: false,
+        });
+
+        expect(
+            screen.queryByRole('link', { name: 'Upload' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Add a consumption by hand' }),
+        ).toBeInTheDocument();
     });
 
     it('asks for a bill when there is none', () => {

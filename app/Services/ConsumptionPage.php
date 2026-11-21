@@ -16,6 +16,7 @@ use App\Models\Document;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\UtilityConsumption;
+use App\Services\Reading\ArchiveReadingRun;
 use App\Services\Reading\ReadingAllowance;
 use App\Services\Reading\ReadingAvailability;
 use App\Support\Reading\ReadingCost;
@@ -37,11 +38,13 @@ final readonly class ConsumptionPage
      * @param  Consumption  $consumption  the months, figures, bills and sentence
      * @param  ReadingAllowance  $allowance  the readings left this month
      * @param  ReadingAvailability  $availability  whether a reading can start now
+     * @param  ArchiveReadingRun  $run  whether the bills of a utility are being read, and how far
      */
     public function __construct(
         private Consumption $consumption,
         private ReadingAllowance $allowance,
         private ReadingAvailability $availability,
+        private ArchiveReadingRun $run,
     ) {}
 
     /**
@@ -94,6 +97,7 @@ final readonly class ConsumptionPage
 
         $months = $this->consumption->months($rows, $from, $to);
         $unit = ConsumptionUnit::forUtility($utility->type) ?? throw new NotFoundHttpException;
+        $canRead = $this->availability->unavailable($locale) === null;
 
         return new ConsumptionPageData(
             types: $this->types($utilities),
@@ -126,9 +130,10 @@ final readonly class ConsumptionPage
                 static fn (UtilityConsumption $row): bool => $user->can('delete', $row),
             ),
             month: $month?->format('Y-m'),
-            archive: $this->archive($utility, $locale),
+            archive: $this->archive($utility, $canRead),
             toCheck: $this->toCheck($utility),
             canCreate: $user->can('create', UtilityConsumption::class),
+            canRead: $canRead,
         );
     }
 
@@ -232,20 +237,19 @@ final readonly class ConsumptionPage
 
     /**
      * The bills of the utility still without consumption and never read for it: how many, the probable cost of
-     * reading them, the readings left, whether they are being read and whether they can be.
+     * reading them, the readings left, whether they are being read (and how many of the run are done) and whether
+     * they can be.
      *
      * @param  Utility  $utility  the utility
-     * @param  string  $locale  the language of the texts
-     * @return array{count: int, cost: float, left: int, running: bool, can_read: bool}|null null when there is nothing to read
+     * @param  bool  $canRead  whether a reading can start now
+     * @return array{count: int, cost: float, left: int, running: bool, done: int, total: int, can_read: bool}|null null when there is nothing to read nor being read
      */
-    private function archive(Utility $utility, string $locale): ?array
+    private function archive(Utility $utility, bool $canRead): ?array
     {
-        $count = $this->bills($utility)
-            ->whereDoesntHave('file.aiReadings', static fn (Builder $query): Builder => $query->where('purpose', ReadingPurpose::Consumption))
-            ->count();
-        $running = $this->archiveRunning();
+        $count = self::unreadBills($utility)->count();
+        $progress = $this->run->progress($utility->id);
 
-        if ($count === 0 && ! $running) {
+        if ($count === 0 && $progress === null) {
             return null;
         }
 
@@ -259,18 +263,23 @@ final readonly class ConsumptionPage
             'count' => $count,
             'cost' => round(ReadingCost::averageFor($purpose) * $count, 4),
             'left' => $this->allowance->left($now),
-            'running' => $running,
-            'can_read' => $this->availability->unavailable($locale) === null,
+            'running' => $progress !== null,
+            'done' => $progress['done'] ?? 0,
+            'total' => $progress['total'] ?? 0,
+            'can_read' => $canRead,
         ];
     }
 
     /**
-     * Whether the bills of the archive of the utility are being read. *Read the bills* does not exist yet, so nothing
-     * is ever being read; the job that reads them fills this in, taking the utility.
+     * The bills of the utility *Read the bills* takes: a PDF or a picture, without consumption, never read for it.
+     *
+     * @param  Utility  $utility  the utility
+     * @return MorphToMany<Document, Utility>
      */
-    private function archiveRunning(): bool
+    public static function unreadBills(Utility $utility): MorphToMany
     {
-        return false;
+        return self::bills($utility)
+            ->whereDoesntHave('file.aiReadings', static fn (Builder $query): Builder => $query->where('purpose', ReadingPurpose::Consumption));
     }
 
     /**
@@ -282,7 +291,7 @@ final readonly class ConsumptionPage
      */
     private function toCheck(Utility $utility): array
     {
-        $documents = $this->bills($utility)
+        $documents = self::bills($utility)
             ->whereHas('file.aiReadings', static fn (Builder $query): Builder => $query->where('purpose', ReadingPurpose::Consumption))
             ->with(['file.aiReadings' => static fn (HasMany $query): HasMany => $query->where('purpose', ReadingPurpose::Consumption)->latest('created_at')->latest('id')])
             ->orderByDesc('date')
@@ -308,7 +317,7 @@ final readonly class ConsumptionPage
      * @param  Utility  $utility  the utility
      * @return MorphToMany<Document, Utility>
      */
-    private function bills(Utility $utility): MorphToMany
+    private static function bills(Utility $utility): MorphToMany
     {
         return $utility->documents()
             ->whereDoesntHave('consumption')

@@ -6,12 +6,14 @@ namespace App\Services\Reading;
 
 use App\Actions\Mail\RecordMailFilterCall;
 use App\Ai\Agents\BankRuleAgent;
+use App\Ai\Agents\ConsumptionReaderAgent;
 use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\DocumentReaderAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
 use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
+use App\Data\Reading\ConsumptionReading;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
@@ -193,9 +195,49 @@ final readonly class AiDocumentReader implements DocumentReader
     }
 
     /**
+     * Reads only the consumption of a bill: a PDF or a photo goes as an attachment, a text inside the message. The call
+     * is recorded right after the answer, before the answer is checked, as a `consumption` of the file and of the
+     * account signed in. Called only when `isActive()` is true.
+     *
+     * @param  ReadingSource  $source  the file as the model reads it
+     * @param  int  $fileId  the file, for the row of the call
+     * @param  string  $locale  the language of who asked (`it` or `en`): the answer has no text, so it changes nothing
+     *
+     * @throws ReadingFailed when the service does not answer, or gives an answer that cannot be used
+     * @throws LogicException when the reading is off
+     */
+    public function consumption(ReadingSource $source, int $fileId, string $locale): ConsumptionReading
+    {
+        if (! $this->isActive()) {
+            throw new LogicException('The reading is off: call consumption() only when isActive() is true.');
+        }
+
+        $provider = Config::string('document_reader.provider');
+        $model = Config::string('document_reader.model');
+        $text = $source->text();
+
+        // Ollama takes only photos, as in read()
+        if ($provider === 'ollama' && $source->mediaType === 'application/pdf') {
+            throw ReadingFailed::pdfNotSupported();
+        }
+
+        $response = $this->ask(
+            new ConsumptionReaderAgent($model),
+            $text === null ? ConsumptionReaderAgent::REQUEST : "{$text}\n\n".ConsumptionReaderAgent::REQUEST,
+            $text === null ? [$source->attachment()] : [],
+            $provider,
+            $model,
+        );
+
+        $user = Auth::guard('web')->id();
+
+        return ConsumptionReaderAgent::parse($this->recordedAnswer($response, $provider, $model, ReadingPurpose::Consumption, $user === null ? null : (int) $user, $fileId));
+    }
+
+    /**
      * Sends the request, with the errors of the service as failures of the reading.
      *
-     * @param  DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent  $agent  the model and its options
+     * @param  DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent|ConsumptionReaderAgent  $agent  the model and its options
      * @param  string  $message  the text of the message
      * @param  list<Base64Document|Base64Image>  $attachments  the file, unless it is a text
      * @param  string  $provider  the service
@@ -203,7 +245,7 @@ final readonly class AiDocumentReader implements DocumentReader
      *
      * @throws ReadingFailed when the service does not answer
      */
-    private function ask(DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
+    private function ask(DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent|ConsumptionReaderAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
     {
         try {
             return $agent->prompt($message, attachments: $attachments, provider: $provider, model: $model);
@@ -228,11 +270,12 @@ final readonly class AiDocumentReader implements DocumentReader
      * @param  string  $model  the model asked; the one that answered is written when the service says it
      * @param  ReadingPurpose  $purpose  what the call was for
      * @param  int|null  $userId  the account that made the call, if any
+     * @param  int|null  $fileId  the file that was read, if any
      * @return array<mixed>|string
      *
      * @throws ReadingFailed when the model refused or the answer was cut short
      */
-    private function recordedAnswer(AgentResponse $response, string $provider, string $model, ReadingPurpose $purpose, ?int $userId): array|string
+    private function recordedAnswer(AgentResponse $response, string $provider, string $model, ReadingPurpose $purpose, ?int $userId, ?int $fileId = null): array|string
     {
         $this->recorder->handle(
             $provider,
@@ -242,6 +285,7 @@ final readonly class AiDocumentReader implements DocumentReader
             $response->usage->cacheReadInputTokens ?? 0,
             $purpose,
             $userId,
+            $fileId,
         );
 
         $this->assertComplete($response);

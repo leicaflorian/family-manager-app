@@ -29,9 +29,10 @@ final class ConsumptionPageData extends Data
      * @param  string|null  $sentence  the one sentence of the page, null when none applies
      * @param  list<ConsumptionBillData>  $bills  the bills of the period, the latest first
      * @param  string|null  $month  the month open in the detail, `YYYY-MM`, null when none is asked
-     * @param  array{count: int, cost: float, left: int, running: bool, can_read: bool}|null  $archive  the bills of the utility still without consumption: how many, what reading them probably costs in dollars, the readings left this month, whether they are being read and whether they can be; null when there are none
+     * @param  array{count: int, cost: float, left: int, running: bool, done: int, total: int, can_read: bool}|null  $archive  the bills of the utility still without consumption: how many, what reading them probably costs in dollars, the readings left this month, whether they are being read (with the bills of the run done and queued) and whether they can be; null when there are none and none is being read
      * @param  list<array{document_id: int, title: string, date: string|null, reason: string}>  $toCheck  the bills read whose consumption could not be saved, with why in words
      * @param  bool  $canCreate  whether the person can add a consumption by hand
+     * @param  bool  $canRead  whether a reading can start now: the reading is on and the family has readings left this month
      */
     public function __construct(
         #[LiteralTypeScriptType('Array<{ type: App.Enums.UtilityType; label: string; utility: number }>')]
@@ -49,10 +50,11 @@ final class ConsumptionPageData extends Data
         public readonly ?string $sentence,
         public readonly array $bills,
         public readonly ?string $month,
-        #[LiteralTypeScriptType('{ count: number; cost: number; left: number; running: boolean; can_read: boolean } | null')]
+        #[LiteralTypeScriptType('{ count: number; cost: number; left: number; running: boolean; done: number; total: number; can_read: boolean } | null')]
         public readonly ?array $archive,
         #[LiteralTypeScriptType('Array<{ document_id: number; title: string; date: string | null; reason: string }>')]
         public readonly array $toCheck,
         public readonly bool $canCreate,
+        public readonly bool $canRead,
     ) {}
 }

@@ -198,6 +198,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
         Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
         Route::get('budget/consumption', [ConsumptionController::class, 'index'])->name('budget.consumption');
+        Route::post('budget/consumption/{utility}/read', [ConsumptionController::class, 'read'])->name('budget.consumption.read')->whereNumber('utility')->middleware('throttle:6,1,consumption-read');
         Route::middleware('throttle:30,1,consumption-save')->name('budget.consumption.')->group(function (): void {
             Route::post('budget/consumption/{utility}/rows', [UtilityConsumptionController::class, 'store'])->name('store')->whereNumber('utility');
             Route::put('budget/consumption/rows/{consumption}', [UtilityConsumptionController::class, 'update'])->name('update')->whereNumber('consumption');

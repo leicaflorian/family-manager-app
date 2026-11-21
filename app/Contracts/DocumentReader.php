@@ -6,6 +6,7 @@ namespace App\Contracts;
 
 use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
+use App\Data\Reading\ConsumptionReading;
 use App\Data\Reading\Reading;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingContext;
@@ -71,4 +72,18 @@ interface DocumentReader
      * @throws LogicException when the reading is off
      */
     public function bankRule(array $examples, string $locale): BankRuleSuggestion;
+
+    /**
+     * Reads only the consumption of a bill already in the archive (*Read the bills*), and records the call in
+     * `ai_readings` (purpose `consumption`, the file, the account signed in) in the current family before the answer is
+     * checked. Called only when `isActive()` is true.
+     *
+     * @param  ReadingSource  $source  the file as the model reads it
+     * @param  int  $fileId  the file, for the row of the call
+     * @param  string  $locale  the language of who asked (`it` or `en`)
+     *
+     * @throws ReadingFailed when the service gives no answer, or one that cannot be used
+     * @throws LogicException when the reading is off
+     */
+    public function consumption(ReadingSource $source, int $fileId, string $locale): ConsumptionReading;
 }

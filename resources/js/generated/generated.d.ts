@@ -897,9 +897,10 @@ readonly figures: App.Data.Consumption.ConsumptionFiguresData,
 readonly sentence: string | null,
 readonly bills: App.Data.Consumption.ConsumptionBillData[],
 readonly month: string | null,
-readonly archive: { count: number; cost: number; left: number; running: boolean; can_read: boolean } | null,
+readonly archive: { count: number; cost: number; left: number; running: boolean; done: number; total: number; can_read: boolean } | null,
 readonly toCheck: Array<{ document_id: number; title: string; date: string | null; reason: string }>,
 readonly canCreate: boolean,
+readonly canRead: boolean,
 };
 }
 namespace Mail {

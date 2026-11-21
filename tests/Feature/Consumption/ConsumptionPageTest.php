@@ -219,7 +219,10 @@ it('counts the bills still to read and lists those to check', function (): void 
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('consumption.archive.count', 4)
             ->where('consumption.archive.running', false)
+            ->where('consumption.archive.done', 0)
+            ->where('consumption.archive.total', 0)
             ->where('consumption.archive.can_read', true)
+            ->where('consumption.canRead', true)
             ->has('consumption.archive.cost')
             ->has('consumption.archive.left')
             ->where('consumption.toCheck', [[
@@ -254,5 +257,6 @@ it('does not offer to read the archive while the reading is off', function (): v
     $this->actingAs($this->marco)->get('/budget/consumption')
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('consumption.archive.count', 3)
-            ->where('consumption.archive.can_read', false));
+            ->where('consumption.archive.can_read', false)
+            ->where('consumption.canRead', false));
 });

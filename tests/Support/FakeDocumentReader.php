@@ -8,6 +8,7 @@ use App\Actions\Mail\RecordMailFilterCall;
 use App\Contracts\DocumentReader;
 use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
+use App\Data\Reading\ConsumptionReading;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
@@ -53,6 +54,16 @@ final class FakeDocumentReader implements DocumentReader
 
     /** What the model writes as the rule of a bank payment, until `suggestsRule()` says otherwise. */
     private BankRuleSuggestion $rule;
+
+    /**
+     * What the short reading of the consumption finds, by the id of the file read; a file not in the map is not a bill.
+     *
+     * @var array<int, ConsumptionReading>
+     */
+    private array $consumptions = [];
+
+    /** The readings of the consumption asked so far. */
+    private int $consumptionReads = 0;
 
     /** The rules asked so far. */
     private int $rules = 0;
@@ -126,6 +137,19 @@ final class FakeDocumentReader implements DocumentReader
     }
 
     /**
+     * The reading of the consumption of this file finds this.
+     *
+     * @param  int  $fileId  the file read
+     * @param  ConsumptionReading  $reading  what the model finds
+     */
+    public function readsConsumption(int $fileId, ConsumptionReading $reading): self
+    {
+        $this->consumptions[$fileId] = $reading;
+
+        return $this;
+    }
+
+    /**
      * Every reading fails with this error.
      *
      * @param  ReadingFailed  $failure  the error of the reading
@@ -166,6 +190,14 @@ final class FakeDocumentReader implements DocumentReader
     public function reads(): int
     {
         return $this->reads;
+    }
+
+    /**
+     * How many readings of the consumption were asked.
+     */
+    public function consumptionReads(): int
+    {
+        return $this->consumptionReads;
     }
 
     /**
@@ -301,5 +333,35 @@ final class FakeDocumentReader implements DocumentReader
         }
 
         return $this->rule;
+    }
+
+    /**
+     * Counts the reading, then gives what `readsConsumption()` set for the file (not a bill, otherwise) or throws the
+     * error of `fails()`. As the real one, it records the call (Gemini 3.8 Flash, 1400 tokens in and 90 out) as a
+     * `consumption` of the file and of the account signed in, unless the error is one with no answer
+     * (`ReadingFailed::$paid` false).
+     *
+     * @param  ReadingSource  $source  the file as the model reads it
+     * @param  int  $fileId  the file read
+     * @param  string  $locale  the language of who asked
+     *
+     * @throws ReadingFailed when `fails()` was called
+     */
+    public function consumption(ReadingSource $source, int $fileId, string $locale): ConsumptionReading
+    {
+        $this->consumptionReads++;
+
+        $userId = Auth::guard('web')->id();
+        $failure = $this->failure;
+
+        if (! $failure instanceof ReadingFailed || $failure->paid) {
+            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 1400, 90, 0, ReadingPurpose::Consumption, $userId === null ? null : (int) $userId, $fileId);
+        }
+
+        if ($failure instanceof ReadingFailed) {
+            throw $failure;
+        }
+
+        return $this->consumptions[$fileId] ?? new ConsumptionReading(isBill: false);
     }
 }

@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Ai\Agents\BankRuleAgent;
+use App\Ai\Agents\ConsumptionReaderAgent;
 use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
 use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
+use App\Data\Reading\ConsumptionReading;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
@@ -399,4 +401,53 @@ test('a bank rule that the service cuts is a failure and is still recorded', fun
 
     expect($failed?->getMessage())->toBe('The answer of the model was cut short.')
         ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankRule);
+});
+
+test('gemini reads the consumption of a bill and the call is recorded with the file and the account', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-consumption'))]);
+    $family = Family::factory()->create();
+    $user = User::factory()->for($family)->create();
+    $this->actingAs($user);
+    $source = aiReaderSource($this->pdf, 'application/pdf');
+    $fileId = File::query()->withoutGlobalScopes()->sole()->id;
+
+    $reading = CurrentFamily::using($family->id, fn (): ConsumptionReading => aiReader('gemini', 'gemini-3.8-flash')->consumption($source, $fileId, 'it'));
+
+    Http::assertSent(function (Request $request): bool {
+        $content = $request['input'][0]['content'];
+
+        return $request['system_instruction'] === new ConsumptionReaderAgent('gemini-3.8-flash')->instructions()
+            && $request['response_format']['schema']['required'][0] === 'is_bill'
+            && $content[0] === ['type' => 'text', 'text' => ConsumptionReaderAgent::REQUEST]
+            && $content[1]['type'] === 'document';
+    });
+    $row = AiReading::query()->withoutGlobalScopes()->sole();
+    expect($reading->isBill)->toBeTrue()
+        ->and($reading->quantity)->toBe(312.0)
+        ->and($reading->unit)->toBe('kwh')
+        ->and($row->purpose)->toBe(ReadingPurpose::Consumption)
+        ->and($row->file_id)->toBe($fileId)
+        ->and($row->user_id)->toBe($user->id)
+        ->and($row->outcome)->toBeNull()
+        ->and($row->input_tokens)->toBe(1450);
+});
+
+test('a consumption reading that the service cuts is a failure and is still recorded', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-truncated'))]);
+    $family = Family::factory()->create();
+    $source = aiReaderSource($this->pdf, 'application/pdf');
+    $fileId = File::query()->withoutGlobalScopes()->sole()->id;
+
+    $failed = CurrentFamily::using($family->id, fn (): ?ReadingFailed => aiFailure(fn (): ConsumptionReading => aiReader('gemini', 'gemini-3.8-flash')->consumption($source, $fileId, 'it')));
+
+    expect($failed?->paid)->toBeTrue()
+        ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::Consumption);
+});
+
+test('the consumption is read only when the reader is on', function (): void {
+    config(['document_reader.provider' => null]);
+    $source = aiReaderSource($this->pdf, 'application/pdf');
+    $fileId = File::query()->withoutGlobalScopes()->sole()->id;
+
+    expect(fn (): ConsumptionReading => resolve(DocumentReader::class)->consumption($source, $fileId, 'it'))->toThrow(LogicException::class);
 });

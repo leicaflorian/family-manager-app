@@ -9,7 +9,10 @@
  * read whose consumption could not be saved. On a wide screen the figures come first and the month is a column
  * on the right that stays in sight. Without consumption the page offers to read the bills already kept (when
  * there are some) or to upload one. ✎, *Add a consumption* and *Write it* open the panel of a consumption written by
- * hand (`ConsumptionSheet`); *Read the bills* is off: its reading arrives with the next step.
+ * hand (`ConsumptionSheet`). *Read the bills* has the bills of the archive read in the queue: while they are read the
+ * box says how far it is and the page asks the server again every two seconds, so the chart fills up. The box stands in
+ * place of the chart when the 12 months have no bills, below the bills otherwise. With the reading off or the readings
+ * of the month used up only *Add a consumption by hand* stays.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
 import type { LucideIcon } from '@lucide/vue';
@@ -48,6 +51,7 @@ import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { usePageTrail } from '@/composables/usePageTrail';
+import { useReadingPoll } from '@/composables/useReadingPoll';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { capitalized, longMonth, monthName } from '@/lib/budget';
 import type { ConsumptionView } from '@/lib/consumption';
@@ -63,6 +67,7 @@ import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
 import { budget, upload } from '@/routes';
 import { consumption as consumptionRoute } from '@/routes/budget';
+import { read as readRoute } from '@/routes/budget/consumption';
 import { show as documentPage } from '@/routes/documents';
 
 const props = defineProps<{
@@ -75,6 +80,7 @@ const { euro, date } = useFormat();
 const [DefineFigures, ReuseFigures] = createReusableTemplate();
 const [DefineDetail, ReuseDetail] = createReusableTemplate();
 const [DefineToCheck, ReuseToCheck] = createReusableTemplate();
+const [DefineArchive, ReuseArchive] = createReusableTemplate();
 const [DefineBadges, ReuseBadges] = createReusableTemplate<{
     /** The bill whose labels are drawn. */
     bill: App.Data.Consumption.ConsumptionBillData;
@@ -390,6 +396,41 @@ const badge = cn(
     'inline-flex h-[22px] items-center gap-1 rounded-tag px-2 text-meta-strong whitespace-nowrap',
 );
 
+// While the bills of the archive are read, the page asks for its data again until they are all done
+useReadingPoll(
+    () => props.consumption.archive?.running === true,
+    ['consumption'],
+);
+
+/** Why *Read the bills* was refused (the reading went off, or the readings ran out meanwhile), if it was. */
+const readError = ref<string | null>(null);
+
+/** How much of the run of the archive is read, from 0 to 100, for the bar. */
+const readShare = computed((): number => {
+    const archive = props.consumption.archive;
+
+    return archive === null || archive.total === 0
+        ? 0
+        : Math.round((archive.done / archive.total) * 100);
+});
+
+/**
+ * *Read the bills*: asks the server to read the bills of the archive, staying where the page is.
+ */
+function readBills(): void {
+    readError.value = null;
+    router.post(
+        readRoute(props.consumption.utility.id).url,
+        {},
+        {
+            preserveScroll: true,
+            onError: (errors: Record<string, string>): void => {
+                readError.value = errors.read ?? null;
+            },
+        },
+    );
+}
+
 /** The text of the empty page, by type of utility. */
 const emptyText = computed((): string =>
     props.consumption.utility.type === 'gas'
@@ -545,6 +586,89 @@ const emptyText = computed((): string =>
             </div>
         </FmCard>
     </DefineToCheck>
+
+    <DefineArchive>
+        <div
+            v-if="consumption.archive?.running"
+            role="status"
+            class="flex flex-col gap-2.5 rounded-card bg-card p-4 shadow-card"
+        >
+            <span class="flex justify-between gap-2 text-label">
+                <span>{{ $t('Reading the bills…') }}</span>
+                <span class="text-ink-soft">{{
+                    $t(':done of :total', {
+                        done: String(consumption.archive.done),
+                        total: String(consumption.archive.total),
+                    })
+                }}</span>
+            </span>
+            <span
+                aria-hidden="true"
+                class="h-1.5 overflow-hidden rounded-full bg-edge-soft"
+            >
+                <span
+                    class="block h-full bg-action"
+                    :style="{ width: `${readShare}%` }"
+                />
+            </span>
+            <span class="text-meta text-ink-soft">{{
+                $t(
+                    'You can close the page: I carry on by myself and the chart fills up as I go.',
+                )
+            }}</span>
+        </div>
+        <section
+            v-else-if="
+                consumption.archive !== null && consumption.archive.count > 0
+            "
+            :aria-label="$t('The bills without consumption')"
+            class="flex flex-col items-start gap-3.5 rounded-card bg-card p-5 shadow-card"
+        >
+            <span
+                class="flex size-12 items-center justify-center rounded-xl bg-home-soft text-home-text"
+            >
+                <FmIcon :icon="ScanText" :size="24" />
+            </span>
+            <h2 class="m-0 text-section">
+                {{
+                    $tChoice(
+                        '{1} :count bill without consumption|[2,*] :count bills without consumption',
+                        consumption.archive.count,
+                        { count: String(consumption.archive.count) },
+                    )
+                }}
+            </h2>
+            <p class="m-0 text-body-sm text-ink-soft">
+                {{
+                    $t(
+                        'I read them one by one and take consumption and period. Reading them costs about :cost (:count readings, you have :left left this month).',
+                        {
+                            cost: formatDollars(consumption.archive.cost),
+                            count: String(consumption.archive.count),
+                            left: String(consumption.archive.left),
+                        },
+                    )
+                }}
+            </p>
+            <FmButton
+                v-if="consumption.archive.can_read"
+                :icon="Sparkles"
+                wide
+                @click="readBills"
+                >{{ $t('Read the bills') }}</FmButton
+            >
+            <p v-if="readError" role="alert" class="m-0 text-meta text-overdue">
+                {{ readError }}
+            </p>
+            <FmSectionLink
+                v-if="consumption.canCreate"
+                :icon="Plus"
+                class="self-center"
+                @click="openSheet(null)"
+                >{{ $t('Add a consumption by hand') }}</FmSectionLink
+            >
+        </section>
+    </DefineArchive>
 
     <DefineDetail>
         <section
@@ -1015,6 +1139,8 @@ const emptyText = computed((): string =>
                         </ul>
                     </FmCard>
 
+                    <ReuseArchive v-if="consumption.archive !== null" />
+
                     <ReuseToCheck />
 
                     <p class="m-0 px-1 text-meta text-ink-soft">
@@ -1036,49 +1162,7 @@ const emptyText = computed((): string =>
         </template>
 
         <template v-else>
-            <section
-                v-if="consumption.archive !== null"
-                :aria-label="$t('The bills without consumption')"
-                class="flex flex-col items-start gap-3.5 rounded-card bg-card p-5 shadow-card"
-            >
-                <span
-                    class="flex size-12 items-center justify-center rounded-xl bg-home-soft text-home-text"
-                >
-                    <FmIcon :icon="ScanText" :size="24" />
-                </span>
-                <h2 class="m-0 text-section">
-                    {{
-                        $tChoice(
-                            '{1} :count bill without consumption|[2,*] :count bills without consumption',
-                            consumption.archive.count,
-                            { count: String(consumption.archive.count) },
-                        )
-                    }}
-                </h2>
-                <p class="m-0 text-body-sm text-ink-soft">
-                    {{
-                        $t(
-                            'I read them one by one and take consumption and period. Reading them costs about :cost (:count readings, you have :left left this month).',
-                            {
-                                cost: formatDollars(consumption.archive.cost),
-                                count: String(consumption.archive.count),
-                                left: String(consumption.archive.left),
-                            },
-                        )
-                    }}
-                </p>
-                <!-- Reading them arrives with the next step -->
-                <FmButton :icon="Sparkles" wide disabled>{{
-                    $t('Read the bills')
-                }}</FmButton>
-                <FmSectionLink
-                    v-if="consumption.canCreate"
-                    :icon="Plus"
-                    class="self-center"
-                    @click="openSheet(null)"
-                    >{{ $t('Add a consumption by hand') }}</FmSectionLink
-                >
-            </section>
+            <ReuseArchive v-if="consumption.archive !== null" />
 
             <FmEmpty
                 v-else
@@ -1086,9 +1170,12 @@ const emptyText = computed((): string =>
                 :title="$t('Upload a bill: I\'ll read the consumption')"
                 :text="emptyText"
             >
-                <FmButton :icon="Upload" :href="upload().url">{{
-                    $t('Upload')
-                }}</FmButton>
+                <FmButton
+                    v-if="consumption.canRead"
+                    :icon="Upload"
+                    :href="upload().url"
+                    >{{ $t('Upload') }}</FmButton
+                >
                 <FmSectionLink
                     v-if="consumption.canCreate"
                     :icon="Plus"

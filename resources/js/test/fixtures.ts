@@ -2233,8 +2233,11 @@ export const consumptionPage: App.Data.Consumption.ConsumptionPageData = {
         cost: 0.016,
         left: 1000,
         running: false,
+        done: 0,
+        total: 0,
         can_read: true,
     },
     toCheck: [],
     canCreate: true,
+    canRead: true,
 };
