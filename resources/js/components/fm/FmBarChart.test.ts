@@ -85,6 +85,21 @@ const kwh: ChartMonth[] = [
 /** Writes a quantity in kWh. */
 const inKwh = (value: number): string => formatQuantity(value, 'kwh');
 
+describe('FmBarChart, inside a card', () => {
+    it('keeps its name for screen readers but shows no title and no card of its own', () => {
+        const { container } = render(FmBarChart, {
+            props: { months: monthBars, embedded: true },
+        });
+
+        expect(screen.getByText('Expenses, the last 6 months')).toHaveClass(
+            'sr-only',
+        );
+        expect(container.querySelector('figure')).not.toHaveClass(
+            'shadow-card',
+        );
+    });
+});
+
 describe('FmBarChart, consumption', () => {
     it('says the mark is the same month of the year before', () => {
         render(FmBarChart, {

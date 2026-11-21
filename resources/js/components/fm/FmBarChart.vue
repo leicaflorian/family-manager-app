@@ -37,6 +37,7 @@ const {
     title,
     valueLabel,
     short,
+    embedded = false,
 } = defineProps<{
     /** The months, oldest first: months of the chart, or of *Planned and spent* as the server sends them. */
     months: readonly (ChartMonth | App.Data.MonthBarData)[];
@@ -48,6 +49,11 @@ const {
     selected?: string | null;
     /** The title of the chart. */
     title?: string;
+    /**
+     * It sits inside a card that already has the title (`FmCard`): no card of
+     * its own, and the title only for screen readers.
+     */
+    embedded?: boolean;
     /** What the bars are, in the legend and the table (`Spent`, `kWh`). */
     valueLabel?: string;
     /** Writes the number above the chosen bar or the month in progress (default `format`); consumption in kWh passes `formatNumber`, so it reads `290` as on the board. */
@@ -158,7 +164,7 @@ const slot = computed(
 );
 
 /** The width of a bar. */
-const barWidth = computed(() => Math.min(40, slot.value * 0.46));
+const barWidth = computed(() => Math.min(56, slot.value * 0.62));
 
 /** Half the width of a mark: wider than the bar, so it shows over it. */
 const markHalf = computed(() =>
@@ -458,12 +464,15 @@ function move(event: KeyboardEvent, index: number): void {
 
 <template>
     <figure
-        class="m-0 flex flex-col gap-2.5 rounded-card bg-card p-4 shadow-card"
+        class="m-0 flex flex-col gap-2.5"
+        :class="!embedded && 'rounded-card bg-card p-4 shadow-card'"
     >
         <figcaption
             class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
         >
-            <span class="text-amount">{{ heading }}</span>
+            <span :class="embedded ? 'sr-only' : 'text-amount'">{{
+                heading
+            }}</span>
             <span
                 class="flex flex-wrap text-meta text-ink-soft"
                 :class="consumption ? 'gap-x-4 gap-y-1.5' : 'gap-4'"

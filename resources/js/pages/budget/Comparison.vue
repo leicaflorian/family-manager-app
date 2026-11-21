@@ -159,7 +159,7 @@ const tile = cn(
         </DefineCategories>
         <DefineChart>
             <FmCard :title="$t('Expenses, the last 6 months')">
-                <FmBarChart :months="comparison.months" />
+                <FmBarChart :months="comparison.months" embedded />
             </FmCard>
         </DefineChart>
         <DefineUnpaid>
