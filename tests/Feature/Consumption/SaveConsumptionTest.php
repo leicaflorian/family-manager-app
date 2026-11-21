@@ -103,6 +103,47 @@ it('leaves a manual row alone when a reading finds it', function (): void {
     });
 });
 
+it('links the bill to a manual row of the same period, leaving its figures alone', function (): void {
+    saveConsumptionInFamily(function (Utility $utility, Document $document): void {
+        $row = UtilityConsumption::factory()->create(['family_id' => $utility->family_id, 'utility_id' => $utility->id, 'document_id' => null, 'source' => ConsumptionSource::Manual, 'period_start' => '2026-09-01', 'period_end' => '2026-09-30', 'quantity' => 200]);
+
+        $saved = resolve(SaveConsumption::class)->handle($utility, saveConsumptionValues(999.0), ConsumptionSource::Reading, $document);
+
+        $row->refresh();
+        expect($saved->id)->toBe($row->id)
+            ->and($row->document_id)->toBe($document->id)
+            ->and((float) $row->quantity)->toBe(200.0)
+            ->and($row->source)->toBe(ConsumptionSource::Manual)
+            ->and(UtilityConsumption::query()->count())->toBe(1);
+    });
+});
+
+it('keeps the bill a manual row already has', function (): void {
+    saveConsumptionInFamily(function (Utility $utility, Document $one, Document $two): void {
+        $row = UtilityConsumption::factory()->create(['family_id' => $utility->family_id, 'utility_id' => $utility->id, 'document_id' => $one->id, 'source' => ConsumptionSource::Manual, 'period_start' => '2026-09-01', 'period_end' => '2026-09-30']);
+
+        resolve(SaveConsumption::class)->handle($utility, saveConsumptionValues(999.0), ConsumptionSource::Reading, $two);
+
+        expect($row->refresh()->document_id)->toBe($one->id);
+    });
+});
+
+it('does not take the row of another utility that has the same bill', function (): void {
+    saveConsumptionInFamily(function (Utility $utility, Document $document): void {
+        $other = Utility::factory()->create(['family_id' => $utility->family_id, 'type' => UtilityType::Electricity]);
+        $row = UtilityConsumption::factory()->create(['family_id' => $utility->family_id, 'utility_id' => $other->id, 'document_id' => $document->id, 'source' => ConsumptionSource::Reading, 'period_start' => '2026-08-01', 'period_end' => '2026-08-31', 'quantity' => 150]);
+
+        $saved = resolve(SaveConsumption::class)->handle($utility, saveConsumptionValues(210.0), ConsumptionSource::Reading, $document);
+
+        $row->refresh();
+        expect($saved->id)->not->toBe($row->id)
+            ->and($saved->utility_id)->toBe($utility->id)
+            ->and($row->utility_id)->toBe($other->id)
+            ->and((float) $row->quantity)->toBe(150.0)
+            ->and($row->document_id)->toBe($document->id);
+    });
+});
+
 it('takes the unit from the type of the utility', function (): void {
     saveConsumptionInFamily(function (Utility $utility): void {
         $row = resolve(SaveConsumption::class)->handle($utility, saveConsumptionValues(12.0), ConsumptionSource::Reading);

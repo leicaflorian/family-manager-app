@@ -526,6 +526,9 @@ describe('Consumption', () => {
             screen.queryByRole('button', { name: 'Read the bills' }),
         ).not.toBeInTheDocument();
         expect(
+            screen.queryByText(/Reading them costs about/),
+        ).not.toBeInTheDocument();
+        expect(
             screen.getByRole('button', { name: 'Add a consumption by hand' }),
         ).toBeInTheDocument();
     });

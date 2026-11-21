@@ -21,6 +21,7 @@ use App\Models\Utility;
 use App\Models\UtilityConsumption;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
@@ -185,6 +186,50 @@ it('does not throw an error after the call, so the queue does not pay it twice',
     Exceptions::assertReported(RuntimeException::class);
     expect(readConsumptionCalls())->toHaveCount(1)
         ->and(readConsumptionRow())->toBeNull();
+});
+
+it('leaves the bill to check when an error after the call stops the saving', function (): void {
+    Exceptions::fake();
+    readConsumptionFinds();
+    app()->bind(SaveConsumption::class, static fn (): never => throw new RuntimeException('the database went away'));
+
+    readConsumptionRun();
+
+    expect(readConsumptionCalls()[0]->outcome)->toBe(ConsumptionOutcome::NoConsumption);
+});
+
+it('gives an outcome to a call left without one, without calling the reader again', function (): void {
+    readConsumptionFinds();
+    $familyId = $this->family->id;
+    $fileId = $this->document->file_id;
+    CurrentFamily::using($familyId, static fn (): AiReading => AiReading::factory()->create(['family_id' => $familyId, 'file_id' => $fileId, 'purpose' => ReadingPurpose::Consumption, 'outcome' => null]));
+
+    readConsumptionRun();
+
+    $calls = readConsumptionCalls();
+    expect($this->reader->consumptionReads())->toBe(0)
+        ->and($calls)->toHaveCount(1)
+        ->and($calls[0]->outcome)->toBe(ConsumptionOutcome::NoConsumption);
+});
+
+it('leaves alone the outcome of a call that has one', function (): void {
+    readConsumptionFinds();
+    $familyId = $this->family->id;
+    $fileId = $this->document->file_id;
+    CurrentFamily::using($familyId, static fn (): AiReading => AiReading::factory()->create(['family_id' => $familyId, 'file_id' => $fileId, 'purpose' => ReadingPurpose::Consumption, 'outcome' => ConsumptionOutcome::NotABill]));
+
+    readConsumptionRun();
+
+    expect(readConsumptionCalls()[0]->outcome)->toBe(ConsumptionOutcome::NotABill);
+});
+
+it('records the call as the account that asked, without signing anyone in', function (): void {
+    readConsumptionFinds();
+
+    readConsumptionRun();
+
+    expect(readConsumptionCalls()[0]->user_id)->toBe($this->user->id)
+        ->and(Auth::guard('web')->hasUser())->toBeFalse();
 });
 
 it('shows on the page that the bills are being read, and how many are done', function (): void {

@@ -22,8 +22,9 @@ final class SaveConsumption
      * Saves the consumption of a utility.
      *
      * With a row it updates that one. Without, it looks for the row of the document, then for the row of the same
-     * utility with the same period, and creates one only when neither exists. A reading never touches a row written
-     * by hand: it gets that row back as it is.
+     * utility with the same period, and creates one only when neither exists. A reading never touches the figures of a
+     * row written by hand: it gets that row back, only linked to the bill when the row has none, so that the bill is
+     * no longer offered for reading. A bill already held by the row of another utility stays there (one row per bill).
      *
      * @param  Utility  $utility  the utility the bill belongs to
      * @param  ConsumptionValues  $values  the figures to save
@@ -42,12 +43,17 @@ final class SaveConsumption
         $row ??= $this->existing($utility, $values, $document);
 
         if ($row instanceof UtilityConsumption && $source === ConsumptionSource::Reading && $row->source === ConsumptionSource::Manual) {
+            if ($row->document_id === null && $this->isFree($document, $row)) {
+                $row->document_id = $document->id;
+                $row->save();
+            }
+
             return $row;
         }
 
         $row ??= new UtilityConsumption;
         $row->utility_id = $utility->id;
-        $row->document_id = $document instanceof Document ? $document->id : $row->document_id;
+        $row->document_id = $this->isFree($document, $row) ? $document->id : $row->document_id;
         $row->period_start = $values->periodStart;
         $row->period_end = $values->periodEnd;
         $row->quantity = $values->quantity;
@@ -66,7 +72,7 @@ final class SaveConsumption
     }
 
     /**
-     * The row this bill already has: the one of the document, otherwise the one of the utility with the same period.
+     * The row this bill already has: the one of the document for this utility, otherwise the one of the utility with the same period.
      *
      * @param  Utility  $utility  the utility of the bill
      * @param  ConsumptionValues  $values  the figures, for the period
@@ -75,7 +81,7 @@ final class SaveConsumption
     private function existing(Utility $utility, ConsumptionValues $values, ?Document $document): ?UtilityConsumption
     {
         if ($document instanceof Document) {
-            $byDocument = UtilityConsumption::query()->where('document_id', $document->id)->first();
+            $byDocument = UtilityConsumption::query()->where('utility_id', $utility->id)->where('document_id', $document->id)->first();
 
             if ($byDocument instanceof UtilityConsumption) {
                 return $byDocument;
@@ -87,5 +93,22 @@ final class SaveConsumption
             ->whereDate('period_start', $values->periodStart->toDateString())
             ->whereDate('period_end', $values->periodEnd->toDateString())
             ->first();
+    }
+
+    /**
+     * Whether the bill can be linked to the row: there is a bill, and no other row holds it (`document_id` is unique).
+     *
+     * @param  Document|null  $document  the bill
+     * @param  UtilityConsumption  $row  the row to link it to
+     *
+     * @phpstan-assert-if-true Document $document
+     */
+    private function isFree(?Document $document, UtilityConsumption $row): bool
+    {
+        return $document instanceof Document
+            && ! UtilityConsumption::query()
+                ->where('document_id', $document->id)
+                ->when($row->exists, fn ($query) => $query->whereKeyNot($row->id))
+                ->exists();
     }
 }

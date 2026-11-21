@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\Reading;
 
+use App\Support\Translated;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -32,4 +33,13 @@ final class ConsumptionProposalData extends Data
         public readonly array $complete = [],
         public readonly bool $priceWarning = false,
     ) {}
+
+    /**
+     * What the box says when the document has no utility to record the consumption in: the same for the proposal and
+     * for the import that refuses a ticked box.
+     */
+    public static function chooseUtility(): string
+    {
+        return Translated::text('To record the consumption choose the utility above.');
+    }
 }

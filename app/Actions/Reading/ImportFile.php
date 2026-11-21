@@ -665,7 +665,7 @@ final readonly class ImportFile
         // The proposal made again after the cards does not see a utility created with the file among the links the page
         // sent, so the document decides whether it has one; what is missing in the box still stops the import
         if (! $utility instanceof Utility) {
-            throw ValidationException::withMessages(['consumption' => Translated::text('To record the consumption choose the utility above.')]);
+            throw ValidationException::withMessages(['consumption' => ConsumptionProposalData::chooseUtility()]);
         }
 
         // A value missing, out of range or a period reversed: the box says it (the message of the utility comes first

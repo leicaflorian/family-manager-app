@@ -338,24 +338,24 @@ final class FakeDocumentReader implements DocumentReader
     /**
      * Counts the reading, then gives what `readsConsumption()` set for the file (not a bill, otherwise) or throws the
      * error of `fails()`. As the real one, it records the call (Gemini 3.8 Flash, 1400 tokens in and 90 out) as a
-     * `consumption` of the file and of the account signed in, unless the error is one with no answer
+     * `consumption` of the file and of the account given, unless the error is one with no answer
      * (`ReadingFailed::$paid` false).
      *
      * @param  ReadingSource  $source  the file as the model reads it
      * @param  int  $fileId  the file read
      * @param  string  $locale  the language of who asked
+     * @param  int|null  $userId  the account that asked
      *
      * @throws ReadingFailed when `fails()` was called
      */
-    public function consumption(ReadingSource $source, int $fileId, string $locale): ConsumptionReading
+    public function consumption(ReadingSource $source, int $fileId, string $locale, ?int $userId = null): ConsumptionReading
     {
         $this->consumptionReads++;
 
-        $userId = Auth::guard('web')->id();
         $failure = $this->failure;
 
         if (! $failure instanceof ReadingFailed || $failure->paid) {
-            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 1400, 90, 0, ReadingPurpose::Consumption, $userId === null ? null : (int) $userId, $fileId);
+            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 1400, 90, 0, ReadingPurpose::Consumption, $userId, $fileId);
         }
 
         if ($failure instanceof ReadingFailed) {

@@ -407,11 +407,11 @@ test('gemini reads the consumption of a bill and the call is recorded with the f
     Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-consumption'))]);
     $family = Family::factory()->create();
     $user = User::factory()->for($family)->create();
-    $this->actingAs($user);
     $source = aiReaderSource($this->pdf, 'application/pdf');
     $fileId = File::query()->withoutGlobalScopes()->sole()->id;
 
-    $reading = CurrentFamily::using($family->id, fn (): ConsumptionReading => aiReader('gemini', 'gemini-3.8-flash')->consumption($source, $fileId, 'it'));
+    // the account comes from the caller (a job has nobody signed in), not from the guard
+    $reading = CurrentFamily::using($family->id, fn (): ConsumptionReading => aiReader('gemini', 'gemini-3.8-flash')->consumption($source, $fileId, 'it', $user->id));
 
     Http::assertSent(function (Request $request): bool {
         $content = $request['input'][0]['content'];

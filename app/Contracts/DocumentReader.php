@@ -75,15 +75,16 @@ interface DocumentReader
 
     /**
      * Reads only the consumption of a bill already in the archive (*Read the bills*), and records the call in
-     * `ai_readings` (purpose `consumption`, the file, the account signed in) in the current family before the answer is
+     * `ai_readings` (purpose `consumption`, the file, the account given) in the current family before the answer is
      * checked. Called only when `isActive()` is true.
      *
      * @param  ReadingSource  $source  the file as the model reads it
      * @param  int  $fileId  the file, for the row of the call
      * @param  string  $locale  the language of who asked (`it` or `en`)
+     * @param  int|null  $userId  the account that asked, for the row of the call (a job has nobody signed in)
      *
      * @throws ReadingFailed when the service gives no answer, or one that cannot be used
      * @throws LogicException when the reading is off
      */
-    public function consumption(ReadingSource $source, int $fileId, string $locale): ConsumptionReading;
+    public function consumption(ReadingSource $source, int $fileId, string $locale, ?int $userId = null): ConsumptionReading;
 }

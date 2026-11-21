@@ -49,7 +49,10 @@ final readonly class ImportChoices
     /** The fields of the consumption the person can correct in its box. */
     private const array CONSUMPTION_FIELDS = ['quantity' => 'quantity', 'period_start' => 'date', 'period_end' => 'date', 'is_estimated' => 'toggle'];
 
-    /** The largest consumption, as the check of a read one ({@see ConsumptionCheck}) allows at most. */
+    /**
+     * A coarse limit of the request on the quantity written in the box, the same for every type: the cap of the type
+     * (20,000, 5,000 or 1,000) is applied later by {@see ConsumptionCheck}, which blocks a quantity above it.
+     */
     public const int MAX_QUANTITY = 99999;
 
     /** The columns of a card that are the document's: they are written in its form, not in the box. */

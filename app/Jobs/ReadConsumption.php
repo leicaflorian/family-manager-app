@@ -16,7 +16,6 @@ use App\Exceptions\Reading\ReadingSkipped;
 use App\Models\AiReading;
 use App\Models\Document;
 use App\Models\File;
-use App\Models\User;
 use App\Models\Utility;
 use App\Services\Reading\ArchiveReadingRun;
 use App\Services\Reading\ReadingAllowance;
@@ -31,7 +30,6 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Traits\Localizable;
 use Throwable;
 
@@ -129,7 +127,13 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
         $document = Document::query()->with('file')->find($this->documentId);
         $file = $document?->file;
 
-        if (! $utility instanceof Utility || ! $document instanceof Document || ! $file instanceof File || ! $this->worthReading($reader, $allowance, $document, $file)) {
+        if (! $utility instanceof Utility || ! $document instanceof Document || ! $file instanceof File) {
+            return;
+        }
+
+        if (! $this->worthReading($reader, $allowance, $document, $file)) {
+            $this->closeUnfinished($document, $file);
+
             return;
         }
 
@@ -139,18 +143,9 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $user = User::query()->find($this->userId);
-        $guard = Auth::guard('web');
-        // Put back afterwards: a worker runs many jobs, and a job run inside a request must not sign anyone out
-        $before = $guard->hasUser() ? $guard->user() : null;
-
         try {
-            if ($user instanceof User) {
-                // The call is recorded as the account that asked, as when it reads from a page
-                $guard->setUser($user);
-            }
-
-            $reading = $reader->consumption($source, $file->id, $this->locale);
+            // The call is recorded as the account that asked, as when it reads from a page
+            $reading = $reader->consumption($source, $file->id, $this->locale, $this->userId);
         } catch (ReadingFailed $failure) {
             if ($failure->paid) {
                 // Paid but of no use: the bill goes to *To check*, where the person writes it
@@ -158,14 +153,14 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
             }
 
             throw $failure;
-        } finally {
-            $before === null ? $guard->forgetUser() : $guard->setUser($before);
         }
 
         try {
             $outcome = $this->save($reading, $utility, $document);
         } catch (Throwable $error) {
             report($error);
+            // Without an outcome the bill would be neither in the archive nor in *To check*
+            $this->writeOutcome($file, ConsumptionOutcome::NoConsumption);
 
             return;
         }
@@ -188,6 +183,32 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
             && $allowance->left(CarbonImmutable::now('Europe/Rome')) > 0
             && ! $document->consumption()->exists()
             && ! AiReading::query()->where('file_id', $file->id)->where('purpose', ReadingPurpose::Consumption)->exists();
+    }
+
+    /**
+     * A call of an earlier try whose outcome was never written (the worker was stopped between the call and the
+     * outcome) gets `NoConsumption`, so the bill goes to *To check* instead of being lost: without an outcome it is
+     * neither in the archive (it has a consumption reading) nor in *To check* (it has no outcome). Nothing is done when
+     * the bill has its consumption or the latest call has an outcome.
+     *
+     * @param  Document  $document  the bill
+     * @param  File  $file  its file
+     */
+    private function closeUnfinished(Document $document, File $file): void
+    {
+        if ($document->consumption()->exists()) {
+            return;
+        }
+
+        $latest = AiReading::query()
+            ->where('file_id', $file->id)
+            ->where('purpose', ReadingPurpose::Consumption)
+            ->latest('id')
+            ->first();
+
+        if ($latest instanceof AiReading && $latest->outcome === null) {
+            $this->writeOutcome($file, ConsumptionOutcome::NoConsumption);
+        }
     }
 
     /**

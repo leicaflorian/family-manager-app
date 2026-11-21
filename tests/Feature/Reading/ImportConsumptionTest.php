@@ -219,6 +219,45 @@ test('the same bill imported twice makes one row', function (): void {
         ->and(UtilityConsumption::query()->count())->toBe(1);
 });
 
+test('an import leaves alone a row written by hand for the same period, and links the bill to it', function (): void {
+    $row = UtilityConsumption::factory()->for($this->marco->family)->create([
+        'utility_id' => $this->luce->id, 'document_id' => null, 'source' => ConsumptionSource::Manual,
+        'period_start' => '2026-09-01', 'period_end' => '2026-09-30', 'quantity' => 190,
+    ]);
+    $file = importConsumptionBill();
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], ['consumption' => true]),
+    ]])->assertSessionHasNoErrors()->assertSessionMissing('import_failures');
+
+    $row->refresh();
+    expect(UtilityConsumption::query()->count())->toBe(1)
+        ->and($row->document_id)->toBe(Document::query()->where('file_id', $file->id)->sole()->id)
+        ->and((float) $row->quantity)->toBe(190.0)
+        ->and($row->source)->toBe(ConsumptionSource::Manual);
+});
+
+test('an import leaves alone a row corrected by hand that already has its bill', function (): void {
+    $first = importConsumptionBill();
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($first, [['type' => 'utility', 'id' => $this->luce->id]], ['consumption' => true]),
+    ]])->assertSessionHasNoErrors();
+    $row = UtilityConsumption::query()->sole();
+    $row->forceFill(['source' => ConsumptionSource::Manual, 'quantity' => 190])->save();
+    $second = importConsumptionBill();
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($second, [['type' => 'utility', 'id' => $this->luce->id]], ['consumption' => true]),
+    ]])->assertSessionHasNoErrors()->assertSessionMissing('import_failures');
+
+    $kept = $row->document_id;
+    $row->refresh();
+    expect(UtilityConsumption::query()->count())->toBe(1)
+        ->and($row->document_id)->toBe($kept)
+        ->and((float) $row->quantity)->toBe(190.0)
+        ->and($row->source)->toBe(ConsumptionSource::Manual);
+});
+
 test('what only the reading has is saved as read', function (): void {
     $file = importConsumptionBill(['consumption_adjusted' => true, 'consumption_energy_amount' => 40.12, 'consumption_f1' => 80, 'consumption_f2' => 60, 'consumption_f3' => 61]);
 
@@ -256,7 +295,7 @@ test('a ticked box with the first day after the last is refused and saves nothin
         importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], [
             'consumption' => true, 'overrides' => ['consumption' => ['period_start' => '2026-10-15']],
         ]),
-    ]])->assertSessionHasErrors(['files.0.also.consumption' => 'To record the consumption correct the period in its box: the first day comes before the last.']);
+    ]])->assertSessionHasErrors(['files.0.also.consumption' => 'To record the consumption correct the period in its box: the first day comes before the last, and it lasts at most 400 days.']);
 
     expect(Document::query()->count())->toBe(0)
         ->and(UtilityConsumption::query()->count())->toBe(0);
@@ -284,7 +323,7 @@ test('a period longer than the check allows is written again in the box', functi
 
     $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
         importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], ['consumption' => true]),
-    ]])->assertSessionHasErrors('files.0.also.consumption');
+    ]])->assertSessionHasErrors(['files.0.also.consumption' => 'To record the consumption correct the period in its box: the first day comes before the last, and it lasts at most 400 days.']);
 
     expect(UtilityConsumption::query()->count())->toBe(0);
 });

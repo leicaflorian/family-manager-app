@@ -201,10 +201,10 @@ final readonly class Proposal
             default => $missing,
         };
         $blocked = match (true) {
-            $complete !== [] => Translated::text('To record the consumption choose the utility above.'),
+            $complete !== [] => ConsumptionProposalData::chooseUtility(),
             $missing !== [] => Translated::text('To record the consumption write the quantity and the period in its box.'),
             $rated === ConsumptionOutcome::OutOfRange => Translated::text('To record the consumption correct the quantity in its box.'),
-            $rated === ConsumptionOutcome::BadPeriod => Translated::text('To record the consumption correct the period in its box: the first day comes before the last.'),
+            $rated === ConsumptionOutcome::BadPeriod => Translated::text('To record the consumption correct the period in its box: the first day comes before the last, and it lasts at most 400 days.'),
             default => null,
         };
         $saved = ConsumptionCheck::outcome($type, $values->quantity, $x->consumption_unit, $values->period_start, $values->period_end) === ConsumptionOutcome::Saved;

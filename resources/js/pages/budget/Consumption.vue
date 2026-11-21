@@ -638,7 +638,10 @@ const emptyText = computed((): string =>
                     )
                 }}
             </h2>
-            <p class="m-0 text-body-sm text-ink-soft">
+            <p
+                v-if="consumption.archive.can_read"
+                class="m-0 text-body-sm text-ink-soft"
+            >
                 {{
                     $t(
                         'I read them one by one and take consumption and period. Reading them costs about :cost (:count readings, you have :left left this month).',

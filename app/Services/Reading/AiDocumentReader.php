@@ -197,16 +197,17 @@ final readonly class AiDocumentReader implements DocumentReader
     /**
      * Reads only the consumption of a bill: a PDF or a photo goes as an attachment, a text inside the message. The call
      * is recorded right after the answer, before the answer is checked, as a `consumption` of the file and of the
-     * account signed in. Called only when `isActive()` is true.
+     * account given. Called only when `isActive()` is true.
      *
      * @param  ReadingSource  $source  the file as the model reads it
      * @param  int  $fileId  the file, for the row of the call
      * @param  string  $locale  the language of who asked (`it` or `en`): the answer has no text, so it changes nothing
+     * @param  int|null  $userId  the account that asked, for the row of the call
      *
      * @throws ReadingFailed when the service does not answer, or gives an answer that cannot be used
      * @throws LogicException when the reading is off
      */
-    public function consumption(ReadingSource $source, int $fileId, string $locale): ConsumptionReading
+    public function consumption(ReadingSource $source, int $fileId, string $locale, ?int $userId = null): ConsumptionReading
     {
         if (! $this->isActive()) {
             throw new LogicException('The reading is off: call consumption() only when isActive() is true.');
@@ -229,9 +230,7 @@ final readonly class AiDocumentReader implements DocumentReader
             $model,
         );
 
-        $user = Auth::guard('web')->id();
-
-        return ConsumptionReaderAgent::parse($this->recordedAnswer($response, $provider, $model, ReadingPurpose::Consumption, $user === null ? null : (int) $user, $fileId));
+        return ConsumptionReaderAgent::parse($this->recordedAnswer($response, $provider, $model, ReadingPurpose::Consumption, $userId, $fileId));
     }
 
     /**
