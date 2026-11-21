@@ -48,7 +48,7 @@ describe('FmMonthSwitch', () => {
         expect(view.emitted('change')).toEqual([['2025-09'], ['2027-09']]);
     });
 
-    it('turns off the arrow that would go past the last month', () => {
+    it('turns off the arrow forward when the last month of the span is max', () => {
         render(FmMonthSwitch, {
             props: { month: '2026-11', span: 12, max: '2026-11' },
         });
@@ -81,7 +81,21 @@ describe('FmMonthSwitch', () => {
         expect(view.emitted('change')).toEqual([['2025-11'], ['2026-11']]);
     });
 
-    it('turns off the arrow that would go before the first month', () => {
+    it('bounds the last month of the span with min, not the first', () => {
+        render(FmMonthSwitch, {
+            props: { month: '2026-09', span: 12, min: '2026-09' },
+        });
+
+        // October 2025 is before min, yet the span may show it: min bounds September 2026
+        expect(
+            screen.getByText('October 2025 – September 2026'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'A year earlier' }),
+        ).toBeDisabled();
+    });
+
+    it('turns off the arrow back when the month (the last of the span) is min', () => {
         render(FmMonthSwitch, {
             props: { month: '2026-03', min: '2026-03' },
         });

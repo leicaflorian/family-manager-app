@@ -35,6 +35,7 @@ const {
     selected,
     title,
     valueLabel,
+    short,
 } = defineProps<{
     /** The months, oldest first: months of the chart, or of *Planned and spent* as the server sends them. */
     months: readonly (ChartMonth | App.Data.MonthBarData)[];
@@ -48,6 +49,8 @@ const {
     title?: string;
     /** What the bars are, in the legend and the table (`Spent`, `kWh`). */
     valueLabel?: string;
+    /** Writes the number above the chosen bar or the month in progress (default `format`); consumption in kWh passes `formatNumber`, so it reads `290` as on the board. */
+    short?: (value: number) => string;
 }>();
 
 const { euro } = useFormat();
@@ -306,9 +309,7 @@ const bars = computed(() =>
                 data && (chosen || month.current)
                     ? {
                           y: barTop - (chosen ? 10 : 6),
-                          text: consumption.value
-                              ? formatNumber(month.value)
-                              : format(month.value),
+                          text: (short ?? format)(month.value),
                       }
                     : null,
             label: month.current

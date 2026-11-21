@@ -26,9 +26,9 @@ const {
     month: string;
     /** How many months are shown together, ending with `month`. */
     span?: number;
-    /** The first month that can be chosen, `yyyy-mm`. */
+    /** The earliest `month` (with a span, the earliest last month of the span) the arrows can reach, `yyyy-mm`. */
     min?: string;
-    /** The last month that can be chosen, `yyyy-mm`. */
+    /** The latest `month` (with a span, the latest last month of the span) the arrows can reach, `yyyy-mm`; *Today* goes there. */
     max?: string;
     /** Shows *Today*, which goes back to `max`. */
     today?: boolean;

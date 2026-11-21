@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
-import { formatQuantity } from '@/lib/format';
+import { formatEuro, formatNumber, formatQuantity } from '@/lib/format';
 import type { ChartMonth } from '@/lib/charts';
 import { monthBars } from '@/test/fixtures';
 import FmBarChart from './FmBarChart.vue';
@@ -227,5 +227,50 @@ describe('FmBarChart, consumption', () => {
         expect(within(table).getByText('290 kWh')).toBeInTheDocument();
         expect(within(table).getByText('248 kWh')).toBeInTheDocument();
         expect(within(table).getByText(/until the 14th/)).toBeInTheDocument();
+    });
+
+    it('writes euros above the chosen bar in the spending view', () => {
+        const { container } = render(FmBarChart, {
+            props: {
+                months: [{ month: '2026-01', value: 86.1, mark: 79.4 }],
+                marks: 'previous',
+                format: formatEuro,
+                selected: '2026-01',
+            },
+        });
+
+        expect(container.querySelector('svg')).toHaveTextContent('86,10 €');
+    });
+
+    it('writes the bare quantity above the chosen bar with short', () => {
+        const { container } = render(FmBarChart, {
+            props: {
+                months: kwh,
+                marks: 'previous',
+                format: inKwh,
+                short: formatNumber,
+                selected: '2026-01',
+            },
+        });
+
+        const texts = [...container.querySelectorAll('svg text')].map((text) =>
+            text.textContent?.trim(),
+        );
+        expect(texts).toContain('290');
+        expect(texts).not.toContain('290 kWh');
+    });
+
+    it('writes above the chosen bar with short when given', () => {
+        const { container } = render(FmBarChart, {
+            props: {
+                months: kwh,
+                marks: 'previous',
+                format: inKwh,
+                short: (value: number) => `~${value}`,
+                selected: '2026-01',
+            },
+        });
+
+        expect(container.querySelector('svg')).toHaveTextContent('~290');
     });
 });
