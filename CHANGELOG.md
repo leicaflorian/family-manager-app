@@ -2,6 +2,31 @@
 
 All notable changes to Fameja.app.
 
+## [2.5.0] - 2026-11-21
+
+### Consumption
+- New Consumption page (budget.consumption) for electricity, gas and water utilities: 12-month window with previous/next and Today, Consumption/Spending chart with month detail, four figures, a sentence comparing with the previous year, bills one by one, bills to check, archive still to read.
+- New utility_consumptions table, model, policy, enums (ConsumptionUnit, ConsumptionSource, ConsumptionOutcome) and Consumption / ConsumptionPage services; quantities are written with at most one decimal.
+- Bill reading extracts consumption (ConsumptionReaderAgent, ReadConsumption job, ConsumptionCheck limits); an error after the paid call sends the bill to To check; no energy amount for water bills.
+- Import: new Record the consumption box (SaveConsumption), refusing out-of-range or reversed periods.
+- Bills already in the archive can be read in bulk (QueueConsumptionReadings, ArchiveReadingRun).
+- Correct or add a consumption by hand (ConsumptionSheet, UtilityConsumptionController, shared throttle consumption-save).
+- Utility card shows a Usage section with the last 12 months.
+- Reading log (ai_readings) records file and outcome, and the family's average cost.
+- Seeder: Bianchi consumption data.
+
+### Budget
+- Planned and spent is now a page of its own under Budget (sidebar accordion, box in Movements), with the wide two-column layout and the page trail.
+- Sidebar: Budget becomes an accordion like Areas.
+- By category: a narrower name column on the computer; on the tablet the bar and its words go under the name.
+
+### Charts
+- FmBarChart: units, last year's mark, choosable bars, euros above the chosen bar, embedded mode inside a card.
+- The value of a bar shows in a tooltip on hover, opening on top of the bar, with the year before on its own line.
+
+### Migrations
+- 2026_11_21_000001_create_utility_consumptions_table and 2026_11_21_000002_add_outcome_to_ai_readings_table (new table and a new nullable column).
+
 ## [2.4.0] - 2026-11-21
 
 ### Banks

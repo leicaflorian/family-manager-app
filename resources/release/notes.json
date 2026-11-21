@@ -1,5 +1,29 @@
 [
     {
+        "version": "2.5.0",
+        "date": "2026-11-21",
+        "notes": {
+            "it": [
+                "Nuova pagina Consumi: vedi quanta luce, gas e acqua usi, mese per mese, con il confronto con l'anno prima.",
+                "Le bollette si leggono da sole per trovare i consumi; quelle dubbie finiscono in «Da controllare».",
+                "Puoi correggere o aggiungere un consumo a mano.",
+                "Nella scheda di una fornitura trovi i consumi degli ultimi 12 mesi.",
+                "«Previsto e speso» ha ora una pagina tutta sua dentro Bilancio, raggiungibile dal menu laterale.",
+                "Nei grafici, passando sopra una barra vedi il valore in un fumetto.",
+                "Per categoria: la colonna dei nomi è più stretta sul computer e sul tablet la barra va sotto il nome."
+            ],
+            "en": [
+                "New Consumption page: see how much electricity, gas and water you use, month by month, compared with the year before.",
+                "Bills are read on their own to find the consumption; doubtful ones go to \"To check\".",
+                "You can correct or add a consumption by hand.",
+                "On the card of a utility you find the consumption of the last 12 months.",
+                "\"Planned and spent\" now has a page of its own inside Budget, reachable from the side menu.",
+                "In charts, hovering over a bar shows its value in a bubble.",
+                "By category: the names column is narrower on the computer, and on the tablet the bar goes under the name."
+            ]
+        }
+    },
+    {
         "version": "2.4.0",
         "date": "2026-11-21",
         "notes": {
