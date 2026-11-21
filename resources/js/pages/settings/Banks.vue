@@ -208,8 +208,6 @@ usePageTrail(() => [
                             times,
                         })
                     "
-                    :back="settingsIndex().url"
-                    :back-label="$t('Settings')"
                 >
                     <template
                         v-if="wide && can_change && connections.length > 0"

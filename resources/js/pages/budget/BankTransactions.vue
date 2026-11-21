@@ -32,12 +32,10 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import FmTitleTools from '@/components/fm/FmTitleTools.vue';
 import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 import { lastReadText, readTimes } from '@/lib/banks';
 import { formatDayMonth, todayInRome } from '@/lib/format';
 import { budgetTabs } from '@/lib/budgetTabs';
@@ -76,7 +74,6 @@ const props = defineProps<{
     planned_options?: App.Data.BankPlannedChoiceData[];
 }>();
 
-const mode = useLayoutMode();
 const bankFeed = useBankFeed();
 const { money, date } = useFormat();
 const wide = useWideLayout();
@@ -340,7 +337,6 @@ function add(): void {
     <div class="flex max-w-[1120px] flex-col gap-4">
         <FmTitle :title="$t('Budget')">
             <template #actions>
-                <FmTitleTools v-if="mode === 'phone'" />
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')
                 }}</FmButton>
