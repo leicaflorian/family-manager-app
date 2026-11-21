@@ -11,11 +11,10 @@
  *
  * @group navigation
  */
-import { ArrowLeft } from '@lucide/vue';
 import { usePageBack } from '@/composables/usePageBack';
 import type { TrailPiece } from '@/lib/pageTrail';
+import FmBackButton from './FmBackButton.vue';
 import FmBackLink from './FmBackLink.vue';
-import FmIcon from './FmIcon.vue';
 import FmTrail from './FmTrail.vue';
 
 defineOptions({ inheritAttrs: false });
@@ -50,18 +49,12 @@ const { parent, visible, back } = usePageBack(
             v-bind="$attrs"
             class="flex min-w-0 items-center gap-2.5"
         >
-            <component
-                :is="parent?.href ? 'a' : 'button'"
+            <FmBackButton
                 v-if="visible()"
+                small
                 :href="parent?.href"
-                :type="parent?.href ? undefined : 'button'"
-                :aria-label="$t('Back')"
-                :title="$t('Back')"
-                class="relative flex size-9 shrink-0 items-center justify-center rounded-md border border-edge-soft bg-card text-ink"
                 @click="back"
-            >
-                <FmIcon :icon="ArrowLeft" :size="18" />
-            </component>
+            />
             <FmTrail :pieces="trail" />
         </div>
     </template>

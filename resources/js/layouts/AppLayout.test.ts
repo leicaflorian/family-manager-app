@@ -10,7 +10,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, reactive } from 'vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { trackChanges } from '@/lib/unsavedChanges';
 import { formPlugins } from '@/lib/formPlugins';
@@ -305,6 +305,69 @@ describe('AppLayout', () => {
             screen.queryByRole('navigation', { name: 'Where you are' }),
         ).not.toBeInTheDocument();
     });
+
+    it.each([
+        ['phone', 390, 'link'],
+        ['tablet', 820, 'link'],
+    ] as const)(
+        'on the %s the way back follows a trail that changes after mounting, and leaves with the page',
+        async (_name, width, role) => {
+            screenWidth(width);
+            page.component = 'documents/Document';
+            page.url = '/documents/7';
+            const state = reactive({ title: 'Electricity bill', trail: true });
+            const Changing = defineComponent({
+                setup() {
+                    usePageTrail(() => [
+                        { label: 'Documents', href: '/documents' },
+                        { label: state.title },
+                    ]);
+
+                    return () => h('h1', state.title);
+                },
+            });
+            const slot = (): ReturnType<typeof h> =>
+                state.trail ? h(Changing) : h('h1', 'Another page');
+            const view = render(AppLayout, { slots: { default: slot } });
+            const main = (): HTMLElement => screen.getByRole('main');
+
+            const back = await within(main()).findByRole(role, {
+                name: width === 390 ? 'Documents' : 'Back',
+            });
+            expect(back).toHaveAttribute('href', '/documents');
+
+            // the page learns its title after mounting: the trail follows
+            state.title = 'Gas bill';
+            if (width === 820) {
+                expect(
+                    await within(main()).findByRole('navigation', {
+                        name: 'Where you are',
+                    }),
+                ).toHaveTextContent('Gas bill');
+            }
+            expect(
+                within(main()).getByRole(role, {
+                    name: width === 390 ? 'Documents' : 'Back',
+                }),
+            ).toHaveAttribute('href', '/documents');
+
+            // the page goes away for one without a trail: no stale link back
+            state.trail = false;
+            await waitFor(() =>
+                expect(
+                    within(main()).queryByRole(role, {
+                        name: width === 390 ? 'Documents' : 'Back',
+                    }),
+                ).not.toBeInTheDocument(),
+            );
+            expect(
+                within(main()).queryByRole('navigation', {
+                    name: 'Where you are',
+                }),
+            ).not.toBeInTheDocument();
+            view.unmount();
+        },
+    );
 
     it('on the computer has no row above the page', async () => {
         page.component = 'documents/Document';

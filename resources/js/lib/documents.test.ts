@@ -8,7 +8,6 @@ import {
     linkQuery,
     newDocument,
     parseLinkKey,
-    presetUrl,
     proposalOf,
     proposalValues,
     toPayload,
@@ -190,17 +189,5 @@ describe('proposalOf', () => {
         expect(proposalOf('failed', proposal)).toBeUndefined();
         expect(proposalOf('done', null)).toBeUndefined();
         expect(proposalOf(null, undefined)).toBeUndefined();
-    });
-});
-
-describe('presetUrl', () => {
-    it('leads to the movement for an expense or an income, to the card otherwise', () => {
-        expect(presetUrl({ type: 'expense', id: 3 })).toBe(
-            '/budget/movements/expense/3',
-        );
-        expect(presetUrl({ type: 'income', id: 4 })).toBe(
-            '/budget/movements/income/4',
-        );
-        expect(presetUrl({ type: 'vehicle', id: 2 })).toBe('/cards/vehicle/2');
     });
 });

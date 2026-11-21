@@ -6,9 +6,9 @@
  * the phone (the form first). The files, the documents chosen in *Link* and
  * those marked to unlink are sent with the movement. Without a movement it is
  * the page of *New expense or income*, which can start from a planned expense
- * or income, or from a card (*Add expense*): then the link leads back to the
- * card. The page leads back to `back` when the server gives it, else to the
- * card, else to the month.
+ * or income, or from a card (*Add expense*): then the trail leads back to the
+ * card. *Cancel* and the trail lead to `back` when the server gives it, else to
+ * the card, else to the month.
  */
 import { Head, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
@@ -72,7 +72,7 @@ const fromCard = computed((): { href: string; label: string } | null => {
     };
 });
 
-/** Where the link back and *Cancel* go: what the server gave, else the card a new expense comes from, else the month. */
+/** Where *Cancel* and the trail go: what the server gave, else the card a new expense comes from, else the month. */
 const backHref = computed(
     () =>
         back ??

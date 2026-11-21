@@ -19,7 +19,7 @@
  * @group navigation
  */
 import { router } from '@inertiajs/vue3';
-import { ArrowLeft, PanelLeftOpen } from '@lucide/vue';
+import { PanelLeftOpen } from '@lucide/vue';
 import { nextTick, ref, useTemplateRef, watch } from 'vue';
 import { useAppName } from '@/composables/useAppName';
 import { usePageBack } from '@/composables/usePageBack';
@@ -29,6 +29,7 @@ import type { TrailPiece } from '@/lib/pageTrail';
 import { squareButton } from '@/lib/topBar';
 import { search } from '@/routes';
 import type { BellNotices } from '@/lib/notices';
+import FmBackButton from './FmBackButton.vue';
 import FmBell from './FmBell.vue';
 import FmIcon from './FmIcon.vue';
 import FmSearchField from './FmSearchField.vue';
@@ -151,18 +152,11 @@ defineExpose({ focusSearch });
                 >
                     <FmIcon :icon="PanelLeftOpen" :size="22" />
                 </button>
-                <component
-                    :is="parent?.href ? 'a' : 'button'"
+                <FmBackButton
                     v-if="mode === 'computer' && showBack()"
                     :href="parent?.href"
-                    :type="parent?.href ? undefined : 'button'"
-                    :aria-label="$t('Back')"
-                    :title="$t('Back')"
-                    :class="squareButton"
                     @click="back"
-                >
-                    <FmIcon :icon="ArrowLeft" :size="20" />
-                </component>
+                />
                 <FmTrail v-if="mode === 'computer'" :pieces="trail" />
             </div>
             <div

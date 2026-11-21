@@ -926,7 +926,7 @@ onBeforeUnmount(() => {
         @change="onFiles"
     />
 
-    <!-- On the phone and the tablet (under the bar of the app), as Upload and Received mail: the link back
+    <!-- On the phone and the tablet (under the bar of the app), the page keeps its own link back
          above the big title. The bar stays on the computer, and on a linked phone, which has nowhere to go back
          to. -->
     <div

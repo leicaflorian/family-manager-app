@@ -10,7 +10,6 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import * as visitHistory from '@/lib/visitHistory';
 import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Search from './Search.vue';
 
@@ -463,25 +462,11 @@ describe('Search', () => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
-    it('on the phone, goes back with the arrow, to the Home without a page of the app before', async () => {
-        const back = vi
-            .spyOn(window.history, 'back')
-            .mockImplementation(() => {});
-        const canGoBack = vi.spyOn(visitHistory, 'canGoBack');
+    it('on the phone, draws no Back of its own: the layout draws the link to the Home', () => {
         renderPage(Search, { results: panda });
 
-        canGoBack.mockReturnValue(true);
-        await userEvent.click(screen.getByRole('button', { name: 'Back' }));
-        expect(back).toHaveBeenCalledTimes(1);
-
-        // the page before is outside the app (the sign-in) even if the tab has one
-        vi.spyOn(History.prototype, 'length', 'get').mockReturnValue(3);
-        canGoBack.mockReturnValue(false);
-        await userEvent.click(screen.getByRole('button', { name: 'Back' }));
-        expect(back).toHaveBeenCalledTimes(1);
-        expect(visit).toHaveBeenCalledWith('/dashboard');
         expect(
-            screen.queryByRole('link', { name: 'Home' }),
+            screen.queryByRole('button', { name: 'Back' }),
         ).not.toBeInTheDocument();
     });
 

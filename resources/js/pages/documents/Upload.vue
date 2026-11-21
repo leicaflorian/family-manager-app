@@ -4,8 +4,8 @@
  * each) are chosen or dragged here and sent. The server keeps them waiting,
  * starts their reading and opens *Import more files* with them, where each is
  * checked and filed as a document: this page only takes the files. The card
- * the upload starts from travels with them. On the phone and the tablet *‹ To
- * sort* above the title leads back, as on *Received mail*. The phone and the tablet offer *Take a photo of a sheet*
+ * the upload starts from travels with them. The layout draws the way
+ * back above the page (the trail). The phone and the tablet offer *Take a photo of a sheet*
  * beside the drop zone (above it on the phone); a Mac or a Windows PC offers the
  * home scanner beside it instead, as a secondary card; any other computer has
  * only the zone.
@@ -28,7 +28,7 @@ import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<{
-    /** The card the person comes from, kept for the files and the ×. */
+    /** The card the person comes from, kept for the files. */
     presetLinks: DocumentLink[];
 }>();
 

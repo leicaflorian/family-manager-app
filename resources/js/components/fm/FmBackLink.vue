@@ -10,6 +10,7 @@
  */
 import { Link } from '@inertiajs/vue3';
 import { ChevronLeft } from '@lucide/vue';
+import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 const {
@@ -29,13 +30,20 @@ defineEmits<{
     /** The link or the button was pressed. */
     click: [event: MouseEvent];
 }>();
+
+/** The look of the link, the same whether it is a link or a button. */
+const baseClass = cn('flex items-center gap-1.5 self-start text-row');
+/** A link: no underline. */
+const linkClass = cn(baseClass, 'no-underline');
+/** A button: no border or background of its own. */
+const buttonClass = cn(baseClass, 'border-0 bg-transparent p-0');
 </script>
 
 <template>
     <a
         v-if="href && handled"
         :href="href"
-        class="flex items-center gap-1.5 self-start text-row no-underline"
+        :class="linkClass"
         @click="$emit('click', $event)"
     >
         <FmIcon :icon="ChevronLeft" :size="18" />{{ label }}
@@ -43,7 +51,7 @@ defineEmits<{
     <Link
         v-else-if="href"
         :href="href"
-        class="flex items-center gap-1.5 self-start text-row no-underline"
+        :class="linkClass"
         @click="$emit('click', $event)"
     >
         <FmIcon :icon="ChevronLeft" :size="18" />{{ label }}
@@ -51,7 +59,7 @@ defineEmits<{
     <button
         v-else
         type="button"
-        class="flex items-center gap-1.5 self-start border-0 bg-transparent p-0 text-row"
+        :class="buttonClass"
         @click="$emit('click', $event)"
     >
         <FmIcon :icon="ChevronLeft" :size="18" />{{ label }}

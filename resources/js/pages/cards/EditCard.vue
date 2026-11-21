@@ -139,7 +139,7 @@ const title = computed(() =>
         : trans('New :type', { type: type.label.toLowerCase() }),
 );
 
-/** Where *Cancel* and the × go: the card, or the area of a new one. */
+/** Where *Cancel* goes, and the page above in the trail: the card, or the area of a new one. */
 const back = computed(() =>
     card ? show.url({ type: card.type, id: card.id }) : showArea.url(type.area),
 );

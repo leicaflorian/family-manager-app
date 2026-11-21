@@ -62,13 +62,7 @@ import type {
     DocumentFormValues,
     DocumentLink,
 } from '@/lib/documents';
-import {
-    linkQuery,
-    newDocument,
-    presetUrl,
-    proposalOf,
-    toPayload,
-} from '@/lib/documents';
+import { linkQuery, newDocument, proposalOf, toPayload } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 import { anyFileReading, isReading, readAgain } from '@/lib/reading';
 import { toSort } from '@/routes';

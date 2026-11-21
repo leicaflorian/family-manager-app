@@ -129,8 +129,6 @@ describe('FmSettingsPage', () => {
                     h(FmTitle, {
                         title: 'Notices',
                         subtitle: 'How many days before',
-                        back: '/settings',
-                        backLabel: 'Settings',
                     }),
                 default: () => h('p', 'The rules'),
             },

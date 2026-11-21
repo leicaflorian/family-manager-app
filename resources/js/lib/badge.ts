@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils';
+
 /**
  * The number on a badge of the app: nothing is shown at zero, so the caller
  * hides it; above 99 it reads «99+».
@@ -13,5 +15,6 @@ export function countBadge(count: number): string {
  * The classes of the red dot with the number on a round button (the bell, the
  * link to *To sort*): the caller adds where it sits.
  */
-export const COUNT_BADGE_CLASS =
-    'absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-overdue px-1 text-tiny text-on-action';
+export const COUNT_BADGE_CLASS = cn(
+    'absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-overdue px-1 text-tiny text-on-action',
+);
