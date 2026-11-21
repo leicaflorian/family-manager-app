@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Mail\RecordMailFilterCall;
+use App\Enums\ConsumptionOutcome;
 use App\Enums\ReadingPurpose;
 use App\Models\AiReading;
 use App\Models\Family;
@@ -35,10 +36,39 @@ test('the average cost of a purpose without readings is the default', function (
     expect(ReadingCost::averageFor(ReadingPurpose::Consumption))->toBe(0.008);
 });
 
-test('the average cost of a purpose reads the readings of every family and of that purpose only', function (): void {
-    AiReading::factory()->for(Family::factory()->create())->create(['purpose' => ReadingPurpose::Consumption, 'cost_usd' => '0.004000']);
-    AiReading::factory()->for(Family::factory()->create())->create(['purpose' => ReadingPurpose::Consumption, 'cost_usd' => '0.006000']);
-    AiReading::factory()->for(Family::factory()->create())->create(['purpose' => ReadingPurpose::Document, 'cost_usd' => '0.100000']);
+test('the average cost of a purpose is that of the current family and of that purpose only', function (): void {
+    $family = Family::factory()->create();
+    AiReading::factory()->for($family)->create(['purpose' => ReadingPurpose::Consumption, 'cost_usd' => '0.004000']);
+    AiReading::factory()->for($family)->create(['purpose' => ReadingPurpose::Consumption, 'cost_usd' => '0.006000']);
+    AiReading::factory()->for($family)->create(['purpose' => ReadingPurpose::Document, 'cost_usd' => '0.100000']);
+    AiReading::factory()->for(Family::factory()->create())->create(['purpose' => ReadingPurpose::Consumption, 'cost_usd' => '0.900000']);
 
-    expect(ReadingCost::averageFor(ReadingPurpose::Consumption))->toEqualWithDelta(0.005, 1e-9);
+    expect(CurrentFamily::using($family->id, fn (): float => ReadingCost::averageFor(ReadingPurpose::Consumption)))->toEqualWithDelta(0.005, 1e-9);
+});
+
+test('the average cost without a current family is the default and does not throw', function (): void {
+    AiReading::factory()->for(Family::factory()->create())->create(['purpose' => ReadingPurpose::Consumption, 'cost_usd' => '0.900000']);
+
+    expect(ReadingCost::averageFor(ReadingPurpose::Consumption))->toBe(0.008);
+});
+
+test('the outcome of a reading is set once, from null', function (): void {
+    $family = Family::factory()->create();
+    $reading = AiReading::factory()->for($family)->create();
+
+    CurrentFamily::using($family->id, function () use ($reading): void {
+        $reading->update(['outcome' => ConsumptionOutcome::Saved]);
+        expect($reading->fresh()?->outcome)->toBe(ConsumptionOutcome::Saved);
+
+        expect(fn () => $reading->update(['outcome' => ConsumptionOutcome::NotABill]))->toThrow(LogicException::class);
+    });
+});
+
+test('cost and tokens of a reading still cannot change', function (): void {
+    $family = Family::factory()->create();
+    $reading = AiReading::factory()->for($family)->create();
+
+    expect(fn () => $reading->update(['cost_usd' => '1']))->toThrow(LogicException::class)
+        ->and(fn () => $reading->update(['input_tokens' => 1]))->toThrow(LogicException::class)
+        ->and(fn () => $reading->update(['outcome' => ConsumptionOutcome::Saved, 'input_tokens' => 1]))->toThrow(LogicException::class);
 });

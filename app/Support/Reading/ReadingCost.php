@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Support\Reading;
 
 use App\Enums\ReadingPurpose;
+use App\Models\AiReading;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Estimates what a reading cost in dollars, from the prices in
@@ -52,19 +52,17 @@ final class ReadingCost
     }
 
     /**
-     * The average cost in dollars of the readings of a purpose, to tell the person what a reading will cost.
-     *
-     * It reads the readings of every family on purpose: it is an estimate of the price, not a datum of a family, and
-     * the query goes straight to the table because `AiReading` has the family scope (`BelongsToFamily`) and would see
-     * only the current family. Only the totals leave it, never a row.
+     * The average cost in dollars of the current family's readings of a purpose, to tell the person what a reading
+     * will probably cost. It goes through the `AiReading` model, so it has the family scope: without a current family
+     * nothing is read and the default comes back.
      *
      * @param  ReadingPurpose  $purpose  what the readings were for
-     * @return float the average of `cost_usd`, or `0.008` when no reading of that purpose has a cost yet
+     * @return float the average of `cost_usd`, or `0.008` when the family has no reading of that purpose with a cost
      */
     public static function averageFor(ReadingPurpose $purpose): float
     {
-        $average = DB::table('ai_readings')
-            ->where('purpose', $purpose->value)
+        $average = AiReading::query()
+            ->where('purpose', $purpose)
             ->whereNotNull('cost_usd')
             ->avg('cost_usd');
 

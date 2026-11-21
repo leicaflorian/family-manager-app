@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
 /**
- * One AI call and what it cost (`ai_readings`), with the rules of a family model but no authors. A row is written once and never changed.
+ * One AI call and what it cost (`ai_readings`), with the rules of a family model but no authors. A row is written once and never changed, except that its outcome is set once, from null.
  *
  * @property int $id
  * @property int|null $family_id
@@ -59,7 +59,12 @@ final class AiReading extends Model
      */
     protected static function booted(): void
     {
-        self::updating(static function (): never {
+        self::updating(static function (self $reading): void {
+            // The only change allowed: the outcome, written once after the answer is checked.
+            if ($reading->getDirty() === ['outcome' => $reading->getAttributes()['outcome'] ?? null] && $reading->getRawOriginal('outcome') === null) {
+                return;
+            }
+
             throw new LogicException('An AI reading is never changed.');
         });
     }
