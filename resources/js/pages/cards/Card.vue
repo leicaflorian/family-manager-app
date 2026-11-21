@@ -82,7 +82,7 @@ const linking = ref(false);
 /** The panel with the zone for the files to upload is open. */
 const uploading = ref(false);
 
-/** The address of the card in the routes: its type and its number. */
+/** Writes the amounts. */
 const { euro } = useFormat();
 
 /** The icon of the unit of the consumption: a bolt for kWh, a flame for gas, a drop for water. */
@@ -112,6 +112,7 @@ const consumptionText = computed((): string => {
           })}`;
 });
 
+/** The address of the card in the routes: its type and its number. */
 const address = computed(() => ({ type: card.card.type, id: card.card.id }));
 
 usePageTrail(() => [
@@ -292,7 +293,7 @@ function link(id: number): void {
                 <FmCard
                     v-if="card.consumption"
                     class="mt-3"
-                    :title="$t('Consumption')"
+                    :title="$t('Usage')"
                     list
                 >
                     <template #actions>

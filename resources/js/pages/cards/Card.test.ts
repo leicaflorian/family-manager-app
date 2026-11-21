@@ -524,7 +524,7 @@ describe('A card', () => {
                     .getAllByRole('heading', { level: 2 })
                     .map((heading) => heading.textContent?.trim())
                     .at(-1),
-            ).toBe('Consumption');
+            ).toBe('Usage');
             expect(screen.getByText('Last 12 months')).toBeInTheDocument();
             expect(
                 screen.getByText(
@@ -534,6 +534,25 @@ describe('A card', () => {
             expect(
                 screen.getByRole('link', { name: 'See the consumption' }),
             ).toHaveAttribute('href', '/budget/consumption?utility=3');
+        });
+
+        it('writes only the quantity when the price is unknown', () => {
+            renderPage(Card, {
+                card: {
+                    ...luceDetail,
+                    consumption: {
+                        quantity: 2711,
+                        unit: 'kwh',
+                        price: null,
+                        href: '/budget/consumption?utility=3',
+                    },
+                },
+                linkable: [],
+            });
+
+            expect(
+                screen.getByText(formatQuantity(2711, 'kwh')),
+            ).toBeInTheDocument();
         });
 
         it('has no consumption without it', () => {
