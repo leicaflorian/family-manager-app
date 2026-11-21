@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
@@ -41,6 +42,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property-read Collection<int, Belonging> $belongings
  * @property-read int|null $belongings_count
  * @property-read DocumentCategory|null $category
+ * @property-read UtilityConsumption|null $consumption
  * @property-read Collection<int, Employment> $employments
  * @property-read int|null $employments_count
  * @property-read Collection<int, Enrollment> $enrollments
@@ -97,6 +99,16 @@ final class Document extends FamilyModel
     public function file(): BelongsTo
     {
         return $this->belongsTo(File::class);
+    }
+
+    /**
+     * The consumption row read from this bill, if any (a row written by hand has no document once the bill is gone).
+     *
+     * @return HasOne<UtilityConsumption, $this>
+     */
+    public function consumption(): HasOne
+    {
+        return $this->hasOne(UtilityConsumption::class);
     }
 
     /**

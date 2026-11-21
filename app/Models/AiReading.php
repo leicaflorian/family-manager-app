@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ConsumptionOutcome;
 use App\Enums\ReadingPurpose;
 use App\Models\Concerns\BelongsToFamily;
 use Carbon\CarbonImmutable;
@@ -23,6 +24,7 @@ use LogicException;
  * @property int|null $user_id
  * @property int|null $file_id
  * @property ReadingPurpose $purpose
+ * @property ConsumptionOutcome|null $outcome
  * @property string $provider
  * @property string $model
  * @property int $input_tokens
@@ -41,7 +43,7 @@ use LogicException;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['user_id', 'file_id', 'purpose', 'provider', 'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cost_usd'])]
+#[Fillable(['user_id', 'file_id', 'purpose', 'outcome', 'provider', 'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cost_usd'])]
 final class AiReading extends Model
 {
     // Not a FamilyModel: the table has no created_by/updated_by, so TracksAuthors would fail.
@@ -91,6 +93,7 @@ final class AiReading extends Model
     {
         return [
             'purpose' => ReadingPurpose::class,
+            'outcome' => ConsumptionOutcome::class,
             'input_tokens' => 'integer',
             'output_tokens' => 'integer',
             'cache_read_tokens' => 'integer',
