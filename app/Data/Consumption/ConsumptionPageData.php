@@ -18,8 +18,8 @@ final class ConsumptionPageData extends Data
 {
     /**
      * @param  list<array{type: string, label: string}>  $types  the measured types the family has a utility of, electricity first
-     * @param  list<array{id: int, title: string, subtitle: string}>  $utilities  the utilities of the same type as the one shown, the active first
-     * @param  array{id: int, title: string, type: string, unit: string, href: string}  $utility  the utility shown, with the address of its card
+     * @param  list<array{id: int, title: string, start: string|null, end: string|null}>  $utilities  the utilities of the same type as the one shown, the active first, titled «label · home», with their activation and end dates `YYYY-MM-DD`
+     * @param  array{id: int, title: string, type: string, unit: string, href: string}  $utility  the utility shown, titled «label · home», with the address of its card
      * @param  string  $from  the first month shown, `YYYY-MM`
      * @param  string  $to  the last month shown, `YYYY-MM`
      * @param  string|null  $previous  the `to` of the 12 months before, null at the first bill
@@ -36,7 +36,7 @@ final class ConsumptionPageData extends Data
     public function __construct(
         #[LiteralTypeScriptType('Array<{ type: App.Enums.UtilityType; label: string }>')]
         public readonly array $types,
-        #[LiteralTypeScriptType('Array<{ id: number; title: string; subtitle: string }>')]
+        #[LiteralTypeScriptType('Array<{ id: number; title: string; start: string | null; end: string | null }>')]
         public readonly array $utilities,
         #[LiteralTypeScriptType('{ id: number; title: string; type: App.Enums.UtilityType; unit: App.Enums.ConsumptionUnit; href: string }')]
         public readonly array $utility,

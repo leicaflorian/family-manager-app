@@ -9,6 +9,7 @@ use App\Models\Utility;
 use App\Services\ConsumptionPage;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -22,6 +23,9 @@ final class ConsumptionRequest extends FormRequest
 
     /** The utility of the address, found in `prepareForValidation()`. */
     private ?Utility $resolvedUtility = null;
+
+    /** @var Collection<int, Utility>|null the measured utilities of the family, read once */
+    private ?Collection $resolvedUtilities = null;
 
     /**
      * Finds the utility before the authorization and the rules, so a utility of another family answers 404 whatever
@@ -61,7 +65,17 @@ final class ConsumptionRequest extends FormRequest
             throw new NotFoundHttpException;
         }
 
-        return $this->resolvedUtility = resolve(ConsumptionPage::class)->choose($id === null ? null : (int) $id);
+        return $this->resolvedUtility = resolve(ConsumptionPage::class)->choose($this->utilities(), $id === null ? null : (int) $id);
+    }
+
+    /**
+     * The measured utilities of the family, read once for the choice and for the menu of the page.
+     *
+     * @return Collection<int, Utility>
+     */
+    public function utilities(): Collection
+    {
+        return $this->resolvedUtilities ??= resolve(ConsumptionPage::class)->utilities();
     }
 
     /**

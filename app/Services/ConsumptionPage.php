@@ -57,14 +57,13 @@ final readonly class ConsumptionPage
      * The utility the page shows: the one asked, if it is a measured utility of the family; without one, the first
      * active one of electricity, then gas, then water, else the first of those.
      *
+     * @param  Collection<int, Utility>  $utilities  the measured utilities of the family, from `utilities()`
      * @param  int|null  $id  the id of the address, null when none is asked
      *
      * @throws NotFoundHttpException if the utility asked is not a measured utility of the family, or the family has none
      */
-    public function choose(?int $id): Utility
+    public function choose(Collection $utilities, ?int $id): Utility
     {
-        $utilities = $this->utilities();
-
         $utility = $id === null ? $utilities->first() : $utilities->firstWhere('id', $id);
 
         return $utility ?? throw new NotFoundHttpException;
@@ -74,6 +73,7 @@ final readonly class ConsumptionPage
      * The page of a utility.
      *
      * @param  User  $user  who opens it, for what they may do
+     * @param  Collection<int, Utility>  $utilities  the measured utilities of the family, from `utilities()`
      * @param  Utility  $utility  the utility, from `choose()`
      * @param  CarbonImmutable|null  $to  the last month asked, null for the latest month with a bill
      * @param  CarbonImmutable|null  $month  the month asked for the detail, null for none
@@ -82,7 +82,7 @@ final readonly class ConsumptionPage
      *
      * @throws NotFoundHttpException if the months asked are not ones the page shows
      */
-    public function build(User $user, Utility $utility, ?CarbonImmutable $to, ?CarbonImmutable $month, CarbonImmutable $today, string $locale): ConsumptionPageData
+    public function build(User $user, Collection $utilities, Utility $utility, ?CarbonImmutable $to, ?CarbonImmutable $month, CarbonImmutable $today, string $locale): ConsumptionPageData
     {
         $rows = UtilityConsumption::query()->with(Consumption::relations())->where('utility_id', $utility->id)->get();
 
@@ -94,16 +94,21 @@ final readonly class ConsumptionPage
 
         $months = $this->consumption->months($rows, $from, $to);
         $unit = ConsumptionUnit::forUtility($utility->type) ?? throw new NotFoundHttpException;
-        $all = $this->utilities();
 
         return new ConsumptionPageData(
-            types: array_values($all->map(static fn (Utility $item): UtilityType => $item->type)->unique()->sortBy(static fn (UtilityType $type): int => (int) array_search($type, UtilityType::measured(), true))
+            types: array_values($utilities->map(static fn (Utility $item): UtilityType => $item->type)->unique()->sortBy(static fn (UtilityType $type): int => (int) array_search($type, UtilityType::measured(), true))
                 ->map(static fn (UtilityType $type): array => ['type' => $type->value, 'label' => $type->label()])->all()),
-            utilities: array_values($all->where('type', $utility->type)
-                ->map(static fn (Utility $item): array => ['id' => $item->id, 'title' => $item->label(), 'subtitle' => $item->home->name ?? ''])->all()),
+            utilities: array_values($utilities->where('type', $utility->type)
+                ->map(fn (Utility $item): array => [
+                    'id' => $item->id,
+                    'title' => $this->title($item),
+                    'start' => $item->activation_date?->toDateString(),
+                    // `utilities` has no end date yet: a terminated utility cannot tell when it ended
+                    'end' => null,
+                ])->all()),
             utility: [
                 'id' => $utility->id,
-                'title' => $utility->label(),
+                'title' => $this->title($utility),
                 'type' => $utility->type->value,
                 'unit' => $unit->value,
                 'href' => route('cards.show', ['type' => CardTypes::for($utility)->type(), 'id' => $utility->id]),
@@ -123,18 +128,19 @@ final readonly class ConsumptionPage
                 static fn (UtilityConsumption $row): bool => $user->can('delete', $row),
             ),
             month: $month?->format('Y-m'),
-            archive: $this->archive($utility),
+            archive: $this->archive($utility, $locale),
             toCheck: $this->toCheck($utility),
             canCreate: $user->can('create', UtilityConsumption::class),
         );
     }
 
     /**
-     * The measured utilities of the family, the active first, then by type (electricity, gas, water), then by id.
+     * The measured utilities of the family, the active first, then by type (electricity, gas, water), then by id,
+     * with what their titles need.
      *
      * @return Collection<int, Utility>
      */
-    private function utilities(): Collection
+    public function utilities(): Collection
     {
         return Utility::query()
             ->whereIn('type', UtilityType::measured())
@@ -146,6 +152,19 @@ final readonly class ConsumptionPage
                 static fn (Utility $a, Utility $b): int => $a->id <=> $b->id,
             ])
             ->values();
+    }
+
+    /**
+     * The title of a utility in the page, with its home: «Luce - Edison · Casa di via Roma»; just the label without
+     * a home.
+     *
+     * @param  Utility  $utility  the utility, with `labelRelations()`
+     */
+    private function title(Utility $utility): string
+    {
+        $home = $utility->home?->name;
+
+        return $home === null || $home === '' ? $utility->label() : $utility->label().' · '.$home;
     }
 
     /**
@@ -188,9 +207,10 @@ final readonly class ConsumptionPage
      * reading them, the readings left, whether they are being read and whether they can be.
      *
      * @param  Utility  $utility  the utility
+     * @param  string  $locale  the language of the texts
      * @return array{count: int, cost: float, left: int, running: bool, can_read: bool}|null null when there is nothing to read
      */
-    private function archive(Utility $utility): ?array
+    private function archive(Utility $utility, string $locale): ?array
     {
         $count = $this->bills($utility)
             ->whereDoesntHave('file.aiReadings', static fn (Builder $query): Builder => $query->where('purpose', ReadingPurpose::Consumption))
@@ -212,7 +232,7 @@ final readonly class ConsumptionPage
             'cost' => round(ReadingCost::averageFor($purpose) * $count, 4),
             'left' => $this->allowance->left($now),
             'running' => $running,
-            'can_read' => $this->availability->unavailable(app()->getLocale()) === null,
+            'can_read' => $this->availability->unavailable($locale) === null,
         ];
     }
 

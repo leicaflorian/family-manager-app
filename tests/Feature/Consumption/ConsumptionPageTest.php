@@ -66,7 +66,7 @@ it('opens the electricity of the last 12 months with data when nothing is asked'
     $this->actingAs($this->marco)->get('/budget/consumption')
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('budget/Consumption', false)
-            ->where('consumption.utility.title', 'Luce - Edison')
+            ->where('consumption.utility.title', 'Luce - Edison · Casa di via Roma')
             ->where('consumption.utility.type', 'electricity')
             ->where('consumption.utility.unit', 'kwh')
             ->where('consumption.utility.href', route('cards.show', ['type' => 'utility', 'id' => consumptionPageUtility(UtilityType::Electricity)->id]))
@@ -78,7 +78,7 @@ it('opens the electricity of the last 12 months with data when nothing is asked'
             ->has('consumption.months', 12)
             ->where('consumption.figures.quantity', 2711)
             ->where('consumption.types', [['type' => 'electricity', 'label' => 'Luce'], ['type' => 'gas', 'label' => 'Gas'], ['type' => 'water', 'label' => 'Acqua']])
-            ->where('consumption.utilities', [['id' => consumptionPageUtility(UtilityType::Electricity)->id, 'title' => 'Luce - Edison', 'subtitle' => 'Casa di via Roma']])
+            ->where('consumption.utilities', [['id' => consumptionPageUtility(UtilityType::Electricity)->id, 'title' => 'Luce - Edison · Casa di via Roma', 'start' => null, 'end' => null]])
             ->has('consumption.bills', 12)
             ->where('consumption.bills.0.period_start', '2026-09-01')
             // The October bill and the contract of the seeder have no row and were never read for it
@@ -92,7 +92,7 @@ it('opens for a member too', function (): void {
 
     $this->actingAs($rosa)->get('/budget/consumption')
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->where('consumption.utility.title', 'Luce - Edison')
+            ->where('consumption.utility.title', 'Luce - Edison · Casa di via Roma')
             ->where('consumption.canCreate', true)
             ->where('consumption.bills.0.can_update', true)
             ->where('consumption.bills.0.can_delete', false));
@@ -136,7 +136,7 @@ it('opens a month of the 12 shown', function (): void {
 
 it('opens the asked utility, with the others of its type', function (): void {
     $gas = consumptionPageUtility(UtilityType::Gas);
-    $second = CurrentFamily::using($this->marco->family_id, fn (): Utility => Utility::factory()->create(['family_id' => $this->marco->family_id, 'type' => UtilityType::Gas, 'status' => UtilityStatus::Terminated, 'home_id' => null]));
+    $second = CurrentFamily::using($this->marco->family_id, fn (): Utility => Utility::factory()->create(['family_id' => $this->marco->family_id, 'type' => UtilityType::Gas, 'status' => UtilityStatus::Terminated, 'home_id' => null, 'organization_id' => null, 'activation_date' => '2024-03-01']));
 
     $this->actingAs($this->marco)->get('/budget/consumption?utility='.$gas->id)
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
@@ -145,7 +145,9 @@ it('opens the asked utility, with the others of its type', function (): void {
             ->has('consumption.utilities', 2)
             ->where('consumption.utilities.0.id', $gas->id)
             ->where('consumption.utilities.1.id', $second->id)
-            ->where('consumption.utilities.1.subtitle', ''));
+            ->where('consumption.utilities.1.title', 'Gas')
+            ->where('consumption.utilities.1.start', '2024-03-01')
+            ->where('consumption.utilities.1.end', null));
 });
 
 it('answers the current month for a utility without rows', function (): void {

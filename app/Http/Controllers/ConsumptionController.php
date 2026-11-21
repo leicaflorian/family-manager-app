@@ -31,6 +31,7 @@ final class ConsumptionController extends Controller
         return Inertia::render('budget/Consumption', [
             'consumption' => $this->page->build(
                 $user,
+                $request->utilities(),
                 $request->utility(),
                 $request->to(),
                 $request->detailMonth(),
