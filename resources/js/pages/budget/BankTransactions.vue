@@ -2,7 +2,8 @@
 /**
  * *Budget → From the bank*, as the boards *Dalla banca* and *Dalla banca-pc* draw it: the transactions the bank
  * gave that no fixed expense recognised, newest first, 50 at a time and the next ones while scrolling. A pending
- * transaction says so and waits for the bank to book it. *To sort* and *Ignored* are two filters of the same list;
+ * transaction says so and waits for the bank to book it. *To sort* and *Ignored* are two filters of the same list,
+ * in the grey bar of the boards;
  * *Update* reads the banks now (the server says how many movements are new) and under it comes the last read and
  * the hours of the automatic ones. A bank that has to be connected again has a strip with *Reconnect* for who can
  * change the banks. *Ignore* hides a transaction nobody has to deal with, and under *Ignored* each one has *Put back
@@ -26,9 +27,9 @@ import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import FmChip from '@/components/fm/FmChip.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTitleTools from '@/components/fm/FmTitleTools.vue';
@@ -85,6 +86,25 @@ const updating = ref(false);
 
 /** The number still to sort, from the shared props so it follows an update. */
 const unsorted = computed((): number => bankFeed.value?.unsorted ?? 0);
+
+/** The two filters of the list, as the grey bar of the boards: the first says how many there are to sort. */
+const filters = computed((): Tab[] => [
+    {
+        label:
+            unsorted.value > 0
+                ? trans('To sort · :count', {
+                      count: String(unsorted.value),
+                  })
+                : trans('To sort'),
+        href: bankIndex().url,
+        current: props.show === 'unsorted',
+    },
+    {
+        label: trans('Ignored'),
+        href: bankIndex({ query: { show: 'ignored' } }).url,
+        current: props.show === 'ignored',
+    },
+]);
 
 /** The line under the buttons: the last read and when the next ones come by themselves. */
 const readLine = computed((): string => {
@@ -352,22 +372,12 @@ function add(): void {
         </FmNotice>
 
         <div class="flex flex-wrap items-center gap-2.5">
-            <nav
-                :aria-label="$t('Movements from the bank')"
-                class="flex flex-1 basis-50 gap-2"
-            >
-                <FmChip
-                    :label="$t('To sort')"
-                    :count="unsorted > 0 ? unsorted : undefined"
-                    :pressed="show === 'unsorted'"
-                    :href="bankIndex().url"
-                />
-                <FmChip
-                    :label="$t('Ignored')"
-                    :pressed="show === 'ignored'"
-                    :href="bankIndex({ query: { show: 'ignored' } }).url"
-                />
-            </nav>
+            <FmTabs
+                variant="pill"
+                :tabs="filters"
+                :label="$t('Movements from the bank')"
+                class="flex-1 basis-50 wide:w-75 wide:max-w-full wide:flex-none"
+            />
             <FmButton
                 variant="neutral"
                 :icon="RefreshCw"
@@ -492,7 +502,7 @@ function add(): void {
                                 <template v-if="sortable(row)">
                                     <FmButton
                                         variant="neutral"
-                                        compact
+                                        row-action
                                         :icon="Plus"
                                         :href="createUrl(row)"
                                         >{{
@@ -503,7 +513,7 @@ function add(): void {
                                     >
                                     <FmButton
                                         variant="neutral"
-                                        compact
+                                        row-action
                                         :icon="Repeat"
                                         @click="openAssign(row)"
                                         >{{ assignLabel(row) }}</FmButton
@@ -512,8 +522,8 @@ function add(): void {
                                 <FmButton
                                     v-if="!row.pending"
                                     variant="text"
-                                    compact
-                                    class="text-ink-soft"
+                                    row-action
+                                    muted
                                     :icon="EyeOff"
                                     @click="toggleIgnored(row)"
                                     >{{ $t('Ignore') }}</FmButton

@@ -211,6 +211,34 @@ describe('FmButton', () => {
         );
     });
 
+    it('rowAction has the 18 px icon of the boards', () => {
+        render(FmButton, {
+            props: { variant: 'neutral', rowAction: true, icon: Pencil },
+            slots: { default: 'Create the expense' },
+        });
+
+        expect(
+            screen
+                .getByRole('button', { name: 'Create the expense' })
+                .querySelector('svg'),
+        ).toHaveAttribute('width', '18');
+    });
+
+    it('muted with a text is grey and without a background, as Ignore beside the buttons of a row', () => {
+        render(FmButton, {
+            props: { variant: 'text', rowAction: true, muted: true },
+            slots: { default: 'Ignore' },
+        });
+
+        const button = screen.getByRole('button', { name: 'Ignore' });
+        expect(button).toHaveClass('text-ink-soft', 'hover:text-ink');
+        expect(button).not.toHaveClass(
+            'text-action',
+            'hover:text-action-dark',
+            'hover:bg-action-soft',
+        );
+    });
+
     it('is blue in the solid variant', () => {
         render(FmButton, { slots: { default: 'Save' } });
 

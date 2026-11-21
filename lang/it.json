@@ -2196,5 +2196,6 @@
     "Already arrived, now linked: :title": "Era già arrivata, ora è collegata: :title",
     "This movement is still pending at the bank, so it cannot be ignored yet.": "Questo movimento è ancora in attesa in banca, quindi non si può ancora ignorare.",
     "From the bank, :count to sort": "Dalla banca, :count da smistare",
-    "Recorded by the bank": "Registrata dalla banca"
+    "Recorded by the bank": "Registrata dalla banca",
+    "To sort · :count": "Da smistare · :count"
 }

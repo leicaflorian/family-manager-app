@@ -123,11 +123,26 @@ describe('Budget, From the bank', () => {
             name: 'Movements from the bank',
         });
         expect(
-            within(filters).getByRole('link', { name: /To sort\s*6/ }),
+            within(filters).getByRole('link', { name: 'To sort · 6' }),
         ).toHaveAttribute('href', '/budget/bank');
         expect(
             within(filters).getByRole('link', { name: 'Ignored' }),
         ).toHaveAttribute('href', '/budget/bank?show=ignored');
+    });
+
+    it('draws the filters as the grey bar of the boards, the open one marked', () => {
+        renderPage(BankTransactions, props());
+
+        const filters = screen.getByRole('navigation', {
+            name: 'Movements from the bank',
+        });
+        expect(filters).toHaveClass('bg-segment');
+        expect(
+            within(filters).getByRole('link', { name: 'To sort · 6' }),
+        ).toHaveAttribute('aria-current', 'page');
+        expect(
+            within(filters).getByRole('link', { name: 'Ignored' }),
+        ).not.toHaveAttribute('aria-current');
     });
 
     it('says there is nothing to sort', () => {
@@ -446,17 +461,20 @@ describe('Budget, From the bank, sorting', () => {
         renderPage(BankTransactions, props());
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
 
+        // As the board *Dalla banca-pc*: the buttons of a row, and Ignore grey without an edge
         expect(
             within(row).getByRole('link', { name: 'Create the expense' }),
-        ).toBeInTheDocument();
+        ).toHaveClass('text-body-sm', 'border-edge-soft');
         expect(
             within(row).getByRole('button', {
                 name: 'It belongs to a planned expense',
             }),
-        ).toBeInTheDocument();
-        expect(
-            within(row).getByRole('button', { name: 'Ignore' }),
-        ).toBeInTheDocument();
+        ).toHaveClass('text-body-sm', 'border-edge-soft');
+        const ignoreButton = within(row).getByRole('button', {
+            name: 'Ignore',
+        });
+        expect(ignoreButton).toHaveClass('text-body-sm', 'text-ink-soft');
+        expect(ignoreButton).not.toHaveClass('border');
     });
 
     it('asks for the planned expenses when the sheet opens and pays the one chosen', async () => {
