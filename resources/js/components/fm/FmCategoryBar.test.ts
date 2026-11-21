@@ -101,6 +101,21 @@ describe('FmCategoryBar', () => {
         expect(screen.getByText('of 320,00 €')).toBeInTheDocument();
     });
 
+    it('wide on the tablet: the name on its line, the comment, the amount and the bar under it', () => {
+        render(FmCategoryBar, {
+            props: {
+                category: 'Spesa',
+                spent: 150.1,
+                planned: 320,
+                wide: true,
+            },
+        });
+
+        // The columns start with the computer layout (the computer: variant)
+        const row = screen.getByText('Spesa').closest('[data-row]')!;
+        expect(row).toHaveClass('flex', 'flex-col', 'computer:grid');
+    });
+
     it('wide: the amount is red when it is over the plan', () => {
         render(FmCategoryBar, {
             props: { category: 'Salute', spent: 108.4, planned: 0, wide: true },

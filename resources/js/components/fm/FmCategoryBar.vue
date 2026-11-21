@@ -3,7 +3,8 @@
  * A row of *By category*: the name, a bar with what was spent, a mark where the
  * plan reaches, the comment («193,40 € less») and «spent of planned». On the phone the name and the amount are
  * on one line, then the bar and the comment under it; `wide` (the wide layout of the page) puts the name on the
- * left and, on the right, the comment and the amount on one line with the bar under them.
+ * left and, on the right, the comment and the amount on one line with the bar under them; on the tablet, narrower,
+ * the comment, the amount and the bar go under the name.
  *
  * @group figures
  */
@@ -103,7 +104,8 @@ const comment = computed((): string =>
 
     <div
         v-if="wide"
-        class="grid grid-cols-[minmax(0,220px)_minmax(0,1fr)] items-center gap-4 px-4.5 py-3"
+        data-row
+        class="flex flex-col gap-2 px-4.5 py-3 computer:grid computer:grid-cols-[minmax(0,220px)_minmax(0,1fr)] computer:items-center computer:gap-4"
     >
         <ReuseName />
         <div class="flex min-w-0 flex-col gap-2">
