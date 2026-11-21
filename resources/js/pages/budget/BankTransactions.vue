@@ -376,7 +376,7 @@ function add(): void {
                 variant="pill"
                 :tabs="filters"
                 :label="$t('Movements from the bank')"
-                class="flex-1 basis-50 wide:w-75 wide:max-w-full wide:flex-none"
+                class="min-w-fit flex-1 basis-50 wide:w-75 wide:max-w-full wide:flex-none"
             />
             <FmButton
                 variant="neutral"

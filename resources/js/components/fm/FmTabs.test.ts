@@ -62,6 +62,16 @@ describe('FmTabs', () => {
         );
     });
 
+    it('keeps the name of a pill tab on one line, the tab wider when its name needs it', () => {
+        render(FmTabs, { props: { tabs, label: 'Agenda', variant: 'pill' } });
+
+        expect(screen.getByRole('link', { name: /Reminders/ })).toHaveClass(
+            'whitespace-nowrap',
+            'min-w-fit',
+            'px-2',
+        );
+    });
+
     it('shows a tab that cannot be chosen as a name without a link', () => {
         render(FmTabs, {
             props: {

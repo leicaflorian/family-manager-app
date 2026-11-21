@@ -73,7 +73,10 @@ const iconsOnly = computed(
 function tabClasses(marked: boolean, disabled = false, icon = false): string {
     if (variant === 'pill') {
         return cn(
-            icon ? 'size-9 shrink-0 lg:size-10' : 'h-10 flex-1',
+            // Equal tabs while they fit; a longer name widens its tab instead of going on two lines
+            icon
+                ? 'size-9 shrink-0 lg:size-10'
+                : 'h-10 min-w-fit flex-1 px-2 whitespace-nowrap',
             'flex items-center justify-center gap-1 rounded-tag text-body-sm no-underline',
             marked
                 ? 'bg-card text-label text-ink shadow-raised'
