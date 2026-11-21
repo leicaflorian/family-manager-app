@@ -18,7 +18,7 @@ final class ConsumptionPageData extends Data
 {
     /**
      * @param  list<array{type: string, label: string}>  $types  the measured types the family has a utility of, electricity first
-     * @param  list<array{id: int, title: string, start: string|null, end: string|null}>  $utilities  the utilities of the same type as the one shown, the active first, titled «label · home», with their activation and end dates `YYYY-MM-DD`
+     * @param  list<array{id: int, title: string, start: string|null, end: string|null}>  $utilities  the utilities of the same type as the one shown, the active first, titled «label · home», with their activation date and, for a utility no longer active, the end of its latest bill, `YYYY-MM-DD`
      * @param  array{id: int, title: string, type: string, unit: string, href: string}  $utility  the utility shown, titled «label · home», with the address of its card
      * @param  string  $from  the first month shown, `YYYY-MM`
      * @param  string  $to  the last month shown, `YYYY-MM`

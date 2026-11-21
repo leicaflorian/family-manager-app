@@ -14,6 +14,7 @@ use App\Models\Family;
 use App\Models\File;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\UtilityConsumption;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
@@ -148,6 +149,26 @@ it('opens the asked utility, with the others of its type', function (): void {
             ->where('consumption.utilities.1.title', 'Gas')
             ->where('consumption.utilities.1.start', '2024-03-01')
             ->where('consumption.utilities.1.end', null));
+});
+
+it('ends a utility no longer active with its latest bill', function (): void {
+    $gas = consumptionPageUtility(UtilityType::Gas);
+    $familyId = $this->marco->family_id;
+    $closed = CurrentFamily::using($familyId, function () use ($familyId): Utility {
+        $closed = Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Gas, 'status' => UtilityStatus::Terminated]);
+        UtilityConsumption::factory()->create(['family_id' => $familyId, 'utility_id' => $closed->id, 'period_start' => '2025-12-01', 'period_end' => '2026-01-31']);
+        UtilityConsumption::factory()->create(['family_id' => $familyId, 'utility_id' => $closed->id, 'period_start' => '2025-10-01', 'period_end' => '2025-11-30']);
+
+        return $closed;
+    });
+
+    $this->actingAs($this->marco)->get('/budget/consumption?utility='.$gas->id)
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('consumption.utilities.0.id', $gas->id)
+            // Active, with bills: no end
+            ->where('consumption.utilities.0.end', null)
+            ->where('consumption.utilities.1.id', $closed->id)
+            ->where('consumption.utilities.1.end', '2026-01-31'));
 });
 
 it('answers the current month for a utility without rows', function (): void {

@@ -103,8 +103,7 @@ final readonly class ConsumptionPage
                     'id' => $item->id,
                     'title' => $this->title($item),
                     'start' => $item->activation_date?->toDateString(),
-                    // `utilities` has no end date yet: a terminated utility cannot tell when it ended
-                    'end' => null,
+                    'end' => $this->end($item),
                 ])->all()),
             utility: [
                 'id' => $utility->id,
@@ -136,7 +135,7 @@ final readonly class ConsumptionPage
 
     /**
      * The measured utilities of the family, the active first, then by type (electricity, gas, water), then by id,
-     * with what their titles need.
+     * with what their titles need and the end of their latest bill (`consumptions_max_period_end`, for `end()`).
      *
      * @return Collection<int, Utility>
      */
@@ -145,6 +144,7 @@ final readonly class ConsumptionPage
         return Utility::query()
             ->whereIn('type', UtilityType::measured())
             ->with(Utility::labelRelations())
+            ->withMax('consumptions', 'period_end')
             ->get()
             ->sortBy([
                 static fn (Utility $a, Utility $b): int => ($a->status !== UtilityStatus::Active) <=> ($b->status !== UtilityStatus::Active),
@@ -165,6 +165,20 @@ final readonly class ConsumptionPage
         $home = $utility->home?->name;
 
         return $home === null || $home === '' ? $utility->label() : $utility->label().' · '.$home;
+    }
+
+    /**
+     * When a utility ended. `utilities` has no end date, so a utility no longer active ends with its latest bill: the
+     * `period_end` of its last consumption row. An active utility, or one without rows, has no end.
+     *
+     * @param  Utility  $utility  the utility, from `utilities()`
+     * @return string|null `YYYY-MM-DD`, or null
+     */
+    private function end(Utility $utility): ?string
+    {
+        $last = $utility->getAttribute('consumptions_max_period_end');
+
+        return $utility->status !== UtilityStatus::Active && is_string($last) ? CarbonImmutable::parse($last)->toDateString() : null;
     }
 
     /**
