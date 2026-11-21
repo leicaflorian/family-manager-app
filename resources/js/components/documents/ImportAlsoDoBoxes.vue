@@ -18,7 +18,6 @@ import {
     Bell,
     Building2,
     Car,
-    Gauge,
     HeartPulse,
     Package,
     Plug,
@@ -26,6 +25,7 @@ import {
     SquarePlus,
     Wallet,
     Wrench,
+    Zap,
 } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
@@ -653,7 +653,7 @@ function recordFields(
                     ),
                 )
             "
-            :icon="Gauge"
+            :icon="Zap"
             @update:model-value="choices.setTicked('consumption', $event)"
         >
             <FormKit

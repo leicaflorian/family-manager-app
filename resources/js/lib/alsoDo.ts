@@ -452,8 +452,8 @@ export function consumptionHint(
 
 /**
  * What the box of the consumption says is wrong: a price per unit out of
- * range (always), the utility to choose above, and the fields to fill (while
- * it is ticked).
+ * range and the utility to choose above (always), and the fields to fill
+ * (while it is ticked).
  *
  * @param consumption - the consumption of the proposal
  * @param ticked - whether its box is ticked
@@ -475,7 +475,7 @@ export function consumptionWarnings(
         );
     }
 
-    if (ticked && consumption.complete.includes('utility')) {
+    if (consumption.complete.includes('utility')) {
         lines.push(
             trans(
                 'To record the consumption choose the utility above, in «Link it to».',

@@ -1457,6 +1457,32 @@ describe('Import', () => {
                 ).toBeInTheDocument();
             });
 
+            it('asks to choose the utility above also while the box is unticked', () => {
+                renderPage(
+                    Import,
+                    ferriProps({
+                        ...consumptionProposal,
+                        consumption: {
+                            ...consumptionDraft,
+                            utility: null,
+                            complete: ['utility'],
+                            suggested: false,
+                        },
+                    }),
+                );
+
+                expect(
+                    screen.getByRole('checkbox', {
+                        name: /Record the consumption/,
+                    }),
+                ).not.toBeChecked();
+                expect(
+                    screen.getByText(
+                        'To record the consumption choose the utility above, in «Link it to».',
+                    ),
+                ).toBeInTheDocument();
+            });
+
             it('sends the box ticked, and unticked as false', async () => {
                 const post = vi
                     .spyOn(router, 'post')

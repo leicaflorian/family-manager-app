@@ -868,13 +868,15 @@ describe('consumption box', () => {
         expect(consumptionWarnings(odd, true)).toHaveLength(1);
     });
 
-    it('asks to choose the utility above while the box is ticked', () => {
+    it('asks to choose the utility above, ticked or not', () => {
         const none = consumption({ utility: null, complete: ['utility'] });
 
         expect(consumptionWarnings(none, true)).toEqual([
             'To record the consumption choose the utility above, in «Link it to».',
         ]);
-        expect(consumptionWarnings(none, false)).toEqual([]);
+        expect(consumptionWarnings(none, false)).toEqual([
+            'To record the consumption choose the utility above, in «Link it to».',
+        ]);
     });
 
     it('lists the fields to fill in the box while it is ticked', () => {
