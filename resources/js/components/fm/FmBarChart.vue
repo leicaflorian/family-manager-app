@@ -22,7 +22,7 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, ref, useId } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { longMonth, monthName, shortMonth } from '@/lib/budget';
-import { gridStep, toChartMonth } from '@/lib/charts';
+import { barAnchor, gridStep, toChartMonth } from '@/lib/charts';
 import type { ChartMonth } from '@/lib/charts';
 import { addMonths } from '@/lib/days';
 import { formatEuro, formatNumber } from '@/lib/format';
@@ -181,11 +181,17 @@ function y(value: number): number {
  * estimated.
  *
  * @param month - a month with data
- * @returns the text
+ * @returns the text on one line for the screen readers (`title`), and the
+ *   text of the bubble (`tip`), with the year before on a line of its own
  */
-function describe(month: ChartMonth & { value: number }): string {
+function describe(month: ChartMonth & { value: number }): {
+    title: string;
+    tip: string;
+} {
     const value = format(month.value);
     let base: string;
+    let now = '';
+    let before = '';
 
     if (!consumption.value) {
         base =
@@ -223,6 +229,18 @@ function describe(month: ChartMonth & { value: number }): string {
                 ),
                 previous: format(month.mark),
             };
+            now =
+                amount === null
+                    ? trans(':month: :value', { month: name, value })
+                    : trans(':month: :value, :amount', {
+                          month: name,
+                          value,
+                          amount,
+                      });
+            before = trans(':month: :value', {
+                month: lastYear.last_year,
+                value: lastYear.previous,
+            });
             base =
                 amount === null
                     ? trans(':month: :value; :last_year: :previous', {
@@ -239,7 +257,15 @@ function describe(month: ChartMonth & { value: number }): string {
         }
     }
 
-    return [base, ...extras(month)].join(', ');
+    const words = extras(month);
+
+    return {
+        title: [base, ...words].join(', '),
+        // In the bubble the year before goes on a line of its own
+        tip: before
+            ? [[now, ...words].join(', '), before].join('\n')
+            : [base, ...words].join(', '),
+    };
 }
 
 /**
@@ -319,7 +345,7 @@ const bars = computed(() =>
                   })
                 : shortMonth(month.month),
             strong: month.current === true || chosen,
-            title: data ? describe(month) : '',
+            ...(data ? describe(month) : { title: '', tip: '' }),
         };
     }),
 );
@@ -343,6 +369,27 @@ const description = computed(() =>
               ),
           }),
 );
+
+/** The box of the drawing, where the bubbles of the bars are placed. */
+const drawing = ref<HTMLElement | null>(null);
+
+/**
+ * Where the bubble of a bar opens: on the top of the bar, not on the top of
+ * its hover target, which is as tall as the chart.
+ *
+ * @param bar - where the bar stands in the drawing
+ * @param bar.x - its left edge
+ * @param bar.barTop - its top
+ * @returns the function the bubble reads when it opens
+ */
+function anchorOf(bar: { x: number; barTop: number }): () => DOMRect {
+    return () =>
+        barAnchor(
+            drawing.value?.getBoundingClientRect() ?? new DOMRect(),
+            { x: bar.x, width: barWidth.value, top: bar.barTop },
+            frame,
+        );
+}
 
 /** Where the hover targets sit: over the plot, between the side margins. */
 const overlayStyle = computed(() => ({
@@ -444,7 +491,7 @@ function move(event: KeyboardEvent, index: number): void {
             </span>
         </figcaption>
 
-        <div v-if="!asTable" class="relative">
+        <div v-if="!asTable" ref="drawing" class="relative">
             <svg
                 :role="interactive ? undefined : 'img'"
                 :aria-label="interactive ? undefined : description"
@@ -570,7 +617,12 @@ function move(event: KeyboardEvent, index: number): void {
                 :style="overlayStyle"
             >
                 <template v-for="(bar, index) in bars" :key="bar.month.month">
-                    <FmTooltip v-if="bar.data" :text="bar.title" side="top">
+                    <FmTooltip
+                        v-if="bar.data"
+                        :text="bar.tip"
+                        :anchor="anchorOf(bar)"
+                        side="top"
+                    >
                         <button
                             type="button"
                             class="flex-1 cursor-pointer rounded-tag border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-action"
@@ -593,7 +645,12 @@ function move(event: KeyboardEvent, index: number): void {
                 :style="overlayStyle"
             >
                 <template v-for="bar in bars" :key="bar.month.month">
-                    <FmTooltip v-if="bar.data" :text="bar.title" side="top">
+                    <FmTooltip
+                        v-if="bar.data"
+                        :text="bar.tip"
+                        :anchor="anchorOf(bar)"
+                        side="top"
+                    >
                         <span class="flex-1" data-bar-target />
                     </FmTooltip>
                     <span v-else class="flex-1" />

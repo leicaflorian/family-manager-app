@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { gridStep, toChartMonth } from './charts';
+import { barAnchor, gridStep, toChartMonth } from './charts';
 
 describe('gridStep', () => {
     it('keeps the steps in euros the chart of the budget always had', () => {
@@ -39,5 +39,19 @@ describe('toChartMonth', () => {
         const month = { month: '2026-01', value: 290, mark: null };
 
         expect(toChartMonth(month)).toBe(month);
+    });
+});
+
+describe('barAnchor', () => {
+    it('turns a bar of the drawing into the box of its top on the page', () => {
+        const drawing = new DOMRect(100, 200, 300, 125);
+        const bar = { x: 50, width: 20, top: 100 };
+
+        const anchor = barAnchor(drawing, bar, { width: 600, height: 250 });
+
+        expect(anchor.x).toBe(125);
+        expect(anchor.y).toBe(250);
+        expect(anchor.width).toBe(10);
+        expect(anchor.height).toBe(0);
     });
 });
