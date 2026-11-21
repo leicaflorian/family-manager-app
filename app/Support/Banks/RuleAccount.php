@@ -18,27 +18,30 @@ final class RuleAccount
     /**
      * The one account a rule of a planned item on this account reads, or null when it reads every account.
      *
-     * @param  int|null  $accountId  the account of the planned item
+     * @param  int|string|null  $accountId  the account of the planned item; a model just created from a form still
+     *                                      holds it as the text the form sent
      */
-    public static function of(?int $accountId): ?int
+    public static function of(int|string|null $accountId): ?int
     {
-        if ($accountId === null) {
+        if (! is_numeric($accountId)) {
             return null;
         }
 
-        return FinancialAccount::query()->whereKey($accountId)->whereNotNull('bank_connection_id')->exists() ? $accountId : null;
+        $id = (int) $accountId;
+
+        return FinancialAccount::query()->whereKey($id)->whereNotNull('bank_connection_id')->exists() ? $id : null;
     }
 
     /**
      * Whether a rule of a planned item on an account looks at the transactions of another account.
      *
-     * @param  int|null  $plannedAccountId  the account of the planned item
-     * @param  int  $transactionAccountId  the account of the transaction
+     * @param  int|string|null  $plannedAccountId  the account of the planned item
+     * @param  int|string  $transactionAccountId  the account of the transaction
      */
-    public static function reads(?int $plannedAccountId, int $transactionAccountId): bool
+    public static function reads(int|string|null $plannedAccountId, int|string $transactionAccountId): bool
     {
         $account = self::of($plannedAccountId);
 
-        return $account === null || $account === $transactionAccountId;
+        return $account === null || $account === (int) $transactionAccountId;
     }
 }
