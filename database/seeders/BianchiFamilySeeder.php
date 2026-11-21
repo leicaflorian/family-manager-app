@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Actions\Banks\StoreBankEntries;
+use App\Actions\Consumption\ConsumptionValues;
+use App\Actions\Consumption\SaveConsumption;
 use App\Actions\Families\CreateFamily;
 use App\Actions\Reminders\SyncReminders;
 use App\Data\Reading\Extraction;
 use App\Enums\BankConnectionStatus;
+use App\Enums\ConsumptionSource;
 use App\Enums\DocumentStatus;
 use App\Enums\EnrollmentType;
 use App\Enums\ExceptionType;
@@ -205,6 +208,7 @@ final class BianchiFamilySeeder extends Seeder
                 $this->mails->handle($this->organizations);
                 $this->createBudget();
                 $this->createBank();
+                $this->createConsumption();
             });
 
             // The Bianchis have already done the Welcome: they go straight to the Home.
@@ -470,6 +474,60 @@ final class BianchiFamilySeeder extends Seeder
             ->update(['planned_expense_id' => $this->plannedExpenses['Luce']->id]);
         $this->createPayments();
         $this->createMovements();
+    }
+
+    /**
+     * The consumption of the three utilities with a unit, over the same 24 months (October 2024 – September 2026):
+     * the electricity every month, the gas every two months, the water every three. The dates are fixed, like the
+     * rest of the canvas, so the 12 months of the Consumption board (October 2025 – September 2026) always add up
+     * to 2.711 kWh and 853,10 €. The September bills have the document of the seeder, so they are read rows; the
+     * others are written by hand. The latest bill of the electricity has no expense linked: it is still to pay.
+     */
+    private function createConsumption(): void
+    {
+        $save = resolve(SaveConsumption::class);
+        $start = CarbonImmutable::parse('2024-10-01');
+        $documents = Document::query()->whereIn('title', ['Bolletta luce di settembre', 'Bolletta gas di settembre'])->get()->keyBy('title');
+
+        // kWh and euro of each month; the euro of the 12 months of the board is 853,10 and September has the highest price
+        $electricity = [
+            [198, 55.84], [220, 62.70], [245, 71.05], [248, 71.42], [230, 65.78], [214, 60.78], [190, 53.20], [176, 49.10], [184, 52.07], [228, 66.35], [172, 50.74], [188, 56.02],
+            [214, 65.27], [236, 72.75], [262, 82.71], [290, 86.10], [268, 81.74], [240, 72.00], [205, 60.68], [188, 57.90], [196, 61.15], [242, 77.92], [165, 55.28], [205, 79.60],
+        ];
+
+        foreach ($electricity as $index => [$kwh, $amount]) {
+            $month = $start->addMonthsNoOverflow($index);
+            // The bill of May 2026 is an estimate; the latest has its document
+            $document = $index === 23 ? $documents['Bolletta luce di settembre'] : null;
+            $save->handle($this->utilityRecord('Luce - Edison'), new ConsumptionValues($month, $month->endOfMonth()->startOfDay(), (float) $kwh, $amount, $index === 19), $document instanceof Document ? ConsumptionSource::Reading : ConsumptionSource::Manual, $document);
+        }
+
+        // Smc and euro of each two months, from October-November 2024 to August-September 2026
+        $gas = [[62, 106.90], [118, 160.10], [96, 139.20], [48, 93.60], [22, 68.90], [24, 70.80], [68, 112.60], [126, 167.70], [104, 146.80], [52, 97.40], [24, 70.80], [38, 84.20]];
+
+        foreach ($gas as $index => [$smc, $amount]) {
+            $first = $start->addMonthsNoOverflow($index * 2);
+            $document = $index === 11 ? $documents['Bolletta gas di settembre'] : null;
+            $save->handle($this->utilityRecord('Gas - Enel'), new ConsumptionValues($first, $first->addMonthsNoOverflow(1)->endOfMonth()->startOfDay(), (float) $smc, $amount, false), $document instanceof Document ? ConsumptionSource::Reading : ConsumptionSource::Manual, $document);
+        }
+
+        // m3 and euro of each three months, from October-December 2024 to July-September 2026
+        $water = [[46, 96.60], [44, 92.40], [52, 109.20], [55, 115.50], [47, 98.70], [45, 94.50], [51, 107.10], [56, 117.60]];
+
+        foreach ($water as $index => [$cubic, $amount]) {
+            $first = $start->addMonthsNoOverflow($index * 3);
+            $save->handle($this->utilityRecord('Acqua - Hera'), new ConsumptionValues($first, $first->addMonthsNoOverflow(2)->endOfMonth()->startOfDay(), (float) $cubic, $amount, false), ConsumptionSource::Manual);
+        }
+    }
+
+    /**
+     * A utility of the canvas, by the name of its card.
+     *
+     * @param  string  $name  the name in `$records`, like `Luce - Edison`
+     */
+    private function utilityRecord(string $name): Utility
+    {
+        return Utility::query()->findOrFail($this->records[$name]->id);
     }
 
     /**
@@ -773,7 +831,7 @@ final class BianchiFamilySeeder extends Seeder
 
         $this->reading(
             $this->file('bolletta-edison-novembre.pdf', toSort: true, source: FileSource::Mail),
-            new Extraction(kind: 'utility_bill', issuer_name: 'Edison', organization_id: $edison->id, total_amount: 91.40, issue_date: '2026-11-03', due_date: '2026-12-05', supply_point_code: 'IT 001 E 12345678', utility_type: 'electricity', confidence: 'high'),
+            new Extraction(kind: 'utility_bill', issuer_name: 'Edison', organization_id: $edison->id, total_amount: 91.40, issue_date: '2026-11-03', due_date: '2026-12-05', period_start: '2026-11-01', period_end: '2026-11-30', consumption_quantity: 232.0, consumption_unit: 'kwh', consumption_estimated: false, consumption_adjusted: false, supply_point_code: 'IT 001 E 12345678', utility_type: 'electricity', confidence: 'high'),
         );
         $this->reading(
             $this->uploadedBy($this->file('fattura-studio-ferri.pdf', toSort: true), 'Laura'),
