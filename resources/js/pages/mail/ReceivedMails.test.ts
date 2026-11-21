@@ -117,8 +117,43 @@ describe('ReceivedMails', () => {
             screen.getByRole('heading', { name: 'Received mail' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByText(`The mails that arrived at ${ADDRESS}`),
-        ).toBeInTheDocument();
+            screen
+                .getByText('The mails that arrived at', { exact: false })
+                .textContent?.trim(),
+        ).toBe(`The mails that arrived at ${ADDRESS}`);
+    });
+
+    it('copies the address with a click and says so for two seconds', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal('navigator', { clipboard: { writeText } });
+        renderPage(ReceivedMails, page);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: `Copy the address ${ADDRESS}` }),
+        );
+
+        expect(writeText).toHaveBeenCalledWith(ADDRESS);
+        expect(await screen.findByText('Address copied')).toBeInTheDocument();
+
+        await vi.advanceTimersByTimeAsync(2100);
+        expect(screen.queryByText('Address copied')).not.toBeInTheDocument();
+        vi.useRealTimers();
+    });
+
+    it('selects the address when the browser refuses to copy it', async () => {
+        const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+        vi.stubGlobal('navigator', { clipboard: { writeText } });
+        renderPage(ReceivedMails, page);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: `Copy the address ${ADDRESS}` }),
+        );
+
+        expect(screen.queryByText('Address copied')).not.toBeInTheDocument();
+        await vi.waitFor(() =>
+            expect(window.getSelection()?.toString()).toBe(ADDRESS),
+        );
     });
 
     it('lists the mails newest first, each with who wrote, when, the subject and its label', () => {

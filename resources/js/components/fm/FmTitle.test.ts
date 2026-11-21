@@ -46,6 +46,18 @@ describe('FmTitle', () => {
         ).toBeInTheDocument();
     });
 
+    it('replaces the sentence with the subtitle slot when it is given', () => {
+        render(FmTitle, {
+            props: { title: 'Mail', subtitle: 'Plain sentence' },
+            slots: { subtitle: '<button>Own sentence</button>' },
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'Own sentence' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Plain sentence')).not.toBeInTheDocument();
+    });
+
     it('can have something beside the title, on the same line', () => {
         render(FmTitle, {
             props: { title: 'Agenda' },

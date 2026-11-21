@@ -29,6 +29,8 @@ defineSlots<{
     actions?: () => unknown;
     /** Something right of the title, on the same line: the tabs of the Agenda. */
     beside?: () => unknown;
+    /** The sentence below the title, instead of `subtitle`: for one with a button in it. */
+    subtitle?: () => unknown;
     /** Above the title, in its column: the area of a card, the role of a person. */
     overline?: () => unknown;
     /** Before the column of the title, centred on it: an avatar. */
@@ -91,10 +93,11 @@ const tools = computed(
                             {{ title }}
                         </h1>
                         <span
-                            v-if="subtitle"
+                            v-if="$slots.subtitle || subtitle"
                             class="text-body-sm text-ink-soft"
-                            >{{ subtitle }}</span
                         >
+                            <slot name="subtitle">{{ subtitle }}</slot>
+                        </span>
                     </div>
                 </div>
                 <div
