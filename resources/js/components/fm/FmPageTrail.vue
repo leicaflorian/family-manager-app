@@ -47,6 +47,7 @@ const { parent, visible, back } = usePageBack(
         />
         <div
             v-else-if="mode === 'tablet'"
+            v-bind="$attrs"
             class="flex min-w-0 items-center gap-2.5"
         >
             <component
