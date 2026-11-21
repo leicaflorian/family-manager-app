@@ -33,6 +33,53 @@ function italianGrouping(text: string): string {
     return text.replace(/^(-?\d)(\d{3}),/, '$1.$2,').replace(/\s/g, ' ');
 }
 
+// One decimal at most, as the boards write consumption; rounded half away from zero, like round() on the server
+// (`Consumption::quantity()`)
+const quantityFormat = new Intl.NumberFormat('it-IT', {
+    maximumFractionDigits: 1,
+    useGrouping: 'always',
+});
+
+/** How each unit of a consumption is written. */
+const UNIT_LABELS: Record<App.Enums.ConsumptionUnit, string> = {
+    kwh: 'kWh',
+    smc: 'Smc',
+    m3: 'm³',
+};
+
+/**
+ * Writes the unit of a consumption as it is printed on the bill.
+ *
+ * @param unit - the unit of the utility
+ * @returns for example `kWh`
+ */
+export function unitLabel(unit: string): string {
+    return UNIT_LABELS[unit as App.Enums.ConsumptionUnit] ?? unit;
+}
+
+/**
+ * Writes a number, the Italian way: the thousands grouped, at most one
+ * decimal, none when it is zero.
+ *
+ * @param value - the number
+ * @returns for example `2.010,5`
+ */
+export function formatNumber(value: number): string {
+    return quantityFormat.format(value);
+}
+
+/**
+ * Writes a consumption, the Italian way: at most one decimal, none when it
+ * is zero (`18,7 Smc`).
+ *
+ * @param value - the quantity
+ * @param unit - the unit of the utility (`kwh`, `smc`, `m3`)
+ * @returns for example `2.010 kWh`
+ */
+export function formatQuantity(value: number, unit: string): string {
+    return `${formatNumber(value)} ${unitLabel(unit)}`;
+}
+
 /**
  * Writes an amount in any currency as the app writes euros: the Italian way, with the code of the currency
  * (`-120,00 USD`); euros keep the `€` sign.

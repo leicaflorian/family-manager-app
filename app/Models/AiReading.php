@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ConsumptionOutcome;
 use App\Enums\ReadingPurpose;
 use App\Models\Concerns\BelongsToFamily;
 use Carbon\CarbonImmutable;
@@ -16,13 +17,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
 /**
- * One AI call and what it cost (`ai_readings`), with the rules of a family model but no authors. A row is written once and never changed.
+ * One AI call and what it cost (`ai_readings`), with the rules of a family model but no authors. A row is written once and never changed, except that its outcome is set once, from null.
  *
  * @property int $id
  * @property int|null $family_id
  * @property int|null $user_id
  * @property int|null $file_id
  * @property ReadingPurpose $purpose
+ * @property ConsumptionOutcome|null $outcome
  * @property string $provider
  * @property string $model
  * @property int $input_tokens
@@ -41,7 +43,7 @@ use LogicException;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['user_id', 'file_id', 'purpose', 'provider', 'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cost_usd'])]
+#[Fillable(['user_id', 'file_id', 'purpose', 'outcome', 'provider', 'model', 'input_tokens', 'output_tokens', 'cache_read_tokens', 'cost_usd'])]
 final class AiReading extends Model
 {
     // Not a FamilyModel: the table has no created_by/updated_by, so TracksAuthors would fail.
@@ -57,7 +59,12 @@ final class AiReading extends Model
      */
     protected static function booted(): void
     {
-        self::updating(static function (): never {
+        self::updating(static function (self $reading): void {
+            // The only change allowed: the outcome, written once after the answer is checked.
+            if ($reading->getDirty() === ['outcome' => $reading->getAttributes()['outcome'] ?? null] && $reading->getRawOriginal('outcome') === null) {
+                return;
+            }
+
             throw new LogicException('An AI reading is never changed.');
         });
     }
@@ -91,6 +98,7 @@ final class AiReading extends Model
     {
         return [
             'purpose' => ReadingPurpose::class,
+            'outcome' => ConsumptionOutcome::class,
             'input_tokens' => 'integer',
             'output_tokens' => 'integer',
             'cache_read_tokens' => 'integer',

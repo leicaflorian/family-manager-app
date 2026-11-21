@@ -15,13 +15,27 @@ import {
     TooltipRoot,
     TooltipTrigger,
 } from 'reka-ui';
+import { computed } from 'vue';
 
-const { side = 'bottom' } = defineProps<{
-    /** What the element does, for example «Upload a document from the computer». */
+const { side = 'bottom', anchor } = defineProps<{
+    /**
+     * What the element does, for example «Upload a document from the
+     * computer». A line break (`\n`) starts a new line in the bubble.
+     */
     text: string;
     /** The side of the element where the bubble opens. */
     side?: 'top' | 'right' | 'bottom' | 'left';
+    /**
+     * Where the bubble opens, when not beside the whole element: a box on the
+     * page, read when the bubble opens (the top of a bar in a chart).
+     */
+    anchor?: () => DOMRect;
 }>();
+
+/** The place the bubble follows: the box of `anchor`, or the element itself. */
+const reference = computed(() =>
+    anchor ? { getBoundingClientRect: anchor } : undefined,
+);
 
 defineSlots<{
     /** The element the text is about: a link or a button. */
@@ -40,7 +54,8 @@ defineSlots<{
                     :side="side"
                     :side-offset="6"
                     :collision-padding="8"
-                    class="z-50 max-w-60 rounded-tag bg-ink px-2.5 py-1.5 text-meta text-card shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0 motion-reduce:animate-none"
+                    :reference="reference"
+                    class="z-50 max-w-60 rounded-tag bg-ink px-2.5 py-1.5 text-meta whitespace-pre-line text-card shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0 motion-reduce:animate-none"
                 >
                     {{ text }}
                 </TooltipContent>

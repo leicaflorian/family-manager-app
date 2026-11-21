@@ -11,6 +11,9 @@ import {
 import { choose, renderPage, screenWidth, settle } from '@/test/page';
 import Movements from './Movements.vue';
 
+/** The shared props the page reads: whether the family has a utility with consumption. */
+const shared = vi.hoisted(() => ({ has_consumption: false }));
+
 // The shared props of the page (the tools beside the title read the notices)
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
@@ -18,7 +21,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     usePage: () => ({
         component: 'budget/Movements',
         url: '/',
-        props: { name: 'Fameja.app', unread_notices: 2 },
+        props: { name: 'Fameja.app', unread_notices: 2, ...shared },
     }),
 }));
 
@@ -125,6 +128,7 @@ const allFiltersQuery =
     'month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100&from=2026-09-01&to=2026-10-31';
 
 afterEach(() => {
+    shared.has_consumption = false;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -312,8 +316,11 @@ describe('Movements', () => {
             'page',
         );
         expect(
-            screen.getByRole('link', { name: 'Planned and spent' }),
-        ).toHaveAttribute('href', '/budget/comparison');
+            screen.queryByRole('link', {
+                name: 'Planned and spent',
+                current: 'page',
+            }),
+        ).not.toBeInTheDocument();
     });
 
     it('on the computer has the filters in a column, and no kind or account beside the month', () => {
@@ -525,5 +532,59 @@ describe('Movements', () => {
             `/budget/movements/expense/51?from=${encodeURIComponent(`/budget/movements?${allFiltersQuery}`)}`,
         );
         expect(links[0]).not.toHaveAttribute('aria-current');
+    });
+
+    it('offers Planned and spent in the box under the tabs, on every layout', () => {
+        renderPage(Movements, props);
+
+        const box = screen.getByRole('navigation', {
+            name: 'More in the budget',
+        });
+        const link = within(box).getByRole('link', {
+            name: /Planned and spent/,
+        });
+        expect(link).toHaveAttribute('href', '/budget/comparison');
+        expect(
+            within(box).getByText(
+                'What you planned and what you spent, by category',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            within(box).queryByRole('link', {
+                name: /Electricity, gas and water use/,
+            }),
+        ).not.toBeInTheDocument();
+        // Not a tab: the tabs of the Budget do not have it
+        expect(
+            within(
+                screen.getByRole('navigation', { name: 'Budget' }),
+            ).queryByRole('link', { name: 'Planned and spent' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('hides the box while a search or a filter is on', () => {
+        renderPage(Movements, { ...props, filters: allFilters });
+
+        expect(
+            screen.queryByRole('navigation', { name: 'More in the budget' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('adds the use of electricity, gas and water when the family has a utility with it', () => {
+        shared.has_consumption = true;
+        screenWidth(true);
+        renderPage(Movements, props);
+
+        const box = screen.getByRole('navigation', {
+            name: 'More in the budget',
+        });
+        expect(
+            within(box).getByRole('link', {
+                name: /Electricity, gas and water use/,
+            }),
+        ).toHaveAttribute('href', '/budget/consumption');
+        expect(
+            within(box).getByRole('link', { name: /Planned and spent/ }),
+        ).toBeInTheDocument();
     });
 });

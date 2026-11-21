@@ -54,3 +54,17 @@ test('the fake reader screens a mail with its answer and counts the screenings',
         ->and($reader->screenings())->toBe(1)
         ->and($reader->reads())->toBe(0);
 });
+
+test('the fake reader gives a consumption for a file named bolletta and leaves the others as they are', function (): void {
+    $reader = (new FakeDocumentReader)->returns(Extraction::from(['kind' => 'utility_bill', 'confidence' => 'high']));
+    $bill = new ReadingContext([], [], [], [], 'bolletta-luce.pdf', null);
+
+    $with = $reader->read($this->source, $bill, 'it')->extraction;
+    $without = $reader->read($this->source, $this->context, 'it')->extraction;
+
+    expect($with->consumption_quantity)->toBe(312.0)
+        ->and($with->consumption_unit)->toBe('kwh')
+        ->and($with->period_start)->toBe('2026-08-01')
+        ->and($with->period_end)->toBe('2026-09-30')
+        ->and($without->consumption_quantity)->toBeNull();
+});

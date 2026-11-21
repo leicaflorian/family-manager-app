@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Enums\ConsumptionSource;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\Home;
 use App\Models\User;
+use App\Models\UtilityConsumption;
 use App\Models\Vehicle;
 use App\Queries\FilterDocuments;
 use App\Services\FileStore;
@@ -151,6 +153,23 @@ test('the deletion by an admin removes the document, its links and its file', fu
         ->and(DB::table('documentables')->where('document_id', $this->document->id)->count())->toBe(0)
         ->and(DB::table('files')->where('id', $this->document->file_id)->count())->toBe(0);
     Storage::disk('local')->assertMissing($path);
+});
+
+test('deleting a bill removes its reading row', function (): void {
+    $read = UtilityConsumption::factory()->for($this->marco->family)->create(['document_id' => $this->document->id, 'source' => ConsumptionSource::Reading]);
+
+    $this->delete(route('documents.destroy', $this->document))->assertRedirect(route('documents.index'));
+
+    expect(UtilityConsumption::query()->find($read->id))->toBeNull();
+});
+
+test('deleting a bill keeps the manual row and empties its document', function (): void {
+    $manual = UtilityConsumption::factory()->for($this->marco->family)->create(['document_id' => $this->document->id, 'source' => ConsumptionSource::Manual]);
+
+    $this->delete(route('documents.destroy', $this->document))->assertRedirect(route('documents.index'));
+
+    expect(UtilityConsumption::query()->find($manual->id))->not->toBeNull()
+        ->and(UtilityConsumption::query()->find($manual->id)?->document_id)->toBeNull();
 });
 
 test('the deletion asked to stay goes back to the page it came from', function (): void {

@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 const ROUTE_THROTTLE_SHARED = [
     // Aggiorna on the Dalla banca tab and on the linked banks page both read the bank.
     'bank-sync' => ['banks.sync', 'budget.bank.sync'],
+    // Adding, correcting and deleting a consumption by hand are the same panel of the Consumption page.
+    'consumption-save' => ['budget.consumption.destroy', 'budget.consumption.store', 'budget.consumption.update'],
     // Fortify gives one throttle to the email confirmation link and to sending it again (config/fortify.php).
     'verification' => ['verification.send', 'verification.verify'],
 ];

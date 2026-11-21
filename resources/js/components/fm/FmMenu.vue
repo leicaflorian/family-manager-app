@@ -5,13 +5,16 @@
  * `text` or `outline` the button shows its label beside the icon, as
  * *Record payment* beside a title or *Postpone* on a late reminder. With
  * `control` the ⋯ is a square as tall as the buttons beside it (52 px in a
- * panel from below), as beside *Done* and *Postpone* of a reminder. The entries
+ * panel from below), as beside *Done* and *Postpone* of a reminder. With
+ * `choice` the button is the thing chosen, its label in ink and bold with a
+ * chevron after it, and the entries are the other things to choose, open from
+ * its left edge: the utility of *Usage*. The entries
  * open above every panel, so a menu inside a panel shows.
  *
  * @group navigation
  */
 import type { LucideIcon } from '@lucide/vue';
-import { Ellipsis } from '@lucide/vue';
+import { ChevronDown, Ellipsis } from '@lucide/vue';
 import {
     DropdownMenuContent,
     DropdownMenuPortal,
@@ -29,6 +32,7 @@ const {
     text = false,
     outline = false,
     control = false,
+    choice = false,
     icon,
 } = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
@@ -45,6 +49,8 @@ const {
     outline?: boolean;
     /** The ⋯ square as tall as the buttons beside it, 44 px on the page and 52 px in a panel, as beside *Done* of a reminder. */
     control?: boolean;
+    /** The label of the thing chosen, in ink and bold, with a chevron after it (`icon` replaces it): the utility of *Usage*. */
+    choice?: boolean;
 }>();
 
 defineSlots<{
@@ -65,6 +71,20 @@ defineSlots<{
                 <FmIcon :icon="icon ?? Ellipsis" :size="18" />{{
                     label ?? $t('More actions')
                 }}
+            </button>
+            <button
+                v-else-if="choice"
+                type="button"
+                class="-my-1.5 flex min-h-touch min-w-0 cursor-pointer items-center gap-1.5 rounded-md pr-2 pl-1 text-left text-label text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+            >
+                <span class="min-w-0 truncate">{{
+                    label ?? $t('More actions')
+                }}</span>
+                <FmIcon
+                    :icon="icon ?? ChevronDown"
+                    :size="18"
+                    class="shrink-0 text-ink-soft"
+                />
             </button>
             <button
                 v-else-if="control"
@@ -89,7 +109,7 @@ defineSlots<{
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
             <DropdownMenuContent
-                align="end"
+                :align="choice ? 'start' : 'end'"
                 :side-offset="6"
                 class="z-[80] flex min-w-56 flex-col gap-0.5 rounded-xl bg-card p-1.5 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
             >

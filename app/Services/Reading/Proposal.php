@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Data\Reading\ConsumptionProposalData;
+use App\Data\Reading\ConsumptionValuesData;
 use App\Data\Reading\DocumentProposalData;
 use App\Data\Reading\EventProposalData;
 use App\Data\Reading\EventValuesData;
@@ -13,14 +15,20 @@ use App\Data\Reading\MovementProposalData;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
+use App\Enums\ConsumptionOutcome;
+use App\Enums\ConsumptionUnit;
 use App\Enums\RecordKind;
+use App\Enums\UtilityType;
 use App\Models\DocumentCategory;
 use App\Models\Expense;
 use App\Models\File;
 use App\Models\HealthEvent;
 use App\Models\Income;
+use App\Models\Utility;
 use App\Support\CurrentFamily;
+use App\Support\DocumentRules;
 use App\Support\Reading\Choices;
+use App\Support\Reading\ConsumptionCheck;
 use App\Support\Reading\IssuerOrder;
 use App\Support\Reading\ValidDate;
 use App\Support\Translated;
@@ -29,8 +37,8 @@ use Illuminate\Support\Facades\App;
 
 /**
  * What a read file would do when confirmed (`previewFile` of the old reader): the document, the expense or income
- * ({@see MovementProposal}), the health event, the missing cards ({@see RecordsProposal}) and the policy taken from
- * another file or from one registered. It works on the reading saved in `files.reading`, inside the family of the
+ * ({@see MovementProposal}), the health event, the missing cards ({@see RecordsProposal}), the policy taken from
+ * another file or from one registered and the consumption of a utility bill. It works on the reading saved in `files.reading`, inside the family of the
  * file, with the choices of the person, and writes nothing.
  *
  * While it runs the language of the app is the one of the proposal: the card titles of {@see RecordDrafts} and the
@@ -124,6 +132,91 @@ final readonly class Proposal
             // With the card of the category the boxes already say which card the document belongs to
             createCard: $cardType === null && $this->namesNoCard($document, $event, $records),
             cardType: $cardType,
+            consumption: $this->consumption($x, $document, $records, $choices),
+        );
+    }
+
+    /**
+     * The consumption of a bill of electricity, gas or water, with the corrections of the person: only for a utility
+     * bill whose reading found a consumption. The utility is the first of electricity, gas or water among the links of
+     * the document (as the page sends them, otherwise as the reading proposes them), otherwise the one of the box of
+     * the utility, ticked: found, or created with the file. Without either, the type read decides the unit and the
+     * person is asked to choose the utility above.
+     *
+     * @param  Extraction  $x  what the model read
+     * @param  DocumentProposalData  $document  the document the reading proposes, with the cards it links
+     * @param  list<RecordDraftData>  $records  the boxes of the cards
+     * @param  ImportChoices  $choices  the choices of the person
+     */
+    private function consumption(Extraction $x, DocumentProposalData $document, array $records, ImportChoices $choices): ?ConsumptionProposalData
+    {
+        if ($x->kind !== 'utility_bill' || ($x->consumption_quantity === null && $x->consumption_unit === null)) {
+            return null;
+        }
+
+        $links = array_key_exists('links', $choices->document) ? DocumentRules::links($choices->document['links']) : $document->links;
+        $ids = array_column(array_filter($links, static fn (array $link): bool => $link['type'] === 'utility'), 'id');
+        $utility = $ids === [] ? null : Utility::query()->whereKey($ids)->orderBy('id')->get()
+            ->first(static fn (Utility $card): bool => ConsumptionUnit::forUtility($card->type) instanceof ConsumptionUnit);
+
+        // The box of the utility, ticked, gives it: one found is linked, a new one is created with the file
+        $draft = collect($records)->first(static fn (RecordDraftData $draft): bool => $draft->kind === RecordKind::Utility && in_array(RecordKind::Utility, $choices->records, true));
+        $utility ??= $draft instanceof RecordDraftData && $draft->existing !== null ? Utility::query()->find($draft->existing['id']) : null;
+        $created = ! $utility instanceof Utility && $draft instanceof RecordDraftData && $draft->existing === null
+            ? UtilityType::tryFrom(is_string($draft->values['type'] ?? null) ? $draft->values['type'] : '')
+            : null;
+
+        $type = $utility->type ?? $created ?? UtilityType::tryFrom($x->utility_type ?? '');
+        $unit = $type instanceof UtilityType ? ConsumptionUnit::forUtility($type) : null;
+        if (! $type instanceof UtilityType || ! $unit instanceof ConsumptionUnit) {
+            return null;
+        }
+
+        $edits = $choices->consumptionOverrides();
+        $movementAmount = $choices->overrides['movement']['amount'] ?? null;
+        $amount = is_numeric($movementAmount) ? (float) $movementAmount : $x->total_amount;
+        $quantity = $edits['quantity'] ?? $x->consumption_quantity;
+        $quantity = is_numeric($quantity) ? (float) $quantity : null;
+        $values = new ConsumptionValuesData(
+            period_start: is_string($edits['period_start'] ?? null) ? $edits['period_start'] : ValidDate::of($x->period_start),
+            period_end: is_string($edits['period_end'] ?? null) ? $edits['period_end'] : ValidDate::of($x->period_end),
+            quantity: $quantity,
+            unit: $unit->value,
+            amount: $amount,
+            is_estimated: is_bool($edits['is_estimated'] ?? null) ? $edits['is_estimated'] : $x->consumption_estimated ?? false,
+        );
+
+        $complete = $utility instanceof Utility || $created instanceof UtilityType ? [] : ['utility'];
+        $missing = array_values(array_filter([
+            $values->quantity === null ? 'quantity' : null,
+            $values->period_start === null ? 'period_start' : null,
+            $values->period_end === null ? 'period_end' : null,
+        ]));
+        // The check with the unit of the utility rates only quantity and period: a value out of range or a period
+        // reversed or too long is written again in the box, like a missing one
+        $rated = $missing === [] ? ConsumptionCheck::outcome($type, $values->quantity, $unit->value, $values->period_start, $values->period_end) : null;
+        $fill = match ($rated) {
+            ConsumptionOutcome::OutOfRange => ['quantity'],
+            ConsumptionOutcome::BadPeriod => ['period_start', 'period_end'],
+            default => $missing,
+        };
+        $blocked = match (true) {
+            $complete !== [] => ConsumptionProposalData::chooseUtility(),
+            $missing !== [] => Translated::text('To record the consumption write the quantity and the period in its box.'),
+            $rated === ConsumptionOutcome::OutOfRange => Translated::text('To record the consumption correct the quantity in its box.'),
+            $rated === ConsumptionOutcome::BadPeriod => Translated::text('To record the consumption correct the period in its box: the first day comes before the last, and it lasts at most 400 days.'),
+            default => null,
+        };
+        $saved = ConsumptionCheck::outcome($type, $values->quantity, $x->consumption_unit, $values->period_start, $values->period_end) === ConsumptionOutcome::Saved;
+
+        return new ConsumptionProposalData(
+            values: $values,
+            suggested: $saved && $blocked === null,
+            utility: $utility instanceof Utility ? ['id' => $utility->id, 'title' => $utility->label()] : null,
+            blocked: $blocked,
+            fill: $fill,
+            complete: $complete,
+            priceWarning: $amount !== null && $values->quantity !== null && ConsumptionCheck::priceOutOfRange($unit, $amount, $values->quantity),
         );
     }
 

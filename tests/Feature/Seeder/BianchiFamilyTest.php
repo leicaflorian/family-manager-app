@@ -8,12 +8,15 @@ use App\Data\Reading\ImportChoices;
 use App\Data\ToSortPageData;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankTransactionStatus;
+use App\Enums\ConsumptionSource;
+use App\Enums\ConsumptionUnit;
 use App\Enums\FileSource;
 use App\Enums\FinancialAccountType;
 use App\Enums\MailOutcome;
 use App\Enums\MaintenanceType;
 use App\Enums\ReadingStatus;
 use App\Enums\ReminderStatus;
+use App\Enums\UtilityType;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Document;
@@ -39,6 +42,7 @@ use App\Models\ReminderGroup;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\UtilityConsumption;
 use App\Models\Vehicle;
 use App\Services\Deadlines;
 use App\Services\Reading\Proposal;
@@ -543,5 +547,66 @@ test('the Bianchis have the link to the bank on, with a trial bank and its trans
             ->and(BankTransaction::query()->count())->toBe(12)
             ->and(BankTransaction::query()->unsorted()->count())->toBe(11)
             ->and(BankTransaction::query()->where('status', BankTransactionStatus::Pending)->count())->toBe(1);
+    });
+});
+
+test('the Bianchi have 24 months of electricity, with the figures of the Consumption board', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $utility = Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->sole();
+        $rows = UtilityConsumption::query()->where('utility_id', $utility->id)->orderBy('period_start')->get();
+        $window = $rows->filter(fn (UtilityConsumption $row): bool => $row->period_start->between('2025-10-01', '2026-09-30'));
+        $january = fn (string $year): ?UtilityConsumption => $rows->first(fn (UtilityConsumption $row): bool => $row->period_start->format('Y-m') === $year.'-01');
+        $highestPrice = $window->sortByDesc(fn (UtilityConsumption $row): float => (float) $row->amount / (float) $row->quantity)->first();
+
+        expect($rows)->toHaveCount(24)
+            ->and($rows->first()->period_start->toDateString())->toBe('2024-10-01')
+            ->and($rows->last()->period_end->toDateString())->toBe('2026-09-30')
+            ->and($window)->toHaveCount(12)
+            ->and(round((float) $window->sum('quantity'), 3))->toBe(2711.0)
+            ->and(round((float) $window->sum('amount'), 2))->toBe(853.10)
+            ->and((float) $january('2026')?->quantity)->toBe(290.0)
+            ->and((float) $january('2026')?->amount)->toBe(86.10)
+            ->and((float) $january('2025')?->quantity)->toBe(248.0)
+            ->and($rows->where('is_estimated', true))->toHaveCount(1)
+            ->and($highestPrice?->period_start->format('Y-m'))->toBe('2026-09')
+            ->and($rows->every(fn (UtilityConsumption $row): bool => (float) $row->amount / (float) $row->quantity >= 0.25 && (float) $row->amount / (float) $row->quantity <= 0.40))->toBeTrue();
+
+        $september = $rows->last();
+        expect($september->document?->title)->toBe('Bolletta luce di settembre')
+            ->and($september->source)->toBe(ConsumptionSource::Reading)
+            ->and($rows->first()->source)->toBe(ConsumptionSource::Manual);
+    });
+});
+
+test('the Bianchi gas is billed every two months and the water every three', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $gas = UtilityConsumption::query()->where('utility_id', Utility::query()->where('type', UtilityType::Gas)->sole()->id)->orderBy('period_start')->get();
+        $water = UtilityConsumption::query()->where('utility_id', Utility::query()->where('type', UtilityType::Water)->sole()->id)->orderBy('period_start')->get();
+
+        expect($gas)->toHaveCount(12)
+            ->and($gas->every(fn (UtilityConsumption $row): bool => $row->period_start->diffInMonths($row->period_end->addDay()) === 2.0 && $row->unit === ConsumptionUnit::Smc))->toBeTrue()
+            ->and($gas->last()->document?->title)->toBe('Bolletta gas di settembre')
+            ->and($water)->toHaveCount(8)
+            ->and($water->every(fn (UtilityConsumption $row): bool => $row->period_start->diffInMonths($row->period_end->addDay()) === 3.0 && $row->unit === ConsumptionUnit::M3))->toBeTrue()
+            ->and(UtilityConsumption::query()->where('utility_id', Utility::query()->where('type', UtilityType::Internet)->sole()->id)->count())->toBe(0);
+    });
+});
+
+test('the November bill of Edison is read with its consumption', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $x = File::query()->where('original_name', 'bolletta-edison-novembre.pdf')->sole()->reading['extraction'];
+
+        expect($x['consumption_quantity'])->toEqual(232)
+            ->and($x['consumption_unit'])->toBe('kwh')
+            ->and($x['consumption_estimated'])->toBeFalse()
+            ->and($x['consumption_adjusted'])->toBeFalse()
+            ->and($x['period_start'])->toBe('2026-11-01')
+            ->and($x['period_end'])->toBe('2026-11-30');
     });
 });

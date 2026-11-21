@@ -32,6 +32,23 @@ return [
         'email' => 'Only email',
         'both' => 'App and email',
     ],
+    'consumption_unit' => [
+        'kwh' => 'kWh',
+        'smc' => 'Smc',
+        'm3' => 'm³',
+    ],
+    'consumption_source' => [
+        'reading' => 'Read from the bill',
+        'manual' => 'Written by hand',
+    ],
+    'consumption_outcome' => [
+        'saved' => 'Saved',
+        'not_a_bill' => 'Not a bill',
+        'no_consumption' => 'No consumption found',
+        'wrong_unit' => 'Wrong unit',
+        'out_of_range' => 'Consumption out of range',
+        'bad_period' => 'Period not valid',
+    ],
     'document_status' => [
         'active' => 'Active',
         'archived' => 'Archived',
@@ -172,6 +189,7 @@ return [
         'mail_file' => 'Mail attachment',
         'crop' => 'Crop',
         'bank_rule' => 'Bank rule',
+        'consumption' => 'Consumption',
     ],
     'reading_status' => [
         'queued' => 'Queued',

@@ -13,6 +13,15 @@ import { danceRow, gasRow, netflixRow, salaryRow } from '@/test/fixtures';
 import { renderPage, screenWidth } from '@/test/page';
 import Planned from './Planned.vue';
 
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({
+        url: '/budget/planned',
+        props: { name: 'Fameja.app' },
+    }),
+}));
+
 /** The filters as the server sends them when none is on. */
 const noFilters: App.Data.PlannedFiltersData = {
     search: null,
@@ -178,9 +187,6 @@ describe('Planned expenses', () => {
             'aria-current',
             'page',
         );
-        expect(
-            screen.getByRole('link', { name: 'Planned and spent' }),
-        ).toHaveAttribute('href', '/budget/comparison');
     });
 
     it('on the computer has the filters in a column, always', () => {

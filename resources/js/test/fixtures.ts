@@ -521,6 +521,7 @@ export const policyDetail: App.Data.CardDetailData = {
         text: 'Active',
         tone: 'open',
     },
+    consumption: null,
 };
 
 /** The nine areas with their active cards, as the sidebar receives them. */
@@ -1892,6 +1893,37 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
     warnings: [],
     createCard: false,
     cardType: null,
+    consumption: null,
+};
+
+/**
+ * The consumption of a bill of the electricity of the Bianchis linked to its utility, as `ProposalData.consumption`
+ * comes from the server (the case of `ImportConsumptionTest`): 201 kWh from 01/09/2026 to 30/09/2026, ticked.
+ */
+export const consumptionDraft: App.Data.Reading.ConsumptionProposalData = {
+    values: {
+        period_start: '2026-09-01',
+        period_end: '2026-09-30',
+        quantity: 201,
+        unit: 'kwh',
+        amount: 71.3,
+        is_estimated: false,
+    },
+    suggested: true,
+    utility: { id: 4, title: 'Luce - Edison' },
+    blocked: null,
+    fill: [],
+    complete: [],
+    priceWarning: false,
+};
+
+/** The proposal of a bill of the electricity with its consumption: only the document and the box to record it. */
+export const consumptionProposal: App.Data.Reading.ProposalData = {
+    ...ferriProposal,
+    movement: null,
+    event: null,
+    records: [],
+    consumption: consumptionDraft,
 };
 
 /**
@@ -2045,3 +2077,168 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         recurring: false,
     },
 ];
+
+/**
+ * A month of the Consumption page as the server sends it: a whole month covered by one bill, with the same month
+ * of the year before.
+ *
+ * @param month - `yyyy-mm`
+ * @param quantity - the kWh of the month
+ * @param amount - the euros of the month
+ * @param previousQuantity - the kWh of the same month a year before
+ * @param previousAmount - the euros of the same month a year before
+ * @param billId - the id of the bill that covers it
+ * @returns the month
+ */
+function consumptionMonth(
+    month: string,
+    quantity: number,
+    amount: number,
+    previousQuantity: number,
+    previousAmount: number,
+    billId: number,
+): App.Data.Consumption.ConsumptionMonthData {
+    return {
+        month,
+        quantity,
+        amount,
+        price: Math.round((amount / quantity) * 10000) / 10000,
+        previousQuantity,
+        previousAmount,
+        coverage: 'complete',
+        coveredUntil: null,
+        estimated: false,
+        adjusted: false,
+        billIds: [billId],
+    };
+}
+
+/**
+ * A bill of the Consumption page as the server sends it: one month, read from a document and paid.
+ *
+ * @param id - the id of the consumption row
+ * @param month - `yyyy-mm`, the month it covers
+ * @param last - the last day of the month
+ * @param quantity - the kWh
+ * @param amount - the euros
+ * @returns the bill
+ */
+function consumptionBill(
+    id: number,
+    month: string,
+    last: number,
+    quantity: number,
+    amount: number,
+): App.Data.Consumption.ConsumptionBillData {
+    return {
+        id,
+        document_id: id + 100,
+        period_start: `${month}-01`,
+        period_end: `${month}-${last}`,
+        quantity,
+        unit: 'kwh',
+        amount,
+        price: Math.round((amount / quantity) * 10000) / 10000,
+        paid: true,
+        is_estimated: false,
+        has_adjustments: false,
+        above_average: false,
+        check: false,
+        source: 'reading',
+        can_update: true,
+        can_delete: true,
+    };
+}
+
+/** The electricity of the Bianchi, October 2025 to September 2026, as `ConsumptionController` sends it (English). */
+export const consumptionPage: App.Data.Consumption.ConsumptionPageData = {
+    types: [
+        { type: 'electricity', label: 'Electricity', utility: 1 },
+        { type: 'gas', label: 'Gas', utility: 2 },
+        { type: 'water', label: 'Water', utility: 3 },
+    ],
+    utilities: [
+        {
+            id: 1,
+            title: 'Electricity - Edison · Casa di via Roma',
+            start: null,
+            end: null,
+        },
+    ],
+    utility: {
+        id: 1,
+        title: 'Electricity - Edison · Casa di via Roma',
+        type: 'electricity',
+        unit: 'kwh',
+        href: 'http://localhost/cards/utility/1',
+    },
+    from: '2025-10',
+    to: '2026-09',
+    previous: '2025-09',
+    next: null,
+    months: [
+        consumptionMonth('2025-10', 214, 65.27, 198, 55.84, 13),
+        consumptionMonth('2025-11', 236, 72.75, 220, 62.7, 14),
+        consumptionMonth('2025-12', 262, 82.71, 245, 71.05, 15),
+        consumptionMonth('2026-01', 290, 86.1, 248, 71.42, 16),
+        consumptionMonth('2026-02', 268, 81.74, 230, 65.78, 17),
+        consumptionMonth('2026-03', 240, 72, 214, 60.78, 18),
+        consumptionMonth('2026-04', 205, 60.68, 190, 53.2, 19),
+        consumptionMonth('2026-05', 188, 57.9, 176, 49.1, 20),
+        consumptionMonth('2026-06', 196, 61.15, 184, 52.07, 21),
+        consumptionMonth('2026-07', 242, 77.92, 228, 66.35, 22),
+        consumptionMonth('2026-08', 165, 55.28, 172, 50.74, 23),
+        consumptionMonth('2026-09', 205, 79.6, 196, 56.02, 24),
+    ],
+    figures: {
+        quantity: 2711,
+        previousQuantity: 2826,
+        coveredMonths: 12,
+        amount: 853.1,
+        bills: 12,
+        toPay: 1,
+        averagePrice: 0.3147,
+        dearestMonth: '2026-09',
+        dearestPrice: 0.3883,
+    },
+    sentence:
+        'In September you paid the most for electricity this year: 0,39 € per kWh against an average of 0,31 €. Your consumption did not go up: the price changed.',
+    bills: [
+        {
+            ...consumptionBill(24, '2026-09', 30, 205, 79.6),
+            paid: false,
+            above_average: true,
+        },
+        consumptionBill(23, '2026-08', 31, 165, 55.28),
+        consumptionBill(22, '2026-07', 31, 242, 77.92),
+        { ...consumptionBill(21, '2026-06', 30, 196, 61.15), check: true },
+        {
+            ...consumptionBill(20, '2026-05', 31, 188, 57.9),
+            is_estimated: true,
+        },
+        consumptionBill(19, '2026-04', 30, 205, 60.68),
+        consumptionBill(18, '2026-03', 31, 240, 72),
+        consumptionBill(17, '2026-02', 28, 268, 81.74),
+        consumptionBill(16, '2026-01', 31, 290, 86.1),
+        consumptionBill(15, '2025-12', 31, 262, 82.71),
+        consumptionBill(14, '2025-11', 30, 236, 72.75),
+        {
+            ...consumptionBill(13, '2025-10', 31, 214, 65.27),
+            document_id: null,
+            source: 'manual',
+        },
+    ],
+    month: null,
+    archive: {
+        count: 2,
+        cost: 0.016,
+        left: 1000,
+        running: false,
+        done: 0,
+        total: 0,
+        can_read: true,
+    },
+    toCheck: [],
+    canCreate: true,
+    canRead: true,
+};

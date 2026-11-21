@@ -13,7 +13,7 @@ export type ImportTargets = {
 };
 
 /** A value the person wrote in a box: text, a date or a choice. */
-export type OverrideValue = string | number | null;
+export type OverrideValue = string | number | boolean | null;
 
 /** The corrections of the expense, the event and each card, by field, as `ImportChoices::fromArray` reads them. */
 export type ImportOverrides = {
@@ -22,6 +22,8 @@ export type ImportOverrides = {
     records: Partial<
         Record<App.Enums.RecordKind, Record<string, OverrideValue>>
     >;
+    /** The consumption: `quantity`, `period_start`, `period_end`, `is_estimated`. */
+    consumption: Record<string, OverrideValue>;
 };
 
 /**
@@ -31,6 +33,8 @@ export type ImportOverrides = {
 export type ImportPicks = {
     movement: boolean | null;
     event: boolean | null;
+    /** *Record the consumption*; null follows the proposal. */
+    consumption: boolean | null;
     records: Partial<Record<App.Enums.RecordKind, boolean>>;
     targets: ImportTargets;
     /** The fields the person wrote, and only those. */
@@ -49,6 +53,8 @@ export type ImportPicks = {
 export type ImportAlso = {
     movement: boolean;
     event: boolean;
+    /** Only when the proposal has a consumption. */
+    consumption?: boolean;
     records: App.Enums.RecordKind[];
     targets: ImportTargets;
     /** Only when the person wrote a field. */
@@ -126,9 +132,10 @@ export function useImportChoices(
     const picks = reactive<ImportPicks>({
         movement: null,
         event: null,
+        consumption: null,
         records: {},
         targets: { movement: 'auto', event: 'auto', records: {} },
-        overrides: { movement: {}, event: {}, records: {} },
+        overrides: { movement: {}, event: {}, records: {}, consumption: {} },
         due: null,
         policy: 'auto',
         createCard: false,
@@ -141,9 +148,10 @@ export function useImportChoices(
      * @returns true with at least one correction
      */
     function corrected(): boolean {
-        const { movement, event, records } = picks.overrides;
+        const { movement, event, records, consumption } = picks.overrides;
 
         return (
+            Object.keys(consumption).length > 0 ||
             Object.keys(movement).length > 0 ||
             Object.keys(event).length > 0 ||
             Object.keys(records).length > 0
@@ -174,6 +182,12 @@ export function useImportChoices(
         return {
             movement: picks.movement ?? current.movement?.suggested ?? false,
             event: picks.event ?? current.event?.suggested ?? false,
+            ...(current.consumption
+                ? {
+                      consumption:
+                          picks.consumption ?? current.consumption.suggested,
+                  }
+                : {}),
             records: records.map((draft) => draft.kind),
             targets: {
                 movement: picks.targets.movement,
@@ -197,7 +211,20 @@ export function useImportChoices(
      * @returns the corrections
      */
     function plainOverrides(): ImportOverrides {
-        return JSON.parse(JSON.stringify(picks.overrides)) as ImportOverrides;
+        const plain = JSON.parse(
+            JSON.stringify(picks.overrides),
+        ) as ImportOverrides;
+
+        // Sent only when the person wrote a field of the consumption
+        if (Object.keys(plain.consumption).length === 0) {
+            return {
+                movement: plain.movement,
+                event: plain.event,
+                records: plain.records,
+            } as ImportOverrides;
+        }
+
+        return plain;
     }
 
     /**
@@ -207,6 +234,10 @@ export function useImportChoices(
      * @returns the target chosen by the person, `auto` if none
      */
     function targetOf(side: AlsoSide): ImportTarget {
+        if (side === 'consumption') {
+            return 'auto';
+        }
+
         if (side === 'movement' || side === 'event') {
             return picks.targets[side];
         }
@@ -221,6 +252,10 @@ export function useImportChoices(
      * @param target - `auto`, `new` or the id chosen
      */
     function setTarget(side: AlsoSide, target: ImportTarget): void {
+        if (side === 'consumption') {
+            return;
+        }
+
         if (side === 'movement' || side === 'event') {
             picks.targets[side] = target;
         } else {
@@ -235,7 +270,7 @@ export function useImportChoices(
      * @param value - ticked or not
      */
     function setTicked(side: AlsoSide, value: boolean): void {
-        if (side === 'movement' || side === 'event') {
+        if (side === 'movement' || side === 'event' || side === 'consumption') {
             picks[side] = value;
         } else {
             picks.records[side] = value;
@@ -249,7 +284,7 @@ export function useImportChoices(
      * @returns its fields written, created when missing
      */
     function overridesOf(side: AlsoSide): Record<string, OverrideValue> {
-        if (side === 'movement' || side === 'event') {
+        if (side === 'movement' || side === 'event' || side === 'consumption') {
             return picks.overrides[side];
         }
 
@@ -267,7 +302,7 @@ export function useImportChoices(
         side: AlsoSide,
         field: string,
     ): OverrideValue | undefined {
-        if (side === 'movement' || side === 'event') {
+        if (side === 'movement' || side === 'event' || side === 'consumption') {
             return picks.overrides[side][field];
         }
 

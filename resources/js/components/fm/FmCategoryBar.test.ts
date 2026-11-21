@@ -73,4 +73,54 @@ describe('FmCategoryBar', () => {
         expect(container.querySelector('[data-over]')).toBeNull();
         expect(screen.getByText('612,00 €')).not.toHaveClass('text-overdue');
     });
+
+    it('wide: the name on the left, and on the right the comment and the amount over the bar', () => {
+        const { container } = render(FmCategoryBar, {
+            props: {
+                category: 'Spesa',
+                spent: 150.1,
+                planned: 320,
+                estimated: true,
+                wide: true,
+            },
+        });
+
+        const name = screen.getByText('Spesa');
+        const note = screen.getByText(
+            '169,90 € less · planned amount estimated',
+        );
+        const amount = screen.getByText('150,10 €');
+        const bar = container.querySelector('[title]')!;
+        const before = (a: Node, b: Node): boolean =>
+            Boolean(
+                a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+            );
+        expect(before(name, note)).toBe(true);
+        expect(before(note, amount)).toBe(true);
+        expect(before(amount, bar)).toBe(true);
+        expect(screen.getByText('of 320,00 €')).toBeInTheDocument();
+    });
+
+    it('wide on the tablet: the name on its line, the comment, the amount and the bar under it', () => {
+        render(FmCategoryBar, {
+            props: {
+                category: 'Spesa',
+                spent: 150.1,
+                planned: 320,
+                wide: true,
+            },
+        });
+
+        // The columns start with the computer layout (the computer: variant)
+        const row = screen.getByText('Spesa').closest('[data-row]')!;
+        expect(row).toHaveClass('flex', 'flex-col', 'computer:grid');
+    });
+
+    it('wide: the amount is red when it is over the plan', () => {
+        render(FmCategoryBar, {
+            props: { category: 'Salute', spent: 108.4, planned: 0, wide: true },
+        });
+
+        expect(screen.getByText('108,40 €')).toHaveClass('text-overdue');
+    });
 });

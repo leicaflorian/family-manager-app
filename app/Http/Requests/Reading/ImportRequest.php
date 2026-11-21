@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Reading;
 
+use App\Data\Reading\ConsumptionProposalData;
 use App\Data\Reading\DueData;
 use App\Data\Reading\EventProposalData;
 use App\Data\Reading\ImportChoices;
@@ -77,9 +78,10 @@ final class ImportRequest extends FormRequest
             'files.*' => ['required', 'array:file_id,document,also'],
             'files.*.file_id' => [...DocumentRules::fileId(), 'distinct'],
             'files.*.document' => ['required', 'array'],
-            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card,card_type,replace_policies'],
+            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card,card_type,replace_policies,consumption'],
             'files.*.also.movement' => ['sometimes', 'boolean'],
             'files.*.also.event' => ['sometimes', 'boolean'],
+            'files.*.also.consumption' => ['sometimes', 'boolean'],
             'files.*.also.due' => ['sometimes', 'nullable', 'boolean'],
             'files.*.also.create_card' => ['sometimes', 'boolean'],
             // The card of the proposal the page showed: the choices of its box are dropped for another card
@@ -107,6 +109,11 @@ final class ImportRequest extends FormRequest
             'files.*.also.overrides.event' => ['sometimes', 'array'],
             'files.*.also.overrides.event.title' => self::TEXT,
             'files.*.also.overrides.event.outcome' => self::TEXT,
+            'files.*.also.overrides.consumption' => ['sometimes', 'array'],
+            'files.*.also.overrides.consumption.quantity' => ['nullable', 'numeric', 'gt:0', 'max:'.ImportChoices::MAX_QUANTITY, 'decimal:0,3'],
+            'files.*.also.overrides.consumption.period_start' => ['nullable', 'date_format:Y-m-d'],
+            'files.*.also.overrides.consumption.period_end' => ['nullable', 'date_format:Y-m-d'],
+            'files.*.also.overrides.consumption.is_estimated' => ['sometimes', 'boolean'],
         ];
 
         foreach (ImportChoices::RECORD_FIELDS as $kind => $fields) {
@@ -123,6 +130,13 @@ final class ImportRequest extends FormRequest
         }
 
         foreach (array_keys($this->array('files')) as $index) {
+            // The last day of a corrected period is not before the first, when both are corrected
+            if ($this->filled(sprintf('files.%s.also.overrides.consumption.period_start', $index))) {
+                $rules[sprintf('files.%s.also.overrides.consumption.period_end', $index)] = [
+                    'nullable', 'date_format:Y-m-d', sprintf('after_or_equal:files.%s.also.overrides.consumption.period_start', $index),
+                ];
+            }
+
             $rules += DocumentRules::rules($this->input(sprintf('files.%s.document.links', $index)), sprintf(self::DOCUMENT, $index));
         }
 
@@ -226,6 +240,11 @@ final class ImportRequest extends FormRequest
             $problems['targets.event'] = ImportErrors::gone('event');
         } elseif ($choices->event && $proposal->event instanceof EventProposalData && $proposal->event->existing === null && $proposal->event->blocked !== null) {
             $problems['event'] = ImportErrors::event();
+        }
+
+        $consumption = $proposal->consumption;
+        if ($consumption instanceof ConsumptionProposalData && $consumption->blocked !== null && ($choices->consumption ?? $consumption->suggested)) {
+            $problems['consumption'] = $consumption->blocked;
         }
 
         foreach ($choices->recordTargets($proposal->cardType) as $kind => $target) {

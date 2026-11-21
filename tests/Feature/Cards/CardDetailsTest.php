@@ -7,6 +7,7 @@ use App\Data\CardData;
 use App\Data\CardValueData;
 use App\Data\DocumentData;
 use App\Enums\Role;
+use App\Enums\UtilityType;
 use App\Models\Family;
 use App\Models\HealthEvent;
 use App\Models\Home;
@@ -170,4 +171,24 @@ test('a paid off loan is closed for good, not red, though it reaches that status
 
     expect($figure->tone)->toBe('closed')
         ->and($figure->label)->toBe('Status');
+});
+
+test('the card of an electricity utility has its last 12 months of consumption and the link to the page', function (): void {
+    $luce = insideBianchi(fn (): Utility => Utility::query()->where('type', 'electricity')->sole());
+    $consumption = insideBianchi(fn () => $this->details->of($luce, $this->marco))->consumption;
+
+    expect($consumption)->not->toBeNull()
+        ->and($consumption['quantity'])->toBe(2711.0)
+        ->and($consumption['unit'])->toBe('kwh')
+        ->and(round((float) $consumption['price'], 2))->toBe(0.31)
+        ->and($consumption['href'])->toBe(route('budget.consumption', ['utility' => $luce->id], false));
+});
+
+test('a utility without consumption, or without a unit, has no consumption on its card', function (): void {
+    $internet = insideBianchi(fn (): Utility => Utility::factory()->create(['family_id' => $this->marco->family_id, 'type' => UtilityType::Internet]));
+    $empty = insideBianchi(fn (): Utility => Utility::factory()->create(['family_id' => $this->marco->family_id, 'type' => UtilityType::Electricity]));
+
+    expect(insideBianchi(fn () => $this->details->of($internet, $this->marco))->consumption)->toBeNull()
+        ->and(insideBianchi(fn () => $this->details->of($empty, $this->marco))->consumption)->toBeNull()
+        ->and(insideBianchi(fn () => $this->details->of($this->policy, $this->marco))->consumption)->toBeNull();
 });

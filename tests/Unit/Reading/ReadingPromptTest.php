@@ -199,3 +199,47 @@ describe('schema', function (): void {
         expect(ReadingPrompt::SYSTEM)->toContain('for utility_bill, receipt, invoice, payment_receipt, payslip and road_tax expiry_date is null');
     });
 });
+
+describe('consumption fields', function (): void {
+    test('the schema has the eight consumption fields in order, typed as asked', function (): void {
+        $properties = ReadingPrompt::schema(new JsonSchemaTypeFactory);
+
+        expect(Extraction::CONSUMPTION_FIELDS)->toHaveCount(8)
+            ->and(array_values(array_intersect(Extraction::FIELDS, Extraction::CONSUMPTION_FIELDS)))->toBe(Extraction::CONSUMPTION_FIELDS)
+            ->and(array_search('consumption_quantity', Extraction::FIELDS, true))->toBe(array_search('period_end', Extraction::FIELDS, true) + 1);
+
+        foreach (['consumption_quantity', 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'] as $field) {
+            expect($properties[$field]->toArray()['type'])->toBe(['number', 'null']);
+        }
+        foreach (['consumption_estimated', 'consumption_adjusted'] as $field) {
+            expect($properties[$field]->toArray()['type'])->toBe(['boolean', 'null']);
+        }
+        expect($properties['consumption_unit']->toArray()['enum'])->toBe(['kwh', 'smc', 'm3', null]);
+    });
+
+    test('the energy amount is the sale of energy for electricity and gas, and null for water', function (): void {
+        expect(ReadingPrompt::CONSUMPTION_RULE)
+            ->toContain('spesa per la vendita di energia elettrica')
+            ->toContain('spesa per la vendita di gas naturale')
+            ->toContain('consumption_energy_amount is null for water');
+    });
+
+    test('a unit outside the values becomes null and a good one stays', function (): void {
+        expect(ReadingPrompt::parse('{"kind":"utility_bill","confidence":"high","consumption_unit":"kWh"}', readingContext())->consumption_unit)->toBeNull()
+            ->and(ReadingPrompt::parse('{"kind":"utility_bill","confidence":"high","consumption_unit":"kwh","consumption_quantity":312.5}', readingContext())->consumption_unit)->toBe('kwh');
+    });
+
+    test('a reading saved without the fields gives null without errors', function (): void {
+        $x = Extraction::from(['kind' => 'utility_bill', 'confidence' => 'high']);
+
+        foreach (Extraction::CONSUMPTION_FIELDS as $field) {
+            expect($x->{$field})->toBeNull();
+        }
+    });
+
+    test('the system text has the rules of the consumption', function (): void {
+        expect(ReadingPrompt::SYSTEM)->toContain('Smc')
+            ->toContain('not the yearly consumption')
+            ->toContain('meter reading');
+    });
+});

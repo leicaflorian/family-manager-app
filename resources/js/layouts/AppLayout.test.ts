@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/vue';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { router } from '@inertiajs/vue3';
 import { config, mount } from '@vue/test-utils';
@@ -27,6 +27,7 @@ const page = vi.hoisted(() => ({
     component: 'Documents/Index',
     toSort: 0,
     impersonating: null as string | null,
+    hasConsumption: false,
 }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -44,6 +45,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
             to_sort_count: page.toSort,
             impersonating: page.impersonating,
             unread_notices: 2,
+            has_consumption: page.hasConsumption,
         },
     }),
 }));
@@ -97,6 +99,7 @@ describe('AppLayout', () => {
         page.component = 'Documents/Index';
         page.url = '/documents?person=3';
         page.toSort = 0;
+        page.hasConsumption = false;
         localStorage.clear();
     });
 
@@ -231,6 +234,26 @@ describe('AppLayout', () => {
 
         expect(screen.getByRole('complementary')).toHaveClass('w-[260px]');
         expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
+    });
+
+    it('gives the sidebar Usage when the family has a utility with consumption', async () => {
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Show the budget pages' }),
+        );
+        expect(screen.queryByRole('link', { name: 'Usage' })).toBeNull();
+        cleanup();
+
+        page.hasConsumption = true;
+        render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Show the budget pages' }),
+        );
+
+        expect(screen.getByRole('link', { name: 'Usage' })).toHaveAttribute(
+            'href',
+            '/budget/consumption',
+        );
     });
 
     it('on the computer has the sidebar and the trail, with the section of the page', () => {

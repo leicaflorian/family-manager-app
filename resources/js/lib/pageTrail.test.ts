@@ -23,4 +23,9 @@ describe('isSectionPage', () => {
     it('is false for a page inside a section', () => {
         expect(isSectionPage('cards/Card')).toBe(false);
     });
+
+    it('is false for the pages under Budget that have no tab', () => {
+        expect(isSectionPage('budget/Comparison')).toBe(false);
+        expect(isSectionPage('budget/Consumption')).toBe(false);
+    });
 });

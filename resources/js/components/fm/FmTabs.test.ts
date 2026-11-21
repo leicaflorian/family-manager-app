@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/vue';
-import { CalendarDays, List } from '@lucide/vue';
+import { CalendarDays, Flame, List, Zap } from '@lucide/vue';
 import { describe, expect, it } from 'vite-plus/test';
 import FmTabs from './FmTabs.vue';
 
@@ -192,5 +192,40 @@ describe('FmTabs', () => {
         expect(
             screen.getByRole('navigation', { name: 'How to see the Agenda' }),
         ).toHaveClass('flex-none');
+    });
+
+    it('shows the lead icon of a pill tab beside its name', () => {
+        render(FmTabs, {
+            props: {
+                label: 'Kind of utility',
+                variant: 'pill',
+                tabs: [
+                    {
+                        label: 'Electricity',
+                        href: '/budget/consumption?utility=1',
+                        lead: Zap,
+                        current: true,
+                    },
+                    {
+                        label: 'Gas',
+                        href: '/budget/consumption?utility=2',
+                        lead: Flame,
+                        current: false,
+                    },
+                ],
+            },
+        });
+
+        const electricity = screen.getByRole('link', { name: 'Electricity' });
+        expect(electricity).toHaveTextContent('Electricity');
+        expect(electricity).not.toHaveAttribute('title');
+        expect(electricity.querySelector('svg')).toHaveAttribute(
+            'aria-hidden',
+            'true',
+        );
+        expect(electricity).toHaveClass('flex-1', 'gap-1.5');
+        expect(
+            screen.getByRole('navigation', { name: 'Kind of utility' }),
+        ).not.toHaveClass('flex-none');
     });
 });

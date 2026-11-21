@@ -32,6 +32,23 @@ return [
         'email' => 'Solo email',
         'both' => 'App ed email',
     ],
+    'consumption_unit' => [
+        'kwh' => 'kWh',
+        'smc' => 'Smc',
+        'm3' => 'm³',
+    ],
+    'consumption_source' => [
+        'reading' => 'Letto dalla bolletta',
+        'manual' => 'Scritto a mano',
+    ],
+    'consumption_outcome' => [
+        'saved' => 'Salvato',
+        'not_a_bill' => 'Non è una bolletta',
+        'no_consumption' => 'Nessun consumo trovato',
+        'wrong_unit' => 'Unità sbagliata',
+        'out_of_range' => 'Consumo fuori misura',
+        'bad_period' => 'Periodo non valido',
+    ],
     'document_status' => [
         'active' => 'Attivo',
         'archived' => 'Archiviato',
@@ -172,6 +189,7 @@ return [
         'mail_file' => 'Allegato della posta',
         'crop' => 'Ritaglio',
         'bank_rule' => 'Regola della banca',
+        'consumption' => 'Consumo',
     ],
     'reading_status' => [
         'queued' => 'In coda',

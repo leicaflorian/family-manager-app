@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\Reading;
 
+use App\Enums\ConsumptionUnit;
 use App\Enums\HealthEventType;
 use App\Enums\IncomeType;
 use App\Enums\InsurancePolicyType;
@@ -39,10 +40,16 @@ final class Extraction extends Data
         'warranty_expiry_date', 'vehicle_brand', 'vehicle_model', 'vehicle_year', 'contract_start_date',
     ];
 
+    /** The fields of the consumption of a utility bill: a reading made before has none of them. */
+    public const array CONSUMPTION_FIELDS = [
+        'consumption_quantity', 'consumption_unit', 'consumption_estimated', 'consumption_adjusted',
+        'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3',
+    ];
+
     /** Every field of the answer, in the order of the schema. */
     public const array FIELDS = [
         'kind', 'title', 'issuer_name', 'organization_id', 'total_amount', 'fee_amount', 'issue_date', 'due_date', 'expiry_date',
-        'period_start', 'period_end', 'supply_point_code', 'customer_code', 'iban_last_four', 'policy_number', 'plate_number',
+        'period_start', 'period_end', ...self::CONSUMPTION_FIELDS, 'supply_point_code', 'customer_code', 'iban_last_four', 'policy_number', 'plate_number',
         'tax_code', 'expense_category_id', 'document_category_id', 'person_id', 'income_type', 'maintenance_type', 'health_type',
         'outcome', 'next_checkup_date', 'utility_type', 'insurance_type', 'organization_type', 'durable_good', 'item_name',
         'item_brand', 'item_model', 'warranty_expiry_date', 'vehicle_brand', 'vehicle_model', 'vehicle_year', 'contract_start_date',
@@ -61,6 +68,14 @@ final class Extraction extends Data
      * @param  string|null  $expiry_date  `YYYY-MM-DD`, when the document stops being valid
      * @param  string|null  $period_start  `YYYY-MM-DD`
      * @param  string|null  $period_end  `YYYY-MM-DD`
+     * @param  float|null  $consumption_quantity  what the bill charges for the period: kWh, Smc or m3
+     * @param  string|null  $consumption_unit  a value of `ConsumptionUnit`
+     * @param  bool|null  $consumption_estimated  whether the consumption is estimated or on account
+     * @param  bool|null  $consumption_adjusted  whether the bill recalculates periods already billed
+     * @param  float|null  $consumption_energy_amount  euro for the sale of electricity or gas alone (consumption and fixed part of the sale); null for water
+     * @param  float|null  $consumption_f1  kWh of the first band, electricity only
+     * @param  float|null  $consumption_f2  kWh of the second band
+     * @param  float|null  $consumption_f3  kWh of the third band
      * @param  string|null  $supply_point_code  POD or PDR
      * @param  string|null  $customer_code  the customer code of a supply
      * @param  string|null  $iban_last_four  last four characters of the IBAN
@@ -102,6 +117,14 @@ final class Extraction extends Data
         public ?string $expiry_date = null,
         public ?string $period_start = null,
         public ?string $period_end = null,
+        public ?float $consumption_quantity = null,
+        public ?string $consumption_unit = null,
+        public ?bool $consumption_estimated = null,
+        public ?bool $consumption_adjusted = null,
+        public ?float $consumption_energy_amount = null,
+        public ?float $consumption_f1 = null,
+        public ?float $consumption_f2 = null,
+        public ?float $consumption_f3 = null,
         public ?string $supply_point_code = null,
         public ?string $customer_code = null,
         public ?string $iban_last_four = null,
@@ -159,6 +182,7 @@ final class Extraction extends Data
             'utility_type' => array_column(UtilityType::cases(), 'value'),
             'insurance_type' => array_column(InsurancePolicyType::cases(), 'value'),
             'organization_type' => array_column(OrganizationType::cases(), 'value'),
+            'consumption_unit' => array_column(ConsumptionUnit::cases(), 'value'),
             'confidence' => self::CONFIDENCES,
         ];
     }

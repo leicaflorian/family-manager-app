@@ -34,6 +34,23 @@ describe('FmDeleteButton', () => {
         );
     });
 
+    it('keeps the place in the page with preserveScroll', async () => {
+        const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+        renderPage(FmDeleteButton, { ...props, preserveScroll: true });
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        await fireEvent.click(
+            await screen.findByRole('button', {
+                name: 'Delete the organization',
+            }),
+        );
+
+        expect(destroy).toHaveBeenCalledWith(
+            '/family/organizations/4',
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
     it('gives up with Cancel', async () => {
         const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
         renderPage(FmDeleteButton, props);

@@ -33,6 +33,8 @@ declare module '@inertiajs/core' {
             to_sort_count?: number;
             /** The link to the bank: what is still to sort; null while it is off for the family, missing on a phone linked with a code. */
             bank_feed?: { unsorted: number } | null;
+            /** Whether the family has an electricity, gas or water utility, so the Consumption page exists; missing on a phone linked with a code. */
+            has_consumption?: boolean;
             locale: string;
             /** The name of the account the owner looks as during a visit (*Enter as…*); null otherwise. */
             impersonating?: string | null;

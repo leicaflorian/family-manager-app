@@ -4,13 +4,22 @@
  * as the boxes of Directus said it (`module.vue`).
  */
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { formatDate, formatEuro } from '@/lib/format';
+import {
+    formatDate,
+    formatEuro,
+    formatQuantity,
+    unitLabel,
+} from '@/lib/format';
 
 /** What a box is linked to: the one found (`auto`), a new one whatever is found, or the one picked by hand. */
 export type ImportTarget = 'auto' | 'new' | number;
 
 /** A box of *What I do too* that links to something: the expense or income, the event, or a card. */
-export type AlsoSide = 'movement' | 'event' | App.Enums.RecordKind;
+export type AlsoSide =
+    | 'movement'
+    | 'event'
+    | 'consumption'
+    | App.Enums.RecordKind;
 
 /** Something a box can be linked to instead: a card has a label, an expense a title, a date and an amount. */
 export type Candidate = {
@@ -69,6 +78,13 @@ const MOVEMENT_LABELS: Record<string, string> = {
 const EVENT_LABELS: Record<string, string> = {
     title: 'Title of the event',
     type: 'Type of the event',
+};
+
+/** The labels of the fields the box of the consumption shows when they are missing. */
+const CONSUMPTION_LABELS: Record<string, string> = {
+    quantity: 'Consumption',
+    period_start: 'From',
+    period_end: 'To',
 };
 
 /**
@@ -401,6 +417,84 @@ export function eventWarnings(
               event.fill.map((column) => EVENT_LABELS[column] ?? column),
           )
         : [];
+}
+
+/**
+ * The text of the box of the consumption.
+ *
+ * @returns `Record the consumption`
+ */
+export function consumptionLabel(): string {
+    return trans('Record the consumption');
+}
+
+/**
+ * The line under the box of the consumption: how much, and for which period.
+ *
+ * @param consumption - the consumption of the proposal
+ * @returns for example `201 kWh from 01/09/2026 to 30/09/2026`; nothing while the quantity or the period is missing
+ */
+export function consumptionHint(
+    consumption: App.Data.Reading.ConsumptionProposalData,
+): string | undefined {
+    const { quantity, unit, period_start, period_end } = consumption.values;
+
+    if (quantity === null || !period_start || !period_end) {
+        return undefined;
+    }
+
+    return trans(':quantity from :start to :end', {
+        quantity: formatQuantity(quantity, unit),
+        start: formatDate(period_start),
+        end: formatDate(period_end),
+    });
+}
+
+/**
+ * What the box of the consumption says is wrong: a price per unit out of
+ * range and the utility to choose above (always), and the fields to fill
+ * (while it is ticked).
+ *
+ * @param consumption - the consumption of the proposal
+ * @param ticked - whether its box is ticked
+ * @returns the lines
+ */
+export function consumptionWarnings(
+    consumption: App.Data.Reading.ConsumptionProposalData,
+    ticked: boolean,
+): string[] {
+    const { quantity, amount, unit } = consumption.values;
+    const lines: string[] = [];
+
+    if (consumption.priceWarning && quantity && amount !== null) {
+        lines.push(
+            trans(
+                'Check this consumption: it would be :price a :unit, it usually means I read the wrong number.',
+                { price: formatEuro(amount / quantity), unit: unitLabel(unit) },
+            ),
+        );
+    }
+
+    if (consumption.complete.includes('utility')) {
+        lines.push(
+            trans(
+                'To record the consumption choose the utility above, in «Link it to».',
+            ),
+        );
+    }
+
+    if (ticked) {
+        lines.push(
+            ...neededLines(
+                [],
+                consumption.fill.map(
+                    (column) => CONSUMPTION_LABELS[column] ?? column,
+                ),
+            ),
+        );
+    }
+
+    return lines;
 }
 
 /**

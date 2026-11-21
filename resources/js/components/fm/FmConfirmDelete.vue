@@ -16,6 +16,7 @@ const {
     text,
     confirmLabel,
     preserveState = false,
+    preserveScroll = false,
 } = defineProps<{
     /** The address the deletion is sent to. */
     url: string;
@@ -27,6 +28,11 @@ const {
     confirmLabel: string;
     /** The page stays as it is, as a form with what is written and not saved. */
     preserveState?: boolean;
+    /**
+     * The page comes back where it was, built again from the answer (a row deleted from a panel of a long page):
+     * always so with `preserveState`.
+     */
+    preserveScroll?: boolean;
 }>();
 
 /** Open or closed. */
@@ -43,7 +49,7 @@ function remove(): void {
 
     router.delete(url, {
         preserveState,
-        preserveScroll: preserveState,
+        preserveScroll: preserveScroll || preserveState,
         onStart: () => (running.value = true),
         onFinish: () => {
             running.value = false;

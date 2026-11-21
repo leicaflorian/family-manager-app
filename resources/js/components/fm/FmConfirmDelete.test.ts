@@ -47,6 +47,23 @@ describe('FmConfirmDelete', () => {
         expect(destroy).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps the place in the page with preserveScroll, the page itself built again', async () => {
+        const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+        renderPage(FmConfirmDelete, { ...props, preserveScroll: true });
+
+        await fireEvent.click(
+            await screen.findByRole('button', { name: 'Delete the document' }),
+        );
+
+        expect(destroy).toHaveBeenCalledWith(
+            '/documents/5',
+            expect.objectContaining({
+                preserveState: false,
+                preserveScroll: true,
+            }),
+        );
+    });
+
     it('closed, it shows nothing', () => {
         renderPage(FmConfirmDelete, { ...props, open: false });
 
