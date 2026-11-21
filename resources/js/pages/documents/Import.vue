@@ -17,7 +17,7 @@
  * What the files already imported say (a policy not linked) shows on top, and so do the documents saved with
  * *Create the card* while other files failed, with the link to *New card* for them (`cardDocuments`).
  */
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     ChevronLeft,
     ChevronRight,
@@ -25,7 +25,6 @@ import {
     Clock,
     ExternalLink,
     FileText,
-    X,
 } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
@@ -118,11 +117,6 @@ const desktop = useComputerLayout();
 
 /** The card the files come from. */
 const preset = computed(() => props.presetLinks[0]);
-
-/** Where × goes: the card the files come from, or *To sort*, where the files stay. */
-const closeUrl = computed(() =>
-    preset.value ? presetUrl(preset.value) : toSort().url,
-);
 
 /** Whether the open file is the last one. */
 const last = computed(() => position.value === props.files.length - 1);
@@ -581,30 +575,23 @@ usePageTrail(() => [
             </FmTitle>
         </template>
         <div v-else-if="current" class="flex flex-col gap-3">
-            <div class="flex items-center gap-2">
-                <Link
-                    :href="closeUrl"
-                    data-discard-changes
-                    :aria-label="$t('Close')"
-                    class="-ml-2.5 flex size-11 items-center justify-center text-ink"
-                >
-                    <FmIcon :icon="X" :size="24" />
-                </Link>
-                <h1 class="m-0 grow text-subtitle">
-                    {{
-                        $tChoice(
-                            '{1} Import :count file|[2,*] Import :count files',
-                            files.length,
-                        )
-                    }}
-                </h1>
-                <span class="text-label text-ink-soft">{{
-                    $t('File :current of :total', {
-                        current: String(position + 1),
-                        total: String(files.length),
-                    })
-                }}</span>
-            </div>
+            <FmTitle
+                :title="
+                    $tChoice(
+                        '{1} Import :count file|[2,*] Import :count files',
+                        files.length,
+                    )
+                "
+            >
+                <template #actions>
+                    <span class="text-label text-ink-soft">{{
+                        $t('File :current of :total', {
+                            current: String(position + 1),
+                            total: String(files.length),
+                        })
+                    }}</span>
+                </template>
+            </FmTitle>
             <div
                 class="grid gap-1.5"
                 :style="{

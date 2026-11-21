@@ -10,15 +10,13 @@
  * card (`FmCardPayments`), as the board *Modifica-pc*.
  */
 import type { RequestPayload } from '@inertiajs/core';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCardFiles from '@/components/fm/FmCardFiles.vue';
 import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardForm from '@/components/fm/FmCardForm.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmSubscriptionPlanned from '@/components/fm/FmSubscriptionPlanned.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
@@ -29,7 +27,6 @@ import { emptyPlan, type SubscriptionPlan } from '@/lib/subscriptionPlan';
 import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const {
     type,
@@ -218,26 +215,13 @@ function save(data: Record<string, unknown>): void {
         visit,
     );
 }
-
-const layout = useLayoutMode();
 </script>
 
 <template>
     <Head :title="title" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="title">
-            <template #actions>
-                <Link
-                    v-if="layout !== 'computer'"
-                    :href="back"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
+        <FmTitle :title="title"> </FmTitle>
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

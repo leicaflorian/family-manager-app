@@ -10,7 +10,7 @@
  * what is missing, only when mail with files arrived) lists the last three mails with the card their documents are
  * linked to, each opening *Received mail*. The recently uploaded documents come with their own item.
  *
- * On the phone the magnifier and the bell of the notices (`FmTitleTools`) sit beside the greeting; on
+ * The greeting is the `FmTitle` of the page: on the phone it draws the magnifier and the bell of the notices beside it; on
  * the tablet and the computer they are in the top bar of the layout.
  */
 import { Head } from '@inertiajs/vue3';
@@ -25,10 +25,9 @@ import FmChecklist from '@/components/fm/FmChecklist.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
-import FmTitleTools from '@/components/fm/FmTitleTools.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
 import { agenda, areas, toSort, upload } from '@/routes';
@@ -42,9 +41,6 @@ const { home } = defineProps<{
 }>();
 
 const day = computed(() => formatLongDate(home.today, getActiveLanguage()));
-
-/** The layout: the magnifier and the bell beside the greeting are only on the phone. */
-const mode = useLayoutMode();
 
 /** Whether the window has the wide layout: the button of the documents to complete beside the text. */
 const wide = useWideLayout();
@@ -144,20 +140,11 @@ function mailTitle(mail: App.Data.HomeMailData): string {
     <Head :title="$t('Home')" />
 
     <div class="flex flex-col gap-5">
-        <div
-            class="flex justify-between gap-3"
-            :class="wide ? 'items-end' : 'items-center'"
-        >
-            <div class="flex flex-col gap-1">
-                <span class="text-body-sm text-ink-soft wide:text-body-sm">{{
-                    day
-                }}</span>
-                <h1 class="m-0 text-title-mobile wide:text-title">
-                    {{ $t('Hi, :name', { name: home.first_name }) }}
-                </h1>
-            </div>
-            <FmTitleTools v-if="mode === 'phone'" />
-        </div>
+        <FmTitle :title="$t('Hi, :name', { name: home.first_name })">
+            <template #overline>
+                <span class="text-body-sm text-ink-soft">{{ day }}</span>
+            </template>
+        </FmTitle>
 
         <section
             v-if="home.pending_count > 0"

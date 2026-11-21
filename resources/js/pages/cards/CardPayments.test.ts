@@ -64,6 +64,23 @@ describe('Payments of a card', () => {
         ).toBeInTheDocument();
     });
 
+    it('has one title with the area and the type above it and Record payment beside it', () => {
+        renderPage(CardPayments, props);
+
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+            props.budget.payments_label ?? '',
+        );
+        expect(
+            screen.getByText(
+                `${props.card.area_label} · ${props.card.type_label}`,
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'Record payment' }),
+        ).toBeInTheDocument();
+    });
+
     it('records a payment and says which payments it lists', () => {
         renderPage(CardPayments, props);
 

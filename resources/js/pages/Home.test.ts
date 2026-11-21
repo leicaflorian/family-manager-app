@@ -25,7 +25,11 @@ const shared = vi.hoisted(() => ({
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     Head: { render: () => null },
-    usePage: () => ({ url: '/dashboard', props: { ...shared } }),
+    usePage: () => ({
+        component: 'Home',
+        url: '/dashboard',
+        props: { ...shared },
+    }),
 }));
 
 /** The Home of the Bianchi on 26/10/2026, as the server sends it. */

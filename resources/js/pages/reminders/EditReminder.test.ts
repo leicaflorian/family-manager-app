@@ -69,6 +69,15 @@ describe('Edit a reminder', () => {
         ]);
     });
 
+    it('has one title and no Close button: the form closes with Back or Cancel', () => {
+        renderPage(EditReminder, props);
+
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(
+            screen.queryByRole('link', { name: 'Close' }),
+        ).not.toBeInTheDocument();
+    });
+
     it('is the empty form, with the recipients of the default group', () => {
         renderPage(EditReminder, props);
 

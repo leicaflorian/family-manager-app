@@ -10,14 +10,12 @@
  * bank*, the rule the payment is recognised by; `?rule_from=` opens the panel
  * that writes it from a movement of *From the bank*.
  */
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, toRef } from 'vue';
 import BankMatchField from '@/components/budget/BankMatchField.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCardChoice } from '@/composables/useCardChoice';
 import { usePageTrail } from '@/composables/usePageTrail';
@@ -28,7 +26,6 @@ import { isEmpty, withNone } from '@/lib/forms';
 import { budget } from '@/routes';
 import { destroy, index, show, store, update } from '@/routes/budget/planned';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 
 const {
     kind,
@@ -92,7 +89,7 @@ const heading = computed(() =>
           : trans('New planned expense'),
 );
 
-/** Where *Close* and *Cancel* go back to. */
+/** Where *Cancel* goes back to. */
 const back = computed(() =>
     planned ? show.url({ kind, id: planned.id }) : index().url,
 );
@@ -156,26 +153,13 @@ onMounted(() => {
         preserveScroll: true,
     });
 });
-
-const layout = useLayoutMode();
 </script>
 
 <template>
     <Head :title="heading" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="heading">
-            <template #actions>
-                <Link
-                    v-if="layout !== 'computer'"
-                    :href="back"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
+        <FmTitle :title="heading"> </FmTitle>
 
         <form
             class="flex max-w-[720px] flex-col gap-6 rounded-sheet bg-card p-5 shadow-card wide:p-7"

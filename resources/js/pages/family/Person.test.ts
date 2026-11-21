@@ -183,6 +183,20 @@ describe('A person', () => {
         ).toBeInTheDocument();
     });
 
+    it('has the photo before the one title of the page, from FmTitle', () => {
+        renderGiulia({ ...personDetail, photo: '/files/40' });
+
+        const title = screen.getByRole('heading', { level: 1 });
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(title).toHaveTextContent('Giulia Bianchi');
+        expect(
+            screen
+                .getByRole('img', { name: 'Giulia Bianchi' })
+                .compareDocumentPosition(title) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
     it('shows her photo beside the name', () => {
         renderGiulia({ ...personDetail, photo: '/files/40' });
 

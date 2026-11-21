@@ -116,6 +116,24 @@ describe('An organization', () => {
         ).toBeInTheDocument();
     });
 
+    it('has the logo before the one title of the page, from FmTitle', () => {
+        renderPage(Organization, {
+            organization: { ...organizationDetail, logo: '/files/41' },
+            links,
+            documents: [bill],
+        });
+
+        const title = screen.getByRole('heading', { level: 1 });
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(title).toHaveTextContent('Edison');
+        expect(
+            screen
+                .getByRole('img', { name: 'Edison' })
+                .compareDocumentPosition(title) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
     it('shows its logo beside the name', () => {
         renderPage(Organization, {
             organization: { ...organizationDetail, logo: '/files/41' },

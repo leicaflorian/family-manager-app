@@ -72,6 +72,16 @@ describe('A planned expense', () => {
         ).toBeInTheDocument();
     });
 
+    it('has one title with the line of the card above it and Edit beside it', () => {
+        renderPage(PlannedItem, props);
+
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+            'Retta danza',
+        );
+        expect(screen.getByRole('link', { name: 'Edit' })).toBeInTheDocument();
+    });
+
     it('leads to the form with Edit', () => {
         renderPage(PlannedItem, props);
 

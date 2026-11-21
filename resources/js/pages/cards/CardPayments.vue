@@ -12,6 +12,7 @@ import { computed } from 'vue';
 import FmNumberTile from '@/components/fm/FmNumberTile.vue';
 import FmPayButton from '@/components/fm/FmPayButton.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { listNames } from '@/lib/names';
 import { areas } from '@/routes';
@@ -63,21 +64,19 @@ const note = computed((): string => {
     <Head :title="`${budget.payments_label} · ${card.label}`" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <div class="flex flex-wrap items-end justify-between gap-4">
-            <div class="flex min-w-0 flex-col gap-1.5">
+        <FmTitle :title="budget.payments_label ?? $t('Payments')">
+            <template #overline>
                 <span class="text-label text-ink-soft">{{
                     `${card.area_label} · ${card.type_label}`
                 }}</span>
-                <h1 class="m-0 text-title-mobile">
-                    {{ budget.payments_label }}
-                </h1>
-            </div>
-            <FmPayButton
-                v-if="budget.can_pay"
-                :deadlines="budget.pay"
-                :label="income ? $t('Record income') : $t('Record payment')"
-            />
-        </div>
+            </template>
+            <template v-if="budget.can_pay" #actions>
+                <FmPayButton
+                    :deadlines="budget.pay"
+                    :label="income ? $t('Record income') : $t('Record payment')"
+                />
+            </template>
+        </FmTitle>
 
         <div
             v-if="numbers.length > 0"
