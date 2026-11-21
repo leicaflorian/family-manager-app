@@ -137,5 +137,10 @@ class AppServiceProvider extends ServiceProvider
             ? Password::min(10)->uncompromised()
             : Password::min(10),
         );
+
+        // Livewire's file uploads (the owner panel) get a throttle counter of their own, like every route: a throttle
+        // without a prefix counts together with every other one of the same person. Set here and not in a published
+        // config/livewire.php, which would replace the whole `temporary_file_upload` group (the merge is shallow).
+        config(['livewire.temporary_file_upload.middleware' => 'throttle:60,1,livewire-upload']);
     }
 }
