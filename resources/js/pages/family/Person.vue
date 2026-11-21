@@ -16,7 +16,6 @@ import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmActions from '@/components/fm/FmActions.vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -196,8 +195,6 @@ usePageTrail(() => [
     <Head :title="name" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink :href="index().url" :label="$t('People')" />
-
         <!-- As in FmTitle: the actions take the room the name leaves -->
         <div class="flex items-center justify-between gap-4">
             <div class="flex max-w-[60%] min-w-0 shrink-0 items-center gap-4">

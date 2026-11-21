@@ -30,7 +30,7 @@ provideOnColor();
 /** The background: a fade from the dark colour of the area to a lighter one. */
 const background = computed((): string =>
     cn(
-        'flex flex-wrap items-end justify-between gap-4 rounded-sheet bg-linear-160 p-5 text-on-hero lg:p-7',
+        'flex flex-wrap items-end justify-between gap-4 rounded-sheet bg-linear-160 p-5 text-on-hero computer:p-7',
         areaHeader[areaOf(card.area) ?? 'general'],
     ),
 );
@@ -44,7 +44,7 @@ const background = computed((): string =>
                     `${card.area_label} · ${card.type_label}`
                 }}
             </span>
-            <h1 class="m-0 text-title-mobile lg:text-title">
+            <h1 class="m-0 text-title-mobile computer:text-title">
                 {{ card.label }}
             </h1>
             <span class="text-body">{{ heading }}</span>

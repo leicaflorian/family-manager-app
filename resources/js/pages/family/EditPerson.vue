@@ -94,12 +94,6 @@ usePageTrail(() => [
                     ? $t('Edit :name', { name: person.first_name })
                     : $t('New person')
             "
-            :back="back"
-            :back-label="
-                person
-                    ? `${person.first_name} ${person.last_name}`
-                    : $t('People')
-            "
         >
             <template #actions>
                 <Link

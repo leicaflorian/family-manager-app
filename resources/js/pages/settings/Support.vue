@@ -84,11 +84,7 @@ usePageTrail(() => [
 
     <FmSettingsPage current="support">
         <template #title>
-            <FmTitle
-                :title="$t('Support')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
-            />
+            <FmTitle :title="$t('Support')" />
         </template>
         <FmCard>
             <div class="flex flex-col gap-4">

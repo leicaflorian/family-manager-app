@@ -92,8 +92,6 @@ usePageTrail(() => [
         <template #title>
             <FmTitle
                 :title="$t('Expense categories')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
                 :subtitle="
                     $t(
                         'The card a category refers to is chosen on its main category',

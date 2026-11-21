@@ -18,7 +18,6 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Link2, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCardBudget from '@/components/fm/FmCardBudget.vue';
@@ -127,11 +126,6 @@ function link(id: number): void {
     <Head :title="card.card.label" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink
-            :href="showArea.url(card.card.area)"
-            :label="card.card.area_label"
-        />
-
         <FmCardHeader :card="card.card" :heading="card.heading">
             <template v-if="actions.length > 0" #actions>
                 <FmActions :actions="actions" />

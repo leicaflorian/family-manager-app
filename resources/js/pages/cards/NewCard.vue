@@ -78,8 +78,6 @@ function tile(area: string): string {
         <FmTitle
             :title="$t('New card')"
             :subtitle="$t('What do you want to add?')"
-            :back="areas().url"
-            :back-label="$t('Areas')"
         />
 
         <Link

@@ -123,11 +123,7 @@ const layout = useLayoutMode();
     <Head :title="heading" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle
-            :title="heading"
-            :back="back"
-            :back-label="planned?.title ?? $t('Planned expenses and incomes')"
-        >
+        <FmTitle :title="heading">
             <template #actions>
                 <Link
                     v-if="layout !== 'computer'"

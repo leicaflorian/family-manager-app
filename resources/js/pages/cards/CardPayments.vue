@@ -9,7 +9,6 @@
 import { Head } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmNumberTile from '@/components/fm/FmNumberTile.vue';
 import FmPayButton from '@/components/fm/FmPayButton.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
@@ -64,11 +63,6 @@ const note = computed((): string => {
     <Head :title="`${budget.payments_label} · ${card.label}`" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink
-            :href="show.url({ type: card.type, id: card.id })"
-            :label="card.label"
-        />
-
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div class="flex min-w-0 flex-col gap-1.5">
                 <span class="text-label text-ink-soft">{{

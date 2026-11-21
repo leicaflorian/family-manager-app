@@ -152,7 +152,7 @@ const groups = computed(
 <template>
     <div v-if="wide" class="flex flex-col gap-6">
         <!-- Not an FmTitle: the titles under this frame are those of the sections. -->
-        <h1 class="m-0 text-title-mobile lg:text-title">
+        <h1 class="m-0 text-title-mobile computer:text-title">
             {{ $t('Settings') }}
         </h1>
         <div class="flex flex-wrap items-start gap-6">

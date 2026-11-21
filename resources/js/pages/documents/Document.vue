@@ -30,12 +30,7 @@ usePageTrail(() => [
     <Head :title="document.title" />
 
     <div class="flex max-w-[1120px] flex-col gap-6">
-        <FmTitle
-            :title="document.title"
-            :subtitle="subtitle || undefined"
-            :back="index().url"
-            :back-label="$t('Documents')"
-        >
+        <FmTitle :title="document.title" :subtitle="subtitle || undefined">
             <template #actions>
                 <FmDocumentActions :document="document" />
             </template>

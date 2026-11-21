@@ -15,7 +15,6 @@ import { Plus, Receipt, Search, Wallet } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useListFilters } from '@/composables/useListFilters';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
@@ -32,7 +31,6 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import FmTitleTools from '@/components/fm/FmTitleTools.vue';
 import { useFormat } from '@/composables/useFormat';
 import type { MovementsQuery } from '@/lib/budget';
 import {
@@ -71,7 +69,6 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 }>();
 
 /** The layout: the magnifier and the bell beside the title are only on the phone. */
-const mode = useLayoutMode();
 const { euro } = useFormat();
 
 /** The search box, the visits with other filters and the column of the filters. */
@@ -304,7 +301,6 @@ function subtitle(movement: App.Data.MovementData): string {
     <div class="flex flex-col gap-4">
         <FmTitle :title="$t('Budget')">
             <template #actions>
-                <FmTitleTools v-if="mode === 'phone'" />
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')
                 }}</FmButton>

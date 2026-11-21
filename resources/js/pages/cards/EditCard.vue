@@ -226,11 +226,7 @@ const layout = useLayoutMode();
     <Head :title="title" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle
-            :title="title"
-            :back="back"
-            :back-label="card ? card.label : type.area_label"
-        >
+        <FmTitle :title="title">
             <template #actions>
                 <Link
                     v-if="layout !== 'computer'"

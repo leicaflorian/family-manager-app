@@ -13,7 +13,6 @@
 import { Head, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmCardFiles from '@/components/fm/FmCardFiles.vue';
 import FmMovementPanel from '@/components/fm/FmMovementPanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
@@ -92,9 +91,6 @@ usePageTrail(() => [
 /** The page is wide: the title is the page's, and the form has none. */
 const wide = useWideLayout();
 
-/** The name of the page the link back leads to. */
-const backLabel = computed(() => fromCard.value?.label ?? trans('Movements'));
-
 /** The files of new documents, sent with the movement. */
 const files = ref<File[]>([]);
 
@@ -117,13 +113,7 @@ function close(): void {
     <Head :title="title" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle
-            v-if="wide"
-            :title="title"
-            :back="backHref"
-            :back-label="backLabel"
-        />
-        <FmBackLink v-else :href="backHref" :label="backLabel" />
+        <FmTitle v-if="wide" :title="title" />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

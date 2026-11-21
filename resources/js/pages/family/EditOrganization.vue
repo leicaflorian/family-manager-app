@@ -87,8 +87,6 @@ usePageTrail(() => [
                     ? $t('Edit :name', { name: organization.name })
                     : $t('New organization')
             "
-            :back="back"
-            :back-label="organization?.name ?? $t('Organizations')"
         >
             <template #actions>
                 <Link

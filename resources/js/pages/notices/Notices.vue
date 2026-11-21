@@ -79,11 +79,7 @@ function markAll(): void {
     <Head :title="$t('Notices')" />
 
     <div class="flex flex-col gap-5">
-        <FmTitle
-            :title="$t('Notices')"
-            :back="dashboard().url"
-            :back-label="$t('Home')"
-        >
+        <FmTitle :title="$t('Notices')">
             <template v-if="anyUnread" #actions>
                 <FmSectionLink @click="markAll">{{
                     $t('Mark all as read')

@@ -22,7 +22,6 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import FmAmount from '@/components/fm/FmAmount.vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
@@ -313,11 +312,6 @@ const exceptionIcons = {
     <Head :title="row.title" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink
-            :href="index().url"
-            :label="$t('Planned expenses and incomes')"
-        />
-
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="flex min-w-0 flex-col gap-1.5">
                 <span class="flex items-center gap-1.5 text-label text-warning">
