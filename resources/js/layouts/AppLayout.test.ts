@@ -236,13 +236,19 @@ describe('AppLayout', () => {
         expect(screen.queryByRole('button', { name: /the menu/ })).toBeNull();
     });
 
-    it('gives the sidebar Usage when the family has a utility with consumption', () => {
+    it('gives the sidebar Usage when the family has a utility with consumption', async () => {
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Show the budget pages' }),
+        );
         expect(screen.queryByRole('link', { name: 'Usage' })).toBeNull();
         cleanup();
 
         page.hasConsumption = true;
         render(AppLayout, { slots: { default: '<h1>Documents</h1>' } });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Show the budget pages' }),
+        );
 
         expect(screen.getByRole('link', { name: 'Usage' })).toHaveAttribute(
             'href',

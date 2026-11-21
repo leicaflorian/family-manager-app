@@ -7,11 +7,20 @@
  * the page searches every month: the list is grouped by month, with how many
  * were found and their total instead of the month and its figures. On the
  * computer the filters are a column on the left; on the phone they are in the
- * panel from below. A row, and *New expense or income*, always open the page of
+ * panel from below. Under the tabs, while no search or filter is on, a box leads
+ * to the other pages of the Budget: *Planned and spent* and, with a utility with
+ * consumption, *Usage*. A row, and *New expense or income*, always open the page of
  * the movement, which brings back to this list (`?from=`).
  */
-import { Head, router } from '@inertiajs/vue3';
-import { Plus, Receipt, Search, Wallet } from '@lucide/vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import {
+    ChartColumn,
+    ChartPie,
+    Plus,
+    Receipt,
+    Search,
+    Wallet,
+} from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -45,6 +54,7 @@ import { budgetTabs } from '@/lib/budgetTabs';
 import type { FilterPill } from '@/lib/filters';
 import { rangePills } from '@/lib/filters';
 import { expenseIcon } from '@/lib/icons';
+import { comparison, consumption } from '@/routes/budget';
 import { create, show } from '@/routes/budget/movements';
 
 const props = defineProps<{
@@ -71,6 +81,12 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 
 const { euro } = useFormat();
 const bankFeed = useBankFeed();
+const page = usePage();
+
+/** The family has an electricity, gas or water utility: *Usage* is offered too. */
+const hasConsumption = computed(
+    (): boolean => page.props.has_consumption ?? false,
+);
 
 /** The search box, the visits with other filters and the column of the filters. */
 const {
@@ -311,6 +327,47 @@ function subtitle(movement: App.Data.MovementData): string {
             :tabs="budgetTabs('movements', bankFeed)"
             :label="$t('Budget')"
         />
+
+        <!-- The other pages of the Budget: they have no tab, the sidebar has them on the computer too -->
+        <nav
+            v-if="pills.length === 0"
+            :aria-label="$t('More in the budget')"
+            class="wide:max-w-130"
+        >
+            <FmCard list>
+                <FmRow
+                    :title="$t('Planned and spent')"
+                    :subtitle="
+                        $t('What you planned and what you spent, by category')
+                    "
+                    :href="comparison().url"
+                    arrow
+                >
+                    <template #before>
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                        >
+                            <FmIcon :icon="ChartPie" :size="20" />
+                        </span>
+                    </template>
+                </FmRow>
+                <FmRow
+                    v-if="hasConsumption"
+                    :title="$t('Electricity, gas and water use')"
+                    :subtitle="$t('How much you use and pay, month by month')"
+                    :href="consumption().url"
+                    arrow
+                >
+                    <template #before>
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-home-soft text-home-text"
+                        >
+                            <FmIcon :icon="ChartColumn" :size="20" />
+                        </span>
+                    </template>
+                </FmRow>
+            </FmCard>
+        </nav>
 
         <div class="flex w-full max-w-105 gap-2.5">
             <form

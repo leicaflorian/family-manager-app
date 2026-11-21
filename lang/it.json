@@ -2253,7 +2253,6 @@
     ":count months earlier": ":count mesi prima",
     ":count months later": ":count mesi dopo",
     "Usage": "Consumi",
-    "In the Budget": "Nel Bilancio",
     "Electricity, gas and water use": "Consumi di luce, gas e acqua",
     "How much you use and pay, month by month": "Quanto consumi e quanto paghi, mese per mese",
     "Spending": "Spesa",
@@ -2325,5 +2324,8 @@
     "You can close the page: I carry on by myself and the chart fills up as I go.": "Puoi chiudere la pagina: continuo da solo e il grafico si riempie man mano.",
     "{0} There are no bills to read.|{1} I am reading :count bill.|[2,*] I am reading :count bills.": "{0} Non ci sono bollette da leggere.|{1} Sto leggendo :count bolletta.|[2,*] Sto leggendo :count bollette.",
     "See the consumption": "Vedi i consumi",
-    "To record the consumption correct the period in its box: the first day comes before the last, and it lasts at most 400 days.": "Per segnare i consumi correggi il periodo nella sua casella: il primo giorno viene prima dell'ultimo, e dura al massimo 400 giorni."
+    "To record the consumption correct the period in its box: the first day comes before the last, and it lasts at most 400 days.": "Per segnare i consumi correggi il periodo nella sua casella: il primo giorno viene prima dell'ultimo, e dura al massimo 400 giorni.",
+    "What you planned and what you spent, by category": "Quanto avevi previsto e quanto hai speso, per categoria",
+    "More in the budget": "Altro nel Bilancio",
+    "Show the budget pages": "Mostra le pagine del Bilancio"
 }
