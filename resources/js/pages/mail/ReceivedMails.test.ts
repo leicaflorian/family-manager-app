@@ -124,7 +124,6 @@ describe('ReceivedMails', () => {
     });
 
     it('copies the address with a click and says so for two seconds', async () => {
-        vi.useFakeTimers({ shouldAdvanceTime: true });
         const writeText = vi.fn().mockResolvedValue(undefined);
         vi.stubGlobal('navigator', { clipboard: { writeText } });
         renderPage(ReceivedMails, page);
@@ -134,11 +133,14 @@ describe('ReceivedMails', () => {
         );
 
         expect(writeText).toHaveBeenCalledWith(ADDRESS);
+        expect(
+            screen.getByRole('button', { name: `Copy the address ${ADDRESS}` })
+                .textContent,
+        ).toBe(ADDRESS);
         expect(await screen.findByText('Address copied')).toBeInTheDocument();
 
         await vi.advanceTimersByTimeAsync(2100);
         expect(screen.queryByText('Address copied')).not.toBeInTheDocument();
-        vi.useRealTimers();
     });
 
     it('selects the address when the browser refuses to copy it', async () => {

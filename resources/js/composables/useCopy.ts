@@ -9,6 +9,11 @@ export type UseCopy = {
     failed: Ref<boolean>;
     /** Copies a text to the clipboard; true when it worked. */
     copy: (text: string) => Promise<boolean>;
+    /** Copies a text; when the browser refuses, selects the element showing it so the person can press ⌘C. True when it was copied. */
+    copyOrSelect: (
+        text: string,
+        element: HTMLElement | null | undefined,
+    ) => Promise<boolean>;
     /** Forgets both, as for a new text to copy. */
     reset: () => void;
 };
@@ -24,21 +29,32 @@ export function useCopy(): UseCopy {
     const copied = ref(false);
     const failed = ref(false);
 
+    const copy = async (text: string): Promise<boolean> => {
+        try {
+            // Without a clipboard (a page that is not secure) this throws too
+            await navigator.clipboard.writeText(text);
+            copied.value = true;
+            failed.value = false;
+        } catch {
+            copied.value = false;
+            failed.value = true;
+        }
+
+        return copied.value;
+    };
+
     return {
         copied,
         failed,
-        copy: async (text) => {
-            try {
-                // Without a clipboard (a page that is not secure) this throws too
-                await navigator.clipboard.writeText(text);
-                copied.value = true;
-                failed.value = false;
-            } catch {
-                copied.value = false;
-                failed.value = true;
+        copy,
+        copyOrSelect: async (text, element) => {
+            const done = await copy(text);
+
+            if (!done && element) {
+                window.getSelection()?.selectAllChildren(element);
             }
 
-            return copied.value;
+            return done;
         },
         reset: () => {
             copied.value = false;

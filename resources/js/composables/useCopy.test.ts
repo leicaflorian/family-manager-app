@@ -52,4 +52,21 @@ describe('useCopy', () => {
         expect(copied.value).toBe(false);
         expect(failed.value).toBe(false);
     });
+
+    it('selects the element when the browser refuses, and leaves it alone when it copies', async () => {
+        const element = document.createElement('button');
+        element.textContent = 'a@b.c';
+        document.body.append(element);
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal('navigator', { clipboard: { writeText } });
+        const { copyOrSelect } = useCopy();
+
+        expect(await copyOrSelect('a@b.c', element)).toBe(true);
+        expect(window.getSelection()?.toString()).toBe('');
+
+        writeText.mockRejectedValue(new Error('no'));
+        expect(await copyOrSelect('a@b.c', element)).toBe(false);
+        expect(window.getSelection()?.toString()).toBe('a@b.c');
+        element.remove();
+    });
 });

@@ -166,16 +166,8 @@ async function copyAddress(): Promise<void> {
 
     keepAddressCopy();
 
-    if (await addressCopier.copy(props.address)) {
+    if (await addressCopier.copyOrSelect(props.address, addressElement.value)) {
         forgetAddressCopy();
-
-        return;
-    }
-
-    const element = addressElement.value;
-
-    if (element) {
-        window.getSelection()?.selectAllChildren(element);
     }
 }
 
@@ -247,12 +239,8 @@ function saveAsNotice(): void {
 
 /** Copies the code of Gmail; when the browser refuses, selects it for the person to copy. */
 async function copyCode(): Promise<void> {
-    if (props.mail?.gmail_code && !(await copier.copy(props.mail.gmail_code))) {
-        const element = codeElement.value;
-
-        if (element) {
-            window.getSelection()?.selectAllChildren(element);
-        }
+    if (props.mail?.gmail_code) {
+        await copier.copyOrSelect(props.mail.gmail_code, codeElement.value);
     }
 }
 </script>
@@ -276,13 +264,13 @@ async function copyCode(): Promise<void> {
                             $t('Copy the address :address', { address })
                         "
                         @click="copyAddress"
-                    >
-                        {{ address }}</button
+                        v-text="address"
+                    ></button
                     >{{ subtitleParts[1] }}
                     <span
                         v-if="addressCopier.copied.value"
                         role="status"
-                        class="text-success ml-2"
+                        class="ml-2"
                         >{{ $t('Address copied') }}</span
                     >
                 </template>
