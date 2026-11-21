@@ -5,6 +5,7 @@ import {
     formatDateTime,
     formatShortDateTime,
     formatEuro,
+    formatNumber,
     formatQuantity,
     formatMoney,
     formatDayTitle,
@@ -130,6 +131,14 @@ describe('formatShortDateTime', () => {
 describe('formatDayMonth', () => {
     it('writes dd/mm from a date of the server', () => {
         expect(formatDayMonth('2026-09-05')).toBe('05/09');
+    });
+});
+
+describe('formatNumber', () => {
+    it('writes a number the Italian way, with at most three decimals', () => {
+        expect(formatNumber(1000)).toBe('1.000');
+        expect(formatNumber(2.5)).toBe('2,5');
+        expect(formatNumber(12.3456)).toBe('12,346');
     });
 });
 

@@ -56,6 +56,17 @@ export function unitLabel(unit: string): string {
 }
 
 /**
+ * Writes a number, the Italian way: the thousands grouped, at most three
+ * decimals, none when they are zero.
+ *
+ * @param value - the number
+ * @returns for example `2.010,5`
+ */
+export function formatNumber(value: number): string {
+    return quantityFormat.format(value);
+}
+
+/**
  * Writes a consumption, the Italian way: at most three decimals, none when
  * they are zero.
  *
@@ -64,7 +75,7 @@ export function unitLabel(unit: string): string {
  * @returns for example `2.010 kWh`
  */
 export function formatQuantity(value: number, unit: string): string {
-    return `${quantityFormat.format(value)} ${unitLabel(unit)}`;
+    return `${formatNumber(value)} ${unitLabel(unit)}`;
 }
 
 /**
