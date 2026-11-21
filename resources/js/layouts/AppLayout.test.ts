@@ -255,6 +255,70 @@ describe('AppLayout', () => {
         expect(screen.getByRole('main')).toHaveTextContent('Documents');
     });
 
+    it('on the tablet has Back and the trail above the page, and none in the top bar', async () => {
+        screenWidth(820);
+        page.component = 'documents/Document';
+        page.url = '/documents/7';
+        render(AppLayout, { slots: { default: PageWithTrail } });
+
+        const main = screen.getByRole('main');
+        expect(
+            await within(main).findByRole('link', { name: 'Back' }),
+        ).toHaveAttribute('href', '/documents');
+        expect(
+            within(main).getByRole('navigation', { name: 'Where you are' }),
+        ).toHaveTextContent('Electricity bill');
+        expect(screen.getAllByRole('link', { name: 'Back' })).toHaveLength(1);
+        expect(
+            screen.getAllByRole('navigation', { name: 'Where you are' }),
+        ).toHaveLength(1);
+    });
+
+    it('on a section page has no row above the page', () => {
+        screenWidth(820);
+        page.component = 'Home';
+        page.url = '/';
+        render(AppLayout, { slots: { default: '<h1>Home</h1>' } });
+
+        expect(
+            within(screen.getByRole('main')).queryByRole('navigation', {
+                name: 'Where you are',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'Back' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('on the phone shows the link to the page above the page, and no trail', async () => {
+        screenWidth(390);
+        page.component = 'documents/Document';
+        page.url = '/documents/7';
+        render(AppLayout, { slots: { default: PageWithTrail } });
+
+        expect(
+            await within(screen.getByRole('main')).findByRole('link', {
+                name: 'Documents',
+            }),
+        ).toHaveAttribute('href', '/documents');
+        expect(
+            screen.queryByRole('navigation', { name: 'Where you are' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('on the computer has no row above the page', async () => {
+        page.component = 'documents/Document';
+        page.url = '/documents/7';
+        render(AppLayout, { slots: { default: PageWithTrail } });
+
+        await screen.findByRole('navigation', { name: 'Where you are' });
+        expect(
+            within(screen.getByRole('main')).queryByRole('navigation', {
+                name: 'Where you are',
+            }),
+        ).not.toBeInTheDocument();
+    });
+
     it('shows the trail written by the page', async () => {
         page.component = 'documents/Document';
         page.url = '/documents/7';

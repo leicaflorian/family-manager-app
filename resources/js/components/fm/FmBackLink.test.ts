@@ -17,14 +17,7 @@ describe('FmBackLink', () => {
         );
     });
 
-    it('is not drawn on the computer, where the top bar has Back and the trail', () => {
-        screenWidth(1280);
-        renderPage(FmBackLink, { href: '/areas/home', label: 'Home' });
-
-        expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    });
-
-    it.each([820, 390])('is drawn at %i px wide', (width) => {
+    it.each([1280, 820, 390])('is drawn at %i px wide', (width) => {
         screenWidth(width);
         renderPage(FmBackLink, { href: '/areas/home', label: 'Home' });
 

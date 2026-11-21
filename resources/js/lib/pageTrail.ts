@@ -44,6 +44,7 @@ export const SECTION_PAGES: readonly string[] = [
     'Areas',
     'documents/Documents',
     'documents/ToSort',
+    'mail/ReceivedMails',
     'budget/Movements',
     'budget/Comparison',
     'budget/Planned',
