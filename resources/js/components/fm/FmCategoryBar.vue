@@ -105,7 +105,7 @@ const comment = computed((): string =>
     <div
         v-if="wide"
         data-row
-        class="flex flex-col gap-2 px-4.5 py-3 computer:grid computer:grid-cols-[minmax(0,220px)_minmax(0,1fr)] computer:items-center computer:gap-4"
+        class="flex flex-col gap-2 px-4.5 py-3 computer:grid computer:grid-cols-[minmax(0,200px)_minmax(0,1fr)] computer:items-center computer:gap-4"
     >
         <ReuseName />
         <div class="flex min-w-0 flex-col gap-2">
