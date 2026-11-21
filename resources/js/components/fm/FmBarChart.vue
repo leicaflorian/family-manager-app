@@ -27,6 +27,7 @@ import type { ChartMonth } from '@/lib/charts';
 import { addMonths } from '@/lib/days';
 import { formatEuro, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import FmTooltip from './FmTooltip.vue';
 
 const {
     months,
@@ -343,6 +344,12 @@ const description = computed(() =>
           }),
 );
 
+/** Where the hover targets sit: over the plot, between the side margins. */
+const overlayStyle = computed(() => ({
+    left: `${(frame.left / frame.width) * 100}%`,
+    right: `${(frame.right / frame.width) * 100}%`,
+}));
+
 /** The title above the chart. */
 const heading = computed(() => title ?? trans('Expenses, the last 6 months'));
 
@@ -486,17 +493,6 @@ function move(event: KeyboardEvent, index: number): void {
                     class="stroke-edge"
                 />
                 <g v-for="bar in bars" :key="bar.month.month">
-                    <template v-if="!interactive && bar.data">
-                        <title>{{ bar.title }}</title>
-                        <!-- A wider invisible target, so the hover does not need a steady hand -->
-                        <rect
-                            :x="bar.centre - slot / 2"
-                            :y="frame.top"
-                            :width="slot"
-                            :height="plotHeight"
-                            fill="transparent"
-                        />
-                    </template>
                     <path
                         v-if="bar.path"
                         :d="bar.path"
@@ -571,25 +567,36 @@ function move(event: KeyboardEvent, index: number): void {
                     $t(':title, one button per month', { title: heading })
                 "
                 class="absolute inset-y-0 flex"
-                :style="{
-                    left: `${(frame.left / frame.width) * 100}%`,
-                    right: `${(frame.right / frame.width) * 100}%`,
-                }"
+                :style="overlayStyle"
             >
                 <template v-for="(bar, index) in bars" :key="bar.month.month">
-                    <button
-                        v-if="bar.data"
-                        type="button"
-                        class="flex-1 cursor-pointer rounded-tag border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-action"
-                        :data-month="bar.month.month"
-                        :aria-pressed="bar.chosen ? 'true' : 'false'"
-                        :aria-label="bar.title"
-                        :title="bar.title"
-                        :tabindex="bar.month.month === focusMonth ? 0 : -1"
-                        @click="emit('select', bar.month.month)"
-                        @keydown="move($event, index)"
-                    />
+                    <FmTooltip v-if="bar.data" :text="bar.title" side="top">
+                        <button
+                            type="button"
+                            class="flex-1 cursor-pointer rounded-tag border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-action"
+                            :data-month="bar.month.month"
+                            :aria-pressed="bar.chosen ? 'true' : 'false'"
+                            :aria-label="bar.title"
+                            :tabindex="bar.month.month === focusMonth ? 0 : -1"
+                            @click="emit('select', bar.month.month)"
+                            @keydown="move($event, index)"
+                        />
+                    </FmTooltip>
                     <span v-else class="flex-1" aria-hidden="true" />
+                </template>
+            </div>
+            <!-- Hover targets over the bars: the figure keeps its own label -->
+            <div
+                v-else
+                aria-hidden="true"
+                class="absolute inset-y-0 flex"
+                :style="overlayStyle"
+            >
+                <template v-for="bar in bars" :key="bar.month.month">
+                    <FmTooltip v-if="bar.data" :text="bar.title" side="top">
+                        <span class="flex-1" data-bar-target />
+                    </FmTooltip>
+                    <span v-else class="flex-1" />
                 </template>
             </div>
         </div>
