@@ -521,13 +521,15 @@ final class Consumption
     }
 
     /**
-     * A consumption as the person reads it in both languages: at most three decimals, none when zero (`1.290,5`).
+     * A consumption as the person reads it in both languages, as `formatQuantity()` writes it on the page: the
+     * thousands grouped, at most one decimal (rounded half away from zero, like `Intl.NumberFormat`), none when
+     * zero (`1.290,5`, `18,7`).
      *
      * @param  float  $value  the quantity
      */
     private function quantity(float $value): string
     {
-        return rtrim(rtrim(number_format($value, 3, ',', '.'), '0'), ',');
+        return rtrim(rtrim(number_format(round($value, 1), 1, ',', '.'), '0'), ',');
     }
 
     /**

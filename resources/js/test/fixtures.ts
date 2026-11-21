@@ -2188,7 +2188,7 @@ export const consumptionPage: App.Data.Consumption.ConsumptionPageData = {
         consumptionMonth('2026-06', 196, 61.15, 184, 52.07, 21),
         consumptionMonth('2026-07', 242, 77.92, 228, 66.35, 22),
         consumptionMonth('2026-08', 165, 55.28, 172, 50.74, 23),
-        consumptionMonth('2026-09', 205, 79.6, 188, 56.02, 24),
+        consumptionMonth('2026-09', 205, 79.6, 196, 56.02, 24),
     ],
     figures: {
         quantity: 2711,

@@ -135,17 +135,22 @@ describe('formatDayMonth', () => {
 });
 
 describe('formatNumber', () => {
-    it('writes a number the Italian way, with at most three decimals', () => {
+    it('writes a number the Italian way, with at most one decimal', () => {
         expect(formatNumber(1000)).toBe('1.000');
         expect(formatNumber(2.5)).toBe('2,5');
-        expect(formatNumber(12.3456)).toBe('12,346');
+        expect(formatNumber(12.3456)).toBe('12,3');
+        // rounded half away from zero, like round() on the server
+        expect(formatNumber(18.689)).toBe('18,7');
+        expect(formatNumber(6.25)).toBe('6,3');
+        expect(formatNumber(20.0)).toBe('20');
     });
 });
 
 describe('formatQuantity', () => {
-    it('writes a consumption with at most three decimals and its unit', () => {
+    it('writes a consumption with at most one decimal and its unit, as the boards', () => {
         expect(formatQuantity(201, 'kwh')).toBe('201 kWh');
         expect(formatQuantity(2010.5, 'smc')).toBe('2.010,5 Smc');
-        expect(formatQuantity(12.3456, 'm3')).toBe('12,346 m³');
+        expect(formatQuantity(12.3456, 'm3')).toBe('12,3 m³');
+        expect(formatQuantity(18.689, 'smc')).toBe('18,7 Smc');
     });
 });

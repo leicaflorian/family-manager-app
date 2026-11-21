@@ -78,6 +78,9 @@ it('opens the electricity of the last 12 months with data when nothing is asked'
             ->where('consumption.month', null)
             ->has('consumption.months', 12)
             ->where('consumption.figures.quantity', 2711)
+            ->where('consumption.figures.previousQuantity', 2501)
+            // The sentence of the board: September dearer, with the consumption of September 2025
+            ->where('consumption.sentence', "A settembre hai pagato la luce più cara dell'anno: 0,39\u{a0}€ a kWh contro una media di 0,31\u{a0}€. Il consumo non è salito: è cambiato il prezzo.")
             // Each type opens its first utility
             ->where('consumption.types', [
                 ['type' => 'electricity', 'label' => 'Luce', 'utility' => consumptionPageUtility(UtilityType::Electricity)->id],

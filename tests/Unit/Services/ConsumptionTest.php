@@ -70,7 +70,7 @@ function consumptionTestMonthly(string $first, array $months, array $estimated =
 function consumptionTestBianchi(): array
 {
     return [
-        [198, 55.84], [220, 62.70], [245, 71.05], [248, 71.42], [230, 65.78], [214, 60.78], [190, 53.20], [176, 49.10], [184, 52.07], [228, 66.35], [172, 50.74], [188, 56.02],
+        [198, 55.84], [220, 62.70], [245, 71.05], [248, 71.42], [230, 65.78], [214, 60.78], [190, 53.20], [176, 49.10], [184, 52.07], [228, 66.35], [172, 50.74], [196, 56.02],
         [214, 65.27], [236, 72.75], [262, 82.71], [290, 86.10], [268, 81.74], [240, 72.00], [205, 60.68], [188, 57.90], [196, 61.15], [242, 77.92], [165, 55.28], [205, 79.60],
     ];
 }
@@ -186,7 +186,7 @@ it('compares the 12 months with the year before when both are covered', function
 
     $figures = consumptionTestService()->figures($rows, CarbonImmutable::parse('2025-10-01'), CarbonImmutable::parse('2026-09-01'));
 
-    expect($figures->previousQuantity)->toBe(2493.0)->and($figures->bills)->toBe(12)->and($figures->toPay)->toBe(0);
+    expect($figures->previousQuantity)->toBe(2501.0)->and($figures->bills)->toBe(12)->and($figures->toPay)->toBe(0);
 });
 
 it('does not compare when only 9 months have data', function (): void {
@@ -264,6 +264,23 @@ it('says the price went up when the consumption did not', function (): void {
 it('says the consumption went up on the year before', function (): void {
     expect(consumptionTestSentence(consumptionTestFlat([120, 36])))->toBe('In September you used 120 kWh, 20 more than September 2025.')
         ->and(consumptionTestSentence(consumptionTestFlat([1290.5, 387.15]), locale: 'it'))->toBe('A settembre hai consumato 1.290,5 kWh, 1.190,5 più di settembre 2025.');
+});
+
+it('says the price went up on the 12 months of the seeder, as the board does', function (): void {
+    // September 2026: 205 kWh at 0,3883 € against 196 kWh in September 2025 and an average of 0,3147 €
+    expect(consumptionTestSentence(consumptionTestMonthly('2024-10-01', consumptionTestBianchi()), today: '2026-11-21', locale: 'it'))
+        ->toBe("A settembre hai pagato la luce più cara dell'anno: 0,39\u{a0}€ a kWh contro una media di 0,31\u{a0}€. Il consumo non è salito: è cambiato il prezzo.");
+});
+
+it('writes the quantities of the sentence with at most one decimal, as the page', function (): void {
+    // the September share of a two-month bill against the one of the year before
+    $months = array_fill(0, 24, [100.0, 30.0]);
+    $months[11] = [11.803, 4.0];
+    $months[23] = [18.689, 6.0];
+    $rows = consumptionTestMonthly('2024-10-01', $months);
+
+    expect(consumptionTestSentence($rows, type: UtilityType::Gas))->toBe('In September you used 18,7 Smc, 6,9 more than September 2025.')
+        ->and(consumptionTestSentence($rows, locale: 'it', type: UtilityType::Gas))->toBe('A settembre hai consumato 18,7 Smc, 6,9 più di settembre 2025.');
 });
 
 it('says the last two bills are estimated', function (): void {

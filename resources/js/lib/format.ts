@@ -33,8 +33,10 @@ function italianGrouping(text: string): string {
     return text.replace(/^(-?\d)(\d{3}),/, '$1.$2,').replace(/\s/g, ' ');
 }
 
+// One decimal at most, as the boards write consumption; rounded half away from zero, like round() on the server
+// (`Consumption::quantity()`)
 const quantityFormat = new Intl.NumberFormat('it-IT', {
-    maximumFractionDigits: 3,
+    maximumFractionDigits: 1,
     useGrouping: 'always',
 });
 
@@ -56,8 +58,8 @@ export function unitLabel(unit: string): string {
 }
 
 /**
- * Writes a number, the Italian way: the thousands grouped, at most three
- * decimals, none when they are zero.
+ * Writes a number, the Italian way: the thousands grouped, at most one
+ * decimal, none when it is zero.
  *
  * @param value - the number
  * @returns for example `2.010,5`
@@ -67,8 +69,8 @@ export function formatNumber(value: number): string {
 }
 
 /**
- * Writes a consumption, the Italian way: at most three decimals, none when
- * they are zero.
+ * Writes a consumption, the Italian way: at most one decimal, none when it
+ * is zero (`18,7 Smc`).
  *
  * @param value - the quantity
  * @param unit - the unit of the utility (`kwh`, `smc`, `m3`)

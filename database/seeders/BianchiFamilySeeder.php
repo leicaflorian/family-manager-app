@@ -489,9 +489,10 @@ final class BianchiFamilySeeder extends Seeder
         $start = CarbonImmutable::parse('2024-10-01');
         $documents = Document::query()->whereIn('title', ['Bolletta luce di settembre', 'Bolletta gas di settembre'])->get()->keyBy('title');
 
-        // kWh and euro of each month; the euro of the 12 months of the board is 853,10 and September has the highest price
+        // kWh and euro of each month; the euro of the 12 months of the board is 853,10 and September has the highest price,
+        // with about the consumption of September 2025 (205 against 196 kWh), so the page says the price changed
         $electricity = [
-            [198, 55.84], [220, 62.70], [245, 71.05], [248, 71.42], [230, 65.78], [214, 60.78], [190, 53.20], [176, 49.10], [184, 52.07], [228, 66.35], [172, 50.74], [188, 56.02],
+            [198, 55.84], [220, 62.70], [245, 71.05], [248, 71.42], [230, 65.78], [214, 60.78], [190, 53.20], [176, 49.10], [184, 52.07], [228, 66.35], [172, 50.74], [196, 56.02],
             [214, 65.27], [236, 72.75], [262, 82.71], [290, 86.10], [268, 81.74], [240, 72.00], [205, 60.68], [188, 57.90], [196, 61.15], [242, 77.92], [165, 55.28], [205, 79.60],
         ];
 
