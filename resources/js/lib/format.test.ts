@@ -5,6 +5,7 @@ import {
     formatDateTime,
     formatShortDateTime,
     formatEuro,
+    formatQuantity,
     formatMoney,
     formatDayTitle,
     formatLongDate,
@@ -129,5 +130,13 @@ describe('formatShortDateTime', () => {
 describe('formatDayMonth', () => {
     it('writes dd/mm from a date of the server', () => {
         expect(formatDayMonth('2026-09-05')).toBe('05/09');
+    });
+});
+
+describe('formatQuantity', () => {
+    it('writes a consumption with at most three decimals and its unit', () => {
+        expect(formatQuantity(201, 'kwh')).toBe('201 kWh');
+        expect(formatQuantity(2010.5, 'smc')).toBe('2.010,5 Smc');
+        expect(formatQuantity(12.3456, 'm3')).toBe('12,346 m³');
     });
 });

@@ -12,6 +12,8 @@ import {
 } from 'vite-plus/test';
 import { hasChanges } from '@/lib/unsavedChanges';
 import {
+    consumptionDraft,
+    consumptionProposal,
     enrolmentProposal,
     ferriProposal,
     homeDraft,
@@ -1374,6 +1376,153 @@ describe('Import', () => {
 
             expect(sent(post)[0]?.also).toMatchObject({
                 overrides: { event: { title: 'Controllo', type: 'exam' } },
+            });
+        });
+
+        describe('the consumption', () => {
+            it('proposes to record the consumption ticked, with its quantity and period', () => {
+                renderPage(Import, ferriProps(consumptionProposal));
+
+                expect(
+                    screen.getByRole('checkbox', {
+                        name: /Record the consumption/,
+                    }),
+                ).toBeChecked();
+                expect(
+                    screen.getByText('201 kWh from 01/09/2026 to 30/09/2026'),
+                ).toBeInTheDocument();
+                expect(screen.getByText('kWh')).toBeInTheDocument();
+                expect(
+                    screen.getByRole('spinbutton', { name: 'Consumption' }),
+                ).toHaveValue(201);
+                expect(getNode('also-consumption-from-7')?.value).toBe(
+                    '2026-09-01',
+                );
+                expect(getNode('also-consumption-to-7')?.value).toBe(
+                    '2026-09-30',
+                );
+                expect(
+                    screen.getByRole('switch', { name: /Estimated/ }),
+                ).not.toBeChecked();
+            });
+
+            it('warns to check the consumption when the price is out of range', () => {
+                renderPage(
+                    Import,
+                    ferriProps({
+                        ...consumptionProposal,
+                        consumption: {
+                            ...consumptionDraft,
+                            suggested: false,
+                            priceWarning: true,
+                            values: {
+                                ...consumptionDraft.values,
+                                quantity: 2010,
+                            },
+                        },
+                    }),
+                );
+
+                expect(
+                    screen.getByRole('checkbox', {
+                        name: /Record the consumption/,
+                    }),
+                ).not.toBeChecked();
+                expect(
+                    screen.getByText(
+                        /Check this consumption: it would be 0,04/,
+                    ),
+                ).toBeInTheDocument();
+            });
+
+            it('asks to choose the utility above', () => {
+                renderPage(
+                    Import,
+                    ferriProps({
+                        ...consumptionProposal,
+                        consumption: {
+                            ...consumptionDraft,
+                            utility: null,
+                            complete: ['utility'],
+                            blocked:
+                                'To record the consumption choose the utility above.',
+                        },
+                    }),
+                );
+
+                expect(
+                    screen.getByText(
+                        'To record the consumption choose the utility above, in «Link it to».',
+                    ),
+                ).toBeInTheDocument();
+            });
+
+            it('sends the box ticked, and unticked as false', async () => {
+                const post = vi
+                    .spyOn(router, 'post')
+                    .mockImplementation(() => {});
+                vi.spyOn(router, 'reload').mockImplementation(() => {});
+                renderPage(Import, ferriProps(consumptionProposal));
+                await settle();
+
+                await fireEvent.click(importButton('Import the file'));
+                expect(sent(post)[0]?.also).toMatchObject({
+                    consumption: true,
+                });
+
+                await fireEvent.click(
+                    screen.getByRole('checkbox', {
+                        name: /Record the consumption/,
+                    }),
+                );
+                await fireEvent.click(importButton('Import the file'));
+                expect(sent(post)[0]?.also).toMatchObject({
+                    consumption: false,
+                });
+            });
+
+            it('sends the quantity, the period and the estimate the person wrote', async () => {
+                const post = vi
+                    .spyOn(router, 'post')
+                    .mockImplementation(() => {});
+                vi.spyOn(router, 'reload').mockImplementation(() => {});
+                renderPage(Import, ferriProps(consumptionProposal));
+                await settle();
+
+                await fireEvent.update(
+                    screen.getByRole('spinbutton', { name: 'Consumption' }),
+                    '210',
+                );
+                await getNode('also-consumption-from-7')?.input('2026-08-31');
+                await fireEvent.click(
+                    screen.getByRole('switch', { name: /Estimated/ }),
+                );
+                await settle();
+                await fireEvent.click(importButton('Import the file'));
+
+                expect(sent(post)[0]?.also).toMatchObject({
+                    consumption: true,
+                    overrides: {
+                        consumption: {
+                            quantity: 210,
+                            period_start: '2026-08-31',
+                            is_estimated: true,
+                        },
+                    },
+                });
+            });
+
+            it('never sends is_estimated when the toggle was not touched', async () => {
+                const post = vi
+                    .spyOn(router, 'post')
+                    .mockImplementation(() => {});
+                vi.spyOn(router, 'reload').mockImplementation(() => {});
+                renderPage(Import, ferriProps(consumptionProposal));
+                await settle();
+
+                await fireEvent.click(importButton('Import the file'));
+
+                expect(sent(post)[0]?.also).not.toHaveProperty('overrides');
             });
         });
 

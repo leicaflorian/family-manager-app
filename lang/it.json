@@ -2224,5 +2224,12 @@
     "To record the consumption choose the utility above.": "Per segnare i consumi scegli l'utenza qui sopra.",
     "To record the consumption write the quantity and the period in its box.": "Per segnare i consumi scrivi il consumo e il periodo nella sua casella.",
     "To record the consumption correct the quantity in its box.": "Per segnare i consumi correggi il consumo nella sua casella.",
-    "To record the consumption correct the period in its box: the first day comes before the last.": "Per segnare i consumi correggi il periodo nella sua casella: il primo giorno viene prima dell'ultimo."
+    "To record the consumption correct the period in its box: the first day comes before the last.": "Per segnare i consumi correggi il periodo nella sua casella: il primo giorno viene prima dell'ultimo.",
+    "Record the consumption": "Segno i consumi",
+    ":quantity from :start to :end": ":quantity dal :start al :end",
+    "Consumption": "Consumo",
+    "Estimated": "Consumi stimati",
+    "The supplier estimated them, they were not read from the meter.": "Il fornitore li ha stimati, non letti dal contatore.",
+    "Check this consumption: it would be :price a :unit, it usually means I read the wrong number.": "Controlla questo consumo: verrebbero :price a :unit, di solito vuol dire che ho letto il numero sbagliato.",
+    "To record the consumption choose the utility above, in «Link it to».": "Per segnare i consumi scegli l'utenza sopra, in «Collegalo a»."
 }

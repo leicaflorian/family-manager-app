@@ -3,7 +3,7 @@
  * *What I do too* of one file in *Import*, as the boards *Importa* and
  * *Importa (pc)*: the boxes of the expense or income (with *Already paid* /
  * *To pay* and its deadline), of the health event, of the missing cards and of
- * the policy. When the proposals follow the card of the category of the
+ * the policy, and the box *Record the consumption* of a bill (quantity with its unit, period and *Estimated*). When the proposals follow the card of the category of the
  * document (`cardType`), a line under the heading says so, and the box of that
  * card takes the title and the icon of its type. A ticked box shows the fields the server still needs (the
  * deadline, the title and type of a new event, the required fields of a new
@@ -18,6 +18,7 @@ import {
     Bell,
     Building2,
     Car,
+    Gauge,
     HeartPulse,
     Package,
     Plug,
@@ -41,6 +42,9 @@ import type { AlsoSide } from '@/lib/alsoDo';
 import {
     actionTexts,
     candidateOptions,
+    consumptionHint,
+    consumptionLabel,
+    consumptionWarnings,
     dueChoices,
     dueInEffect,
     eventHint,
@@ -56,6 +60,7 @@ import {
     recordLabel,
     recordWarnings,
 } from '@/lib/alsoDo';
+import { unitLabel } from '@/lib/format';
 import { cardIcon, fieldInput, isMenuField } from '@/lib/cards';
 import { replaceOptions } from '@/lib/policies';
 
@@ -249,6 +254,63 @@ function write(
 
     if (text !== shown(side, field, read)) {
         props.choices.setOverride(side, field, text === '' ? null : text);
+    }
+}
+
+/**
+ * What a field of the box of the consumption shows: what the person wrote, otherwise what was read.
+ *
+ * @param field - `quantity`, `period_start` or `period_end`
+ * @returns the value of the input
+ */
+function consumptionShown(
+    field: 'quantity' | 'period_start' | 'period_end',
+): OverrideValue {
+    const written = props.choices.overrideOf('consumption', field);
+
+    return written !== undefined
+        ? written
+        : (props.proposal.consumption?.values[field] ?? '');
+}
+
+/**
+ * Writes a field of the box of the consumption, when the input really changed.
+ *
+ * @param field - `quantity`, `period_start` or `period_end`
+ * @param value - the value of the input
+ */
+function writeConsumption(
+    field: 'quantity' | 'period_start' | 'period_end',
+    value: unknown,
+): void {
+    const text =
+        typeof value === 'string' || typeof value === 'number' ? value : '';
+
+    if (text === consumptionShown(field)) {
+        return;
+    }
+
+    props.choices.setOverride(
+        'consumption',
+        field,
+        text === '' ? null : field === 'quantity' ? Number(text) : text,
+    );
+}
+
+/**
+ * Writes *Estimated*, when the toggle really changed (FormKit also tells the value it starts with).
+ *
+ * @param value - the value of the toggle
+ */
+function writeEstimated(value: unknown): void {
+    const estimated = value === true;
+    const now =
+        props.choices.overrideOf('consumption', 'is_estimated') ??
+        props.proposal.consumption?.values.is_estimated ??
+        false;
+
+    if (estimated !== now) {
+        props.choices.setOverride('consumption', 'is_estimated', estimated);
     }
 }
 
@@ -575,6 +637,79 @@ function recordFields(
                     :candidates="candidateOptions(proposal.event.candidates)"
                 />
             </template>
+        </FmAlsoDoItem>
+
+        <FmAlsoDoItem
+            v-if="proposal.consumption"
+            :model-value="ticked.consumption ?? false"
+            :label="consumptionLabel()"
+            :hint="consumptionHint(proposal.consumption)"
+            :warnings="
+                lines(
+                    alsoErrors('consumption'),
+                    consumptionWarnings(
+                        proposal.consumption,
+                        ticked.consumption ?? false,
+                    ),
+                )
+            "
+            :icon="Gauge"
+            @update:model-value="choices.setTicked('consumption', $event)"
+        >
+            <FormKit
+                type="number"
+                step="any"
+                name="consumption_quantity"
+                :label="$t('Consumption')"
+                validation="required"
+                :model-value="consumptionShown('quantity')"
+                @update:model-value="writeConsumption('quantity', $event)"
+            >
+                <template #suffix>
+                    <span class="shrink-0 pr-3.5 text-ink-soft">
+                        {{ unitLabel(proposal.consumption.values.unit) }}
+                    </span>
+                </template>
+            </FormKit>
+            <div class="grid grid-cols-2 gap-2.5">
+                <FormKit
+                    :id="`also-consumption-from-${fileId}`"
+                    type="datepicker"
+                    name="consumption_period_start"
+                    :label="$t('From')"
+                    validation="required"
+                    :model-value="consumptionShown('period_start')"
+                    @update:model-value="
+                        writeConsumption('period_start', $event)
+                    "
+                />
+                <FormKit
+                    :id="`also-consumption-to-${fileId}`"
+                    type="datepicker"
+                    name="consumption_period_end"
+                    :label="$t('To')"
+                    validation="required"
+                    :model-value="consumptionShown('period_end')"
+                    @update:model-value="writeConsumption('period_end', $event)"
+                />
+            </div>
+            <FormKit
+                type="toggle"
+                name="consumption_is_estimated"
+                :label="$t('Estimated')"
+                :help="
+                    $t(
+                        'The supplier estimated them, they were not read from the meter.',
+                    )
+                "
+                :model-value="
+                    Boolean(
+                        choices.overrideOf('consumption', 'is_estimated') ??
+                        proposal.consumption.values.is_estimated,
+                    )
+                "
+                @update:model-value="writeEstimated"
+            />
         </FmAlsoDoItem>
 
         <FmAlsoDoItem

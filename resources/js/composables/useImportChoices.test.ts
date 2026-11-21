@@ -13,6 +13,7 @@ import type { Ref } from 'vue';
 import type { DocumentPayload } from '@/lib/documents';
 import {
     enrolmentProposal,
+    consumptionProposal,
     ferriProposal,
     homeDraft,
     homeProposal,
@@ -362,5 +363,55 @@ describe('useImportChoices', () => {
         expect(choices.picks.records.card).toBeUndefined();
         expect(choices.picks.overrides.records).toEqual({});
         expect(choices.picks.movement).toBe(false);
+    });
+});
+
+describe('useImportChoices, the consumption', () => {
+    it('follows the proposal while the person did nothing, and sends nothing without one', () => {
+        expect(mount().choices.also.value).not.toHaveProperty('consumption');
+        expect(
+            mount({ proposal: consumptionProposal }).choices.also.value,
+        ).toMatchObject({ consumption: true });
+        expect(
+            mount({
+                proposal: {
+                    ...consumptionProposal,
+                    consumption: {
+                        ...consumptionProposal.consumption!,
+                        suggested: false,
+                    },
+                },
+            }).choices.also.value,
+        ).toMatchObject({ consumption: false });
+    });
+
+    it('sends consumption false when the box is unticked', () => {
+        const { choices } = mount({ proposal: consumptionProposal });
+
+        choices.setTicked('consumption', false);
+
+        expect(choices.also.value?.consumption).toBe(false);
+        expect(choices.changed.value).toBe(true);
+    });
+
+    it('sends the fields the person wrote under overrides.consumption', () => {
+        const { choices } = mount({ proposal: consumptionProposal });
+
+        choices.setOverride('consumption', 'quantity', 210);
+        choices.setOverride('consumption', 'is_estimated', true);
+
+        expect(choices.overrideOf('consumption', 'quantity')).toBe(210);
+        expect(choices.also.value?.overrides).toEqual({
+            movement: {},
+            event: {},
+            records: {},
+            consumption: { quantity: 210, is_estimated: true },
+        });
+    });
+
+    it('has no target to choose for the consumption', () => {
+        const { choices } = mount({ proposal: consumptionProposal });
+
+        expect(choices.targetOf('consumption')).toBe('auto');
     });
 });

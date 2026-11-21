@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { ferriProposal, homeDraft } from '@/test/fixtures';
+import { consumptionDraft, ferriProposal, homeDraft } from '@/test/fixtures';
 import {
     actionTexts,
+    consumptionHint,
+    consumptionLabel,
+    consumptionWarnings,
     candidateOptions,
     dueChoices,
     documentNeeds,
@@ -818,5 +821,71 @@ describe('missingData', () => {
         expect(
             missingData('Visita', proposal, { ...ticked, movement: false }),
         ).toEqual([]);
+    });
+});
+
+/** The consumption of the fixture with other fields. */
+function consumption(
+    changes: Partial<App.Data.Reading.ConsumptionProposalData>,
+    values: Partial<App.Data.Reading.ConsumptionValuesData> = {},
+): App.Data.Reading.ConsumptionProposalData {
+    return {
+        ...consumptionDraft,
+        ...changes,
+        values: { ...consumptionDraft.values, ...values },
+    };
+}
+
+describe('consumption box', () => {
+    it('names the box and says the quantity and the period', () => {
+        expect(consumptionLabel()).toBe('Record the consumption');
+        expect(consumptionHint(consumption({}))).toBe(
+            '201 kWh from 01/09/2026 to 30/09/2026',
+        );
+        expect(
+            consumptionHint(consumption({}, { quantity: 2010.5, unit: 'm3' })),
+        ).toBe('2.010,5 m³ from 01/09/2026 to 30/09/2026');
+    });
+
+    it('has no line while the quantity or the period is missing', () => {
+        expect(
+            consumptionHint(consumption({}, { quantity: null })),
+        ).toBeUndefined();
+        expect(
+            consumptionHint(consumption({}, { period_end: null })),
+        ).toBeUndefined();
+    });
+
+    it('warns of a price out of range, ticked or not, with the price of a unit', () => {
+        const odd = consumption(
+            { priceWarning: true },
+            { quantity: 2010, amount: 71.3 },
+        );
+
+        expect(consumptionWarnings(odd, false)).toEqual([
+            'Check this consumption: it would be 0,04 € a kWh, it usually means I read the wrong number.',
+        ]);
+        expect(consumptionWarnings(odd, true)).toHaveLength(1);
+    });
+
+    it('asks to choose the utility above while the box is ticked', () => {
+        const none = consumption({ utility: null, complete: ['utility'] });
+
+        expect(consumptionWarnings(none, true)).toEqual([
+            'To record the consumption choose the utility above, in «Link it to».',
+        ]);
+        expect(consumptionWarnings(none, false)).toEqual([]);
+    });
+
+    it('lists the fields to fill in the box while it is ticked', () => {
+        const missing = consumption(
+            { fill: ['quantity', 'period_start', 'period_end'] },
+            { quantity: null, period_start: null, period_end: null },
+        );
+
+        expect(consumptionWarnings(missing, true)).toEqual([
+            'Fill in «Consumption», «From», «To» here below.',
+        ]);
+        expect(consumptionWarnings(missing, false)).toEqual([]);
     });
 });

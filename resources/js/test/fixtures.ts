@@ -1896,6 +1896,36 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
 };
 
 /**
+ * The consumption of a bill of the electricity of the Bianchis linked to its utility, as `ProposalData.consumption`
+ * comes from the server (the case of `ImportConsumptionTest`): 201 kWh from 01/09/2026 to 30/09/2026, ticked.
+ */
+export const consumptionDraft: App.Data.Reading.ConsumptionProposalData = {
+    values: {
+        period_start: '2026-09-01',
+        period_end: '2026-09-30',
+        quantity: 201,
+        unit: 'kwh',
+        amount: 71.3,
+        is_estimated: false,
+    },
+    suggested: true,
+    utility: { id: 4, title: 'Luce - Edison' },
+    blocked: null,
+    fill: [],
+    complete: [],
+    priceWarning: false,
+};
+
+/** The proposal of a bill of the electricity with its consumption: only the document and the box to record it. */
+export const consumptionProposal: App.Data.Reading.ProposalData = {
+    ...ferriProposal,
+    movement: null,
+    event: null,
+    records: [],
+    consumption: consumptionDraft,
+};
+
+/**
  * The proposal of a gym enrolment, a paper that names no card: only the
  * document, and the box to create the card.
  */
