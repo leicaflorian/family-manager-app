@@ -537,7 +537,9 @@ describe('Movements', () => {
     it('offers Planned and spent in the box under the tabs, on every layout', () => {
         renderPage(Movements, props);
 
-        const box = screen.getByRole('region', { name: 'More in the budget' });
+        const box = screen.getByRole('navigation', {
+            name: 'More in the budget',
+        });
         const link = within(box).getByRole('link', {
             name: /Planned and spent/,
         });
@@ -552,6 +554,20 @@ describe('Movements', () => {
                 name: /Electricity, gas and water use/,
             }),
         ).not.toBeInTheDocument();
+        // Not a tab: the tabs of the Budget do not have it
+        expect(
+            within(
+                screen.getByRole('navigation', { name: 'Budget' }),
+            ).queryByRole('link', { name: 'Planned and spent' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('hides the box while a search or a filter is on', () => {
+        renderPage(Movements, { ...props, filters: allFilters });
+
+        expect(
+            screen.queryByRole('navigation', { name: 'More in the budget' }),
+        ).not.toBeInTheDocument();
     });
 
     it('adds the use of electricity, gas and water when the family has a utility with it', () => {
@@ -559,7 +575,9 @@ describe('Movements', () => {
         screenWidth(true);
         renderPage(Movements, props);
 
-        const box = screen.getByRole('region', { name: 'More in the budget' });
+        const box = screen.getByRole('navigation', {
+            name: 'More in the budget',
+        });
         expect(
             within(box).getByRole('link', {
                 name: /Electricity, gas and water use/,

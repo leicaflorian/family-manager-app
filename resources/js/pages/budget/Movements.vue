@@ -7,7 +7,9 @@
  * the page searches every month: the list is grouped by month, with how many
  * were found and their total instead of the month and its figures. On the
  * computer the filters are a column on the left; on the phone they are in the
- * panel from below. A row, and *New expense or income*, always open the page of
+ * panel from below. Under the tabs, while no search or filter is on, a box leads
+ * to the other pages of the Budget: *Planned and spent* and, with a utility with
+ * consumption, *Usage*. A row, and *New expense or income*, always open the page of
  * the movement, which brings back to this list (`?from=`).
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
@@ -327,43 +329,45 @@ function subtitle(movement: App.Data.MovementData): string {
         />
 
         <!-- The other pages of the Budget: they have no tab, the sidebar has them on the computer too -->
-        <FmCard
-            list
+        <nav
+            v-if="pills.length === 0"
             :aria-label="$t('More in the budget')"
             class="wide:max-w-130"
         >
-            <FmRow
-                :title="$t('Planned and spent')"
-                :subtitle="
-                    $t('What you planned and what you spent, by category')
-                "
-                :href="comparison().url"
-                arrow
-            >
-                <template #before>
-                    <span
-                        class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
-                    >
-                        <FmIcon :icon="ChartPie" :size="20" />
-                    </span>
-                </template>
-            </FmRow>
-            <FmRow
-                v-if="hasConsumption"
-                :title="$t('Electricity, gas and water use')"
-                :subtitle="$t('How much you use and pay, month by month')"
-                :href="consumption().url"
-                arrow
-            >
-                <template #before>
-                    <span
-                        class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-home-soft text-home-text"
-                    >
-                        <FmIcon :icon="ChartColumn" :size="20" />
-                    </span>
-                </template>
-            </FmRow>
-        </FmCard>
+            <FmCard list>
+                <FmRow
+                    :title="$t('Planned and spent')"
+                    :subtitle="
+                        $t('What you planned and what you spent, by category')
+                    "
+                    :href="comparison().url"
+                    arrow
+                >
+                    <template #before>
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                        >
+                            <FmIcon :icon="ChartPie" :size="20" />
+                        </span>
+                    </template>
+                </FmRow>
+                <FmRow
+                    v-if="hasConsumption"
+                    :title="$t('Electricity, gas and water use')"
+                    :subtitle="$t('How much you use and pay, month by month')"
+                    :href="consumption().url"
+                    arrow
+                >
+                    <template #before>
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-home-soft text-home-text"
+                        >
+                            <FmIcon :icon="ChartColumn" :size="20" />
+                        </span>
+                    </template>
+                </FmRow>
+            </FmCard>
+        </nav>
 
         <div class="flex w-full max-w-105 gap-2.5">
             <form

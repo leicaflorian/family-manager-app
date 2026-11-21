@@ -106,7 +106,7 @@ const comment = computed((): string =>
         class="grid grid-cols-[minmax(0,220px)_minmax(0,1fr)] items-center gap-4 px-4.5 py-3"
     >
         <ReuseName />
-        <div class="flex min-w-0 flex-col gap-1.5">
+        <div class="flex min-w-0 flex-col gap-2">
             <div class="flex items-baseline justify-between gap-3">
                 <span class="min-w-0 text-meta text-ink-soft">{{
                     comment

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * *Planned and spent*, a page of the Budget (reached from the sidebar, or from *Recurring* on the phone): a month of expenses against the plan. At the top what
- * was planned, what was spent so far and (on the computer) what came in; then,
- * by main category, the bar of the spending with a mark where the plan reaches;
- * the chart of the last six months; and, on the computer, the due dates of the
- * month that nobody has registered yet. On the phone the chart comes first and
+ * *Planned and spent*, a page of the Budget (reached from the sidebar and from the box in *Movements*): a month
+ * of expenses against the plan. At the top what was planned, what was spent so far and (on the wide layout, from
+ * 900 px) what came in; then, by main category, the bar of the spending with a mark where the plan reaches; the chart
+ * of the last six months; and, on the wide layout, the due dates of the month that nobody has registered yet, with
+ * the categories on the left and the rest on the right. On the phone it is one column, the chart comes first and
  * only two numbers show.
  */
 import { Head, router } from '@inertiajs/vue3';
@@ -92,7 +92,7 @@ const tile = cn(
 <template>
     <Head :title="$t('Planned and spent')" />
 
-    <div class="flex max-w-[1120px] flex-col gap-4">
+    <div class="flex max-w-[1120px] flex-col gap-4 wide:gap-6">
         <FmTitle :title="$t('Planned and spent')" />
 
         <FmMonthSwitch :month="comparison.month" @change="go" />
