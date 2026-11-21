@@ -27,15 +27,13 @@ defineSlots<{
 
 provideOnColor();
 
-/** The background: the colour of the area. */
-const background = computed((): string => {
-    const area = areaOf(card.area);
-
-    return cn(
-        'flex flex-wrap items-end justify-between gap-4 rounded-sheet p-5 text-on-hero lg:p-7',
-        area === undefined ? 'bg-general-dark' : areaHeader[area],
-    );
-});
+/** The background: a fade from the dark colour of the area to a lighter one. */
+const background = computed((): string =>
+    cn(
+        'flex flex-wrap items-end justify-between gap-4 rounded-sheet bg-linear-160 p-5 text-on-hero lg:p-7',
+        areaHeader[areaOf(card.area) ?? 'general'],
+    ),
+);
 </script>
 
 <template>
