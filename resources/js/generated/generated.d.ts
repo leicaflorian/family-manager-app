@@ -884,6 +884,23 @@ readonly estimated: boolean,
 readonly adjusted: boolean,
 readonly billIds: number[],
 };
+export type ConsumptionPageData = {
+readonly types: Array<{ type: App.Enums.UtilityType; label: string }>,
+readonly utilities: Array<{ id: number; title: string; subtitle: string }>,
+readonly utility: { id: number; title: string; type: App.Enums.UtilityType; unit: App.Enums.ConsumptionUnit; href: string },
+readonly from: string,
+readonly to: string,
+readonly previous: string | null,
+readonly next: string | null,
+readonly months: App.Data.Consumption.ConsumptionMonthData[],
+readonly figures: App.Data.Consumption.ConsumptionFiguresData,
+readonly sentence: string | null,
+readonly bills: App.Data.Consumption.ConsumptionBillData[],
+readonly month: string | null,
+readonly archive: { count: number; cost: number; left: number; running: boolean; can_read: boolean } | null,
+readonly toCheck: Array<{ document_id: number; title: string; date: string | null; reason: string }>,
+readonly canCreate: boolean,
+};
 }
 namespace Mail {
 export type MailScreeningAnswer = {

@@ -20,6 +20,7 @@ use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConnectController;
+use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\FeedbackController;
@@ -195,6 +196,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
 
         Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
+        Route::get('budget/consumption', [ConsumptionController::class, 'index'])->name('budget.consumption');
 
         Route::get('budget/planned', [PlannedController::class, 'index'])->name('budget.planned.index');
         Route::prefix('budget/planned/{kind}')

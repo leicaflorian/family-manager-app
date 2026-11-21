@@ -21,4 +21,14 @@ enum UtilityType: string
     case Phone = 'phone';
     case WasteTax = 'waste_tax';
     case TvLicense = 'tv_license';
+
+    /**
+     * The types measured in a unit (electricity, gas, water), in this order: the ones of the Consumption page.
+     *
+     * @return list<self>
+     */
+    public static function measured(): array
+    {
+        return array_values(array_filter(self::cases(), static fn (self $type): bool => ConsumptionUnit::forUtility($type) instanceof ConsumptionUnit));
+    }
 }
