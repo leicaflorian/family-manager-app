@@ -19,6 +19,7 @@
  * @group figures
  */
 import { trans } from 'laravel-vue-i18n';
+import { useElementSize } from '@vueuse/core';
 import { computed, ref, useId } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { longMonth, monthName, shortMonth } from '@/lib/budget';
@@ -73,18 +74,20 @@ const asTable = ref(false);
 /** The id of the stripes of the estimated bars, unique in the page. */
 const stripesId = `stripes-${useId()}`;
 
-/** The size of the drawing and of its margins. */
-const frame = {
-    width: 600,
-    height: 250,
-    left: 48,
-    right: 8,
-    top: 22,
-    bottom: 30,
-};
+/** The margins of the drawing on the sides, for the numbers of the grid. */
+const SIDES = { left: 48, right: 8 };
 
-/** The height of the part where the bars stand. */
-const plotHeight = frame.height - frame.top - frame.bottom;
+/** Under this width (px) the drawing is lower, as on the phone board. */
+const NARROW = 480;
+
+/** Under this width (px) of a month, «(in progress)» goes on a second line. */
+const TWO_LINES_SLOT = 84;
+
+/** The box of the drawing, where the bubbles of the bars are placed. */
+const drawing = ref<HTMLElement | null>(null);
+
+/** The width of the drawing on the page: 0 until it is measured. */
+const { width: drawnWidth } = useElementSize(drawing);
 
 /** The months as the chart draws them. */
 const list = computed(() => months.map(toChartMonth));
@@ -158,9 +161,40 @@ const gridLines = computed(() =>
     }),
 );
 
+/**
+ * The width of the drawing: the one it has on the page, so one unit is one
+ * pixel and the words keep their size; 600 until it is measured.
+ */
+const frameWidth = computed(() =>
+    drawnWidth.value > 0 ? Math.round(drawnWidth.value) : 600,
+);
+
 /** The width of the slot of a month. */
 const slot = computed(
-    () => (frame.width - frame.left - frame.right) / list.value.length,
+    () => (frameWidth.value - SIDES.left - SIDES.right) / list.value.length,
+);
+
+/** Under this width (px) of a month, a month is written with its initial. */
+const INITIAL_SLOT = 32;
+
+/** Whether the months are so narrow that only their initial fits. */
+const initials = computed(() => slot.value < INITIAL_SLOT);
+
+/** Whether the month in progress is written on two lines, for narrow months. */
+const twoLines = computed(() => slot.value < TWO_LINES_SLOT);
+
+/** The size of the drawing and of its margins, in pixels. */
+const frame = computed(() => ({
+    width: frameWidth.value,
+    height: frameWidth.value < NARROW ? 200 : 250,
+    ...SIDES,
+    top: 22,
+    bottom: twoLines.value ? 44 : 30,
+}));
+
+/** The height of the part where the bars stand. */
+const plotHeight = computed(
+    () => frame.value.height - frame.value.top - frame.value.bottom,
 );
 
 /** The width of a bar. */
@@ -178,7 +212,11 @@ const markHalf = computed(() =>
  * @returns the y of the drawing
  */
 function y(value: number): number {
-    return frame.top + plotHeight - (value / top.value) * plotHeight;
+    return (
+        frame.value.top +
+        plotHeight.value -
+        (value / top.value) * plotHeight.value
+    );
 }
 
 /**
@@ -305,12 +343,12 @@ function kindOf(month: ChartMonth): 'partial' | 'estimated' | 'plain' {
 /** What each month needs to be drawn. */
 const bars = computed(() =>
     list.value.map((month, index) => {
-        const centre = frame.left + slot.value * (index + 0.5);
+        const centre = frame.value.left + slot.value * (index + 0.5);
         const x = centre - barWidth.value / 2;
         const data = hasData(month);
         // A negative month (a credit) does not go below the baseline
         const barTop = y(data ? Math.max(month.value, 0) : 0);
-        const height = frame.top + plotHeight - barTop;
+        const height = frame.value.top + plotHeight.value - barTop;
         const radius = Math.min(4, height / 2, barWidth.value / 2);
         const chosen = data && selected === month.month;
         const kind = kindOf(month);
@@ -345,11 +383,17 @@ const bars = computed(() =>
                           text: (short ?? format)(month.value),
                       }
                     : null,
-            label: month.current
-                ? trans(':month (in progress)', {
-                      month: shortMonth(month.month),
-                  })
-                : shortMonth(month.month),
+            label: initials.value
+                ? shortMonth(month.month).charAt(0)
+                : month.current
+                  ? trans(':month (in progress)', {
+                        month: shortMonth(month.month),
+                    })
+                  : shortMonth(month.month),
+            lines:
+                month.current && twoLines.value && !initials.value
+                    ? [shortMonth(month.month), trans('(in progress)')]
+                    : null,
             strong: month.current === true || chosen,
             ...(data ? describe(month) : { title: '', tip: '' }),
         };
@@ -376,9 +420,6 @@ const description = computed(() =>
           }),
 );
 
-/** The box of the drawing, where the bubbles of the bars are placed. */
-const drawing = ref<HTMLElement | null>(null);
-
 /**
  * Where the bubble of a bar opens: on the top of the bar, not on the top of
  * its hover target, which is as tall as the chart.
@@ -393,14 +434,14 @@ function anchorOf(bar: { x: number; barTop: number }): () => DOMRect {
         barAnchor(
             drawing.value?.getBoundingClientRect() ?? new DOMRect(),
             { x: bar.x, width: barWidth.value, top: bar.barTop },
-            frame,
+            frame.value,
         );
 }
 
 /** Where the hover targets sit: over the plot, between the side margins. */
 const overlayStyle = computed(() => ({
-    left: `${(frame.left / frame.width) * 100}%`,
-    right: `${(frame.right / frame.width) * 100}%`,
+    left: `${(frame.value.left / frame.value.width) * 100}%`,
+    right: `${(frame.value.right / frame.value.width) * 100}%`,
 }));
 
 /** The title above the chart. */
@@ -605,13 +646,22 @@ function move(event: KeyboardEvent, index: number): void {
                     <text
                         :x="bar.centre"
                         :y="frame.height - 10"
+                        data-month-label
                         text-anchor="middle"
                         class="text-caption"
                         :class="
                             bar.strong ? 'fill-ink text-badge' : 'fill-ink-soft'
                         "
                     >
-                        {{ bar.label }}
+                        <template v-if="bar.lines">
+                            <tspan :x="bar.centre" dy="-14">
+                                {{ bar.lines[0] }}
+                            </tspan>
+                            <tspan :x="bar.centre" dy="14">
+                                {{ bar.lines[1] }}
+                            </tspan>
+                        </template>
+                        <template v-else>{{ bar.label }}</template>
                     </text>
                 </g>
             </svg>

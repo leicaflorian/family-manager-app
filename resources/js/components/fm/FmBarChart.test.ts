@@ -1,9 +1,10 @@
 import { render, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { formatEuro, formatNumber, formatQuantity } from '@/lib/format';
 import type { ChartMonth } from '@/lib/charts';
 import { monthBars } from '@/test/fixtures';
+import { nextTick } from 'vue';
 import FmBarChart from './FmBarChart.vue';
 
 describe('FmBarChart', () => {
@@ -84,6 +85,123 @@ const kwh: ChartMonth[] = [
 
 /** Writes a quantity in kWh. */
 const inKwh = (value: number): string => formatQuantity(value, 'kwh');
+
+describe('FmBarChart, real size', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    /**
+     * Gives the drawing a width on the page, as the browser's ResizeObserver
+     * reports it.
+     *
+     * @param width - the width in pixels
+     */
+    function drawnAt(width: number): void {
+        vi.stubGlobal(
+            'ResizeObserver',
+            class {
+                /** @param report - what to call with the size */
+                constructor(
+                    private readonly report: (entries: unknown[]) => void,
+                ) {}
+
+                /** Reports the width at once. */
+                observe(): void {
+                    this.report([
+                        {
+                            contentBoxSize: [
+                                { inlineSize: width, blockSize: 0 },
+                            ],
+                        },
+                    ]);
+                }
+
+                /** Nothing to stop. */
+                unobserve(): void {}
+
+                /** Nothing to stop. */
+                disconnect(): void {}
+            },
+        );
+    }
+
+    it('draws at the width it has, so the words keep their size', async () => {
+        drawnAt(340);
+        const { container } = render(FmBarChart, {
+            props: { months: monthBars },
+        });
+        await nextTick();
+
+        expect(
+            container.querySelector('figure svg[aria-label]'),
+        ).toHaveAttribute('viewBox', '0 0 340 200');
+    });
+
+    it('puts «in progress» on a second line when the months are narrow', async () => {
+        drawnAt(340);
+        const { container } = render(FmBarChart, {
+            props: { months: monthBars },
+        });
+        await nextTick();
+
+        const lines = [...container.querySelectorAll('svg text tspan')].map(
+            (line) => line.textContent?.trim(),
+        );
+        expect(lines).toEqual(['Oct', '(in progress)']);
+    });
+
+    it('writes only the initial of each month when twelve months are narrow', async () => {
+        drawnAt(340);
+        const { container } = render(FmBarChart, {
+            props: {
+                months: [
+                    ...kwh,
+                    ...['04', '05', '06', '07', '08', '09'].map((m) => ({
+                        month: `2026-${m}`,
+                        value: 200,
+                        mark: null,
+                    })),
+                ],
+                marks: 'previous',
+                format: inKwh,
+            },
+        });
+        await nextTick();
+
+        const labels = [
+            ...container.querySelectorAll('[data-month-label]'),
+        ].map((text) => text.textContent?.trim());
+        expect(labels).toEqual([
+            'O',
+            'N',
+            'D',
+            'J',
+            'F',
+            'M',
+            'A',
+            'M',
+            'J',
+            'J',
+            'A',
+            'S',
+        ]);
+    });
+
+    it('keeps the month in progress on one line when there is room', async () => {
+        drawnAt(800);
+        const { container } = render(FmBarChart, {
+            props: { months: monthBars },
+        });
+        await nextTick();
+
+        expect(
+            container.querySelector('figure svg[aria-label]'),
+        ).toHaveAttribute('viewBox', '0 0 800 250');
+        expect(container.querySelectorAll('svg text tspan')).toHaveLength(0);
+        expect(screen.getByText('Oct (in progress)')).toBeInTheDocument();
+    });
+});
 
 describe('FmBarChart, inside a card', () => {
     it('keeps its name for screen readers but shows no title and no card of its own', () => {
