@@ -333,8 +333,6 @@ usePageTrail(() => [
             <FmTitle
                 :title="$t('Notices')"
                 :subtitle="$t('How many days before, where and to whom')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
             >
                 <template v-if="page.can_change" #actions>
                     <FmActions

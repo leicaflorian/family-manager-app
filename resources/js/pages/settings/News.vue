@@ -35,8 +35,6 @@ usePageTrail(() => [
             <FmTitle
                 :title="$t('What\'s new')"
                 :subtitle="$t('What changes in the app, version by version')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
             />
         </template>
         <section

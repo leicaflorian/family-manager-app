@@ -34,6 +34,17 @@ describe('FmCardHeader', () => {
         );
     });
 
+    it('has the title at 32 px only on the computer and no lg: class', () => {
+        const { container } = render(FmCardHeader, {
+            props: { card: pandaRow, heading: 'Plate GH 482 TK · Marco' },
+        });
+
+        const heading = screen.getByRole('heading', { level: 1 });
+        expect(heading).toHaveClass('text-title-mobile', 'computer:text-title');
+        expect(container.innerHTML).not.toContain('lg:');
+        expect(container.firstElementChild).toHaveClass('p-5', 'computer:p-7');
+    });
+
     it('fades in grey when the card has no area', () => {
         const { container } = render(FmCardHeader, {
             props: {

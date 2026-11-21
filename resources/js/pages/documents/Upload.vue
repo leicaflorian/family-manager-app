@@ -87,11 +87,7 @@ usePageTrail(() => [
     <div class="flex flex-col gap-6">
         <!-- On the phone the link to the files to sort has its own row under the title, as the board Carica -->
         <div class="flex flex-col gap-3">
-            <FmTitle
-                :title="$t('Upload a document')"
-                :back="toSort().url"
-                :back-label="$t('To sort')"
-            >
+            <FmTitle :title="$t('Upload a document')">
                 <template #actions>
                     <FmToSortLink
                         v-if="layout !== 'phone'"

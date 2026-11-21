@@ -166,6 +166,18 @@ describe('FmSettingsPage', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('has its own title at 32 px only on the computer', () => {
+        screenWidth(1280);
+        render(FmSettingsPage, {
+            props: { current: 'notices' },
+            slots: { default: '<p>The rules</p>' },
+        });
+
+        const heading = screen.getByRole('heading', { name: 'Settings' });
+        expect(heading).toHaveClass('text-title-mobile', 'computer:text-title');
+        expect(heading.className).not.toContain('lg:');
+    });
+
     it('marks the section of the page as the current one', () => {
         screenWidth(1280);
         renderSettings('mail');

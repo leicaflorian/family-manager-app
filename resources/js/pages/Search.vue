@@ -163,12 +163,7 @@ function goBack(): void {
         class="flex w-full flex-col"
         :class="phone ? 'gap-5' : 'mx-auto max-w-220 gap-6'"
     >
-        <FmTitle
-            v-if="!phone"
-            :title="title"
-            :back="dashboard().url"
-            :back-label="$t('Home')"
-        />
+        <FmTitle v-if="!phone" :title="title" />
         <h1 v-else class="sr-only">{{ title }}</h1>
 
         <div class="flex flex-col" :class="phone ? 'gap-3' : 'gap-6'">

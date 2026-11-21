@@ -30,7 +30,6 @@ import {
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import ImportAlsoDoBoxes from '@/components/documents/ImportAlsoDoBoxes.vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDocumentForm from '@/components/fm/FmDocumentForm.vue';
 import FmFilePreview from '@/components/fm/FmFilePreview.vue';
@@ -534,12 +533,6 @@ usePageTrail(() => [
 
     <div class="flex flex-col gap-6">
         <template v-if="desktop">
-            <FmBackLink
-                v-if="!preset"
-                :href="closeUrl"
-                :label="$t('To sort')"
-                data-discard-changes
-            />
             <FmTitle
                 :title="
                     $tChoice(
