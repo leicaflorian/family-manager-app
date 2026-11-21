@@ -274,3 +274,61 @@ describe('FmBarChart, consumption', () => {
         expect(container.querySelector('svg')).toHaveTextContent('~290');
     });
 });
+
+describe('FmBarChart, tooltips', () => {
+    it('shows the text of a month in a bubble on hover, with no native title', async () => {
+        render(FmBarChart, {
+            props: {
+                months: kwh,
+                marks: 'previous',
+                format: inKwh,
+                selected: '2026-01',
+            },
+        });
+        const january = screen.getByRole('button', {
+            name: 'January 2026: 290 kWh, 86,10 €; January 2025: 248 kWh',
+        });
+        expect(january).not.toHaveAttribute('title');
+
+        await userEvent.hover(january);
+
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            'January 2026: 290 kWh, 86,10 €; January 2025: 248 kWh',
+        );
+    });
+
+    it('shows no bubble for a month without data', async () => {
+        const { container } = render(FmBarChart, {
+            props: {
+                months: kwh,
+                marks: 'previous',
+                format: inKwh,
+                selected: null,
+            },
+        });
+
+        expect(
+            container.querySelectorAll('[role="group"] button'),
+        ).toHaveLength(5);
+        await userEvent.hover(
+            container.querySelector('[role="group"] > span')!,
+        );
+
+        expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
+    it('shows the bubble on hover over a bar of the image too, without a native title', async () => {
+        const { container } = render(FmBarChart, {
+            props: { months: kwh, marks: 'previous', format: inKwh },
+        });
+        expect(container.querySelector('svg title')).toBeNull();
+
+        await userEvent.hover(
+            container.querySelectorAll('[data-bar-target]')[0],
+        );
+
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(
+            'November 2025: 238 kWh, 74,50 €; November 2024: 252 kWh',
+        );
+    });
+});
