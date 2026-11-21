@@ -2323,5 +2323,6 @@
     "Reading the bills…": "Sto leggendo le bollette…",
     ":done of :total": ":done di :total",
     "You can close the page: I carry on by myself and the chart fills up as I go.": "Puoi chiudere la pagina: continuo da solo e il grafico si riempie man mano.",
-    "{0} There are no bills to read.|{1} I am reading :count bill.|[2,*] I am reading :count bills.": "{0} Non ci sono bollette da leggere.|{1} Sto leggendo :count bolletta.|[2,*] Sto leggendo :count bollette."
+    "{0} There are no bills to read.|{1} I am reading :count bill.|[2,*] I am reading :count bills.": "{0} Non ci sono bollette da leggere.|{1} Sto leggendo :count bolletta.|[2,*] Sto leggendo :count bollette.",
+    "See the consumption": "Vedi i consumi"
 }

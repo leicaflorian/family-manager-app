@@ -9,6 +9,7 @@ import {
     policyBudget,
     policyDetail,
 } from '@/test/fixtures';
+import { formatEuro, formatQuantity } from '@/lib/format';
 import { renderPage, withTrail } from '@/test/page';
 import Card from './Card.vue';
 
@@ -502,6 +503,48 @@ describe('A card', () => {
                 'href',
                 '/budget/planned/expense/create?card=utility%3A3',
             );
+        });
+
+        it('shows the last 12 months of consumption under the payments, with the link to the page', () => {
+            renderPage(Card, {
+                card: {
+                    ...luceDetail,
+                    consumption: {
+                        quantity: 2711,
+                        unit: 'kwh',
+                        price: 0.31,
+                        href: '/budget/consumption?utility=3',
+                    },
+                },
+                linkable: [],
+            });
+
+            expect(
+                screen
+                    .getAllByRole('heading', { level: 2 })
+                    .map((heading) => heading.textContent?.trim())
+                    .at(-1),
+            ).toBe('Consumption');
+            expect(screen.getByText('Last 12 months')).toBeInTheDocument();
+            expect(
+                screen.getByText(
+                    `${formatQuantity(2711, 'kwh')} · ${formatEuro(0.31)} per kWh`,
+                ),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: 'See the consumption' }),
+            ).toHaveAttribute('href', '/budget/consumption?utility=3');
+        });
+
+        it('has no consumption without it', () => {
+            renderPage(Card, { card: luceDetail, linkable: [] });
+
+            expect(
+                screen.queryByText('Last 12 months'),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('link', { name: 'See the consumption' }),
+            ).not.toBeInTheDocument();
         });
 
         it('keeps the date tiles beside the figures', () => {

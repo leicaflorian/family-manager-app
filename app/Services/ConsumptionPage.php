@@ -57,6 +57,39 @@ final readonly class ConsumptionPage
     }
 
     /**
+     * The last 12 months of a utility as its card shows them: the consumption, the average price and the address of the
+     * page, over the same 12 months the page opens on (ending at the latest bill, `window()`).
+     *
+     * @param  Utility  $utility  the utility
+     * @param  CarbonImmutable  $today  today
+     * @return array{quantity: float, unit: string, price: float|null, href: string}|null null for a utility without a unit, without bills or without consumption in those months
+     */
+    public function lastYear(Utility $utility, CarbonImmutable $today): ?array
+    {
+        $unit = ConsumptionUnit::forUtility($utility->type);
+
+        if (! $unit instanceof ConsumptionUnit) {
+            return null;
+        }
+
+        $rows = UtilityConsumption::query()->with(Consumption::relations())->where('utility_id', $utility->id)->get();
+
+        if (! $this->consumption->lastMonthWithData($rows) instanceof CarbonImmutable) {
+            return null;
+        }
+
+        [$from, $to] = $this->window($rows, null, $today);
+        $figures = $this->consumption->figures($rows, $from, $to);
+
+        return $figures->quantity > 0 ? [
+            'quantity' => $figures->quantity,
+            'unit' => $unit->value,
+            'price' => $figures->averagePrice,
+            'href' => route('budget.consumption', ['utility' => $utility->id], false),
+        ] : null;
+    }
+
+    /**
      * The utility the page shows: the one asked, if it is a measured utility of the family; without one, the first
      * active one of electricity, then gas, then water, else the first of those.
      *

@@ -521,6 +521,7 @@ export const policyDetail: App.Data.CardDetailData = {
         text: 'Active',
         tone: 'open',
     },
+    consumption: null,
 };
 
 /** The nine areas with their active cards, as the sidebar receives them. */

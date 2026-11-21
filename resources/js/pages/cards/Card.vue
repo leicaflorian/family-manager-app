@@ -15,7 +15,17 @@
  * typing, 15 at a time with the next ones loaded at the end of the list.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Link2, Pencil, Plus, Trash2 } from '@lucide/vue';
+import {
+    ChartColumn,
+    ChevronRight,
+    Droplet,
+    Flame,
+    Link2,
+    Pencil,
+    Plus,
+    Trash2,
+    Zap,
+} from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
@@ -25,6 +35,7 @@ import FmCardHeader from '@/components/fm/FmCardHeader.vue';
 import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardDocumentActions from '@/components/fm/FmCardDocumentActions.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
 import FmDateTile from '@/components/fm/FmDateTile.vue';
 import FmNumberTile from '@/components/fm/FmNumberTile.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
@@ -36,8 +47,10 @@ import FmPager from '@/components/fm/FmPager.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
+import { useFormat } from '@/composables/useFormat';
 import { usePageTrail } from '@/composables/usePageTrail';
 import type { Action } from '@/lib/actions';
+import { formatQuantity, unitLabel } from '@/lib/format';
 import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
@@ -70,6 +83,35 @@ const linking = ref(false);
 const uploading = ref(false);
 
 /** The address of the card in the routes: its type and its number. */
+const { euro } = useFormat();
+
+/** The icon of the unit of the consumption: a bolt for kWh, a flame for gas, a drop for water. */
+const consumptionIcon = computed(() =>
+    card.consumption?.unit === 'kwh'
+        ? Zap
+        : card.consumption?.unit === 'smc'
+          ? Flame
+          : Droplet,
+);
+
+/** The last 12 months in one line, like `2.711 kWh · 0,31 € a kWh`. */
+const consumptionText = computed((): string => {
+    const consumption = card.consumption;
+
+    if (!consumption) {
+        return '';
+    }
+
+    const quantity = formatQuantity(consumption.quantity, consumption.unit);
+
+    return consumption.price === null
+        ? quantity
+        : `${quantity} · ${trans(':price per :unit', {
+              price: euro(consumption.price),
+              unit: unitLabel(consumption.unit),
+          })}`;
+});
+
 const address = computed(() => ({ type: card.card.type, id: card.card.id }));
 
 usePageTrail(() => [
@@ -246,6 +288,42 @@ function link(id: number): void {
                 <div v-if="card.budget" class="mt-3 flex flex-col gap-5">
                     <FmCardPayments :budget="card.budget" :card="address" />
                 </div>
+
+                <FmCard
+                    v-if="card.consumption"
+                    class="mt-3"
+                    :title="$t('Consumption')"
+                    list
+                >
+                    <template #actions>
+                        <FmSectionLink
+                            :href="card.consumption.href"
+                            :icon="ChartColumn"
+                            >{{ $t('See the consumption') }}</FmSectionLink
+                        >
+                    </template>
+                    <Link
+                        :href="card.consumption.href"
+                        class="flex items-center gap-3 px-4 py-3 text-ink no-underline"
+                    >
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-card bg-home-soft text-home-text"
+                        >
+                            <FmIcon :icon="consumptionIcon" :size="20" />
+                        </span>
+                        <span class="flex min-w-0 grow flex-col gap-0.5">
+                            <span class="text-meta text-ink-soft">{{
+                                $t('Last 12 months')
+                            }}</span>
+                            <span class="text-row">{{ consumptionText }}</span>
+                        </span>
+                        <FmIcon
+                            :icon="ChevronRight"
+                            :size="20"
+                            class="shrink-0 text-ink-faint"
+                        />
+                    </Link>
+                </FmCard>
             </div>
         </div>
 

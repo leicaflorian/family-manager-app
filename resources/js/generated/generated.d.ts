@@ -216,6 +216,12 @@ readonly can_delete: boolean,
 readonly can_delete_documents: boolean,
 readonly budget: App.Data.CardBudgetData | null,
 readonly status: App.Data.CardNumberData | null,
+readonly consumption: {
+quantity: number,
+unit: string,
+price: number | null,
+href: string,
+} | null,
 };
 export type CardFieldData = {
 readonly column: string,
