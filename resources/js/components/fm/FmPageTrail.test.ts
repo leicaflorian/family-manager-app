@@ -38,6 +38,20 @@ describe('FmPageTrail', () => {
         expect(visit).toHaveBeenCalledWith('/people');
     });
 
+    it.each(['phone', 'tablet'] as const)(
+        'on the %s passes the class of the caller to what it draws',
+        (mode) => {
+            const { container } = renderPage(FmPageTrail, {
+                mode,
+                trail,
+                section: false,
+                class: '-mb-2',
+            });
+
+            expect(container.querySelector('.-mb-2')).not.toBeNull();
+        },
+    );
+
     it('on the phone shows nothing when no piece has a link', () => {
         const { container } = renderPage(FmPageTrail, {
             mode: 'phone',
@@ -46,7 +60,7 @@ describe('FmPageTrail', () => {
         });
 
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
-        expect(container).toHaveTextContent('');
+        expect(container.textContent).toBe('');
     });
 
     it('on the tablet is Back and the trail in a row', () => {

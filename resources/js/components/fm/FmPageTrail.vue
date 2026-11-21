@@ -18,6 +18,8 @@ import FmBackLink from './FmBackLink.vue';
 import FmIcon from './FmIcon.vue';
 import FmTrail from './FmTrail.vue';
 
+defineOptions({ inheritAttrs: false });
+
 const { mode, trail, section } = defineProps<{
     /** The layout of the window: the link of the phone or the row of the tablet. */
     mode: 'phone' | 'tablet';
@@ -37,6 +39,7 @@ const { parent, visible, back } = usePageBack(
     <template v-if="!section && trail.length >= 2">
         <FmBackLink
             v-if="mode === 'phone' && parent"
+            v-bind="$attrs"
             :href="parent.href"
             :label="parent.label"
             handled
