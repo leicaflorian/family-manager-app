@@ -8,7 +8,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { renderPage, withTrail } from '@/test/page';
+import { renderPage } from '@/test/page';
 import ReceivedMails from './ReceivedMails.vue';
 
 const ADDRESS = 'bianchi.k7m2x9@bollette.familymanager.it';
@@ -102,14 +102,12 @@ afterEach(() => {
 });
 
 describe('ReceivedMails', () => {
-    it('writes the trail To sort > Received mail into the top bar', () => {
-        const { state, provide } = withTrail();
-        renderPage(ReceivedMails, page, provide);
+    it('has no link back above the title: it is the page of its own section', () => {
+        renderPage(ReceivedMails, page);
 
-        expect(state.pieces.value).toEqual([
-            { label: 'To sort', href: '/to-sort' },
-            { label: 'Received mail' },
-        ]);
+        expect(
+            screen.queryByRole('link', { name: 'To sort' }),
+        ).not.toBeInTheDocument();
     });
 
     it('says the address the mails arrive to, under the title', () => {

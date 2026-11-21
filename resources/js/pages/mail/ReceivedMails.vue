@@ -36,9 +36,7 @@ import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCopy } from '@/composables/useCopy';
 import { formatDateTime, formatShortDateTime } from '@/lib/format';
-import { toSort } from '@/routes';
 import { destroy, index, notice, show } from '@/routes/mail';
-import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<{
     /** The address for the bills of the family, null when it has none yet. */
@@ -210,11 +208,6 @@ async function copyCode(): Promise<void> {
         }
     }
 }
-
-usePageTrail(() => [
-    { label: trans('To sort'), href: toSort().url },
-    { label: trans('Received mail') },
-]);
 </script>
 
 <template>
@@ -232,8 +225,6 @@ usePageTrail(() => [
                         ? $t('The mails that arrived at :address', { address })
                         : undefined
                 "
-                :back="toSort().url"
-                :back-label="$t('To sort')"
                 class="min-w-0 wide:flex-1"
             />
             <FmSearchField

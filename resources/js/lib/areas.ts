@@ -60,18 +60,21 @@ export const areaTile: Record<Area, string> = {
     general: cn('bg-general-soft text-general-text'),
 };
 
-/** The dark background of the top of a card page. */
+/**
+ * The background of the top of a card page: a fade at 160 degrees from the dark
+ * colour of the area to its lighter `-dark-end`, used with `bg-linear-160`.
+ */
 export const areaHeader: Record<Area, string> = {
-    home: cn('bg-home-dark'),
-    vehicles: cn('bg-vehicles-dark'),
-    insurance: cn('bg-insurance-dark'),
-    banks: cn('bg-banks-dark'),
-    health: cn('bg-health-dark'),
-    school: cn('bg-school-dark'),
-    work: cn('bg-work-dark'),
-    subscriptions: cn('bg-subscriptions-dark'),
-    paperwork: cn('bg-paperwork-dark'),
-    general: cn('bg-general-dark'),
+    home: cn('from-home-dark to-home-dark-end'),
+    vehicles: cn('from-vehicles-dark to-vehicles-dark-end'),
+    insurance: cn('from-insurance-dark to-insurance-dark-end'),
+    banks: cn('from-banks-dark to-banks-dark-end'),
+    health: cn('from-health-dark to-health-dark-end'),
+    school: cn('from-school-dark to-school-dark-end'),
+    work: cn('from-work-dark to-work-dark-end'),
+    subscriptions: cn('from-subscriptions-dark to-subscriptions-dark-end'),
+    paperwork: cn('from-paperwork-dark to-paperwork-dark-end'),
+    general: cn('from-general-dark to-general-dark-end'),
 };
 
 /**

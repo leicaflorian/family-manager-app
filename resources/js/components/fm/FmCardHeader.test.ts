@@ -22,6 +22,33 @@ describe('FmCardHeader', () => {
         ).toBeInTheDocument();
     });
 
+    it('fades from the dark colour of the area to a lighter one', () => {
+        const { container } = render(FmCardHeader, {
+            props: { card: pandaRow, heading: 'Plate GH 482 TK · Marco' },
+        });
+
+        expect(container.firstElementChild).toHaveClass(
+            'bg-linear-160',
+            'from-vehicles-dark',
+            'to-vehicles-dark-end',
+        );
+    });
+
+    it('fades in grey when the card has no area', () => {
+        const { container } = render(FmCardHeader, {
+            props: {
+                card: { ...pandaRow, area: 'violet' },
+                heading: 'Plate GH 482 TK · Marco',
+            },
+        });
+
+        expect(container.firstElementChild).toHaveClass(
+            'bg-linear-160',
+            'from-general-dark',
+            'to-general-dark-end',
+        );
+    });
+
     it('makes the buttons of the actions translucent on its colour', () => {
         render(FmCardHeader, {
             props: { card: pandaRow, heading: 'Plate GH 482 TK · Marco' },

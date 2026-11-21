@@ -3,11 +3,12 @@
  * The bar on top of every page of the tablet and of the computer, 68 px high
  * and sticky, with a 1 px line under it, as the card *Barra in alto* draws it.
  *
- * The same on the tablet (20 px at the sides) and on the computer (40 px): with the
+ * On the tablet (20 px at the sides) and on the computer (40 px): with the
  * sidebar collapsed it starts with the button that expands it (it emits `expand`;
- * the tablet always has the sidebar collapsed), then Back (only on an inner page,
- * when a page of the app comes before or the trail has a page above) and the
- * trail (`FmTrail`); the logo and the family are in the sidebar. On the right the search of the
+ * the tablet always has the sidebar collapsed). On the computer only, then Back (only on an
+ * inner page, when a page of the app comes before or the trail has a page above) and the
+ * trail (`FmTrail`); on the tablet Back and the trail are in the row above the
+ * page title. The logo and the family are in the sidebar. On the right the search of the
  * whole app (300 px, 420 px while it has the focus or some text, with the menu
  * of the first results under it; Enter opens the *Search* page) and the bell,
  * whose panel opens 8 px under the line. The bar stays across the visits:
@@ -19,13 +20,13 @@
  */
 import { router } from '@inertiajs/vue3';
 import { ArrowLeft, PanelLeftOpen } from '@lucide/vue';
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+import { nextTick, ref, useTemplateRef, watch } from 'vue';
 import { useAppName } from '@/composables/useAppName';
+import { usePageBack } from '@/composables/usePageBack';
 import { useLeavePage } from '@/composables/useLeavePage';
 import { SEARCH_MENU_ID, useSearchBox } from '@/composables/useSearchBox';
 import type { TrailPiece } from '@/lib/pageTrail';
 import { squareButton } from '@/lib/topBar';
-import { canGoBack } from '@/lib/visitHistory';
 import { search } from '@/routes';
 import type { BellNotices } from '@/lib/notices';
 import FmBell from './FmBell.vue';
@@ -46,7 +47,7 @@ const {
     query = '',
     collapsed = false,
 } = defineProps<{
-    /** The layout of the window: only the margins change, 20 px on the tablet and 40 px on the computer. */
+    /** The layout of the window: 20 px margins on the tablet, 40 px and Back with the trail on the computer. */
     mode: 'tablet' | 'computer';
     /** The pieces of the trail; the last one is the open page. */
     trail: TrailPiece[];
@@ -113,50 +114,14 @@ useLeavePage((path) => {
     void nextTick(closeMenu);
 });
 
-/** The nearest page above the open one in the trail, where Back leads without a history. */
-const parentHref = computed(
-    (): string | undefined =>
-        trail
-            .slice(0, -1)
-            .reverse()
-            .find((piece) => piece.href !== undefined)?.href,
+const {
+    parent,
+    visible: showBack,
+    back,
+} = usePageBack(
+    () => trail,
+    () => section,
 );
-
-/**
- * Whether Back is shown: on an inner page, when it can go
- * back in the history or up in the trail. `canGoBack()` reads a reactive
- * depth, so the template that calls this renders again after each visit.
- *
- * @returns true when Back is shown
- */
-function showBack(): boolean {
-    return !section && (canGoBack() || parentHref.value !== undefined);
-}
-
-/**
- * Back: the previous page of the history when it is a page of the app,
- * otherwise the page above in the trail. With a modifier key on the link
- * the browser opens it as it wants (a new tab, a new window); the button
- * without a page above always goes back.
- *
- * @param event - the click on Back
- */
-function back(event: MouseEvent): void {
-    const modified =
-        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
-
-    if (modified && parentHref.value !== undefined) {
-        return;
-    }
-
-    event.preventDefault();
-
-    if (canGoBack()) {
-        window.history.back();
-    } else if (parentHref.value !== undefined) {
-        router.visit(parentHref.value);
-    }
-}
 
 /** Puts the cursor in the search box: the shortcut ⌘K of the layout calls it. */
 function focusSearch(): void {
@@ -187,10 +152,10 @@ defineExpose({ focusSearch });
                     <FmIcon :icon="PanelLeftOpen" :size="22" />
                 </button>
                 <component
-                    :is="parentHref ? 'a' : 'button'"
-                    v-if="showBack()"
-                    :href="parentHref"
-                    :type="parentHref ? undefined : 'button'"
+                    :is="parent?.href ? 'a' : 'button'"
+                    v-if="mode === 'computer' && showBack()"
+                    :href="parent?.href"
+                    :type="parent?.href ? undefined : 'button'"
                     :aria-label="$t('Back')"
                     :title="$t('Back')"
                     :class="squareButton"
@@ -198,7 +163,7 @@ defineExpose({ focusSearch });
                 >
                     <FmIcon :icon="ArrowLeft" :size="20" />
                 </component>
-                <FmTrail :pieces="trail" />
+                <FmTrail v-if="mode === 'computer'" :pieces="trail" />
             </div>
             <div
                 class="relative max-w-full min-w-60 transition-[width] duration-200 motion-reduce:transition-none"
