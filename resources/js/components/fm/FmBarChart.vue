@@ -174,6 +174,12 @@ const slot = computed(
     () => (frameWidth.value - SIDES.left - SIDES.right) / list.value.length,
 );
 
+/** Under this width (px) of a month, a month is written with its initial. */
+const INITIAL_SLOT = 32;
+
+/** Whether the months are so narrow that only their initial fits. */
+const initials = computed(() => slot.value < INITIAL_SLOT);
+
 /** Whether the month in progress is written on two lines, for narrow months. */
 const twoLines = computed(() => slot.value < TWO_LINES_SLOT);
 
@@ -377,13 +383,15 @@ const bars = computed(() =>
                           text: (short ?? format)(month.value),
                       }
                     : null,
-            label: month.current
-                ? trans(':month (in progress)', {
-                      month: shortMonth(month.month),
-                  })
-                : shortMonth(month.month),
+            label: initials.value
+                ? shortMonth(month.month).charAt(0)
+                : month.current
+                  ? trans(':month (in progress)', {
+                        month: shortMonth(month.month),
+                    })
+                  : shortMonth(month.month),
             lines:
-                month.current && twoLines.value
+                month.current && twoLines.value && !initials.value
                     ? [shortMonth(month.month), trans('(in progress)')]
                     : null,
             strong: month.current === true || chosen,
@@ -638,6 +646,7 @@ function move(event: KeyboardEvent, index: number): void {
                     <text
                         :x="bar.centre"
                         :y="frame.height - 10"
+                        data-month-label
                         text-anchor="middle"
                         class="text-caption"
                         :class="

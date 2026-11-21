@@ -151,6 +151,43 @@ describe('FmBarChart, real size', () => {
         expect(lines).toEqual(['Oct', '(in progress)']);
     });
 
+    it('writes only the initial of each month when twelve months are narrow', async () => {
+        drawnAt(340);
+        const { container } = render(FmBarChart, {
+            props: {
+                months: [
+                    ...kwh,
+                    ...['04', '05', '06', '07', '08', '09'].map((m) => ({
+                        month: `2026-${m}`,
+                        value: 200,
+                        mark: null,
+                    })),
+                ],
+                marks: 'previous',
+                format: inKwh,
+            },
+        });
+        await nextTick();
+
+        const labels = [
+            ...container.querySelectorAll('[data-month-label]'),
+        ].map((text) => text.textContent?.trim());
+        expect(labels).toEqual([
+            'O',
+            'N',
+            'D',
+            'J',
+            'F',
+            'M',
+            'A',
+            'M',
+            'J',
+            'J',
+            'A',
+            'S',
+        ]);
+    });
+
     it('keeps the month in progress on one line when there is room', async () => {
         drawnAt(800);
         const { container } = render(FmBarChart, {
