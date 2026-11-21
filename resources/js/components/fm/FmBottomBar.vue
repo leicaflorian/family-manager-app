@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The bottom bar of the phone (below 1024 px): Home, Budget, the + of Add in
+ * The bottom bar of the phone (below 768 px): Home, Budget, the + of Add in
  * the middle, Areas and More. The + opens the panel *Add*: To sort (only when
  * files wait, with their number), then Upload a file, Scan a sheet, New expense
  * and New task. More opens a panel with Agenda, Documents, Family,
@@ -120,7 +120,7 @@ function itemClasses(marked: boolean): string {
                     <span
                         v-if="uploadCount > 0"
                         aria-hidden="true"
-                        class="absolute -top-1 -right-1 min-w-5 rounded-full bg-overdue px-1 text-center text-badge text-on-action"
+                        class="absolute -top-1.5 -right-1.5 flex h-[22px] min-w-[22px] items-center justify-center rounded-full border-2 border-card bg-overdue px-1.5 text-badge text-on-action"
                         >{{ uploadBadge }}</span
                     >
                 </button>

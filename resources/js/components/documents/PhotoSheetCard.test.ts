@@ -37,4 +37,27 @@ describe('PhotoSheetCard', () => {
             screen.getByRole('link', { name: /Take a photo of a sheet/ }),
         ).toBeInTheDocument();
     });
+
+    it('with scanner is the card of the home scanner, a link to Scan the sheets, with no arrow', () => {
+        const { container } = render(PhotoSheetCard, {
+            props: { scanner: true },
+        });
+
+        expect(
+            screen.getByRole('link', {
+                name: /Scan the sheets with the scanner/,
+            }),
+        ).toHaveAttribute('href', '/scanner');
+        expect(
+            screen.getByText(
+                'Front and back of all the sheets, then you find them in To sort',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText('Take a photo of a sheet'),
+        ).not.toBeInTheDocument();
+        expect(
+            container.querySelector('[data-testid="photo-sheet-arrow"]'),
+        ).toBeNull();
+    });
 });

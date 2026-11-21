@@ -96,24 +96,6 @@ describe('Upload', () => {
         );
     });
 
-    it('closes to the card it comes from, or to the home page', () => {
-        const result = renderPage(Upload, {
-            ...props,
-            presetLinks: [{ type: 'vehicle', id: 1 }],
-        });
-        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
-            'href',
-            '/cards/vehicle/1',
-        );
-        result.unmount();
-
-        renderPage(Upload, { ...props });
-        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
-            'href',
-            '/dashboard',
-        );
-    });
-
     it('only takes the files: there is no form, the files are checked in Import', () => {
         renderPage(Upload, { ...props });
 
@@ -149,10 +131,9 @@ describe('Upload by layout', () => {
         expect(
             screen.queryByText('Drag the files here, or choose them'),
         ).not.toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Close' })).toBeInTheDocument();
     });
 
-    it('on the phone puts the link to the files to sort on its own row under the title, and on the tablet beside the ×', () => {
+    it('on the phone puts the link to the files to sort on its own row under the title, and on the tablet beside it', () => {
         shared.to_sort_count = 5;
         for (const [width, below] of [
             [390, true],
@@ -162,13 +143,11 @@ describe('Upload by layout', () => {
             const view = renderPage(Upload, { ...props });
 
             const link = screen.getByRole('link', { name: '5 files to sort' });
-            const close = screen.getByRole('link', { name: 'Close' });
-            expect(
-                Boolean(
-                    close.compareDocumentPosition(link) &
-                    Node.DOCUMENT_POSITION_FOLLOWING,
-                ),
-            ).toBe(below);
+            // the block of the title holds the link back, the title and its actions: on the phone the link is below it
+            const block = screen.getByRole('link', {
+                name: 'To sort',
+            }).parentElement;
+            expect(block?.contains(link)).toBe(!below);
             expect(
                 screen
                     .getByRole('heading', { name: 'Upload a document' })
@@ -192,18 +171,14 @@ describe('Upload by layout', () => {
         expect(
             screen.getByText('PDF, JPG, PNG or HEIC, up to 25 MB each'),
         ).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Close' })).toBeInTheDocument();
     });
 
-    it('on the computer has no photo card and no close button', () => {
+    it('on the computer has no photo card', () => {
         screenWidth(1280);
         renderPage(Upload, { ...props });
 
         expect(
             screen.queryByRole('link', { name: /Take a photo of a sheet/ }),
-        ).not.toBeInTheDocument();
-        expect(
-            screen.queryByRole('link', { name: 'Close' }),
         ).not.toBeInTheDocument();
         expect(
             screen.getByText('Drag the files here, or choose them'),
@@ -223,7 +198,60 @@ describe('Upload by layout', () => {
 });
 
 describe('Upload on the computer', () => {
-    it('has no close button beside the title on the computer, and has it on the tablet and the phone', () => {
+    it('on a Mac or a Windows PC offers the home scanner beside the drop zone', () => {
+        for (const agent of [
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        ]) {
+            screenWidth(1280);
+            vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(agent);
+            const view = renderPage(Upload, { ...props });
+
+            expect(
+                screen.getByRole('link', {
+                    name: /Scan the sheets with the scanner/,
+                }),
+            ).toHaveAttribute('href', '/scanner');
+            expect(
+                screen.getByText('Drag the files here, or choose them'),
+            ).toBeInTheDocument();
+            view.unmount();
+            vi.restoreAllMocks();
+        }
+    });
+
+    it('on a computer the scanner agent is not built for has only the drop zone', () => {
+        screenWidth(1280);
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
+        );
+        renderPage(Upload, { ...props });
+
+        expect(
+            screen.queryByRole('link', {
+                name: /Scan the sheets with the scanner/,
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('on the tablet keeps the photo and does not offer the scanner', () => {
+        screenWidth(820);
+        vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        );
+        renderPage(Upload, { ...props });
+
+        expect(
+            screen.getByRole('link', { name: /Take a photo of a sheet/ }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', {
+                name: /Scan the sheets with the scanner/,
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('goes back to To sort with the link above the title on the tablet and the phone, as the received mail, and has no ×', () => {
         for (const [width, shown] of [
             [1280, false],
             [820, true],
@@ -232,9 +260,12 @@ describe('Upload on the computer', () => {
             screenWidth(width);
             const view = renderPage(Upload, { ...props });
 
-            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
-                shown,
-            );
+            const back = screen.queryByRole('link', { name: 'To sort' });
+            expect(back !== null).toBe(shown);
+            if (back) expect(back).toHaveAttribute('href', '/to-sort');
+            expect(
+                screen.queryByRole('link', { name: 'Close' }),
+            ).not.toBeInTheDocument();
             view.unmount();
         }
     });

@@ -183,7 +183,8 @@ export function navigationItems(): NavigationItems {
             {
                 label: trans('Scan a sheet'),
                 hint: trans('Photograph a sheet with the camera'),
-                href: scan().url,
+                // the page tries to open the camera at once: Android lets it, Safari on the iPhone waits for a tap
+                href: scan({ query: { camera: 1 } }).url,
                 icon: ScanLine,
             },
             {

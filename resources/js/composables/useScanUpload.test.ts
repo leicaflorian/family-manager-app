@@ -33,7 +33,7 @@ function page(
         kind,
         corners: null,
         turns: 0,
-        improve: { enhance: true, grey: true, dewarp: false },
+        improve: { enhance: 50, grey: true, dewarp: false },
         cut: true,
         jpeg: new Blob(['j'], { type: 'image/jpeg' }),
     };

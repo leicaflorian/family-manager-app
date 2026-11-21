@@ -4,8 +4,8 @@
  * upload, the mail, the phone), newest first, as the boards *Da smistare*,
  * *Da smistare-tablet* and *Da smistare-pc* draw it; `useLayoutMode()` decides
  * what each layout shows.
- * - Phone: the short count under the title, *Take a photo* and *Choose a file*
- *   side by side, the filters as chips, rows touched to choose them and, once a
+ * - Phone: the short count under the title (*Take a photo* and *Choose a file*
+ *   are in the + of the bar at the bottom), the filters as chips, rows touched to choose them and, once a
  *   file is chosen, the bar at the bottom with the bin and *Check N files*.
  * - Tablet: the long count, *Choose the files* and *Take a photo* beside the
  *   title, the chips, and the list with its bar at the top.
@@ -225,20 +225,6 @@ function confirmDelete(): void {
                 >
             </template>
         </FmTitle>
-
-        <!-- On the phone the camera comes first, as the board Da smistare -->
-        <div v-if="phone" class="grid grid-cols-2 gap-3">
-            <FmButton wide :icon="Camera" :href="scan().url">{{
-                $t('Take a photo')
-            }}</FmButton>
-            <FmButton
-                wide
-                variant="neutral"
-                :icon="FolderOpen"
-                :href="uploadPage().url"
-                >{{ $t('Choose a file') }}</FmButton
-            >
-        </div>
 
         <nav
             v-if="mode !== 'computer'"

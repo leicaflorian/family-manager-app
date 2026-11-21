@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * The cards of a composed page of *Scan the sheets*, from the top: each with its size and the keys to correct its
+ * The cards of a composed page of *Scan the sheets*, in the tab *This page* of the choices (board
+ * `Scanner-tessera-pc`), from the top: each with its size and the keys to correct its
  * cut, turn it, move it up or down or take it off the page. Under them whether they are at their real size or
  * reduced to fit, *Rounded corners* and *Separate*, which puts the sides back in the strip as they arrived.
  */
@@ -54,11 +55,12 @@ function sizeText(size: Size): string {
 
 <template>
     <fieldset
-        class="m-0 flex w-full max-w-[420px] flex-col gap-3 rounded-card border border-edge-soft bg-card p-4 shadow-card"
+        aria-labelledby="composed-title"
+        class="m-0 flex w-full flex-col gap-3 border-0 p-0"
     >
-        <legend class="px-1 text-label">
+        <h2 id="composed-title" class="m-0 text-amount">
             {{ $t('Composed page') }}
-        </legend>
+        </h2>
 
         <ol class="m-0 flex list-none flex-col gap-2 p-0">
             <li

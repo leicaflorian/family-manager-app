@@ -95,7 +95,6 @@ const computer = {
     mode: 'computer' as const,
     trail: three,
     section: false,
-    family: 'Bianchi',
     unreadNotices: 0,
 };
 
@@ -237,38 +236,40 @@ describe('FmTopBar', () => {
         expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
     });
 
-    it('shows the menu button, the logo and the family on the tablet', async () => {
-        const bar = renderBar({
-            ...computer,
-            mode: 'tablet',
-            uploadCount: 5,
-            menuOpen: false,
-        });
+    it('on the tablet is the bar of the computer, 20 px at the sides, without the logo', () => {
+        renderBar({ ...computer, mode: 'tablet' });
 
-        const menu = screen.getByRole('button', {
-            name: 'Menu, 5 files to sort',
-        });
-        expect(menu).toHaveAttribute('aria-expanded', 'false');
-        expect(menu).toHaveAttribute('aria-controls', 'app-menu');
-        expect(screen.getByText('Fameja.app')).toBeInTheDocument();
-        expect(screen.queryByText('Family Manager')).toBeNull();
-        expect(screen.getByText('Bianchi family')).toBeInTheDocument();
-        expect(screen.queryByRole('navigation')).toBeNull();
-        expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
-        expect(screen.getByRole('banner')).toHaveClass('px-8');
-
-        await userEvent.click(menu);
-
-        expect(bar.emitted('openMenu')).toHaveLength(1);
+        expect(screen.getByRole('link', { name: 'Back' })).toBeInTheDocument();
+        expect(
+            screen.getByRole('navigation', { name: 'Where you are' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Fameja.app')).toBeNull();
+        expect(screen.queryByRole('button', { name: /^Menu/ })).toBeNull();
+        // the same 20 px as the page under it (main-gutter of AppLayout)
+        expect(screen.getByRole('banner')).toHaveClass('px-5');
     });
 
-    it('calls the menu button only «Menu» without files to sort', () => {
-        renderBar({ ...computer, mode: 'tablet', menuOpen: true });
+    it('with the sidebar collapsed starts with Expand the menu, before Back and the trail', async () => {
+        const bar = renderBar({ ...computer, collapsed: true });
 
-        expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute(
-            'aria-expanded',
-            'true',
-        );
+        const expand = screen.getByRole('button', { name: 'Expand the menu' });
+        const back = screen.getByRole('link', { name: 'Back' });
+        expect(
+            expand.compareDocumentPosition(back) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+
+        await userEvent.click(expand);
+
+        expect(bar.emitted('expand')).toHaveLength(1);
+    });
+
+    it('has no Expand the menu while the sidebar is open', () => {
+        renderBar(computer);
+
+        expect(
+            screen.queryByRole('button', { name: 'Expand the menu' }),
+        ).toBeNull();
     });
 
     it('searches the text on the Search page with Enter', async () => {

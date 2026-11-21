@@ -174,8 +174,8 @@ describe('Documents', () => {
         ).toHaveAttribute('href', '/upload');
     });
 
-    it('on the computer shows the filters in a column from 1024 px, not only from 1440', () => {
-        screenWidth(1024);
+    it('on the computer shows the filters in a column from 1280 px, not only from 1440', () => {
+        screenWidth(1280);
         renderPage(Documents, props);
 
         const aside = screen.getByRole('complementary', { name: 'Filters' });
