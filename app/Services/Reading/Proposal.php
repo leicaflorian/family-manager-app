@@ -187,14 +187,24 @@ final readonly class Proposal
         );
 
         $complete = $utility instanceof Utility || $created instanceof UtilityType ? [] : ['utility'];
-        $fill = array_values(array_filter([
+        $missing = array_values(array_filter([
             $values->quantity === null ? 'quantity' : null,
             $values->period_start === null ? 'period_start' : null,
             $values->period_end === null ? 'period_end' : null,
         ]));
+        // The check with the unit of the utility rates only quantity and period: a value out of range or a period
+        // reversed or too long is written again in the box, like a missing one
+        $rated = $missing === [] ? ConsumptionCheck::outcome($type, $values->quantity, $unit->value, $values->period_start, $values->period_end) : null;
+        $fill = match ($rated) {
+            ConsumptionOutcome::OutOfRange => ['quantity'],
+            ConsumptionOutcome::BadPeriod => ['period_start', 'period_end'],
+            default => $missing,
+        };
         $blocked = match (true) {
             $complete !== [] => Translated::text('To record the consumption choose the utility above.'),
-            $fill !== [] => Translated::text('To record the consumption write the quantity and the period in its box.'),
+            $missing !== [] => Translated::text('To record the consumption write the quantity and the period in its box.'),
+            $rated === ConsumptionOutcome::OutOfRange => Translated::text('To record the consumption correct the quantity in its box.'),
+            $rated === ConsumptionOutcome::BadPeriod => Translated::text('To record the consumption correct the period in its box: the first day comes before the last.'),
             default => null,
         };
         $saved = ConsumptionCheck::outcome($type, $values->quantity, $x->consumption_unit, $values->period_start, $values->period_end) === ConsumptionOutcome::Saved;

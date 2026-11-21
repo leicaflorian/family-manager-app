@@ -246,3 +246,67 @@ test('a price per unit out of the usual range is flagged, and the corrected amou
 
     expect((float) UtilityConsumption::query()->sole()->amount)->toBe(71.30);
 });
+
+test('a ticked box with the first day after the last is refused and saves nothing', function (): void {
+    $file = importConsumptionBill();
+
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id]))->assertOk();
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], [
+            'consumption' => true, 'overrides' => ['consumption' => ['period_start' => '2026-10-15']],
+        ]),
+    ]])->assertSessionHasErrors(['files.0.also.consumption' => 'To record the consumption correct the period in its box: the first day comes before the last.']);
+
+    expect(Document::query()->count())->toBe(0)
+        ->and(UtilityConsumption::query()->count())->toBe(0);
+});
+
+test('a corrected period with the last day before the first is refused by the rules', function (): void {
+    $file = importConsumptionBill();
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], [
+            'consumption' => true, 'overrides' => ['consumption' => ['period_start' => '2026-09-30', 'period_end' => '2026-09-01']],
+        ]),
+    ]])->assertSessionHasErrors('files.0.also.overrides.consumption.period_end');
+
+    expect(UtilityConsumption::query()->count())->toBe(0);
+});
+
+test('a period longer than the check allows is written again in the box', function (): void {
+    $file = importConsumptionBill(['period_start' => '2025-01-01', 'period_end' => '2026-09-30']);
+
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where("proposals.{$file->id}.consumption.fill", ['period_start', 'period_end'])
+            ->where("proposals.{$file->id}.consumption.suggested", false));
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], ['consumption' => true]),
+    ]])->assertSessionHasErrors('files.0.also.consumption');
+
+    expect(UtilityConsumption::query()->count())->toBe(0);
+});
+
+test('a ticked box with a read quantity above the cap is refused and saves nothing; corrected, it saves', function (): void {
+    $file = importConsumptionBill(['consumption_quantity' => 25000]);
+
+    $this->actingAs($this->marco)->get(route('import', ['files' => (string) $file->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where("proposals.{$file->id}.consumption.fill", ['quantity'])
+            ->where("proposals.{$file->id}.consumption.suggested", false));
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], ['consumption' => true]),
+    ]])->assertSessionHasErrors(['files.0.also.consumption' => 'To record the consumption correct the quantity in its box.']);
+
+    expect(Document::query()->count())->toBe(0)
+        ->and(UtilityConsumption::query()->count())->toBe(0);
+
+    $this->actingAs($this->marco)->post(route('import.store'), ['files' => [
+        importConsumptionEntry($file, [['type' => 'utility', 'id' => $this->luce->id]], ['consumption' => true, 'overrides' => ['consumption' => ['quantity' => 250]]]),
+    ]])->assertSessionHasNoErrors()->assertSessionMissing('import_failures');
+
+    expect((float) UtilityConsumption::query()->sole()->quantity)->toBe(250.0);
+});

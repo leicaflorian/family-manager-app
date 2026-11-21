@@ -668,8 +668,12 @@ final readonly class ImportFile
             throw ValidationException::withMessages(['consumption' => Translated::text('To record the consumption choose the utility above.')]);
         }
 
-        if ($values->quantity === null || $values->period_start === null || $values->period_end === null) {
-            throw ValidationException::withMessages(['consumption' => Translated::text('To record the consumption write the quantity and the period in its box.')]);
+        // A value missing, out of range or a period reversed: the box says it (the message of the utility comes first
+        // in the proposal, so with a utility found here the general one is said)
+        if ($proposed->fill !== [] || $values->quantity === null || $values->period_start === null || $values->period_end === null) {
+            throw ValidationException::withMessages(['consumption' => $proposed->complete === [] && $proposed->blocked !== null
+                ? $proposed->blocked
+                : Translated::text('To record the consumption write the quantity and the period in its box.')]);
         }
 
         $x = Extraction::ofFile($file);

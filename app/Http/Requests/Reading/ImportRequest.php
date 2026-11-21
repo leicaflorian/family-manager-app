@@ -130,6 +130,13 @@ final class ImportRequest extends FormRequest
         }
 
         foreach (array_keys($this->array('files')) as $index) {
+            // The last day of a corrected period is not before the first, when both are corrected
+            if ($this->filled(sprintf('files.%s.also.overrides.consumption.period_start', $index))) {
+                $rules[sprintf('files.%s.also.overrides.consumption.period_end', $index)] = [
+                    'nullable', 'date_format:Y-m-d', sprintf('after_or_equal:files.%s.also.overrides.consumption.period_start', $index),
+                ];
+            }
+
             $rules += DocumentRules::rules($this->input(sprintf('files.%s.document.links', $index)), sprintf(self::DOCUMENT, $index));
         }
 
