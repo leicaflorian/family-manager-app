@@ -26,6 +26,7 @@ import {
 import { computed, ref, useAttrs } from 'vue';
 import type { ClassValue } from 'clsx';
 import { useLeavePage } from '@/composables/useLeavePage';
+import { COUNT_BADGE_CLASS, countBadge } from '@/lib/badge';
 import type { BellNotices } from '@/lib/notices';
 import { cn } from '@/lib/utils';
 import { notices as noticesPage } from '@/routes';
@@ -139,8 +140,8 @@ function markAll(): void {
             <span
                 v-if="count > 0"
                 aria-hidden="true"
-                class="absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-overdue px-1 text-tiny text-on-action"
-                >{{ count > 99 ? '99+' : count }}</span
+                :class="COUNT_BADGE_CLASS"
+                >{{ countBadge(count) }}</span
             >
         </PopoverTrigger>
         <PopoverPortal>
