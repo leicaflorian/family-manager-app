@@ -22,6 +22,21 @@ describe('FmFamilyViews', () => {
         expect(organizations).toHaveAttribute('aria-current', 'page');
     });
 
+    it('draws the views as the underlined tabs of the budget', () => {
+        render(FmFamilyViews, { props: { family, current: 'people' } });
+
+        const views = screen.getByRole('navigation', { name: 'Family' });
+        expect(views).toHaveClass('border-b', 'border-divider');
+        expect(views).not.toHaveClass('bg-segment');
+        expect(screen.getByRole('link', { name: 'People 3' })).toHaveClass(
+            'border-b-2',
+            'border-action',
+        );
+        expect(
+            screen.getByRole('link', { name: 'Organizations 14' }),
+        ).toHaveClass('border-transparent');
+    });
+
     it('keeps the views at the same distance from the title on both pages', () => {
         render(FmFamilyViews, { props: { family, current: 'people' } });
 
