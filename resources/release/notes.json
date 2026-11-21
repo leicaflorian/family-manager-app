@@ -1,5 +1,31 @@
 [
     {
+        "version": "2.4.0",
+        "date": "2026-11-21",
+        "notes": {
+            "it": [
+                "Puoi collegare la tua banca: i movimenti arrivano da soli tre volte al giorno.",
+                "Nel Bilancio c'è la scheda «Dalla banca»: da lì crei una spesa, paghi una scadenza oppure ignori un movimento.",
+                "Se un movimento della banca corrisponde a una spesa o a un'entrata fissa, la scadenza si segna pagata da sola e tutta la famiglia riceve un avviso. Con «Non era questa» puoi annullare.",
+                "Ti avvisiamo prima che il collegamento con la banca scada, così puoi ricollegarla.",
+                "Titoli, tasto Indietro e percorso sono più ordinati in tutte le pagine, su telefono, tablet e computer.",
+                "La posta ricevuta ha una sezione tutta sua e l'indirizzo si copia con un clic.",
+                "L'intestazione delle schede ha una sfumatura con il colore dell'area.",
+                "Il tasto «Da smistare» sul telefono è un cerchio con il numero, vicino a ricerca e campanella."
+            ],
+            "en": [
+                "You can link your bank: transactions arrive on their own three times a day.",
+                "The Budget has a new «From the bank» tab: there you create an expense, pay a due date or ignore a transaction.",
+                "When a bank transaction matches a fixed expense or income, the due date is marked paid by itself and the whole family gets a notice. «Not this one» undoes it.",
+                "We warn you before the link with your bank runs out, so you can connect it again.",
+                "Titles, the Back button and the trail are tidier on every page, on phone, tablet and computer.",
+                "Received mail has its own section and the address copies with a click.",
+                "The top of a card now fades from the colour of its area.",
+                "The «To sort» button on the phone is a round button with the count, beside search and bell."
+            ]
+        }
+    },
+    {
         "version": "2.3.3",
         "date": "2026-11-21",
         "notes": {

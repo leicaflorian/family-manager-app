@@ -2,6 +2,31 @@
 
 All notable changes to Fameja.app.
 
+## [2.4.0] - 2026-11-21
+
+### Banks
+- New bank link (Enable Banking behind the `BankFeed` contract, `fake` bank for local work), switched on per family from the owner panel.
+- *Linked banks* settings page: connect, reconnect and disconnect a bank; reconnecting reuses the account, disconnecting keeps refused or put-aside transactions.
+- `banks:sync` reads transactions three times a day (07:00, 13:00, 19:00) with a job per connection, a re-check and a timeout shorter than the queue retry.
+- Consent watching: a notice and an email before a consent ends, and a connection marked to reconnect when it has ended.
+- *From the bank* tab in the Budget: filters, refresh, rows as on the boards, a blue badge with the number to sort, sheet to create an expense or settle a planned item, ignore, and hint for monthly recurring transactions.
+- Planned expenses and incomes get a *How it shows in the bank* rule (with an AI suggestion when reading is on); a recognised transaction pays its due date by itself, with a bell notice to the family and *Not this one* to undo it.
+- Movements show a line for a payment recorded by the bank, with its undo.
+- Lock order fixed (bank row first, then the planned item) so two payments of one due date never run together; new bank tables and models in a single migration.
+
+### Pages and navigation
+- `FmTitle` is the title of every page; Back and the trail sit above the page on phone and tablet (`FmPageTrail`) and in the top bar on the computer; forms close with Back or Cancel, no X.
+- *Received mail* is its own section, and its address copies with a click.
+- Family uses underlined tabs like the Budget; the Budget is the title of its three pages.
+- *To sort* is a round button with the count beside search and bell on the phone.
+- `FmTabs` pill tabs keep a longer name on one line.
+- Card page header fades from the area colour to a lighter one (new `*-dark-end` design tokens).
+
+### Infrastructure
+- Every `throttle` has its own counter (Fortify and Livewire included); `RouteThrottleTest` enforces it.
+- Pre-commit hook runs `vp check` and Pint on staged files; `./release` no longer runs checks before the merge.
+- `.env.example` lists the bank variables.
+
 ## [2.3.3] - 2026-11-21
 
 ### Release tooling
