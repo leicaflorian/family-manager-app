@@ -159,7 +159,7 @@ onMounted(() => {
     <Head :title="heading" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="heading"> </FmTitle>
+        <FmTitle :title="heading" />
 
         <form
             class="flex max-w-[720px] flex-col gap-6 rounded-sheet bg-card p-5 shadow-card wide:p-7"

@@ -82,8 +82,7 @@ usePageTrail(() => [
                     ? $t('Edit :name', { name: organization.name })
                     : $t('New organization')
             "
-        >
-        </FmTitle>
+        />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

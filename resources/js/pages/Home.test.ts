@@ -118,6 +118,20 @@ describe('Home', () => {
         ).toBeInTheDocument();
     });
 
+    it('has exactly one level 1 heading, the greeting drawn by FmTitle, with the day above it', () => {
+        renderPage(Home, { home });
+
+        const titles = screen.getAllByRole('heading', { level: 1 });
+        expect(titles).toHaveLength(1);
+        expect(titles[0]).toHaveTextContent('Hi, Marco');
+        expect(
+            screen
+                .getByText('Monday 26 October 2026')
+                .compareDocumentPosition(titles[0]!) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
     it('has the bell beside the greeting, with how many notices are new', () => {
         shared.unread_notices = 2;
         renderPage(Home, { home });

@@ -221,7 +221,7 @@ function save(data: Record<string, unknown>): void {
     <Head :title="title" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="title"> </FmTitle>
+        <FmTitle :title="title" />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

@@ -8,7 +8,7 @@
  * place of *Next file* on the last file. A file can be left out (*Do not import this file*) and stays in
  * *To sort*. A file still being read makes the page ask for its state every 2 seconds, and the import waits
  * for it. What does not save stays on the page, its badge saying why; an error about the list as a whole (too
- * many files) shows on top of the page. Coming from a card (`presetLinks`), × and the import go back to it.
+ * many files) shows on top of the page. Coming from a card (`presetLinks`), the import goes back to it; the page closes with Back, there is no ×.
  *
  * Under the form of each file, *What I do too* (boards *Importa* and *Importa (pc)*): the expense or income,
  * *Already paid* or *To pay*, the health event, the missing cards and the policy the file proposes, each a box
@@ -83,7 +83,7 @@ const props = defineProps<
         files: App.Data.PendingFileData[];
         /** Why a file did not save the last time, by the id of the file. */
         failures: Record<number, string>;
-        /** The card the files come from: × and the import go back to it. */
+        /** The card the files come from: the import goes back to it. */
         presetLinks: DocumentLink[];
         /** What each file does too, by the id of the file; the one looked at is asked again with the choices. */
         proposals?: Record<number, App.Data.Reading.ProposalData>;

@@ -89,8 +89,7 @@ usePageTrail(() => [
                     ? $t('Edit :name', { name: person.first_name })
                     : $t('New person')
             "
-        >
-        </FmTitle>
+        />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >
