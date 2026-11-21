@@ -22,7 +22,7 @@ import {
     Mail,
     X,
 } from '@lucide/vue';
-import { useIntervalFn, watchDebounced } from '@vueuse/core';
+import { useIntervalFn, useTimeoutFn, watchDebounced } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -36,9 +36,7 @@ import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCopy } from '@/composables/useCopy';
 import { formatDateTime, formatShortDateTime } from '@/lib/format';
-import { toSort } from '@/routes';
 import { destroy, index, notice, show } from '@/routes/mail';
-import { usePageTrail } from '@/composables/usePageTrail';
 
 const props = defineProps<{
     /** The address for the bills of the family, null when it has none yet. */
@@ -134,6 +132,45 @@ const noticeError = ref<string | null>(null);
 const codeElement = useTemplateRef<HTMLElement>('codeText');
 const copier = useCopy();
 
+/** How long *Address copied* stays beside the address, in milliseconds. */
+const ADDRESS_COPIED_MS = 2000;
+
+/** The address in the subtitle, selected when it cannot be copied. */
+const addressElement = useTemplateRef<HTMLElement>('addressText');
+const addressCopier = useCopy();
+const { start: forgetAddressCopy, stop: keepAddressCopy } = useTimeoutFn(
+    () => addressCopier.reset(),
+    ADDRESS_COPIED_MS,
+    { immediate: false },
+);
+
+/**
+ * The subtitle split around the address, which is a button: the sentence is
+ * translated with a marker where the address goes, so the order of the words
+ * stays the translation's.
+ */
+const subtitleParts = computed((): [string, string] => {
+    const [before = '', after = ''] = trans(
+        'The mails that arrived at :address',
+        { address: '\u0000' },
+    ).split('\u0000');
+
+    return [before, after];
+});
+
+/** Copies the address, and says so for two seconds; when the browser refuses, selects it for ⌘C. */
+async function copyAddress(): Promise<void> {
+    if (!props.address) {
+        return;
+    }
+
+    keepAddressCopy();
+
+    if (await addressCopier.copyOrSelect(props.address, addressElement.value)) {
+        forgetAddressCopy();
+    }
+}
+
 watch(
     () => props.mail?.row.id,
     () => {
@@ -202,19 +239,10 @@ function saveAsNotice(): void {
 
 /** Copies the code of Gmail; when the browser refuses, selects it for the person to copy. */
 async function copyCode(): Promise<void> {
-    if (props.mail?.gmail_code && !(await copier.copy(props.mail.gmail_code))) {
-        const element = codeElement.value;
-
-        if (element) {
-            window.getSelection()?.selectAllChildren(element);
-        }
+    if (props.mail?.gmail_code) {
+        await copier.copyOrSelect(props.mail.gmail_code, codeElement.value);
     }
 }
-
-usePageTrail(() => [
-    { label: trans('To sort'), href: toSort().url },
-    { label: trans('Received mail') },
-]);
 </script>
 
 <template>
@@ -225,17 +253,28 @@ usePageTrail(() => [
             class="flex flex-col gap-3.5 wide:flex-row wide:items-end wide:justify-between wide:gap-4"
             :class="mail && 'not-wide:hidden'"
         >
-            <FmTitle
-                :title="$t('Received mail')"
-                :subtitle="
-                    address
-                        ? $t('The mails that arrived at :address', { address })
-                        : undefined
-                "
-                :back="toSort().url"
-                :back-label="$t('To sort')"
-                class="min-w-0 wide:flex-1"
-            />
+            <FmTitle :title="$t('Received mail')" class="min-w-0 wide:flex-1">
+                <template v-if="address" #subtitle>
+                    {{ subtitleParts[0]
+                    }}<button
+                        ref="addressText"
+                        type="button"
+                        class="cursor-pointer border-0 bg-transparent p-0 text-body-sm text-action"
+                        :aria-label="
+                            $t('Copy the address :address', { address })
+                        "
+                        @click="copyAddress"
+                        v-text="address"
+                    ></button
+                    >{{ subtitleParts[1] }}
+                    <span
+                        v-if="addressCopier.copied.value"
+                        role="status"
+                        class="ml-2"
+                        >{{ $t('Address copied') }}</span
+                    >
+                </template>
+            </FmTitle>
             <FmSearchField
                 v-model="text"
                 class="wide:w-80 wide:shrink-0"

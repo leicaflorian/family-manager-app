@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\BankFeed;
 use App\Contracts\DocumentReader;
 use App\Listeners\LiftLinkedDeviceLimit;
 use App\Mail\AccountMails;
@@ -12,6 +13,9 @@ use App\Models\FamilyModel;
 use App\Models\User;
 use App\Observers\LoanPlanObserver;
 use App\Policies\FamilyPolicy;
+use App\Services\Banks\EnableBankingFeed;
+use App\Services\Banks\FakeBankFeed;
+use App\Services\Banks\OffBankFeed;
 use App\Services\Reading\AiDocumentReader;
 use App\Services\ReleaseNotes;
 use App\Support\CurrentFamily;
@@ -22,8 +26,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -52,6 +58,13 @@ class AppServiceProvider extends ServiceProvider
 
         // The documents are read through the Laravel AI SDK; the tests of the queue bind FakeDocumentReader instead
         $this->app->bind(DocumentReader::class, AiDocumentReader::class);
+
+        // The link to the banks: the provider of the config; the fake bank never answers in production
+        $this->app->bind(BankFeed::class, fn (Application $app): BankFeed => match (Config::string('bank_feed.provider', '')) {
+            'enable_banking' => $app->make(EnableBankingFeed::class),
+            'fake' => $app->isProduction() ? new OffBankFeed : $app->make(FakeBankFeed::class),
+            default => new OffBankFeed,
+        });
 
         // The notes of the panel *What's new*, written at each release
         $this->app->bind(ReleaseNotes::class, static fn (): ReleaseNotes => new ReleaseNotes(resource_path('release/notes.json')));
@@ -124,5 +137,10 @@ class AppServiceProvider extends ServiceProvider
             ? Password::min(10)->uncompromised()
             : Password::min(10),
         );
+
+        // Livewire's file uploads (the owner panel) get a throttle counter of their own, like every route: a throttle
+        // without a prefix counts together with every other one of the same person. Set here and not in a published
+        // config/livewire.php, which would replace the whole `temporary_file_upload` group (the merge is shallow).
+        config(['livewire.temporary_file_upload.middleware' => 'throttle:60,1,livewire-upload']);
     }
 }

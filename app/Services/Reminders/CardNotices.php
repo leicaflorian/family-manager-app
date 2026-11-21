@@ -6,14 +6,18 @@ namespace App\Services\Reminders;
 
 use App\Data\CardNoticeData;
 use App\Enums\DocumentStatus;
+use App\Enums\FinancialAccountStatus;
 use App\Enums\NoticeTone;
+use App\Models\BankConnection;
 use App\Models\Document;
 use App\Models\Filing;
+use App\Models\FinancialAccount;
 use App\Models\PlannedExpense;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Services\Banks\BankFeedAvailability;
 use App\Support\ItalianArticle;
 use App\Support\ModelId;
 use App\Support\Reminders\Notices;
@@ -62,7 +66,41 @@ final readonly class CardNotices
         array_push($notices, ...$this->expiringDocuments($card, $today, $near));
         array_push($notices, ...$this->expectedDocuments($card, $today));
 
+        if ($this->canLinkToBank($card, $user)) {
+            $notices[] = $this->linkToBank();
+        }
+
         return $notices;
+    }
+
+    /**
+     * Whether the card is an open account not read through a bank yet, while the family has the link to the bank on and
+     * whoever looks can link one (a `member` cannot, so the notice would lead nowhere).
+     *
+     * @param  User|null  $user  whoever looks; null for everybody
+     */
+    private function canLinkToBank(Model $card, ?User $user): bool
+    {
+        return $card instanceof FinancialAccount
+            && $card->status === FinancialAccountStatus::Active
+            && $card->bank_connection_id === null
+            && BankFeedAvailability::on()
+            && (! $user instanceof User || Gate::forUser($user)->allows('create', BankConnection::class));
+    }
+
+    /**
+     * The invitation to read an account through the bank.
+     */
+    private function linkToBank(): CardNoticeData
+    {
+        return new CardNoticeData(
+            'link-bank',
+            NoticeTone::Info,
+            Translated::text('Connect this account to the bank'),
+            Translated::text('The transactions arrive by themselves and the fixed expenses recognised are marked paid.'),
+            Translated::text('Connect'),
+            route('banks.index', absolute: false),
+        );
     }
 
     /**

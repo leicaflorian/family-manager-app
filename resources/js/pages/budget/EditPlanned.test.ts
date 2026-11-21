@@ -19,6 +19,7 @@ import {
 } from '@/test/page';
 import EditPlanned from './EditPlanned.vue';
 import { hasChanges } from '@/lib/unsavedChanges';
+import { bankRow, fakeBankServer } from '@/test/bankMatch';
 
 const props = {
     kind: 'expense',
@@ -39,7 +40,7 @@ describe('Edit a planned expense', () => {
 
         expect(created.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses and incomes', href: '/budget/planned' },
+            { label: 'Recurring', href: '/budget/planned' },
             { label: 'New planned expense' },
         ]);
         first.unmount();
@@ -53,7 +54,7 @@ describe('Edit a planned expense', () => {
 
         expect(changed.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses and incomes', href: '/budget/planned' },
+            { label: 'Recurring', href: '/budget/planned' },
             { label: 'Retta danza', href: '/budget/planned/expense/4' },
             { label: 'Edit Retta danza' },
         ]);
@@ -312,6 +313,148 @@ describe('Edit a planned expense', () => {
     });
 });
 
+describe('How it shows in the bank', () => {
+    const bank = { on: true, ai: true };
+    let server: ReturnType<typeof fakeBankServer>;
+
+    afterEach(() => {
+        server?.restore();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('is in *Where* only while the link to the bank is on, and with the AI button only while the reading is on', () => {
+        server = fakeBankServer({});
+        const without = renderPage(EditPlanned, props);
+        expect(
+            screen.queryByLabelText(/How it shows in the bank/),
+        ).not.toBeInTheDocument();
+        without.unmount();
+
+        const noAi = renderPage(EditPlanned, {
+            ...props,
+            bank: { on: true, ai: false },
+        });
+        expect(
+            within(screen.getByRole('group', { name: 'Where' })).getByLabelText(
+                /How it shows in the bank/,
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Write it with the AI' }),
+        ).not.toBeInTheDocument();
+        noAi.unmount();
+
+        renderPage(EditPlanned, { ...props, bank });
+        expect(
+            screen.getByRole('button', { name: 'Write it with the AI' }),
+        ).toBeInTheDocument();
+    });
+
+    it('sends the rule with Save, and counts it as a change not saved', async () => {
+        server = fakeBankServer({
+            '/budget/bank/matches': {
+                status: 200,
+                body: { count: 0, rows: [] },
+            },
+        });
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditPlanned, {
+            ...props,
+            bank,
+            values: {
+                ...newPlannedValues,
+                title: 'Retta',
+                amount: 45,
+                start_date: '2026-11-05',
+            },
+        });
+        expect(hasChanges()).toBe(false);
+
+        await userEvent.type(
+            screen.getByLabelText(/How it shows in the bank/),
+            'SCUOLA.*DUE',
+        );
+        await settle();
+        expect(hasChanges()).toBe(true);
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/planned/expense',
+            expect.objectContaining({ bank_match: 'SCUOLA.*DUE' }),
+            expect.anything(),
+        );
+    });
+
+    it('looks at the movements that go the way of the form and at the account chosen', async () => {
+        server = fakeBankServer({
+            '/budget/bank/matches': {
+                status: 200,
+                body: {
+                    count: 1,
+                    rows: [bankRow(1, '2026-11-05', 1500, 'STIPENDIO')],
+                },
+            },
+        });
+        renderPage(EditPlanned, {
+            ...props,
+            kind: 'income',
+            bank,
+            values: {
+                ...newPlannedValues,
+                type: 'salary',
+                financial_account_id: '2',
+                bank_match: 'STIPENDIO',
+            },
+        });
+
+        expect(
+            await screen.findByText(
+                'It matches 1 movement: 05/11 1.500,00 €',
+                undefined,
+                { timeout: 2000 },
+            ),
+        ).toBeInTheDocument();
+        const url = String(server.request.mock.calls[0]![0].url);
+        expect(url).toContain('kind=income');
+        expect(url).toContain('account_id=2');
+    });
+
+    it('opens the panel with the movement of rule_from and takes the parameter out of the address', async () => {
+        server = fakeBankServer({
+            '/budget/bank/examples': { status: 200, body: { rows: [] } },
+        });
+        const replace = vi
+            .spyOn(router, 'replace')
+            .mockImplementation(() => {});
+        window.history.replaceState(
+            null,
+            '',
+            '/budget/planned/expense/create?rule_from=9',
+        );
+
+        renderPage(EditPlanned, {
+            ...props,
+            bank,
+            rule_example: bankRow(9, '2026-11-01', -45, 'ADDEBITO SDD ALTRO'),
+        });
+
+        const dialog = await screen.findByRole('dialog', {
+            name: 'Write it with the AI',
+        });
+        expect(
+            await within(dialog).findByRole('checkbox', {
+                name: /ADDEBITO SDD ALTRO/,
+            }),
+        ).toBeChecked();
+        expect(replace).toHaveBeenCalledWith(
+            expect.objectContaining({
+                url: '/budget/planned/expense/create',
+                preserveState: true,
+            }),
+        );
+    });
+});
+
 describe('Changes not saved', () => {
     it('has them once a field changes, and gives them up with Cancel', async () => {
         renderPage(EditPlanned, props);
@@ -327,23 +470,20 @@ describe('Changes not saved', () => {
 });
 
 describe('EditPlanned on the computer', () => {
-    it('has no back link and no close button above the title on the computer, and both on the tablet and the phone', () => {
-        for (const [width, shown] of [
-            [1280, false],
-            [820, true],
-            [390, true],
-        ] as const) {
+    it('closes with Back or Cancel: no Close button in the title on any layout', () => {
+        for (const width of [1280, 820, 390]) {
             screenWidth(width);
             const view = renderPage(EditPlanned, props);
 
-            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
-                shown,
+            expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(
+                1,
             );
             expect(
-                screen.queryByRole('link', {
-                    name: 'Planned expenses and incomes',
-                }) !== null,
-            ).toBe(shown);
+                screen.queryByRole('link', { name: 'Close' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Close' }),
+            ).not.toBeInTheDocument();
             view.unmount();
         }
     });

@@ -9,6 +9,7 @@ use App\Enums\IntervalUnit;
 use App\Http\Requests\Concerns\ReadsCard;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Rules\BankMatchRule;
 use App\Rules\OfFamily;
 use App\Support\PlannedKind;
 use App\Support\PresetLink;
@@ -88,6 +89,7 @@ final class SavePlannedRequest extends FormRequest
             'organization_id' => ['nullable', new OfFamily('organizations')],
             'financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
             'person_id' => ['nullable', new OfFamily('people')],
+            'bank_match' => ['nullable', 'string', 'max:200', new BankMatchRule],
             ...$expense
                 ? [
                     'fee_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],

@@ -78,8 +78,6 @@ usePageTrail(() => [
             <FmTitle
                 :title="$t('Calendar')"
                 :subtitle="$t('Reminders and deadlines in Google Calendar')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
             />
         </template>
         <FmCard>

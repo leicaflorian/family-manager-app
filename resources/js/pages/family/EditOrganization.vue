@@ -5,13 +5,11 @@
  * and the notes. Beside the form, the logo, as the file beside *Edit the
  * document*.
  */
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmButton from '@/components/fm/FmButton.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmImagePanel from '@/components/fm/FmImagePanel.vue';
 import FmOrganizationMark from '@/components/fm/FmOrganizationMark.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
@@ -20,7 +18,6 @@ import { errors, listErrors } from '@/lib/errors';
 import { organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { family } from '@/routes';
 
@@ -40,7 +37,7 @@ const form = useForm({
 /** While the form has changes not saved, leaving the page asks first. */
 useUnsavedChanges(() => form.data());
 
-/** Where *Close* goes back to. */
+/** Where *Cancel* goes back to. */
 const back = computed(() =>
     organization ? show.url(organization.id) : index().url,
 );
@@ -56,8 +53,6 @@ function save(): void {
 }
 
 useSaveShortcut(save, () => !form.processing);
-
-const layout = useLayoutMode();
 
 usePageTrail(() => [
     { label: trans('Family'), href: family().url },
@@ -87,20 +82,7 @@ usePageTrail(() => [
                     ? $t('Edit :name', { name: organization.name })
                     : $t('New organization')
             "
-            :back="back"
-            :back-label="organization?.name ?? $t('Organizations')"
-        >
-            <template #actions>
-                <Link
-                    v-if="layout !== 'computer'"
-                    :href="back"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
+        />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

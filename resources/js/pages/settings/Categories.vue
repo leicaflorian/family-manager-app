@@ -214,8 +214,6 @@ usePageTrail(() => [
         <template #title>
             <FmTitle
                 :title="$t('Document categories')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
                 :subtitle="
                     $t(
                         'They say what kind of document it is; whose it is and what it refers to is said by the links',

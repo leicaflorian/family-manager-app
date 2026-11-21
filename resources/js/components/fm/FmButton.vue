@@ -6,10 +6,14 @@
  * - Only one solid button per page: the one done most often.
  * - Red only to delete, and it asks first: use `FmDeleteButton`.
  * - Icon only: always with `label`, which screen readers say. `muted` greys
- *   the icon, as the bin at the end of a row.
+ *   the icon, as the bin at the end of a row; with a text it greys the text and
+ *   leaves no background, as *Ignore* beside the buttons of a row.
  * - The text is a verb, informal (*Save*, *Choose a file*).
  * - Size: 44 px; 52 px in the panels from below. `compact` is the pair of buttons
  *   under a row of the Agenda: on the phone they share the line, on the computer 40 px.
+ *   `rowAction` is a button of a row of *From the bank*, under it on the phone and
+ *   in its column on the computer: its own width, 44 px, the body-sm text, an
+ *   18 px icon and 10 px corners.
  *
  * @group basics
  */
@@ -44,6 +48,7 @@ const {
     plain = false,
     muted = false,
     compact = false,
+    rowAction = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red), neutral (white with a grey edge). */
     variant?: ButtonVariant;
@@ -72,7 +77,11 @@ const {
     xsmall?: boolean;
     /** With `label`: no background until hovered, as beside a row. */
     plain?: boolean;
-    /** With `label`: the icon in grey, whatever the variant, as the bin of a row. */
+    /**
+     * With `label`: the icon in grey, whatever the variant, as the bin of a row.
+     * With a text: the text in grey with no background, as *Ignore* beside the
+     * buttons of a row.
+     */
     muted?: boolean;
     /**
      * The pair of buttons under a row, in the label style: on the phone as tall
@@ -80,6 +89,12 @@ const {
      * the sides; on the computer its own width, 40 px with 14 px at the sides.
      */
     compact?: boolean;
+    /**
+     * A button of a row of *From the bank* (under it on the phone, in its column
+     * on the computer): its own width, as tall as a control, in the body-sm
+     * text, an 18 px icon, 10 px at the sides and 10 px corners.
+     */
+    rowAction?: boolean;
 }>();
 
 defineEmits<{
@@ -116,6 +131,7 @@ const classes = computed((): string =>
         styles[variant],
         compact &&
             'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label lg:h-10 lg:flex-none lg:px-3.5',
+        rowAction && 'h-control gap-1.5 rounded-md px-2.5 text-body-sm',
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
         label &&
@@ -125,14 +141,21 @@ const classes = computed((): string =>
         label && plain && 'bg-transparent hover:bg-canvas',
         label && variant !== 'danger' && 'text-ink',
         label && muted && 'text-ink-soft',
+        !label && muted && 'text-ink-soft hover:bg-canvas hover:text-ink',
         // The colour behind shows through, a bit less on hover
         onColor &&
             'border-0 bg-on-hero-soft text-body-strong text-on-hero hover:bg-on-hero/25 focus-visible:outline-on-hero active:bg-on-hero/30',
     ),
 );
 
-/** The size of the icon: smaller in the smallest square. */
-const iconSize = computed((): number => (label && xsmall ? 16 : 20));
+/** The size of the icon: smaller in the smallest square and in a button of a row. */
+const iconSize = computed((): number => {
+    if (label && xsmall) {
+        return 16;
+    }
+
+    return rowAction && !label ? 18 : 20;
+});
 </script>
 
 <template>

@@ -16,7 +16,6 @@ import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmActions from '@/components/fm/FmActions.vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -25,6 +24,7 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmShowMore from '@/components/fm/FmShowMore.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { accountText, personSubtitle } from '@/lib/family';
 import type { Area } from '@/lib/areas';
@@ -188,6 +188,7 @@ const actions = computed((): Action[] => [
 
 usePageTrail(() => [
     { label: trans('Family'), href: family().url },
+    { label: trans('People'), href: index().url },
     { label: name.value },
 ]);
 </script>
@@ -196,28 +197,19 @@ usePageTrail(() => [
     <Head :title="name" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink :href="index().url" :label="$t('People')" />
-
-        <!-- As in FmTitle: the actions take the room the name leaves -->
-        <div class="flex items-center justify-between gap-4">
-            <div class="flex max-w-[60%] min-w-0 shrink-0 items-center gap-4">
+        <FmTitle :title="name" :subtitle="personSubtitle(person)">
+            <template #leading>
                 <FmAvatar
                     :initials="person.initials"
                     :photo="person.photo"
                     :name="name"
                     :size="64"
                 />
-                <div class="flex flex-col gap-1">
-                    <h1 class="m-0 text-title-mobile wide:text-title">
-                        {{ name }}
-                    </h1>
-                    <span class="text-body-sm text-ink-soft">{{
-                        personSubtitle(person)
-                    }}</span>
-                </div>
-            </div>
-            <FmActions :actions="actions" />
-        </div>
+            </template>
+            <template #actions>
+                <FmActions :actions="actions" />
+            </template>
+        </FmTitle>
 
         <div
             class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_360px] wide:items-start"

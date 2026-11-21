@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Families\Pages;
 
 use App\Actions\Admin\CancelFamilyDeletion;
+use App\Actions\Admin\ChangeBankFeed;
 use App\Actions\Admin\ChangeReadingLimit;
 use App\Actions\Admin\ReactivateFamily;
 use App\Actions\Admin\ScheduleFamilyDeletion;
@@ -17,6 +18,7 @@ use App\Models\Family;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Pages\ViewRecord;
 
 /**
@@ -96,6 +98,19 @@ final class ViewFamily extends ViewRecord
                     $limit = $data['reading_limit'] ?? null;
                     resolve(ChangeReadingLimit::class)->handle($this->family(), is_numeric($limit) ? (int) $limit : null);
                     $this->refreshFormData(['reading_limit']);
+                }),
+            Action::make('editBankFeed')
+                ->label(__('Link to the bank'))
+                ->icon('heroicon-o-building-library')
+                ->fillForm(fn (): array => ['bank_feed_enabled' => (bool) $this->family()->bank_feed_enabled])
+                ->schema([
+                    Toggle::make('bank_feed_enabled')
+                        ->label(__('Link to the bank'))
+                        ->helperText(__('The family can link its banks and see their transactions.')),
+                ])
+                ->action(function (array $data): void {
+                    resolve(ChangeBankFeed::class)->handle($this->family(), (bool) ($data['bank_feed_enabled'] ?? false));
+                    $this->refreshRecord();
                 }),
             Action::make('suspend')
                 ->label(__('Suspend'))

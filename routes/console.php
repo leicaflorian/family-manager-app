@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\BankTransaction;
 use App\Models\Family;
 use App\Models\LinkedDevice;
 use App\Models\MailInboxCall;
@@ -25,7 +26,14 @@ Schedule::command('loans:refresh')->dailyAt(resolve(InstallationSettings::class)
 
 // Cards that expire, reminders in line with them, and the notices and the email of the morning
 Schedule::command('reminders:run')->dailyAt(resolve(InstallationSettings::class)->remindersTime())->timezone('Europe/Rome')->withoutOverlapping(120)->onOneServer();
-Schedule::command('model:prune', ['--model' => [ReminderNotice::class, MailInboxCall::class, ServerError::class, LinkedDevice::class, Family::class]])->daily()->withoutOverlapping(120)->onOneServer();
+Schedule::command('model:prune', ['--model' => [ReminderNotice::class, MailInboxCall::class, ServerError::class, LinkedDevice::class, BankTransaction::class, Family::class]])->daily()->withoutOverlapping(120)->onOneServer();
+
+// The banks, read three times a day (07:00, 13:00 and 19:00), only where a provider is set
+if (filled(config('bank_feed.provider'))) {
+    foreach (config()->array('bank_feed.sync_times') as $time) {
+        Schedule::command('banks:sync')->dailyAt(is_string($time) ? $time : '07:00')->timezone('Europe/Rome')->withoutOverlapping(120)->onOneServer();
+    }
+}
 
 // The nightly copy of the family files to the Space, only where a bucket is configured
 if (filled(config('filesystems.disks.backup.bucket'))) {

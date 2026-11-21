@@ -101,6 +101,43 @@ export type AreaSettingsData = {
 readonly areas: App.Data.AreaSettingData[],
 readonly can_change: boolean,
 };
+export type BankConnectionData = {
+readonly id: number,
+readonly institution: string,
+readonly status: App.Enums.BankConnectionStatus,
+readonly valid_until: string | null,
+readonly last_synced_at: string | null,
+readonly accounts: string[],
+readonly syncing: boolean,
+};
+export type BankInstitutionData = {
+readonly name: string,
+readonly country: string,
+readonly logo: string | null,
+};
+export type BankPlannedChoiceData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly organization: string | null,
+readonly due_on: string,
+readonly late: boolean,
+readonly amount: number,
+readonly estimated: boolean,
+};
+export type BankTransactionData = {
+readonly id: number,
+readonly booked_on: string | null,
+readonly value_on: string | null,
+readonly text: string,
+readonly counterparty: string | null,
+readonly amount: number,
+readonly currency: string,
+readonly account: string | null,
+readonly pending: boolean,
+readonly ignored: boolean,
+readonly recurring: boolean,
+};
 export type CalendarSettingsData = {
 readonly on: boolean,
 readonly url: string | null,
@@ -445,6 +482,12 @@ readonly expenses: number,
 readonly payments: number,
 readonly balance: number,
 };
+export type MovementBankData = {
+readonly booked_on: string | null,
+readonly text: string,
+readonly account: string | null,
+readonly undo_url: string | null,
+};
 export type MovementData = {
 readonly kind: string,
 readonly id: number,
@@ -469,6 +512,7 @@ readonly employment_id: number | null,
 readonly documents: App.Data.DocumentData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+readonly bank: App.Data.MovementBankData | null,
 };
 export type MovementFiltersData = {
 readonly search: string | null,
@@ -668,6 +712,7 @@ readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
 readonly fee: number,
+readonly bank_match: string | null,
 };
 export type PolicyRenewalData = {
 readonly policy_id: number,
@@ -790,6 +835,12 @@ count: number,
 }[],
 readonly can_delete_many: boolean,
 };
+namespace Banks {
+export type BankRuleSuggestion = {
+readonly pattern: string,
+readonly explanation: string,
+};
+}
 namespace Mail {
 export type MailScreeningAnswer = {
 readonly verdict: unknown,
@@ -1023,6 +1074,9 @@ readonly groups: App.Data.Search.SearchGroupData[],
 namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
+export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
+export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
+export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended';
 export type Channel = 'app' | 'email' | 'both';
@@ -1052,9 +1106,9 @@ export type MaintenanceTarget = 'home' | 'belonging' | 'vehicle';
 export type MaintenanceType = 'service' | 'inspection' | 'repair' | 'boiler_service' | 'other';
 export type NoticeTone = 'info' | 'warning' | 'danger';
 export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'employer' | 'public_office' | 'school' | 'healthcare' | 'shop' | 'other';
-export type OwnerActionType = 'suspended' | 'reactivated' | 'deletion_scheduled' | 'deletion_cancelled' | 'visit_started' | 'visit_ended' | 'reading_limit_changed';
+export type OwnerActionType = 'family_created' | 'suspended' | 'reactivated' | 'deletion_scheduled' | 'deletion_cancelled' | 'visit_started' | 'visit_ended' | 'reading_limit_changed' | 'bank_feed_on' | 'bank_feed_off';
 export type PersonRole = 'parent' | 'child' | 'other';
-export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop';
+export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop' | 'bank_rule';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance' | 'card';
 export type ReleaseBump = 'major' | 'minor' | 'patch';

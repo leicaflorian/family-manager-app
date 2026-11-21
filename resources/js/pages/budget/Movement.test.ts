@@ -60,6 +60,7 @@ describe('Movement', () => {
 
         expect(saved.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
+            { label: 'Movements', href: '/budget/movements?month=2026-10' },
             { label: 'Retta di novembre' },
         ]);
         first.unmount();
@@ -69,18 +70,45 @@ describe('Movement', () => {
 
         expect(created.state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
+            { label: 'Movements', href: '/budget/movements?month=2026-10' },
             { label: 'New expense or income' },
         ]);
     });
 
-    it('shows the movement and a link back to the month it belongs to', () => {
+    it('keeps the trail through the month when the expense starts from a card', () => {
+        const { state, provide } = withTrail();
+        renderPage(
+            Movement,
+            {
+                ...newExpense,
+                start: { ...newExpense.start, card: 'health_event:2' },
+            },
+            provide,
+        );
+
+        expect(state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'Movements', href: '/budget/movements?month=2026-10' },
+            { label: 'New expense or income' },
+        ]);
+    });
+
+    it("sends Cancel to the server's back", async () => {
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Movement, {
+            ...props,
+            back: '/budget/comparison?month=2026-10',
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(get).toHaveBeenCalledWith('/budget/comparison?month=2026-10');
+    });
+
+    it('shows the movement', () => {
         renderPage(Movement, props);
 
         expect(screen.getByLabelText('Title')).toHaveValue('Retta di novembre');
-        expect(screen.getByRole('link', { name: 'Movements' })).toHaveAttribute(
-            'href',
-            '/budget/movements?month=2026-10',
-        );
     });
 
     it('opens an empty form for a new expense or income', () => {
@@ -97,13 +125,9 @@ describe('Movement', () => {
         expect(
             screen.getByRole('button', { name: 'An expense' }),
         ).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Movements' })).toHaveAttribute(
-            'href',
-            '/budget/movements?month=2026-10',
-        );
     });
 
-    it('starts a new expense from a card, with its category, goes back to the card and asks to come back to it', async () => {
+    it('starts a new expense from a card, with its category, and asks to come back to it', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Movement, {
@@ -115,11 +139,6 @@ describe('Movement', () => {
             },
         });
 
-        expect(
-            screen.getByRole('link', {
-                name: 'Health event · Visite di Giulia',
-            }),
-        ).toHaveAttribute('href', '/cards/health_event/2');
         expect(
             screen.getByRole('combobox', { name: 'Health event (optional)' }),
         ).toHaveValue('Health event · Visite di Giulia');
@@ -305,7 +324,7 @@ describe('Movement', () => {
         ).not.toBeInTheDocument();
     });
 
-    describe('documents and back link', () => {
+    describe('documents', () => {
         it('shows the Documents column with Link and the documents of the movement', () => {
             renderPage(Movement, {
                 ...props,
@@ -378,17 +397,6 @@ describe('Movement', () => {
             expect(post.mock.calls[0]![1]).toMatchObject({ files: [file] });
         });
 
-        it('goes back to the page given by the server', () => {
-            renderPage(Movement, {
-                ...props,
-                back: '/budget/movements?month=2026-09',
-            });
-
-            expect(
-                screen.getByRole('link', { name: 'Movements' }),
-            ).toHaveAttribute('href', '/budget/movements?month=2026-09');
-        });
-
         it('has the page title as the heading on the computer, with the form without its own', () => {
             screenWidth(true);
             renderPage(Movement, props);
@@ -399,6 +407,121 @@ describe('Movement', () => {
             expect(
                 screen.queryByRole('link', { name: 'Movements' }),
             ).not.toBeInTheDocument();
+        });
+    });
+    describe('recorded by the bank', () => {
+        const bank: App.Data.MovementBankData = {
+            booked_on: '2026-11-05',
+            text: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA',
+            account: 'Conto BancoPosta ·· 3307',
+            undo_url: '/budget/bank/9/payment',
+        };
+
+        it('says the bank recorded it, with the text of the bank', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, bank },
+            });
+
+            expect(
+                screen.getByText('Recorded by the bank on 05/11/2026'),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByText(/ADDEBITO DIRETTO SDD EDISON ENERGIA SPA/),
+            ).toBeInTheDocument();
+        });
+
+        it('says the bank recorded it without a day when the bank gave none', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: { ...bank, booked_on: null },
+                },
+            });
+
+            expect(
+                screen.getByText('Recorded by the bank'),
+            ).toBeInTheDocument();
+        });
+
+        it('shows nothing without the bank', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, bank: null },
+            });
+
+            expect(
+                screen.queryByText(/Recorded by the bank/),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'It was not this one' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('has no button without the undo', () => {
+            renderPage(Movement, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: { ...bank, undo_url: null },
+                },
+            });
+
+            expect(
+                screen.getByText(/Recorded by the bank/),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'It was not this one' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('asks before taking the payment back, then sends the delete', async () => {
+            const spy = vi.spyOn(router, 'delete').mockImplementation(() => {});
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, bank },
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'It was not this one' }),
+            );
+            const dialog = await screen.findByRole('dialog');
+
+            expect(
+                within(dialog).getByText(
+                    'The expense is removed and the due date is to be paid again.',
+                ),
+            ).toBeInTheDocument();
+            expect(spy).not.toHaveBeenCalled();
+
+            await userEvent.click(
+                within(dialog).getByRole('button', {
+                    name: 'It was not this one',
+                }),
+            );
+
+            expect(spy).toHaveBeenCalledWith(
+                '/budget/bank/9/payment',
+                expect.anything(),
+            );
+        });
+
+        it('says the income for an income', async () => {
+            renderPage(Movement, {
+                ...props,
+                movement: { ...danceMovement, kind: 'income', bank },
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'It was not this one' }),
+            );
+
+            expect(
+                await screen.findByText(
+                    'The income is removed and the due date is to be paid again.',
+                ),
+            ).toBeInTheDocument();
         });
     });
 });

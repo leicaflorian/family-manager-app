@@ -12,14 +12,18 @@
  * expense or income, which starts with the choice between the two. Choosing a
  * planned expense or income, or a card (also the one *Add expense* of a card
  * starts with), fills the fields still empty from it. On the computer the
- * page has the title, so the form has no heading of its own there.
+ * page has the title, so the form has no heading of its own there. A movement
+ * the bank recorded says so under the heading, with the text of the bank and
+ * *It was not this one*, as the board *Movimento* draws it.
  *
  * @group panels
  */
 import { router } from '@inertiajs/vue3';
+import { Landmark, Undo2 } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, reactive, ref, toRef, watch } from 'vue';
+import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { useCardChoice } from '@/composables/useCardChoice';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -38,6 +42,7 @@ import {
 import { cn } from '@/lib/utils';
 import { destroy, store, update } from '@/routes/budget/movements';
 import FmButton from './FmButton.vue';
+import FmConfirmDelete from './FmConfirmDelete.vue';
 import FmDeleteButton from './FmDeleteButton.vue';
 
 /** The organization field, beside the account for an income and beside the category for an expense. */
@@ -97,12 +102,18 @@ const initialOccurrence = movement
 /** The fields of the form. */
 const values = reactive({
     kind: movement?.kind ?? start.kind,
-    title: movement?.title ?? '',
+    title: movement?.title ?? start.title ?? '',
     date: movement?.date ?? start.date,
     // The form speaks in cost + commission; what is stored is the total
-    amount: formatAmount(withoutFee(movement?.amount, movement?.fee_amount)),
+    amount: formatAmount(
+        movement
+            ? withoutFee(movement.amount, movement.fee_amount)
+            : start.amount,
+    ),
     fee_amount: formatAmount(movement?.fee_amount),
-    financial_account_id: text(movement?.account_id),
+    financial_account_id: movement
+        ? text(movement.account_id)
+        : (start.financial_account_id ?? ''),
     category_id: movement
         ? text(movement.category_id)
         : (start.category_id ?? ''),
@@ -171,6 +182,12 @@ const showOccurrences = computed(
         values.planned_id !== '' &&
         values.planned_id === loadedFor.value,
 );
+
+/** Writes a day as `15/10/2026`. */
+const { date: formatDate } = useFormat();
+
+/** The confirmation of *It was not this one* is open. */
+const undoing = ref(false);
 
 /** The title of the panel. */
 const heading = computed(
@@ -331,6 +348,10 @@ function save(): void {
         occurrence_date: values.occurrence_date || null,
         // From *Add expense* of a card, the server opens the card again
         ...(!movement && start.card ? { back_to_card: true } : {}),
+        // Made from a transaction of *From the bank*: the server links it
+        ...(!movement && start.bank_transaction_id
+            ? { bank_transaction_id: start.bank_transaction_id }
+            : {}),
         ...(expense.value
             ? {
                   fee_amount: parseAmount(values.fee_amount),
@@ -393,6 +414,66 @@ defineExpose({ fileErrors });
         </DefineOrganization>
         <h2 v-if="!wide" class="m-0 text-stat">{{ heading }}</h2>
 
+        <div
+            v-if="movement?.bank"
+            class="flex flex-col gap-1.5 rounded-lg bg-banks-soft px-3.5 py-3"
+        >
+            <span class="flex items-center gap-2.5 text-label text-ink">
+                <Landmark
+                    aria-hidden="true"
+                    :size="20"
+                    class="shrink-0 text-banks-text"
+                />
+                {{
+                    movement.bank.booked_on
+                        ? $t('Recorded by the bank on :date', {
+                              date: formatDate(movement.bank.booked_on),
+                          })
+                        : $t('Recorded by the bank')
+                }}
+            </span>
+            <span class="text-meta break-words text-ink-soft"
+                >{{ movement.bank.text
+                }}<template v-if="movement.bank.account">
+                    · {{ movement.bank.account }}</template
+                ></span
+            >
+            <button
+                v-if="movement.bank.undo_url"
+                type="button"
+                class="-ml-0.5 inline-flex h-touch cursor-pointer items-center gap-2 self-start border-0 bg-transparent p-0 text-body text-overdue"
+                @click="undoing = true"
+            >
+                <Undo2 aria-hidden="true" :size="20" />{{
+                    $t('It was not this one')
+                }}
+            </button>
+            <FmConfirmDelete
+                v-if="movement.bank.undo_url"
+                v-model:open="undoing"
+                :url="movement.bank.undo_url"
+                :question="$t('Take back this payment?')"
+                :text="
+                    movement.kind === 'income'
+                        ? $t(
+                              'The income is removed and the due date is to be paid again.',
+                          )
+                        : $t(
+                              'The expense is removed and the due date is to be paid again.',
+                          )
+                "
+                :confirm-label="$t('It was not this one')"
+            />
+        </div>
+
+        <p
+            v-if="problems.bank_transaction_id"
+            role="alert"
+            class="m-0 text-body-sm text-overdue"
+        >
+            {{ problems.bank_transaction_id }}
+        </p>
+
         <fieldset
             :disabled="readonly"
             class="m-0 flex flex-col gap-3.5 border-0 p-0"
@@ -402,6 +483,7 @@ defineExpose({ fileErrors });
                 v-model="values.kind"
                 type="togglebuttons"
                 enforced
+                :disabled="!!start.bank_transaction_id"
                 :label="$t('It is')"
                 name="kind"
                 :options="[

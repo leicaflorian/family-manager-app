@@ -171,6 +171,7 @@ return [
         'mail_notice' => 'Mail notice',
         'mail_file' => 'Mail attachment',
         'crop' => 'Crop',
+        'bank_rule' => 'Bank rule',
     ],
     'reading_status' => [
         'queued' => 'Queued',
@@ -221,6 +222,8 @@ return [
         'deletion_cancelled' => 'Deletion cancelled',
         'visit_started' => 'Visit started',
         'visit_ended' => 'Visit ended',
+        'bank_feed_on' => 'Bank link turned on',
+        'bank_feed_off' => 'Bank link turned off',
         'reading_limit_changed' => 'Reading limit changed',
     ],
     'call_outcome' => [
@@ -307,5 +310,20 @@ return [
         'major' => 'Major',
         'minor' => 'Minor',
         'patch' => 'Patch',
+    ],
+    'bank_connection_status' => [
+        'active' => 'Active',
+        'needs_reconnect' => 'To connect again',
+        'error' => 'Error',
+    ],
+    'bank_transaction_status' => [
+        'booked' => 'Booked',
+        'pending' => 'Pending',
+    ],
+    'bank_match_source' => [
+        'rule' => 'By a rule',
+        'assigned' => 'Assigned by you',
+        'created' => 'Created from it',
+        'duplicate' => 'Linked to an existing one',
     ],
 ];

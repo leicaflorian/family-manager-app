@@ -6,6 +6,7 @@ namespace Tests\Support;
 
 use App\Actions\Mail\RecordMailFilterCall;
 use App\Contracts\DocumentReader;
+use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
@@ -50,6 +51,12 @@ final class FakeDocumentReader implements DocumentReader
      */
     private ?array $corners = null;
 
+    /** What the model writes as the rule of a bank payment, until `suggestsRule()` says otherwise. */
+    private BankRuleSuggestion $rule;
+
+    /** The rules asked so far. */
+    private int $rules = 0;
+
     /** The screenings asked so far. */
     private int $screenings = 0;
 
@@ -63,6 +70,7 @@ final class FakeDocumentReader implements DocumentReader
     {
         $this->extraction = Extraction::from(['kind' => 'other', 'confidence' => 'low']);
         $this->screening = new MailScreeningAnswer('unsure', null);
+        $this->rule = new BankRuleSuggestion('', '');
     }
 
     /**
@@ -86,6 +94,19 @@ final class FakeDocumentReader implements DocumentReader
     public function screens(MailScreeningAnswer $answer): self
     {
         $this->screening = $answer;
+        $this->failure = null;
+
+        return $this;
+    }
+
+    /**
+     * Every request for the rule of a bank payment gives this suggestion.
+     *
+     * @param  BankRuleSuggestion  $suggestion  what the model writes
+     */
+    public function suggestsRule(BankRuleSuggestion $suggestion): self
+    {
+        $this->rule = $suggestion;
         $this->failure = null;
 
         return $this;
@@ -153,6 +174,14 @@ final class FakeDocumentReader implements DocumentReader
     public function screenings(): int
     {
         return $this->screenings;
+    }
+
+    /**
+     * How many rules of a bank payment were asked.
+     */
+    public function rules(): int
+    {
+        return $this->rules;
     }
 
     /**
@@ -229,5 +258,34 @@ final class FakeDocumentReader implements DocumentReader
         (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 1100, 80, 0, ReadingPurpose::Crop, Auth::id() === null ? null : (int) Auth::id());
 
         return $this->corners === null ? null : Corners::valid($this->corners);
+    }
+
+    /**
+     * Counts the request, then gives the suggestion of `suggestsRule()` or throws the error of `fails()`. As the real
+     * one, it records the call (Gemini 3.8 Flash, 200 tokens in and 30 out) as a `bank_rule` of the account signed in, unless the error is one with no answer (`ReadingFailed::$paid` false).
+     *
+     * @param  list<string>  $examples  the texts of the transactions
+     * @param  string  $locale  the language of the explanation
+     *
+     * @throws ReadingFailed when `fails()` was called
+     */
+    public function bankRule(array $examples, string $locale): BankRuleSuggestion
+    {
+        $this->rules++;
+
+        $userId = Auth::guard('web')->id();
+
+        // as the real reader, an answer that was paid for is recorded before it is found unusable
+        $failure = $this->failure;
+
+        if (! $failure instanceof ReadingFailed || $failure->paid) {
+            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 200, 30, 0, ReadingPurpose::BankRule, $userId === null ? null : (int) $userId);
+        }
+
+        if ($failure instanceof ReadingFailed) {
+            throw $failure;
+        }
+
+        return $this->rule;
     }
 }

@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Actions\Mail\NotifyMailLimit;
+use App\Enums\BankMatchSource;
+use App\Models\BankConnection;
+use App\Models\BankTransaction;
+use App\Models\Expense;
+use App\Models\Income;
 use App\Models\Organization;
 use App\Models\ReceivedMail;
 use App\Models\Reminder;
@@ -160,4 +166,113 @@ test('the bell never reads the text of the mails', function (): void {
     expect($columns)->not->toBeEmpty()
         ->not->toContain('body')
         ->not->toContain('screening');
+});
+
+/**
+ * The notice of the bell about a payment the bank settled, for an account, with the transaction and its payment.
+ *
+ * @param  User  $user  who it was sent to
+ * @param  string  $kind  `expense` or `income`
+ * @param  string  $title  the title of the payment
+ */
+function bankNoticeListNotice(User $user, string $kind = 'expense', string $title = 'Luce novembre 2026'): ReminderNotice
+{
+    return insideFamilyOf($user, function () use ($user, $kind, $title): ReminderNotice {
+        $payment = $kind === 'expense'
+            ? Expense::factory()->create(['family_id' => $user->family_id, 'title' => $title])
+            : Income::factory()->create(['family_id' => $user->family_id, 'title' => $title]);
+        $transaction = BankTransaction::factory()->create([
+            'family_id' => $user->family_id,
+            'text' => 'ADDEBITO SDD EDISON ENERGIA',
+            'amount' => $kind === 'expense' ? '-72.40' : '1850.00',
+            $kind.'_id' => $payment->id,
+            'matched_by' => BankMatchSource::Rule,
+        ]);
+
+        return ReminderNotice::factory()->create([
+            'family_id' => $user->family_id,
+            'user_id' => $user->id,
+            'reminder_id' => null,
+            'due_date' => null,
+            'offset' => null,
+            'bank_transaction_id' => $transaction->id,
+            'lines' => ["72,40\u{A0}€ from Conto BancoPosta", "72,40\u{A0}€ instead of 45,00\u{A0}€"],
+            'sent_at' => CarbonImmutable::parse('2026-10-25 07:00', 'Europe/Rome'),
+        ]);
+    });
+}
+
+test('the notice of a payment of the bank names the payment and leads to it', function (): void {
+    $notice = bankNoticeListNotice($this->admin);
+    $expense = insideFamilyOf($this->admin, fn (): ?Expense => BankTransaction::query()->find($notice->bank_transaction_id)?->expense);
+
+    $row = bellRows($this->admin)[0];
+
+    expect($row['id'])->toBe($notice->id)
+        ->and($row['title'])->toBe('Paid by the bank · Luce novembre 2026')
+        ->and($row['subject'])->toBeNull()
+        ->and($row['area'])->toBe('banks')
+        ->and($row['due_text'])->toBe("72,40\u{A0}€ from Conto BancoPosta")
+        ->and($row['sent_at'])->toBe('2026-10-25T07:00')
+        ->and($row['state'])->toBeNull()
+        ->and($row['href'])->toBe(route('budget.movements.show', ['kind' => 'expense', 'id' => $expense?->id]));
+
+    $this->actingAs($this->admin)->post("/notices/{$notice->id}/read")->assertRedirect($row['href']);
+});
+
+test('the notice of an income of the bank says it arrived', function (): void {
+    $notice = bankNoticeListNotice($this->admin, 'income', 'Stipendio di Marco novembre 2026');
+    $income = insideFamilyOf($this->admin, fn (): ?Income => BankTransaction::query()->find($notice->bank_transaction_id)?->income);
+
+    $row = bellRows($this->admin)[0];
+
+    expect($row['title'])->toBe('Arrived in the bank · Stipendio di Marco novembre 2026')
+        ->and($row['href'])->toBe(route('budget.movements.show', ['kind' => 'income', 'id' => $income?->id]));
+});
+
+test('the notice of a payment of the bank that is gone leads to the transactions of the bank', function (): void {
+    $notice = bankNoticeListNotice($this->admin);
+    insideFamilyOf($this->admin, fn (): ?bool => BankTransaction::query()->find($notice->bank_transaction_id)?->expense?->delete());
+
+    $row = bellRows($this->admin)[0];
+
+    expect($row['title'])->toBe('Paid by the bank · ADDEBITO SDD EDISON ENERGIA')
+        ->and($row['href'])->toBe(route('budget.bank.index'));
+});
+
+test('the notice of a consent that ends names the bank and leads to the banks', function (): void {
+    $notice = insideFamilyOf($this->admin, function (): ReminderNotice {
+        $connection = BankConnection::factory()->create(['family_id' => $this->admin->family_id, 'institution_name' => 'BancoPosta']);
+
+        return ReminderNotice::factory()->create([
+            'family_id' => $this->admin->family_id,
+            'user_id' => $this->admin->id,
+            'reminder_id' => null,
+            'due_date' => null,
+            'offset' => null,
+            'bank_connection_id' => $connection->id,
+            'lines' => ['BancoPosta has removed the link. Connect it again to keep receiving the transactions.'],
+            'sent_at' => CarbonImmutable::parse('2026-10-25 07:00', 'Europe/Rome'),
+        ]);
+    });
+
+    $row = bellRows($this->admin)[0];
+
+    expect($row['id'])->toBe($notice->id)
+        ->and($row['title'])->toBe('Bank to connect again · BancoPosta')
+        ->and($row['area'])->toBe('banks')
+        ->and($row['due_text'])->toBe('BancoPosta has removed the link. Connect it again to keep receiving the transactions.')
+        ->and($row['href'])->toBe(route('banks.index'));
+});
+
+test('the mail limit notice is still sent once a day', function (): void {
+    bankNoticeListNotice($this->admin);
+    insideFamilyOf($this->admin, function (): void {
+        ReminderNotice::query()->update(['sent_at' => now()]);
+
+        resolve(NotifyMailLimit::class)->handle(100);
+        resolve(NotifyMailLimit::class)->handle(100);
+
+        expect(ReminderNotice::query()->whereNull('bank_transaction_id')->where('user_id', $this->admin->id)->count())->toBe(1);
+    });
 });

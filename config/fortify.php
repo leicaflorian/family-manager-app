@@ -120,6 +120,8 @@ return [
 
     'limiters' => [
         'login' => 'login',
+        // The email confirmation links, with a counter of their own (tests/Feature/RouteThrottleTest.php)
+        'verification' => '6,1,verification',
     ],
 
     /*

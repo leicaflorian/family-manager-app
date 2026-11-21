@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Crypt;
  * @property CarbonImmutable|null $delete_after
  * @property CarbonImmutable|null $support_until
  * @property int|null $reading_limit Readings a month for this family; empty means the limit of everyone
+ * @property bool $bank_feed_enabled The owner turns the link to the bank on for the family
  * @property-read Collection<int, OwnerAction> $ownerActions
  * @property-read int|null $owner_actions_count
  * @property-read Collection<int, Person> $people
@@ -201,6 +202,7 @@ final class Family extends Model
             'delete_after' => 'datetime',
             'support_until' => 'datetime',
             'reading_limit' => 'integer',
+            'bank_feed_enabled' => 'boolean',
             'calendar_token' => 'encrypted',
         ];
     }

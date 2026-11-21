@@ -335,6 +335,8 @@ export interface PlannedFormValues {
     organization_id: string | null;
     financial_account_id: string | null;
     person_id: string | null;
+    /** The rule that recognises its payment among the bank transactions. */
+    bank_match: string | null;
     /** An expense: the category. */
     category_id?: string | null;
     /** An expense: the card it refers to, `type:id`. */
@@ -388,6 +390,14 @@ export interface MovementStart {
     card?: string | null;
     /** The category of the type of that card, as text. */
     category_id?: string | null;
+    /** The transaction of *From the bank* the movement is made from (*Create the expense*), linked when it is saved. */
+    bank_transaction_id?: number | null;
+    /** The title the form starts with: who the bank says was paid. */
+    title?: string | null;
+    /** The amount the form starts with, without the sign. */
+    amount?: number | null;
+    /** The account the form starts with, as text. */
+    financial_account_id?: string | null;
 }
 
 /**

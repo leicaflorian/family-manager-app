@@ -51,9 +51,6 @@ describe('Payments of a card', () => {
             screen.getByRole('heading', { name: 'Bills paid', level: 1 }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('link', { name: /Luce - Edison/ }),
-        ).toHaveAttribute('href', '/cards/utility/3');
-        expect(
             screen.getByText('per bill, 72,00 € planned'),
         ).toBeInTheDocument();
         expect(screen.getByText('3 bills')).toBeInTheDocument();
@@ -64,6 +61,23 @@ describe('Payments of a card', () => {
         await userEvent.click(screen.getByRole('button', { name: /2025/ }));
         expect(
             screen.getByText('Bolletta luce di novembre'),
+        ).toBeInTheDocument();
+    });
+
+    it('has one title with the area and the type above it and Record payment beside it', () => {
+        renderPage(CardPayments, props);
+
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+            props.budget.payments_label ?? '',
+        );
+        expect(
+            screen.getByText(
+                `${props.card.area_label} · ${props.card.type_label}`,
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'Record payment' }),
         ).toBeInTheDocument();
     });
 

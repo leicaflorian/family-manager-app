@@ -1,12 +1,23 @@
 import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { computed } from 'vue';
 import { account } from '@/test/fixtures';
 import { renderPage, screenWidth } from '@/test/page';
 import Settings from './Settings.vue';
 
+const bankFeed = vi.hoisted(() => ({
+    share: null as { unsorted: number } | null,
+}));
+
+// What the server shares with every page is not part of the page: the test sets it here
+vi.mock('@/composables/useBankFeed', () => ({
+    useBankFeed: () => computed(() => bankFeed.share),
+}));
+
 afterEach(() => {
     vi.unstubAllGlobals();
+    bankFeed.share = null;
 });
 
 describe('Settings', () => {
@@ -200,5 +211,51 @@ describe('Settings', () => {
             expect.objectContaining({ replace: true }),
         );
         visit.mockRestore();
+    });
+
+    it('shows the linked banks only while the link to the bank is on', () => {
+        const props = {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            bankCount: 2,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
+        };
+
+        const off = renderPage(Settings, props);
+        expect(
+            screen.queryByRole('link', { name: /Linked banks/ }),
+        ).not.toBeInTheDocument();
+        off.unmount();
+
+        bankFeed.share = { unsorted: 0 };
+        renderPage(Settings, props);
+
+        expect(
+            screen.getByRole('link', { name: /Linked banks/ }),
+        ).toHaveAttribute('href', '/settings/banks');
+        expect(screen.getByText('2 banks linked')).toBeInTheDocument();
+    });
+
+    it('invites to link the first bank when there is none', () => {
+        bankFeed.share = { unsorted: 0 };
+
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            bankCount: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
+        });
+
+        expect(
+            screen.getByText('Receive the transactions by themselves'),
+        ).toBeInTheDocument();
     });
 });

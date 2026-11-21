@@ -198,24 +198,23 @@ describe('Changes not saved', () => {
 });
 
 describe('EditOrganization on the computer', () => {
-    it('has no back link and no close button above the title on the computer, and both on the tablet and the phone', () => {
-        for (const [width, shown] of [
-            [1280, false],
-            [820, true],
-            [390, true],
-        ] as const) {
+    it('closes with Back or Cancel: no Close button in the title on any layout', () => {
+        for (const width of [1280, 820, 390]) {
             screenWidth(width);
             const view = renderPage(EditOrganization, {
                 organization: null,
                 types: organizationTypes,
             });
 
-            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
-                shown,
+            expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(
+                1,
             );
             expect(
-                screen.queryByRole('link', { name: 'Organizations' }) !== null,
-            ).toBe(shown);
+                screen.queryByRole('link', { name: 'Close' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Close' }),
+            ).not.toBeInTheDocument();
             view.unmount();
         }
     });

@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Mail\BankConsentExpiringMail;
 use App\Mail\InvitationMail;
 use App\Models\Family;
 use App\Models\Invitation;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\AppHostUrl;
 use App\Support\CurrentFamily;
 use App\Support\MailIcons;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -107,6 +109,24 @@ test('the invitation mail names who invites and the family', function (): void {
         ->assertSeeInHtml('Upload bills and receipts from your phone')
         ->assertSeeInHtml('Join the family')
         ->assertSeeInHtml('We are writing to you because Marco Bianchi added your email to their family.');
+});
+
+test('the mail about a bank consent says what happens and links to the banks on the host of the app', function (): void {
+    config(['app.url' => 'https://my.fameja.app']);
+    $user = User::factory()->for(Family::factory())->admin()->create(['name' => 'Marco Bianchi']);
+
+    $expiring = new BankConsentExpiringMail($user, 'BancoPosta', '18/05/2027', false);
+    $ended = new BankConsentExpiringMail($user, 'BancoPosta', '18/05/2027', true);
+
+    $expiring->assertHasSubject('Connect BancoPosta again')
+        ->assertSeeInHtml('The link with BancoPosta ends on 18/05/2027. Connect it again to keep receiving the transactions.')
+        ->assertSeeInHtml('Connect again')
+        ->assertSeeInHtml('https://my.fameja.app/settings/banks')
+        ->assertSeeInHtml(AppHostUrl::asset('mail-icons/banks.png'));
+    $ended->assertSeeInHtml('BancoPosta has removed the link.');
+    foreach (unsupportedMailCss() as $css) {
+        expect($expiring->render())->not->toContain($css);
+    }
 });
 
 test('the layout has the name of the app and no Laravel words', function (): void {

@@ -6,14 +6,16 @@
  * of the type of its category) and, for an income, the employment it comes
  * from. A new one can start already filled in from a card, and the card
  * chosen fills the category, the holder and the organization still empty.
+ * While the link to the bank is on, *Where* also has *How it shows in the
+ * bank*, the rule the payment is recognised by; `?rule_from=` opens the panel
+ * that writes it from a movement of *From the bank*.
  */
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
-import { computed, toRef } from 'vue';
+import { computed, onMounted, toRef } from 'vue';
+import BankMatchField from '@/components/budget/BankMatchField.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCardChoice } from '@/composables/useCardChoice';
 import { usePageTrail } from '@/composables/usePageTrail';
@@ -24,9 +26,15 @@ import { isEmpty, withNone } from '@/lib/forms';
 import { budget } from '@/routes';
 import { destroy, index, show, store, update } from '@/routes/budget/planned';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 
-const { kind, planned, values, options } = defineProps<{
+const {
+    kind,
+    planned,
+    values,
+    options,
+    bank = { on: false, ai: false },
+    rule_example: ruleExample = null,
+} = defineProps<{
     /** `expense` or `income`. */
     kind: string;
     /** The planned item to change, or null for a new one. */
@@ -35,7 +43,14 @@ const { kind, planned, values, options } = defineProps<{
     values: PlannedFormValues;
     /** The choices of the menus. */
     options: PlannedFormOptions;
+    /** The link to the bank is on (the field *How it shows in the bank* is there) and the reading is on (the AI writes the rule). */
+    bank?: { on: boolean; ai: boolean };
+    /** The movement of *From the bank* `?rule_from=` points to: the panel that writes the rule opens with it chosen. */
+    rule_example?: App.Data.BankTransactionData | null;
 }>();
+
+/** The movement the panel opens with, kept as it arrived: the address is cleaned right after. */
+const startExample = ruleExample;
 
 const form = useForm<PlannedFormValues>({ ...values });
 
@@ -74,14 +89,14 @@ const heading = computed(() =>
           : trans('New planned expense'),
 );
 
-/** Where *Close* and *Cancel* go back to. */
+/** Where *Cancel* goes back to. */
 const back = computed(() =>
     planned ? show.url({ kind, id: planned.id }) : index().url,
 );
 
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
-    { label: trans('Planned expenses and incomes'), href: index().url },
+    { label: trans('Recurring'), href: index().url },
     ...(planned ? [{ label: planned.title, href: back.value }] : []),
     { label: heading.value },
 ]);
@@ -116,29 +131,35 @@ function save(): void {
 
 useSaveShortcut(save, () => !form.processing);
 
-const layout = useLayoutMode();
+/** The account the form has chosen, for the movements the rule is looked for in. */
+const accountId = computed<number | null>(() =>
+    form.financial_account_id ? Number(form.financial_account_id) : null,
+);
+
+// The address of a movement leads here: the panel opens once, and the request
+// leaves the address so that Back does not open it again
+onMounted(() => {
+    const url = new URL(window.location.href);
+
+    if (!url.searchParams.has('rule_from')) {
+        return;
+    }
+
+    url.searchParams.delete('rule_from');
+    router.replace({
+        url: `${url.pathname}${url.search}${url.hash}`,
+        props: (current) => ({ ...current, rule_example: null }),
+        preserveState: true,
+        preserveScroll: true,
+    });
+});
 </script>
 
 <template>
     <Head :title="heading" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle
-            :title="heading"
-            :back="back"
-            :back-label="planned?.title ?? $t('Planned expenses and incomes')"
-        >
-            <template #actions>
-                <Link
-                    v-if="layout !== 'computer'"
-                    :href="back"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
+        <FmTitle :title="heading" />
 
         <form
             class="flex max-w-[720px] flex-col gap-6 rounded-sheet bg-card p-5 shadow-card wide:p-7"
@@ -295,6 +316,15 @@ const layout = useLayoutMode();
                     :options="withNone(options.accounts)"
                     :help="$t('Empty means the default account.')"
                     :errors="errors(form.errors.financial_account_id)"
+                />
+                <BankMatchField
+                    v-if="bank.on"
+                    v-model="form.bank_match"
+                    :kind="income ? 'income' : 'expense'"
+                    :account-id="accountId"
+                    :ai="bank.ai"
+                    :example="startExample"
+                    :error="form.errors.bank_match"
                 />
                 <FormKit
                     v-model="form.person_id"

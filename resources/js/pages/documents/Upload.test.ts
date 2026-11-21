@@ -143,10 +143,10 @@ describe('Upload by layout', () => {
             const view = renderPage(Upload, { ...props });
 
             const link = screen.getByRole('link', { name: '5 files to sort' });
-            // the block of the title holds the link back, the title and its actions: on the phone the link is below it
-            const block = screen.getByRole('link', {
-                name: 'To sort',
-            }).parentElement;
+            // the row of the title holds the title and its actions: on the phone the link is below it
+            const block = screen
+                .getByRole('heading', { name: 'Upload a document' })
+                .closest('.justify-between');
             expect(block?.contains(link)).toBe(!below);
             expect(
                 screen
@@ -251,18 +251,14 @@ describe('Upload on the computer', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('goes back to To sort with the link above the title on the tablet and the phone, as the received mail, and has no ×', () => {
-        for (const [width, shown] of [
-            [1280, false],
-            [820, true],
-            [390, true],
-        ] as const) {
+    it('has no link back of its own and no ×, the layout draws the way back', () => {
+        for (const width of [1280, 820, 390]) {
             screenWidth(width);
             const view = renderPage(Upload, { ...props });
 
-            const back = screen.queryByRole('link', { name: 'To sort' });
-            expect(back !== null).toBe(shown);
-            if (back) expect(back).toHaveAttribute('href', '/to-sort');
+            expect(
+                screen.queryByRole('link', { name: 'To sort' }),
+            ).not.toBeInTheDocument();
             expect(
                 screen.queryByRole('link', { name: 'Close' }),
             ).not.toBeInTheDocument();

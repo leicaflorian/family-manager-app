@@ -43,6 +43,7 @@ describe('Edit a person', () => {
 
         expect(created.state.pieces.value).toEqual([
             { label: 'Family', href: '/family' },
+            { label: 'People', href: '/family/people' },
             { label: 'New person' },
         ]);
         first.unmount();
@@ -56,6 +57,7 @@ describe('Edit a person', () => {
 
         expect(changed.state.pieces.value).toEqual([
             { label: 'Family', href: '/family' },
+            { label: 'People', href: '/family/people' },
             { label: 'Giulia Bianchi', href: '/family/people/3' },
             { label: 'Edit Giulia' },
         ]);
@@ -193,24 +195,23 @@ describe('Changes not saved', () => {
 });
 
 describe('EditPerson on the computer', () => {
-    it('has no back link and no close button above the title on the computer, and both on the tablet and the phone', () => {
-        for (const [width, shown] of [
-            [1280, false],
-            [820, true],
-            [390, true],
-        ] as const) {
+    it('closes with Back or Cancel: no Close button in the title on any layout', () => {
+        for (const width of [1280, 820, 390]) {
             screenWidth(width);
             const view = renderPage(EditPerson, {
                 person: null,
                 roles: personRoles,
             });
 
-            expect(screen.queryByRole('link', { name: 'Close' }) !== null).toBe(
-                shown,
+            expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(
+                1,
             );
             expect(
-                screen.queryByRole('link', { name: 'People' }) !== null,
-            ).toBe(shown);
+                screen.queryByRole('link', { name: 'Close' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Close' }),
+            ).not.toBeInTheDocument();
             view.unmount();
         }
     });

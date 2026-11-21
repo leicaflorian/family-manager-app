@@ -44,13 +44,13 @@ afterEach(() => {
 });
 
 describe('A planned expense', () => {
-    it('writes the trail Budget > Planned expenses and incomes > planned expense into the top bar', () => {
+    it('writes the trail Budget > Recurring > planned expense into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(PlannedItem, props, provide);
 
         expect(state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
-            { label: 'Planned expenses and incomes', href: '/budget/planned' },
+            { label: 'Recurring', href: '/budget/planned' },
             { label: 'Retta danza' },
         ]);
     });
@@ -72,16 +72,23 @@ describe('A planned expense', () => {
         ).toBeInTheDocument();
     });
 
-    it('leads to the form with Edit, and back to the list', () => {
+    it('has one title with the line of the card above it and Edit beside it', () => {
+        renderPage(PlannedItem, props);
+
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+            'Retta danza',
+        );
+        expect(screen.getByRole('link', { name: 'Edit' })).toBeInTheDocument();
+    });
+
+    it('leads to the form with Edit', () => {
         renderPage(PlannedItem, props);
 
         expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
             'href',
             '/budget/planned/expense/4/edit',
         );
-        expect(
-            screen.getByRole('link', { name: 'Planned expenses and incomes' }),
-        ).toHaveAttribute('href', '/budget/planned');
     });
 
     it('lists the next due dates with where each stands', () => {

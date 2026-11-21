@@ -8,8 +8,7 @@
  * is the whole screen (board `Nuovo-impegno`), with *Cancel* and *Save* at the
  * bottom. An `admin` can also delete a task written by hand.
  */
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, defineAsyncComponent } from 'vue';
@@ -17,8 +16,8 @@ import { useComputerLayout } from '@/composables/useLayoutMode';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
@@ -267,18 +266,7 @@ useSaveShortcut(save, () => !form.processing);
         v-else
         class="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 rounded-sheet bg-card p-5 shadow-card"
     >
-        <div class="flex items-center justify-between gap-3">
-            <h1 class="m-0 text-stat">
-                {{ heading }}
-            </h1>
-            <Link
-                :href="agendaRoute().url"
-                :aria-label="$t('Close')"
-                class="flex size-11 items-center justify-center text-ink-soft"
-            >
-                <FmIcon :icon="X" :size="22" />
-            </Link>
-        </div>
+        <FmTitle :title="heading" />
         <ReuseForm />
     </div>
 </template>

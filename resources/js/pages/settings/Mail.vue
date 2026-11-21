@@ -120,8 +120,6 @@ usePageTrail(() => [
                 :subtitle="
                     $t('Forward the bills that arrive by email: we read them')
                 "
-                :back="settingsIndex().url"
-                :back-label="$t('Settings')"
             >
                 <template #actions>
                     <FmButton

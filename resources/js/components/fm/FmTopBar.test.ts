@@ -236,12 +236,16 @@ describe('FmTopBar', () => {
         expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
     });
 
-    it('on the tablet is the bar of the computer, 20 px at the sides, without the logo', () => {
+    it('on the tablet shows neither Back nor the trail, 20 px at the sides, without the logo', () => {
         renderBar({ ...computer, mode: 'tablet' });
 
-        expect(screen.getByRole('link', { name: 'Back' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Back' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
         expect(
-            screen.getByRole('navigation', { name: 'Where you are' }),
+            screen.queryByRole('navigation', { name: 'Where you are' }),
+        ).toBeNull();
+        expect(
+            screen.getByRole('combobox', { name: 'Search in Fameja.app' }),
         ).toBeInTheDocument();
         expect(screen.queryByText('Fameja.app')).toBeNull();
         expect(screen.queryByRole('button', { name: /^Menu/ })).toBeNull();

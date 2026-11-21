@@ -15,7 +15,6 @@ import { Plus, Receipt, Search, Wallet } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useListFilters } from '@/composables/useListFilters';
 import FmAmount from '@/components/fm/FmAmount.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
@@ -32,7 +31,6 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import FmTitleTools from '@/components/fm/FmTitleTools.vue';
 import { useFormat } from '@/composables/useFormat';
 import type { MovementsQuery } from '@/lib/budget';
 import {
@@ -42,6 +40,7 @@ import {
     movementsUrl,
     weekdayShort,
 } from '@/lib/budget';
+import { useBankFeed } from '@/composables/useBankFeed';
 import { budgetTabs } from '@/lib/budgetTabs';
 import type { FilterPill } from '@/lib/filters';
 import { rangePills } from '@/lib/filters';
@@ -70,9 +69,8 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
     movement: App.Data.MovementData;
 }>();
 
-/** The layout: the magnifier and the bell beside the title are only on the phone. */
-const mode = useLayoutMode();
 const { euro } = useFormat();
+const bankFeed = useBankFeed();
 
 /** The search box, the visits with other filters and the column of the filters. */
 const {
@@ -304,13 +302,15 @@ function subtitle(movement: App.Data.MovementData): string {
     <div class="flex flex-col gap-4">
         <FmTitle :title="$t('Budget')">
             <template #actions>
-                <FmTitleTools v-if="mode === 'phone'" />
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')
                 }}</FmButton>
             </template>
         </FmTitle>
-        <FmTabs :tabs="budgetTabs('movements')" :label="$t('Budget')" />
+        <FmTabs
+            :tabs="budgetTabs('movements', bankFeed)"
+            :label="$t('Budget')"
+        />
 
         <div class="flex w-full max-w-105 gap-2.5">
             <form

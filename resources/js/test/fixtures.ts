@@ -715,6 +715,7 @@ export const danceRow: App.Data.PlannedRowData = {
     color: '#E5A50A',
     ended: false,
     fee: 0,
+    bank_match: null,
 };
 
 /** The gas bill: an estimate, for the whole family, with the card of the supply. */
@@ -843,6 +844,7 @@ export const danceMovement: App.Data.MovementData = {
     documents: [],
     can_edit: true,
     can_delete: true,
+    bank: null,
 };
 
 /** The page of the dance lessons: the year, the next four due dates, the exceptions, the data and the payments. */
@@ -945,6 +947,7 @@ export const newPlannedValues = {
     organization_id: null,
     financial_account_id: null,
     person_id: null,
+    bank_match: null,
     category_id: null,
     card: null,
 };
@@ -1969,3 +1972,76 @@ export const areaSettings: App.Data.AreaSettingsData = {
     })),
     can_change: true,
 };
+
+/** The banks the Bianchis linked, as *Linked banks* receives them: one that reads, one to link again. */
+export const bankConnections: App.Data.BankConnectionData[] = [
+    {
+        id: 1,
+        institution: 'BancoPosta',
+        status: 'active',
+        valid_until: '2027-05-18',
+        last_synced_at: '2026-11-20T13:00',
+        accounts: ['Conto BancoPosta ·· 3307'],
+        syncing: false,
+    },
+    {
+        id: 2,
+        institution: 'Buddy Bank',
+        status: 'needs_reconnect',
+        valid_until: '2026-11-12',
+        last_synced_at: null,
+        accounts: ['Conto Buddy ·· 7730'],
+        syncing: false,
+    },
+];
+
+/** Some of the banks the provider lists, as the panel *Connect a bank* receives them. */
+export const bankInstitutions: App.Data.BankInstitutionData[] = [
+    { name: 'BancoPosta', country: 'IT', logo: null },
+    { name: 'Postepay', country: 'IT', logo: null },
+    { name: 'Intesa Sanpaolo', country: 'IT', logo: null },
+    { name: 'UniCredit', country: 'IT', logo: null },
+];
+
+/** The transactions of the bank still to sort, as *From the bank* receives them: a pending one, a booked one, one in dollars. */
+export const bankTransactions: App.Data.BankTransactionData[] = [
+    {
+        id: 3,
+        booked_on: null,
+        value_on: '2026-11-06',
+        text: 'PAGAMENTO POS Q8 STAZIONE SERVIZIO VIA EMILIA BOLOGNA',
+        counterparty: null,
+        amount: -40,
+        currency: 'EUR',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: true,
+        ignored: false,
+        recurring: false,
+    },
+    {
+        id: 2,
+        booked_on: '2026-11-05',
+        value_on: '2026-11-05',
+        text: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+        counterparty: 'EDISON ENERGIA SPA',
+        amount: -72.4,
+        currency: 'EUR',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: false,
+        ignored: false,
+        recurring: false,
+    },
+    {
+        id: 1,
+        booked_on: '2026-11-04',
+        value_on: '2026-11-04',
+        text: 'CARD PAYMENT NEW YORK HOTEL',
+        counterparty: null,
+        amount: -120,
+        currency: 'USD',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: false,
+        ignored: false,
+        recurring: false,
+    },
+];

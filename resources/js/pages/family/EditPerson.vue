@@ -5,14 +5,12 @@
  * account: that comes with an invitation. Beside the form, the photo, as the
  * file beside *Edit the document*.
  */
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Head, useForm } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmImagePanel from '@/components/fm/FmImagePanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { withMethod } from '@/lib/forms';
@@ -21,7 +19,6 @@ import { personValues } from '@/lib/family';
 import { initialsOf } from '@/lib/names';
 import { index, show, store, update } from '@/routes/people';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { family } from '@/routes';
 
@@ -41,7 +38,7 @@ const form = useForm({
 /** While the form has changes not saved, leaving the page asks first. */
 useUnsavedChanges(() => form.data());
 
-/** Where *Close* goes back to. */
+/** Where *Cancel* goes back to. */
 const back = computed(() => (person ? show.url(person.id) : index().url));
 
 /** The initials in the circle: those written, or those the server will make. */
@@ -58,10 +55,9 @@ function save(): void {
 
 useSaveShortcut(save, () => !form.processing);
 
-const layout = useLayoutMode();
-
 usePageTrail(() => [
     { label: trans('Family'), href: family().url },
+    { label: trans('People'), href: index().url },
     ...(person
         ? [
               {
@@ -94,24 +90,7 @@ usePageTrail(() => [
                     ? $t('Edit :name', { name: person.first_name })
                     : $t('New person')
             "
-            :back="back"
-            :back-label="
-                person
-                    ? `${person.first_name} ${person.last_name}`
-                    : $t('People')
-            "
-        >
-            <template #actions>
-                <Link
-                    v-if="layout !== 'computer'"
-                    :href="back"
-                    :aria-label="$t('Close')"
-                    class="flex size-11 items-center justify-center rounded-lg border border-edge-soft bg-card text-ink"
-                >
-                    <FmIcon :icon="X" :size="20" />
-                </Link>
-            </template>
-        </FmTitle>
+        />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

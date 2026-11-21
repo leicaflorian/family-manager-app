@@ -168,8 +168,6 @@ usePageTrail(() => [
             <FmTitle
                 :title="$t('Areas')"
                 :subtitle="$t('Their order, and the ones you hide')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
             />
         </template>
 

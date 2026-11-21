@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Budget;
 
+use App\Actions\Banks\MatchBankTransactions;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\DefaultAccount;
@@ -13,17 +14,20 @@ use InvalidArgumentException;
 
 /**
  * Saves a planned expense or income, new or changed. A planned item without an account takes the default account of
- * the family, as the payments do. When a change moves its due dates, its payments and exceptions move with them.
+ * the family, as the payments do. When a change moves its due dates, its payments and exceptions move with them. A
+ * rule of the bank that is new or changed pays the due dates its transactions still to sort settle.
  */
 final readonly class SavePlanned
 {
     /** The columns that decide the due dates. */
     private const array SCHEDULE = ['start_date', 'interval', 'interval_unit', 'is_recurring'];
 
-    public function __construct(private FillOccurrenceDates $occurrenceDates) {}
+    public function __construct(private FillOccurrenceDates $occurrenceDates, private MatchBankTransactions $matchBank) {}
 
     /**
-     * Creates the planned item, or changes the one given.
+     * Creates the planned item, or changes the one given. A caller that sends a rule (`bank_match`) must not call this
+     * inside a transaction of its own: the paying it starts after the save locks its rows and must read what is
+     * committed, and inside an open transaction it would pay from a snapshot taken before the locks.
      *
      * @param  string  $kind  `expense` or `income`
      * @param  array<string, mixed>  $columns  the columns to write
@@ -39,21 +43,28 @@ final readonly class SavePlanned
         }
 
         if ($planned instanceof PlannedExpense || $planned instanceof PlannedIncome) {
-            return DB::transaction(function () use ($planned, $columns): PlannedExpense|PlannedIncome {
+            DB::transaction(function () use ($planned, $columns): void {
                 $planned->update($columns);
 
                 if ($planned->wasChanged(self::SCHEDULE)) {
                     $this->occurrenceDates->remap($planned);
                 }
-
-                return $planned;
             });
+            $newRule = $planned->wasChanged('bank_match');
+        } else {
+            $planned = match ($kind) {
+                'expense' => PlannedExpense::query()->create($columns),
+                'income' => PlannedIncome::query()->create($columns),
+                default => throw new InvalidArgumentException("Unknown kind {$kind}."),
+            };
+            $newRule = true;
         }
 
-        return match ($kind) {
-            'expense' => PlannedExpense::query()->create($columns),
-            'income' => PlannedIncome::query()->create($columns),
-            default => throw new InvalidArgumentException("Unknown kind {$kind}."),
-        };
+        // After the save is written, not inside it: the paying locks its own rows and reads what is committed
+        if ($newRule && (string) $planned->bank_match !== '') {
+            $this->matchBank->forPlanned($planned);
+        }
+
+        return $planned;
     }
 }

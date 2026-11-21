@@ -84,11 +84,7 @@ usePageTrail(() => [
     <Head :title="$t('Edit the document')" />
 
     <div class="flex max-w-[1120px] flex-col gap-6">
-        <FmTitle
-            :title="$t('Edit the document')"
-            :back="show.url(document.id)"
-            :back-label="document.title"
-        />
+        <FmTitle :title="$t('Edit the document')" />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

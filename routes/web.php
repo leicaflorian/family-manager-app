@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AreaSettingsController;
+use App\Http\Controllers\Budget\BankMatchController;
+use App\Http\Controllers\Budget\BankTransactionController;
 use App\Http\Controllers\Budget\ComparisonController;
 use App\Http\Controllers\Budget\DeadlineController;
 use App\Http\Controllers\Budget\MovementController;
@@ -45,6 +47,7 @@ use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\ScanShareController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceWorkerController;
+use App\Http\Controllers\Settings\BankController;
 use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
@@ -64,7 +67,7 @@ Route::middleware('guest')->group(function (): void {
     Route::get('invitation/{token}', [InvitationLinkController::class, 'show'])->name('invitation.show');
     Route::post('invitation/{token}', [InvitationLinkController::class, 'store'])->name('invitation.store');
     // The link of the welcome mail of a family created from the owner panel: signed, valid for a week
-    Route::get('start/{user}', WelcomeLinkController::class)->middleware(['signed', 'throttle:6,1'])->name('welcome.link');
+    Route::get('start/{user}', WelcomeLinkController::class)->middleware(['signed', 'throttle:6,1,welcome-link'])->name('welcome.link');
 });
 
 // Linking a phone with the code made on the computer: opened by a phone that has not entered yet. The order
@@ -79,7 +82,7 @@ Route::post('connect/{code}', [ConnectController::class, 'use'])->name('connect.
 // no session and sets no cookie, and without SetLocale a 404 here reads like one of an address that does not exist
 // (the calendar has the language saved with its secret, not the browser's).
 Route::get('calendar/{token}.ics', CalendarFeedController::class)
-    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:60,1'])
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:60,1,calendar-feed'])
     ->withoutMiddleware('web')
     ->name('calendar.feed');
 
@@ -87,7 +90,7 @@ Route::get('calendar/{token}.ics', CalendarFeedController::class)
 // the web group like the calendar: no session, no cookie, no CSRF token (Mailgun has none), and the language of the
 // texts is the one of the installation. The throttle is high: every mail of every family comes from Mailgun.
 Route::post('mail/mailgun', MailgunWebhookController::class)
-    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:300,1'])
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:300,1,mailgun'])
     ->withoutMiddleware('web')
     ->name('mail.mailgun');
 
@@ -102,7 +105,7 @@ Route::get('sw.js', ServiceWorkerController::class)
 // the person that a new version is out. Outside the web group: asked often by everyone, it opens no session and sets
 // no cookie (and the linked phone, kept to the scan inside the web group, reads it too).
 Route::get('version', VersionController::class)
-    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:120,1'])
+    ->middleware([SeparateHosts::OUTSIDE_WEB, 'throttle:120,1,version'])
     ->withoutMiddleware('web')
     ->name('version');
 
@@ -150,11 +153,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::delete('reminders/{reminder}/done', [ReminderDoneController::class, 'destroy'])->name('reminders.reopen');
         Route::post('reminders/{reminder}/postpone', ReminderPostponeController::class)->name('reminders.postpone');
         Route::get('search', [SearchController::class, 'index'])->name('search');
-        Route::get('search/suggest', [SearchController::class, 'suggest'])->middleware('throttle:120,1')->name('search.suggest');
+        Route::get('search/suggest', [SearchController::class, 'suggest'])->middleware('throttle:120,1,search-suggest')->name('search.suggest');
         Route::get('notices', [NoticeController::class, 'index'])->name('notices');
         Route::post('notices/read', [NoticeController::class, 'readAll'])->name('notices.read-all');
         Route::post('notices/{notice}/read', [NoticeController::class, 'read'])->name('notices.read')->whereNumber('notice');
-        Route::post('feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,60')->name('feedback.store');
+        Route::post('feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,60,feedback')->name('feedback.store');
         Route::get('areas', [AreaController::class, 'index'])->name('areas');
         Route::get('areas/{area}', [AreaController::class, 'show'])->name('areas.show');
 
@@ -180,6 +183,16 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 Route::put('', [MovementController::class, 'update'])->name('update');
                 Route::delete('', [MovementController::class, 'destroy'])->name('destroy');
             });
+
+        Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
+        Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('budget.bank.sync');
+        Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
+        Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
+        Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
+        Route::post('budget/bank/{transaction}/assign', [BankTransactionController::class, 'assign'])->name('budget.bank.assign')->whereNumber('transaction');
+        Route::post('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'ignore'])->name('budget.bank.ignore')->whereNumber('transaction');
+        Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
+        Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
 
         Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
 
@@ -212,7 +225,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settings', SettingsController::class)->name('settings');
         Route::get('settings/account', [AccountController::class, 'edit'])->name('account.edit');
         Route::patch('settings/account', [AccountController::class, 'update'])->name('account.update');
-        Route::put('settings/account/password', [AccountController::class, 'password'])->middleware('throttle:6,1')->name('account.password');
+        Route::put('settings/account/password', [AccountController::class, 'password'])->middleware('throttle:6,1,account-password')->name('account.password');
         Route::put('settings/account/theme', [AccountController::class, 'theme'])->name('account.theme');
         Route::post('settings/account/photo', [AccountController::class, 'photo'])->name('account.photo');
         Route::delete('settings/account', [AccountController::class, 'destroy'])->name('account.destroy');
@@ -229,6 +242,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
         Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
         Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
+        Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
+        Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
+        Route::get('settings/banks/callback', [BankController::class, 'callback'])->name('banks.callback');
+        Route::post('settings/banks/{connection}/sync', [BankController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('banks.sync');
+        Route::delete('settings/banks/{connection}', [BankController::class, 'destroy'])->name('banks.destroy');
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::get('settings/areas', [AreaSettingsController::class, 'edit'])->name('settings.areas.edit');

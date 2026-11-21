@@ -7,6 +7,7 @@ namespace App\Support;
 use App\Cards\CardTypes;
 use App\Enums\EnrollmentType;
 use App\Enums\InsurancePolicyType;
+use App\Models\BankTransaction;
 use App\Models\Employment;
 use App\Models\Enrollment;
 use App\Models\ExpenseCategory;
@@ -16,6 +17,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\Subscription;
 use App\Models\Utility;
+use App\Support\Banks\BankMatch;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -48,6 +50,7 @@ final class PlannedPreset
             'organization_id' => null,
             'financial_account_id' => null,
             'person_id' => null,
+            'bank_match' => null,
             ...$kind === 'expense' ? ['fee_amount' => null, 'category_id' => null, 'card' => null] : ['type' => 'salary', 'employment_id' => null],
         ];
     }
@@ -73,6 +76,7 @@ final class PlannedPreset
             'organization_id' => $planned->organization_id,
             'financial_account_id' => $planned->financial_account_id,
             'person_id' => $planned->person_id,
+            'bank_match' => $planned->bank_match,
         ];
 
         if ($planned instanceof PlannedIncome) {
@@ -136,6 +140,32 @@ final class PlannedPreset
             ...self::from(CardTypes::findOrFail($card['type'])->findOrFail($card['id'])),
             ...is_int($category) ? ['category_id' => (string) $category] : [],
         ];
+    }
+
+    /**
+     * The starting values of a new planned expense or income that comes from a bank transaction whose text comes back
+     * every month: the title (who was paid, else the text), the amount of the latest one (estimated when the amounts
+     * differ), the day of the oldest one as the first due date, every month, the account and the rule that finds it.
+     *
+     * @param  BankTransaction  $transaction  The transaction the person started from.
+     * @param  list<BankTransaction>  $chain  The three transactions of the months in a row, oldest first.
+     * @return array<string, mixed>
+     */
+    public static function fromBank(BankTransaction $transaction, array $chain): array
+    {
+        $cents = array_map(static fn (BankTransaction $row): int => (int) round(abs((float) $row->amount) * 100), $chain);
+
+        return self::asText([
+            'title' => filled($transaction->counterparty) ? $transaction->counterparty : $transaction->text,
+            'amount' => round(abs((float) (collect($chain)->last() ?? $transaction)->amount), 2),
+            'is_estimated' => count(array_unique($cents)) > 1,
+            'start_date' => (collect($chain)->first() ?? $transaction)->booked_on?->toDateString(),
+            'is_recurring' => true,
+            'interval' => 1,
+            'interval_unit' => 'month',
+            'financial_account_id' => $transaction->financial_account_id,
+            'bank_match' => BankMatch::fromText($transaction->text),
+        ]);
     }
 
     /**

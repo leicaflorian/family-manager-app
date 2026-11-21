@@ -9,12 +9,12 @@ import { Globe, Mail, Pencil, Phone, StickyNote, Trash2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmOrganizationMark from '@/components/fm/FmOrganizationMark.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 import { websiteHref } from '@/lib/family';
 import { show as showDocument } from '@/routes/documents';
 import type { Action } from '@/lib/actions';
@@ -96,11 +96,15 @@ usePageTrail(() => [
     <Head :title="organization.name" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink :href="index().url" :label="$t('Organizations')" />
-
-        <!-- As in FmTitle: the actions take the room the name leaves -->
-        <div class="flex items-center justify-between gap-4">
-            <div class="flex max-w-[60%] min-w-0 shrink-0 items-center gap-4">
+        <FmTitle
+            :title="organization.name"
+            :subtitle="
+                organization.type_labels.length > 0
+                    ? organization.type_labels.join(', ')
+                    : undefined
+            "
+        >
+            <template #leading>
                 <FmOrganizationMark
                     :types="organization.types"
                     :logo="organization.logo"
@@ -108,19 +112,11 @@ usePageTrail(() => [
                     :icon-size="28"
                     class="size-14 rounded-card bg-card shadow-card wide:size-16"
                 />
-                <div class="flex flex-col gap-1">
-                    <h1 class="m-0 text-title-mobile wide:text-title">
-                        {{ organization.name }}
-                    </h1>
-                    <span
-                        v-if="organization.type_labels.length > 0"
-                        class="text-body-sm text-ink-soft"
-                        >{{ organization.type_labels.join(', ') }}</span
-                    >
-                </div>
-            </div>
-            <FmActions :actions="actions" />
-        </div>
+            </template>
+            <template #actions>
+                <FmActions :actions="actions" />
+            </template>
+        </FmTitle>
 
         <div
             class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_360px] wide:items-start"

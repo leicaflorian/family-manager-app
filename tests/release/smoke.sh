@@ -65,14 +65,6 @@ set -o pipefail
 PATH="$STUB_ROOT/fakebin:$PATH" sh -c "$cmd" | sed "s#$STUB_ROOT/backups#/root/backups#"
 EOF
 
-    # Called as "<checks>": the checks of the CI, before anything is touched.
-    cat > "$T/bin/checks" <<'EOF'
-#!/usr/bin/env bash
-echo "checks $(git symbolic-ref --short HEAD) $(git rev-parse HEAD)" >> "$STUB_ROOT/calls.log"
-[ "${STUB_CHECKS:-ok}" = fail ] && { echo "Formatting issues found"; exit 1; }
-exit 0
-EOF
-
     cat > "$T/fakebin/docker" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
@@ -133,7 +125,7 @@ new_fixture() {
 # Runs ./release in the fixture with the stubs; output in $T/out, exit code in $CODE.
 run_release() {
     env RELEASE_CLAUDE="$T/bin/claude" RELEASE_ARTISAN="$T/bin/sail artisan" \
-        RELEASE_SSH="$T/bin/ssh family-manager-prod" RELEASE_REMOTE=origin RELEASE_CHECKS="$T/bin/checks" \
+        RELEASE_SSH="$T/bin/ssh family-manager-prod" RELEASE_REMOTE=origin \
         "$@" bash ./release > "$T/out" 2>&1 < /dev/null &
     echo $! > "$T/release.pid"
     wait $!
@@ -179,12 +171,9 @@ finish() { # finish "<scenario>"
 
 # 1. Happy path, first release: every migration counts, so the database is dumped.
 new_fixture
-dev_start=$(git rev-parse dev)
 run_release
 git fetch -q origin
 check "exit code 0" test "$CODE" -eq 0
-check "checks ran on dev, before the merge" grep -q "^checks dev $dev_start" "$T/calls.log"
-check "checks ran before claude" sh -c "head -n 1 '$T/calls.log' | grep -q '^checks'"
 check "release commit on remote main" test "$(git log -1 --format=%s origin/main)" = "Release v2.0.0"
 check "release commit on top of the merge" test "$(git log -1 --format=%s origin/main^)" = "Merge branch 'dev' for release"
 check "merge has two parents" git rev-parse -q --verify "origin/main^^2"
@@ -223,21 +212,6 @@ run_release STUB_VERSION=2.1.0
 check "exit code 0" test "$CODE" -eq 0
 check "ssh called" called ssh
 finish "2b. new migration since the last tag, dump"
-
-# 2c. A check fails: nothing is merged and Claude is not asked.
-new_fixture
-before=$(git rev-parse origin/main)
-run_release STUB_CHECKS=fail
-check "exit code not 0" test "$CODE" -ne 0
-check "checks called" called checks
-check "claude not called" not_called claude
-check "main untouched" equal main "$before"
-check "remote main untouched" equal origin/main "$before"
-check "on dev" on_dev
-check "clean tree" clean_tree
-check "says the checks failed" contains "checks failed"
-check "does not say Restoring" sh -c "! grep -q Restoring '$T/out'"
-finish "2c. a check fails, nothing touched"
 
 # 3. claude fails.
 new_fixture
@@ -320,7 +294,6 @@ new_fixture tag empty
 before=$(git rev-parse origin/main)
 run_release
 check "says Nothing to release" contains "Nothing to release"
-check "checks not called" not_called checks
 check "claude not called" not_called claude
 check "main untouched" equal main "$before"
 check "on dev" on_dev

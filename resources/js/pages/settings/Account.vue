@@ -195,8 +195,6 @@ usePageTrail(() => [
         <template #title>
             <FmTitle
                 :title="$t('My account')"
-                :back="settings().url"
-                :back-label="$t('Settings')"
                 :subtitle="
                     $t(
                         'Yours only: the rest of the settings applies to the whole family',

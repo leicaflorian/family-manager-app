@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Data\MonthSummaryData;
+use App\Data\MovementBankData;
 use App\Data\MovementData;
 use App\Data\MovementMonthData;
 use App\Data\MovementSearchData;
 use App\Data\OptionData;
 use App\Enums\IncomeType;
+use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Services\Banks\BankFeedAvailability;
 use App\Support\Deadline;
 use App\Support\MovementFilters;
 use App\Support\Occurrence;
@@ -42,6 +45,27 @@ final readonly class Movements
     private const int MENU = 36;
 
     public function __construct(private Deadlines $deadlines, private Occurrences $occurrences) {}
+
+    /**
+     * The line «Registrata dalla banca» of a movement: the bank transaction linked to it, while the link to the bank
+     * is on. The undo is offered to who can delete the movement.
+     *
+     * @param  Expense|Income  $movement  the expense or income
+     * @param  User  $user  who looks at it
+     */
+    public function bank(Expense|Income $movement, User $user): ?MovementBankData
+    {
+        if (! BankFeedAvailability::on()) {
+            return null;
+        }
+
+        $transaction = BankTransaction::query()
+            ->with('financialAccount')
+            ->where($movement instanceof Expense ? 'expense_id' : 'income_id', $movement->id)
+            ->first();
+
+        return $transaction instanceof BankTransaction ? MovementBankData::fromTransaction($transaction, $user->can('delete', $movement)) : null;
+    }
 
     /**
      * The expense or income of an address, inside the current family.

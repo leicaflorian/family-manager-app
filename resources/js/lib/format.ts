@@ -18,12 +18,40 @@ const euro = new Intl.NumberFormat('it-IT', {
  * @returns the amount as text, for example `1.234,50 €`
  */
 export function formatEuro(amount: number): string {
-    // it-IT does not group thousands below 10,000: the grouping is forced.
-    // Non-breaking spaces become normal spaces, so the texts can be compared.
-    return euro
-        .format(amount)
-        .replace(/^(-?\d)(\d{3}),/, '$1.$2,')
-        .replace(/\s/g, ' ');
+    return italianGrouping(euro.format(amount));
+}
+
+/**
+ * Fixes a number written by it-IT: it does not group thousands below 10,000,
+ * so the grouping is forced, and non-breaking spaces become normal spaces, so
+ * the texts can be compared.
+ *
+ * @param text - the number as Intl wrote it
+ * @returns the number with the thousands grouped and plain spaces
+ */
+function italianGrouping(text: string): string {
+    return text.replace(/^(-?\d)(\d{3}),/, '$1.$2,').replace(/\s/g, ' ');
+}
+
+/**
+ * Writes an amount in any currency as the app writes euros: the Italian way, with the code of the currency
+ * (`-120,00 USD`); euros keep the `€` sign.
+ *
+ * @param amount - the amount, with its sign
+ * @param currency - the code of the currency, for example `USD`
+ * @returns the amount as text
+ */
+export function formatMoney(amount: number, currency: string): string {
+    if (currency === 'EUR') {
+        return formatEuro(amount);
+    }
+
+    const number = new Intl.NumberFormat('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(amount);
+
+    return `${italianGrouping(number)} ${currency}`;
 }
 
 /** Writes a size with one decimal at most, with the comma. */
@@ -76,6 +104,16 @@ export function toDate(date: string | Date): Date {
  */
 export function formatDate(date: string | Date): string {
     return format(toDate(date), 'DD/MM/YYYY', 'it');
+}
+
+/**
+ * Writes a date as dd/mm, without the year.
+ *
+ * @param date - a date of the server or a `Date`
+ * @returns the date as text, for example `05/09`
+ */
+export function formatDayMonth(date: string | Date): string {
+    return format(toDate(date), 'DD/MM', 'it');
 }
 
 /** The day, month, year, hours and minutes of a moment, in the time of Rome. */

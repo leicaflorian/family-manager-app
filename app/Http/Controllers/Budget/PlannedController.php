@@ -5,18 +5,25 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Budget\SavePlanned;
+use App\Contracts\DocumentReader;
+use App\Data\BankTransactionData;
 use App\Data\DeadlineData;
 use App\Data\PlannedFiltersData;
 use App\Data\PlannedRowData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\PlannedIndexRequest;
 use App\Http\Requests\Budget\SavePlannedRequest;
+use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Services\Banks\BankFeedAvailability;
+use App\Services\Banks\RecurringBankTexts;
 use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Services\PlannedSummaries;
+use App\Support\Banks\BankMatch;
+use App\Support\Banks\BankTransactionId;
 use App\Support\Deadline;
 use App\Support\LocalPath;
 use App\Support\PlannedKind;
@@ -54,7 +61,8 @@ final class PlannedController extends Controller
     }
 
     /**
-     * *New planned expense*: the empty form, or filled in from the card of `?card=type:id` (for an income, its employment).
+     * *New planned expense*: the empty form, filled in from the card of `?card=type:id` (for an income, its employment)
+     * or from the bank transaction of `?bank=` whose text comes back every month (*It comes back every month* of *From the bank*).
      *
      * @throws NotFoundHttpException if the kind is not `expense` or `income`
      */
@@ -65,7 +73,7 @@ final class PlannedController extends Controller
         // The card of an income is its employment
         $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card')) : PlannedPreset::incomeFromQuery($request->query('card'));
 
-        return $this->form($kind, null, [...PlannedPreset::defaults($kind), ...$preset]);
+        return $this->form($request, $kind, null, [...PlannedPreset::defaults($kind), ...$preset, ...$this->recurringValues($request->query('bank'), $kind)]);
     }
 
     /**
@@ -128,12 +136,12 @@ final class PlannedController extends Controller
      *
      * @throws NotFoundHttpException if the kind is unknown or the planned item is not of the family
      */
-    public function edit(string $kind, string $id): Response
+    public function edit(Request $request, string $kind, string $id): Response
     {
         $planned = PlannedKind::find($kind, $id);
         Gate::authorize('update', $planned);
 
-        return $this->form($kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned));
+        return $this->form($request, $kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned));
     }
 
     /**
@@ -167,17 +175,77 @@ final class PlannedController extends Controller
     /**
      * The form, new (`$planned` null) or changed.
      *
+     * @param  Request  $request  the request, for `?rule_from=` (the transaction the rule is written from)
      * @param  string  $kind  `expense` or `income`
      * @param  PlannedRowData|null  $planned  the planned item to change, null for a new one
      * @param  array<string, mixed>  $values  the starting values of the fields
      */
-    private function form(string $kind, ?PlannedRowData $planned, array $values): Response
+    private function form(Request $request, string $kind, ?PlannedRowData $planned, array $values): Response
     {
+        $bankOn = BankFeedAvailability::on();
+        $ai = $bankOn && resolve(DocumentReader::class)->isActive();
+        $example = $bankOn ? $this->ruleExample($request->query('rule_from')) : null;
+
+        // Without the reading the AI cannot write the rule: the field starts from the words of the transaction
+        if ($example instanceof BankTransactionData && ! $ai && blank($values['bank_match'] ?? null)) {
+            $values['bank_match'] = BankMatch::fromText($example->text);
+        }
+
         return Inertia::render('budget/EditPlanned', [
             'kind' => $kind,
             'planned' => $planned,
             'values' => $values,
             'options' => BudgetFormOptions::for($kind),
+            // The field *How it shows in the bank* needs the link on; the AI button, the reading too
+            'bank' => ['on' => $bankOn, 'ai' => $ai],
+            'rule_example' => $example,
         ]);
+    }
+
+    /**
+     * The transaction `?rule_from=` points to, for the sheet that writes the rule from it; null when it is missing,
+     * not a number or not of the family (the form opens all the same).
+     *
+     * @param  mixed  $id  the value of the address
+     */
+    private function ruleExample(mixed $id): ?BankTransactionData
+    {
+        $id = BankTransactionId::parse($id);
+
+        if ($id === null) {
+            return null;
+        }
+
+        $transaction = BankTransaction::query()->with('financialAccount')->find($id);
+
+        return $transaction instanceof BankTransaction ? BankTransactionData::fromTransaction($transaction) : null;
+    }
+
+    /**
+     * The starting values the transaction of `?bank=` gives: the ones of its text that comes back every month, for the
+     * kind its sign says. Nothing when the link to the bank is off or the transaction is missing, not of the family,
+     * not to sort any more, the other direction or not recurring (the form opens empty all the same).
+     *
+     * @param  mixed  $id  the value of the address
+     * @param  string  $kind  `expense` or `income`
+     * @return array<string, mixed>
+     */
+    private function recurringValues(mixed $id, string $kind): array
+    {
+        $id = BankFeedAvailability::on() ? BankTransactionId::parse($id) : null;
+
+        if ($id === null) {
+            return [];
+        }
+
+        $transaction = BankTransaction::query()->unsorted()->find($id);
+
+        if (! $transaction instanceof BankTransaction || $transaction->kind() !== $kind) {
+            return [];
+        }
+
+        $chain = resolve(RecurringBankTexts::class)->chain($transaction);
+
+        return $chain === null ? [] : PlannedPreset::fromBank($transaction, $chain);
     }
 }

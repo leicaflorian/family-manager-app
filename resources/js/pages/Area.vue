@@ -92,8 +92,6 @@ const closed = computed(() => area.cards.filter((card) => card.closed));
         <FmTitle
             :title="area.label"
             :subtitle="areaSummary(area.count, area.overdue)"
-            :back="areas().url"
-            :back-label="$t('Areas')"
         >
             <template v-if="canCreate" #actions>
                 <FmActions

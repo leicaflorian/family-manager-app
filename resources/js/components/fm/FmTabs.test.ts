@@ -62,6 +62,16 @@ describe('FmTabs', () => {
         );
     });
 
+    it('keeps the name of a pill tab on one line, the tab wider when its name needs it', () => {
+        render(FmTabs, { props: { tabs, label: 'Agenda', variant: 'pill' } });
+
+        expect(screen.getByRole('link', { name: /Reminders/ })).toHaveClass(
+            'whitespace-nowrap',
+            'min-w-fit',
+            'px-2',
+        );
+    });
+
     it('shows a tab that cannot be chosen as a name without a link', () => {
         render(FmTabs, {
             props: {
@@ -116,6 +126,40 @@ describe('FmTabs', () => {
         expect(tab).toContainElement(badge);
         expect(badge).toHaveAttribute('aria-hidden', 'true');
         expect(badge).toHaveClass('bg-overdue');
+    });
+
+    it('shows a number to look at as a blue badge, with its words for screen readers', () => {
+        render(FmTabs, {
+            props: {
+                label: 'Budget',
+                tabs: [
+                    {
+                        label: 'From the bank',
+                        href: '/budget/bank',
+                        count: 6,
+                        countLabel: 'From the bank, 6 to sort',
+                        countInfo: true,
+                        current: true,
+                    },
+                ],
+            },
+        });
+
+        const tab = screen.getByRole('link', {
+            name: 'From the bank, 6 to sort',
+        });
+        const badge = screen.getByText('6');
+        expect(tab).toContainElement(badge);
+        expect(badge).toHaveAttribute('aria-hidden', 'true');
+        expect(badge).toHaveClass(
+            'bg-action',
+            'text-on-action',
+            'h-5',
+            'min-w-5',
+            'rounded-full',
+            'text-badge',
+        );
+        expect(badge).not.toHaveClass('bg-overdue');
     });
 
     it('shows only the icon of a tab with one, named for screen readers', () => {

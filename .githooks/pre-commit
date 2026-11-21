@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Before every commit: the checks of the CI that are fast on single files, only on the staged ones.
+# vp check (Oxfmt and Oxlint, with denyWarnings) on the front end files, public/ included, and
+# pint --test on the PHP files, both in the Sail container. It never fixes: it stops and says how.
+# It reads the files as they are on disk, so a file staged only in part is checked whole.
+#
+# Turned on once per clone with: git config core.hooksPath .githooks
+# Skipped once with: git commit --no-verify
+# Runs on the bash 3.2 of macOS.
+set -uo pipefail
+
+CONTAINER=family-manager-app-laravel.test-1
+
+FRONT=()
+PHP=()
+while IFS= read -r -d '' file; do
+    case "$file" in
+        *.php) PHP+=("$file") ;;
+        *.ts | *.tsx | *.js | *.mjs | *.cjs | *.vue | *.json | *.jsonc | *.webmanifest | *.css | *.html | *.yml | *.yaml) FRONT+=("$file") ;;
+    esac
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+[ ${#FRONT[@]} -eq 0 ] && [ ${#PHP[@]} -eq 0 ] && exit 0
+
+if [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2> /dev/null)" != true ]; then
+    echo "pre-commit: Sail is not running (./vendor/bin/sail up -d), so the checks cannot run." >&2
+    echo "pre-commit: start it and commit again, or skip them once with git commit --no-verify." >&2
+    exit 1
+fi
+
+# The container sees the main checkout in /var/www/html and a worktree under it.
+TOP=$(git rev-parse --show-toplevel)
+MAIN=$(cd "$(git rev-parse --git-common-dir)/.." && pwd)
+DIR=/var/www/html${TOP#"$MAIN"}
+
+in_sail() {
+    docker exec -u sail -w "$DIR" "$CONTAINER" "$@"
+}
+
+FAILED=0
+if [ ${#FRONT[@]} -gt 0 ]; then
+    # Files the config ignores (lang/, notes.json…) are skipped instead of failing.
+    if ! in_sail node_modules/.bin/vp check --no-error-on-unmatched-pattern "${FRONT[@]}"; then
+        echo "pre-commit: vp check failed. Fix with: ./vendor/bin/sail npx vp check --fix <file>, then stage again." >&2
+        echo "pre-commit: a lint warning stops the commit too (denyWarnings in vite.config.ts)." >&2
+        FAILED=1
+    fi
+fi
+if [ ${#PHP[@]} -gt 0 ]; then
+    if ! in_sail vendor/bin/pint --test "${PHP[@]}"; then
+        echo "pre-commit: Pint failed. Fix with: ./vendor/bin/sail pint <file>, then stage again." >&2
+        FAILED=1
+    fi
+fi
+exit $FAILED

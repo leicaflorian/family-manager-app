@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $financial_account_id
  * @property int|null $employment_id
  * @property string|null $notes
+ * @property string|null $bank_match The text that marks the payments of the bank that settle this item
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -55,7 +56,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'amount', 'type', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'organization_id', 'person_id', 'financial_account_id', 'employment_id', 'notes'])]
+#[Fillable(['title', 'amount', 'type', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'organization_id', 'person_id', 'financial_account_id', 'employment_id', 'notes', 'bank_match'])]
 final class PlannedIncome extends FamilyModel
 {
     /** @use HasFactory<PlannedIncomeFactory> */

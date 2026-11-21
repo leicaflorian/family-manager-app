@@ -110,15 +110,6 @@ describe('A card', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('goes back to the area', () => {
-        renderPage(Card, { card: policyDetail, linkable: [] });
-
-        expect(screen.getByRole('link', { name: 'Insurance' })).toHaveAttribute(
-            'href',
-            '/areas/insurance',
-        );
-    });
-
     it('shows the notices and the values that lead to another card', () => {
         renderPage(Card, {
             card: {

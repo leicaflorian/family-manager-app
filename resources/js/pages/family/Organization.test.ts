@@ -1,9 +1,9 @@
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import { describe, expect, it } from 'vite-plus/test';
 import { healthCard, organizationDetail } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
-import { renderPage, screenWidth, withTrail } from '@/test/page';
+import { renderPage, withTrail } from '@/test/page';
 import Organization from './Organization.vue';
 
 const links: App.Data.LinkGroupData[] = [
@@ -34,24 +34,6 @@ describe('An organization', () => {
             { label: 'Organizations', href: '/family/organizations' },
             { label: 'Edison' },
         ]);
-    });
-
-    it.each([
-        [390, true],
-        [820, true],
-        [1280, false],
-    ])('at %i px draws the link back to Organizations: %s', (width, drawn) => {
-        screenWidth(width);
-        renderPage(Organization, {
-            organization: organizationDetail,
-            links,
-            documents: [bill],
-        });
-
-        expect(
-            screen.queryByRole('link', { name: 'Organizations' }) !== null,
-        ).toBe(drawn);
-        vi.unstubAllGlobals();
     });
 
     it('shows its contacts, its records and its documents', () => {
@@ -132,6 +114,24 @@ describe('An organization', () => {
         expect(
             await screen.findByRole('heading', { name: 'Delete Edison?' }),
         ).toBeInTheDocument();
+    });
+
+    it('has the logo before the one title of the page, from FmTitle', () => {
+        renderPage(Organization, {
+            organization: { ...organizationDetail, logo: '/files/41' },
+            links,
+            documents: [bill],
+        });
+
+        const title = screen.getByRole('heading', { level: 1 });
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(title).toHaveTextContent('Edison');
+        expect(
+            screen
+                .getByRole('img', { name: 'Edison' })
+                .compareDocumentPosition(title) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
     });
 
     it('shows its logo beside the name', () => {

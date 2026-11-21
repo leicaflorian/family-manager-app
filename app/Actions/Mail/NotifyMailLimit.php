@@ -14,7 +14,7 @@ use RuntimeException;
 
 /**
  * Tells the `admin` accounts of the current family, once a day (day of Rome), that more mails arrived than the
- * limit: a notice of the bell with no reminder and no mail, whose line proposes to change the address.
+ * limit: a notice of the bell with no reminder, no mail and nothing of the bank, whose line proposes to change the address.
  */
 final readonly class NotifyMailLimit
 {
@@ -34,6 +34,8 @@ final readonly class NotifyMailLimit
             $sentToday = ReminderNotice::query()
                 ->whereNull('reminder_id')
                 ->whereNull('received_mail_id')
+                ->whereNull('bank_transaction_id')
+                ->whereNull('bank_connection_id')
                 ->where('sent_at', '>=', today())
                 ->exists();
 

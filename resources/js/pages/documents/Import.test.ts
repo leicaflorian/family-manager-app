@@ -399,7 +399,7 @@ describe('Import', () => {
         ).toBeInTheDocument();
     });
 
-    it('on a wide but short window, has the phone layout: a close button to the files to sort, throwing away the changes', () => {
+    it('on a wide but short window, has the phone layout: the title with the file count and no close button', () => {
         screenWidth(1280, 400);
         renderPage(Import, props([light]));
 
@@ -409,9 +409,14 @@ describe('Import', () => {
         expect(
             screen.queryByRole('list', { name: 'Files to import' }),
         ).not.toBeInTheDocument();
-        const close = screen.getByRole('link', { name: 'Close' });
-        expect(close).toHaveAttribute('href', '/to-sort');
-        expect(close).toHaveAttribute('data-discard-changes');
+        expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+        expect(
+            screen.getByRole('heading', { name: 'Import 1 file', level: 1 }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('File 1 of 1')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'Close' }),
+        ).not.toBeInTheDocument();
     });
 
     it('has no back link nor close button above the title on the computer, where the top bar has Back', () => {
@@ -427,26 +432,15 @@ describe('Import', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('from an income, closes to the income', async () => {
-        screenWidth(1280, 400);
-        renderPage(Import, props([light], {}, [{ type: 'income', id: 4 }]));
-        await settle();
-
-        expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
-            'href',
-            '/budget/movements/income/4',
-        );
-    });
-
-    it('from a card, on a wide but short window, closes to the card and imports going back to it', async () => {
+    it('from a card, on a wide but short window, imports going back to the card', async () => {
         screenWidth(1280, 400);
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(Import, props([light], {}, [{ type: 'vehicle', id: 1 }]));
         await settle();
 
-        const close = screen.getByRole('link', { name: 'Close' });
-        expect(close).toHaveAttribute('href', '/cards/vehicle/1');
-        expect(close).toHaveAttribute('data-discard-changes');
+        expect(
+            screen.queryByRole('link', { name: 'Close' }),
+        ).not.toBeInTheDocument();
 
         await fireEvent.click(importButton('Import the file'));
         expect(decodeURIComponent(`${post.mock.calls[0]?.[0] as string}`)).toBe(
@@ -1638,10 +1632,12 @@ describe('Import', () => {
             expect(
                 screen.queryByRole('list', { name: 'Files to import' }),
             ).not.toBeInTheDocument();
-            expect(screen.getByRole('link', { name: 'Close' })).toHaveAttribute(
-                'href',
-                '/to-sort',
+            expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(
+                1,
             );
+            expect(
+                screen.queryByRole('link', { name: 'Close' }),
+            ).not.toBeInTheDocument();
         });
 
         it('moves with Previous file and Next file, and imports from the last file', async () => {

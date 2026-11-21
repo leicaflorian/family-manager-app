@@ -1,12 +1,22 @@
 import { render, screen, within } from '@testing-library/vue';
-import { h } from 'vue';
+import { computed, h } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { screenWidth } from '@/test/page';
 import FmSettingsPage from './FmSettingsPage.vue';
 import FmTitle from './FmTitle.vue';
 
+const bankFeed = vi.hoisted(() => ({
+    share: null as { unsorted: number } | null,
+}));
+
+// What the server shares with every page is not part of the frame: the test sets it here
+vi.mock('@/composables/useBankFeed', () => ({
+    useBankFeed: () => computed(() => bankFeed.share),
+}));
+
 afterEach(() => {
     vi.unstubAllGlobals();
+    bankFeed.share = null;
 });
 
 /**
@@ -14,7 +24,9 @@ afterEach(() => {
  *
  * @param current - the section the page is
  */
-function renderSettings(current: 'notices' | 'mail' = 'notices'): void {
+function renderSettings(
+    current: 'notices' | 'mail' | 'banks' = 'notices',
+): void {
     render(FmSettingsPage, {
         props: { current },
         slots: {
@@ -88,6 +100,26 @@ describe('FmSettingsPage', () => {
         ).toHaveAttribute('href', '/settings/calendar');
     });
 
+    it('lists Linked banks after the address for the bills while the link to the bank is on', () => {
+        screenWidth(1280);
+        bankFeed.share = { unsorted: 0 };
+        renderSettings('banks');
+
+        const nav = screen.getByRole('navigation', {
+            name: 'Settings sections',
+        });
+        const links = within(
+            within(nav).getByRole('group', { name: 'The family' }),
+        ).getAllByRole('link');
+
+        expect(
+            links.map((link) => link.textContent?.trim()).slice(0, 3),
+        ).toEqual(['Notices', 'Address for the bills', 'Linked banks']);
+        expect(
+            within(nav).getByRole('link', { name: 'Linked banks' }),
+        ).toHaveAttribute('aria-current', 'page');
+    });
+
     it('puts Settings on top in the wide layout, and the title of the page above its content as a section', () => {
         screenWidth(1280);
         render(FmSettingsPage, {
@@ -97,8 +129,6 @@ describe('FmSettingsPage', () => {
                     h(FmTitle, {
                         title: 'Notices',
                         subtitle: 'How many days before',
-                        back: '/settings',
-                        backLabel: 'Settings',
                     }),
                 default: () => h('p', 'The rules'),
             },
@@ -132,6 +162,18 @@ describe('FmSettingsPage', () => {
         expect(
             screen.queryByRole('heading', { name: 'Settings' }),
         ).not.toBeInTheDocument();
+    });
+
+    it('has its own title at 32 px only on the computer', () => {
+        screenWidth(1280);
+        render(FmSettingsPage, {
+            props: { current: 'notices' },
+            slots: { default: '<p>The rules</p>' },
+        });
+
+        const heading = screen.getByRole('heading', { name: 'Settings' });
+        expect(heading).toHaveClass('text-title-mobile', 'computer:text-title');
+        expect(heading.className).not.toContain('lg:');
     });
 
     it('marks the section of the page as the current one', () => {

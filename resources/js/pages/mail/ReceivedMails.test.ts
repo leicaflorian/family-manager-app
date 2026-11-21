@@ -8,7 +8,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { renderPage, withTrail } from '@/test/page';
+import { renderPage } from '@/test/page';
 import ReceivedMails from './ReceivedMails.vue';
 
 const ADDRESS = 'bianchi.k7m2x9@bollette.familymanager.it';
@@ -102,14 +102,12 @@ afterEach(() => {
 });
 
 describe('ReceivedMails', () => {
-    it('writes the trail To sort > Received mail into the top bar', () => {
-        const { state, provide } = withTrail();
-        renderPage(ReceivedMails, page, provide);
+    it('has no link back above the title: it is the page of its own section', () => {
+        renderPage(ReceivedMails, page);
 
-        expect(state.pieces.value).toEqual([
-            { label: 'To sort', href: '/to-sort' },
-            { label: 'Received mail' },
-        ]);
+        expect(
+            screen.queryByRole('link', { name: 'To sort' }),
+        ).not.toBeInTheDocument();
     });
 
     it('says the address the mails arrive to, under the title', () => {
@@ -119,8 +117,45 @@ describe('ReceivedMails', () => {
             screen.getByRole('heading', { name: 'Received mail' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByText(`The mails that arrived at ${ADDRESS}`),
-        ).toBeInTheDocument();
+            screen
+                .getByText('The mails that arrived at', { exact: false })
+                .textContent?.trim(),
+        ).toBe(`The mails that arrived at ${ADDRESS}`);
+    });
+
+    it('copies the address with a click and says so for two seconds', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal('navigator', { clipboard: { writeText } });
+        renderPage(ReceivedMails, page);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: `Copy the address ${ADDRESS}` }),
+        );
+
+        expect(writeText).toHaveBeenCalledWith(ADDRESS);
+        expect(
+            screen.getByRole('button', { name: `Copy the address ${ADDRESS}` })
+                .textContent,
+        ).toBe(ADDRESS);
+        expect(await screen.findByText('Address copied')).toBeInTheDocument();
+
+        await vi.advanceTimersByTimeAsync(2100);
+        expect(screen.queryByText('Address copied')).not.toBeInTheDocument();
+    });
+
+    it('selects the address when the browser refuses to copy it', async () => {
+        const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+        vi.stubGlobal('navigator', { clipboard: { writeText } });
+        renderPage(ReceivedMails, page);
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: `Copy the address ${ADDRESS}` }),
+        );
+
+        expect(screen.queryByText('Address copied')).not.toBeInTheDocument();
+        await vi.waitFor(() =>
+            expect(window.getSelection()?.toString()).toBe(ADDRESS),
+        );
     });
 
     it('lists the mails newest first, each with who wrote, when, the subject and its label', () => {

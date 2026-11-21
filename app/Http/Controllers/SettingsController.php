@@ -6,9 +6,11 @@ namespace App\Http\Controllers;
 
 use App\Data\AccountData;
 use App\Enums\Area;
+use App\Models\BankConnection;
 use App\Models\DocumentCategory;
 use App\Models\ExpenseCategory;
 use App\Models\User;
+use App\Services\Banks\BankFeedAvailability;
 use App\Services\FamilyAreas;
 use App\Services\ReleaseNotes;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -34,6 +36,7 @@ final class SettingsController extends Controller
             'mainExpenseCategories' => ExpenseCategory::query()->whereNull('parent_id')->count(),
             'areaCount' => count(Area::cases()),
             'hiddenAreas' => count($areas->hidden()),
+            'bankCount' => BankFeedAvailability::on() ? BankConnection::query()->count() : 0,
             'release' => $release,
             'releasedOn' => $releaseNotes->released($release, app()->getLocale())?->date,
         ]);

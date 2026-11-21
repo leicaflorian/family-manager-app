@@ -6,12 +6,16 @@ use App\Actions\Reading\ImportFiles;
 use App\Data\Reading\DocumentProposalData;
 use App\Data\Reading\ImportChoices;
 use App\Data\ToSortPageData;
+use App\Enums\BankConnectionStatus;
+use App\Enums\BankTransactionStatus;
 use App\Enums\FileSource;
 use App\Enums\FinancialAccountType;
 use App\Enums\MailOutcome;
 use App\Enums\MaintenanceType;
 use App\Enums\ReadingStatus;
 use App\Enums\ReminderStatus;
+use App\Models\BankConnection;
+use App\Models\BankTransaction;
 use App\Models\Document;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
@@ -519,5 +523,25 @@ test('online without a domain the Bianchis still get a random address', function
     insideBianchi(function (): void {
         expect(FamilySetting::query()->sole()->mail_inbox_recipient)->toMatch('/^bianchi\.[a-z0-9]{6}@bollette\.familymanager\.test$/')
             ->not->toBe('bianchi.k7m2x9@bollette.familymanager.test');
+    });
+});
+
+test('the Bianchis have the link to the bank on, with a trial bank and its transactions already saved', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $connection = BankConnection::query()->sole();
+        $account = FinancialAccount::query()->where('name', 'Conto BPER')->sole();
+
+        expect(Family::query()->sole()->bank_feed_enabled)->toBeTrue()
+            ->and($connection->provider)->toBe('fake')
+            ->and($connection->institution_name)->toBe('Banca di prova')
+            ->and($connection->status)->toBe(BankConnectionStatus::Active)
+            ->and($connection->sessionId())->not->toBeNull()
+            ->and($account->bank_connection_id)->toBe($connection->id)
+            ->and($account->bank_account_uid)->toBe('fake-account')
+            ->and(BankTransaction::query()->count())->toBe(12)
+            ->and(BankTransaction::query()->unsorted()->count())->toBe(11)
+            ->and(BankTransaction::query()->where('status', BankTransactionStatus::Pending)->count())->toBe(1);
     });
 });

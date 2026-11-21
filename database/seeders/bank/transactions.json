@@ -1,0 +1,86 @@
+[
+    {
+        "days_ago": 1,
+        "amount": -42.35,
+        "text": "PAGAMENTO POS CONAD SUPERSTORE MILANO",
+        "counterparty": "CONAD SUPERSTORE",
+        "booked": true
+    },
+    {
+        "days_ago": 0,
+        "amount": -18.9,
+        "text": "PAGAMENTO POS ESSELUNGA",
+        "counterparty": "ESSELUNGA",
+        "booked": false
+    },
+    {
+        "days_ago": 3,
+        "amount": -100.0,
+        "text": "PRELIEVO BANCOMAT",
+        "counterparty": null,
+        "booked": true
+    },
+    {
+        "days_ago": 5,
+        "amount": -63.7,
+        "text": "EDISON ENERGIA SPA ADDEBITO SDD FATTURA LUCE",
+        "counterparty": "EDISON ENERGIA SPA",
+        "booked": true
+    },
+    {
+        "days_ago": 6,
+        "amount": -850.0,
+        "text": "BONIFICO AFFITTO NOVEMBRE",
+        "counterparty": "Rossi Immobiliare",
+        "booked": true
+    },
+    {
+        "days_ago": 10,
+        "amount": 1850.0,
+        "text": "ACME SRL STIPENDIO NOVEMBRE",
+        "counterparty": "ACME SRL",
+        "booked": true
+    },
+    {
+        "days_ago": 20,
+        "amount": -35.2,
+        "text": "PAGAMENTO POS CONAD SUPERSTORE MILANO",
+        "counterparty": "CONAD SUPERSTORE",
+        "booked": true
+    },
+    {
+        "days_ago": 35,
+        "amount": -71.15,
+        "text": "EDISON ENERGIA SPA ADDEBITO SDD FATTURA LUCE",
+        "counterparty": "EDISON ENERGIA SPA",
+        "booked": true
+    },
+    {
+        "days_ago": 36,
+        "amount": -850.0,
+        "text": "BONIFICO AFFITTO OTTOBRE",
+        "counterparty": "Rossi Immobiliare",
+        "booked": true
+    },
+    {
+        "days_ago": 40,
+        "amount": 1850.0,
+        "text": "ACME SRL STIPENDIO OTTOBRE",
+        "counterparty": "ACME SRL",
+        "booked": true
+    },
+    {
+        "days_ago": 65,
+        "amount": -58.4,
+        "text": "EDISON ENERGIA SPA ADDEBITO SDD FATTURA LUCE",
+        "counterparty": "EDISON ENERGIA SPA",
+        "booked": true
+    },
+    {
+        "days_ago": 66,
+        "amount": -850.0,
+        "text": "BONIFICO AFFITTO SETTEMBRE",
+        "counterparty": "Rossi Immobiliare",
+        "booked": true
+    }
+]

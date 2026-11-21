@@ -1,0 +1,40 @@
+{
+    "aspsps": [
+        {
+            "name": "Intesa Sanpaolo",
+            "country": "IT",
+            "logo": "https://enablebanking.com/brands/IT/IntesaSanpaolo/",
+            "maximum_consent_validity": 15552000,
+            "psu_types": ["personal", "business"],
+            "auth_methods": [],
+            "beta": false,
+            "bic": "BCITITMM",
+            "payments": [],
+            "required_psu_headers": []
+        },
+        {
+            "name": "Fineco Business",
+            "country": "IT",
+            "logo": "https://enablebanking.com/brands/IT/Fineco/",
+            "maximum_consent_validity": 7776000,
+            "psu_types": ["business"],
+            "auth_methods": [],
+            "beta": false,
+            "bic": "FEBIITM1",
+            "payments": [],
+            "required_psu_headers": []
+        },
+        {
+            "name": "Banca di Prova",
+            "country": "IT",
+            "logo": null,
+            "maximum_consent_validity": 7776000,
+            "psu_types": ["personal"],
+            "auth_methods": [],
+            "beta": true,
+            "bic": "XXXXITMM",
+            "payments": [],
+            "required_psu_headers": ["Psu-Ip-Address"]
+        }
+    ]
+}

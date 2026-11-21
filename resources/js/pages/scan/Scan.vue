@@ -30,6 +30,7 @@ import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
 import type { StripPage } from '@/components/fm/FmPageStrip.vue';
 import FmPageStrip from '@/components/fm/FmPageStrip.vue';
+import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import type {
     CropImprove,
@@ -925,15 +926,15 @@ onBeforeUnmount(() => {
         @change="onFiles"
     />
 
-    <!-- On the phone and the tablet (under the bar of the app), as Upload and Received mail: the link back
+    <!-- On the phone and the tablet (under the bar of the app), the page keeps its own link back
          above the big title. The bar stays on the computer, and on a linked phone, which has nowhere to go back
          to. -->
-    <div v-if="mode !== 'computer' && !linked" class="shrink-0 px-5 pt-4">
-        <FmTitle
-            :title="$t('New document')"
-            :back-label="$t('To sort')"
-            @back="cancel('toSort')"
-        >
+    <div
+        v-if="mode !== 'computer' && !linked"
+        class="flex shrink-0 flex-col gap-5 px-5 pt-4"
+    >
+        <FmBackLink :label="$t('To sort')" @click="cancel('toSort')" />
+        <FmTitle :title="$t('New document')">
             <template #actions>
                 <span class="text-body-sm whitespace-nowrap text-ink-soft">{{
                     count

@@ -88,6 +88,98 @@ describe('FmMovementPanel', () => {
         expect(data).not.toHaveProperty('_method');
     });
 
+    it('starts from a bank transaction and sends its id with the movement', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        const account = movementOptions.accounts[0]!.value;
+        renderPage(FmMovementPanel, {
+            ...props,
+            start: {
+                ...start,
+                date: '2026-11-05',
+                title: 'Edison Energia SpA',
+                amount: 72.4,
+                financial_account_id: account,
+                bank_transaction_id: 12,
+            },
+        });
+
+        expect(screen.getByLabelText('Title')).toHaveValue(
+            'Edison Energia SpA',
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).toMatchObject({
+            kind: 'expense',
+            title: 'Edison Energia SpA',
+            amount: 72.4,
+            date: '2026-11-05',
+            financial_account_id: account,
+            bank_transaction_id: 12,
+        });
+    });
+
+    it('keeps the kind of a movement made from the bank, whose sign says it', () => {
+        renderPage(FmMovementPanel, {
+            ...props,
+            start: {
+                ...start,
+                title: 'Luce',
+                amount: 72.4,
+                bank_transaction_id: 12,
+            },
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'An income' }),
+        ).toBeDisabled();
+        expect(
+            screen.getByRole('button', { name: 'An expense' }),
+        ).toBeDisabled();
+    });
+
+    it('sends no bank transaction when it starts from none', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(FmMovementPanel, props);
+
+        await write('Title', 'Gelato');
+        await write('Amount', '3,50');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).not.toHaveProperty(
+            'bank_transaction_id',
+        );
+    });
+
+    it('says when the movement from the bank was sorted meanwhile', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onError?.({
+                bank_transaction_id:
+                    'This movement from the bank is not to sort any more.',
+            });
+        });
+        renderPage(FmMovementPanel, {
+            ...props,
+            start: {
+                ...start,
+                title: 'Luce',
+                amount: 72.4,
+                bank_transaction_id: 12,
+            },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(
+            screen.getByText(
+                'This movement from the bank is not to sort any more.',
+            ),
+        ).toBeInTheDocument();
+    });
+
     it('adds the commission to the amount it sends', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(FmMovementPanel, props);

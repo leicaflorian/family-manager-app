@@ -4,8 +4,10 @@
  * layouts of `useLayoutMode()`: on the phone the bottom bar; on the tablet the
  * sidebar collapsed to its icons and the top bar, whose *Expand the menu* opens
  * the sidebar in a panel from the left; on the computer, with room for it, the
- * sidebar always open. On both, over the page, the top bar with Back and the
- * trail. The marked section comes from the address of the page; the trail is
+ * sidebar always open. On the tablet and the computer, over the page, the top bar;
+ * Back and the trail are in the top bar on the computer, and on the phone and the
+ * tablet in `FmPageTrail` above the page (the link to the page above on the
+ * phone, the row with Back and the trail on the tablet). The marked section comes from the address of the page; the trail is
  * the name of the section on the page of a section, otherwise the pieces the
  * page writes with `usePageTrail`. While a form has changes not saved, it asks
  * before the page changes or the tab closes. ⌘K, Ctrl K or «/» put the focus
@@ -34,6 +36,7 @@ import FmBottomBar from '@/components/fm/FmBottomBar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import { captureScreenshot } from '@/lib/screenshot';
 import FmFeedbackSheet from '@/components/fm/FmFeedbackSheet.vue';
+import FmPageTrail from '@/components/fm/FmPageTrail.vue';
 import FmSidebar from '@/components/fm/FmSidebar.vue';
 import FmTopBar from '@/components/fm/FmTopBar.vue';
 import type { Section } from '@/components/fm/navigation';
@@ -257,6 +260,13 @@ useSearchShortcut(focusSearch);
                 <div
                     class="mx-auto flex max-w-(--main-width) flex-col gap-4 computer:gap-6"
                 >
+                    <FmPageTrail
+                        v-if="mode !== 'computer'"
+                        :mode="mode"
+                        :trail="trail"
+                        :section="sectionPage"
+                        class="-mb-2"
+                    />
                     <slot />
                 </div>
             </main>

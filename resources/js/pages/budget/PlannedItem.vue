@@ -22,7 +22,6 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import FmAmount from '@/components/fm/FmAmount.vue';
-import FmBackLink from '@/components/fm/FmBackLink.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmChangeDeadlineSheet from '@/components/fm/FmChangeDeadlineSheet.vue';
@@ -30,6 +29,7 @@ import FmPaySheet from '@/components/fm/FmPaySheet.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmRow from '@/components/fm/FmRow.vue';
+import FmTitle from '@/components/fm/FmTitle.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import { usePageTrail } from '@/composables/usePageTrail';
@@ -77,7 +77,7 @@ const income = computed(() => row.value.kind === 'income');
 
 usePageTrail(() => [
     { label: trans('Budget'), href: budget().url },
-    { label: trans('Planned expenses and incomes'), href: index().url },
+    { label: trans('Recurring'), href: index().url },
     { label: row.value.title },
 ]);
 
@@ -313,13 +313,8 @@ const exceptionIcons = {
     <Head :title="row.title" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmBackLink
-            :href="index().url"
-            :label="$t('Planned expenses and incomes')"
-        />
-
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="flex min-w-0 flex-col gap-1.5">
+        <FmTitle :title="row.title" :subtitle="summary">
+            <template #overline>
                 <span class="flex items-center gap-1.5 text-label text-warning">
                     <FmIcon :icon="Repeat" :size="16" />
                     <span>{{
@@ -339,19 +334,16 @@ const exceptionIcons = {
                         >
                     </template>
                 </span>
-                <h1 class="m-0 text-title-mobile">
-                    {{ row.title }}
-                </h1>
-                <span class="text-body-sm text-ink-soft">{{ summary }}</span>
-            </div>
-            <FmButton
-                v-if="detail.can_edit"
-                variant="outline"
-                :icon="Pencil"
-                :href="edit({ kind: row.kind, id: row.id }).url"
-                >{{ $t('Edit') }}</FmButton
-            >
-        </div>
+            </template>
+            <template v-if="detail.can_edit" #actions>
+                <FmButton
+                    variant="outline"
+                    :icon="Pencil"
+                    :href="edit({ kind: row.kind, id: row.id }).url"
+                    >{{ $t('Edit') }}</FmButton
+                >
+            </template>
+        </FmTitle>
 
         <div
             class="flex flex-col gap-5 wide:grid wide:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] wide:items-start wide:gap-6"

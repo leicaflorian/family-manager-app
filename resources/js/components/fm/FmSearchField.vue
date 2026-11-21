@@ -27,6 +27,7 @@ const SEARCH_MAX_LENGTH = 100;
 
 const {
     label,
+    placeholder,
     small = false,
     clearable = false,
     shortcut = false,
@@ -36,8 +37,10 @@ const {
     activeDescendant,
     inputId,
 } = defineProps<{
-    /** What is searched: the name of the box and the text shown while it is empty. */
+    /** What is searched: the name of the box and, without `placeholder`, the text shown while it is empty. */
     label: string;
+    /** The text shown while the box is empty, when it says more than the label (a field with a visible label over it). */
+    placeholder?: string;
     /** As high as the buttons of a toolbar, 36 px, with a smaller text. */
     small?: boolean;
     /**
@@ -137,7 +140,7 @@ defineExpose({ focus, blur });
             ref="box"
             v-model="text"
             type="search"
-            :placeholder="label"
+            :placeholder="placeholder ?? label"
             :aria-label="label"
             :aria-keyshortcuts="shortcut ? 'Meta+K Control+K' : undefined"
             :role="controls ? 'combobox' : undefined"

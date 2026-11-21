@@ -29,6 +29,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $last_four_digits
  * @property bool $is_default
  * @property string|null $notes
+ * @property int|null $bank_connection_id
+ * @property string|null $bank_account_key Stays the same from one connection to the next
+ * @property string|null $bank_account_uid Used in the calls to the bank: changes with every connection
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at

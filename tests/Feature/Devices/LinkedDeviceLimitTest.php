@@ -84,6 +84,16 @@ test('the scan of a linked phone shares only what the scan needs', function (): 
         ->missing('to_sort_count'));
 });
 
+test('a linked phone does not receive the shared prop of the bank feed', function (): void {
+    config(['bank_feed.provider' => 'fake']);
+    $this->bianchi->forceFill(['bank_feed_enabled' => true])->save();
+
+    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page->missing('bank_feed'));
+    // The same account with its password, as a control: the prop exists, so the phone really is left without it
+    $this->flushSession();
+    $this->actingAs($this->marco)->get(route('scan'))->assertInertia(fn ($page) => $page->has('bank_feed'));
+});
+
 test('the pages are told when the phone is linked with a code', function (): void {
     linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page->where('linked_phone', true));
 });

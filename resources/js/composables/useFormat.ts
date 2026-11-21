@@ -1,9 +1,11 @@
-import { formatDate, formatEuro } from '@/lib/format';
+import { formatDate, formatEuro, formatMoney } from '@/lib/format';
 
 /** The writing functions `useFormat` gives to the pages. */
 export type UseFormat = {
     /** An amount like `84,20 €`; empty if missing. */
     euro: (amount: number | null | undefined) => string;
+    /** An amount in any currency: euros as `84,20 €`, others with the code, `-120,00 USD`. */
+    money: (amount: number, currency: string) => string;
     /** A date like `15/10/2026`; empty if missing. */
     date: (date: string | Date | null | undefined) => string;
 };
@@ -19,6 +21,7 @@ export function useFormat(): UseFormat {
     return {
         euro: (amount) =>
             amount === null || amount === undefined ? '' : formatEuro(amount),
+        money: formatMoney,
         date: (date) =>
             date === null || date === undefined || date === ''
                 ? ''

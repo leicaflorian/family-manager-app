@@ -42,6 +42,7 @@ final class MovementData extends Data
      * @param  list<DocumentData>  $documents  the documents linked to it
      * @param  bool  $can_edit  whether the person can change it
      * @param  bool  $can_delete  whether the person can delete it
+     * @param  MovementBankData|null  $bank  the bank transaction it was recorded from; only the page of a movement reads it
      */
     public function __construct(
         public readonly string $kind,
@@ -67,6 +68,7 @@ final class MovementData extends Data
         public readonly array $documents,
         public readonly bool $can_edit,
         public readonly bool $can_delete,
+        public readonly ?MovementBankData $bank = null,
     ) {}
 
     /**
@@ -76,8 +78,9 @@ final class MovementData extends Data
      * @param  User  $user  who looks at it, for the permissions
      * @param  array<int, list<string>>|null  $paths  the paths of the document categories; read here when missing
      * @param  bool  $withDocuments  false for a list of movements, which leaves the documents out (and does not load them)
+     * @param  MovementBankData|null  $bank  the bank transaction it was recorded from, for its own page
      */
-    public static function fromMovement(Expense|Income $movement, User $user, ?array $paths = null, bool $withDocuments = true): self
+    public static function fromMovement(Expense|Income $movement, User $user, ?array $paths = null, bool $withDocuments = true, ?MovementBankData $bank = null): self
     {
         $expense = $movement instanceof Expense ? $movement : null;
         $income = $movement instanceof Income ? $movement : null;
@@ -108,6 +111,7 @@ final class MovementData extends Data
             documents: array_values($documents->map(static fn ($document): DocumentData => DocumentData::fromDocument($document, $paths))->all()),
             can_edit: $user->can('update', $movement),
             can_delete: $user->can('delete', $movement),
+            bank: $bank,
         );
     }
 }

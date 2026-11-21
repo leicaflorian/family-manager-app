@@ -39,6 +39,7 @@ final class PlannedRowData extends Data
      * @param  string|null  $color  the colour of the category
      * @param  bool  $ended  whether its last day is over
      * @param  float  $fee  the commission that the amount includes, 0 without one
+     * @param  string|null  $bank_match  the rule that recognises its payment among the bank transactions
      */
     public function __construct(
         public readonly string $kind,
@@ -59,6 +60,7 @@ final class PlannedRowData extends Data
         public readonly ?string $color,
         public readonly bool $ended,
         public readonly float $fee = 0.0,
+        public readonly ?string $bank_match = null,
     ) {}
 
     /**
@@ -95,6 +97,7 @@ final class PlannedRowData extends Data
             color: $category?->color,
             ended: $planned->end_date !== null && $planned->end_date->toDateString() < $today->toDateString(),
             fee: $fee,
+            bank_match: $planned->bank_match,
         );
     }
 }

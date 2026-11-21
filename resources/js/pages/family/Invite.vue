@@ -76,11 +76,7 @@ usePageTrail(() => [
         novalidate
         @submit.prevent="send"
     >
-        <FmTitle
-            :title="$t('Invite a family member')"
-            :back="family().url"
-            :back-label="$t('Family')"
-        />
+        <FmTitle :title="$t('Invite a family member')" />
         <FormKit
             v-model="form.email"
             type="email"

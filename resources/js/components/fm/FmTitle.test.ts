@@ -1,6 +1,33 @@
-import { fireEvent, render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
-import { renderPage } from '@/test/page';
+import { render, screen, within } from '@testing-library/vue';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+
+const state = vi.hoisted(() => ({
+    component: 'documents/Documents',
+    mode: 'phone',
+}));
+
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    usePage: () => ({
+        component: state.component,
+        props: { name: 'Fameja.app', unread_notices: 0 },
+    }),
+}));
+
+vi.mock('@/composables/useLayoutMode', async (original) => {
+    const { ref } = await import('vue');
+
+    return {
+        ...(await original<typeof import('@/composables/useLayoutMode')>()),
+        useLayoutMode: () => ref(state.mode),
+    };
+});
+
+beforeEach(() => {
+    state.component = 'cards/Card';
+    state.mode = 'phone';
+});
+
 import FmTitle from './FmTitle.vue';
 
 describe('FmTitle', () => {
@@ -19,6 +46,18 @@ describe('FmTitle', () => {
         ).toBeInTheDocument();
     });
 
+    it('replaces the sentence with the subtitle slot when it is given', () => {
+        render(FmTitle, {
+            props: { title: 'Mail', subtitle: 'Plain sentence' },
+            slots: { subtitle: '<button>Own sentence</button>' },
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'Own sentence' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Plain sentence')).not.toBeInTheDocument();
+    });
+
     it('can have something beside the title, on the same line', () => {
         render(FmTitle, {
             props: { title: 'Agenda' },
@@ -30,44 +69,99 @@ describe('FmTitle', () => {
         ).toBeInTheDocument();
     });
 
-    it('has the link back to the page it comes from, above the title', () => {
-        renderPage(FmTitle, {
-            title: 'Edit the document',
-            back: '/documents/5',
-            backLabel: 'Busta paga di ottobre',
+    it('has an overline above the title in the same column', () => {
+        render(FmTitle, {
+            props: { title: 'Fiat Panda' },
+            slots: { overline: '<span>Vehicles</span>' },
         });
 
-        const back = screen.getByRole('link', {
-            name: 'Busta paga di ottobre',
-        });
-        expect(back).toHaveAttribute('href', '/documents/5');
+        const overline = screen.getByText('Vehicles');
         expect(
-            back.compareDocumentPosition(
+            overline.compareDocumentPosition(
                 screen.getByRole('heading', { level: 1 }),
             ) & Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy();
+        expect(overline.parentElement).toBe(
+            screen.getByRole('heading', { level: 1 }).parentElement,
+        );
     });
 
-    it('without a page to go back to has no link', () => {
-        renderPage(FmTitle, { title: 'Documents' });
-
-        expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    });
-
-    it('with the name of the page but no address has a button back above the title, and tells the page', async () => {
-        const view = renderPage(FmTitle, {
-            title: 'New document',
-            backLabel: 'To sort',
+    it('has the leading slot before the column of the title', () => {
+        render(FmTitle, {
+            props: { title: 'Marco' },
+            slots: { leading: '<span>Photo</span>' },
         });
 
-        const back = screen.getByRole('button', { name: 'To sort' });
         expect(
-            back.compareDocumentPosition(
-                screen.getByRole('heading', { name: 'New document' }),
-            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+            screen
+                .getByText('Photo')
+                .compareDocumentPosition(
+                    screen.getByRole('heading', { level: 1 }),
+                ) & Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy();
-        await fireEvent.click(back);
+    });
 
-        expect(view.emitted().back).toHaveLength(1);
+    it('has no link back of its own', () => {
+        render(FmTitle, { props: { title: 'Documents' } });
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('is 28 px on the phone and the tablet and 32 px only on the computer', () => {
+        render(FmTitle, { props: { title: 'Documents' } });
+
+        const heading = screen.getByRole('heading', { level: 1 });
+        expect(heading).toHaveClass('text-title-mobile', 'computer:text-title');
+        expect(heading.className).not.toContain('lg:');
+    });
+
+    describe('search and bell', () => {
+        it('are beside the title of a section page on the phone', () => {
+            state.component = 'documents/Documents';
+            state.mode = 'phone';
+            render(FmTitle, { props: { title: 'Documents' } });
+
+            expect(
+                screen.getByRole('link', { name: 'Search in Fameja.app' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: /^Notices/ }),
+            ).toBeInTheDocument();
+        });
+
+        it('are not on an inner page', () => {
+            state.component = 'cards/Card';
+            state.mode = 'phone';
+            render(FmTitle, { props: { title: 'Fiat Panda' } });
+
+            expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        });
+
+        it('are not on the tablet', () => {
+            state.component = 'documents/Documents';
+            state.mode = 'tablet';
+            render(FmTitle, { props: { title: 'Documents' } });
+
+            expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        });
+
+        it('stay in the row of a long title', () => {
+            state.component = 'documents/Documents';
+            state.mode = 'phone';
+            render(FmTitle, { props: { title: 'A'.repeat(80) } });
+
+            const row = screen
+                .getByRole('heading', {
+                    level: 1,
+                })
+                .closest('.justify-between');
+            expect(row).not.toBeNull();
+            expect(
+                within(row as HTMLElement).getByRole('link', {
+                    name: 'Search in Fameja.app',
+                }),
+            ).toBeInTheDocument();
+        });
     });
 });

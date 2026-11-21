@@ -185,6 +185,60 @@ describe('FmButton', () => {
         expect(button).not.toHaveClass('text-body', 'px-5', 'gap-2');
     });
 
+    it('rowAction is its own width, 44 px, with the body-sm text, 10 px at the sides and 10 px corners', () => {
+        render(FmButton, {
+            props: { variant: 'neutral', rowAction: true },
+            slots: { default: 'Create the expense' },
+        });
+
+        const button = screen.getByRole('button', {
+            name: 'Create the expense',
+        });
+        expect(button).toHaveClass(
+            'h-control',
+            'text-body-sm',
+            'px-2.5',
+            'rounded-md',
+            'gap-1.5',
+            'border-edge-soft',
+        );
+        expect(button).not.toHaveClass(
+            'text-body',
+            'px-5',
+            'flex-1',
+            'w-full',
+            'rounded-control',
+        );
+    });
+
+    it('rowAction has the 18 px icon of the boards', () => {
+        render(FmButton, {
+            props: { variant: 'neutral', rowAction: true, icon: Pencil },
+            slots: { default: 'Create the expense' },
+        });
+
+        expect(
+            screen
+                .getByRole('button', { name: 'Create the expense' })
+                .querySelector('svg'),
+        ).toHaveAttribute('width', '18');
+    });
+
+    it('muted with a text is grey and without a background, as Ignore beside the buttons of a row', () => {
+        render(FmButton, {
+            props: { variant: 'text', rowAction: true, muted: true },
+            slots: { default: 'Ignore' },
+        });
+
+        const button = screen.getByRole('button', { name: 'Ignore' });
+        expect(button).toHaveClass('text-ink-soft', 'hover:text-ink');
+        expect(button).not.toHaveClass(
+            'text-action',
+            'hover:text-action-dark',
+            'hover:bg-action-soft',
+        );
+    });
+
     it('is blue in the solid variant', () => {
         render(FmButton, { slots: { default: 'Save' } });
 

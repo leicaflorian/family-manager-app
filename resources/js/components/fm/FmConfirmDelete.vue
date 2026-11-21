@@ -7,6 +7,7 @@
  * @group basics
  */
 import { router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import FmConfirm from './FmConfirm.vue';
 
 const {
@@ -31,12 +32,23 @@ const {
 /** Open or closed. */
 const open = defineModel<boolean>('open', { default: false });
 
+/** A deletion is on its way: a second tap on the button waits for its answer. */
+const running = ref(false);
+
 /** Deletes, once confirmed. */
 function remove(): void {
+    if (running.value) {
+        return;
+    }
+
     router.delete(url, {
         preserveState,
         preserveScroll: preserveState,
-        onFinish: () => (open.value = false),
+        onStart: () => (running.value = true),
+        onFinish: () => {
+            running.value = false;
+            open.value = false;
+        },
     });
 }
 </script>

@@ -171,6 +171,7 @@ return [
         'mail_notice' => 'Avviso dalla posta',
         'mail_file' => 'Allegato della posta',
         'crop' => 'Ritaglio',
+        'bank_rule' => 'Regola della banca',
     ],
     'reading_status' => [
         'queued' => 'In coda',
@@ -221,6 +222,8 @@ return [
         'deletion_cancelled' => 'Eliminazione annullata',
         'visit_started' => 'Visita iniziata',
         'visit_ended' => 'Visita finita',
+        'bank_feed_on' => 'Collegamento alla banca acceso',
+        'bank_feed_off' => 'Collegamento alla banca spento',
         'reading_limit_changed' => 'Limite di letture cambiato',
     ],
     'call_outcome' => [
@@ -307,5 +310,20 @@ return [
         'major' => 'Maggiore',
         'minor' => 'Intermedia',
         'patch' => 'Correzione',
+    ],
+    'bank_connection_status' => [
+        'active' => 'Attivo',
+        'needs_reconnect' => 'Da ricollegare',
+        'error' => 'Errore',
+    ],
+    'bank_transaction_status' => [
+        'booked' => 'Registrato',
+        'pending' => 'In attesa',
+    ],
+    'bank_match_source' => [
+        'rule' => 'Da una regola',
+        'assigned' => 'Assegnato da te',
+        'created' => 'Creato da qui',
+        'duplicate' => 'Collegato a uno che c\'era',
     ],
 ];

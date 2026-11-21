@@ -8,18 +8,17 @@
  * searches the text on this page. A search that finds nothing says so with
  * three tips; at the bottom, always, what is searched.
  *
- * On the phone the page has its own box (with the arrow back beside it, and the
- * title only for screen readers); on the tablet and the computer the box and
+ * On the phone the page has its own box (the link back is the layout's, above
+ * the page, and the title is only for screen readers); on the tablet and the computer the box and
  * its menu are in the top bar, which shows the text, and the link to the Home
  * and the title are above the results.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { ArrowLeft, SearchX } from '@lucide/vue';
+import { SearchX } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, useTemplateRef } from 'vue';
 import FmChip from '@/components/fm/FmChip.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
@@ -32,7 +31,6 @@ import {
 } from '@/composables/useSearchBox';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { useLayoutMode } from '@/composables/useLayoutMode';
-import { canGoBack } from '@/lib/visitHistory';
 import { dashboard, search } from '@/routes';
 
 /** The name of the app, for the texts that say it. */
@@ -143,17 +141,6 @@ usePageTrail(() => [
     { label: trans('Home'), href: dashboard().url },
     { label: trans('Search') },
 ]);
-
-/** The arrow of the phone: back to the page of the app before, or to the Home if there is none. */
-function goBack(): void {
-    if (canGoBack()) {
-        window.history.back();
-
-        return;
-    }
-
-    router.visit(dashboard().url);
-}
 </script>
 
 <template>
@@ -163,12 +150,7 @@ function goBack(): void {
         class="flex w-full flex-col"
         :class="phone ? 'gap-5' : 'mx-auto max-w-220 gap-6'"
     >
-        <FmTitle
-            v-if="!phone"
-            :title="title"
-            :back="dashboard().url"
-            :back-label="$t('Home')"
-        />
+        <FmTitle v-if="!phone" :title="title" />
         <h1 v-else class="sr-only">{{ title }}</h1>
 
         <div class="flex flex-col" :class="phone ? 'gap-3' : 'gap-6'">
@@ -178,14 +160,6 @@ function goBack(): void {
                 @focusin="onFocusIn"
                 @focusout="onFocusOut"
             >
-                <button
-                    type="button"
-                    :aria-label="$t('Back')"
-                    class="-ml-2.5 flex size-11 shrink-0 items-center justify-center rounded-full text-ink"
-                    @click="goBack"
-                >
-                    <FmIcon :icon="ArrowLeft" :size="24" />
-                </button>
                 <FmSearchField
                     v-model="text"
                     :input-id="SEARCH_PAGE_FIELD"

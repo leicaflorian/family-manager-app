@@ -8,10 +8,12 @@ use App\Enums\IncomeType;
 use App\Http\Requests\Concerns\LinksDocuments;
 use App\Http\Requests\Concerns\ReadsCard;
 use App\Http\Requests\Concerns\UploadsFiles;
+use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Rules\OfFamily;
+use App\Services\Banks\BankFeedAvailability;
 use App\Services\Movements;
 use App\Support\LocalPath;
 use App\Support\PlannedKind;
@@ -95,6 +97,8 @@ final class SaveMovementRequest extends FormRequest
             'financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
             'organization_id' => ['nullable', new OfFamily('organizations')],
             'person_id' => ['nullable', new OfFamily('people')],
+            // Made from a bank transaction: only a new movement, of the family, still to sort and of the same kind
+            ...$this->route('id') === null ? ['bank_transaction_id' => ['nullable', $this->bankTransactionRule(...)]] : [],
             'planned_id' => ['nullable', new OfFamily($expense ? 'planned_expenses' : 'planned_incomes')],
             'occurrence_date' => ['nullable', 'date_format:Y-m-d', $this->occurrenceRule(...)],
             'back_to_card' => ['sometimes', 'boolean'],
@@ -144,7 +148,7 @@ final class SaveMovementRequest extends FormRequest
      */
     public function columns(): array
     {
-        $columns = $this->safe()->except(['kind', 'card', 'back_to_card', 'from', 'files', 'link_documents', 'unlink_documents']);
+        $columns = $this->safe()->except(['kind', 'card', 'back_to_card', 'from', 'bank_transaction_id', 'files', 'link_documents', 'unlink_documents']);
 
         return $this->kind() === 'expense' && $this->exists('card') ? [...$columns, ...$this->cardColumns()] : $columns;
     }
@@ -155,6 +159,16 @@ final class SaveMovementRequest extends FormRequest
     public function back(): ?string
     {
         return LocalPath::of($this->input('from'));
+    }
+
+    /**
+     * The bank transaction the new movement is made from, null when it is not.
+     */
+    public function bankTransactionId(): ?int
+    {
+        $id = $this->input('bank_transaction_id');
+
+        return $this->route('id') === null && is_numeric($id) ? (int) $id : null;
     }
 
     /**
@@ -221,6 +235,23 @@ final class SaveMovementRequest extends FormRequest
 
         if (! $open) {
             $fail(__('This is not a due date that is still open.'));
+        }
+    }
+
+    /**
+     * Checks that the bank transaction is of the family, still to sort and of the kind of the movement, and that the
+     * link to the bank is on. The save locks and checks it again.
+     *
+     * @param  string  $attribute  the field
+     * @param  mixed  $value  the id sent
+     * @param  Closure(string, ?string=): PotentiallyTranslatedString  $fail  reports the error
+     */
+    private function bankTransactionRule(string $attribute, mixed $value, Closure $fail): void
+    {
+        $transaction = BankFeedAvailability::on() && is_numeric($value) ? BankTransaction::query()->unsorted()->find((int) $value) : null;
+
+        if (! $transaction instanceof BankTransaction || $transaction->kind() !== $this->kind()) {
+            $fail(__('This movement from the bank is not to sort any more.'));
         }
     }
 }

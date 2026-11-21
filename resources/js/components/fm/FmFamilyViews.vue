@@ -1,15 +1,15 @@
 <script setup lang="ts">
 /**
  * The top of *People* and *Organizations*: the title *Family* with the name of
- * the family, the actions of the page and the two views, each with how many.
+ * the family, the actions of the page and the two views as underlined tabs (as the budget), each with how many.
  *
  * @group navigation
  */
-import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { index as organizations } from '@/routes/organizations';
 import { index as people } from '@/routes/people';
+import FmTabs, { type Tab } from './FmTabs.vue';
 import FmTitle from './FmTitle.vue';
 
 const { family, current } = defineProps<{
@@ -24,18 +24,18 @@ defineSlots<{
     actions?: () => unknown;
 }>();
 
-const views = computed(() => [
+const views = computed((): Tab[] => [
     {
-        key: 'people',
         label: trans('People'),
         count: family.people,
         href: people().url,
+        current: current === 'people',
     },
     {
-        key: 'organizations',
         label: trans('Organizations'),
         count: family.organizations,
         href: organizations().url,
+        current: current === 'organizations',
     },
 ]);
 </script>
@@ -51,27 +51,6 @@ const views = computed(() => [
                 <slot name="actions" />
             </template>
         </FmTitle>
-        <nav
-            :aria-label="$t('Family')"
-            class="flex max-w-[420px] gap-1.5 rounded-lg bg-segment p-1"
-        >
-            <Link
-                v-for="view in views"
-                :key="view.key"
-                :href="view.href"
-                :aria-current="view.key === current ? 'page' : undefined"
-                class="flex h-9 flex-1 items-center justify-center gap-1 rounded-tag text-body-sm whitespace-nowrap no-underline"
-                :class="
-                    view.key === current
-                        ? 'bg-card text-ink shadow-raised'
-                        : 'text-ink-soft'
-                "
-            >
-                {{ view.label }}
-                <span class="font-semibold text-ink-soft">{{
-                    view.count
-                }}</span>
-            </Link>
-        </nav>
+        <FmTabs :tabs="views" :label="$t('Family')" />
     </div>
 </template>
