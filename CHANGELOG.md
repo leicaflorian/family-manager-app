@@ -2,6 +2,16 @@
 
 All notable changes to Fameja.app.
 
+## [2.5.1] - 2026-11-21
+
+### Charts
+- `FmBarChart` is drawn at its real width on the page (one unit, one pixel), so words keep their size instead of scaling with the chart.
+- The chart is lower when narrow.
+- When the months are narrow, only the initial of the month is shown and «(in progress)» goes on a second line.
+
+### Docs
+- Learnings: `useElementSize` always returns 0 in tests (stub `ResizeObserver`).
+
 ## [2.5.0] - 2026-11-21
 
 ### Consumption

@@ -1,5 +1,19 @@
 [
     {
+        "version": "2.5.1",
+        "date": "2026-11-21",
+        "notes": {
+            "it": [
+                "I grafici a barre ora si adattano meglio alla larghezza dello schermo: le scritte restano leggibili anche sul telefono.",
+                "Quando i mesi sono stretti, il grafico mostra solo l'iniziale del mese e scrive «(in corso)» su due righe."
+            ],
+            "en": [
+                "Bar charts now fit the width of your screen better: the words stay readable on your phone too.",
+                "When the months are narrow, the chart shows only the initial of the month and writes «(in progress)» on two lines."
+            ]
+        }
+    },
+    {
         "version": "2.5.0",
         "date": "2026-11-21",
         "notes": {
