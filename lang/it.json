@@ -2231,5 +2231,11 @@
     "Estimated": "Consumi stimati",
     "The supplier estimated them, they were not read from the meter.": "Il fornitore li ha stimati, non letti dal contatore.",
     "Check this consumption: it would be :price a :unit, it usually means I read the wrong number.": "Controlla questo consumo: verrebbero :price a :unit, di solito vuol dire che ho letto il numero sbagliato.",
-    "To record the consumption choose the utility above, in «Link it to».": "Per segnare i consumi scegli l'utenza sopra, in «Collegalo a»."
+    "To record the consumption choose the utility above, in «Link it to».": "Per segnare i consumi scegli l'utenza sopra, in «Collegalo a».",
+    "In :month you paid the most for electricity this year: :price per :unit against an average of :average. Your consumption did not go up: the price changed.": "A :month hai pagato la luce più cara dell'anno: :price a :unit contro una media di :average. Il consumo non è salito: è cambiato il prezzo.",
+    "In :month you paid the most for gas this year: :price per :unit against an average of :average. Your consumption did not go up: the price changed.": "A :month hai pagato il gas più caro dell'anno: :price a :unit contro una media di :average. Il consumo non è salito: è cambiato il prezzo.",
+    "In :month you paid the most for water this year: :price per :unit against an average of :average. Your consumption did not go up: the price changed.": "A :month hai pagato l'acqua più cara dell'anno: :price a :unit contro una media di :average. Il consumo non è salito: è cambiato il prezzo.",
+    "In :month you used :quantity, :difference more than :previous.": "A :month hai consumato :quantity, :difference più di :previous.",
+    "The last two bills are estimated. Send the meter reading to the supplier, so you pay for what you really use.": "Le ultime due bollette sono stimate. Manda la lettura del contatore al fornitore, così paghi quello che consumi davvero.",
+    "The bill after :date is missing.": "Manca la bolletta dopo il :date."
 }

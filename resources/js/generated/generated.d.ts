@@ -841,6 +841,50 @@ readonly pattern: string,
 readonly explanation: string,
 };
 }
+namespace Consumption {
+export type ConsumptionBillData = {
+readonly id: number,
+readonly document_id: number | null,
+readonly period_start: string,
+readonly period_end: string,
+readonly quantity: number,
+readonly unit: string,
+readonly amount: number | null,
+readonly price: number | null,
+readonly paid: boolean,
+readonly is_estimated: boolean,
+readonly has_adjustments: boolean,
+readonly above_average: boolean,
+readonly check: boolean,
+readonly source: string,
+readonly can_update: boolean,
+readonly can_delete: boolean,
+};
+export type ConsumptionFiguresData = {
+readonly quantity: number,
+readonly previousQuantity: number | null,
+readonly coveredMonths: number,
+readonly amount: number,
+readonly bills: number,
+readonly toPay: number,
+readonly averagePrice: number | null,
+readonly dearestMonth: string | null,
+readonly dearestPrice: number | null,
+};
+export type ConsumptionMonthData = {
+readonly month: string,
+readonly quantity: number | null,
+readonly amount: number | null,
+readonly price: number | null,
+readonly previousQuantity: number | null,
+readonly previousAmount: number | null,
+readonly coverage: string,
+readonly coveredUntil: number | null,
+readonly estimated: boolean,
+readonly adjusted: boolean,
+readonly billIds: number[],
+};
+}
 namespace Mail {
 export type MailScreeningAnswer = {
 readonly verdict: unknown,
